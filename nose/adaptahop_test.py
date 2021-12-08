@@ -68,13 +68,62 @@ def test_properties_are_simarrays():
         v.in_units(unit)
 
 
-def test_physical_conversion():
+def test_physical_conversion_from_halo():
     f = pynbody.load("testdata/output_00080")
-    halo = f.halos()[1]
+    halos = f.halos()
+    halo1 = halos[1]
+    halo2 = halos[2]
 
-    assert halo.properties["m"].units != "Msol"
-    halo.physical_units()
-    assert halo.properties["m"].units == "Msol"
+    # Make sure the conversion is propagated to the parent
+    fields = (
+        halo1.properties["m"],
+        halo1["mass"],
+        f.dm["mass"],
+        halo2.properties["m"]
+    )
+    for field in fields:
+        assert field.units != "Msol"
+    halo1.physical_units()
+    for field in fields:
+        assert field.units == "Msol"
+
+    # Get another halo and make sure it is also in physical units
+    halo3 = halos[3]
+    assert halo3.properties["m"].units == "Msol"
+
+
+def test_physical_conversion_from_halo_catalogue():
+    f = pynbody.load("testdata/output_00080")
+    halos = f.halos()
+
+    assert f.dm["mass"].units != "Msol"
+    halos.physical_units()
+    assert f.dm["mass"].units == "Msol"
+    assert halos[1].properties["m"].units == "Msol"
+    assert halos[1]["mass"].units == "Msol"
+
+
+def test_physical_conversion_from_snapshot():
+    # Convert then load
+    f = pynbody.load("testdata/output_00080")
+    assert f.dm["mass"].units != "Msol"
+    f.physical_units()
+    halos = f.halos()
+
+    assert f.dm["mass"].units == "Msol"
+    assert halos[1].properties["m"].units == "Msol"
+    assert halos[1]["mass"].units == "Msol"
+
+    # Load then convert
+    f = pynbody.load("testdata/output_00080")
+    assert f.dm["mass"].units != "Msol"
+
+    halos = f.halos()
+    f.physical_units()
+
+    assert f.dm["mass"].units == "Msol"
+    assert halos[1].properties["m"].units == "Msol"
+    assert halos[1]["mass"].units == "Msol"
 
 
 def test_get_group():
