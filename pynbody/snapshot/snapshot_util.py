@@ -7,9 +7,13 @@ Utility functions for the snapshot module.
 
 """
 
-from .. import array
+from .. import array, units
+
+import logging
 
 from functools import reduce
+
+logger = logging.getLogger('pynbody.snapshot')
 
 class ContainerWithPhysicalUnitsOption:
     """

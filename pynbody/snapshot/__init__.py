@@ -19,7 +19,7 @@ from .. import simdict
 from .. import dependencytracker
 from ..units import has_units
 
-from .util import ContainerWithPhysicalUnitsOption
+from .snapshot_util import ContainerWithPhysicalUnitsOption
 
 import numpy as np
 import copy
