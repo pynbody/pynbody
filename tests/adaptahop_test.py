@@ -7,12 +7,13 @@ from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
 import pytest
 
 
-@pytest.fixture(scope="module")
+# Note: we do not use a module-wide fixture here to prevent caching of units
+@pytest.fixture
 def f():
     yield pynbody.load("testdata/output_00080")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def halos(f):
     yield f.halos()
 
