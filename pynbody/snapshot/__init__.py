@@ -103,7 +103,7 @@ class UnitFullContainer:
         for ar in all:
             self._autoconvert_array_unit(ar.ancestor, dims)
 
-    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True):
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):
         """
         Converts all array's units to be consistent with the
         distance, velocity, mass basis units specified.
@@ -119,6 +119,8 @@ class UnitFullContainer:
            *mass*: string (default = 'Msol')
 
            *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
+
+           *convert_parent*: boolean (default = None); ignored for SimSnap objects
 
         """
         dims = [units.Unit(x) for x in (distance, velocity, mass, 'a', 'h')]

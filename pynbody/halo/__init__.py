@@ -63,10 +63,37 @@ class Halo(snapshot.IndexedSubSnap):
         return self._halo_catalogue.is_subhalo(self._halo_id, otherhalo._halo_id)
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=True):
+        """
+        Converts all array's units to be consistent with the
+        distance, velocity, mass basis units specified.
+
+        Base units can be specified using keywords.
+
+        **Optional Keywords**:
+
+           *distance*: string (default = 'kpc')
+
+           *velocity*: string (default = 'km s^-1')
+
+           *mass*: string (default = 'Msol')
+
+           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
+
+           *convert_parent*: boolean (default = None); if True, propagate units change to parent snapshot. See note below.
+
+        **Note**:
+
+            When convert_parent is True, the unit conversion is propagated to
+            the parent halo catalogue and the halo properties *are not
+            converted*. The halo catalogue is in charge of calling
+            physical_units with convert_parent=False for all halo objects
+            (including this one).
+
+            When convert_parent is False, the properties are converted
+            immediately.
+
+        """
         if convert_parent:
-            # Propagate to halo container. The latter will
-            # convert *all* the halos at once with
-            # convert_parent=False (see other code path)
             self._halo_catalogue.physical_units(
                 distance=distance,
                 velocity=velocity,
@@ -197,7 +224,26 @@ class HaloCatalogue(snapshot.UnitFullContainer):
     def _can_run(self):
         return False
 
-    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True):
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):
+        """
+        Converts all array's units to be consistent with the
+        distance, velocity, mass basis units specified.
+
+        Base units can be specified using keywords.
+
+        **Optional Keywords**:
+
+           *distance*: string (default = 'kpc')
+
+           *velocity*: string (default = 'km s^-1')
+
+           *mass*: string (default = 'Msol')
+
+           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
+
+           *convert_parent*: boolean (default = None); ignored for HaloCatalogue objects
+
+        """
         self.base.physical_units(distance=distance, velocity=velocity, mass=mass, persistent=persistent)
 
         # Convert all instantiated subhalos
