@@ -395,7 +395,7 @@ class CompositeUnit(UnitBase):
         self._powers = powers
 
     def latex(self):
-        """Returns a LaTeX representation of this unit.
+        r"""Returns a LaTeX representation of this unit.
 
         Prefactors are converted into exponent notation. Named units by default
         are represented by the string '\mathrm{unit_name}', although this can

@@ -1,18 +1,19 @@
 import pynbody
 import numpy as np, numpy.testing as npt
 
-def setup():
+import pytest
+def setup_module():
     # create a dummy gadget file
-    global f
+    global f, h
     f = pynbody.new(dm=2097152)
     f['iord'] = np.arange(2097152)
     f.properties['z']=1.6591479493605812
     f._filename = "testdata/rockstar/snapshot_015"
+    h = f.halos()
 
 
 def test_load_rockstar():
     global f, h
-    h = f.halos()
     assert len(h)==5851
     assert isinstance(h, pynbody.halo.RockstarCatalogue)
 
@@ -33,5 +34,5 @@ def test_rockstar_particles():
 def test_reject_unsuitable_rockstar_files():
     fwrong = pynbody.new(dm=2097152)
     fwrong.properties['z']=0
-    with npt.assert_raises(RuntimeError):
+    with pytest.raises(RuntimeError):
         hwrong = fwrong.halos()

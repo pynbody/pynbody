@@ -2,7 +2,8 @@ import pynbody
 import numpy as np
 
 
-def setup():
+import pytest
+def setup_module():
     global f
     f = pynbody.load("testdata/ramses_partial_output_00250")
 
@@ -51,7 +52,7 @@ def test_key_error():
     a problem where AttributeError could be raised instead because
     _rt_blocks_3d was missing for non-RT runs"""
 
-    with np.testing.assert_raises(KeyError):
+    with pytest.raises(KeyError):
         f.gas['nonexistentarray']
 
 def test_mass_unit_sanity():

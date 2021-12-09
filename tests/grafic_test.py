@@ -2,7 +2,8 @@ import pynbody
 import numpy.testing as npt
 import numpy as np
 
-def setup():
+import pytest
+def setup_module():
     global f
     f = pynbody.load("testdata/grafic_test/")
 

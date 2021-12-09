@@ -157,7 +157,8 @@ correct_pos_3000 = np.array([[4.80664825e+01,  -8.99647751e+01,
                              [-9.48075593e-01,   2.02855930e-01,  -7.51522779e-02]])
 
 
-def setup():
+import pytest
+def setup_module():
     global f
     f = pynbody.load("testdata/nchilada_test/12M.00001")
 
@@ -215,10 +216,10 @@ def test_partial_loading():
 
 def test_HI_not_present_for_non_gas_particles():
     fresh_f = pynbody.load("testdata/nchilada_test/12M.00001")
-    with npt.assert_raises(KeyError):
+    with pytest.raises(KeyError):
         fresh_f['HI']
 
-    with npt.assert_raises(KeyError):
+    with pytest.raises(KeyError):
         fresh_f.dm['HI']
 
     # correct value of f.gas['HI'] is tested above

@@ -203,7 +203,7 @@ class KDTree(object):
         kdmain.nn_stop(self.kdtree, smx)
 
     def sph_mean(self, array, nsmooth=64):
-        """Calculate the SPH mean of a simulation array.
+        r"""Calculate the SPH mean of a simulation array.
 
         It's the application of the SPH interpolation formula for computing the smoothed quantity at particles position.
         It uses the cubic spline smoothing kernel W.
@@ -243,7 +243,7 @@ class KDTree(object):
         return output
 
     def sph_dispersion(self, array, nsmooth=64):
-        """Calculate the SPH dispersion of a simulation array.
+        r"""Calculate the SPH dispersion of a simulation array.
 
         It uses the cubic spline smoothing kernel W.
 

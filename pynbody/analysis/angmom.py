@@ -43,7 +43,7 @@ def ang_mom_vec_units(snap):
 
 
 def spin_parameter(snap):
-    """
+    r"""
 
     Return the spin parameter \lambda' of a centered halo
     as defined in eq. (5) of Bullock et al. 2001

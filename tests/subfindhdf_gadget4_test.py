@@ -1,7 +1,8 @@
 import pynbody
 
 
-def setup():
+import pytest
+def setup_module():
     global snap, halos, subhalos, htest
     snap = pynbody.load('testdata/testL10N64/snapshot_000.hdf5')
     halos = snap.halos()
@@ -9,7 +10,7 @@ def setup():
     htest = Halos('testdata/testL10N64/', 0)
 
 
-def teardown():
+def teardown_module():
     global snap, halos, subhalos, htest
     del snap, halos, subhalos, htest
 
