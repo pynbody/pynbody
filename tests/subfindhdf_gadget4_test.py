@@ -3,60 +3,73 @@ import pynbody
 
 import pytest
 def setup_module():
-    global snap, halos, subhalos, htest
+    global snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
     snap = pynbody.load('testdata/testL10N64/snapshot_000.hdf5')
     halos = snap.halos()
     subhalos = snap.halos(subs=True)
     htest = Halos('testdata/testL10N64/', 0)
+    snap_arepo = pynbody.load('testdata/arepo/cosmobox_015.hdf5')
+    halos_arepo = snap_arepo.halos()
+    subhalos_arepo = snap_arepo.halos(subs=True)
+    htest_arepo = Halos('testdata/arepo/', 15)
 
 
 def teardown_module():
-    global snap, halos, subhalos, htest
-    del snap, halos, subhalos, htest
+    global snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
+    del snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
 
 
 def test_catalogue():
     _h_nogrp = snap.halos(grp_array=True)
     _subh_nogrp = snap.halos(subs=True, grp_array=True)
-    for h in [halos, subhalos, _h_nogrp, _subh_nogrp]:
+    _harepo_nogrp = snap_arepo.halos(grp_array=True)
+    _subharepo_nogrp = snap_arepo.halos(subs=True, grp_array=True)
+    for h in [halos, subhalos, _h_nogrp, _subh_nogrp, halos_arepo, subhalos_arepo, _harepo_nogrp, _subharepo_nogrp]:
         assert(isinstance(h, pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue)), \
             "Should be a Gadget4SubfindHDFCatalogue catalogue but instead it is a " + str(type(h))
 
 
 def test_header():
     assert(halos.header == htest.loadHeader())
+    assert(halos_arepo.header == htest_arepo.loadHeader())
 
 
 def test_halo_properties():
-    r = htest.load()['halos']
-    hids = np.random.choice(range(len(halos)), 5)
-    for hid in hids:
-        for key in list(r.keys()):
-            if key in list(halos[hid].properties.keys()):
-                np.testing.assert_allclose(halos[hid].properties[key], r[key][hid])
+    for htest_file, halocatalogue in [(htest, halos), (htest_arepo, halos_arepo)]:
+        r = htest_file.load()['halos']
+        hids = np.random.choice(range(len(halocatalogue)), 5)
+        for hid in hids:
+            for key in list(r.keys()):
+                if key in list(halocatalogue[hid].properties.keys()):
+                    np.testing.assert_allclose(halocatalogue[hid].properties[key], r[key][hid])
 
 
 def test_subhalo_properties():
-    r = htest.load()['subhalos']
-    hids = np.random.choice(range(len(subhalos)), 5)
-    for hid in hids:
-        for key in list(r.keys()):
-            if key in list(subhalos[hid].properties.keys()):
-                np.testing.assert_allclose(subhalos[hid].properties[key], r[key][hid])
+    for htest_file, halocatalogue in [(htest, subhalos), (htest_arepo, subhalos_arepo)]:
+        r = htest_file.load()['subhalos']
+        hids = np.random.choice(range(len(halocatalogue)), 5)
+        for hid in hids:
+            for key in list(r.keys()):
+                if key in list(halocatalogue[hid].properties.keys()):
+                    np.testing.assert_allclose(halocatalogue[hid].properties[key], r[key][hid])
 
 
 def test_halo_loading() :
     """ Check that halo loading works """
-    h = halos
     # check that data loading for individual fof groups works
     _ = halos[0]['pos']
     _ = halos[1]['pos']
     _ = halos[0]['mass'].sum()
     _ = halos[1]['mass'].sum()
-    assert(len(halos[0]['iord']) == len(halos[0]) == htest.load()['halos']['GroupLen'][0])
+    _ = halos_arepo[0]['pos']
+    _ = halos_arepo[1]['pos']
+    _ = halos_arepo[0]['mass'].sum()
+    _ = halos_arepo[1]['mass'].sum()
+    assert(len(halos[0]['iord']) == len(halos[0]) == htest.load()['halos']['GroupLenType'][0, 1])
+    assert(len(halos_arepo[0]['iord']) == len(halos_arepo[0]) == htest_arepo.load()['halos']['GroupLenType'][0, 1])
 
 
-def test_particle_data() :
+def test_particle_data():
     hids = np.random.choice(range(len(halos)), 5)
     for hid in hids:
         assert(np.allclose(halos[hid].dm['iord'], htest[hid]['iord']))
@@ -113,8 +126,10 @@ class Halos:
     def loadSubhalos(self, fields=None):
         """ Load all subhalo information from the entire group catalog for one snapshot
            (optionally restrict to a subset given by fields). """
-
-        return self.loadObjects("Subhalo", "subhalos", fields)
+        try:
+            return self.loadObjects("Subhalo", "subhalos", fields)
+        except:
+            return self.loadObjects("Subhalo", "subgroups", fields)
 
     def loadHalos(self, fields=None):
         """ Load all halo information from the entire group catalog for one snapshot
