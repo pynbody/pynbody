@@ -25,7 +25,7 @@ from .. import snapshot, util, units, array
 
 logger = logging.getLogger("pynbody.halo")
 
-class DummyHalo(snapshot.UnitFullContainer):
+class DummyHalo(snapshot.ContainerWithPhysicalUnitsOption):
 
     def __init__(self):
         self.properties = {}
@@ -109,7 +109,7 @@ class Halo(snapshot.IndexedSubSnap):
 # General HaloCatalogue class #
 #-----------------------------#
 
-class HaloCatalogue(snapshot.UnitFullContainer):
+class HaloCatalogue(snapshot.ContainerWithPhysicalUnitsOption):
 
     """
     Generic halo catalogue object.
