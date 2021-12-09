@@ -1,42 +1,60 @@
 import os.path
 import re
-from itertools import repeat
 from typing import Sequence
 
 import numpy as np
 
-from . import HaloCatalogue, Halo, logger
-from .. import util, units
+from . import HaloCatalogue, Halo, DummyHalo, logger
+from .. import util, units, array
 
 from ..extern.cython_fortran_utils import FortranFile
 
 
-class DummyHalo(object):
-    def __init__(self):
-        self.properties = {}
-
-
-unit_length = units.Mpc
-unit_vel = units.km / units.s
-unit_mass = 1e11 * units.Msol
+unit_length = units.Unit("Mpc")
+unit_vel = units.Unit("km s**-1")
+unit_mass = 1e11 * units.Unit("Msol")
 unit_angular_momentum = unit_mass * unit_vel * unit_length
 unit_energy = unit_mass * unit_vel ** 2
-unit_temperature = units.K
+unit_temperature = units.Unit("K")
 unit_density = unit_mass / unit_length ** 3
 
-MAPPING = (
-    ("x y z a b c R_c r r200 r50 r90 rmax rr3d rvir", unit_length),
-    ("sigma vx vy vz vmax vvir", unit_vel),
-    ("lx ly lz", unit_angular_momentum),
-    ("m m200 m_contam mtot mtot_contam mvir", unit_mass),
-    ("ek ep etot", unit_energy),
-    ("Tvir", unit_temperature),
-    ("rho0 rho3d", unit_density),
-)
-UNITS = {}
-for k, u in MAPPING:
-    for key, unit in zip(k.split(), repeat(u)):
-        UNITS[key] = unit
+UNITS = {
+    'pos_x': unit_length,
+    'pos_y': unit_length,
+    'pos_z': unit_length,
+    'shape_a': unit_length,
+    'shape_b': unit_length,
+    'shape_c': unit_length,
+    'nfw_R_c': unit_length,
+    'max_distance': unit_length,
+    'R200c': unit_length,
+    'r_half_mass': unit_length,
+    'r_90percent_mass': unit_length,
+    'max_velocity_radius': unit_length,
+    'radius_profile': unit_length,
+    'virial_radius': unit_length,
+    'velocity_dispersion': unit_vel,
+    'vel_x': unit_vel,
+    'vel_y': unit_vel,
+    'vel_z': unit_vel,
+    'max_velocity': unit_vel,
+    'virial_velocity': unit_vel,
+    'angular_momentum_x': unit_angular_momentum,
+    'angular_momentum_y': unit_angular_momentum,
+    'angular_momentum_z': unit_angular_momentum,
+    'm': unit_mass,
+    'M200c': unit_mass,
+    'm_contam': unit_mass,
+    'mtot': unit_mass,
+    'mtot_contam': unit_mass,
+    'virial_mass': unit_mass,
+    'kinetic_energy': unit_energy,
+    'potential_energy': unit_energy,
+    'total_energy': unit_energy,
+    'virial_temperature': unit_temperature,
+    'nfw_rho0': unit_density,
+    'density_profile': unit_density,
+}
 
 
 class BaseAdaptaHOPCatalogue(HaloCatalogue):
@@ -175,8 +193,10 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         halo = self._halos[halo_id]
         halo_dummy = self._halos[halo_id]
-        halo = self._read_halo_data(halo_id, halo.properties["file_offset"])
-        halo.dummy = halo_dummy
+        if isinstance(halo, DummyHalo):
+            halo = self._read_halo_data(halo_id, halo.properties["file_offset"])
+            halo.dummy = halo_dummy
+            self._halos[halo_id] = halo
 
         return halo
 
@@ -243,21 +263,42 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 attrs = self._halo_attributes
             props = fpu.read_attrs(attrs)
 
-        # Convert positions between [-Lbox/2, Lbox/2] to [0, Lbox].
         # /!\: AdaptaHOP assumes that 1Mpc == 3.08e24 (exactly)
         boxsize = self.base.properties["boxsize"]
         Mpc2boxsize = boxsize.in_units("cm") / 3.08e24  # Hard-coded in AdaptaHOP...
-        for k in "xyz":
-            props[k] = boxsize.in_units("Mpc") * (props[k] / Mpc2boxsize + 0.5)
 
         # Add units for known fields
+        # NOTE: we need to list the items, as the dictionary is updated in place
         for k, v in list(props.items()):
-            if k in UNITS:
-                props[k] = v * UNITS[k]
+            if k in ("pos_x", "pos_y", "pos_z"):
+                # convert positions between [-Lbox/2, Lbox/2] to [0, Lbox].
+                v = v / Mpc2boxsize + 0.5
+                unit = boxsize
+            elif k in UNITS:
+                unit = UNITS[k]
+            else:
+                continue
+            props[k] = array.SimArray(
+                v,
+                sim=self.base,
+                units=unit,
+                dtype=v.dtype,
+            )
 
         props["file_offset"] = offset
         props["npart"] = npart
         props["members"] = iord_array
+        # Create position and velocity
+        props["pos"] = array.SimArray(
+            [props["pos_x"], props["pos_y"], props["pos_z"]],
+            units=props["pos_x"].units,
+            sim=self.base,
+        )
+        props["vel"] = array.SimArray(
+            [props["vel_x"], props["vel_y"], props["vel_z"]],
+            units=props["vel_x"].units,
+            sim=self.base,
+        )
 
         # Create halo object and fill properties
         if hasattr(self, "_group_to_indices"):
@@ -269,7 +310,12 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         halo = Halo(
             halo_id, self, self._base_dm, index_array=index_array, iord_array=iord_array
         )
-        halo.properties.update(props)
+        for k, v in props.items():
+            halo.properties[k] = v
+
+        # Need to convert the units of the halo object as we
+        # just updated them
+        halo._autoconvert_properties()
 
         return halo
 
@@ -423,21 +469,22 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
         ("m", 1, "d"),
         ("ntot", 1, "i8b"),
         ("mtot", 1, "d"),
-        (("x", "y", "z"), 3, "d"),
-        (("vx", "vy", "vz"), 3, "d"),
-        (("lx", "ly", "lz"), 3, "d"),
-        (("r", "a", "b", "c"), 4, "d"),
-        (("ek", "ep", "etot"), 3, "d"),
+        # Note: we use pos_z instead of z to prevent confusion with redshift
+        (("pos_x", "pos_y", "pos_z"), 3, "d"),
+        (("vel_x", "vel_y", "vel_z"), 3, "d"),
+        (("angular_momentum_x", "angular_momentum_y", "angular_momentum_z"), 3, "d"),
+        (("max_distance", "shape_a", "shape_b", "shape_c"), 4, "d"),
+        (("kinetic_energy", "potential_energy", "total_energy"), 3, "d"),
         ("spin", 1, "d"),
-        ("sigma", 1, "d"),
-        (("rvir", "mvir", "Tvir", "vvir"), 4, "d"),
-        (("rmax", "vmax"), 2, "d"),
-        ("c", 1, "d"),
-        (("r200", "m200"), 2, "d"),
-        (("r50", "r90"), 2, "d"),
-        ("rr3D", -1, "d"),
-        ("rho3d", -1, "d"),
-        (("rho0", "R_c"), 2, "d"),
+        ("velocity_dispersion", 1, "d"),
+        (("virial_radius", "virial_mass", "virial_temperature", "virial_velocity"), 4, "d"),
+        (("max_velocity_radius", "max_velocity"), 2, "d"),
+        ("nfw_concentration", 1, "d"),
+        (("R200c", "M200c"), 2, "d"),
+        (("r_half_mass", "r_90percent_mass"), 2, "d"),
+        ("radius_profile", -1, "d"),
+        ("density_profile", -1, "d"),
+        (("nfw_rho0", "nfw_R_c"), 2, "d"),
     )
 
     _halo_attributes_contam = (
@@ -466,14 +513,15 @@ class AdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
             "i",
         ),
         ("m", 1, "f"),
-        (("x", "y", "z"), 3, "f"),
-        (("vx", "vy", "vz"), 3, "f"),
-        (("lx", "ly", "lz"), 3, "f"),
-        (("r", "a", "b", "c"), 4, "f"),
-        (("ek", "ep", "etot"), 3, "f"),
+        # Note: we use pos_z instead of z to prevent confusion with redshift
+        (("pos_x", "pos_y", "pos_z"), 3, "f"),
+        (("vel_x", "vel_y", "vel_z"), 3, "f"),
+        (("angular_momentum_x", "angular_momentum_y", "angular_momentum_z"), 3, "f"),
+        (("max_distance", "shape_a", "shape_b", "shape_c"), 4, "f"),
+        (("kinetic_energy", "potential_energy", "total_energy"), 3, "f"),
         ("spin", 1, "f"),
-        (("rvir", "mvir", "Tvir", "vvir"), 4, "f"),
-        (("rho0", "R_c"), 2, "f"),
+        (("virial_radius", "virial_mass", "virial_temperature", "virial_velocity"), 4, "f"),
+        (("nfw_rho0", "nfw_R_c"), 2, "f"),
     )
 
     _halo_attributes_contam = tuple()

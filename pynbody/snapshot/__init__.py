@@ -19,12 +19,12 @@ from .. import simdict
 from .. import dependencytracker
 from ..units import has_units
 
+from .snapshot_util import ContainerWithPhysicalUnitsOption
+
 import numpy as np
 import copy
 import weakref
-import sys
 import hashlib
-import time
 import warnings
 import threading
 import re
@@ -36,7 +36,8 @@ from functools import reduce
 logger = logging.getLogger('pynbody.snapshot')
 
 
-class SimSnap(object):
+
+class SimSnap(ContainerWithPhysicalUnitsOption):
 
     """The class for managing simulation snapshots.
 
@@ -168,6 +169,8 @@ class SimSnap(object):
        :func:`~pynbody.load` or :func:`~pynbody.new`.
        """
 
+        super().__init__()
+
         self._arrays = {}
         self._num_particles = 0
         self._family_slice = {}
@@ -176,7 +179,6 @@ class SimSnap(object):
         self._family_derived_array_names = {}
         for i in family._registry:
             self._family_derived_array_names[i] = []
-        self._autoconvert = None
 
         self._dependency_tracker = dependencytracker.DependencyTracker()
         self._immediate_cache_lock = threading.RLock()
@@ -742,76 +744,6 @@ class SimSnap(object):
                             velocity=self.infer_original_units('km s^-1'),
                             mass=self.infer_original_units('Msol'), persistent=False)
 
-    def _autoconvert_array_unit(self, ar, dims=None, ucut=3):
-        """Given an array ar, convert its units such that the new units span
-        dims[:ucut]. dims[ucut:] are evaluated in the conversion (so will be things like
-        a, h etc).
-
-        If dims is None, use the internal autoconvert state to perform the conversion."""
-
-        if dims is None:
-            dims = self.ancestor._autoconvert
-        if dims is None:
-            return
-        if ar.units is not None:
-            try:
-                d = ar.units.dimensional_project(dims)
-            except units.UnitsException:
-                return
-
-            new_unit = reduce(lambda x, y: x * y, [
-                              a ** b for a, b in zip(dims, d[:ucut])])
-            if new_unit != ar.units:
-                logger.info("Converting %s units from %s to %s" %
-                            (ar.name, ar.units, new_unit))
-                ar.convert_units(new_unit)
-
-    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True):
-        """
-        Converts all array's units to be consistent with the
-        distance, velocity, mass basis units specified.
-
-        Base units can be specified using keywords.
-
-        **Optional Keywords**:
-
-           *distance*: string (default = 'kpc')
-
-           *velocity*: string (default = 'km s^-1')
-
-           *mass*: string (default = 'Msol')
-
-           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
-
-        """
-
-        global config
-
-        dims = [units.Unit(x) for x in (distance, velocity, mass, 'a', 'h')]
-
-        all = list(self._arrays.values())
-        for x in self._family_arrays:
-            all += list(self._family_arrays[x].values())
-
-        for ar in all:
-            self._autoconvert_array_unit(ar.ancestor, dims)
-
-        for k in list(self.properties.keys()):
-            v = self.properties[k]
-            if isinstance(v, units.UnitBase):
-                try:
-                    new_unit = v.dimensional_project(dims)
-                except units.UnitsException:
-                    continue
-                new_unit = reduce(lambda x, y: x * y, [
-                                  a ** b for a, b in zip(dims, new_unit[:3])])
-                new_unit *= v.ratio(new_unit, **self.conversion_context())
-                self.properties[k] = new_unit
-
-        if persistent:
-            self._autoconvert = dims
-        else:
-            self._autoconvert = None
 
     def infer_original_units(self, dimensions):
         """Given a unit (or string) `dimensions`, returns a unit with the same
