@@ -1,3 +1,12 @@
+"""
+
+util
+====
+
+Utility functions for the snapshot module.
+
+"""
+
 from .. import array
 
 from functools import reduce
