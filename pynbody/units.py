@@ -342,8 +342,8 @@ class IrreducibleUnit(UnitBase):
     def __init__(self, st):
         self._st_rep = st
         self._register_unit(st)
-        self._bases = []
-        self._powers = []
+        self._bases = [st]
+        self._powers = [1]
 
     def __reduce__(self):
         return (_resurrect_named_unit, (self._st_rep, None, None))
