@@ -5,7 +5,8 @@ import copy
 import gc
 
 
-def setup():
+import pytest
+def setup_module():
     global f, original
 
     f = pynbody.new(dm=1000)

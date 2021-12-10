@@ -5,13 +5,14 @@ import os
 import time
 
 
-def setup():
+import pytest
+def setup_module():
     global f, h
     f = pynbody.load("testdata/g15784.lr.01024")
     h = f.halos()
 
 
-def teardown():
+def teardown_module():
     global f, h
     del f, h
 

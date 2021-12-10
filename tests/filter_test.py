@@ -2,7 +2,8 @@ import pynbody
 import numpy as np
 import numpy.testing as npt
 
-def setup():
+import pytest
+def setup_module():
     global f
     f = pynbody.new(1000)
     f['pos'] = np.random.normal(scale=1.0, size=f['pos'].shape)
@@ -13,7 +14,7 @@ def setup():
     f['mass'].units = 'Msol'
 
 
-def teardown():
+def teardown_module():
     global f
     del f
 
@@ -92,5 +93,5 @@ def test_hashing():
     X[pynbody.filt.FamilyFilter(pynbody.family.gas)] = 10
     assert X.get(pynbody.filt.Sphere('100 kpc'), None) == 5
     assert X.get(pynbody.filt.FamilyFilter(pynbody.family.gas),None)==10
-    with npt.assert_raises(KeyError):
+    with pytest.raises(KeyError):
         X[pynbody.filt.FamilyFilter(pynbody.family.dm)]

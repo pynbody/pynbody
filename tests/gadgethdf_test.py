@@ -4,12 +4,13 @@ from itertools import chain
 import shutil
 import h5py
 
-def setup() :
+import pytest
+def setup_module() :
     global snap,subfind
     snap = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
     subfind = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
 
-def teardown() :
+def teardown_module() :
     global snap,subfind
     del snap
     del subfind

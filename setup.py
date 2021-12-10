@@ -308,7 +308,7 @@ install_requires = [
 ]
 
 tests_require = [
-    'nose','pandas'
+    'pytest','pandas'
 ]
 
 docs_require = [

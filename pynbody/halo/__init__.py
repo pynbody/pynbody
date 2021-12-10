@@ -19,40 +19,44 @@ import weakref
 import copy
 import logging
 import warnings
+from functools import reduce
 
 from .. import snapshot, util, units, array
 
 logger = logging.getLogger("pynbody.halo")
 
-class DummyHalo:
-    def __init__(self):
-        self.properties = {}
-
-class SimpleHalo:
-    def __init__(self, base):
+class SimpleHalo(snapshot.ContainerWithPhysicalUnitsOption):
+    def __init__(self, halo_catalogue, base):
         if base is None:
             import pdb; pdb.set_trace()
         self.properties = {}
         self._base = weakref.ref(base)
+        self._halo_catalogue = halo_catalogue
 
     @property
     def base(self):
         return self._base()
 
-    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True):
-        dims = [units.Unit(x) for x in (distance, velocity, mass, 'a', 'h')]
-        for k in list(self.properties.keys()):
-            v = self.properties[k]
-            if isinstance(v, array.SimArray):
-                try:
-                    new_unit = v.units.dimensional_project(dims)
-                    new_unit = reduce(
-                        lambda x, y: x * y,
-                        [a ** b for a, b in zip(dims, new_unit[:3])]
-                    )
-                except units.UnitsException:
-                    continue
-                self.properties[k] = v.in_units(new_unit)
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=True):
+        if convert_parent:
+            self._halo_catalogue.physical_units(
+                distance=distance,
+                velocity=velocity,
+                mass=mass,
+                persistent=persistent
+            )
+        else:
+            # Convert own properties
+            self._autoconvert_properties()
+
+class DummyHalo(snapshot.ContainerWithPhysicalUnitsOption):
+
+    def __init__(self):
+        self.properties = {}
+
+    def physical_units(self, *args, **kwargs):
+        pass
+
 
 class Halo(snapshot.IndexedSubSnap):
 
@@ -71,22 +75,8 @@ class Halo(snapshot.IndexedSubSnap):
             for key in list(halo_catalogue._halos[halo_id].properties.keys()):
                 self.properties[key] = halo_catalogue._halos[halo_id].properties[key]
 
-    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True):
-        dims = [units.Unit(x) for x in (distance, velocity, mass, 'a', 'h')]
-        for k in list(self.properties.keys()):
-            v = self.properties[k]
-            if isinstance(v, array.SimArray):
-                try:
-                    new_unit = v.units.dimensional_project(dims)
-                    new_unit = reduce(
-                        lambda x, y: x * y,
-                        [a ** b for a, b in zip(dims, new_unit[:3])]
-                    )
-                except units.UnitsException:
-                    continue
-                self.properties[k] = v.in_units(new_unit)
-
-        return super().physical_units(distance, velocity, mass, persistent)
+        # Inherit autoconversion from parent
+        self._autoconvert_properties()
 
     def is_subhalo(self, otherhalo):
         """
@@ -96,12 +86,54 @@ class Halo(snapshot.IndexedSubSnap):
 
         return self._halo_catalogue.is_subhalo(self._halo_id, otherhalo._halo_id)
 
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=True):
+        """
+        Converts all array's units to be consistent with the
+        distance, velocity, mass basis units specified.
+
+        Base units can be specified using keywords.
+
+        **Optional Keywords**:
+
+           *distance*: string (default = 'kpc')
+
+           *velocity*: string (default = 'km s^-1')
+
+           *mass*: string (default = 'Msol')
+
+           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
+
+           *convert_parent*: boolean (default = None); if True, propagate units change to parent snapshot. See note below.
+
+        **Note**:
+
+            When convert_parent is True, the unit conversion is propagated to
+            the parent halo catalogue and the halo properties *are not
+            converted*. The halo catalogue is in charge of calling
+            physical_units with convert_parent=False for all halo objects
+            (including this one).
+
+            When convert_parent is False, the properties are converted
+            immediately.
+
+        """
+        if convert_parent:
+            self._halo_catalogue.physical_units(
+                distance=distance,
+                velocity=velocity,
+                mass=mass,
+                persistent=persistent
+            )
+        else:
+            # Convert own properties
+            self._autoconvert_properties()
+
 
 # ----------------------------#
 # General HaloCatalogue class #
 #-----------------------------#
 
-class HaloCatalogue(object):
+class HaloCatalogue(snapshot.ContainerWithPhysicalUnitsOption):
 
     """
     Generic halo catalogue object.
@@ -215,6 +247,38 @@ class HaloCatalogue(object):
     @staticmethod
     def _can_run(self):
         return False
+
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):
+        """
+        Converts all array's units to be consistent with the
+        distance, velocity, mass basis units specified.
+
+        Base units can be specified using keywords.
+
+        **Optional Keywords**:
+
+           *distance*: string (default = 'kpc')
+
+           *velocity*: string (default = 'km s^-1')
+
+           *mass*: string (default = 'Msol')
+
+           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
+
+           *convert_parent*: boolean (default = None); ignored for HaloCatalogue objects
+
+        """
+        self.base.physical_units(distance=distance, velocity=velocity, mass=mass, persistent=persistent)
+
+        # Convert all instantiated subhalos
+        for halo in self._halos.values():
+            halo.physical_units(
+                distance,
+                velocity,
+                mass,
+                persistent=persistent,
+                convert_parent=False
+            )
 
 
 class GrpCatalogue(HaloCatalogue):

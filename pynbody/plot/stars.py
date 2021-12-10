@@ -654,7 +654,7 @@ def sfh(sim, filename=None, massform=True, clear=False, legend=False,
 		# don't set the limits
 		#plt.ylim(0.0, 1.2 * np.max(sfhist))
 		plt.xlabel('Time [Gyr]', fontsize='large')
-		plt.ylabel('SFR [M$_\odot$ yr$^{-1}$]', fontsize='large')
+		plt.ylabel(r'SFR [M$_\odot$ yr$^{-1}$]', fontsize='large')
 	else:
 		plt.set_ylim(0.0, 1.2 * np.max(sfhist))
 
@@ -781,8 +781,8 @@ def schmidtlaw(sim, center=True, filename=None, pretime='50 Myr',
 		plt.loglog(
 			xbigiel, ybigiel, linestyle="dashed", label='Bigiel et al (2007)')
 
-	plt.xlabel('$\Sigma_{gas}$ [M$_\odot$ pc$^{-2}$]')
-	plt.ylabel('$\Sigma_{SFR}$ [M$_\odot$ yr$^{-1}$ kpc$^{-2}$]')
+	plt.xlabel(r'$\Sigma_{gas}$ [M$_\odot$ pc$^{-2}$]')
+	plt.ylabel(r'$\Sigma_{SFR}$ [M$_\odot$ yr$^{-1}$ kpc$^{-2}$]')
 	if legend:
 		plt.legend(loc=2)
 	if (filename):
