@@ -21,13 +21,33 @@ class ContainerWithPhysicalUnitsOption:
     that can be converted to physical units.
     """
     _autoconvert = None
+    _units_conversion_cache = {}
+
+    @classmethod
+    def _cached_unit_conversion(cls, from_unit, dims, ucut=3):
+        from_unit_s = repr(from_unit)
+        dims_s = repr(tuple(dims))
+        key = (from_unit_s, dims_s, ucut)
+        if key in cls._units_conversion_cache:
+            return cls._units_conversion_cache[key].copy()
+
+        try:
+            d = from_unit.dimensional_project(dims)
+        except units.UnitsException:
+            return
+
+        new_unit = reduce(
+            lambda x, y: x * y,
+            [a ** b for a, b in zip(dims, d[:ucut])]
+        )
+        cls._units_conversion_cache[key] = new_unit
+        return new_unit.copy()
 
     def _get_dims(self, dims=None):
         if dims is None:
             return self.ancestor._autoconvert
         else:
             return dims
-
 
     def _autoconvert_array_unit(self, ar, dims=None, ucut=3):
         """Given an array ar, convert its units such that the new units span
@@ -39,18 +59,14 @@ class ContainerWithPhysicalUnitsOption:
         if dims is None:
             return
 
-        if ar.units is not None:
-            try:
-                d = ar.units.dimensional_project(dims)
-            except units.UnitsException:
-                return
+        if ar.units is None or ar.units.is_dimensionless():
+            return
 
-            new_unit = reduce(lambda x, y: x * y, [
-                              a ** b for a, b in zip(dims, d[:ucut])])
-            if new_unit != ar.units:
-                logger.info("Converting %s units from %s to %s" %
-                            (ar.name, ar.units, new_unit))
-                ar.convert_units(new_unit)
+        new_unit = self._cached_unit_conversion(ar.units, dims, ucut=ucut)
+        if new_unit is not None and new_unit != ar.units:
+            logger.info("Converting %s units from %s to %s" %
+                        (ar.name, ar.units, new_unit))
+            ar.convert_units(new_unit)
 
 
     def _autoconvert_properties(self, dims=None):
@@ -60,12 +76,7 @@ class ContainerWithPhysicalUnitsOption:
 
         for k, v in list(self.properties.items()):
             if isinstance(v, units.UnitBase):
-                try:
-                    new_unit = v.dimensional_project(dims)
-                except units.UnitsException:
-                    continue
-                new_unit = reduce(lambda x, y: x * y, [
-                                  a ** b for a, b in zip(dims, new_unit[:3])])
+                new_unit = self._cached_unit_conversion(v, dims, ucut=3)
                 new_unit *= v.ratio(new_unit, **self.conversion_context())
                 self.properties[k] = new_unit
             elif isinstance(v, array.SimArray):
