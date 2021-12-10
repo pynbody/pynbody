@@ -29,7 +29,7 @@ class ContainerWithPhysicalUnitsOption:
         dims_s = repr(tuple(dims))
         key = (from_unit_s, dims_s, ucut)
         if key in cls._units_conversion_cache:
-            return cls._units_conversion_cache[key].copy()
+            return cls._units_conversion_cache[key]
 
         try:
             d = from_unit.dimensional_project(dims)
@@ -41,7 +41,11 @@ class ContainerWithPhysicalUnitsOption:
             [a ** b for a, b in zip(dims, d[:ucut])]
         )
         cls._units_conversion_cache[key] = new_unit
-        return new_unit.copy()
+
+        if new_unit is not None and new_unit != from_unit:
+            logger.info("Converting units from %s to %s" %
+                        (from_unit, new_unit))
+            return new_unit
 
     def _get_dims(self, dims=None):
         if dims is None:
@@ -63,7 +67,7 @@ class ContainerWithPhysicalUnitsOption:
             return
 
         new_unit = self._cached_unit_conversion(ar.units, dims, ucut=ucut)
-        if new_unit is not None and new_unit != ar.units:
+        if new_unit is not None:
             logger.info("Converting %s units from %s to %s" %
                         (ar.name, ar.units, new_unit))
             ar.convert_units(new_unit)
@@ -77,8 +81,9 @@ class ContainerWithPhysicalUnitsOption:
         for k, v in list(self.properties.items()):
             if isinstance(v, units.UnitBase):
                 new_unit = self._cached_unit_conversion(v, dims, ucut=3)
-                new_unit *= v.ratio(new_unit, **self.conversion_context())
-                self.properties[k] = new_unit
+                if new_unit is not None:
+                    new_unit *= v.ratio(new_unit, **self.conversion_context())
+                    self.properties[k] = new_unit
             elif isinstance(v, array.SimArray):
                 self._autoconvert_array_unit(v, dims)
 
