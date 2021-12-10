@@ -25,15 +25,19 @@ class ContainerWithPhysicalUnitsOption:
 
     @classmethod
     def _cached_unit_conversion(cls, from_unit, dims, ucut=3):
-        from_unit_s = repr(from_unit)
-        dims_s = repr(tuple(dims))
-        key = (from_unit_s, dims_s, ucut)
+        key = (
+            repr(from_unit._bases),
+            repr(from_unit._powers),
+            tuple(dims),
+            ucut,
+        )
         if key in cls._units_conversion_cache:
             return cls._units_conversion_cache[key]
 
         try:
             d = from_unit.dimensional_project(dims)
         except units.UnitsException:
+            cls._units_conversion_cache[key] = None
             return
 
         new_unit = reduce(
@@ -63,7 +67,7 @@ class ContainerWithPhysicalUnitsOption:
         if dims is None:
             return
 
-        if ar.units is None or ar.units.is_dimensionless():
+        if ar.units is None:
             return
 
         new_unit = self._cached_unit_conversion(ar.units, dims, ucut=ucut)

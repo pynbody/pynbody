@@ -280,6 +280,8 @@ class NoUnit(UnitBase):
 
     def __init__(self):
         self._no_unit = True
+        self._bases = []
+        self._powers = []
 
     def ratio(self, other, **substitutions):
         if isinstance(other, NoUnit):
@@ -340,6 +342,8 @@ class IrreducibleUnit(UnitBase):
     def __init__(self, st):
         self._st_rep = st
         self._register_unit(st)
+        self._bases = []
+        self._powers = []
 
     def __reduce__(self):
         return (_resurrect_named_unit, (self._st_rep, None, None))
@@ -363,6 +367,8 @@ class NamedUnit(UnitBase):
 
         self._represents = represents
         self._register_unit(st)
+        self._bases = represents._bases
+        self._powers = represents._powers
 
     def __reduce__(self):
         return (_resurrect_named_unit, (self._st_rep, getattr(self, '_latex', None), self._represents))
