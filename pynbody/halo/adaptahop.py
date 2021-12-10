@@ -311,7 +311,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 halo_id, self, self.base.dm, index_array=index_array, iord_array=iord_array
             )
         else:
-            halo = SimpleHalo(self, self.base)
+            halo = SimpleHalo(halo_id, self, self.base)
 
         for k, v in props.items():
             halo.properties[k] = v

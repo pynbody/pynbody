@@ -26,16 +26,23 @@ from .. import snapshot, util, units, array
 logger = logging.getLogger("pynbody.halo")
 
 class SimpleHalo(snapshot.ContainerWithPhysicalUnitsOption):
-    def __init__(self, halo_catalogue, base):
+    def __init__(self, halo_id, halo_catalogue, base):
         if base is None:
             import pdb; pdb.set_trace()
-        self.properties = {}
+        self.properties = copy.deepcopy(base.properties)
+        self.properties["halo_id"] = halo_id
         self._base = weakref.ref(base)
         self._halo_catalogue = halo_catalogue
 
     @property
     def base(self):
         return self._base()
+
+    @property
+    def ancestor(self):
+        """The original SimSnap from which this view is derived (potentially self)"""
+        return self.base.ancestor
+
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=True):
         if convert_parent:

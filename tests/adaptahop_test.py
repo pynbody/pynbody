@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.io import FortranFile as FF
+import copy
 
 import pynbody
 from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
@@ -32,6 +33,24 @@ def test_load_one_halo(path, nhalos):
     np.testing.assert_allclose(halos[1].properties["members"], halos[1]["iord"])
     assert len(halos) == nhalos
 
+def test_load_halo_no_index(f):
+    halos = f.halos(index_parent=False)
+    assert isinstance(halos[1], pynbody.halo.SimpleHalo)
+    props1 = halos[1].properties
+
+    halos = f.halos(index_parent=True)
+    assert isinstance(halos[1], pynbody.halo.Halo)
+    props2 = halos[1].properties
+
+    for key in set(props1.keys()).union(props2.keys()):
+        v1, v2 = props1[key], props2[key]
+        if (
+            isinstance(v1, pynbody.units.UnitBase) or
+            (isinstance(v1, pynbody.array.SimArray) and v1.ndim == 0)
+        ):
+            v1, v2 = float(v1), float(v2)
+
+        np.testing.assert_equal(v1, v2)
 
 def test_properties_are_simarrays(f, halos):
     halo = halos[1]
