@@ -1,15 +1,14 @@
 import pynbody
 import numpy as np
-import weakref
 
 
 def setup():
     global f, h
     f = pynbody.new(dm=1000, star=500, gas=500, order='gas,dm,star')
-    f['pos'] = np.random.normal(scale=1.0, size=f['pos'].shape)
-    f['vel'] = np.random.normal(scale=1.0, size=f['vel'].shape)
-    f['mass'] = np.random.uniform(1.0, 10.0, size=f['mass'].shape)
-    f.gas['rho'] = np.ones(500, dtype=float)
+    f['pos'] = pynbody.array.SimArray(np.random.normal(scale=1.0, size=f['pos'].shape), units='kpc')
+    f['vel'] = pynbody.array.SimArray(np.random.normal(scale=1.0, size=f['vel'].shape), units='km s**-1')
+    f['mass'] = pynbody.array.SimArray(np.random.uniform(1.0, 10.0, size=f['mass'].shape), units='Msol')
+    f.gas['rho'] = pynbody.array.SimArray(np.ones(500, dtype=float), units='Msol kpc**-3')
 
 
 def test_spherical_coordinates_arrays():
@@ -63,4 +62,45 @@ def test_spherical_coordinates_arrays():
     vtheta = np.cos(f['theta']) * np.cos(f['az']) * f['vx'] + np.cos(f['theta']) * np.sin(f['az']) * f['vy'] - \
              np.sin(f['theta']) * f['vz']
     np.testing.assert_allclose(vtheta, f['vtheta'])
+
+
+def test_azimuth_depencies():
+    ## FFS, the azimuth doesn't get upddated
+    # Try to understand why dependencies
+    azi = f['az']
+    print(azi)
+    print(f._dependency_tracker.get_dependents('az'))
+    print(f._dependency_tracker.get_dependents('x'))
+    print(f['az'].derived)
+    print(f.auto_propagate_off)
+    with pynbody.analysis.angmom.faceon(f):
+        print(f['az'])
+    print(f._dependency_tracker.get_dependents('az'))
+    print(f._dependency_tracker.get_dependents('x'))
+    raise Exception
+
+
+
+def test_spherical_coordinates_after_coordinate_transform():
+
+    # test_spherical_coordinates_arrays()
+    # np.testing.assert_allclose(f['x'], f['r'] * np.cos(f['az']) * np.sin(f['theta']))
+
+    r = f['r']
+    azimuth = f['az']
+    polar = f['theta']
+    with pynbody.analysis.angmom.faceon(f):
+        # r has been successfully updated
+        # np.testing.assert_allclose(r, f['r'])
+        np.testing.assert_allclose(azimuth, f['az'])
+        # Polar angle gets updated
+        # np.testing.assert_allclose(polar, f['theta'])
+        np.testing.assert_allclose(f['x'], f['r'] * np.cos(f['az']) * np.sin(f['theta']))
+
+    with f.rotate_z(90):
+        test_spherical_coordinates_arrays()
+
+    with pynbody.transformation.translate(f, pynbody.array.SimArray([-100, 140, 200], units='kpc')):
+        with f.rotate_x(173):
+            test_spherical_coordinates_arrays()
 
