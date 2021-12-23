@@ -110,7 +110,7 @@ def vtheta(self):
     """Velocity projected to polar direction"""
     return (np.cos(self['az']) * np.cos(self['theta']) * self['vx'] +
             np.sin(self['az']) * np.cos(self['theta']) * self['vy'] -
-            np.sin(self['theta']) * self['vy'])
+            np.sin(self['theta']) * self['vz'])
 
 
 _op_dict = {"mean": "mean velocity",
@@ -209,7 +209,7 @@ for band in bands_available:
 
 @SimSnap.derived_quantity
 def theta(self):
-    """Angle from the z axis, from [0:2pi]"""
+    """Angle from the z axis, from [0:pi]"""
     return np.arccos(self['z'] / self['r'])
 
 
