@@ -2,7 +2,7 @@ import pynbody
 import numpy as np
 
 
-def setup():
+def setup_module():
     global f, h
     f = pynbody.new(dm=1000, star=500, gas=500, order='gas,dm,star')
     f['pos'] = pynbody.array.SimArray(np.random.normal(scale=1.0, size=f['pos'].shape), units='kpc')
