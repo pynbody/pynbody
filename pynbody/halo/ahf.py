@@ -68,8 +68,13 @@ class AHFCatalogue(HaloCatalogue):
         self._dosort = dosort
         self._only_stat = only_stat
 
+        RamsesTF = isinstance(sim.ancestor, (snapshot.ramses.RamsesSnap))
+
         if ahf_basename is not None:
             self._ahfBasename = ahf_basename
+        elif RamsesTF:
+            self._ahfBasename = util.cutgz(
+                glob.glob(sim._filename + '/' + '*z*AHF_halos*')[0])[:-5]
         else:
             self._ahfBasename = util.cutgz(
                 glob.glob(sim._filename + '*z*AHF_halos*')[0])[:-5]
@@ -577,14 +582,27 @@ class AHFCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_load(sim,ahf_basename=None,**kwargs):
-        if ahf_basename is not None:
-            for file in glob.glob(ahf_basename + '*particles*'):
-                if os.path.exists(file):
-                    return True
+
+        RamsesTF = isinstance(sim.ancestor, (snapshot.ramses.RamsesSnap))
+
+        if not RamsesTF:
+            if ahf_basename is not None:
+                for file in glob.glob(ahf_basename + '*particles*'):
+                    if os.path.exists(file):
+                        return True
+            else:
+                for file in glob.glob(sim._filename + '*z*particles*'):
+                    if os.path.exists(file):
+                        return True
         else:
-            for file in glob.glob(sim._filename + '*z*particles*'):
-                if os.path.exists(file):
-                    return True
+            if ahf_basename is not None:
+                for file in glob.glob(ahf_basename + '*particles*'):
+                    if os.path.exists(file):
+                        return True
+            else:
+                for file in glob.glob(sim._filename + '/' +'*z*particles*'):
+                    if os.path.exists(file):
+                        return True
         return False
 
     def _run_ahf(self, sim):
