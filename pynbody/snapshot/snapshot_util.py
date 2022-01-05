@@ -26,8 +26,7 @@ class ContainerWithPhysicalUnitsOption:
     @classmethod
     def _cached_unit_conversion(cls, from_unit, dims, ucut=3):
         key = (
-            repr(from_unit._bases),
-            repr(from_unit._powers),
+            from_unit._hash_dimensions(),
             tuple(dims),
             ucut,
         )

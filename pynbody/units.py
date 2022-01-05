@@ -114,6 +114,7 @@ import numpy as np
 from . import backcompat
 from .backcompat import fractions
 import functools
+from collections import defaultdict
 
 Fraction = fractions.Fraction
 
@@ -215,6 +216,26 @@ class UnitBase(object):
 
     def __hash__(self):
         return id(self)
+
+    def _dimension_state(self):
+        state = defaultdict(int)
+        for base, power in zip(self._bases, self._powers):
+            if isinstance(base, UnitBase):
+                for k, v in base._dimension_state().items():
+                    state[k] += v * power
+            else:
+                state[base] += power
+
+        return state
+
+    def _hash_dimensions(self):
+        """
+        Returns a unique string identifying the dimensions of this unit, ignoring the scale.
+        """
+        state = self._dimension_state()
+        return " ".join(
+            f"{k}^{state[k]}" for k in sorted(state) if state[k] != 0
+        )
 
     def simplify(self):
         return self
@@ -367,14 +388,15 @@ class NamedUnit(UnitBase):
 
         self._represents = represents
         self._register_unit(st)
-        self._bases = represents._bases
-        self._powers = represents._powers
 
     def __reduce__(self):
         return (_resurrect_named_unit, (self._st_rep, getattr(self, '_latex', None), self._represents))
 
     def __str__(self):
         return self._st_rep
+
+    def _dimension_state(self):
+        return self._represents._dimension_state()
 
     def latex(self):
         if hasattr(self, '_latex'):
