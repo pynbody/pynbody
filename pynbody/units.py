@@ -301,8 +301,9 @@ class NoUnit(UnitBase):
 
     def __init__(self):
         self._no_unit = True
-        self._bases = []
-        self._powers = []
+
+    def _dimension_state(self):
+        return {}
 
     def ratio(self, other, **substitutions):
         if isinstance(other, NoUnit):
