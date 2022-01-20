@@ -15,11 +15,11 @@ import sys
 
 if sys.version_info < (3,5):
     raise ImportError("""You are attempting to run pynbody on a version of python prior to 3.5.
-    
+
 Support for python 2 has now ended, and as such pynbody has transitioned to be a fully python-3
 module.
- 
-You are strongly recommended to update to python 3.5 or newer. Meanwhile, you can use an older 
+
+You are strongly recommended to update to python 3.5 or newer. Meanwhile, you can use an older
 version of pynbody (prior to version 1.0), by typing:
 
 pip install 'pynbody<1.0'
@@ -78,6 +78,6 @@ configuration.configure_snapshot_and_halo_loading_priority()
 
 derived_array = snapshot.SimSnap.derived_quantity
 
-__version__ = '1.0.4'
+__version__ = '1.1.0'
 
 __all__ = ['load', 'new', 'derived_array']
