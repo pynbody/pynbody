@@ -214,7 +214,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 fpu.skip(Nskip)
 
                 # Fill-in data
-                dummy = DummyHalo(self.base)
+                dummy = DummyHalo(base=self.base, halo_id=halo_ID)
                 dummy.properties["file_offset"] = ipos
                 self._halos[halo_ID] = dummy
 

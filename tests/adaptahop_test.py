@@ -201,6 +201,17 @@ def test_halo_iteration(halos):
     assert h[-1] is halos[len(halos)]
 
 
+def _check_equality(a, b):
+    for key in set(a).union(b):
+        va, vb = a[key], b[key]
+        assert type(va) is type(vb)
+
+        if isinstance(va, pynbody.units.CompositeUnit):
+            assert va == vb
+        else:
+            np.testing.assert_almost_equal(va, vb)
+
+
 def test_dummy_halo_on_load(f):
     h = f.halos(dummy=True)
     href = f.halos()
@@ -208,9 +219,7 @@ def test_dummy_halo_on_load(f):
     assert h._dummy
     assert isinstance(h[1], DummyHalo)
 
-    for key in h[1].properties:
-        np.testing.assert_almost_equal(h[1].properties[key], href[1].properties[key])
-
+    _check_equality(h[1].properties, href[1].properties)
 
 def test_dummy_halo_on_property(f):
     h = f.halos()
@@ -219,7 +228,5 @@ def test_dummy_halo_on_property(f):
     h.dummy = True
 
     assert h._dummy
-    assert isinstance(h[1], DummyHalo)
 
-    for key in h[1].properties:
-        np.testing.assert_almost_equal(h[1].properties[key], href[1].properties[key])
+    _check_equality(h[1].properties, href[1].properties)

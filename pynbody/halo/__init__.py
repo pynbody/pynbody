@@ -27,8 +27,9 @@ logger = logging.getLogger("pynbody.halo")
 
 class DummyHalo(snapshot.ContainerWithPhysicalUnitsOption):
 
-    def __init__(self, base):
-        self.properties = {}
+    def __init__(self, *, base, halo_id):
+        self.properties = copy.deepcopy(base.properties)
+        self.properties["halo_id"] = halo_id
         self.base = base
 
     def physical_units(self, *args, **kwargs):
