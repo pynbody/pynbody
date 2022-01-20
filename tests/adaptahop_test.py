@@ -3,7 +3,7 @@ from scipy.io import FortranFile as FF
 
 import pynbody
 from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
-from pynbody.halo import DummyHalo
+from pynbody.halo import DummyHalo, Halo
 
 import pytest
 
@@ -218,6 +218,7 @@ def test_dummy_halo_on_load(f):
 
     assert h._dummy
     assert isinstance(h[1], DummyHalo)
+    assert isinstance(href[1], Halo)
 
     _check_equality(h[1].properties, href[1].properties)
 
@@ -228,5 +229,7 @@ def test_dummy_halo_on_property(f):
     h.dummy = True
 
     assert h._dummy
+    assert isinstance(h[1], DummyHalo)
+    assert isinstance(href[1], Halo)
 
     _check_equality(h[1].properties, href[1].properties)
