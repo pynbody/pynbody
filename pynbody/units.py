@@ -228,9 +228,14 @@ class UnitBase(object):
 
         return state
 
-    def _hash_dimensions(self):
+    def dimensionality_as_string(self):
         """
-        Returns a unique string identifying the dimensions of this unit, ignoring the scale.
+        Returns the dimensionality of the Unit object.
+
+        Example
+        -------
+        > pynbody.units.Unit("3e8 m s**-1 yr").dimensionality_as_string()
+        'm^1'
         """
         state = self._dimension_state()
         return " ".join(
