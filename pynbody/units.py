@@ -114,6 +114,7 @@ import numpy as np
 from . import backcompat
 from .backcompat import fractions
 import functools
+from collections import defaultdict
 
 Fraction = fractions.Fraction
 
@@ -216,6 +217,31 @@ class UnitBase(object):
     def __hash__(self):
         return id(self)
 
+    def _dimension_state(self):
+        state = defaultdict(int)
+        for base, power in zip(self._bases, self._powers):
+            if isinstance(base, UnitBase):
+                for k, v in base._dimension_state().items():
+                    state[k] += v * power
+            else:
+                state[base] += power
+
+        return state
+
+    def dimensionality_as_string(self):
+        """
+        Returns the dimensionality of the Unit object.
+
+        Example
+        -------
+        > pynbody.units.Unit("3e8 m s**-1 yr").dimensionality_as_string()
+        'm^1'
+        """
+        state = self._dimension_state()
+        return " ".join(
+            f"{k}^{state[k]}" for k in sorted(state) if state[k] != 0
+        )
+
     def simplify(self):
         return self
 
@@ -281,6 +307,9 @@ class NoUnit(UnitBase):
     def __init__(self):
         self._no_unit = True
 
+    def _dimension_state(self):
+        return {}
+
     def ratio(self, other, **substitutions):
         if isinstance(other, NoUnit):
             return 1
@@ -340,6 +369,8 @@ class IrreducibleUnit(UnitBase):
     def __init__(self, st):
         self._st_rep = st
         self._register_unit(st)
+        self._bases = [st]
+        self._powers = [1]
 
     def __reduce__(self):
         return (_resurrect_named_unit, (self._st_rep, None, None))
@@ -369,6 +400,9 @@ class NamedUnit(UnitBase):
 
     def __str__(self):
         return self._st_rep
+
+    def _dimension_state(self):
+        return self._represents._dimension_state()
 
     def latex(self):
         if hasattr(self, '_latex'):
