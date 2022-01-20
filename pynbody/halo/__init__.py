@@ -27,11 +27,16 @@ logger = logging.getLogger("pynbody.halo")
 
 class DummyHalo(snapshot.ContainerWithPhysicalUnitsOption):
 
-    def __init__(self):
+    def __init__(self, base):
         self.properties = {}
+        self.base = base
 
     def physical_units(self, *args, **kwargs):
         pass
+
+    @property
+    def ancestor(self):
+        return self.base.ancestor
 
 
 class Halo(snapshot.IndexedSubSnap):

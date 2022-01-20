@@ -355,7 +355,7 @@ class AHFCatalogue(HaloCatalogue):
                 self._halos[h + 1]._descriptor = "halo_" + str(h + 1)
         else:
             for h in range(self._nhalos):
-                self._halos[h + 1] = DummyHalo()
+                self._halos[h + 1] = DummyHalo(self)
 
         f.close()
 

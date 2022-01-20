@@ -3,6 +3,7 @@ from scipy.io import FortranFile as FF
 
 import pynbody
 from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
+from pynbody.halo import DummyHalo
 
 import pytest
 
@@ -191,9 +192,34 @@ def test_longint_contamination_autodetection(f, fname, Halo_T, ans):
     assert halos._longint == ans["_longint"]
     assert halos._read_contamination == ans["_read_contamination"]
 
+
 def test_halo_iteration(halos):
     h = list(halos)
 
     assert len(h) == len(halos)
     assert h[0] is halos[1]
     assert h[-1] is halos[len(halos)]
+
+
+def test_dummy_halo_on_load(f):
+    h = f.halos(dummy=True)
+    href = f.halos()
+
+    assert h._dummy
+    assert isinstance(h[1], DummyHalo)
+
+    for key in h[1].properties:
+        np.testing.assert_almost_equal(h[1].properties[key], href[1].properties[key])
+
+
+def test_dummy_halo_on_property(f):
+    h = f.halos()
+    href = f.halos()
+
+    h.dummy = True
+
+    assert h._dummy
+    assert isinstance(h[1], DummyHalo)
+
+    for key in h[1].properties:
+        np.testing.assert_almost_equal(h[1].properties[key], href[1].properties[key])
