@@ -237,3 +237,20 @@ def test_dummy_halo_on_property(f):
     assert len(h[1]) == len(href[1])
 
     _check_equality(h[1].properties, href[1].properties)
+
+
+def test_dummy_halo_conversion(f):
+    h = f.halos()
+    href = f.halos()
+
+    h.dummy = True
+    h.physical_units()
+    href.physical_units()
+
+    assert h._dummy
+    assert isinstance(h[1], DummyHalo)
+    assert isinstance(href[1], Halo)
+
+    assert len(h[1]) == len(href[1])
+
+    _check_equality(h[1].properties, href[1].properties)

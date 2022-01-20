@@ -43,6 +43,9 @@ class DummyHalo(snapshot.ContainerWithPhysicalUnitsOption):
     def __len__(self):
         return self._npart
 
+    def conversion_context(self, *args, **kwargs):
+        return self.base.conversion_context(*args, **kwargs)
+
 
 class Halo(snapshot.IndexedSubSnap):
 
