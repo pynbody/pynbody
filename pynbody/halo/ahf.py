@@ -289,6 +289,13 @@ class AHFCatalogue(HaloCatalogue):
                     f.readline()
             f.close()
 
+    @staticmethod
+    def _count_particles(f):
+        startline = f.readline()
+        if len((startline.split()))==1:
+            startline = f.readline()
+        return int(startline.split()[0])
+
     def _load_ahf_particle_block(self, f, nparts=None):
         """Load the particles for the next halo described in particle file f"""
         ng = len(self.base.gas)
@@ -297,10 +304,7 @@ class AHFCatalogue(HaloCatalogue):
         nds = nd+ns
 
         if nparts is None:
-            startline = f.readline()
-            if len((startline.split()))==1:
-                startline = f.readline()
-            nparts = int(startline.split()[0])
+            nparts = self._count_particles()
 
         if self.isnew:
             if not isinstance(f, gzip.GzipFile):
@@ -355,7 +359,7 @@ class AHFCatalogue(HaloCatalogue):
                 self._halos[h + 1]._descriptor = "halo_" + str(h + 1)
         else:
             for h in range(self._nhalos):
-                self._halos[h + 1] = DummyHalo(base=self.base, halo_id=h + 1)
+                self._halos[h + 1] = DummyHalo(base=self.base, halo_id=h + 1, npart=self._count_particles(f))
 
         f.close()
 

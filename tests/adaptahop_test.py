@@ -207,7 +207,7 @@ def _check_equality(a, b):
         assert type(va) is type(vb)
 
         if isinstance(va, pynbody.units.CompositeUnit):
-            assert va == vb
+            assert str(va) == str(vb)
         else:
             np.testing.assert_almost_equal(va, vb)
 
@@ -220,6 +220,8 @@ def test_dummy_halo_on_load(f):
     assert isinstance(h[1], DummyHalo)
     assert isinstance(href[1], Halo)
 
+    assert len(h[1]) == len(href[1])
+
     _check_equality(h[1].properties, href[1].properties)
 
 def test_dummy_halo_on_property(f):
@@ -231,5 +233,7 @@ def test_dummy_halo_on_property(f):
     assert h._dummy
     assert isinstance(h[1], DummyHalo)
     assert isinstance(href[1], Halo)
+
+    assert len(h[1]) == len(href[1])
 
     _check_equality(h[1].properties, href[1].properties)

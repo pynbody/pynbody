@@ -209,12 +209,17 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
             for _ in range(nhalos + nsubs):
                 ipos = fpu.tell()
-                fpu.skip(2)  # number + ids of parts
+                if self._longint:
+                    ntot = fpu.read_int64()
+                else:
+                    ntot = fpu.read_int()
+
+                fpu.skip(1)  # ids of parts
                 halo_ID = fpu.read_int()
                 fpu.skip(Nskip)
 
                 # Fill-in data
-                dummy = DummyHalo(base=self.base, halo_id=halo_ID)
+                dummy = DummyHalo(base=self.base, halo_id=halo_ID, npart=ntot)
                 dummy.properties["file_offset"] = ipos
                 self._halos[halo_ID] = dummy
 
