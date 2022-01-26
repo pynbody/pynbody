@@ -254,3 +254,10 @@ def test_dummy_halo_conversion(f):
     assert len(h[1]) == len(href[1])
 
     _check_equality(h[1].properties, href[1].properties)
+
+def test_halo_iteration(halos):
+    h = list(halos)
+
+    assert len(h) == len(halos)
+    assert h[0] is halos[1]
+    assert h[-1] is halos[len(halos)]
