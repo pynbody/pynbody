@@ -155,17 +155,20 @@ class HaloCatalogue(snapshot.ContainerWithPhysicalUnitsOption):
 
     def _halo_generator(self, i_start=None, i_stop=None) :
         if len(self) == 0 : return
-        if i_start is None :
-            try :
+        if i_start is None or i_stop is None:
+            try:
                 self[0]
-                i = 0
+                one_indexed = False
             except KeyError :
-                i = 1
+                one_indexed = True
+
+        if i_start is None:
+            i = 1 if one_indexed else 0
         else :
             i = i_start
 
-        if i_stop is None :
-            i_stop = len(self)
+        if i_stop is None:
+            i_stop = len(self) + 1 if one_indexed else len(self)
 
         while True:
             try:
