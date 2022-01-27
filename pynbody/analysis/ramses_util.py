@@ -62,6 +62,7 @@ import pynbody
 import subprocess
 import numpy as np
 import os
+from pathlib import Path
 from .. units import Unit
 
 from .. import config_parser
@@ -339,8 +340,9 @@ def get_tform(sim, part2birth_path=part2birth_path):
             try:
                 # birth_xxx doesn't exist, create it with ramses part2birth util
                 with open(os.devnull, 'w') as fnull:
+                    cwd = Path(top.filename).parent
                     subprocess.call([part2birth_path, '-inp', 'output_%s' % top._timestep_id],
-                                    stdout=fnull, stderr=fnull)
+                                    stdout=fnull, stderr=fnull, cwd=cwd)
                 birth_file = FortranFile(birthfile_path)
             except (IOError, OSError):
                 import warnings
