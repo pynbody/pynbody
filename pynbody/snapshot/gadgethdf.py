@@ -654,7 +654,7 @@ class SubFindHDFSnap(GadgetHDFSnap) :
 
 class EagleLikeHDFSnap(GadgetHDFSnap):
     """Reads Eagle-like HDF snapshots (download at http://data.cosma.dur.ac.uk:8080/eagle-snapshots/)"""
-    _readable_hdf5_test_key = "PartType0/SubGroupNumber"
+    _readable_hdf5_test_key = "PartType1/SubGroupNumber"
 
     def halos(self, subs=None):
         """Load the Eagle FOF halos, or if subs is specified the Subhalos of the given FOF halo number.
