@@ -546,11 +546,12 @@ class GadgetHDFSnap(SimSnap):
         # Create a dictionary for the units, this will come in handy later
         unitvar = {'U_V': vel_unit, 'U_L': dist_unit, 'U_M': mass_unit,
                    'U_T': time_unit, '[K]': units.K,
-                   'SEC_PER_YEAR': units.yr, 'SOLAR_MASS': units.Msol}
-        # Last two units are to catch occasional arrays like StarFormationRate which don't
-        # follow the patter of U_ units unfortunately
+                   'SEC_PER_YEAR': units.yr, 'SOLAR_MASS': units.Msol,
+                   'solar masses / yr': units.Msol/units.yr, 'BH smoothing': dist_unit}
+        # Some arrays like StarFormationRate don't follow the patter of U_ units
         cgsvar = {'U_M': 'g', 'SOLAR_MASS': 'g', 'U_T': 's',
-                  'SEC_PER_YEAR': 's', 'U_V': 'cm s**-1', 'U_L': 'cm', '[K]': 'K'}
+                  'SEC_PER_YEAR': 's', 'U_V': 'cm s**-1', 'U_L': 'cm', '[K]': 'K',
+                  'solar masses / yr': 'g s**-1', 'BH smoothing': 'cm'}
 
         self._hdf_cgsvar = cgsvar
         self._hdf_unitvar = unitvar
