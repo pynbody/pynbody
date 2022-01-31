@@ -66,7 +66,7 @@ class ContainerWithPhysicalUnitsOption:
         if dims is None:
             return
 
-        if ar.units is None:
+        if ar.units is None or isinstance(ar.units,units.NoUnit):
             return
 
         new_unit = self._cached_unit_conversion(ar.units, dims, ucut=ucut)
