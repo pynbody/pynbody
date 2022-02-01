@@ -232,3 +232,13 @@ def test_family_array():
     f.dm['mass']
     assert "mass" in f.family_keys()
     assert f.dm['mass'].sim == f.dm
+
+
+def test_file_descriptor_reading():
+    f = pynbody.load("testdata/prop_time_output_00030")
+
+    expected_fields = ["rho", "vel", "metal", *(f"scalar_{i+1:02d}" for i in range(2))]
+    loadable_fields = f.g.loadable_keys()
+
+    for field in expected_fields:
+        assert field in loadable_fields

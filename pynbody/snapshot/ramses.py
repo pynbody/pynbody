@@ -372,21 +372,27 @@ particle_blocks = list(map(
     str.strip, config_parser.get('ramses', "particle-blocks").split(",")))
 particle_format = [TYPE_MAP[str.strip(e)] for e in config_parser.get('ramses', "particle-format").split(",")]
 
-hydro_blocks = list(map(
-    str.strip, config_parser.get('ramses', "hydro-blocks").split(",")))
-grav_blocks = list(map(
-    str.strip, config_parser.get('ramses', "gravity-blocks").split(",")))
+hydro_blocks = [_.strip() for _ in config_parser.get('ramses', "hydro-blocks").split(",")]
+grav_blocks = [_.strip() for _ in config_parser.get('ramses', "gravity-blocks").split(",")]
+rt_blocks = [_.strip() for _ in config_parser.get('ramses', 'rt-blocks', raw=True).split(",")]
 
-rt_blocks = list(map(
-    str.strip, config_parser.get('ramses', 'rt-blocks', raw=True).split(",")
-))
-
-particle_distinguisher = list(map(
-    str.strip, config_parser.get('ramses', 'particle-distinguisher').split(",")))
-
+particle_distinguisher = [_.strip() for _ in config_parser.get('ramses', 'particle-distinguisher').split(",")]
 positive_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('ramses', 'type-mapping-positive').split(",")]
 
 negative_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('ramses', 'type-mapping-negative').split(",")]
+
+def read_descriptor(fname):
+    description = []
+    name_mapping = namemapper.AdaptiveNameMapper('ramses-name-mapping')
+    with open(fname, mode="r") as fd:
+        if fd.readline() != "# version:  1\n":
+            raise ValueError("Wrong file format")
+        fd.readline()  # ivar, variable_name, variable_type
+        for line in fd.readlines():
+            i, name, dtype = (_.strip() for _ in line.split(","))
+
+            description.append(name_mapping(name, reverse=True))
+    return description
 
 
 class RamsesSnap(SimSnap):
@@ -445,6 +451,7 @@ class RamsesSnap(SimSnap):
             count+=type_map[fam]
 
         self._num_particles = count
+        self._load_fluid_descriptors()
         self._load_rt_infofile()
         self._decorate()
         self._transfer_sink_data_to_family_array()
@@ -458,6 +465,19 @@ class RamsesSnap(SimSnap):
             warnings.warn(
                 "RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.",
                 RuntimeWarning)
+
+    def _load_fluid_descriptors(self):
+        types = ["hydro", "grav"]
+        default_blocks = [hydro_blocks, grav_blocks]
+        descriptors_fnames = [os.path.join(self._filename, f"{ftype}_file_descriptor.txt") for ftype in types]
+
+        for desc_type, default_block, descriptor_fname in zip(types, default_blocks, descriptors_fnames):
+            try:
+                block = read_descriptor(descriptor_fname)
+            except (FileNotFoundError, ValueError):
+                block = default_block
+
+            setattr(self, f"_{desc_type}_blocks", block)
 
     def _load_rt_infofile(self):
         self._rt_blocks = []
@@ -852,7 +872,7 @@ class RamsesSnap(SimSnap):
 
         dims = []
 
-        for i in [hydro_blocks, grav_blocks, self._rt_blocks][mode]:
+        for i in [self._hydro_blocks, self._grav_blocks, self._rt_blocks][mode]:
             if i not in self.gas:
                 self.gas._create_array(i)
             if self._ndim < 3 and i[-1] == 'z':
@@ -980,7 +1000,7 @@ class RamsesSnap(SimSnap):
                     keys = set(self.loadable_keys(f0))
         else:
             if fam is family.gas:
-                keys = ['x', 'y', 'z', 'smooth'] + hydro_blocks + self._rt_blocks
+                keys = ['x', 'y', 'z', 'smooth'] + self._hydro_blocks + self._rt_blocks
             elif fam in self._iter_particle_families():
                 keys = self._particle_blocks
             elif fam is self._sink_family:
@@ -1071,9 +1091,9 @@ class RamsesSnap(SimSnap):
                 if 'smooth' not in self.gas:
                     self.gas._create_array('smooth')
                 self._load_gas_pos()
-            elif array_name == 'vel' or array_name in hydro_blocks:
+            elif array_name == 'vel' or array_name in self._hydro_blocks:
                 self._load_gas_vars()
-            elif array_name in grav_blocks:
+            elif array_name in self._grav_blocks:
                 self._load_gas_vars(1)
             elif array_name in self._rt_blocks_3d:
                 warnings.warn("Loading RT data from disk. Photon densities are stored in flux units by Ramses and need "
