@@ -215,6 +215,18 @@ class Kernel(object):
         return f / (math.pi * h ** 3)
 
 
+class WendlandC2Kernel(Kernel):
+
+    def get_value(self, d, h=1):
+        # Wendland C2 (quintic) kernel, as used by EAGLE
+        if d < 2:
+            f = (1. - (d / 2.))**4 * (2. * d + 1)
+        else:
+            f = 0
+
+        return (21. * f) / (16. * math.pi * h ** 3)
+
+
 class Kernel2D(Kernel):
 
     def __init__(self, k_orig=Kernel()):

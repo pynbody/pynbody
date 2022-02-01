@@ -280,6 +280,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
           z_camera=None, clear=True, cmap=None,
           title=None, qtytitle=None, show_cbar=True, subplot=False,
           noplot=False, ret_im=False, fill_nan=True, fill_val=0.0, linthresh=None,
+          kernel_type='spline',
           **kwargs):
     """
 
@@ -339,6 +340,9 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
     *linthresh* (None): if the image has negative and positive values
      and a log scaling is requested, the part between `-linthresh` and
      `linthresh` is shown on a linear scale to avoid divergence at 0
+
+    *kernel_type* ('spline'): SPH kernel to use for smoothing. Defualts to a
+     cubic spline, but can also be set to 'wendlandC2'
     """
 
     if not noplot:
@@ -364,25 +368,31 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
 
     width = float(width)
 
-    kernel = sph.Kernel()
+    if kernel_type == 'wendlandC2':
+        kernel = sph.WendlandC2Kernel()
+    elif kernel_type == 'spline':
+        kernel = sph.Kernel()
+    else:
+        print('Invalid kernel_type specified (options are "spline" and "wendlandC2"). Defaulting to a cubic spline...')
+        kernel = sph.Kernel()
 
     perspective = z_camera is not None
     if perspective and not av_z:
-        kernel = sph.Kernel2D()
+        kernel = sph.Kernel2D(kernel)
 
     is_projected = False
     if units is not None:
         is_projected = _units_imply_projection(sim, qty, units)
 
     if is_projected:
-        kernel = sph.Kernel2D()
+        kernel = sph.Kernel2D(kernel)
 
     if av_z:
         if isinstance(kernel, sph.Kernel2D):
             raise _units.UnitsException(
                 "Units already imply projected image; can't also average over line-of-sight!")
         else:
-            kernel = sph.Kernel2D()
+            kernel = sph.Kernel2D(kernel)
             if units is not None:
                 aunits = units * sim['z'].units
             else:
@@ -475,7 +485,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             units = im.units
 
 
-        
+
         if units.latex() == "":
             units=""
         else:
