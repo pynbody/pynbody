@@ -66,6 +66,15 @@ def test_images(compare2d, compare3d, compare_grid):
     npt.assert_allclose(im3d,compare3d,rtol=1e-4)
     npt.assert_allclose(im_grid,compare_grid,rtol=1e-4)
 
+    # Check that using a different kernel produces a different image
+    im3d_altkernel = pynbody.plot.sph.image(
+        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, kernel_type='wendlandC2')
+    im2d_altkernel = pynbody.plot.sph.image(
+        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, kernel_type='wendlandC2')
+
+    npt.assert_raises(AssertionError,npt.assert_array_equal,im3d_altkernel,im3d)
+    npt.assert_raises(AssertionError,npt.assert_array_equal,im2d_altkernel,im2d)
+
 
     # check rectangular image is OK
     im_rect = pynbody.sph.render_image(f.gas,nx=500,ny=250,x2=10.0,
