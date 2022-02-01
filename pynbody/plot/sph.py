@@ -341,7 +341,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
      and a log scaling is requested, the part between `-linthresh` and
      `linthresh` is shown on a linear scale to avoid divergence at 0
 
-    *kernel_type* ('spline'): SPH kernel to use for smoothing. Defualts to a
+    *kernel_type* ('spline'): SPH kernel to use for smoothing. Defaults to a
      cubic spline, but can also be set to 'wendlandC2'
     """
 
@@ -373,8 +373,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
     elif kernel_type == 'spline':
         kernel = sph.Kernel()
     else:
-        print('Invalid kernel_type specified (options are "spline" and "wendlandC2"). Defaulting to a cubic spline...')
-        kernel = sph.Kernel()
+        raise ValueError('Invalid kernel_type specified. Options are "spline" (default) and "wendlandC2".')
 
     perspective = z_camera is not None
     if perspective and not av_z:
