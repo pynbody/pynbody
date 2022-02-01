@@ -469,7 +469,7 @@ class RamsesSnap(SimSnap):
     def _load_fluid_descriptors(self):
         types = ["hydro", "grav"]
         default_blocks = [hydro_blocks, grav_blocks]
-        descriptors_fnames = [f"{ftype}_file_descriptor.txt" for ftype in types]
+        descriptors_fnames = [os.path.join(self._filename, f"{ftype}_file_descriptor.txt") for ftype in types]
 
         for desc_type, default_block, descriptor_fname in zip(types, default_blocks, descriptors_fnames):
             try:
@@ -871,8 +871,6 @@ class RamsesSnap(SimSnap):
         i1 = 0
 
         dims = []
-
-        hydr
 
         for i in [self._hydro_blocks, self._grav_blocks, self._rt_blocks][mode]:
             if i not in self.gas:
