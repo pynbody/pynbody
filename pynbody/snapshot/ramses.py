@@ -381,11 +381,9 @@ positive_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('
 
 negative_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('ramses', 'type-mapping-negative').split(",")]
 
-name_mapping = {_.strip() for (_) in config_parser.get('ramses', "name-mapping").split(",")}
-
-
 def read_descriptor(fname):
     description = []
+    name_mapping = namemapper.AdaptiveNameMapper('ramses-name-mapping')
     with open(fname, mode="r") as fd:
         if fd.readline() != "# version:  1\n":
             raise ValueError("Wrong file format")
@@ -393,8 +391,7 @@ def read_descriptor(fname):
         for line in fd.readlines():
             i, name, dtype = (_.strip() for _ in line.split(","))
 
-            pynbody_name = name_mapping.get(name, name)
-            description.append(pynbody_name)
+            description.append(name_mapping(name, reverse=True))
     return description
 
 
