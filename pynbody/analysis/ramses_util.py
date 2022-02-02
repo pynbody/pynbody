@@ -65,8 +65,9 @@ from ..analysis._cosmology_time import friedman
 from .. import config_parser
 
 ramses_utils = config_parser.get('ramses', 'ramses_utils')
+use_part2birth_by_default = config_parser.getboolean('ramses', 'use_part2birth_by_default')
 
-part2birth_path = ramses_utils + 'f90/part2birth'
+part2birth_path = os.path.join(ramses_utils, "f90", "part2birth")
 
 
 def convert_to_tipsy_simple(output, halo=0, filt=None):
@@ -338,7 +339,7 @@ def get_tform_using_part2birth(sim, part2birth_path):
     return sim.s['tform']
 
 
-def get_tform(sim, use_part2birth=False, part2birth_path=part2birth_path):
+def get_tform(sim, use_part2birth=use_part2birth_by_default, part2birth_path=part2birth_path):
     """
     
     Convert conformal times to physical times for stars and **replaces** the original
@@ -350,7 +351,7 @@ def get_tform(sim, use_part2birth=False, part2birth_path=part2birth_path):
     use_part2birth : boolean, optional
         If True, use the `part2birth` tool (see notes below) to convert the formation 
         times to physical times. If False, use a Python-based convertor.
-        Default: False.
+        See notes for the default value.
     part2birth_path : str, optional
         Path to the `part2birth` util. Only used if `use_part2birth` is also True.
         See notes for the default value.
@@ -358,6 +359,15 @@ def get_tform(sim, use_part2birth=False, part2birth_path=part2birth_path):
 
     Notes
     -----
+    The behaviour of the function can be customized in the configuration file.
+
+    The value `use_part2birth_by_default` controls whether the conversion should
+    be made using `part2birth` or in Python. It can be set as follows
+
+        [ramses]
+        use_part2birth_by_default = True  # will use part2birth to convert times
+        use_part2birth_by_default = False  # will use internal Python routine
+
     The default path to `part2birth` is obtained by joining the RAMSES utils
     path (as read from configuration) and `f90/part2birth`.
 
