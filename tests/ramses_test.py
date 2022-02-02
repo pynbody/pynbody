@@ -227,11 +227,20 @@ def test_tform_and_tform_raw():
     )
     _test_tform_checker(tform_raw)
 
+@pytest.fixture
+def use_part2birth_by_default():
+    use_part2birth_by_default = pynbody.config_parser.get("ramses", "use_part2birth_by_default")
+    ramses_utils = pynbody.config_parser.get("ramses", "ramses_utils")
 
-def test_tform_and_tform_raw_without_sidecar_files():
     pynbody.config_parser.set("ramses", "use_part2birth_by_default", "True")
     pynbody.config_parser.set("ramses", "ramses_utils", "/this/is/an/invalid/path")
 
+    yield
+
+    pynbody.config_parser.set("ramses", "use_part2birth_by_default", use_part2birth_by_default)
+    pynbody.config_parser.set("ramses", "ramses_utils", ramses_utils)
+
+def test_tform_and_tform_raw_without_sidecar_files(use_part2birth_by_default):
     fcosmo = pynbody.load("testdata/output_00080")
 
     warn_msg = (
@@ -244,9 +253,6 @@ def test_tform_and_tform_raw_without_sidecar_files():
 
     np.testing.assert_allclose(tform, np.full(31990, -1))
     _test_tform_checker(tform_raw)
-
-    pynbody.config_parser.set("ramses", "use_part2birth_by_default", "False")
-    pynbody.config_parser.set("ramses", "ramses_utils", "/this/is/an/invalid/path")
 
 def test_proper_time_loading():
     f_pt = pynbody.load(
