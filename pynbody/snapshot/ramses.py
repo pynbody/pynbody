@@ -1041,7 +1041,7 @@ class RamsesSnap(SimSnap):
             # are actually meaningful (issue 554)
             from ..analysis import ramses_util
             # Replace the tform array by its usual meaning using the birth files
-            ramses_util.get_tform(self)
+            ramses_util.get_tform(self, use_part2birth=False)
 
     def _read_proper_time(self):
         try:

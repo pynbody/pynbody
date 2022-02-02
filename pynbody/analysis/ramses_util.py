@@ -37,25 +37,21 @@ very easy:
 >>> s = pynbody.load('output_00101')
 >>> pynbody.analysis.ramses_util.get_tform(s)
 
-This now generated a directory called `birth` in the parent directory
-of your output. It then calls the routine `part2birth` located in the
+By default, this will simply convert in-place the formation times.
+If you want the changes to be persistent, you can use
+
+>>> pynbody.analysis.ramses_util.get_tform(s, use_part2birth=True)
+
+This now generates for each `partXXXX.outYYYYY` file a corresponding
+`birthXXXXX.outYYYYY` file containing the formation time in physical units.
+This uses the routine `part2birth` located in the
 RAMSES utils (see the `bitbucket repository
-<https://bitbucket.org/rteyssie/ramses>`_. :func:`get_tform` also
-deletes the previous `tform` array (not from disk, just from the
-currently loaded snapshot). The next time you call :func:`get_tform`,
+<https://bitbucket.org/rteyssie/ramses>`_).
+
+:func:`get_tform` also deletes the previous `tform` array (not from disk, just 
+from the currently loaded snapshot). The next time you call :func:`get_tform`,
 the data will be loaded from the disk and `part2birth` won't need to
 be run again.
-
-Feb 2016 - RS
-Note that in this version of ramses_util I have moved the 'birth' files
-into the output directory to which they pertain. The old code wasn't
-placing them in a subdir of 'birth' in the top output and since I had
-to fix it I thought it better not to have a single directory with
-potentially 1000's of files for all RAMSES outputs. The get_tform
-routine now creates the files under the approrpiate "output_" dir
-and reads them back from there.
-
-
 """
 
 import pynbody
@@ -64,6 +60,7 @@ import numpy as np
 import os
 from pathlib import Path
 from .. units import Unit
+from ..analysis._cosmology_time import friedman
 
 from .. import config_parser
 
@@ -295,28 +292,7 @@ def write_ahf_input(sim, tipsyfile):
     f.close()
 
 
-def get_tform(sim, part2birth_path=part2birth_path):
-    """Use `part2birth` to calculate the formation time of stars in
-    Gyr and **replaces** the original `tform` array.
-
-    **Input**: 
-
-    *sim*: RAMSES snapshot
-
-    **Optional Keywords:** 
-
-    *part2birth_path:* by default, this is
-     $HOME/ramses/utils/f90/part2birth, as specified in
-     `default_config.ini` in your pynbody install directory. You can
-     override this like so -- make a file called ".pynbodyrc" in your
-     home directory, and include
-
-    [ramses]
-
-    ramses_utils = /path/to/your/ramses/utils/directory
-
-    """
-
+def get_tform_using_part2birth(sim, part2birth_path):
     from scipy.io import FortranFile
 
     if hasattr(sim, 'base'):
@@ -360,3 +336,76 @@ def get_tform(sim, part2birth_path=part2birth_path):
     top.s['tform'].units = 'Gyr'
 
     return sim.s['tform']
+
+
+def get_tform(sim, use_part2birth=False, part2birth_path=part2birth_path):
+    """
+    
+    Convert conformal times to physical times for stars and **replaces** the original
+     `tform` array.
+
+    Parameters
+    ----------
+    sim : RAMSES snapshot or subsnapshot
+    use_part2birth : boolean, optional
+        If True, use the `part2birth` tool (see notes below) to convert the formation 
+        times to physical times. If False, use a Python-based convertor.
+        Default: False.
+    part2birth_path : str, optional
+        Path to the `part2birth` util. Only used if `use_part2birth` is also True.
+        See notes for the default value.
+
+
+    Notes
+    -----
+    The default path to `part2birth` is obtained by joining the RAMSES utils
+    path (as read from configuration) and `f90/part2birth`.
+
+    For example, with the following configuration,
+
+        [ramses]
+        ramses_utils = /home/user/ramses/utils
+
+    the default path would be `/home/user/ramses/utils/f90/part2birth`.
+
+    """
+    if use_part2birth:
+        return get_tform_using_part2birth(sim, part2birth_path=part2birth_path)
+
+    if hasattr(sim, 'base'):
+        top = sim.base
+    else:
+        top = sim
+
+    conformal_ages = top.star["tform_raw"].view(np.ndarray)
+
+    cm_per_km = 1e5
+    cm_per_Mpc = 3.085677580962325e+24
+    s_per_Gyr = 3.1556926e+16
+
+    tau_frw, t_frw, dtau, n_frw, time_tot = friedman(
+        top.properties["omegaM0"],
+        top.properties["omegaL0"],
+        1.0 - top.properties["omegaM0"] - top.properties["omegaL0"],
+    )
+    h100 = top.properties["h"]
+    nOver2 = n_frw / 2
+    unit_t = top._info["unit_t"]
+    t_scale = 1.0 / (h100 * 100 * cm_per_km / cm_per_Mpc) / unit_t
+
+    # calculate index into lookup table (n_frw elements in
+    # lookup table)
+    dage = 1 + (10 * conformal_ages / dtau)
+    dage = np.minimum(dage, nOver2 + (dage - nOver2) / 10.0)
+    iage = np.array(dage, dtype=np.int32)
+
+    # linearly interpolate physical times from t_frw and tau_frw lookup
+    # tables.
+    t = t_frw[iage] * (conformal_ages - tau_frw[iage - 1]) / (tau_frw[iage] - tau_frw[iage - 1])
+    t = t + (
+        t_frw[iage - 1] * (conformal_ages - tau_frw[iage]) / (tau_frw[iage - 1] - tau_frw[iage])
+    )
+
+    top.s["tform"] = pynbody.analysis.cosmology.age(sim, z=0) + t * t_scale * unit_t / s_per_Gyr
+    top.s['tform'].units = 'Gyr'
+    return sim.s["tform"]
