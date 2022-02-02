@@ -95,7 +95,13 @@ def test_rt_unit_warning_for_photon_rho():
     # at load time
     f1 = pynbody.load("testdata/ramses_rt_partial_output_00002", cpus=[1, 2, 3])
 
-    with np.testing.assert_warns(UserWarning):
+    warn_msg = (
+        "Loading RT data from disk. Photon densities are stored in flux units "
+        "by Ramses and need to be multiplied by the reduced speed of light of "
+        "the run to obtain a physical number. This is currently left to the user, "
+        "see issue 542 for more discussion."
+    )
+    with pytest.warns(UserWarning, match=warn_msg):
         f1.gas['rad_0_rho']
 
 
@@ -173,16 +179,41 @@ def test_tform_and_tform_raw():
     assert len(f.st['tform']) == len(f.st['tform_raw']) == 2655
     np.testing.assert_allclose(f.st['tform_raw'], f.st['tform'])
 
-    # Now loads a cosmological run, for which tforms have a weird format
-    # Birth files are however not generated for this output, hence tform is filled with -1
-    # Raw tform still carry the original weird units
-    fcosmo = pynbody.load("testdata/output_00080")
-    with np.testing.assert_warns(UserWarning):
-        np.testing.assert_allclose(fcosmo.st['tform'], - np.ones((31990,), dtype=np.float64), rtol=1e-5)
-        np.testing.assert_allclose(fcosmo.st['tform_raw'][:10],
+    def check(tform, tform_raw):
+        np.testing.assert_allclose(tform, - np.ones((31990,), dtype=np.float64), rtol=1e-5)
+        np.testing.assert_allclose(tform_raw[:10],
                                    [-2.72826591, -1.8400868,  -2.35988485, -3.81799766, -2.67772371, -3.22276503,
                                     -2.5208477,  -2.67845014, -3.17295132, -2.43044642],
                                    rtol=1e-5)
+
+    # Now loads a cosmological run, for which tforms have a weird format
+    # Birth files are however not generated for this output, hence tform is filled with -1
+    # Raw tform still carry the original weird units
+
+    # First test: use internal conversion
+    fcosmo = pynbody.load("testdata/output_00080")
+
+    with pytest.warns(None) as record:
+        tform = fcosmo.st["tform"]
+        tform_raw = fcosmo.st["tform_raw"]
+
+    # Make sure no warning was thrown
+    assert len(record) == 0
+
+    check(tform, tform_raw)
+
+    pynbody.config_parser.set("ramses", "use_part2birth_by_default", "True")
+    pynbody.config_parser.set("ramses", "ramses_utils", "/this/is/an/invalid/path")
+
+    warn_msg = (
+        "Failed to read 'tform' from birth files at .* and "
+        "to generate them with utility at .*"
+    )
+    with pytest.warns(UserWarning, match=warn_msg):
+        tform = fcosmo.st["tform"]
+        tform_raw = fcosmo.st["tform_raw"]
+
+    check(tform, tform_raw)
 
 
 def test_proper_time_loading():
@@ -211,8 +242,12 @@ def test_is_cosmological_without_namelist():
     f_without_namelist = pynbody.load("testdata/ramses_dmo_partial_output_00051")
     f_without_namelist.physical_units()
 
-    with np.testing.assert_warns(UserWarning):
-        assert (not f_without_namelist._not_cosmological())
+    warn_msg = (
+        "Namelist file either not found or unable to read. Guessing whether run "
+        "is cosmological from cosmological parameters assuming flat LCDM."
+    )
+    with pytest.warns(UserWarning, match=warn_msg):
+        assert f_without_namelist._not_cosmological() is False
 
 
 def test_temperature_derivation():
