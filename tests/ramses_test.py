@@ -173,48 +173,80 @@ def test_metals_field_correctly_copied_from_metal():
     np.testing.assert_allclose(f.st['metals'][::5000], f.st['metal'][::5000], rtol=1e-5)
 
 
+def _test_tform_checker(tform_raw):
+    np.testing.assert_allclose(
+        tform_raw[:10],
+        [
+            -2.72826591,
+            -1.8400868,
+            -2.35988485,
+            -3.81799766,
+            -2.67772371,
+            -3.22276503,
+            -2.5208477,
+            -2.67845014,
+            -3.17295132,
+            -2.43044642,
+        ],
+        rtol=1e-5,
+    )
+
 def test_tform_and_tform_raw():
     # Standard test output is a non-cosmological run, for which tform should be read from disk,
     # rather than transformed. Tform raw and transformed are therefore the same
-    assert len(f.st['tform']) == len(f.st['tform_raw']) == 2655
-    np.testing.assert_allclose(f.st['tform_raw'], f.st['tform'])
+    assert len(f.st["tform"]) == len(f.st["tform_raw"]) == 2655
+    np.testing.assert_allclose(f.st["tform_raw"], f.st["tform"])
 
-    def check(tform, tform_raw):
-        np.testing.assert_allclose(tform, - np.ones((31990,), dtype=np.float64), rtol=1e-5)
-        np.testing.assert_allclose(tform_raw[:10],
-                                   [-2.72826591, -1.8400868,  -2.35988485, -3.81799766, -2.67772371, -3.22276503,
-                                    -2.5208477,  -2.67845014, -3.17295132, -2.43044642],
-                                   rtol=1e-5)
-
-    # Now loads a cosmological run, for which tforms have a weird format
-    # Birth files are however not generated for this output, hence tform is filled with -1
-    # Raw tform still carry the original weird units
-
-    # First test: use internal conversion
     fcosmo = pynbody.load("testdata/output_00080")
 
-    with pytest.warns(None) as record:
+    warn_msg = (
+        "Namelist file either not found or unable to read. Guessing whether "
+        "run is cosmological from cosmological parameters assuming flat LCDM."
+    )
+    with pytest.warns(UserWarning, match=warn_msg) as record:
         tform = fcosmo.st["tform"]
         tform_raw = fcosmo.st["tform_raw"]
+    assert len(record) == 1
 
-    # Make sure no warning was thrown
-    assert len(record) == 0
+    # Reference values have been computed with `part2birth`
+    np.testing.assert_allclose(
+        tform[:10],
+        (
+            2.7014733811298863,
+            4.067542816866577,
+            3.177232587827327,
+            1.7550122687291079,
+            2.760737434676254,
+            2.2032690196559432,
+            2.956344973463002,
+            2.7598682671833252,
+            2.2475191609123915,
+            3.077730768582204
+        ),
+        rtol=1e-2,
+    )
+    _test_tform_checker(tform_raw)
 
-    check(tform, tform_raw)
 
+def test_tform_and_tform_raw_without_sidecar_files():
     pynbody.config_parser.set("ramses", "use_part2birth_by_default", "True")
     pynbody.config_parser.set("ramses", "ramses_utils", "/this/is/an/invalid/path")
 
+    fcosmo = pynbody.load("testdata/output_00080")
+
     warn_msg = (
-        "Failed to read 'tform' from birth files at .* and "
-        "to generate them with utility at .*"
+        "Failed to read 'tform' from birth files at .* "
+        "and to generate them with utility at .*"
     )
     with pytest.warns(UserWarning, match=warn_msg):
         tform = fcosmo.st["tform"]
         tform_raw = fcosmo.st["tform_raw"]
 
-    check(tform, tform_raw)
+    np.testing.assert_allclose(tform, np.full(31990, -1))
+    _test_tform_checker(tform_raw)
 
+    pynbody.config_parser.set("ramses", "use_part2birth_by_default", "False")
+    pynbody.config_parser.set("ramses", "ramses_utils", "/this/is/an/invalid/path")
 
 def test_proper_time_loading():
     f_pt = pynbody.load(

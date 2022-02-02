@@ -65,7 +65,6 @@ from ..analysis._cosmology_time import friedman
 from .. import config_parser
 
 ramses_utils = config_parser.get('ramses', 'ramses_utils')
-use_part2birth_by_default = config_parser.getboolean('ramses', 'use_part2birth_by_default')
 
 part2birth_path = os.path.join(ramses_utils, "f90", "part2birth")
 
@@ -339,7 +338,7 @@ def get_tform_using_part2birth(sim, part2birth_path):
     return sim.s['tform']
 
 
-def get_tform(sim, use_part2birth=use_part2birth_by_default, part2birth_path=part2birth_path):
+def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     """
     
     Convert conformal times to physical times for stars and **replaces** the original
@@ -379,6 +378,9 @@ def get_tform(sim, use_part2birth=use_part2birth_by_default, part2birth_path=par
     the default path would be `/home/user/ramses/utils/f90/part2birth`.
 
     """
+    if use_part2birth is None:
+        use_part2birth = config_parser.getboolean('ramses', 'use_part2birth_by_default')
+
     if use_part2birth:
         return get_tform_using_part2birth(sim, part2birth_path=part2birth_path)
 
