@@ -37,6 +37,14 @@ def compare3d():
     yield np.load(test_folder / "test_im_3d.npy")
 
 @pytest.fixture
+def compare2d_wendlandC2():
+    yield np.load(test_folder / "test_im_2d_wendlandC2.npy")
+
+@pytest.fixture
+def compare3d_wendlandC2():
+    yield np.load(test_folder / "test_im_3d_wendlandC2.npy")
+
+@pytest.fixture
 def compare_grid():
     yield np.load(test_folder / "test_im_grid.npy")
 
@@ -44,7 +52,7 @@ def compare_grid():
 def stars_2d():
     yield np.load(test_folder / "test_stars_2d.npy")
 
-def test_images(compare2d, compare3d, compare_grid):
+def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compare3d_wendlandC2):
 
     global f
 
@@ -66,6 +74,24 @@ def test_images(compare2d, compare3d, compare_grid):
     npt.assert_allclose(im3d,compare3d,rtol=1e-4)
     npt.assert_allclose(im_grid,compare_grid,rtol=1e-4)
 
+    # Make images with a different kernel (Wendland C2)
+    im3d_wendlandC2 = pynbody.plot.sph.image(
+        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, kernel_type='wendlandC2')
+    im2d_wendlandC2 = pynbody.plot.sph.image(
+        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, kernel_type='wendlandC2')
+
+    """
+    np.save("test_im_2d_wendlandC2.npy",im2d_wendlandC2)
+    np.save("test_im_3d_wendlandC2.npy",im3d_wendlandC2)
+    """
+
+    # Check that using a different kernel produces a different image
+    npt.assert_raises(AssertionError,npt.assert_array_equal,im3d_wendlandC2,im3d)
+    npt.assert_raises(AssertionError,npt.assert_array_equal,im2d_wendlandC2,im2d)
+
+    # Check that using a different kernel produces the correct image
+    npt.assert_allclose(im2d_wendlandC2,compare2d_wendlandC2,rtol=1e-4)
+    npt.assert_allclose(im3d_wendlandC2,compare3d_wendlandC2,rtol=1e-4)
 
     # check rectangular image is OK
     im_rect = pynbody.sph.render_image(f.gas,nx=500,ny=250,x2=10.0,
