@@ -117,7 +117,11 @@ class GadgetHdfMultiFileManager(object) :
         return self[0].parent['Header'].attrs
 
     def get_parameter_attrs(self):
-        attrs = self[0].parent['Parameters'].attrs
+        try:
+            attrs = self[0].parent['Parameters'].attrs
+        except KeyError:
+            attrs = []
+
         if len(attrs) == 0:
             return self.get_header_attrs()
         else:
@@ -530,8 +534,13 @@ class GadgetHDFSnap(SimSnap):
             # Gadget 4 stores unit information in Parameters attr <sigh>
             atr = self._hdf_files.get_parameter_attrs()
             if 'UnitVelocity_in_cm_per_s' not in atr.keys():
-                warnings.warn("No unit information found in GadgetHDF file", RuntimeWarning)
-                return {},{}
+                warnings.warn("No unit information found in GadgetHDF file. Using gadget default units.", RuntimeWarning)
+                vel_unit = config_parser.get('gadget-units', 'vel')
+                dist_unit = config_parser.get('gadget-units', 'pos')
+                mass_unit = config_parser.get('gadget-units', 'mass')
+                self._file_units_system = [units.Unit(x) for x in [
+                    vel_unit, dist_unit, mass_unit, "K"]]
+                return
 
         # Define the SubFind units, we will parse the attribute VarDescriptions for these
         vel_unit = atr['UnitVelocity_in_cm_per_s'] * units.cm / units.s
