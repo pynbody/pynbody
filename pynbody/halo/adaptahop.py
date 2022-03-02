@@ -68,6 +68,8 @@ UNITS = {
     'sfr10': unit_mass / unit_time,
     'sfr100': unit_mass / unit_time,
     'sfr1000': unit_mass / unit_time,
+    'age': unit_time,
+    'stellar_age': unit_time,
 }
 
 
@@ -525,10 +527,10 @@ class NewAdaptaHOPCatalogueWithStars(BaseAdaptaHOPCatalogue):
         *NewAdaptaHOPCatalogue._halo_attributes,
         ("Reff", 1, "d"),
         ("metallicity", 1, "d"),
-        ("age", 1, "d"),
+        ("stellar_age", 1, "d"),
         (("sfr10", "sfr100", "sfr1000"), 3, "d"),
         (("Vsigma", "sigma1d"), 2, "d"),
-        (("Vsigma_disk", "sigma1d_disc"), 2, "d"),
+        (("Vsigma_disk", "sigma1d_disk"), 2, "d"),
         (("sigma_bulge", "M_bulge"), 2, "d"),
         ("nbin_profile_star", 1, "i"),
         ("radius_profile_star", -1, "d"),
