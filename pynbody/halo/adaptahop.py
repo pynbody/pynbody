@@ -354,7 +354,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         """
         logger.debug("Get_group_array")
         if family is None:
-            family == self._family
+            family = self._family
         elif isinstance(family, str):
             families = self.base.families()
             matched_families = [f for f in families if f.name == family]
