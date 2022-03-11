@@ -70,6 +70,19 @@ UNITS = {
     'sfr1000': unit_mass / unit_time,
     'age': unit_time,
     'stellar_age': unit_time,
+    "Reff": unit_length,
+    "stellar_age": unit_time,
+    "sfr10": unit_mass / unit_time,
+    "Vsigma": unit_vel,
+    "Vsigma_disk": unit_vel,
+    "sigma_bulge": unit_vel,
+    "radius_profile_star": unit_length,
+    "density_profile_star": unit_density,
+    "sfr100": unit_mass / unit_time,
+    "sfr1000": unit_mass / unit_time,
+    "sigma1d": unit_vel,
+    "sigma1d_disk": unit_vel,
+    "M_bulge": unit_mass,
 }
 
 
