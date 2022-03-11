@@ -1,4 +1,3 @@
-
 import pynbody, numpy as np
 import numpy.testing as npt
 

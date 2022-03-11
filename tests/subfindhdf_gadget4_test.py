@@ -164,7 +164,7 @@ class Halos:
         result = {}
 
         # make sure fields is not a single element
-        if isinstance(fields, six.string_types):
+        if isinstance(fields, str):
             fields = [fields]
 
         # load header from first chunk

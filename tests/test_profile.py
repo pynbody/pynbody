@@ -15,7 +15,7 @@ def make_fake_bar(npart=100000, max=1, min=-1, barlength=.8, barwidth=0.05, phi=
     x = np.concatenate([x,xbar])
     y = np.concatenate([y,ybar])
     
-    good = np.where((x**2 + y**2 < 1))[0]
+    good = np.where(x**2 + y**2 < 1)[0]
     
     s = pynbody.snapshot.new(len(good))
     s['x'] = x[good]
