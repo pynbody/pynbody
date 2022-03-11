@@ -22,7 +22,7 @@ Example::
                A
               / \
              B   C
-            / \ /
+            / \\ /
            E   D
 
 The graph is inserted as a PNG+image map into HTML and a PDF in

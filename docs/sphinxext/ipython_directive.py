@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-"""Sphinx directive to support embedded IPython code.
+r"""Sphinx directive to support embedded IPython code.
 
 This directive allows pasting of entire interactive IPython sessions, prompts
 and all, and their code will actually get re-executed at doc build time, with
@@ -489,19 +488,19 @@ class EmbeddedSphinxShell(object):
                 continue
 
             # deal with lines checking for multiline
-            continuation  = u'   %s:'% ''.join(['.']*(len(str(ct))+2))
+            continuation  = '   %s:'% ''.join(['.']*(len(str(ct))+2))
             if not multiline:
-                modified = u"%s %s" % (fmtin % ct, line_stripped)
+                modified = "%s %s" % (fmtin % ct, line_stripped)
                 output.append(modified)
                 ct += 1
                 try:
                     ast.parse(line_stripped)
-                    output.append(u'')
+                    output.append('')
                 except Exception: # on a multiline
                     multiline = True
                     multiline_start = lineno
             else: # still on a multiline
-                modified = u'%s %s' % (continuation, line)
+                modified = '%s %s' % (continuation, line)
                 output.append(modified)
                 try:
                     mod = ast.parse(
@@ -512,7 +511,7 @@ class EmbeddedSphinxShell(object):
                             if isinstance(element, ast.Return):
                                 multiline = False
                     else:
-                        output.append(u'')
+                        output.append('')
                         multiline = False
                 except Exception:
                     pass
@@ -685,9 +684,9 @@ def setup(app):
     app.add_directive('ipython', IpythonDirective)
     app.add_config_value('ipython_savefig_dir', None, True)
     app.add_config_value('ipython_rgxin',
-                         re.compile('In \[(\d+)\]:\s?(.*)\s*'), True)
+                         re.compile(r'In \[(\d+)\]:\s?(.*)\s*'), True)
     app.add_config_value('ipython_rgxout',
-                         re.compile('Out\[(\d+)\]:\s?(.*)\s*'), True)
+                         re.compile(r'Out\[(\d+)\]:\s?(.*)\s*'), True)
     app.add_config_value('ipython_promptin', 'In [%d]:', True)
     app.add_config_value('ipython_promptout', 'Out[%d]:', True)
 

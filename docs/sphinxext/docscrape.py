@@ -266,7 +266,7 @@ class NumpyDocString(object):
 
         summary = self._doc.read_to_next_empty_line()
         summary_str = " ".join([s.strip() for s in summary]).strip()
-        if re.compile('^([\w., ]+=)?\s*[\w\.]+\(.*\)$').match(summary_str):
+        if re.compile(r'^([\w., ]+=)?\s*[\w\.]+\(.*\)$').match(summary_str):
             self['Signature'] = summary_str
             if not self._is_at_section():
                 self['Summary'] = self._doc.read_to_next_empty_line()
@@ -306,7 +306,7 @@ class NumpyDocString(object):
 
     def _str_signature(self):
         if self['Signature']:
-            return [self['Signature'].replace('*','\*')] + ['']
+            return [self['Signature'].replace('*',r'\*')] + ['']
         else:
             return ['']
 
@@ -427,7 +427,7 @@ class FunctionDoc(NumpyDocString):
                 # try to read signature
                 argspec = inspect.getargspec(func)
                 argspec = inspect.formatargspec(*argspec)
-                argspec = argspec.replace('*','\*')
+                argspec = argspec.replace('*',r'\*')
                 signature = '%s%s' % (func_name, argspec)
             except TypeError, e:
                 signature = '%s()' % func_name
@@ -445,7 +445,7 @@ class FunctionDoc(NumpyDocString):
         out = ''
 
         func, func_name = self.get_func()
-        signature = self['Signature'].replace('*', '\*')
+        signature = self['Signature'].replace('*', r'\*')
 
         roles = {'func': 'function',
                  'meth': 'method'}
