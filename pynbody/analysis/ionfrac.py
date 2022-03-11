@@ -35,7 +35,7 @@ def calculate(sim, ion='ovi', mode='old'):
         logger.info("Loading %s" % iffile)
         ifs = np.load(iffile)
     else:
-        raise IOError("ionfracs.npz (Ion Fraction table) not found")
+        raise OSError("ionfracs.npz (Ion Fraction table) not found")
 
     # allocate temporary metals that we can play with
     # before inlining, the views on the arrays must be standard np.ndarray

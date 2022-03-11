@@ -41,7 +41,7 @@ class Halo(snapshot.IndexedSubSnap):
     """
 
     def __init__(self, halo_id, halo_catalogue, *args, **kwa):
-        super(Halo, self).__init__(*args, **kwa)
+        super().__init__(*args, **kwa)
         self._halo_catalogue = halo_catalogue
         self._halo_id = halo_id
         self._descriptor = "halo_" + str(halo_id)

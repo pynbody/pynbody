@@ -136,7 +136,7 @@ class Chunk:
         return self.ids is None and self.step == 1
 
 
-class LoadControl(object):
+class LoadControl:
 
     """LoadControl provides the logic required for partial loading."""
 

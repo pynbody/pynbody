@@ -26,7 +26,7 @@ import math
 from . import _bridge
 
 
-class Bridge(object):
+class Bridge:
 
     """Generic Bridge class"""
 

@@ -887,7 +887,7 @@ def satlf(sim, band='v', filename=None, MWcompare=True, Trentham=True,
 		if os.path.exists(tolfile):
 			tolmags = [float(q) for q in file(tolfile).readlines()]
 		else:
-			raise IOError(tolfile + " not found")
+			raise OSError(tolfile + " not found")
 		plt.semilogy(sorted(tolmags), np.arange(len(tolmags)),
 					 label='Milky Way')
 

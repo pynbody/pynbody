@@ -63,7 +63,7 @@ class Fraction(Rational):
         numerator/denominator pair.
 
         """
-        self = super(Fraction, cls).__new__(cls)
+        self = super().__new__(cls)
 
         if type(numerator) not in (int, int) and denominator == 1:
             if isinstance(numerator, str):
@@ -118,7 +118,7 @@ class Fraction(Rational):
             raise TypeError("%s.from_float() only takes floats, not %r (%s)" %
                             (cls.__name__, f, type(f).__name__))
         if math.isnan(f) or math.isinf(f):
-            raise TypeError("Cannot convert %r to %s." % (f, cls.__name__))
+            raise TypeError("Cannot convert {!r} to {}.".format(f, cls.__name__))
         return cls(*f.as_integer_ratio())
 
     @classmethod
@@ -133,7 +133,7 @@ class Fraction(Rational):
                 (cls.__name__, dec, type(dec).__name__))
         if not dec.is_finite():
             # Catches infinities and nans.
-            raise TypeError("Cannot convert %s to %s." % (dec, cls.__name__))
+            raise TypeError("Cannot convert {} to {}.".format(dec, cls.__name__))
         sign, digits, exp = dec.as_tuple()
         digits = int(''.join(map(str, digits)))
         if sign:
@@ -208,14 +208,14 @@ class Fraction(Rational):
 
     def __repr__(self):
         """repr(self)"""
-        return ('Fraction(%s, %s)' % (self._numerator, self._denominator))
+        return ('Fraction({}, {})'.format(self._numerator, self._denominator))
 
     def __str__(self):
         """str(self)"""
         if self._denominator == 1:
             return str(self._numerator)
         else:
-            return '%s/%s' % (self._numerator, self._denominator)
+            return '{}/{}'.format(self._numerator, self._denominator)
 
     def _operator_fallbacks(monomorphic_operator, fallback_operator):
         """Generates forward and reverse operators given a purely-rational

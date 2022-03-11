@@ -11,7 +11,7 @@ from .abc import ABCMeta, abstractmethod, abstractproperty
 __all__ = ["Number", "Complex", "Real", "Rational", "Integral"]
 
 
-class Number(object, metaclass=ABCMeta):
+class Number(metaclass=ABCMeta):
 
     """All numbers inherit from this class.
 

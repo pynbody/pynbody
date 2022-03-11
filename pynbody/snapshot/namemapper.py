@@ -41,7 +41,7 @@ def name_map_function(name_map, rev_name_map):
     return _translate_array_name
 
 
-class AdaptiveNameMapper(object):
+class AdaptiveNameMapper:
     def __init__(self, config_name, gadget_blocks=False):
         self._name_map, self._rev_name_map, self._alternates = setup_name_maps(config_name, gadget_blocks,True)
 

@@ -33,7 +33,7 @@ class AsciiSnap(SimSnap):
         self._num_particles = self._load_control.mem_num_particles
 
     def __init__(self, filename, take=None, header=None):
-        super(AsciiSnap, self).__init__()
+        super().__init__()
 
         num_particles = 0
 
@@ -56,7 +56,7 @@ class AsciiSnap(SimSnap):
         return self._loadable_keys
 
     def _load_arrays(self, array_name_list):
-        with open(self._filename,'r') as f:
+        with open(self._filename) as f:
 
             if not self._header: f.readline()
             rs=[]
@@ -81,7 +81,7 @@ class AsciiSnap(SimSnap):
     def _load_array(self, array_name, fam=None):
 
         if fam is not None:
-            raise IOError("Arrays only loadable at snapshot, not family level")
+            raise OSError("Arrays only loadable at snapshot, not family level")
 
         ars = [array_name]
 
@@ -89,7 +89,7 @@ class AsciiSnap(SimSnap):
             ars =  self._array_name_ND_to_1D(array_name)
             for array_name_i in ars:
                 if array_name_i not in self._loadable_keys:
-                    raise IOError("No such array on disk")
+                    raise OSError("No such array on disk")
 
         self._load_arrays(ars)
 

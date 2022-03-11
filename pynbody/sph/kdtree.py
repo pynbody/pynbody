@@ -18,7 +18,7 @@ import warnings
 logger = logging.getLogger("pynbody.sph.kdtree")
 
 
-class KDTree(object):
+class KDTree:
     """KDTree used for smoothing."""
 
     PROPID_HSM = 1
@@ -308,7 +308,7 @@ class KDTree(object):
         self.populate("qty_%s" % op, nsmooth)
         end = time.time()
 
-        logger.info("SPH %s done in %5.3g s" % (op_label, end - start))
+        logger.info("SPH {} done in {:5.3g} s".format(op_label, end - start))
 
         return output
 

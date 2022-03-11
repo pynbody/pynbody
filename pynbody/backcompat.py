@@ -14,7 +14,7 @@ if sys.version_info[:2] <= (2, 5):
         def __init__(self, fget, *args, **kwargs):
 
             self.__doc__ = fget.__doc__
-            super(property, self).__init__(fget, *args, **kwargs)
+            super().__init__(fget, *args, **kwargs)
 
         def setter(self, fset):
 

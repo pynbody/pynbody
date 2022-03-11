@@ -305,7 +305,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
                                 ar[i0:i1] = f.read_vector(
                                     _float_type)[(refine[icel] == 0)]
     
-                            f.skip((nvar_file - nvar))
+                            f.skip(nvar_file - nvar)
     
                     else:
                         f.skip((2 ** ndim) * nvar_file)
@@ -384,7 +384,7 @@ negative_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('
 def read_descriptor(fname):
     description = []
     name_mapping = namemapper.AdaptiveNameMapper('ramses-name-mapping')
-    with open(fname, mode="r") as fd:
+    with open(fname) as fd:
         if fd.readline() != "# version:  1\n":
             raise ValueError("Wrong file format")
         fd.readline()  # ivar, variable_name, variable_type
@@ -408,7 +408,7 @@ class RamsesSnap(SimSnap):
          """
 
         global config
-        super(RamsesSnap, self).__init__()
+        super().__init__()
 
         self.__setup_parallel_reading()
 
@@ -483,8 +483,8 @@ class RamsesSnap(SimSnap):
         self._rt_blocks = []
         self._rt_blocks_3d = set()
         try:
-            f = open(self._filename+"/info_rt_" + _timestep_id(self._filename) + ".txt", "r")
-        except IOError:
+            f = open(self._filename+"/info_rt_" + _timestep_id(self._filename) + ".txt")
+        except OSError:
             return
 
         self._load_info_from_specified_file(f)
@@ -513,18 +513,18 @@ class RamsesSnap(SimSnap):
     def _load_infofile(self):
         self._info = {}
         f = open(
-            self._filename + "/info_" + _timestep_id(self._filename) + ".txt", "r")
+            self._filename + "/info_" + _timestep_id(self._filename) + ".txt")
 
         self._load_info_from_specified_file(f)
         try:
             f = open(
-                self._filename + "/header_" + _timestep_id(self._filename) + ".txt", "r")
+                self._filename + "/header_" + _timestep_id(self._filename) + ".txt")
             # most of this file is unhelpful, but depending on the ramses
             # version, there may be information on the particle fields present
             for l in f:
                 if "level" in l:
                     self._info['particle-blocks'] = l.split()
-        except IOError:
+        except OSError:
             warnings.warn(
                 "No header file found -- no particle block information available")
 
@@ -550,7 +550,7 @@ class RamsesSnap(SimSnap):
         self._namelist = {}
 
         if os.path.exists(self._filename + "/namelist.txt"):
-            f = open(self._filename + "/namelist.txt", "r")
+            f = open(self._filename + "/namelist.txt")
             try:
                 self._load_namelist_from_specified_file(f)
             except ValueError:
@@ -562,7 +562,7 @@ class RamsesSnap(SimSnap):
     def _setup_particle_descriptor(self):
         try:
             self._load_particle_descriptor()
-        except IOError:
+        except OSError:
             self._guess_particle_descriptor()
         self._has_explicit_particle_families = 'family' in self._particle_blocks
 
@@ -710,7 +710,7 @@ class RamsesSnap(SimSnap):
 
         self._sink_family = family.get_family(config_parser.get('ramses', 'type-sink'))
 
-        with open(self._sink_filename(),"r") as sink_file:
+        with open(self._sink_filename()) as sink_file:
             reader = csv.reader(sink_file, skipinitialspace=True)
             data = list(reader)
 
@@ -847,8 +847,7 @@ class RamsesSnap(SimSnap):
         refinement maps and levels working through the available CPUs and levels."""
 
         for cpu in self._cpus:
-            for x in _cpui_level_iterator(*self._cpui_level_iterator_args(cpu)):
-                yield x
+            yield from _cpui_level_iterator(*self._cpui_level_iterator_args(cpu))
 
     def _load_gas_pos(self):
         i0 = 0
@@ -1081,7 +1080,7 @@ class RamsesSnap(SimSnap):
             elif array_name in self._particle_blocks:
                 self._load_particle_block(array_name)
             else:
-                raise IOError("No such array on disk")
+                raise OSError("No such array on disk")
 
         elif fam is family.gas:
 
@@ -1103,7 +1102,7 @@ class RamsesSnap(SimSnap):
                 for u_block in self._rt_blocks_3d:
                     self[fam][u_block].units = self._rt_unit
             else:
-                raise IOError("No such array on disk")
+                raise OSError("No such array on disk")
         elif fam is None and array_name in ['pos', 'vel']:
             # synchronized loading of pos/vel information
             if 'pos' not in self:
@@ -1130,7 +1129,7 @@ class RamsesSnap(SimSnap):
                 gasmass.convert_units(self['mass'].units)
                 self.gas['mass'] = gasmass
         else:
-            raise IOError("No such array on disk")
+            raise OSError("No such array on disk")
 
 
 

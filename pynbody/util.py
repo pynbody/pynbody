@@ -38,7 +38,7 @@ def open_(filename, *args):
         return gzip.open(filename, *args)
     try:
         return open(filename, *args)
-    except IOError:
+    except OSError:
         return gzip.open(filename + ".gz", *args)
 
 
@@ -388,7 +388,7 @@ def bisect(left, right, f, epsilon=None, eta=0, verbose=False, niter_max=200):
         mid = (left + right) / 2
         z = f(mid)
 
-        logger.info("%f %f %f %f" % (left, mid, right, z))
+        logger.info("{:f} {:f} {:f} {:f}".format(left, mid, right, z))
 
         if (abs(z) < eta):
             return mid
@@ -501,7 +501,7 @@ def cutgz(x):
         return x
 
 
-class ExecutionControl(object):
+class ExecutionControl:
 
     def __init__(self):
         self.count = 0

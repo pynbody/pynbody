@@ -312,7 +312,7 @@ def get_tform_using_part2birth(sim, part2birth_path):
         birthfile_path = os.path.join(top.filename, birthfile_name)
         try:
             birth_file = FortranFile(birthfile_path)
-        except (IOError, OSError):      # Both are necessary as python 2 throws OSError, while python 3 throws IOError
+        except OSError:      # Both are necessary as python 2 throws OSError, while python 3 throws IOError
             try:
                 # birth_xxx doesn't exist, create it with ramses part2birth util
                 with open(os.devnull, 'w') as fnull:
@@ -320,12 +320,12 @@ def get_tform_using_part2birth(sim, part2birth_path):
                     subprocess.call([part2birth_path, '-inp', 'output_%s' % top._timestep_id],
                                     stdout=fnull, stderr=fnull, cwd=cwd)
                 birth_file = FortranFile(birthfile_path)
-            except (IOError, OSError):
+            except OSError:
                 import warnings
                 warnings.warn("Failed to read 'tform' from birth files at %s and to generate them with utility at %s.\n"
                               "Formation times in Ramses code units can be accessed through the 'tform_raw' array."
                               % (birthfile_path, part2birth_path))
-                raise IOError
+                raise OSError
 
         ages = birth_file.read_reals(np.float64)
         new = np.where(ages > 0)[0]

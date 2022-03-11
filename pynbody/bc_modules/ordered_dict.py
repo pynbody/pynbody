@@ -157,8 +157,8 @@ class OrderedDict(dict, MutableMapping):
     def __repr__(self):
         'od.__repr__() <==> repr(od)'
         if not self:
-            return '%s()' % (self.__class__.__name__,)
-        return '%s(%r)' % (self.__class__.__name__, list(self.items()))
+            return '{}()'.format(self.__class__.__name__)
+        return '{}({!r})'.format(self.__class__.__name__, list(self.items()))
 
     def copy(self):
         'od.copy() -> a shallow copy of od'

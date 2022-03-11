@@ -17,7 +17,7 @@ import numpy as np
 import pickle
 from . import units, util, _util, family
 
-class Filter(object):
+class Filter:
 
     def __init__(self):
         self._descriptor = "filter"
@@ -168,9 +168,9 @@ class Sphere(Filter):
     def __repr__(self):
         if units.is_unit(self.radius):
 
-            return "Sphere('%s', %s)" % (str(self.radius), repr(self.cen))
+            return "Sphere('{}', {})".format(str(self.radius), repr(self.cen))
         else:
-            return "Sphere(%.2e, %s)" % (self.radius, repr(self.cen))
+            return "Sphere({:.2e}, {})".format(self.radius, repr(self.cen))
 
 
 class Cuboid(Filter):
@@ -185,8 +185,8 @@ class Cuboid(Filter):
     def __init__(self, x1, y1=None, z1=None, x2=None, y2=None, z2=None):
 
         self._descriptor = "cube"
-        x1, y1, z1, x2, y2, z2 = [
-            units.Unit(x) if isinstance(x, str) else x for x in (x1, y1, z1, x2, y2, z2)]
+        x1, y1, z1, x2, y2, z2 = (
+            units.Unit(x) if isinstance(x, str) else x for x in (x1, y1, z1, x2, y2, z2))
         if y1 is None:
             y1 = x1
         if z1 is None:
@@ -200,17 +200,17 @@ class Cuboid(Filter):
         self.x1, self.y1, self.z1, self.x2, self.y2, self.z2 = x1, y1, z1, x2, y2, z2
 
     def __call__(self, sim):
-        x1, y1, z1, x2, y2, z2 = [x.in_units(sim["pos"].units, **sim["pos"].conversion_context())
+        x1, y1, z1, x2, y2, z2 = (x.in_units(sim["pos"].units, **sim["pos"].conversion_context())
                                   if units.is_unit_like(x) else x
-                                  for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2)]
+                                  for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2))
 
         return ((sim["x"] > x1) * (sim["x"] < x2) * (sim["y"] > y1) * (sim["y"] < y2) * (sim["z"] > z1) * (sim["z"] < z2))
 
     def __repr__(self):
-        x1, y1, z1, x2, y2, z2 = ["'%s'" % str(x)
+        x1, y1, z1, x2, y2, z2 = ("'%s'" % str(x)
                                   if units.is_unit_like(x) else x
-                                  for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2)]
-        return "Cuboid(%s, %s, %s, %s, %s, %s)" % (x1, y1, z1, x2, y2, z2)
+                                  for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2))
+        return "Cuboid({}, {}, {}, {}, {}, {})".format(x1, y1, z1, x2, y2, z2)
 
 
 class Disc(Filter):
@@ -252,10 +252,10 @@ class Disc(Filter):
         radius = self.radius
         height = self.height
 
-        radius, height = [
-            ("'%s'" % str(x) if units.is_unit_like(x) else '%.2e' % x) for x in (radius, height)]
+        radius, height = (
+            ("'%s'" % str(x) if units.is_unit_like(x) else '%.2e' % x) for x in (radius, height))
 
-        return "Disc(%s, %s, %s)" % (radius, height, repr(self.cen))
+        return "Disc({}, {}, {})".format(radius, height, repr(self.cen))
 
 
 class BandPass(Filter):
@@ -293,9 +293,9 @@ class BandPass(Filter):
         return ((sim[prop] > min_) * (sim[prop] < max_))
 
     def __repr__(self):
-        min_, max_ = [("'%s'" % str(x) if units.is_unit_like(
-            x) else '%.2e' % x) for x in (self._min, self._max)]
-        return "BandPass('%s', %s, %s)" % (self._prop, min_, max_)
+        min_, max_ = (("'%s'" % str(x) if units.is_unit_like(
+            x) else '%.2e' % x) for x in (self._min, self._max))
+        return "BandPass('{}', {}, {})".format(self._prop, min_, max_)
 
 
 class HighPass(Filter):
@@ -328,7 +328,7 @@ class HighPass(Filter):
     def __repr__(self):
         min = ("'%s'" % str(self._min) if units.is_unit_like(
             self._min) else '%.2e' % self._min)
-        return "HighPass('%s', %s)" % (self._prop, min)
+        return "HighPass('{}', {})".format(self._prop, min)
 
 
 class LowPass(Filter):
@@ -360,7 +360,7 @@ class LowPass(Filter):
     def __repr__(self):
         max = ("'%s'" % str(self._max) if isinstance(
             self._max, units.UnitBase) else '%.2e' % self._max)
-        return "LowPass('%s', %s)" % (self._prop, max)
+        return "LowPass('{}', {})".format(self._prop, max)
 
 
 def Annulus(r1, r2, cen=(0, 0, 0)):

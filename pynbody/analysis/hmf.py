@@ -32,7 +32,7 @@ logger = logging.getLogger('pynbody.analysis.hmf')
 # Filters
 #######################################################################
 
-class FieldFilter(object):
+class FieldFilter:
 
     def __init__(self):
         raise RuntimeError("Cannot instantiate directly, use a subclass instead")
@@ -87,7 +87,7 @@ class HarmonicStepFilter(FieldFilter):
 #######################################################################
 
 
-class PowerSpectrumCAMB(object):
+class PowerSpectrumCAMB:
 
     def __init__(self, context, filename=None, log_interpolation=True):
         if filename is None:
@@ -187,7 +187,7 @@ class PowerSpectrumCAMBLive(PowerSpectrumCAMB):
             raise RuntimeError("You need to compile CAMB and set up the executable path in your pynbody configuration file.")
 
         file_in = open(
-            os.path.join(os.path.dirname(__file__), "cambtemplate.ini"), "r")
+            os.path.join(os.path.dirname(__file__), "cambtemplate.ini"))
         folder_out = tempfile.mkdtemp()
         file_out = open(os.path.join(folder_out, "camb.ini"), "w")
 
