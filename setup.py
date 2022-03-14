@@ -256,6 +256,10 @@ cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
                                 sources=['pynbody/extern/_cython_fortran_utils.pyx'],
                                 include_dirs=incdir)
 
+cosmology_time = Extension('pynbody.analysis._cosmology_time',
+                           sources=['pynbody/analysis/_cosmology_time.pyx'],
+                           include_dirs=incdir)
+
 interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               sources = ['pynbody/analysis/_interpolate3d.pyx'],
                               include_dirs=incdir,
@@ -264,7 +268,7 @@ interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
 
 
 ext_modules+=[kdmain, gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
-              cython_fortran_file, interpolate3d_pyx, omp_commands]
+              cython_fortran_file, cosmology_time, interpolate3d_pyx, omp_commands]
 
 if not build_cython :
     for mod in ext_modules :
