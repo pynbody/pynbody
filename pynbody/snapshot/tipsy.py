@@ -34,7 +34,7 @@ import numpy as np
 import sys
 import warnings
 import copy
-from glob import glob
+import glob
 import math
 
 import logging

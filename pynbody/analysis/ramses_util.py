@@ -322,10 +322,13 @@ def get_tform_using_part2birth(sim, part2birth_path):
                                     stdout=fnull, stderr=fnull, cwd=cwd)
                 birth_file = FortranFile(birthfile_path)
             except OSError:
+                msg = (
+                    "Failed to read 'tform' from birth files at %s and to generate "
+                    "them with utility at %s.\n Formation times in Ramses code units "
+                    "can be accessed through the 'tform_raw' array."
+                )
                 warnings.warn(
-                    "Failed to read 'tform' from birth files at %s and to generate them with utility at %s.\n"
-                    "Formation times in Ramses code units can be accessed through the 'tform_raw' array.",
-                    birthfile_path, part2birth_path
+                    msg % (birthfile_path, part2birth_path)
                 )
                 raise
 
