@@ -15,7 +15,7 @@ sample usage.
 
 import numpy as np
 import pickle
-from . import units, util, _util, family
+from . import units, _util, family
 
 class Filter:
 

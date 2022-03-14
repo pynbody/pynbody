@@ -21,7 +21,6 @@ except ImportError:
 
 import math
 import warnings
-import cmath
 import tempfile
 import subprocess
 import logging

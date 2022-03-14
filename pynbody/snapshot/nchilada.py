@@ -9,23 +9,15 @@ automatically via pynbody.load.
 
 """
 
-from .. import array, util
 from .. import family
 from .. import units
-from .. import config, config_parser
 from .. import chunk
 from . import SimSnap
 from . import namemapper
 
-import struct
 import os
 import numpy as np
-import gzip
-import sys
 import warnings
-import copy
-import types
-import math
 import xml.dom.minidom
 import xdrlib
 

@@ -21,17 +21,17 @@ import sys
 import threading
 import copy
 import logging
-import time
+import os
+from time import process_time
 logger = logging.getLogger('pynbody.sph')
 
 from . import _render
-from .. import snapshot, array, config, units, util, config_parser, backcompat
+from .. import snapshot, array, config, units, util, config_parser
 
 try:
     from . import kdtree
 except ImportError:
     raise ImportError("Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python")
-import os
 
 
 
@@ -115,9 +115,9 @@ def build_tree_or_trees(sim):
 
     logger.info('Building tree with leafsize=%d' % config['sph']['tree-leafsize'])
 
-    start = backcompat.clock()
+    start = process_time()
     build_tree(sim)
-    end = backcompat.clock()
+    end = process_time()
 
     logger.info('Tree build done in %5.3g s' % (end - start))
 
@@ -304,8 +304,6 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
 
 def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kernel(),
                             kstep=0.5, denoise=None, out_units=None, __threaded=False, snap_slice=None):
-
-    import healpy as hp
 
     if denoise is None:
         denoise = _auto_denoise(snap, kernel)
@@ -571,8 +569,6 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     """The single-threaded image rendering core function. External calls
     should be made to the render_image function."""
 
-    import os
-    import os.path
     global config
 
     verbose = config["verbose"] and not force_quiet
@@ -736,9 +732,6 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
       often introduce problematic edge effects.
 
     """
-
-    import os
-    import os.path
     global config
 
     if denoise is None:
@@ -931,9 +924,8 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
 
     """
 
-    import os, os.path
     global config
-    
+
     if config["tracktime"] :
         import time
         in_time = time.time()

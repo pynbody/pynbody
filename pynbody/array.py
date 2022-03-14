@@ -144,11 +144,10 @@ import weakref
 import os
 from . import units as units
 from functools import reduce
-_units = units
-from .backcompat import property
-from .backcompat import fractions
+import fractions
 import atexit
 import functools
+_units = units
 
 
 class SimArray(np.ndarray):

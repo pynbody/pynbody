@@ -9,8 +9,9 @@ except ImportError:
     #import warnings
     #warnings.warn("Unable to import PKDGrav gravity solver. Most likely this means either that your installation is broken, or that you are running python inside the pynbody distribution directory, in which case python cannot see the installed version. However, it also doesn't matter unless you want to use the tree gravity solver.",RuntimeWarning)
 
-from .. import config, backcompat
+from .. import config
 import numpy as np
+from time import process_time
 
 
 
@@ -18,10 +19,10 @@ class GravTree:
 
     def __init__(self, pos, mass, rs, eps=None, leafsize=16):
 
-        start = backcompat.clock()
+        start = process_time()
         self.tree = pkdgrav.pkdPythonInitialize(
             pos, mass, eps, rs, int(leafsize))
-        end = backcompat.clock()
+        end = process_time()
         if config['verbose']:
             print('Tree build done in %5.3g s' % (end - start))
 
@@ -34,9 +35,9 @@ class GravTree:
         if config['verbose']:
             print('Calculating Gravity')
 
-        start = backcompat.clock()
+        start = process_time()
         pkdgrav.pkdPythonDoGravity(self.tree, accel, pot, theta=0.55)
-        end = backcompat.clock()
+        end = process_time()
         if config['verbose']:
             print('Gravity calculated in %5.3g s' % (end - start))
 

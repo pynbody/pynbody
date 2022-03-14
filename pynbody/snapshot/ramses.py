@@ -17,7 +17,7 @@ the `ipython notebook demo
   # for py2.5
 
 
-from .. import array, util
+from .. import array
 from .. import family
 from .. import units
 from .. import config, config_parser
@@ -386,7 +386,7 @@ def read_descriptor(fname):
     name_mapping = namemapper.AdaptiveNameMapper('ramses-name-mapping')
     with open(fname) as fd:
         if fd.readline() != "# version:  1\n":
-            raise ValueError("Wrong file format")
+            raise OSError("Wrong file format")
         fd.readline()  # ivar, variable_name, variable_type
         for line in fd.readlines():
             i, name, dtype = (_.strip() for _ in line.split(","))

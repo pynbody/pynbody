@@ -18,9 +18,9 @@ Now you can run AHF or pkdgrav using the file named
 
 >>> s_tipsy = pynbody.load('output_00101_fullbox.tipsy')
 
-You can also just output a part of the simulation : 
+You can also just output a part of the simulation :
 
->>> s = pynbody.analysis.ramses_util.load_center('output_00101', align=False) # centered on halo 0 
+>>> s = pynbody.analysis.ramses_util.load_center('output_00101', align=False) # centered on halo 0
 >>> pynbody.analysis.ramses_util.convert_to_tipsy_simple('output_00101', file = pynbody.filt.Sphere('200 kpc')
 
 Now we've got a file called `output_00101.tipsy` which holds only the
@@ -59,9 +59,10 @@ import subprocess
 import numpy as np
 import os
 from pathlib import Path
+import warnings
+
 from .. units import Unit
 from ..analysis._cosmology_time import friedman
-
 from .. import config_parser
 
 ramses_utils = config_parser.get('ramses', 'ramses_utils')
@@ -312,7 +313,7 @@ def get_tform_using_part2birth(sim, part2birth_path):
         birthfile_path = os.path.join(top.filename, birthfile_name)
         try:
             birth_file = FortranFile(birthfile_path)
-        except OSError:      # Both are necessary as python 2 throws OSError, while python 3 throws IOError
+        except OSError:
             try:
                 # birth_xxx doesn't exist, create it with ramses part2birth util
                 with open(os.devnull, 'w') as fnull:
@@ -321,11 +322,12 @@ def get_tform_using_part2birth(sim, part2birth_path):
                                     stdout=fnull, stderr=fnull, cwd=cwd)
                 birth_file = FortranFile(birthfile_path)
             except OSError:
-                import warnings
-                warnings.warn("Failed to read 'tform' from birth files at %s and to generate them with utility at %s.\n"
-                              "Formation times in Ramses code units can be accessed through the 'tform_raw' array."
-                              % (birthfile_path, part2birth_path))
-                raise OSError
+                warnings.warn(
+                    "Failed to read 'tform' from birth files at %s and to generate them with utility at %s.\n"
+                    "Formation times in Ramses code units can be accessed through the 'tform_raw' array.",
+                    birthfile_path, part2birth_path
+                )
+                raise
 
         ages = birth_file.read_reals(np.float64)
         new = np.where(ages > 0)[0]

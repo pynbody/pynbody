@@ -111,8 +111,7 @@ You can even define completely new dimensions.
 import re
 import keyword
 import numpy as np
-from . import backcompat
-from .backcompat import fractions
+import fractions
 import functools
 from collections import defaultdict
 
@@ -525,7 +524,6 @@ class CompositeUnit(UnitBase):
         bp = sorted((x for x in zip(powers, bases) if x[0] != 0),
                     reverse=True,
                     key=lambda x: x[0])
-        # Py2 only: cmp=lambda x, y: cmp(x[0], y[0]))
 
         if len(bp) != 0:
             self._powers, self._bases = list(map(list, list(zip(*bp))))

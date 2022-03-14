@@ -19,9 +19,8 @@ import weakref
 import copy
 import logging
 import warnings
-from functools import reduce
 
-from .. import snapshot, util, units, array
+from .. import snapshot, util
 
 logger = logging.getLogger("pynbody.halo")
 

@@ -10,8 +10,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import warnings
 
-from ..analysis import profile, angmom, halo
-from .. import filt, units, config, array
+from ..analysis import profile, angmom
+from .. import filt, units, array
 from .sph import image
 from .. import units as _units
 

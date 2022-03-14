@@ -209,7 +209,6 @@ def redshift(f, time):
 
     from scipy.optimize import newton
     from scipy.interpolate import interp1d
-    from .. import array
 
     def func(x, sim, time):
         return age(sim, x) - time

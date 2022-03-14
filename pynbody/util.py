@@ -13,16 +13,13 @@ import os
 import threading
 import sys
 import time
-import functools
 import logging
 import math
 import sys
 
 import numpy as np
-import scipy
 
-from .backcompat import fractions
-from . import config
+import fractions
 from . import units
 from .array import SimArray
 
@@ -122,9 +119,9 @@ def intersect_slices(s1, s2, array_length=None):
     s1_step = s1.step
     s2_step = s2.step
 
-    if s1_step == None:
+    if s1_step is None:
         s1_step = 1
-    if s2_step == None:
+    if s2_step is None:
         s2_step = 1
 
     assert s1_step > 0 and s2_step > 0

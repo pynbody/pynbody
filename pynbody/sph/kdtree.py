@@ -12,7 +12,6 @@ from .. import array as ar
 import numpy as np
 import time
 import logging
-import weakref
 import warnings
 
 logger = logging.getLogger("pynbody.sph.kdtree")

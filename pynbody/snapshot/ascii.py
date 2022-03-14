@@ -10,10 +10,8 @@ A simple ascii file reader for pynbody
   # for py2.5
 
 
-from .. import array, util
 from .. import family
 from .. import units
-from .. import config, config_parser
 from .. import chunk
 from . import SimSnap
 

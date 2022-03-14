@@ -6,8 +6,6 @@ grafic
 Support for loading grafIC files
 """
 
-from .. import util
-from .. import array
 from .. import chunk
 from .. import family
 from .. import analysis
@@ -19,7 +17,6 @@ from ..extern.cython_fortran_utils import FortranFile
 
 import numpy as np
 import os
-import functools
 import warnings
 import glob
 

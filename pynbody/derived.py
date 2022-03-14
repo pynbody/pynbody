@@ -7,15 +7,12 @@ getting the radial position. For more information see :ref:`derived`.
 
 """
 
-from . import snapshot
 from .snapshot import SimSnap
 from . import array
 from . import analysis
-from . import sph
 from . import config
 from . import units
 import numpy as np
-import sys
 import logging
 import time
 import functools

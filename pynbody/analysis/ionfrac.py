@@ -9,7 +9,6 @@ calculates ionization fractions - NEEDS DOCUMENTATION
 
 import numpy as np
 import os
-from ..array import SimArray
 from pynbody import config
 
 import logging

@@ -31,11 +31,10 @@ from . import SimSnap
 import struct
 import os
 import numpy as np
-import gzip
 import sys
 import warnings
 import copy
-import types
+from glob import glob
 import math
 
 import logging
@@ -250,8 +249,6 @@ class TipsySnap(SimSnap):
 
             except OSError:
                 return False
-
-        import glob
 
         fs = list(map(util.cutgz, glob.glob(self._filename + ".*")))
         res = [q[len(self._filename) + 1:] for q in list(filter(is_readable_array, fs))]
@@ -803,9 +800,6 @@ class TipsySnap(SimSnap):
             except OSError:
                 pass
 
-        import sys
-        import os
-
         # N.B. this code is a bit inefficient for loading
         # family-specific arrays, because it reads in the whole array
         # then slices it.  But of course the memory is only wasted
@@ -911,9 +905,6 @@ class TipsySnap(SimSnap):
     def read_starlog(self, fam=None):
         """Read a TIPSY-starlog file."""
 
-        import sys
-        import os
-        import glob
         import pynbody.bridge
         x = os.path.abspath(self._filename)
         done = False
@@ -1427,9 +1418,6 @@ class StarLog(SimSnap):
 @StarLog.decorator
 @nchilada.NchiladaSnap.decorator
 def load_paramfile(sim):
-    import sys
-    import os
-    import glob
     x = os.path.abspath(sim._filename)
     done = False
     sim._paramfile = {}
@@ -1487,11 +1475,6 @@ def load_paramfile(sim):
 @nchilada.NchiladaSnap.decorator
 def param2units(sim):
     with sim.lazy_off:
-        import sys
-        import math
-        import os
-        import glob
-
         munit = dunit = hub = None
 
         try:
@@ -1693,11 +1676,6 @@ def settimeN(sim):
 @StarLog.decorator
 def slparam2units(sim):
     with sim.lazy_off:
-        import sys
-        import math
-        import os
-        import glob
-
         munit = dunit = hub = None
 
         try:

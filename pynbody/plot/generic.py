@@ -10,7 +10,6 @@ Flexible and general plotting functions
 import numpy as np
 import pylab as plt
 import pynbody
-from ..analysis import profile, angmom, halo
 from .. import config
 from ..array import SimArray
 from ..units import NoUnit

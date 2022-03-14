@@ -14,8 +14,6 @@ from .. import array, units
 from .. import family
 from .. import config
 from .. import config_parser
-from .. import util
-from .. import backcompat
 from . import SimSnap
 from . import namemapper
 
@@ -24,7 +22,6 @@ import numpy as np
 import struct
 import sys
 import copy
-import os.path as path
 import warnings
 import errno
 import itertools
@@ -35,7 +32,7 @@ import itertools
 
 N_TYPE = 6
 
-_type_map = backcompat.OrderedDict({})
+_type_map = {}
 
 for name, gtypes in config_parser.items('gadget-type-mapping'):
     try:

@@ -1,23 +1,12 @@
 import os
-import numpy
 import warnings
-import sys
 import logging
 import multiprocessing
-import copy
-from . import backcompat
 
 def _get_config_parser_with_defaults():
     # Create config dictionaries which will be required by subpackages
-    # We use the OrderedDict, which is default in 2.7, but provided here for 2.6/2.5 by
-    # the backcompat module. This keeps things in the order they were parsed (important
-    # for units module, for instance).
-    if (sys.version_info.major > 2):
-        import configparser 
-        config_parser = configparser.ConfigParser(dict_type=backcompat.OrderedDict)
-    else:
-        import configparser
-        config_parser = configparser.ConfigParser(dict_type=backcompat.OrderedDict)
+    import configparser
+    config_parser = configparser.ConfigParser()
     config_parser.optionxform = str
     config_parser.read(
         os.path.join(os.path.dirname(__file__), "default_config.ini"))

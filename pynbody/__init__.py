@@ -25,7 +25,6 @@ version of pynbody (prior to version 1.0), by typing:
 pip install 'pynbody<1.0'
 """)
 
-from . import backcompat
 from . import configuration
 
 from .configuration import config, config_parser, logger
