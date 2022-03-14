@@ -474,7 +474,7 @@ class RamsesSnap(SimSnap):
         for desc_type, default_block, descriptor_fname in zip(types, default_blocks, descriptors_fnames):
             try:
                 block = read_descriptor(descriptor_fname)
-            except (FileNotFoundError, ValueError):
+            except (FileNotFoundError, OSError):
                 block = default_block
 
             setattr(self, f"_{desc_type}_blocks", block)
