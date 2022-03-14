@@ -1,4 +1,4 @@
-"""
+r"""
 Defines a docutils directive for inserting inheritance diagrams.
 
 Provide the directive with one or more classes or modules (separated
@@ -22,7 +22,7 @@ Example::
                A
               / \
              B   C
-            / \\ /
+            / \ /
            E   D
 
 The graph is inserted as a PNG+image map into HTML and a PDF in
