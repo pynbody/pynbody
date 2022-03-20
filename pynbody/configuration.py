@@ -1,23 +1,12 @@
 import os
-import numpy
 import warnings
-import sys
 import logging
 import multiprocessing
-import copy
-from . import backcompat
 
 def _get_config_parser_with_defaults():
     # Create config dictionaries which will be required by subpackages
-    # We use the OrderedDict, which is default in 2.7, but provided here for 2.6/2.5 by
-    # the backcompat module. This keeps things in the order they were parsed (important
-    # for units module, for instance).
-    if (sys.version_info.major > 2):
-        import configparser 
-        config_parser = configparser.ConfigParser(dict_type=backcompat.OrderedDict)
-    else:
-        import configparser
-        config_parser = configparser.ConfigParser(dict_type=backcompat.OrderedDict)
+    import configparser
+    config_parser = configparser.ConfigParser()
     config_parser.optionxform = str
     config_parser.read(
         os.path.join(os.path.dirname(__file__), "default_config.ini"))
@@ -107,8 +96,8 @@ def configure_snapshot_and_halo_loading_priority():
 
     # Turn the config strings for snapshot/halo classes into lists of
     # actual classes
-    _snap_classes_dict = dict([(x.__name__, x) for x in snapshot._get_snap_classes()])
-    _halo_classes_dict = dict([(x.__name__, x) for x in halo._get_halo_classes()])
+    _snap_classes_dict = {x.__name__: x for x in snapshot._get_snap_classes()}
+    _halo_classes_dict = {x.__name__: x for x in halo._get_halo_classes()}
     config['snap-class-priority'] = [_snap_classes_dict[x]
                                      for x in config['snap-class-priority']]
     config['halo-class-priority'] = [_halo_classes_dict[x]

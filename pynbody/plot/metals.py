@@ -7,8 +7,7 @@ metals
 
 
 import numpy as np
-from ..analysis import profile
-from .generic import hist2d, gauss_kde
+from .generic import gauss_kde
 
 
 def mdf(sim, filename=None, clear=True, range=[-5, 0.3], axes=False, **kwargs):

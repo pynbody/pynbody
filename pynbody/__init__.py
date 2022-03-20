@@ -25,7 +25,6 @@ version of pynbody (prior to version 1.0), by typing:
 pip install 'pynbody<1.0'
 """)
 
-from . import backcompat
 from . import configuration
 
 from .configuration import config, config_parser, logger
@@ -41,7 +40,7 @@ from . import analysis, halo, derived, bridge, gravity, sph, transformation
 # pynbody.plot, it would seem to be too destructive to stop this behaviour.
 # So this hack is the compromise and should be completely transparent to most
 # users.
-class PlotModuleProxy(object):
+class PlotModuleProxy:
     def _do_import(self):
         global plot
         del plot

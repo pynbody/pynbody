@@ -61,7 +61,7 @@ for hdf_groups in _default_type_map.values():
 
 
 
-class DummyHDFData(object):
+class DummyHDFData:
 
     """A stupid class to allow emulation of mass arrays for particles
     whose mass is in the header"""
@@ -80,7 +80,7 @@ class DummyHDFData(object):
         target[:] = self.value
 
 
-class GadgetHdfMultiFileManager(object) :
+class GadgetHdfMultiFileManager:
     _nfiles_groupname = "Header"
     _nfiles_attrname = "NumFilesPerSnapshot"
     _subgroup_name = None
@@ -161,7 +161,7 @@ class GadgetHDFSnap(SimSnap):
     _size_from_hdf5_key = "ParticleIDs"
 
     def __init__(self, filename, ):
-        super(GadgetHDFSnap, self).__init__()
+        super().__init__()
 
         self._filename = filename
 
@@ -196,7 +196,7 @@ class GadgetHDFSnap(SimSnap):
             return
 
         for fam in all_fams:
-            self._loadable_family_keys[fam] = set(["mass"])
+            self._loadable_family_keys[fam] = {"mass"}
             for hdf_group in self._all_hdf_groups_in_family(fam):
                 for this_key in self._get_hdf_allarray_keys(hdf_group):
                     ar_name = self._translate_array_name(this_key, reverse=True)
@@ -336,7 +336,7 @@ class GadgetHDFSnap(SimSnap):
 
     def _get_or_create_hdf_dataset(self, particle_group, hdf_name, shape, dtype):
         if self._translate_array_name(hdf_name,reverse=True)=='mass':
-            raise IOError("Unable to write the mass block due to Gadget header format")
+            raise OSError("Unable to write the mass block due to Gadget header format")
 
         ret = particle_group
         for tpart in hdf_name.split("/")[:-1]:
@@ -439,14 +439,14 @@ class GadgetHDFSnap(SimSnap):
         if expectedCgsConversionFactor is not None:
             if not np.allclose(conversion, expectedCgsConversionFactor, rtol=1e-3):
                 raise units.UnitsException(
-                    "Error with unit read out from HDF. Inferred CGS conversion factor is %r but HDF requires %r" % (
+                    "Error with unit read out from HDF. Inferred CGS conversion factor is {!r} but HDF requires {!r}".format(
                     conversion, expectedCgsConversionFactor))
 
         return arr_units
 
     def _load_array(self, array_name, fam=None):
         if not self._family_has_loadable_array(fam, array_name):
-            raise IOError("No such array on disk")
+            raise OSError("No such array on disk")
         else:
 
             translated_name = self._translate_array_name(array_name)
@@ -655,7 +655,7 @@ class SubFindHDFSnap(GadgetHDFSnap) :
     _readable_hdf5_test_key = "FOF"
 
     def __init__(self, filename) :
-        super(SubFindHDFSnap,self).__init__(filename)
+        super().__init__(filename)
 
     def halos(self) : 
         return halo.SubFindHDFHaloCatalogue(self)

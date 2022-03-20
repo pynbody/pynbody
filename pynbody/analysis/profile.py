@@ -10,9 +10,10 @@ properties.
 
 import numpy as np
 import pynbody
-from .. import family, units, array, util, backcompat
+from .. import units, array, util
 import math
 import logging
+from time import process_time
 import warnings
 logger = logging.getLogger('pynbody.analysis.profile')
 
@@ -681,10 +682,10 @@ def v_circ(p, grav_sim=None):
     # elif hasattr(grav_sim,'base') :
     #    grav_sim = grav_sim.base
 
-    start = backcompat.clock()
+    start = process_time()
     rc = gravity.midplane_rot_curve(
         grav_sim, p['rbins']).in_units(p.sim['vel'].units)
-    end = backcompat.clock()
+    end = process_time()
     logger.info("Rotation curve calculated in %5.3g s" % (end - start))
     return rc
 
@@ -709,10 +710,10 @@ def pot(p):
     while hasattr(grav_sim, 'base') and "halo_id" in grav_sim.base.properties:
         grav_sim = grav_sim.base
 
-    start = backcompat.clock()
+    start = process_time()
     pot = gravity.midplane_potential(
         grav_sim, p['rbins']).in_units(p.sim['vel'].units ** 2)
-    end = backcompat.clock()
+    end = process_time()
     logger.info("Potential calculated in %5.3g s" % (end - start))
     return pot
 

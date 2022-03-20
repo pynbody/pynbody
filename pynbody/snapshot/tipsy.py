@@ -31,11 +31,10 @@ from . import SimSnap
 import struct
 import os
 import numpy as np
-import gzip
 import sys
 import warnings
 import copy
-import types
+import glob
 import math
 
 import logging
@@ -43,18 +42,18 @@ logger = logging.getLogger('pynbody.snapshot.tipsy')
 
 
 class TipsySnap(SimSnap):
-    _basic_loadable_keys = {family.dm: set(['phi', 'pos', 'eps', 'mass', 'vel']),
-                            family.gas: set(['phi', 'temp', 'pos', 'metals', 'eps',
-                                             'mass', 'rho', 'vel']),
-                            family.star: set(['phi', 'tform', 'pos', 'metals',
-                                              'eps', 'mass', 'vel']),
-                            None: set(['phi', 'pos', 'eps', 'mass', 'vel'])}
+    _basic_loadable_keys = {family.dm: {'phi', 'pos', 'eps', 'mass', 'vel'},
+                            family.gas: {'phi', 'temp', 'pos', 'metals', 'eps',
+                                             'mass', 'rho', 'vel'},
+                            family.star: {'phi', 'tform', 'pos', 'metals',
+                                              'eps', 'mass', 'vel'},
+                            None: {'phi', 'pos', 'eps', 'mass', 'vel'}}
 
     def __init__(self, filename, **kwargs):
 
         global config
 
-        super(TipsySnap, self).__init__()
+        super().__init__()
 
         only_header = kwargs.get('only_header', False)
         if only_header:
@@ -196,7 +195,7 @@ class TipsySnap(SimSnap):
             write += ['vx', 'vy', 'vz']
 
         max_item_size = max(
-            [q.itemsize for q in (self._g_dtype, self._d_dtype, self._s_dtype)])
+            q.itemsize for q in (self._g_dtype, self._d_dtype, self._s_dtype))
         tbuf = bytearray(max_item_size * 10240)
 
         for fam, dtype in ((family.gas, self._g_dtype), (family.dm, self._d_dtype), (family.star, self._s_dtype)):
@@ -248,19 +247,17 @@ class TipsySnap(SimSnap):
                 else:
                     return False
 
-            except IOError:
+            except OSError:
                 return False
-
-        import glob
 
         fs = list(map(util.cutgz, glob.glob(self._filename + ".*")))
         res = [q[len(self._filename) + 1:] for q in list(filter(is_readable_array, fs))]
 
         # Create an empty dictionary of sets to store the loadable
         # arrays for each family
-        rdict = dict([(x, set()) for x in self.families()])
-        rdict.update(dict([a, copy.copy(b)]
-                          for a, b in self._basic_loadable_keys.items() if a is not None))
+        rdict = {x: set() for x in self.families()}
+        rdict.update({a: copy.copy(b)
+                          for a, b in self._basic_loadable_keys.items() if a is not None})
         # Now work out which families can load which arrays
         # according to the stored metadata
         for r in res:
@@ -571,8 +568,8 @@ class TipsySnap(SimSnap):
                      for this array, or None if this cannot be determined"""
 
         try:
-            f = open(self.filename + "." + array_name + ".pynbody-meta", 'r')
-        except IOError:
+            f = open(self.filename + "." + array_name + ".pynbody-meta")
+        except OSError:
             return self._default_units_for(array_name), None, None
 
         res = {}
@@ -654,12 +651,12 @@ class TipsySnap(SimSnap):
                     try:
                         self[f][array_name].units.in_units(aux_u)
                     except units.UnitsException:
-                        raise IOError(
+                        raise OSError(
                             "Units must match the existing auxiliary array on disk.")
 
         try:
             data = self.__read_array_from_disk(array_name, filename=filename)
-        except IOError:
+        except OSError:
             # doesn't really exist, probably because the other data on disk was
             # in the main snapshot
             self._write_array(self, array_name, fam, filename=filename, binary=binary,
@@ -768,7 +765,7 @@ class TipsySnap(SimSnap):
             # Bottom line says 'you requested one family, but that one's not
             # available'
 
-            raise IOError("This array is marked as available only for families %s" % fams)
+            raise OSError("This array is marked as available only for families %s" % fams)
 
         data = self.__read_array_from_disk(array_name, fam=fam,
                                            filename=filename,
@@ -800,11 +797,8 @@ class TipsySnap(SimSnap):
                     return self[fam][array_name]
                 else:
                     return self[array_name]
-            except IOError:
+            except OSError:
                 pass
-
-        import sys
-        import os
 
         # N.B. this code is a bit inefficient for loading
         # family-specific arrays, because it reads in the whole array
@@ -833,7 +827,7 @@ class TipsySnap(SimSnap):
             l = int(f.readline())
             binary = False
             if l != self._load_control.disk_num_particles:
-                raise IOError("Incorrect file format")
+                raise OSError("Incorrect file format")
 
             if not dtype:
                 # Inspect the first line to see whether it's float or int
@@ -864,7 +858,7 @@ class TipsySnap(SimSnap):
                 l = struct.unpack("i", f.read(4))[0]
 
             if l != self._load_control.disk_num_particles:
-                raise IOError("Incorrect file format")
+                raise OSError("Incorrect file format")
 
             if dtype is None:
                 # Set data format to be read (float or int) based on config
@@ -911,9 +905,6 @@ class TipsySnap(SimSnap):
     def read_starlog(self, fam=None):
         """Read a TIPSY-starlog file."""
 
-        import sys
-        import os
-        import glob
         import pynbody.bridge
         x = os.path.abspath(self._filename)
         done = False
@@ -927,7 +918,7 @@ class TipsySnap(SimSnap):
         else:
             l = glob.glob(os.path.join(x, "../*.starlog"))
             if (len(l) == 0):
-                raise IOError("Couldn't find starlog file")
+                raise OSError("Couldn't find starlog file")
             for filename in l:
                 sl = StarLog(filename)
 
@@ -1160,7 +1151,7 @@ class StarLog(SimSnap):
 
     def __init__(self, filename, sort=True, paramfile=None, use_log=True):
         import os
-        super(StarLog, self).__init__()
+        super().__init__()
         self._filename = filename
         self._paramfilename = paramfile
 
@@ -1185,7 +1176,7 @@ class StarLog(SimSnap):
             # assumes log file would be in the same location as starlog file
             logger.info('Attempting to load starlog metadata from log file')
             try:
-                with open(self._logfile, 'r') as g: 
+                with open(self._logfile) as g: 
                     read_metadata = False 
                     structure_names = []
                     structure_formats = []
@@ -1277,7 +1268,7 @@ class StarLog(SimSnap):
                 molecH = False
 
                 if (iSize != file_structure.itemsize and iSize != 104):
-                    raise IOError("Unknown starlog structure iSize:" + \
+                    raise OSError("Unknown starlog structure iSize:" + \
                         str(iSize) + ", file_structure itemsize:" + \
                         str(file_structure.itemsize))
                 else:
@@ -1427,9 +1418,6 @@ class StarLog(SimSnap):
 @StarLog.decorator
 @nchilada.NchiladaSnap.decorator
 def load_paramfile(sim):
-    import sys
-    import os
-    import glob
     x = os.path.abspath(sim._filename)
     done = False
     sim._paramfile = {}
@@ -1446,7 +1434,7 @@ def load_paramfile(sim):
                     f = open(filename)
                     done = True
                     break  # the file is there, break out of the loop
-                except IOError:
+                except OSError:
                     l = glob.glob(os.path.join(x, "../*.param"))
                     if l == []:
                         continue
@@ -1454,7 +1442,7 @@ def load_paramfile(sim):
                         for filename in l:
                             f = open(filename)
                             break  # the file is there, break out of the loop
-                    except IOError:
+                    except OSError:
                         continue
             if done:
                 break
@@ -1463,8 +1451,8 @@ def load_paramfile(sim):
         filename = sim._paramfilename
         try:
             f = open(filename)
-        except IOError:
-            raise IOError("The parameter filename you supplied is invalid")
+        except OSError:
+            raise OSError("The parameter filename you supplied is invalid")
 
     if f is None:
         return
@@ -1487,11 +1475,6 @@ def load_paramfile(sim):
 @nchilada.NchiladaSnap.decorator
 def param2units(sim):
     with sim.lazy_off:
-        import sys
-        import math
-        import os
-        import glob
-
         munit = dunit = hub = None
 
         try:
@@ -1693,11 +1676,6 @@ def settimeN(sim):
 @StarLog.decorator
 def slparam2units(sim):
     with sim.lazy_off:
-        import sys
-        import math
-        import os
-        import glob
-
         munit = dunit = hub = None
 
         try:

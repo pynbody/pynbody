@@ -1,4 +1,3 @@
-
 ### Make plots
 try:
 	pp.sbprofile(h[i],filename=simname+'.sbprof.png',center=False)

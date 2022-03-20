@@ -13,16 +13,13 @@ import os
 import threading
 import sys
 import time
-import functools
 import logging
 import math
 import sys
 
 import numpy as np
-import scipy
 
-from .backcompat import fractions
-from . import config
+import fractions
 from . import units
 from .array import SimArray
 
@@ -38,7 +35,7 @@ def open_(filename, *args):
         return gzip.open(filename, *args)
     try:
         return open(filename, *args)
-    except IOError:
+    except OSError:
         return gzip.open(filename + ".gz", *args)
 
 
@@ -122,9 +119,9 @@ def intersect_slices(s1, s2, array_length=None):
     s1_step = s1.step
     s2_step = s2.step
 
-    if s1_step == None:
+    if s1_step is None:
         s1_step = 1
-    if s2_step == None:
+    if s2_step is None:
         s2_step = 1
 
     assert s1_step > 0 and s2_step > 0
@@ -388,7 +385,7 @@ def bisect(left, right, f, epsilon=None, eta=0, verbose=False, niter_max=200):
         mid = (left + right) / 2
         z = f(mid)
 
-        logger.info("%f %f %f %f" % (left, mid, right, z))
+        logger.info("{:f} {:f} {:f} {:f}".format(left, mid, right, z))
 
         if (abs(z) < eta):
             return mid
@@ -501,7 +498,7 @@ def cutgz(x):
         return x
 
 
-class ExecutionControl(object):
+class ExecutionControl:
 
     def __init__(self):
         self.count = 0

@@ -3,7 +3,7 @@ import weakref
 from . import snapshot
 
 
-class Transformation(object):
+class Transformation:
 
     def __init__(self, f, defer=False):
         if isinstance(f, snapshot.SimSnap):
@@ -93,7 +93,7 @@ class GenericTranslation(Transformation):
     def __init__(self, f, arname, shift):
         self.shift = shift
         self.arname = arname
-        super(GenericTranslation, self).__init__(f)
+        super().__init__(f)
 
     def _apply(self, f):
         f[self.arname] += self.shift
@@ -111,7 +111,7 @@ class GenericRotation(Transformation):
         if resid > ortho_tol or resid != resid:
             raise ValueError("Transformation matrix is not orthogonal")
         self.matrix = matrix
-        super(GenericRotation, self).__init__(f)
+        super().__init__(f)
 
     def _apply(self, f):
         f._transform(self.matrix)

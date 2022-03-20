@@ -15,7 +15,7 @@ import abc, sys
 if sys.version_info >= (3, 4):
     ABC = abc.ABC
 else:
-    ABC = abc.ABCMeta(str('ABC'), (), {})
+    ABC = abc.ABCMeta('ABC', (), {})
 
 
 class AbstractBaseProfile(ABC):
@@ -146,7 +146,7 @@ class NFWprofile(AbstractBaseProfile):
 
         """
 
-        super(NFWprofile, self).__init__()
+        super().__init__()
 
         self._halo_radius = halo_radius
 

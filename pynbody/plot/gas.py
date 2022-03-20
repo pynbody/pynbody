@@ -36,8 +36,6 @@ def rho_T(sim, rho_units=None, rho_range=None, t_range=None, two_phase='split', 
 
 
     """
-    from matplotlib import ticker, colors
-
     if rho_units is None:
         rho_units = sim.gas['rho'].units
 

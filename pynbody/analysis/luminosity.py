@@ -10,8 +10,8 @@ Calculates luminosities -- NEEDS DOCUMENTATION
 import numpy as np
 
 import os
-from ..array import SimArray
 
+from .. import filt
 from .interpolate import interpolate2d
 
 _cmd_lum_file = os.path.join(os.path.dirname(__file__), "cmdlum.npz")
@@ -175,8 +175,6 @@ def half_light_r(sim, band='v', cylindrical=False):
 
     If cylindrical is True compute the half light radius as seen from the z-axis.
     '''
-    import pynbody
-    import pynbody.filt as f
     half_l = halo_lum(sim, band=band) * 0.5
 
     if cylindrical:
@@ -185,7 +183,7 @@ def half_light_r(sim, band='v', cylindrical=False):
         coord = 'r'
     max_high_r = np.max(sim.star[coord])
     test_r = 0.5 * max_high_r
-    testrf = f.LowPass(coord, test_r)
+    testrf = filt.LowPass(coord, test_r)
     min_low_r = 0.0
     test_l = halo_lum(sim[testrf], band=band)
     it = 0
@@ -198,7 +196,7 @@ def half_light_r(sim, band='v', cylindrical=False):
             test_r = 0.5 * (min_low_r + test_r)
         else:
             test_r = (test_r + max_high_r) * 0.5
-        testrf = f.LowPass(coord, test_r)
+        testrf = filt.LowPass(coord, test_r)
         test_l = halo_lum(sim[testrf], band=band)
 
         if (test_l > half_l):

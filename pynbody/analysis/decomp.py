@@ -13,7 +13,6 @@ from .. import filt, util
 from .. import config
 from . import profile
 import numpy as np
-import sys
 
 import logging
 logger = logging.getLogger('pynbody.analysis.decomp')

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # pynbody documentation build configuration file, created by
 # sphinx-quickstart on Mon Oct  3 11:57:24 2011.
@@ -65,8 +64,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pynbody'
-copyright = u'2011-20, pynbody team'
+project = 'pynbody'
+copyright = '2011-20, pynbody team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -217,8 +216,8 @@ htmlhelp_basename = 'pynbodydoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'pynbody.tex', u'pynbody Documentation',
-   u'pynbody team (https://github.com/pynbody/pynbody/graphs/contributors)', 'manual'),
+  ('index', 'pynbody.tex', 'pynbody Documentation',
+   'pynbody team (https://github.com/pynbody/pynbody/graphs/contributors)', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -250,8 +249,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'pynbody', u'pynbody Documentation',
-     [u'pynbody team'], 1)
+    ('index', 'pynbody', 'pynbody Documentation',
+     ['pynbody team'], 1)
 ]
 
 autodoc_member_order = 'bysource'

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Routine for reading Gadget3 HDF5 output files."""
 

@@ -4,7 +4,7 @@ import threading
 class DependencyError(RuntimeError):
     pass
 
-class DependencyContext(object):
+class DependencyContext:
     def __init__(self, tracker, name):
         self.tracker = tracker
         self.name = name
@@ -23,7 +23,7 @@ class DependencyContext(object):
         self.tracker._calculation_lock.__exit__(exc_type, exc_val, exc_tb)
 
 
-class DependencyTracker(object):
+class DependencyTracker:
     def __init__(self):
         self._dependencies = {}
         self._current_calculation_stack = []

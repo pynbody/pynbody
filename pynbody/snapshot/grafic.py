@@ -6,8 +6,6 @@ grafic
 Support for loading grafIC files
 """
 
-from .. import util
-from .. import array
 from .. import chunk
 from .. import family
 from .. import analysis
@@ -19,7 +17,6 @@ from ..extern.cython_fortran_utils import FortranFile
 
 import numpy as np
 import os
-import functools
 import warnings
 import glob
 
@@ -51,7 +48,7 @@ class GrafICSnap(SimSnap):
         return os.path.isdir(f) and os.path.exists(os.path.join(f, "ic_velcx"))
 
     def __init__(self, f, take=None, use_pos_file=True):
-        super(GrafICSnap, self).__init__()
+        super().__init__()
         with FortranFile(os.path.join(f, "ic_velcx")) as f_cx:
             self._header = {
                 k: v
@@ -114,7 +111,7 @@ class GrafICSnap(SimSnap):
         self._create_array('pos', 3)
         self['pos'].units = "Mpc a"
         pos = self['pos']
-        nx, ny, nz = [int(self._header[x]) for x in ('nx', 'ny', 'nz')]
+        nx, ny, nz = (int(self._header[x]) for x in ('nx', 'ny', 'nz'))
         # the following is equivalent to
         #
         # self['z'],self['y'],self['x'] = np.mgrid[0.0:self._header['nx'], 0.0:self._header['ny'], 0.0:self._header['nz']]
@@ -159,7 +156,7 @@ class GrafICSnap(SimSnap):
         # this is a proprietary extension to the grafic format used by genetIC
         filename = os.path.join(self._filename, 'ic_particle_ids')
         if not os.path.exists(filename):
-            raise IOError("No particle ID array")
+            raise OSError("No particle ID array")
 
         self._create_array('iord',dtype=_int_data_type)
         self._read_grafic_file(filename, self['iord'], _int_data_type)
@@ -168,7 +165,7 @@ class GrafICSnap(SimSnap):
         # this is a proprietary extension to the grafic format used by genetIC
         filename = os.path.join(self._filename, 'ic_deltab')
         if not os.path.exists(filename):
-            raise IOError("No deltab array")
+            raise OSError("No deltab array")
 
         self._create_array('deltab',dtype=_float_data_type)
         self._read_grafic_file(filename, self['deltab'], _float_data_type)
@@ -177,7 +174,7 @@ class GrafICSnap(SimSnap):
         # refinement map as produced by MUSIC and genetIC
         filename = os.path.join(self._filename, 'ic_refmap')
         if not os.path.exists(filename):
-            raise IOError("No refmap array")
+            raise OSError("No refmap array")
 
         self._create_array('refmap',dtype=_float_data_type)
         self._read_grafic_file(filename, self['refmap'], _float_data_type)
@@ -186,7 +183,7 @@ class GrafICSnap(SimSnap):
         # passive variable map as produced by MUSIC and genetIC
         filename = os.path.join(glob.glob(self._filename + "/ic_pvar*[0-9]")[0])
         if not os.path.exists(filename):
-            raise IOError("No pvar array")
+            raise OSError("No pvar array")
 
         self._create_array('pvar',dtype=_float_data_type)
         self._read_grafic_file(filename, self['pvar'], _float_data_type)
@@ -209,8 +206,8 @@ class GrafICSnap(SimSnap):
                     continue
                 sliced_data = f.read_vector(data_type)
                 if len(sliced_data) != self._dlen:
-                    raise IOError(
-                        'Expected a slice of length %s, got %s' % (
+                    raise OSError(
+                        'Expected a slice of length {}, got {}'.format(
                             self._dlen, len(sliced_data)
                         ))
                 target_buffer[mem_index] = sliced_data[buf_index]
@@ -218,7 +215,7 @@ class GrafICSnap(SimSnap):
     def _load_array(self, name, fam=None):
 
         if fam is not family.dm and fam is not None:
-            raise IOError("Only DM particles supported")
+            raise OSError("Only DM particles supported")
 
         if name == "mass":
             self._derive_mass()
@@ -235,4 +232,4 @@ class GrafICSnap(SimSnap):
         elif name == "pvar":
             self._read_pvar()
         else:
-            raise IOError("No such array")
+            raise OSError("No such array")

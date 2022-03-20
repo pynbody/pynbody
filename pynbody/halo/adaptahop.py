@@ -100,7 +100,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         self._halo_attributes_contam = self.convert_i8b(self._halo_attributes_contam, longint)
 
         # Call parent class
-        super(BaseAdaptaHOPCatalogue, self).__init__(sim)
+        super().__init__(sim)
 
         # Initialize internal data
         self._base_dm = sim.dm
@@ -133,7 +133,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 try:
                     fpu.read_attrs(attrs_contam)
                     read_contamination = True
-                except (ValueError, IOError):
+                except (ValueError, OSError):
                     read_contamination = False
             
         return read_contamination, longint_flag
@@ -349,8 +349,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         try:
             data = self.base[family]
         except:
-            logger.error((type(self.base)))
-            logger.error((type(family)))
+            logger.error(type(self.base))
+            logger.error(type(family))
             raise
 
         iord = data["iord"]
@@ -387,7 +387,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 fpu.seek(0)
                 fpu.read_attrs(cls.convert_i8b(cls._header_attributes, longint_flag))
                 return longint_flag
-            except (ValueError, IOError):
+            except (ValueError, OSError):
                 pass
 
         raise ValueError("Could not detect longint")
@@ -424,12 +424,12 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         try:
             match = re.search("output_([0-9]{5})", sim.filename)
             if match is None:
-                raise IOError(
+                raise OSError(
                     "Cannot guess the HOP catalogue filename for %s" % sim.filename
                 )
             isim = int(match.group(1))
             name = "tree_bricks%03d" % isim
-        except (IOError, ValueError):
+        except (OSError, ValueError):
             return []
 
         s_filename = os.path.abspath(sim.filename)

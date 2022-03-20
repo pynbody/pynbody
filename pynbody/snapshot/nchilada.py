@@ -9,23 +9,15 @@ automatically via pynbody.load.
 
 """
 
-from .. import array, util
 from .. import family
 from .. import units
-from .. import config, config_parser
 from .. import chunk
 from . import SimSnap
 from . import namemapper
 
-import struct
 import os
 import numpy as np
-import gzip
-import sys
 import warnings
-import copy
-import types
-import math
 import xml.dom.minidom
 import xdrlib
 
@@ -46,7 +38,7 @@ class NchiladaSnap(SimSnap):
         u = xdrlib.Unpacker(f.read(28))
         assert u.unpack_int() == 1062053
         t = u.unpack_double()
-        highword, nbod, ndim, code = [u.unpack_int() for i in range(4)]
+        highword, nbod, ndim, code = (u.unpack_int() for i in range(4))
         return t, nbod, ndim, _type_codes[code]
 
     def _update_loadable_keys(self):
@@ -83,7 +75,7 @@ class NchiladaSnap(SimSnap):
         self._num_particles = self._load_control.mem_num_particles
 
     def __init__(self, filename, **kwargs):
-        super(NchiladaSnap, self).__init__()
+        super().__init__()
 
         must_have_paramfile = kwargs.get('must_have_paramfile', False)
         take = kwargs.get('take', None)
@@ -122,7 +114,7 @@ class NchiladaSnap(SimSnap):
     def _open_file_for_array(self, fam, array_name):
         fname = self._loadable_keys_registry[fam].get(array_name, None)
         if not fname:
-            raise IOError("No such array on disk")
+            raise OSError("No such array on disk")
         f = open(fname, 'rb')
         return f
 
@@ -137,9 +129,9 @@ class NchiladaSnap(SimSnap):
             _, nbod, ndim, dtype = self._load_header(self._open_file_for_array(fam, array_name))
             if universal_dtype is not None:
                 if ndim!=universal_ndim:
-                    raise IOError("Mismatching dimensions for array")
+                    raise OSError("Mismatching dimensions for array")
                 if dtype!=universal_dtype:
-                    raise IOError("Mismatching data type for array")
+                    raise OSError("Mismatching data type for array")
             universal_ndim, universal_dtype = ndim, dtype
 
         self._create_array(array_name,universal_ndim,universal_dtype,False)

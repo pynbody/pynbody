@@ -111,8 +111,7 @@ You can even define completely new dimensions.
 import re
 import keyword
 import numpy as np
-from . import backcompat
-from .backcompat import fractions
+import fractions
 import functools
 from collections import defaultdict
 
@@ -125,7 +124,7 @@ class UnitsException(Exception):
     pass
 
 
-class UnitBase(object):
+class UnitBase:
 
     """Base class for units. To instantiate a unit, call the :func:`pynbody.units.Unit`
     factory function."""
@@ -518,14 +517,13 @@ class CompositeUnit(UnitBase):
 
         trash = []
         bases = list(set(self._bases))
-        powers = [sum([p for bi, p in zip(self._bases, self._powers)
-                       if bi is b])
+        powers = [sum(p for bi, p in zip(self._bases, self._powers)
+                       if bi is b)
                   for b in bases]
 
-        bp = sorted([x for x in zip(powers, bases) if x[0] != 0],
+        bp = sorted((x for x in zip(powers, bases) if x[0] != 0),
                     reverse=True,
                     key=lambda x: x[0])
-        # Py2 only: cmp=lambda x, y: cmp(x[0], y[0]))
 
         if len(bp) != 0:
             self._powers, self._bases = list(map(list, list(zip(*bp))))

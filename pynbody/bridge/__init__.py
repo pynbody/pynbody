@@ -22,11 +22,10 @@ in your simulation, see the `bridge tutorial
 
 import weakref
 import numpy as np
-import math
 from . import _bridge
 
 
-class Bridge(object):
+class Bridge:
 
     """Generic Bridge class"""
 

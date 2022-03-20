@@ -144,11 +144,10 @@ import weakref
 import os
 from . import units as units
 from functools import reduce
-_units = units
-from .backcompat import property
-from .backcompat import fractions
+import fractions
 import atexit
 import functools
+_units = units
 
 
 class SimArray(np.ndarray):
@@ -405,7 +404,7 @@ class SimArray(np.ndarray):
                 cr = x.units.ratio(self.units,
                                    **context)
             except units.UnitsException:
-                raise ValueError("Incompatible physical dimensions %r and %r, context %r" % (
+                raise ValueError("Incompatible physical dimensions {!r} and {!r}, context {!r}".format(
                     str(self.units), str(x.units), str(self.conversion_context())))
 
             if cr == 1.0:
@@ -843,7 +842,7 @@ def _comparison_units(*a):
     return None
 
 
-class IndexedSimArray(object):
+class IndexedSimArray:
 
     @property
     def derived(self):
