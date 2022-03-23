@@ -6,19 +6,16 @@ grafic
 Support for loading grafIC files
 """
 
-from .. import chunk
-from .. import family
-from .. import analysis
-from .. import units
-from . import SimSnap
-
-from ..util import grid_gen
-from ..extern.cython_fortran_utils import FortranFile
-
-import numpy as np
+import glob
 import os
 import warnings
-import glob
+
+import numpy as np
+
+from .. import analysis, chunk, family, units
+from ..extern.cython_fortran_utils import FortranFile
+from ..util import grid_gen
+from . import SimSnap
 
 _float_data_type = 'f'
 _int_data_type = 'l'

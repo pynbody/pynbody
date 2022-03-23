@@ -15,10 +15,10 @@ particles in your config.ini.
 
 """
 
-import sys
 import functools
-from . import config_parser
+import sys
 
+from . import config_parser
 
 _registry = []
 

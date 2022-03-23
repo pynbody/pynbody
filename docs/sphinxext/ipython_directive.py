@@ -55,13 +55,14 @@ Authors
 # Imports
 #-----------------------------------------------------------------------------
 
-# Stdlib
-import cStringIO
+import ast
 import os
 import re
 import sys
 import tempfile
-import ast
+
+# Stdlib
+import cStringIO
 
 # To keep compatibility with various python versions
 try:
@@ -72,8 +73,8 @@ except ImportError:
 # Third-party
 import matplotlib
 import sphinx
-from docutils.parsers.rst import directives
 from docutils import nodes
+from docutils.parsers.rst import directives
 from sphinx.util.compat import Directive
 
 matplotlib.use('Agg')

@@ -1,12 +1,10 @@
-import pynbody
+import pickle
+from pathlib import Path
+
 import numpy as np
 import numpy.testing as npt
 import pylab as p
-import pickle
-
-
 import pytest
-from pathlib import Path
 
 import pynbody
 

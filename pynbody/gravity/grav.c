@@ -34,7 +34,7 @@
 ** Returns nActive.
 */
 void kdGravInteract(KD kd,KDN *pBucket, ILP *ilp,int nPart,
-		   ILC *ilc,int nCell, int bEwald, PARTICLE *p) 
+		   ILC *ilc,int nCell, int bEwald, PARTICLE *p)
 {
     KDN *kdn = pBucket;
     pBND kbnd;
@@ -189,5 +189,3 @@ void kdGravInteract(KD kd,KDN *pBucket, ILP *ilp,int nPart,
     */
 
     }
-
-

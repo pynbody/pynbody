@@ -1,9 +1,11 @@
-import pynbody
-import numpy as np
 import weakref
 
-
+import numpy as np
 import pytest
+
+import pynbody
+
+
 def setup_module():
     global f, h
     f = pynbody.new(dm=1000, star=500, gas=500, order='gas,dm,star')

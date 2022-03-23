@@ -20,24 +20,20 @@ parent directories.
   # for py2.5
 
 
-from .. import array, util
-from .. import family
-from .. import units
-from .. import config, config_parser
-from .. import chunk
-from . import nchilada
-from . import SimSnap
-
-import struct
-import os
-import numpy as np
-import sys
-import warnings
 import copy
 import glob
-import math
-
 import logging
+import math
+import os
+import struct
+import sys
+import warnings
+
+import numpy as np
+
+from .. import array, chunk, config, config_parser, family, units, util
+from . import SimSnap, nchilada
+
 logger = logging.getLogger('pynbody.snapshot.tipsy')
 
 
@@ -1176,19 +1172,19 @@ class StarLog(SimSnap):
             # assumes log file would be in the same location as starlog file
             logger.info('Attempting to load starlog metadata from log file')
             try:
-                with open(self._logfile) as g: 
-                    read_metadata = False 
+                with open(self._logfile) as g:
+                    read_metadata = False
                     structure_names = []
                     structure_formats = []
-                    for line in g: 
-                        if line.startswith('# end starlog data'): 
+                    for line in g:
+                        if line.startswith('# end starlog data'):
                             break
-                        if read_metadata: 
-                            meta_name, meta_type = line.strip().strip('#').split() 
-                            meta_name = self._infer_name_from_tipsy_log(meta_name) 
-                            structure_names.append(meta_name) 
-                            structure_formats.append(meta_type) 
-                        if line.startswith('# starlog data:'): 
+                        if read_metadata:
+                            meta_name, meta_type = line.strip().strip('#').split()
+                            meta_name = self._infer_name_from_tipsy_log(meta_name)
+                            structure_names.append(meta_name)
+                            structure_formats.append(meta_type)
+                        if line.startswith('# starlog data:'):
                             read_metadata = True
                 file_structure = np.dtype({'names': structure_names,
                                            'formats': structure_formats})
@@ -1240,7 +1236,7 @@ class StarLog(SimSnap):
                     # All star iorders are greater than any gas iorder
                     # so this indicates a bad format. (N.B. there is the
                     # possibility of a false negative)
-                    if(testread['iord'][0] < testread['iorderGas'][0]): 
+                    if(testread['iord'][0] < testread['iorderGas'][0]):
                         file_structure = np.dtype({'names': ("iord", "iorderGas",
                                                  "tform",
                                                  "x", "y", "z",

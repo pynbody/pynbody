@@ -1,7 +1,8 @@
-import os
-import warnings
 import logging
 import multiprocessing
+import os
+import warnings
+
 
 def _get_config_parser_with_defaults():
     # Create config dictionaries which will be required by subpackages
@@ -91,8 +92,7 @@ def _setup_logger(config):
 
 
 def configure_snapshot_and_halo_loading_priority():
-    from . import snapshot
-    from . import halo
+    from . import halo, snapshot
 
     # Turn the config strings for snapshot/halo classes into lists of
     # actual classes

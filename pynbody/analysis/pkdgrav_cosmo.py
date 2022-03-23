@@ -11,7 +11,8 @@ N.B.  This code is being shared with skid and the I.C. generator.
 """
 
 import math
-from scipy.integrate import romberg, ode
+
+from scipy.integrate import ode, romberg
 
 
 class Cosmology:

@@ -29,10 +29,11 @@ property 'X', you would use the following code:
  @SimDict.setter
  def X_copy(d, value) :
      d['X'] = value
-   
+
 """
 
 import warnings
+
 from . import config
 
 __all__ = ['SimDict']

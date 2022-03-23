@@ -1,4 +1,4 @@
-""" 
+"""
 
 ionfrac
 =======
@@ -7,11 +7,13 @@ calculates ionization fractions - NEEDS DOCUMENTATION
 
 """
 
-import numpy as np
+import logging
 import os
+
+import numpy as np
+
 from pynbody import config
 
-import logging
 logger = logging.getLogger('pynbody.analysis.ionfrac')
 
 from .interpolate import interpolate3d

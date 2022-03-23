@@ -10,13 +10,12 @@ A simple ascii file reader for pynbody
   # for py2.5
 
 
-from .. import family
-from .. import units
-from .. import chunk
-from . import SimSnap
+import os
 
 import numpy as np
-import os
+
+from .. import chunk, family, units
+from . import SimSnap
 
 _max_buf = 1024 * 512
 

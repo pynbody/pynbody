@@ -17,22 +17,19 @@ the `ipython notebook demo
   # for py2.5
 
 
-from .. import array
-from .. import family
-from .. import units
-from .. import config, config_parser
-from .. import analysis
-from . import SimSnap
-from . import namemapper
-from ..extern.cython_fortran_utils import FortranFile
-
+import csv
+import logging
 import os
-import numpy as np
-import warnings
 import re
 import time
-import logging
-import csv
+import warnings
+
+import numpy as np
+
+from .. import analysis, array, config, config_parser, family, units
+from ..extern.cython_fortran_utils import FortranFile
+from . import SimSnap, namemapper
+
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
 from collections import OrderedDict
@@ -45,6 +42,7 @@ issue_multiprocess_warning = False
 if multiprocess:
     try:
         import multiprocessing
+
         import posix_ipc
         remote_exec = array.shared_array_remote
         remote_map = array.remote_map
@@ -269,7 +267,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
             exact_nvar = True
         else:
             raise ValueError("Unknown RAMSES load mode")
-    
+
         if nvar_file != nvar and exact_nvar:
             raise ValueError("Wrong number of variables in RAMSES dump")
         elif nvar_file < nvar:
@@ -280,23 +278,23 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
         elif nvar_file > nvar:
             warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)" % (
                 nvar_file, nvar), RuntimeWarning)
-    
+
         for level in range(maxlevel or header['nlevelmax']):
-    
+
             for cpuf in range(1, header['ncpu'] + 1):
                 flevel = f.read_int()
                 ncache = f.read_int()
                 assert flevel - 1 == level
-    
+
                 if ncache > 0:
                     if cpuf == cpu:
-    
+
                         coords, refine, gi_cpu, gi_level = next(grid_info_iter)
                         mark = np.where(refine == 0)
-    
+
                         assert gi_level == level
                         assert gi_cpu == cpu
-    
+
                     if cpuf == cpu and len(mark[0]) > 0:
                         for icel in range(2 ** ndim):
                             i0 = i1
@@ -304,12 +302,12 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
                             for ar in dims:
                                 ar[i0:i1] = f.read_vector(
                                     _float_type)[(refine[icel] == 0)]
-    
+
                             f.skip(nvar_file - nvar)
-    
+
                     else:
                         f.skip((2 ** ndim) * nvar_file)
-    
+
             for boundary in range(header['nboundary']):
                 flevel = f.read_int()
                 ncache = f.read_int()
@@ -1039,6 +1037,7 @@ class RamsesSnap(SimSnap):
             # Only attempt tform conversion for cosmological runs. The built-in tforms for isolated runs
             # are actually meaningful (issue 554)
             from ..analysis import ramses_util
+
             # Replace the tform array by its usual meaning using the birth files
             ramses_util.get_tform(self)
 

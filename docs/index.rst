@@ -1,7 +1,7 @@
 .. pynbody documentation master file, created by
    sphinx-quickstart on Mon Oct  3 11:57:24 2011.
    You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+   contain the root ``toctree`` directive.
 
 
 Pynbody Documentation
@@ -42,7 +42,7 @@ Our full documentation is organized into three sections:
 
 All of the information in the reference guide is also available
 through the interactive python help system. In ipython or Jupyter, this is as
-easy as putting a `?` at the end of a command:
+easy as putting a ``?`` at the end of a command:
 
 .. ipython::
 
@@ -65,7 +65,7 @@ If you still find yourself stuck, don't hesitate to post a message to the
 `users group
 <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
 If you have a Google account you can join the groups
-easily, but if you don't have one please click on the `About` button
+easily, but if you don't have one please click on the ``About`` button
 of the group you are interested in and contact the owner.
 
 We have found that most development discussion takes place within our

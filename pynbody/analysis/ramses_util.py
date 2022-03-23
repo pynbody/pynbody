@@ -48,22 +48,24 @@ This uses the routine `part2birth` located in the
 RAMSES utils (see the `bitbucket repository
 <https://bitbucket.org/rteyssie/ramses>`_).
 
-:func:`get_tform` also deletes the previous `tform` array (not from disk, just 
+:func:`get_tform` also deletes the previous `tform` array (not from disk, just
 from the currently loaded snapshot). The next time you call :func:`get_tform`,
 the data will be loaded from the disk and `part2birth` won't need to
 be run again.
 """
 
-import pynbody
-import subprocess
-import numpy as np
 import os
-from pathlib import Path
+import subprocess
 import warnings
+from pathlib import Path
 
-from .. units import Unit
-from ..analysis._cosmology_time import friedman
+import numpy as np
+
+import pynbody
+
 from .. import config_parser
+from ..analysis._cosmology_time import friedman
+from ..units import Unit
 
 ramses_utils = config_parser.get('ramses', 'ramses_utils')
 
@@ -83,7 +85,7 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     The snapshot is put into units where G=1, time unit = 1 Gyr and
     mass unit = 2.222286e5 Msol.
 
-    **Input**: 
+    **Input**:
 
     *output* : path to RAMSES output directory
 
@@ -91,7 +93,7 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
 
     *filt* : a filter to apply to the box before writing out the tipsy file
 
-    *halo* : which hop halo to center on -- default = 0 
+    *halo* : which hop halo to center on -- default = 0
 
     """
 
@@ -176,7 +178,7 @@ def convert_to_tipsy_fullbox(output, write_param=True):
     and Amiga Halo Finder. Does all unit conversions etc. into the
     pkdgrav unit system. Creates a file called `output_fullbox.tipsy`.
 
-    **Input**: 
+    **Input**:
 
     *output*: name of RAMSES output
 
@@ -345,7 +347,7 @@ def get_tform_using_part2birth(sim, part2birth_path):
 
 def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     """
-    
+
     Convert conformal times to physical times for stars and **replaces** the original
      `tform` array.
 
@@ -353,7 +355,7 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     ----------
     sim : RAMSES snapshot or subsnapshot
     use_part2birth : boolean, optional
-        If True, use the `part2birth` tool (see notes below) to convert the formation 
+        If True, use the `part2birth` tool (see notes below) to convert the formation
         times to physical times. If False, use a Python-based convertor.
         See notes for the default value.
     part2birth_path : str, optional

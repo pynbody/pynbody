@@ -17,4 +17,3 @@ try:
 	pp.satlf(h[i],filename=simname+'.satlf.png')
 except:
 	pass
-

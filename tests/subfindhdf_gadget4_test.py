@@ -1,8 +1,10 @@
+from os.path import isfile
+
+import h5py
+import numpy as np
+
 import pynbody
 
-from os.path import isfile
-import numpy as np
-import h5py
 
 def setup_module():
     global snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
@@ -326,7 +328,3 @@ class Halos:
             return 5
 
         raise Exception("Unknown particle type name.")
-
-
-
-

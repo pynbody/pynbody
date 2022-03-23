@@ -1,8 +1,10 @@
-import pynbody
 import numpy as np
 import numpy.testing as npt
-
 import pytest
+
+import pynbody
+
+
 def setup_module():
     global f
     f = pynbody.new(1000)

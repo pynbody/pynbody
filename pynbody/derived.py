@@ -7,15 +7,14 @@ getting the radial position. For more information see :ref:`derived`.
 
 """
 
-from .snapshot import SimSnap
-from . import array
-from . import analysis
-from . import config
-from . import units
-import numpy as np
+import functools
 import logging
 import time
-import functools
+
+import numpy as np
+
+from . import analysis, array, config, units
+from .snapshot import SimSnap
 
 logger = logging.getLogger('pynbody.derived')
 
@@ -145,7 +144,7 @@ def _v_sph_operation(self, op):
     self.kdtree.populate('qty_%s' % op, nsmooth)
     end = time.time()
 
-    logger.info('{} done in {:5.3g} s'.format(_op_dict[op], end - start))
+    logger.info(f'{_op_dict[op]} done in {end - start:5.3g} s')
 
     return sm
 

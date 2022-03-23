@@ -1,13 +1,13 @@
-import pynbody
-import numpy as np
 import glob
 import os
+
+import numpy as np
 import pytest
 
+import pynbody
 from pynbody.dependencytracker import DependencyError
 
 
-import pytest
 def setup_module():
     X = glob.glob("testdata/test_out.*")
     for z in X:

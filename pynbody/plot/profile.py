@@ -5,11 +5,14 @@ profile
 
 """
 
-import numpy as np
-from ..analysis import angmom, profile, halo
-from .. import filt, units, config
-import pylab as p
 import logging
+
+import numpy as np
+import pylab as p
+
+from .. import config, filt, units
+from ..analysis import angmom, halo, profile
+
 logger = logging.getLogger('pynbody.plot.profile')
 
 
@@ -102,7 +105,7 @@ def fourier_profile(sim, center=True, disk_height='2 kpc', nbins=50,
                     clear=True, min=False, max=False, filename=None, **kwargs):
     """
     Centre on potential minimum, align so that the disk is in the
-    x-y plane, then plot the amplitude of the 2nd fourier mode as a 
+    x-y plane, then plot the amplitude of the 2nd fourier mode as a
     function of radius.
 
     **needs description of the keyword arguments**
@@ -226,11 +229,11 @@ def density_profile(sim, linestyle=False, center=True, clear=True, fit=False,in_
         fit_inds = np.where(r < fit_factor*sim['r'].max())
         alphfit = np.polyfit(np.log10(r[fit_inds]),
                              np.log10(den[fit_inds]), 1)
-        
+
 #        print "alpha: ", alphfit[0], "  norm:", alphfit[1]
-        
+
         fit = np.poly1d(alphfit)
-        plt.plot(r[fit_inds], 10**fit(np.log10(r[fit_inds])), 
+        plt.plot(r[fit_inds], 10**fit(np.log10(r[fit_inds])),
                  color='k',linestyle='dashed',
                  label=r'$\alpha$=%.1f'%alphfit[0])
         plt.legend(loc=3)

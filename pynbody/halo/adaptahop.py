@@ -4,11 +4,9 @@ from typing import Sequence
 
 import numpy as np
 
-from . import HaloCatalogue, Halo, DummyHalo, logger
-from .. import util, units, array
-
+from .. import array, units, util
 from ..extern.cython_fortran_utils import FortranFile
-
+from . import DummyHalo, Halo, HaloCatalogue, logger
 
 unit_length = units.Unit("Mpc")
 unit_vel = units.Unit("km s**-1")
@@ -135,7 +133,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                     read_contamination = True
                 except (ValueError, OSError):
                     read_contamination = False
-            
+
         return read_contamination, longint_flag
 
     @staticmethod

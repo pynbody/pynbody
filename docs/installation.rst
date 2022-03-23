@@ -34,10 +34,10 @@ Getting python
 If you're new to python we recommend using the `Anaconda Python
 <https://store.continuum.io/cshop/anaconda/>`_ bundle from Continuum
 Analytics that comes with a nice and easy to use package manager
-`conda`. They  provide free licenses for academic use, and the default
+``conda``. They  provide free licenses for academic use, and the default
 installation includes all the pakages you require.
 
-As of 2020, Python 2.X is `no longer supported <https://python3statement.org>` by the Python developers or by
+As of 2020, Python 2.X is `no longer supported <https://python3statement.org>`_ by the Python developers or by
 core modules such as numpy. For this reason, we have also removed support
 from pynbody.
 
@@ -60,16 +60,16 @@ whatever the latest code from the `git repository <https://github.com/pynbody/py
 
 .. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`.
 
-If you don't have `pip` or if you want to develop `pynbody` here is
+If you don't have ``pip`` or if you want to develop ``pynbody`` here is
 how you can do it manually.
 
 First, clone the `git repository from Github
 <https://github.com/pynbody/pynbody>`_. Pynbody uses `git
 <http://git-scm.com/>`_ for development:
 
-0. `git` is probably already on your machine -- try typing ``git`` from the shell. If it exists, go to step 2.
+0. ``git`` is probably already on your machine -- try typing ``git`` from the shell. If it exists, go to step 2.
 
-1. get the appropriate binary from http://git-scm.com/downloads and install `git`
+1. get the appropriate binary from http://git-scm.com/downloads and install ``git``
 
 2. ``$ git clone https://github.com/pynbody/pynbody.git``
 
@@ -105,7 +105,7 @@ Upgrading your installation and testing features or bug-fixes
 
 If you want to use the most recent version from the repository because
 a crucial bug has just been fixed, for example, you can easily update
-your installation. If you installed using `pip` to begin with, simply
+your installation. If you installed using ``pip`` to begin with, simply
 do
 
 ::
@@ -113,7 +113,7 @@ do
    pip install -I --no-deps git+git://github.com/pynbody/pynbody@master
 
 If you cloned or forked the git repository and installed manually, go
-into the top-level `pynbody` source directory (the one with
+into the top-level ``pynbody`` source directory (the one with
 ``setup.py`` in it) and do :
 
 ::
@@ -124,7 +124,7 @@ into the top-level `pynbody` source directory (the one with
 
 
 If you are testing a new feature or a bug fix that resides in a branch
-other than `master` this procedure is slightly different:
+other than ``master`` this procedure is slightly different:
 
 ::
 
@@ -133,8 +133,8 @@ other than `master` this procedure is slightly different:
    pip install .
 
 When you install a new version of the code and you already have a
-python session active with `pynbody` loaded, you have to (carefully)
-reload all of the affected `pynbody` modules. The safest is to just
+python session active with ``pynbody`` loaded, you have to (carefully)
+reload all of the affected ``pynbody`` modules. The safest is to just
 quit and restart the python session if you're not sure.
 
 
@@ -149,7 +149,7 @@ especially the :ref:`data-access` to get going.
 Updating Code
 ^^^^^^^^^^^^^
 
-Remember that the `master` branch is the
+Remember that the ``master`` branch is the
 code that everyone else receives when they do a fresh clone of the
 repository. It is therefore recommended that any development work is
 done in a separate branch that is merged back into the main branch
@@ -187,7 +187,7 @@ want to contribute to the documentation, go to ``docs`` in the root
 directory. You will need to install `Sphinx <http://sphinx-doc.org/>`_
 to build the docs, and this is usually most easily done with
 ``easy_install sphinx`` if you have distutils properly
-configured. Once you have `sphinx` installed, you can simply run
+configured. Once you have ``sphinx`` installed, you can simply run
 ``make html`` in the ``docs`` directory to build the html version or
 make latexpdf to generate a pdf file, for example. All builds are
 found in ``_build``.

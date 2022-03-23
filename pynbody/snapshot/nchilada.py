@@ -9,17 +9,15 @@ automatically via pynbody.load.
 
 """
 
-from .. import family
-from .. import units
-from .. import chunk
-from . import SimSnap
-from . import namemapper
-
 import os
-import numpy as np
 import warnings
-import xml.dom.minidom
 import xdrlib
+import xml.dom.minidom
+
+import numpy as np
+
+from .. import chunk, family, units
+from . import SimSnap, namemapper
 
 _name_map, _rev_name_map = namemapper.setup_name_maps('nchilada-name-mapping')
 _translate_array_name = namemapper.name_map_function(_name_map, _rev_name_map)
@@ -179,12 +177,12 @@ class NchiladaSnap(SimSnap):
     def _write_array(self, array_name, fam=None) :
         if fam is None :
             fam = self.families()
-        
+
         for f in fam :
             fname = self._loadable_keys_registry[fam][array_name]
             # to do: sort out what happens when this doesn't exist
             ar = self[fam][array_name]
-            
+
             _, nbod, ndim, dtype = self._load_header(f)
             for readlen, buf_index, mem_index in self._load_control.iterate(fam, fam) :
                 b = np.fromfile(f, dtype=disk_dtype, count=readlen*ndim)

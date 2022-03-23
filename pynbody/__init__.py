@@ -25,13 +25,23 @@ version of pynbody (prior to version 1.0), by typing:
 pip install 'pynbody<1.0'
 """)
 
-from . import configuration
-
+from . import (
+    analysis,
+    array,
+    bridge,
+    configuration,
+    derived,
+    family,
+    filt,
+    gravity,
+    halo,
+    snapshot,
+    sph,
+    transformation,
+    util,
+)
 from .configuration import config, config_parser, logger
-
-from . import util, filt, array, family, snapshot
-from .snapshot import tipsy, gadget, gadgethdf, ramses, grafic, nchilada, ascii
-from . import analysis, halo, derived, bridge, gravity, sph, transformation
+from .snapshot import ascii, gadget, gadgethdf, grafic, nchilada, ramses, tipsy
 
 
 # The PlotModuleProxy serves to delay import of pynbody.plot until it's accessed.
@@ -71,7 +81,7 @@ class PlotModuleProxy:
 
 plot = PlotModuleProxy()
 
-from .snapshot import new, load
+from .snapshot import load, new
 
 configuration.configure_snapshot_and_halo_loading_priority()
 

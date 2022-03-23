@@ -1,5 +1,7 @@
-import numpy as np
 import weakref
+
+import numpy as np
+
 from . import snapshot
 
 

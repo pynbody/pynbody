@@ -1,8 +1,10 @@
-import pynbody
-import numpy.testing as npt
 import numpy as np
-
+import numpy.testing as npt
 import pytest
+
+import pynbody
+
+
 def setup_module():
     global f
     f = pynbody.load("testdata/grafic_test/")
@@ -47,4 +49,3 @@ def test_partial_loading():
 
             assert (f2['x'] == f1[subindex]['x']).all()
             assert (f2['iord'] == f1[subindex]['iord']).all()
-

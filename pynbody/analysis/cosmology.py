@@ -3,12 +3,14 @@
 cosmology
 =========
 
-A set of functions for common cosmological calculations. 
+A set of functions for common cosmological calculations.
 
 """
 
 import math
+
 import numpy as np
+
 numpy = np  # alias the alias
 from .. import units
 from ..configuration import config_parser
@@ -155,6 +157,7 @@ def age(f, z=None, unit='Gyr'):
     import scipy
     import scipy.integrate
     from scipy.interpolate import interp1d
+
     from ..array import SimArray
 
     if z is None:
@@ -189,7 +192,7 @@ def age(f, z=None, unit='Gyr'):
 
 @units.takes_arg_in_units((1, "Gyr"), context_arg=0)
 def redshift(f, time):
-    """ 
+    """
     Calculate the redshift given a snapshot and a time since Big Bang
     in Gyr.
 
@@ -207,8 +210,8 @@ def redshift(f, time):
 
     """
 
-    from scipy.optimize import newton
     from scipy.interpolate import interp1d
+    from scipy.optimize import newton
 
     def func(x, sim, time):
         return age(sim, x) - time

@@ -144,7 +144,7 @@ momFloat momMakeMomr(MOMR *mr,momFloat m,momFloat x,momFloat y,momFloat z) {
 /*
  ** This function calculates a reduced scaled multipole from a single
  ** particle at position <x,y,z> from the any type of "center". A scaling
- ** factor 'u' for the positions must also be specified, which should 
+ ** factor 'u' for the positions must also be specified, which should
  ** typically be the value of b_max.
  **
  ** The strange order of evaluation reduces the number of
@@ -1172,7 +1172,7 @@ double momLocrAddMomr5cm(LOCR *l,MOMR *m,momFloat dir,momFloat x,momFloat y,momF
 
 
 /*
-** Op Count = (*,+) = (129,77) = 206 
+** Op Count = (*,+) = (129,77) = 206
 */
 double momLocrAddMono5(LOCR *l,momFloat m,momFloat dir,momFloat x,momFloat y,momFloat z,double *tax,double *tay,double *taz) {
     const momFloat onethird = 1.0/3.0;
@@ -1476,7 +1476,7 @@ double momFlocrAddFmomr5cm(FLOCR *l,float v,FMOMR *m,float u,float dir,float x,f
 
 
 /*
-** Op Count = (*,+,-) = (,,) = 
+** Op Count = (*,+,-) = (,,) =
 */
 double momFlocrAddMono5(FLOCR *l,float v,float m,float dir,float x,float y,float z,float *tax,float *tay,float *taz) {
     float xx,xy,xz,yy,yz;
@@ -2473,7 +2473,7 @@ void momPrintFlocr(FLOCR *m,float v) {
     printf("   xx:%20.8g    xy:%20.8g    xz:%20.8g\n",m->xx*uu,m->xy*uu,m->xz*uu);
     printf("   yy:%20.8g    yz:%20.8g",m->yy*uu,m->yz*uu);
     uu *= u;
-    printf("   xxx:%20.8g\n",m->xxx*uu);    
+    printf("   xxx:%20.8g\n",m->xxx*uu);
     printf("  xxy:%20.8g   xxz:%20.8g   xyy:%20.8g\n",m->xxy*uu,m->xxz*uu,m->xyy*uu);
     printf("  xyz:%20.8g   yyy:%20.8g   yyz:%20.8g\n",m->xyz*uu,m->yyy*uu,m->yyz*uu);
     uu *= u;
@@ -2486,4 +2486,3 @@ void momPrintFlocr(FLOCR *m,float v) {
     printf("xyyyy:%20.8g yyyyy:%20.8g xxyyz:%20.8g\n",m->xyyyy*uu,m->yyyyy*uu,m->xxyyz*uu);
     printf("xyyyz:%20.8g yyyyz:%20.8g             \n",m->xyyyz*uu,m->yyyyz*uu);
     }
-

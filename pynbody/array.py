@@ -139,14 +139,17 @@ handler:
 
 """
 
-import numpy as np
-import weakref
-import os
-from . import units as units
-from functools import reduce
-import fractions
 import atexit
+import fractions
 import functools
+import os
+import weakref
+from functools import reduce
+
+import numpy as np
+
+from . import units as units
+
 _units = units
 
 
@@ -974,14 +977,15 @@ for x in set(np.ndarray.__dict__).union(SimArray.__dict__):
 
 try:
     import ctypes
+    import functools
+    import mmap
     import multiprocessing
     import multiprocessing.sharedctypes
-    import tempfile
-    import functools
     import os
-    import time
     import random
-    import mmap
+    import tempfile
+    import time
+
     import posix_ipc
     _all_shared_arrays = []
 except ImportError:

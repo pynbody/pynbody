@@ -47,11 +47,11 @@ on how to implement this final step.
 """
 
 
-import random
-import math
-import numpy as np
-
 import copy
+import math
+import random
+
+import numpy as np
 
 from .. import util
 

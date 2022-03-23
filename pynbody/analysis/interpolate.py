@@ -6,8 +6,9 @@ interpolate
 
 """
 
-from . import _interpolate3d
 import numpy as np
+
+from . import _interpolate3d
 
 # this just calls the cython interpolation function, setting the
 # interpolation arrays to correct type
@@ -15,8 +16,8 @@ import numpy as np
 
 def interpolate3d(x, y, z, x_vals, y_vals, z_vals, vals):
     """
-    Interpolate on a 3D regular grid. 
-    Yields results identical to scipy.interpolate.interpn. 
+    Interpolate on a 3D regular grid.
+    Yields results identical to scipy.interpolate.interpn.
 
     Input
     -----
@@ -50,8 +51,8 @@ def interpolate3d(x, y, z, x_vals, y_vals, z_vals, vals):
 
 def interpolate2d(x, y, x_vals, y_vals, vals):
     """
-    Interpolate on a 2D regular grid. 
-    Yields results identical to scipy.interpolate.interpn. 
+    Interpolate on a 2D regular grid.
+    Yields results identical to scipy.interpolate.interpn.
 
     Input
     -----

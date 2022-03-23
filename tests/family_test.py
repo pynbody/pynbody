@@ -1,5 +1,7 @@
-import pynbody
 import numpy as np
+
+import pynbody
+
 
 def test_pickle():
     # Regression test for issue 80

@@ -9,7 +9,7 @@ A large amount of the code in pynbody is designed to run on multiple processors
 on a single shared-memory machine. There are three distinct ways in which
 parallelization works in pynbody.
 
-(1) *Native threading*, using the `python` module ``threading``, or in C code,
+(1) *Native threading*, using the ``python`` module ``threading``, or in C code,
     the POSIX standard ``pthread`` library. On any modern Mac and Linux machine,
     this "just works". This is mainly used in the SPH module where we have
     gone to some lengths to create algorithms that scale well to moderately
@@ -55,7 +55,7 @@ with the following section:
   [general]
   number-of-threads: 2
 
-More information on the pynbody configuration system is  
+More information on the pynbody configuration system is
 :ref:`available here <configuration>`.
 
 .. _openmp-fix:

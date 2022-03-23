@@ -1,5 +1,10 @@
-import re, inspect, textwrap, pydoc
-from docscrape import NumpyDocString, FunctionDoc, ClassDoc
+import inspect
+import pydoc
+import re
+import textwrap
+
+from docscrape import ClassDoc, FunctionDoc, NumpyDocString
+
 
 class SphinxDocString(NumpyDocString):
     # string conversion routines
@@ -133,4 +138,3 @@ def get_doc_object(obj, what=None, doc=None):
         if doc is None:
             doc = pydoc.getdoc(obj)
         return SphinxDocString(doc)
-

@@ -104,7 +104,7 @@ static inline int64_t d2u64(double d) {
 #define ROOT		1
 #define NRESERVED_NODES MAX_RUNG+1
 
-#define IORDERBITS 42    
+#define IORDERBITS 42
 #define IORDERMAX ((((uint64_t) 1)<<IORDERBITS)-1)
 
 typedef struct particle {

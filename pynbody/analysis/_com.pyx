@@ -1,9 +1,11 @@
-cimport numpy as np
 cimport cython
-from cython.parallel import prange
-import numpy as np
+cimport numpy as np
 
 import logging
+
+import numpy as np
+from cython.parallel import prange
+
 logger = logging.getLogger('pynbody.analysis._com')
 
 

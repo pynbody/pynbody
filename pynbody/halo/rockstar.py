@@ -4,8 +4,8 @@ import sys
 
 import numpy as np
 
-from . import HaloCatalogue, DummyHalo, Halo
 from .. import util
+from . import DummyHalo, Halo, HaloCatalogue
 
 
 class RockstarCatalogue(HaloCatalogue):
@@ -425,10 +425,12 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         km/s/Mpc)), ignoring the snaphot arg for hubble constant
         (which sometimes has a large roundoff error).
         """
+        import math
+
+        from snapshot import _new as new
+
         from . import tipsy
         from .analysis import cosmology
-        from snapshot import _new as new
-        import math
         s = self._base()
         if outfile is None: outfile = s.filename+'.gtp'
         print("write tipsy file to ", outfile)

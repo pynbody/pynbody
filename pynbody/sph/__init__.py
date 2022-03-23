@@ -12,21 +12,23 @@ For most users, the function of interest will be :func:`~pynbody.sph.render_imag
 
 """
 
+import copy
+import logging
+import math
+import os
+import sys
+import threading
+import time
+from time import process_time
+
 import numpy as np
 import scipy
 import scipy.ndimage
-import math
-import time
-import sys
-import threading
-import copy
-import logging
-import os
-from time import process_time
+
 logger = logging.getLogger('pynbody.sph')
 
+from .. import array, config, config_parser, snapshot, units, util
 from . import _render
-from .. import snapshot, array, config, units, util, config_parser
 
 try:
     from . import kdtree
@@ -163,7 +165,7 @@ def rho(self):
         np.empty(len(self['pos'])), self['mass'].units / self['pos'].units ** 3,
         dtype=self['pos'].dtype)
 
-    
+
     start = time.time()
 
 
@@ -236,8 +238,8 @@ class Kernel2D(Kernel):
         self.safe = threading.Lock()
 
     def get_value(self, d, h=1):
-        import scipy.integrate as integrate
         import numpy as np
+        import scipy.integrate as integrate
         return 2 * integrate.quad(lambda z: self.k_orig.get_value(np.sqrt(z ** 2 + d ** 2), h), 0, 2*h)[0]
 
 
@@ -929,9 +931,9 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
     if config["tracktime"] :
         import time
         in_time = time.time()
-    
+
     kernel=Kernel2D()
-            
+
     if v1 is None:
         v1 = -v2
     dvel = (v2 - v1) / nvel
@@ -939,7 +941,7 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
     vels = np.arange(v1+0.5*dvel, v2, dvel)
 
     tau = np.zeros((nvel),dtype=np.float32)
-    
+
     n_part = len(snap)
 
     if xy_units is None :
@@ -959,7 +961,7 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
                 'S':32, 'Ca':40, 'Fe':56}
 
     nnucleons = nucleons[element]
-    
+
     qty_s = qty
     qty = snap[qty]
     mass = snap['mass']
@@ -975,8 +977,8 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
 
     if __threaded :
         code+="#define THREAD 1\n"
-    
-        
+
+
     code+=file(os.path.join(os.path.dirname(__file__),'sph_spectra.c')).read()
 
     # before inlining, the views on the arrays must be standard np.ndarray
