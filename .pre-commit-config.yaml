@@ -1,0 +1,42 @@
+minimum_pre_commit_version: "1.15.0"
+
+ci:
+    autofix_prs: false
+
+repos:
+-   repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v1.20.0
+    hooks:
+    -   id: setup-cfg-fmt
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+    - id: trailing-whitespace
+    - id: end-of-file-fixer
+    - id: no-commit-to-branch
+      args: [--branch, master]
+    - id: check-shebang-scripts-are-executable
+    - id: check-executables-have-shebangs
+    - id: check-yaml
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.31.0
+    hooks:
+    - id: pyupgrade
+      args: [--py37-plus]
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.9.0
+    hooks:
+    -   id: rst-backticks
+- repo: https://github.com/nbQA-dev/nbQA
+  rev: 1.2.3
+  hooks:
+    - id: nbqa-pyupgrade
+      args: [--py37-plus]
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.10.1
+    hooks:
+    - id: isort
+      name: isort (python)
+    - id: isort
+      name: isort (cython)
+      types: [cython]
