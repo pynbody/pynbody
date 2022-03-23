@@ -1,21 +1,21 @@
-import os
-from setuptools import setup, Extension
 import codecs
+import glob
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from distutils.command.sdist import sdist as _sdist
+
 import numpy
 import numpy.distutils.misc_util
-import glob
-import tempfile
-import subprocess
-import shutil
-import sys
-
+from setuptools import Extension, setup
 
 # Patch the sdist command to ensure both versions of the openmp module are
 # included with source distributions
 #
 # Solution from http://stackoverflow.com/questions/4505747/how-should-i-structure-a-python-package-that-contains-cython-code
 
-from distutils.command.sdist import sdist as _sdist
 
 class sdist(_sdist):
     def run(self):
@@ -111,7 +111,8 @@ def check_for_openmp():
     if exit_code == 0:
         return True
     else:
-        import multiprocessing, platform
+        import multiprocessing
+        import platform
         cpus = multiprocessing.cpu_count()
         if cpus>1:
             print ("""WARNING
@@ -157,6 +158,7 @@ def get_version(rel_path):
 cython_version = None
 try :
     import cython
+
     # check that cython version is > 0.21
     cython_version = cython.__version__
     if float(cython_version.partition(".")[2][:2]) < 21 :
@@ -296,8 +298,8 @@ or
 
 
 If you already did one of the above, you've encountered a bug. Please
-open an issue on github to let us know. The missing file is {0}
-and the detected cython version is {1}.
+open an issue on github to let us know. The missing file is {}
+and the detected cython version is {}.
 """.format(src,cython_version))
 
                 sys.exit(1)
@@ -326,11 +328,13 @@ extras_require = {
     'docs': docs_require,
 }
 
+
 extras_require['all'] = []
 for name, reqs in extras_require.items():
     extras_require['all'].extend(reqs)
 
 from os import path
+
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
