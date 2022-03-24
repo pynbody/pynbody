@@ -25,6 +25,9 @@ version of pynbody (prior to version 1.0), by typing:
 pip install 'pynbody<1.0'
 """)
 
+# Note: we need to import the configuration first as it sets up the logging
+#       used in later imports
+from .configuration import config, logger, config_parser # isort:skip
 from . import (
     analysis,
     array,
@@ -40,7 +43,6 @@ from . import (
     transformation,
     util,
 )
-from .configuration import config, config_parser, logger
 from .snapshot import ascii, gadget, gadgethdf, grafic, nchilada, ramses, tipsy
 
 
