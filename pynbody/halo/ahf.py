@@ -420,17 +420,43 @@ class AHFCatalogue(HaloCatalogue):
         f = util.open_(filename)
         # nhalos = int(f.readline())  # number of halos?  no, some crazy number
         # that we will ignore
-        for i in range(len(self._halos)):
+
+        # In the substructure catalog, halos are referenced by their
+        # ID, but pynbody stores them by their index, so we need to
+        # map.
+        ID2index = {
+            halo.properties["ID"]: i
+            for i, halo in self._halos.items()
+        }
+        line = f.readline()
+        while line:
             try:
-                haloid, nsubhalos = (int(x) for x in f.readline().split())
-                self._halos[haloid + 1].properties['children'] = [
-                    int(x) + 1 for x in f.readline().split()]
-                for ichild in self._halos[haloid + 1].properties['children']:
-                    self._halos[ichild].properties['parentid'] = haloid+1
-            except KeyError:
-                pass
+                haloid, _nsubhalos = (int(x) for x in line.split())
+                halo_index = ID2index[haloid]
+                children = [
+                    ID2index[int(x)] for x in f.readline().split()
+                ]
             except ValueError:
+                logger.error(
+                    "An error occurred while reading substructure, aborting"
+                )
                 break
+            except KeyError:
+                logger.error(
+                    (
+                        "Could not identify some substructure of "
+                        "halo %s. Ignoring"
+                    ),
+                    haloid
+                )
+                continue
+
+            self._halos[halo_index].properties['children_id'] = children
+            for ichild in children:
+                self._halos[ichild].properties['parent_id'] = halo_index
+
+            line = f.readline()
+
         f.close()
 
     def writegrp(self, grpoutfile=False):
