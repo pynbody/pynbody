@@ -57,10 +57,13 @@ class AHFCatalogue(HaloCatalogue):
         if not self._can_load(sim, ahf_basename):
             self._run_ahf(sim)
 
-        HaloCatalogue.__init__(self,sim)
+        HaloCatalogue.__init__(self, sim)
 
         if use_iord is None:
-            use_iord = isinstance(sim.ancestor, (snapshot.gadget.GadgetSnap, snapshot.gadgethdf.GadgetHDFSnap))
+            use_iord = isinstance(
+                sim.ancestor,
+                (snapshot.gadget.GadgetSnap, snapshot.gadgethdf.GadgetHDFSnap)
+            )
 
         self._use_iord = use_iord
 
@@ -68,29 +71,24 @@ class AHFCatalogue(HaloCatalogue):
         self._dosort = dosort
         self._only_stat = only_stat
 
-        RamsesTF = isinstance(sim.ancestor, (snapshot.ramses.RamsesSnap))
-
         if ahf_basename is not None:
             self._ahfBasename = ahf_basename
-        elif RamsesTF:
-            self._ahfBasename = util.cutgz(
-                glob.glob(sim._filename + '/' + '*z*AHF_halos*')[0])[:-5]
         else:
-            self._ahfBasename = util.cutgz(
-                glob.glob(sim._filename + '*z*AHF_halos*')[0])[:-5]
+            candidate = self._list_possible_candidates(sim, ahf_basename)[0]
+            self._ahfBasename = util.cutgz(candidate)[:-9]
 
         try:
-            f = util.open_(self._ahfBasename + 'halos')
-        except OSError:
+            with util.open_(self._ahfBasename + 'halos') as f:
+                # The first line contains headers, need to skip it
+                self._nhalos = sum(1 for i in f) - 1
+        except OSError as e:
             raise OSError(
-                "Halo catalogue not found -- check the base name of catalogue data or try specifying a catalogue using the ahf_basename keyword")
-
-        for i, l in enumerate(f):
-            pass
-        self._nhalos = i
-        f.close()
+                "Halo catalogue not found -- check the base name of catalogue "
+                "data or try specifying a catalogue using the ahf_basename "
+                "keyword"
+            ) from e
+            
         logger.info("AHFCatalogue loading particles")
-
         self._load_ahf_particles(self._ahfBasename + 'particles')
 
         logger.info("AHFCatalogue loading halos")
@@ -145,7 +143,7 @@ class AHFCatalogue(HaloCatalogue):
 
     def _write_fpos(self):
         try:
-            f = open(self._ahfBasename + 'fpos','w')
+            f = open(self._ahfBasename + 'fpos', 'w')
             for i in range(self._nhalos):
                 if i < self._nhalos - 1:
                     f.write(str(self._halos[i+1].properties['fstart'])+'\n')
@@ -252,7 +250,12 @@ class AHFCatalogue(HaloCatalogue):
             f = util.open_(self._ahfBasename+'particles')
             fpos = self._halos[i].properties['fstart']
             f.seek(fpos,0)
-            return Halo(i, self, self.base, self._load_ahf_particle_block(f, self._halos[i].properties['npart']))
+            return Halo(
+                i,
+                self,
+                self.base,
+                self._load_ahf_particle_block(f, self._halos[i].properties['npart'])
+            )
 
 
 
@@ -278,7 +281,7 @@ class AHFCatalogue(HaloCatalogue):
 
         return load(self.base.filename, take=ids)
 
-    def _get_file_positions(self,filename):
+    def _get_file_positions(self, filename):
         """Get the starting positions of each halo's particle information within the
         AHF_particles file for faster access later"""
         if os.path.exists(self._ahfBasename + 'fpos'):
@@ -311,8 +314,12 @@ class AHFCatalogue(HaloCatalogue):
 
         if self.isnew:
             if not isinstance(f, gzip.GzipFile):
-                data = (np.fromfile(
-                    f, dtype=int, sep=" ", count=nparts * 2).reshape(nparts, 2))[:, 0]
+                data = np.fromfile(
+                    f,
+                    dtype=int,
+                    sep=" ",
+                    count=nparts * 2
+                ).reshape(nparts, 2)[:, 0]
                 data = np.ascontiguousarray(data)
             else:
                 # unfortunately with gzipped files there does not
@@ -323,16 +330,17 @@ class AHFCatalogue(HaloCatalogue):
 
             if self._use_iord:
                 data = self._iord_to_fpos[data]
+            elif isinstance(self.base, snapshot.ramses.RamsesSnap):
+                pass
+            elif not isinstance(self.base, snapshot.nchilada.NchiladaSnap):
+                hi_mask = data >= nds
+                data[np.where(hi_mask)] -= nds
+                data[np.where(~hi_mask)] += ng
             else:
-                if type(self.base) is not snapshot.nchilada.NchiladaSnap:
-                    hi_mask = data >= nds
-                    data[np.where(hi_mask)] -= nds
-                    data[np.where(~hi_mask)] += ng
-                else:
-                    st_mask = (data >= nd) & (data < nds)
-                    g_mask = data >= nds
-                    data[np.where(st_mask)] += ng
-                    data[np.where(g_mask)] -= ns
+                st_mask = (data >= nd) & (data < nds)
+                g_mask = data >= nds
+                data[np.where(st_mask)] += ng
+                data[np.where(g_mask)] -= ns
         else:
             if not isinstance(f, gzip.GzipFile):
                 data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
@@ -367,7 +375,7 @@ class AHFCatalogue(HaloCatalogue):
         f.close()
 
     def _load_ahf_halos(self, filename):
-        f = util.open_(filename,"rt")
+        f = util.open_(filename)
         # get all the property names from the first, commented line
         # remove (#)
         keys = [re.sub(r'\([0-9]*\)', '', field)
@@ -581,29 +589,23 @@ class AHFCatalogue(HaloCatalogue):
         return shalos
 
     @staticmethod
-    def _can_load(sim,ahf_basename=None,**kwargs):
-
-        RamsesTF = isinstance(sim.ancestor, (snapshot.ramses.RamsesSnap))
-
-        if not RamsesTF:
-            if ahf_basename is not None:
-                for file in glob.glob(ahf_basename + '*particles*'):
-                    if os.path.exists(file):
-                        return True
-            else:
-                for file in glob.glob(sim._filename + '*z*particles*'):
-                    if os.path.exists(file):
-                        return True
+    def _list_possible_candidates(sim, ahf_basename):
+        if ahf_basename is not None:
+            candidates = glob.glob(f"{ahf_basename}*particles*")
         else:
-            if ahf_basename is not None:
-                for file in glob.glob(ahf_basename + '*particles*'):
-                    if os.path.exists(file):
-                        return True
-            else:
-                for file in glob.glob(sim._filename + '/' +'*z*particles*'):
-                    if os.path.exists(file):
-                        return True
-        return False
+            candidates = glob.glob(f"{sim._filename}*z*particles*")
+
+            if os.path.isdir(sim._filename):
+                candidates.extend(glob.glob(os.path.join(
+                    sim._filename,
+                    "*z*particles*"
+                )))
+
+        return [file for file in candidates if os.path.exists(file)]
+
+    @classmethod
+    def _can_load(cls, sim, ahf_basename=None, **kwargs):
+        return len(cls._list_possible_candidates(sim, ahf_basename)) == 1
 
     def _run_ahf(self, sim):
         # if (sim is pynbody.tipsy.TipsySnap) :
