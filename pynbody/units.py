@@ -108,12 +108,13 @@ You can even define completely new dimensions.
 
 """
 
-import re
-import keyword
-import numpy as np
 import fractions
 import functools
+import keyword
+import re
 from collections import defaultdict
+
+import numpy as np
 
 Fraction = fractions.Fraction
 

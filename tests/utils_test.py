@@ -1,7 +1,10 @@
-import pynbody
+import time
+
 import numpy as np
 import numpy.testing as npt
-import time
+
+import pynbody
+
 
 def random_slice(max_pos=1000, max_step=10):
     import random

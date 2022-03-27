@@ -1,11 +1,13 @@
-import pynbody
-import numpy as np
 import glob
 import os
 import time
 
-
+import numpy as np
 import pytest
+
+import pynbody
+
+
 def setup_module():
     global f, h
     f = pynbody.load("testdata/g15784.lr.01024")

@@ -7,19 +7,18 @@ Various utility routines used internally by pynbody.
 
 """
 
+import fractions
 import gzip
-import struct
-import os
-import threading
-import sys
-import time
 import logging
 import math
+import os
+import struct
 import sys
+import threading
+import time
 
 import numpy as np
 
-import fractions
 from . import units
 from .array import SimArray
 
@@ -58,12 +57,12 @@ def open_with_size(filename, *args):
 
 
 def eps_as_simarray(f, eps):
-    """Convert th given eps to a SimArray with units of f['pos'] and dtype of f['mass']""" 
+    """Convert th given eps to a SimArray with units of f['pos'] and dtype of f['mass']"""
     if isinstance(eps, str):
         eps = units.Unit(eps)
     if not isinstance(eps, units.UnitBase):
         eps = eps * f['pos'].units
-        logger.info("Considering eps = {}".format(eps))
+        logger.info(f"Considering eps = {eps}")
     eps_value = eps._scale
     eps_unit = eps/eps_value
     eps = SimArray(np.ones(len(f), dtype=f['mass'].dtype) * eps_value, eps_unit)
@@ -385,7 +384,7 @@ def bisect(left, right, f, epsilon=None, eta=0, verbose=False, niter_max=200):
         mid = (left + right) / 2
         z = f(mid)
 
-        logger.info("{:f} {:f} {:f} {:f}".format(left, mid, right, z))
+        logger.info(f"{left:f} {mid:f} {right:f} {z:f}")
 
         if (abs(z) < eta):
             return mid
@@ -655,4 +654,3 @@ def _thread_map(func, *args):
     if excp is None:
         return rets
     raise excp  # Note this is a re-raised exception from within a thread
-

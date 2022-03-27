@@ -8,29 +8,22 @@ represent different views of an existing :class:`~pynbody.snapshot.SimSnap`.
 
 """
 
-from .. import array
-from .. import family
-from .. import util
-from .. import filt
-from .. import units
-from .. import config
-from .. import simdict
-from .. import dependencytracker
-from ..units import has_units
-
-from .snapshot_util import ContainerWithPhysicalUnitsOption
+import copy
+import gc
+import hashlib
+import logging
+import re
+import threading
+import traceback
+import warnings
+import weakref
+from functools import reduce
 
 import numpy as np
-import copy
-import weakref
-import hashlib
-import warnings
-import threading
-import re
-import gc
-import traceback
-import logging
-from functools import reduce
+
+from .. import array, config, dependencytracker, family, filt, simdict, units, util
+from ..units import has_units
+from .snapshot_util import ContainerWithPhysicalUnitsOption
 
 logger = logging.getLogger('pynbody.snapshot')
 
@@ -354,7 +347,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
                 self._dependency_tracker.touching(nd_name)
 
             return self._get_array(name)
-        
+
         with self._dependency_tracker.calculating(name):
             self.__resolve_obscuring_family_array(name)
 
@@ -686,8 +679,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         If any of the units are not specified and a previous
         `file_units_system` does not exist, the defaults are used.
         """
-        from .. import config_parser
         import configparser
+
+        from .. import config_parser
 
         # if the units system doesn't exist (if this is a new snapshot), create
         # one
@@ -2023,13 +2017,7 @@ def new(n_particles=0, order=None, **families):
     return x
 
 def _get_snap_classes():
-    from . import gadgethdf
-    from . import nchilada
-    from . import gadget
-    from . import tipsy
-    from . import ramses
-    from . import grafic
-    from . import ascii
+    from . import ascii, gadget, gadgethdf, grafic, nchilada, ramses, tipsy
 
     _snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, gadgethdf.EagleLikeHDFSnap,
                      nchilada.NchiladaSnap, gadget.GadgetSnap,

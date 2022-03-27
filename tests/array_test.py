@@ -1,7 +1,9 @@
 import pynbody
+
 SA = pynbody.array.SimArray
 import numpy as np
 import pytest
+
 
 def test_pickle():
     import pickle

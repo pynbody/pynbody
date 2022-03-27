@@ -1,11 +1,13 @@
-import numpy as np
 import os.path
-import weakref
 import warnings
-import h5py
+import weakref
 
-from . import HaloCatalogue, Halo
-from .. import snapshot, config_parser, array, units
+import h5py
+import numpy as np
+
+from .. import array, config_parser, snapshot, units
+from . import Halo, HaloCatalogue
+
 
 class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
     """

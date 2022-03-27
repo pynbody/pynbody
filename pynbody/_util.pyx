@@ -1,11 +1,12 @@
 import numpy as np
-cimport numpy as np
+
 cimport cython
 cimport libc.math as cmath
-from libc.math cimport atan, pow
-from libc.stdlib cimport malloc, free
-from cython.parallel cimport prange
+cimport numpy as np
 cimport openmp
+from cython.parallel cimport prange
+from libc.math cimport atan, pow
+from libc.stdlib cimport free, malloc
 
 ctypedef fused fused_float:
     np.float32_t

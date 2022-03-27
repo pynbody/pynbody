@@ -5,20 +5,18 @@ stars
 
 """
 
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
+import logging
 import warnings
 
-from ..analysis import profile, angmom
-from .. import filt, units, array
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+
+from .. import array, filt, units, units as _units
+from ..analysis import angmom, profile
+from ..sph import Kernel2D, render_spherical_image
 from .sph import image
-from .. import units as _units
 
-from ..sph import render_spherical_image
-from ..sph import Kernel2D
-
-import logging
 logger = logging.getLogger('pynbody.plot.stars')
 
 
@@ -53,7 +51,7 @@ def combine(r, g, b, magnitude_range, brightest_mag=None, mollview=False):
 			if mollview:
 				x_tmp = x.flatten()[x.flatten()<0]
 				ordered = np.sort(x_tmp.data)
-			else:   
+			else:
 				ordered = np.sort(x.flatten())
 			brightest_mag.append(ordered[-len(ordered) // 5000])
 
@@ -143,7 +141,7 @@ def render(sim, filename=None,
 		 If provided, the brightest and faintest surface brightnesses in the range,
 		 in mag arcsec^-2. Takes precedence over dynamic_range.
 
-	   *with_dust*: bool, (default: False) 
+	   *with_dust*: bool, (default: False)
 		 If True, the image is rendered with a simple dust screening model
 		 based on Calzetti's law.
 
@@ -179,11 +177,11 @@ def render(sim, filename=None,
 	if with_dust is True:
 		# render image with a simple dust absorption correction based on Calzetti's law using the gas content.
 		try:
-			import extinction                  
+			import extinction
 		except ImportError:
 			warnings.warn(
 				"Could not load extinction package. If you want to use this feature, "
-				"plaese install the extinction package from here: http://extinction.readthedocs.io/en/latest/" 
+				"plaese install the extinction package from here: http://extinction.readthedocs.io/en/latest/"
 				"or <via pip install extinction> or <conda install -c conda-forge extinction>", RuntimeWarning)
 			return
 
@@ -209,14 +207,14 @@ def render(sim, filename=None,
 				   'H':16300,'K':21900} #in Angstrom
 		# effective wavelength taken from http://svo2.cab.inta-csic.es/svo/theory/fps3/index.php?mode=browse&gname=Generic&gname2=Johnson
 		# and from https://en.wikipedia.org/wiki/Photometric_system for h, k
-		
+
 		lr,lg,lb = wavelength_avail[r_band],wavelength_avail[g_band],wavelength_avail[b_band] #in Angstrom
 		wave = np.array([lb, lg, lr])
 
 		ext_r = np.empty_like(r)
 		ext_g = np.empty_like(g)
 		ext_b = np.empty_like(b)
-	
+
 		for i in range(len(a_v)):
 			for j in range(len(a_v[0])):
 				ext = extinction.calzetti00(wave.astype(np.float), a_v[i][j].astype(np.float), 3.1, unit='aa', out=None)
@@ -275,7 +273,7 @@ def mollview(map=None,fig=None,plot=False,filenme=None,
 	   Requires the healpy package.
 
 	   This function is taken from the Healpy package and slightly modified.
-	
+
 	Parameters
 	----------
 	map : float, array-like or None
@@ -284,7 +282,7 @@ def mollview(map=None,fig=None,plot=False,filenme=None,
 	fig : figure object or None, optional
 	  The figure to use. Default: create a new figure
 	plot : bool (default: False)
-	  if True the image is plotted 
+	  if True the image is plotted
 	filename : string (default: None)
 		 Filename to be written to (if a filename is specified)
 	rot : scalar or sequence, optional
@@ -348,17 +346,16 @@ def mollview(map=None,fig=None,plot=False,filenme=None,
 	gnomview, cartview, orthview, azeqview
 	"""
 	try:
-		from healpy import projaxes as PA
-		from healpy import pixelfunc                 
+		from healpy import pixelfunc, projaxes as PA
 	except ImportError:
 		warnings.warn(
 			"Could not load healpy package. If you want to use this feature, "
-			"plaese install the healpy package from here: http://healpy.readthedocs.io/en/latest/" 
+			"plaese install the healpy package from here: http://healpy.readthedocs.io/en/latest/"
 			"or via pip or conda.", RuntimeWarning)
 		return
 
 	# Create the figure
-	
+
 	if not (hold or sub):
 		if fig == None:
 			f=plt.figure(figsize=(8.5,5.4))
@@ -384,7 +381,7 @@ def mollview(map=None,fig=None,plot=False,filenme=None,
 		c,r = (idx-1)%ncols,(idx-1)//ncols
 		if not margins:
 			margins = (0.01,0.0,0.0,0.02)
-		extent = (c*1./ncols+margins[0], 
+		extent = (c*1./ncols+margins[0],
 			  1.-(r+1)*1./nrows+margins[1],
 			  1./ncols-margins[2]-margins[0],
 			  1./nrows-margins[3]-margins[1])
@@ -461,7 +458,7 @@ def render_mollweide(sim, filename=None,
 		   ret_range=False):
 	'''
 	Make a 3-color all-sky image of stars in a mollweide projection.
-	Adapted from the function pynbody.plot.stars.render 
+	Adapted from the function pynbody.plot.stars.render
 
 	The colors are based on magnitudes found using stellar Marigo
 	stellar population code.  However there is no radiative transfer
@@ -517,7 +514,7 @@ def render_mollweide(sim, filename=None,
 		 If provided, the brightest and faintest surface brightnesses in the range,
 		 in mag arcsec^-2. Takes precedence over dynamic_range.
 	'''
-	
+
 	if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
 		if isinstance(width, str):
 			width = _units.Unit(width)
@@ -537,11 +534,11 @@ def render_mollweide(sim, filename=None,
 	b = render_spherical_image(sim.s, qty=b_band + '_lum_den', nside=nside, distance=width, kernel=Kernel2D(),kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * b_scale
 	b = mollview(b,return_projected_map=True,fig=f) * b_scale
 	# convert all channels to mag arcsec^-2
-	
+
 	r=convert_to_mag_arcsec2(r, mollview=True)
 	g=convert_to_mag_arcsec2(g, mollview=True)
 	b=convert_to_mag_arcsec2(b, mollview=True)
-	
+
 	if mag_range is None:
 		rgbim, mag_max = combine(r, g, b, dynamic_range*2.5, mollview=True)
 		mag_min = mag_max + 2.5*dynamic_range
@@ -858,8 +855,9 @@ def satlf(sim, band='v', filename=None, MWcompare=True, Trentham=True,
 
 
 	'''
-	from ..analysis import luminosity as lum
 	import os
+
+	from ..analysis import luminosity as lum
 
 	halomags = []
 	# try :
@@ -1174,49 +1172,49 @@ def moster(xmasses, z):
 					* B11e + dmdg10 * dmdg10 * G10e * G10e + dmdg11 * dmdg11 * G11e * G11e)
 	return 10 ** smp, 10 ** sigma
 
-def hudson(xmasses, z):	
-	''' Based on Hudson+ (2014), returns what stellar mass corresponds to the 	
-	halo mass passed in.  This is the only SMHMR function that is not based	
-	on abundance matching, but instead uses date from CFHTLenS galaxy lensing data.	
-	   >>> from pynbody.plot.stars import hudson	
-	   >>> xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)	
-	   >>> ystarmasses, errors = hudson(xmasses,halo_catalog._halos[1].properties['z'])	
-	   >>> plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),	
-	                     y2=np.array(ystarmasses)*np.array(errors),	
-	                     facecolor='#BBBBBB',color='#BBBBBB')	
-	'''	
-	f05 = 0.0414	
-	f05_err = 0.0024	
-	fz = 0.029	
-	fz_err = 0.009	
-	log10M05 = 12.07	
-	log10M05_err = 0.07	
-	Mz = 0.09	
-	Mz_err = 0.24	
-	beta = 0.69	
-	beta_err = 0.09	
-	gamma = 0.8	
-	
-	f1 = f05 + (z-0.5)*fz	
-	f1_err = np.sqrt(f05_err**2+(z-0.5)**2*fz_err**2)	
-	
-	M1_exp = (log10M05+(z-0.5)*Mz) 	
-	M1_exp_err = np.sqrt(log10M05_err**2+(z-0.5)**2*Mz_err**2)	
-	
-	M1 = np.power(10, M1_exp)	
-	M1_err = np.abs(M1*np.log(10)*M1_exp_err)	
-	
-	beta_term = np.power(xmasses/M1, -beta)	
-	beta_term_err = np.sqrt((beta/M1*M1_err/M1**2)**2 + (np.log(M1)*beta_err)**2)	
-	
-	gamma_term = np.power(xmasses/M1, gamma)	
-	gamma_term_err = np.abs(gamma_term*gamma*M1_err/M1**3)	
-	
-	fstar_denom = beta_term + gamma_term	
-	fstar_denom_err = np.sqrt(beta_term*2+ gamma_term**2)	
-	
-	fstar = 2.0*f1/fstar_denom	
-	fstar_err = np.sqrt((f1_err/f1)**2 + (fstar_denom_err/fstar_denom)**2)	
+def hudson(xmasses, z):
+	''' Based on Hudson+ (2014), returns what stellar mass corresponds to the
+	halo mass passed in.  This is the only SMHMR function that is not based
+	on abundance matching, but instead uses date from CFHTLenS galaxy lensing data.
+	   >>> from pynbody.plot.stars import hudson
+	   >>> xmasses = np.logspace(np.log10(min(totmasshalos)),1+np.log10(max(totmasshalos)),20)
+	   >>> ystarmasses, errors = hudson(xmasses,halo_catalog._halos[1].properties['z'])
+	   >>> plt.fill_between(xmasses,np.array(ystarmasses)/np.array(errors),
+	                     y2=np.array(ystarmasses)*np.array(errors),
+	                     facecolor='#BBBBBB',color='#BBBBBB')
+	'''
+	f05 = 0.0414
+	f05_err = 0.0024
+	fz = 0.029
+	fz_err = 0.009
+	log10M05 = 12.07
+	log10M05_err = 0.07
+	Mz = 0.09
+	Mz_err = 0.24
+	beta = 0.69
+	beta_err = 0.09
+	gamma = 0.8
+
+	f1 = f05 + (z-0.5)*fz
+	f1_err = np.sqrt(f05_err**2+(z-0.5)**2*fz_err**2)
+
+	M1_exp = (log10M05+(z-0.5)*Mz)
+	M1_exp_err = np.sqrt(log10M05_err**2+(z-0.5)**2*Mz_err**2)
+
+	M1 = np.power(10, M1_exp)
+	M1_err = np.abs(M1*np.log(10)*M1_exp_err)
+
+	beta_term = np.power(xmasses/M1, -beta)
+	beta_term_err = np.sqrt((beta/M1*M1_err/M1**2)**2 + (np.log(M1)*beta_err)**2)
+
+	gamma_term = np.power(xmasses/M1, gamma)
+	gamma_term_err = np.abs(gamma_term*gamma*M1_err/M1**3)
+
+	fstar_denom = beta_term + gamma_term
+	fstar_denom_err = np.sqrt(beta_term*2+ gamma_term**2)
+
+	fstar = 2.0*f1/fstar_denom
+	fstar_err = np.sqrt((f1_err/f1)**2 + (fstar_denom_err/fstar_denom)**2)
 	return fstar*xmasses, 2.0/fstar_err
 
 def subfindguo(halo_catalog, clear=False, compare=True, baryfrac=False,
@@ -1247,7 +1245,7 @@ def subfindguo(halo_catalog, clear=False, compare=True, baryfrac=False,
 
 	starmasshalos = []
 	totmasshalos = []
-	f_b = halo_catalog[0].properties['omegaB0']/halo_catalog[0].properties['omegaM0'] 
+	f_b = halo_catalog[0].properties['omegaB0']/halo_catalog[0].properties['omegaM0']
 	for halo in halo_catalog:
 		for subhalo in halo.sub:
 			subhalo.properties['MassType'].convert_units('Msol')

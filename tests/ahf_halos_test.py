@@ -1,9 +1,11 @@
-import pynbody
-import subprocess
-import os.path
 import glob
+import os.path
 import shutil
 import stat
+import subprocess
+
+import pynbody
+
 
 def test_load_ahf_catalogue():
     f = pynbody.load("testdata/g15784.lr.01024")

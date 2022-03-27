@@ -13,9 +13,12 @@ sample usage.
 """
 
 
-import numpy as np
 import pickle
-from . import units, _util, family
+
+import numpy as np
+
+from . import _util, family, units
+
 
 class Filter:
 
@@ -155,7 +158,7 @@ class Sphere(Filter):
 
         if 'boxsize' in sim.properties:
             wrap = sim.properties['boxsize']
-        
+
         if units.is_unit_like(wrap):
             wrap = float(wrap.in_units(pos.units,**pos.conversion_context()))
 
@@ -168,9 +171,9 @@ class Sphere(Filter):
     def __repr__(self):
         if units.is_unit(self.radius):
 
-            return "Sphere('{}', {})".format(str(self.radius), repr(self.cen))
+            return f"Sphere('{str(self.radius)}', {repr(self.cen)})"
         else:
-            return "Sphere({:.2e}, {})".format(self.radius, repr(self.cen))
+            return f"Sphere({self.radius:.2e}, {repr(self.cen)})"
 
 
 class Cuboid(Filter):
@@ -210,7 +213,7 @@ class Cuboid(Filter):
         x1, y1, z1, x2, y2, z2 = ("'%s'" % str(x)
                                   if units.is_unit_like(x) else x
                                   for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2))
-        return "Cuboid({}, {}, {}, {}, {}, {})".format(x1, y1, z1, x2, y2, z2)
+        return f"Cuboid({x1}, {y1}, {z1}, {x2}, {y2}, {z2})"
 
 
 class Disc(Filter):
@@ -255,7 +258,7 @@ class Disc(Filter):
         radius, height = (
             ("'%s'" % str(x) if units.is_unit_like(x) else '%.2e' % x) for x in (radius, height))
 
-        return "Disc({}, {}, {})".format(radius, height, repr(self.cen))
+        return f"Disc({radius}, {height}, {repr(self.cen)})"
 
 
 class BandPass(Filter):
@@ -295,7 +298,7 @@ class BandPass(Filter):
     def __repr__(self):
         min_, max_ = (("'%s'" % str(x) if units.is_unit_like(
             x) else '%.2e' % x) for x in (self._min, self._max))
-        return "BandPass('{}', {}, {})".format(self._prop, min_, max_)
+        return f"BandPass('{self._prop}', {min_}, {max_})"
 
 
 class HighPass(Filter):
@@ -328,7 +331,7 @@ class HighPass(Filter):
     def __repr__(self):
         min = ("'%s'" % str(self._min) if units.is_unit_like(
             self._min) else '%.2e' % self._min)
-        return "HighPass('{}', {})".format(self._prop, min)
+        return f"HighPass('{self._prop}', {min})"
 
 
 class LowPass(Filter):
@@ -360,7 +363,7 @@ class LowPass(Filter):
     def __repr__(self):
         max = ("'%s'" % str(self._max) if isinstance(
             self._max, units.UnitBase) else '%.2e' % self._max)
-        return "LowPass('{}', {})".format(self._prop, max)
+        return f"LowPass('{self._prop}', {max})"
 
 
 def Annulus(r1, r2, cen=(0, 0, 0)):

@@ -7,9 +7,9 @@ Calculates luminosities -- NEEDS DOCUMENTATION
 
 """
 
-import numpy as np
-
 import os
+
+import numpy as np
 
 from .. import filt
 from .interpolate import interpolate2d
@@ -64,7 +64,7 @@ def calc_mags(simstars, band='v', cmd_path=None):
     Marigo+ (2008), Girardi+ (2010)
 
     pynbody includes a grid of SSP luminosities for many bandpasses for
-    various stellar ages and metallicities.  This function linearly 
+    various stellar ages and metallicities.  This function linearly
     interpolates to the desired value and returns the value as a magnitude.
 
     **Usage:**
@@ -74,7 +74,7 @@ def calc_mags(simstars, band='v', cmd_path=None):
 
     **Optional keyword arguments:**
 
-       *band* (default='v'): Which observed bandpass magnitude in which 
+       *band* (default='v'): Which observed bandpass magnitude in which
             magnitude should be calculated
 
        *path* (default=None): Path to the CMD grid. If None, use the
@@ -134,7 +134,7 @@ def halo_mag(sim, band='v'):
 
     **Optional keyword arguments:**
 
-       *band* (default='v'): Which observed bandpass magnitude in which 
+       *band* (default='v'): Which observed bandpass magnitude in which
             magnitude should be calculated
     """
     if (len(sim.star) > 0):
@@ -158,7 +158,7 @@ def halo_lum(sim, band='v'):
 
     **Optional keyword arguments:**
 
-       *band* (default='v'): Which observed bandpass magnitude in which 
+       *band* (default='v'): Which observed bandpass magnitude in which
             magnitude should be calculated
     """
     sun_abs_mag = {'u':5.56,'b':5.45,'v':4.8,'r':4.46,'i':4.1,'j':3.66,

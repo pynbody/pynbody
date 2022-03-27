@@ -10,7 +10,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import os
+import sys
 
 #import sphinx_bootstrap_theme
 
@@ -73,6 +74,7 @@ copyright = '2011-20, pynbody team'
 #
 # The short X.Y version.
 import pynbody
+
 version = ".".join(pynbody.__version__.split(".")[:2])
 # The full version, including alpha/beta/rc tags.
 release = pynbody.__version__
@@ -125,7 +127,7 @@ html_theme_options = { 'logo': 'logo.svg', 'logo_name': False, 'sidebar_collapse
 
 html_theme_options = {
     'bootswatch_theme': 'spacelab',
-    
+
     'navbar_site_name': 'Sections',
 
     'source_link_position': 'footer'

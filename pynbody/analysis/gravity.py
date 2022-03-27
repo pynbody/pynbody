@@ -3,16 +3,16 @@
 gravity
 =======
 
-Functions for calculating the gravitational potential and accelerations. 
+Functions for calculating the gravitational potential and accelerations.
 
 """
 
 
-from .. import units
-from .. import array
-
 import math
+
 import numpy as np
+
+from .. import array, units
 
 
 def potential(f, pos_vec, eps=None, unit=None):
@@ -28,7 +28,7 @@ def potential(f, pos_vec, eps=None, unit=None):
 
     2. The array f['eps']
 
-    3. f.properties['eps'] (scalar or unit) 
+    3. f.properties['eps'] (scalar or unit)
 
     """
 
@@ -68,7 +68,7 @@ def accel(f, pos_vec, eps=None):
 
     2. The array f['eps']
 
-    3. f.properties['eps'] (scalar or unit) 
+    3. f.properties['eps'] (scalar or unit)
 
     """
 

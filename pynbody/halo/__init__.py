@@ -14,11 +14,12 @@ examples.
 
 """
 
-import numpy as np
-import weakref
 import copy
 import logging
 import warnings
+import weakref
+
+import numpy as np
 
 from .. import snapshot, util
 
@@ -322,7 +323,7 @@ class GrpCatalogue(HaloCatalogue):
             match = np.where(self._unique_i==i)[0]
 
             start = self._boundaries[match][0]
-            
+
             if start == self._boundaries[-1]:
                 # This is the final halo
                 end = None
@@ -366,13 +367,14 @@ class AmigaGrpCatalogue(GrpCatalogue):
         return GrpCatalogue._can_load(sim, arr_name)
 
 
+from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
 from pynbody.halo.ahf import AHFCatalogue
 from pynbody.halo.hop import HOPCatalogue
-from pynbody.halo.adaptahop import NewAdaptaHOPCatalogue, AdaptaHOPCatalogue
 from pynbody.halo.legacy import RockstarIntermediateCatalogue
 from pynbody.halo.rockstar import RockstarCatalogue
 from pynbody.halo.subfind import SubfindCatalogue
-from pynbody.halo.subfindhdf import SubFindHDFHaloCatalogue, Gadget4SubfindHDFCatalogue
+from pynbody.halo.subfindhdf import Gadget4SubfindHDFCatalogue, SubFindHDFHaloCatalogue
+
 
 def _get_halo_classes():
     # AmigaGrpCatalogue MUST be scanned first, because if it exists we probably

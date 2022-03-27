@@ -10,21 +10,18 @@ automatically via pynbody.load.
 """
 
 
-from .. import array, units
-from .. import family
-from .. import config
-from .. import config_parser
-from . import SimSnap
-from . import namemapper
-
 import configparser
-import numpy as np
-import struct
-import sys
 import copy
-import warnings
 import errno
 import itertools
+import struct
+import sys
+import warnings
+
+import numpy as np
+
+from .. import array, config, config_parser, family, units
+from . import SimSnap, namemapper
 
 # This is set here and not in a config file because too many things break
 # if it is not 6
@@ -291,7 +288,7 @@ class GadgetFile:
                 if record_size != 256:
                     raise OSError("Bad record size for HEAD in " + filename)
                 t_part = self.header.npart.sum()
-                if  ((not self.format2) and 
+                if  ((not self.format2) and
                 	((self.header.npart != 0) * (self.header.mass == 0)).sum()==0):
                     # The "Spec" says that if all the existing particle masses
                     # are in the header, we shouldn't have a MASS block

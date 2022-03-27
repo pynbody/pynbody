@@ -7,6 +7,7 @@ metals
 
 
 import numpy as np
+
 from .generic import gauss_kde
 
 
@@ -52,9 +53,9 @@ def ofefeh(sim, fxn=gauss_kde, filename=None, **kwargs):
 
     Use :func:`~pynbody.plot.generic.hist2d` to make a [O/Fe] vs. [Fe/H] plot
 
-    **Input:** 
+    **Input:**
 
-    *sim*: snapshot to pull data from 
+    *sim*: snapshot to pull data from
 
     **Optional Keywords:**
 

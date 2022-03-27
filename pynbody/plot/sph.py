@@ -7,11 +7,11 @@ routines for plotting smoothed quantities
 
 """
 
-import pylab as p
 import matplotlib
 import numpy as np
-from .. import sph, config
-from .. import units as _units
+import pylab as p
+
+from .. import config, sph, units as _units
 
 
 def sideon_image(sim, *args, **kwargs):
@@ -175,7 +175,7 @@ def volume(sim, qty='rho', width=None, resolution=200,
 
     import mayavi
     from mayavi import mlab
-    from tvtk.util.ctf import PiecewiseFunction, ColorTransferFunction
+    from tvtk.util.ctf import ColorTransferFunction, PiecewiseFunction
 
 
 

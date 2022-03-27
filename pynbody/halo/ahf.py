@@ -3,10 +3,12 @@ import gzip
 import os.path
 import re
 import warnings
+
 import numpy as np
 
-from . import HaloCatalogue, logger, Halo, DummyHalo
-from .. import util, snapshot, config_parser
+from .. import config_parser, snapshot, util
+from . import DummyHalo, Halo, HaloCatalogue, logger
+
 
 class AHFCatalogue(HaloCatalogue):
 
@@ -515,10 +517,10 @@ class AHFCatalogue(HaloCatalogue):
         km/s/Mpc)), ignoring the snaphot arg for hubble constant
         (which sometimes has a large roundoff error).
         """
-        from ..snapshot import tipsy
-        from ..analysis import cosmology
-        from ..snapshot import new
         import math
+
+        from ..analysis import cosmology
+        from ..snapshot import new, tipsy
         s = snapshot
         outfile = tipsyoutfile
         nhalos = halos._nhalos
@@ -591,6 +593,7 @@ class AHFCatalogue(HaloCatalogue):
         # elif (sim is pynbody.gadget.GadgetSnap):
         #   typecode = '60' or '61'
         import pynbody.units as units
+
         # find AHFstep
 
         groupfinder = config_parser.get('AHFCatalogue', 'Path')

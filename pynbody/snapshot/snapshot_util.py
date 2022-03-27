@@ -7,11 +7,10 @@ Utility functions for the snapshot module.
 
 """
 
-from .. import array, units
-
 import logging
-
 from functools import reduce
+
+from .. import array, units
 
 logger = logging.getLogger('pynbody.snapshot')
 

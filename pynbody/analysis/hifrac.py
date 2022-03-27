@@ -7,13 +7,14 @@ calculates Hydrogen ionization fraction - limited version of ionfrac to make use
 
 """
 
+import logging
+import os
+
 import numpy as np
 
+from ..array import SimArray
 from .interpolate import interpolate3d
 
-import os
-from ..array import SimArray
-import logging
 logger = logging.getLogger('pynbody.analysis.hifrac')
 
 from pynbody import config

@@ -1,10 +1,14 @@
 #cython: embedsignature=True
 
 cimport cython
-from pynbody import units, array, config, openmp
-from pynbody.util import get_eps
+
 import numpy as np
+
+from pynbody import array, config, openmp, units
+from pynbody.util import get_eps
+
 cimport numpy as np
+
 DTYPE = np.double
 
 ctypedef fused DTYPE_t:

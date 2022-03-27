@@ -1,7 +1,9 @@
-import pynbody
-import numpy as np
-import pickle
 import gc
+import pickle
+
+import numpy as np
+
+import pynbody
 
 
 def test_pickle():
