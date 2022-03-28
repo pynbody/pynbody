@@ -87,7 +87,7 @@ class AHFCatalogue(HaloCatalogue):
                 "data or try specifying a catalogue using the ahf_basename "
                 "keyword"
             ) from e
-            
+
         logger.info("AHFCatalogue loading particles")
         self._load_ahf_particles(self._ahfBasename + 'particles')
 
@@ -375,12 +375,15 @@ class AHFCatalogue(HaloCatalogue):
         f.close()
 
     def _load_ahf_halos(self, filename):
-        f = util.open_(filename)
+        # Note: we need to open in 'rt' mode in case the AHF catalogue
+        # is gzipped.
+        f = util.open_(filename, "rt")
+        line = f.readline()
         # get all the property names from the first, commented line
         # remove (#)
-        line = f.readline().replace("#", "")
+        fields = line.replace("#", "").split()
         keys = [re.sub(r'\([0-9]*\)', '', field)
-                for field in line.split()]
+                for field in fields]
         # provide translations
         for i, key in enumerate(keys):
             if self.isnew:
@@ -405,8 +408,11 @@ class AHFCatalogue(HaloCatalogue):
                 keys = keys[1:]
 
         for h, line in enumerate(f):
-            values = [float(x) if '.' in x or 'e' in x or 'nan' in x else int(
-                x) for x in line.split()]
+            values = [
+                float(x) if any(_ in x for _ in (".", "e", "nan"))
+                else int(x)
+                for x in line.split()
+            ]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as
             # well
             for i, key in enumerate(keys):
