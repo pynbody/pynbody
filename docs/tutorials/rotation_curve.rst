@@ -17,7 +17,7 @@ Speeding up the Gravity Calculation in Pynbody
 
 The rotation curve is calculated by calculating the forces in a
 plane. The force calculation is a direct :math:`N^2` calculation, so
-it takes a while and it is therefore done in `C`. It is even faster if
+it takes a while and it is therefore done in ``C``. It is even faster if
 you use the parallel Open-MP version. This was installed automatically
 if pynbody detected an Open-MP C compiler during setup. To see whether
 this happened or not, you can ask how many cores your machine has:

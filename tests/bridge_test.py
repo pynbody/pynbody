@@ -1,5 +1,6 @@
-import pynbody
 import numpy as np
+
+import pynbody
 
 
 def test_order_bridge():

@@ -1,5 +1,6 @@
-import pynbody
 import numpy as np
+
+import pynbody
 
 
 def setup_module():
@@ -107,4 +108,3 @@ def test_spherical_coordinates_after_coordinate_transform():
     with pynbody.transformation.translate(f, pynbody.array.SimArray([-100, 140, 200], units='kpc')):
         with f.rotate_x(173):
             test_spherical_coordinates_arrays()
-

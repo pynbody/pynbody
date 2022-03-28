@@ -47,11 +47,11 @@ on how to implement this final step.
 """
 
 
-import random
-import math
-import numpy as np
-
 import copy
+import math
+import random
+
+import numpy as np
 
 from .. import util
 
@@ -136,7 +136,7 @@ class Chunk:
         return self.ids is None and self.step == 1
 
 
-class LoadControl(object):
+class LoadControl:
 
     """LoadControl provides the logic required for partial loading."""
 

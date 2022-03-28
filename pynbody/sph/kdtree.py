@@ -6,19 +6,19 @@ KDTree
 Provides access to nearest neighbour lists and smoothing lengths.
 
 """
-from . import kdmain
-from .. import config
-from .. import array as ar
-import numpy as np
-import time
 import logging
-import weakref
+import time
 import warnings
+
+import numpy as np
+
+from .. import array as ar, config
+from . import kdmain
 
 logger = logging.getLogger("pynbody.sph.kdtree")
 
 
-class KDTree(object):
+class KDTree:
     """KDTree used for smoothing."""
 
     PROPID_HSM = 1
@@ -308,7 +308,7 @@ class KDTree(object):
         self.populate("qty_%s" % op, nsmooth)
         end = time.time()
 
-        logger.info("SPH %s done in %5.3g s" % (op_label, end - start))
+        logger.info(f"SPH {op_label} done in {end - start:5.3g} s")
 
         return output
 

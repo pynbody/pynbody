@@ -4,8 +4,8 @@ import sys
 
 import numpy as np
 
-from . import HaloCatalogue, DummyHalo, Halo
 from .. import util
+from . import DummyHalo, Halo, HaloCatalogue
 
 
 class RockstarCatalogue(HaloCatalogue):
@@ -50,7 +50,7 @@ class RockstarCatalogue(HaloCatalogue):
             self._files.sort()
 
         if len(self._files)==0:
-            raise IOError("Could not find any Rockstar output. Try specifying pathname='/path/to/rockstar/outputfolder'")
+            raise OSError("Could not find any Rockstar output. Try specifying pathname='/path/to/rockstar/outputfolder'")
 
         self._cpus = [RockstarCatalogueOneCpu(sim,dummy,file_i, format_revision=format_revision) for file_i in self._files]
         self._prune_files_from_wrong_scalefactor()
@@ -102,7 +102,7 @@ class RockstarCatalogue(HaloCatalogue):
         self.base[name]= self.get_group_array()
 
     def __len__(self):
-        return sum([len(x) for x in self._cpus])
+        return sum(len(x) for x in self._cpus)
 
     def _init_index_ar(self):
         index_ar = np.empty((len(self),2),dtype=np.int32)
@@ -239,8 +239,8 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
 
         try :
             f = util.open_(self._rsFilename, 'rb')
-        except IOError:
-            raise IOError("Halo catalogue not found -- check the file name of catalogue data or try specifying a catalogue using the filename keyword")
+        except OSError:
+            raise OSError("Halo catalogue not found -- check the file name of catalogue data or try specifying a catalogue using the filename keyword")
 
         with f:
             self._head = np.fromstring(f.read(self.head_type.itemsize),
@@ -425,10 +425,12 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         km/s/Mpc)), ignoring the snaphot arg for hubble constant
         (which sometimes has a large roundoff error).
         """
+        import math
+
+        from snapshot import _new as new
+
         from . import tipsy
         from .analysis import cosmology
-        from snapshot import _new as new
-        import math
         s = self._base()
         if outfile is None: outfile = s.filename+'.gtp'
         print("write tipsy file to ", outfile)

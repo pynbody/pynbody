@@ -3,28 +3,31 @@
 halo mass function (hmf)
 ========================
 
-Various halo mass function routines. 
+Various halo mass function routines.
 
 """
 
-import numpy as np
-from . import cosmology
-from .. import units
-from .. import util
-import pynbody
 import os
+
+import numpy as np
+
+import pynbody
+
+from .. import units, util
+from . import cosmology
+
 try:
     import scipy
     import scipy.interpolate
 except ImportError:
     pass
 
-import math
-import warnings
-import cmath
-import tempfile
-import subprocess
 import logging
+import math
+import subprocess
+import tempfile
+import warnings
+
 logger = logging.getLogger('pynbody.analysis.hmf')
 
 
@@ -32,7 +35,7 @@ logger = logging.getLogger('pynbody.analysis.hmf')
 # Filters
 #######################################################################
 
-class FieldFilter(object):
+class FieldFilter:
 
     def __init__(self):
         raise RuntimeError("Cannot instantiate directly, use a subclass instead")
@@ -87,7 +90,7 @@ class HarmonicStepFilter(FieldFilter):
 #######################################################################
 
 
-class PowerSpectrumCAMB(object):
+class PowerSpectrumCAMB:
 
     def __init__(self, context, filename=None, log_interpolation=True):
         if filename is None:
@@ -187,7 +190,7 @@ class PowerSpectrumCAMBLive(PowerSpectrumCAMB):
             raise RuntimeError("You need to compile CAMB and set up the executable path in your pynbody configuration file.")
 
         file_in = open(
-            os.path.join(os.path.dirname(__file__), "cambtemplate.ini"), "r")
+            os.path.join(os.path.dirname(__file__), "cambtemplate.ini"))
         folder_out = tempfile.mkdtemp()
         file_out = open(os.path.join(folder_out, "camb.ini"), "w")
 
@@ -470,7 +473,7 @@ def f_press_schechter(nu):
 
 
 def f_sheth_tormen(nu, Anorm=0.3222, a=0.707, p=0.3):
-    """   
+    """
     Sheth & Tormen (1999) fit (see also Sheth Mo & Tormen 2001)
     """
     #  Anorm: normalization, set so all mass is in halos (integral [f nu dn]=1)
@@ -528,9 +531,9 @@ def f_reed_no_z(nu, deltac=1.68647):  # universal form
 def f_reed_z_evo(nu, neff, deltac=1.68647):  # non-universal form
     # Reed et al. (2007) fit, eqn. 11 -- with redshift depedence for accuracy
     # at z >~ z_reion
-    """ modified S-T fit  by the n_eff dependence and the G1 and G2 gaussian terms and c 
-    where   P(k) proportional to k_halo**(n_eff)  and  
-    k_halo = Mhalo / r_halo_precollapse.  
+    """ modified S-T fit  by the n_eff dependence and the G1 and G2 gaussian terms and c
+    where   P(k) proportional to k_halo**(n_eff)  and
+    k_halo = Mhalo / r_halo_precollapse.
     eqn 13 of Reed et al 2007   estimtes neff = 6 d ln(1/sigma(M))/ d ln M  - 3 """
     sigma = deltac / nu
     # normalization that all mass is in halos not strictly conserved here
@@ -631,7 +634,7 @@ def halo_mass_function(context,
 
     *delta_crit:* The critical overdensity for collapse
 
-    **Returns:**       
+    **Returns:**
 
     *M:* The centre of the mass bins, in Msol h^-1
 
@@ -647,9 +650,9 @@ def halo_mass_function(context,
 
 
     Recommended m.f. for friends-of-friends linking length 0.2 particle sep.:
-    z <~ 2 : bhattacharya  
+    z <~ 2 : bhattacharya
     z >~ 5 : reed_universal (no redshift dependence)
-    : or reed_evolving (w/redshift dependence for additional accuracy) 
+    : or reed_evolving (w/redshift dependence for additional accuracy)
 
     """
 

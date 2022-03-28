@@ -7,15 +7,14 @@ Functional forms of common profiles (NFW as an example)
 
 """
 
+import abc
+import sys
+
 import numpy as np
-import abc, sys
 
 # # abc compatiblity with Python 2 *and* 3:
 # # https://stackoverflow.com/questions/35673474/using-abc-abcmeta-in-a-way-it-is-compatible-both-with-python-2-7-and-python-3-5
-if sys.version_info >= (3, 4):
-    ABC = abc.ABC
-else:
-    ABC = abc.ABCMeta(str('ABC'), (), {})
+ABC = abc.ABC
 
 
 class AbstractBaseProfile(ABC):
@@ -58,6 +57,7 @@ class AbstractBaseProfile(ABC):
         """
 
         import scipy.optimize as so
+
         # Check data is not corrupted. Some are likely check in curve-fit already
         if np.isnan(radial_data).any() or np.isnan(profile_data).any():
             raise RuntimeError("Provided data contains NaN values")
@@ -146,7 +146,7 @@ class NFWprofile(AbstractBaseProfile):
 
         """
 
-        super(NFWprofile, self).__init__()
+        super().__init__()
 
         self._halo_radius = halo_radius
 

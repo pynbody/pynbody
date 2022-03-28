@@ -12,26 +12,28 @@ For most users, the function of interest will be :func:`~pynbody.sph.render_imag
 
 """
 
+import copy
+import logging
+import math
+import os
+import sys
+import threading
+import time
+from time import process_time
+
 import numpy as np
 import scipy
 import scipy.ndimage
-import math
-import time
-import sys
-import threading
-import copy
-import logging
-import time
+
 logger = logging.getLogger('pynbody.sph')
 
+from .. import array, config, config_parser, snapshot, units, util
 from . import _render
-from .. import snapshot, array, config, units, util, config_parser, backcompat
 
 try:
     from . import kdtree
 except ImportError:
     raise ImportError("Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python")
-import os
 
 
 
@@ -115,9 +117,9 @@ def build_tree_or_trees(sim):
 
     logger.info('Building tree with leafsize=%d' % config['sph']['tree-leafsize'])
 
-    start = backcompat.clock()
+    start = process_time()
     build_tree(sim)
-    end = backcompat.clock()
+    end = process_time()
 
     logger.info('Tree build done in %5.3g s' % (end - start))
 
@@ -163,7 +165,7 @@ def rho(self):
         np.empty(len(self['pos'])), self['mass'].units / self['pos'].units ** 3,
         dtype=self['pos'].dtype)
 
-    
+
     start = time.time()
 
 
@@ -179,7 +181,7 @@ def rho(self):
     return rho
 
 
-class Kernel(object):
+class Kernel:
 
     def __init__(self):
         self.h_power = 3
@@ -215,6 +217,18 @@ class Kernel(object):
         return f / (math.pi * h ** 3)
 
 
+class WendlandC2Kernel(Kernel):
+
+    def get_value(self, d, h=1):
+        # Wendland C2 (quintic) kernel, as used by EAGLE
+        if d < 2:
+            f = (1. - (d / 2.))**4 * (2. * d + 1)
+        else:
+            f = 0
+
+        return (21. * f) / (16. * math.pi * h ** 3)
+
+
 class Kernel2D(Kernel):
 
     def __init__(self, k_orig=Kernel()):
@@ -224,12 +238,12 @@ class Kernel2D(Kernel):
         self.safe = threading.Lock()
 
     def get_value(self, d, h=1):
-        import scipy.integrate as integrate
         import numpy as np
+        import scipy.integrate as integrate
         return 2 * integrate.quad(lambda z: self.k_orig.get_value(np.sqrt(z ** 2 + d ** 2), h), 0, 2*h)[0]
 
 
-class TopHatKernel(object):
+class TopHatKernel:
 
     def __init__(self):
         self.h_power = 3
@@ -293,8 +307,6 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
 def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kernel(),
                             kstep=0.5, denoise=None, out_units=None, __threaded=False, snap_slice=None):
 
-    import healpy as hp
-
     if denoise is None:
         denoise = _auto_denoise(snap, kernel)
 
@@ -308,8 +320,8 @@ def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kern
     if snap_slice is None:
         snap_slice = slice(len(snap))
     with snap.immediate_mode:
-        D, h, pos, mass, rho, qtyar = [snap[x].view(
-            np.ndarray)[snap_slice] for x in ('r', 'smooth', 'pos', 'mass', 'rho', qty)]
+        D, h, pos, mass, rho, qtyar = (snap[x].view(
+            np.ndarray)[snap_slice] for x in ('r', 'smooth', 'pos', 'mass', 'rho', qty))
 
     ds = np.arange(kstep, kernel.max_d + kstep / 2, kstep)
     weights = np.zeros_like(ds)
@@ -404,7 +416,7 @@ def _threaded_render_image(fn, s, *args, **kwargs):
     # Each output is a 1-element list with a numpy array. Sum them.
     if any([len(o)==0 for o in outputs]):
         raise RuntimeError("There was a problem with the multi-threaded image render. Try running again with threaded=False to debug the underlying error.")
-    return sum([o[0] for o in outputs])
+    return sum(o[0] for o in outputs)
 
 
 def _interpolated_renderer(fn, levels):
@@ -559,8 +571,6 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     """The single-threaded image rendering core function. External calls
     should be made to the render_image function."""
 
-    import os
-    import os.path
     global config
 
     verbose = config["verbose"] and not force_quiet
@@ -608,7 +618,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         x2 += sx
         y2 += sy
 
-    x1, x2, y1, y2, z1 = [float(q) for q in (x1, x2, y1, y2, z_plane)]
+    x1, x2, y1, y2, z1 = (float(q) for q in (x1, x2, y1, y2, z_plane))
 
     if smooth_range is not None:
         smooth_lo = float(smooth_range[0])
@@ -724,9 +734,6 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
       often introduce problematic edge effects.
 
     """
-
-    import os
-    import os.path
     global config
 
     if denoise is None:
@@ -758,8 +765,8 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=No
     if nz is None:
         nz = nx
 
-    x1, x2, y1, y2, z1, z2 = [float(q) for q in (x1, x2, y1, y2, z1, z2)]
-    nx, ny, nz = [int(q) for q in (nx, ny, nz)]
+    x1, x2, y1, y2, z1, z2 = (float(q) for q in (x1, x2, y1, y2, z1, z2))
+    nx, ny, nz = (int(q) for q in (nx, ny, nz))
 
     if approximate_fast:
         renderer = _interpolated_renderer(
@@ -817,8 +824,8 @@ def _to_3d_grid(snap, qty, nx, ny, nz, x1, x2, y1, y2, z1, z2, out_units,
         nz //= res_downgrade
 
         # shift boundaries (see _render_image above for explanation)
-        sx, sy, sz = [
-            d_i * float(res_downgrade - 1) / 2 for d_i in [dx, dy, dz]]
+        sx, sy, sz = (
+            d_i * float(res_downgrade - 1) / 2 for d_i in [dx, dy, dz])
         x1 -= sx
         y1 -= sy
         z1 -= sz
@@ -919,23 +926,22 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
 
     """
 
-    import os, os.path
     global config
-    
+
     if config["tracktime"] :
         import time
         in_time = time.time()
-    
+
     kernel=Kernel2D()
-            
+
     if v1 is None:
         v1 = -v2
     dvel = (v2 - v1) / nvel
-    v1, v2, dvel, nvel = [float(q) for q in (v1,v2,dvel,nvel)]
+    v1, v2, dvel, nvel = (float(q) for q in (v1,v2,dvel,nvel))
     vels = np.arange(v1+0.5*dvel, v2, dvel)
 
     tau = np.zeros((nvel),dtype=np.float32)
-    
+
     n_part = len(snap)
 
     if xy_units is None :
@@ -955,7 +961,7 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
                 'S':32, 'Ca':40, 'Fe':56}
 
     nnucleons = nucleons[element]
-    
+
     qty_s = qty
     qty = snap[qty]
     mass = snap['mass']
@@ -971,13 +977,13 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
 
     if __threaded :
         code+="#define THREAD 1\n"
-    
-        
+
+
     code+=file(os.path.join(os.path.dirname(__file__),'sph_spectra.c')).read()
 
     # before inlining, the views on the arrays must be standard np.ndarray
     # otherwise the normal numpy macros are not generated
-    x,y,vz,temp,sm,qty, mass, rho = [q.view(np.ndarray) for q in (x,y,vz,temp,sm,qty, mass, rho)]
+    x,y,vz,temp,sm,qty, mass, rho = (q.view(np.ndarray) for q in (x,y,vz,temp,sm,qty, mass, rho))
 
     if config['verbose']: print("Constructing SPH spectrum", file=sys.stderr)
 

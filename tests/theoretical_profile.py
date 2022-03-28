@@ -1,10 +1,11 @@
-import pynbody
-from pynbody.array import SimArray
 import numpy as np
 import numpy.testing as npt
-
-
 import pytest
+
+import pynbody
+from pynbody.array import SimArray
+
+
 def setup_module():
     global halo_boundary, rs, rhos, mass, c, NFW1, NFW2
 

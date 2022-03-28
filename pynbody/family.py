@@ -15,10 +15,10 @@ particles in your config.ini.
 
 """
 
-import sys
 import functools
-from . import config_parser
+import sys
 
+from . import config_parser
 
 _registry = []
 
@@ -60,7 +60,7 @@ def get_family(name, create=False):
                          " not a family")  # is ValueError the right thing here?
 
 
-class Family(object):
+class Family:
 
     def __init__(self, name, aliases=[]):
         if name != name.lower():

@@ -13,7 +13,7 @@ Using the template below will help us reproduce your problem, which is an essent
 A clear and concise description of what the bug or inaccuracy is.
 
 **To Reproduce**
-Provide a simple, minimal python script that we can use to reproduce the bug or inaccuracy. 
+Provide a simple, minimal python script that we can use to reproduce the bug or inaccuracy.
 
 Preferably reproduce the bug using pynbody's own test data (as used by the tutorials, and downloadable at http://star.ucl.ac.uk/~app/testdata.tar.gz). If this impossible, provide us a pointer to another file that we can use to reproduce the problem.
 
