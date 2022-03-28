@@ -1,4 +1,3 @@
-
 """
 snapshot
 ========
@@ -9,29 +8,22 @@ represent different views of an existing :class:`~pynbody.snapshot.SimSnap`.
 
 """
 
-from .. import array
-from .. import family
-from .. import util
-from .. import filt
-from .. import units
-from .. import config
-from .. import simdict
-from .. import dependencytracker
-from ..units import has_units
-
-from .snapshot_util import ContainerWithPhysicalUnitsOption
+import copy
+import gc
+import hashlib
+import logging
+import re
+import threading
+import traceback
+import warnings
+import weakref
+from functools import reduce
 
 import numpy as np
-import copy
-import weakref
-import hashlib
-import warnings
-import threading
-import re
-import gc
-import traceback
-import logging
-from functools import reduce
+
+from .. import array, config, dependencytracker, family, filt, simdict, units, util
+from ..units import has_units
+from .snapshot_util import ContainerWithPhysicalUnitsOption
 
 logger = logging.getLogger('pynbody.snapshot')
 
@@ -355,7 +347,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
                 self._dependency_tracker.touching(nd_name)
 
             return self._get_array(name)
-        
+
         with self._dependency_tracker.calculating(name):
             self.__resolve_obscuring_family_array(name)
 
@@ -373,7 +365,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         if name not in list(self.keys()):
             try:
                 self.__load_array_and_perform_postprocessing(name)
-            except IOError:
+            except OSError:
                 pass
 
     def __derive_if_required(self, name):
@@ -389,7 +381,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
         if name in self.family_keys():
             in_fam, out_fam = self.__get_included_and_excluded_families_for_array(name)
-            raise KeyError("""%r is a family-level array for %s. To use it over the whole simulation you need either to delete it first, or create it separately for %s.""" % (
+            raise KeyError("""{!r} is a family-level array for {}. To use it over the whole simulation you need either to delete it first, or create it separately for {}.""".format(
                 name, in_fam, out_fam))
 
     def __get_included_and_excluded_families_for_array(self,name):
@@ -413,7 +405,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         try:
             for fam in out_fam:
                 self.__load_array_and_perform_postprocessing(name, fam=fam)
-        except IOError:
+        except OSError:
             pass
 
 
@@ -450,7 +442,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         except ValueError:
             pass
 
-        raise AttributeError("%r object has no attribute %r" % (
+        raise AttributeError("{!r} object has no attribute {!r}".format(
             type(self).__name__, name))
 
     def __setattr__(self, name, val):
@@ -516,8 +508,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             return alternative
 
     def iterkeys(self):
-        for k in list(self.keys()):
-            yield k
+        yield from list(self.keys())
 
     __iter__ = iterkeys
 
@@ -661,8 +652,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         its best guess at the units.
         """
         try:
-            f = open(self.filename+".units","r")
-        except IOError:
+            f = open(self.filename+".units")
+        except OSError:
             return
 
         name_mapping = {'pos': 'distance', 'vel': 'velocity'}
@@ -671,7 +662,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         for line in f:
             if (not line.startswith("#")):
                 if ":" not in line:
-                    raise IOError("Unknown format for units file %r"%(self.filename+".units"))
+                    raise OSError("Unknown format for units file %r"%(self.filename+".units"))
                 else:
                     t, u = list(map(str.strip,line.split(":")))
                     t = name_mapping.get(t,t)
@@ -688,8 +679,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         If any of the units are not specified and a previous
         `file_units_system` does not exist, the defaults are used.
         """
-        from .. import config_parser
         import configparser
+
+        from .. import config_parser
 
         # if the units system doesn't exist (if this is a new snapshot), create
         # one
@@ -824,7 +816,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         If *fam* is not None, the array should be loaded only for the
         specified family.
         """
-        raise IOError("No lazy-loading implemented")
+        raise OSError("No lazy-loading implemented")
 
     def __load_array_and_perform_postprocessing(self, array_name, fam=None):
         """Calls _load_array for the appropriate subclass, but also attempts to convert
@@ -841,8 +833,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
         # the following function builds a dictionary mapping families to a set of the
         # named arrays defined for them.
-        fk = lambda: dict([(fami, set([k for k in list(anc._family_arrays.keys()) if fami in anc._family_arrays[k]]))
-                           for fami in family._registry])
+        fk = lambda: {fami: {k for k in list(anc._family_arrays.keys()) if fami in anc._family_arrays[k]}
+                           for fami in family._registry}
         pre_fam_keys = fk()
 
         with self.delay_promotion:
@@ -855,7 +847,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             else:
                 try:
                     self._load_array(array_name, fam)
-                except IOError:
+                except OSError:
                     for fam_x in self.families():
                         self._load_array(array_name, fam_x)
 
@@ -985,11 +977,11 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
                         f].loadable_keys() and f not in fam for f in self.families()])
 
         if not hasattr(self, "_write_array"):
-            raise IOError(
+            raise OSError(
                 "The underlying file format class does not support writing individual arrays back to disk")
 
         if is_update and not hasattr(self, "_update_array"):
-            raise IOError(
+            raise OSError(
                 "The underlying file format class does not support updating arrays on disk")
 
         # It's an overwrite if we're writing over something loadable
@@ -998,7 +990,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
         if is_overwriting and not overwrite:
             # User didn't specifically say overwriting is OK
-            raise IOError(
+            raise OSError(
                 "This operation would overwrite existing data on disk. Call again setting overwrite=True if you want to enable this behaviour.")
 
         if is_update:
@@ -1131,7 +1123,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
             # We insist on the data types being the same for, e.g. sim.gas['my_prop'] and sim.star['my_prop']
             # This makes promotion to simulation-level arrays possible.
-            raise ValueError("Requested data type %r is not consistent with existing data type %r for family array %r" % (
+            raise ValueError("Requested data type {!r} is not consistent with existing data type {!r} for family array {!r}".format(
                 str(dtype), str(dtx), array_name))
 
         if all([x in fams for x in self_families]):
@@ -1735,7 +1727,7 @@ class SubSnap(SimSnap):
     def write_array(self, array_name, fam=None, **kwargs):
         fam = fam or self._unifamily
         if not fam or self._get_family_slice(fam) != slice(0, len(self)):
-            raise IOError(
+            raise OSError(
                 "Array writing is available for entire simulation arrays or family-level arrays, but not for arbitrary subarrays")
 
         self.base.write_array(array_name, fam=fam, **kwargs)
@@ -1966,7 +1958,7 @@ def load(filename, *args, **kwargs):
             logger.info("Loading using backend %s" % str(c))
             return c(filename, *args, **kwargs)
 
-    raise IOError(
+    raise OSError(
         "File %r: format not understood or does not exist" % filename)
 
 def new(n_particles=0, order=None, **families):
@@ -2025,13 +2017,7 @@ def new(n_particles=0, order=None, **families):
     return x
 
 def _get_snap_classes():
-    from . import gadgethdf
-    from . import nchilada
-    from . import gadget
-    from . import tipsy
-    from . import ramses
-    from . import grafic
-    from . import ascii
+    from . import ascii, gadget, gadgethdf, grafic, nchilada, ramses, tipsy
 
     _snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, gadgethdf.EagleLikeHDFSnap,
                      nchilada.NchiladaSnap, gadget.GadgetSnap,

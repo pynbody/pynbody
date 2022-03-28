@@ -1,7 +1,9 @@
-import pynbody
 import numpy as np
-
 import pytest
+
+import pynbody
+
+
 def setup_module():
     global snap
     snap = pynbody.load("testdata/test_g2_snap")

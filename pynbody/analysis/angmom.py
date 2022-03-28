@@ -5,8 +5,10 @@ angmom
 
 """
 import logging
+
 import numpy as np
-from .. import array, filt, units, config, transformation
+
+from .. import array, config, filt, transformation, units
 from . import halo
 
 logger = logging.getLogger('pynbody.analysis.angmom')

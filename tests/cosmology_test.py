@@ -1,6 +1,8 @@
-import pynbody
 import numpy as np
 import numpy.testing as npt
+
+import pynbody
+
 
 def test_a_to_t():
     """Test scalefactor -> time conversion for accuracy. See also issue #479"""

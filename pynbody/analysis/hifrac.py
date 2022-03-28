@@ -7,13 +7,14 @@ calculates Hydrogen ionization fraction - limited version of ionfrac to make use
 
 """
 
+import logging
+import os
+
 import numpy as np
 
+from ..array import SimArray
 from .interpolate import interpolate3d
 
-import os
-from ..array import SimArray
-import logging
 logger = logging.getLogger('pynbody.analysis.hifrac')
 
 from pynbody import config
@@ -37,7 +38,7 @@ def calculate(sim,ion='hi',selfshield=False) :
         logger.info("Loading %s" % iffile)
         ifs=h5py.File(iffile,'r')
     else :
-        raise IOError("h1.hdf5 (HI Fraction table) not found")
+        raise OSError("h1.hdf5 (HI Fraction table) not found")
 
     # allocate temporary metals that we can play with
     # before inlining, the views on the arrays must be standard np.ndarray

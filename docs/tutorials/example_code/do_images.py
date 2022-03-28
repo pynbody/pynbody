@@ -1,5 +1,5 @@
 diskgas=s.gas[diskf]
-### Make pictures: 
+### Make pictures:
 try:
     pp.sph.image(h[i].gas,filename=simname+'.facegas.png',width=30)
     pp.sph.image(h[i].star,filename=simname+'.facestar.png',width=30)

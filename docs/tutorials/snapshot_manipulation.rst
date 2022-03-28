@@ -11,7 +11,7 @@ Once you've :ref:`installed pynbody <pynbody-installation>`, you will
 probably want to have a quick look at your simulation and maybe make a
 pretty picture or two.
 
-`Pynbody` includes some essential tools that allow you to quickly
+``Pynbody`` includes some essential tools that allow you to quickly
 generate (and visualize) physically interesting quantities. Some of
 the snapshot manipulation functions are included in the low-level
 :class:`pynbody.snapshot.SimSnap` class, others can be found in two
@@ -27,19 +27,19 @@ Setting up the interactive environment
 
 In this walkthrough (and in others found in this documentation) we
 will use the `ipython <http://ipython.org>`_ interpreter which offers a
-much richer interactive environment over the vanilla `python`
+much richer interactive environment over the vanilla ``python``
 interpreter. This is also the same as using a `Jupyter <https://jupyter.org>`_ notebook.
 However, you can type exactly the same commands into
-vanilla `python`; only the formatting will look slightly
+vanilla ``python``; only the formatting will look slightly
 different.
 
-.. note:: Before you start make sure `pynbody` is properly
+.. note:: Before you start make sure ``pynbody`` is properly
  installed. See :ref:`pynbody-installation` for more information. You
- will also need the standard `pynbody` test files, so that you can
+ will also need the standard ``pynbody`` test files, so that you can
  load the exact same data as used to write the tutorial. You need to
  download these separately here:
- <http://star.ucl.ac.uk/~app/testdata.tar.gz>
- (`testdata.tar.gz`). You can then extract them in a directory of your
+ `testdata.tar.gz <http://star.ucl.ac.uk/~app/testdata.tar.gz>`_.
+ You can then extract them in a directory of your
  choice with ``tar -zxvf testdata.tar.gz``
 
 
@@ -60,7 +60,7 @@ halo) to analyze its contents.
  In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz')
 
 This loads the snapshot ``s`` (make sure you use the correct path to
-the `testdata` directory). Now we load the halos and center on the
+the ``testdata`` directory). Now we load the halos and center on the
 main halo (see the :ref:`halo_tutorial` tutorial for more detailed
 information on how to deal with halos):
 
@@ -84,7 +84,7 @@ And perhaps check quickly how many particles of each type are identified there:
 
 
 The halos of ``s`` are now loaded in ``h`` and ``h[1]`` yields the
-:class:`~pynbody.snapshot.SubSnap` of `s` that corresponds to
+:class:`~pynbody.snapshot.SubSnap` of ``s`` that corresponds to
 halo 1.
 
 Centering on something interesting
@@ -105,7 +105,7 @@ We passed ``h[1]`` to the function
 on the largest halo. We specify the mode of centering using the
 keyword ``mode`` - here, we used ``hyb``, which stands for hybrid: the
 snapshot is first centered on the particle with the lowest potential,
-and this guess is then refined using the `shrinking sphere` method
+and this guess is then refined using the *shrinking sphere* method
 (see the documentation for :func:`~pynbody.analysis.halo.center` for
 more details).
 
@@ -132,7 +132,7 @@ Note however that the data inside ``h5`` (or any halo) just *points*
 to a subset of the data in the full simulation. So you now have an
 inconsistent state where part of the simulation has been translated
 and the rest of it is where it started out. For that reason, functions
-that transform data return a `Tranformation` object that conveniently
+that transform data return a ``Tranformation`` object that conveniently
 allows you to undo the operation:
 
 .. ipython ::
@@ -185,7 +185,7 @@ to illustrate this:
 
  In [7]: s['pos'] -= cen_hyb
 
-In this case, we decided that the `hyb` center was better, so we use
+In this case, we decided that the ``hyb`` center was better, so we use
 it for the last step.
 
 .. note:: When calling :func:`~pynbody.analysis.halo.center` without
@@ -241,7 +241,7 @@ actually by default center the snapshot first, unless you feed it the
 ``cen`` keyword. We did that here since we already centered it
 earlier. It then calculates the angular momentum vector in a sphere
 around the center and rotates the snapshot such that the angular
-momentum vector is parallel to the `y`-axis. If, instead, you'd like
+momentum vector is parallel to the ``y``-axis. If, instead, you'd like
 the disk face-on, you can call the equivalent
 :func:`pynbody.analysis.angmom.faceon`. Alternatively, if you
 want to just rotate the snapshot by arbitrary angles, the
@@ -320,7 +320,7 @@ See the :doc:`profile` tutorial or the
 information on available options and other profiles that you can
 generate.
 
-We've only touched on the basic information that `pynbody` is able to
+We've only touched on the basic information that ``pynbody`` is able to
 provide about your simulation snapshot. To learn a bit more about how
 to get closer to your data, have a look at the :ref:`data-access`
 tutorial.

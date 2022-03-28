@@ -15,25 +15,24 @@ away, you may wish to read the :ref:`basic facilities tutorial
 .. note::
 
  This tutorial assumes basic familiarity with python and is
- written as a series of `ipython` cells, like a `Jupyter` notebook.
- Before you start make sure `pynbody` is properly
+ written as a series of ``ipython`` cells, like a ``Jupyter`` notebook.
+ Before you start make sure ``pynbody`` is properly
  installed. See :ref:`pynbody-installation`
- for more information. You will also need the standard `pynbody` test
+ for more information. You will also need the standard ``pynbody`` test
  files if you want to follow the tutorial.
  These files are available separately here:
- <https://github.com/pynbody/pynbody/releases>
- (`testdata.tar.gz`).
+ `testdata.tar.gz <https://github.com/pynbody/pynbody/releases>`_.
 
 After you have extracted the testdata folder (e.g. with ``tar -xzf
-testdata.tar.gz``), launch `ipython` or `Jupyter`. At the prompt or in
+testdata.tar.gz``), launch ``ipython`` or ``Jupyter``. At the prompt or in
 a cell, type ``import pynbody``. If all is installed correctly, this should silently
-succeed, and you are ready to use `pynbody`.
+succeed, and you are ready to use ``pynbody``.
 
 First steps
 -----------
 
 We will start by loading one of the test files.
-We'll also load the `numpy` module as it provides some
+We'll also load the ``numpy`` module as it provides some
 functions we'll make use of later.
 
 .. ipython::
@@ -48,25 +47,25 @@ Here we've loaded a sample gadget file. Not much seems to have
 happened when you called :func:`pynbody.load`, but the variable ``f``
 is now your calling point for accessing data.
 
-In fact ``f`` is an object known as a `SimSnap` (see
+In fact ``f`` is an object known as a ``SimSnap`` (see
 :class:`pynbody.snapshot.SimSnap`).
 
 Behind the scenes, the function inspects the provided path and decides
 what file format it is. At the time of writing, supported file formats
 include tipsy, nchilada, gadget-1, gadget-2, gadget-HDF and
 ramses. For most purposes you should never need to know what type of
-file you are dealing with -- that's the whole point of the `pynbody`
+file you are dealing with -- that's the whole point of the ``pynbody``
 framework.
 
-.. note:: If you look inside the `testdata` folder, you'll notice that
- our test snapshot is actually an example of a `spanned` gadget
+.. note:: If you look inside the ``testdata`` folder, you'll notice that
+ our test snapshot is actually an example of a *spanned* gadget
  snapshot. There is not actually a file called ``test_g2_snap``, but
  rather two files from two CPUs, ``test_g2_snap.0`` and
- ``test_g2_snap.1``. `pynbody` knows to load both of these if you ask
- for `test_g2_snap`; if you ask for `test_g2_snap.1` (for instance),
+ ``test_g2_snap.1``. ``pynbody`` knows to load both of these if you ask
+ for ``test_g2_snap``; if you ask for ``test_g2_snap.1`` (for instance),
  it'll load only that particular file.
 
-The `SimSnap` object that's returned is currently a fairly empty
+The ``SimSnap`` object that's returned is currently a fairly empty
 holder for data. The data will be loaded from disk as and when you
 request it.
 
@@ -83,7 +82,7 @@ of particles in the file:
  In [3]: len(f)
  Out[3]: 8192
 
-We can also find out about particles of a particular type or `family`
+We can also find out about particles of a particular type or ``family``
 as it is known within pynbody. To find out which families are present
 in the file, use :func:`~pynbody.snapshot.SimSnap.families`:
 
@@ -112,7 +111,7 @@ each type are present:
  Out[6]: 57
 
 Useful information about the file is stored in a python dictionary
-called `properties`:
+called ``properties``:
 
 .. ipython::
 
@@ -125,8 +124,8 @@ name:
 
  In [4]: f.properties['a']
 
-These names are standardized across different file formats. Here for example `z`
-means redshift, `a` means the cosmological scalefactor, `h` indicates
+These names are standardized across different file formats. Here for example ``z``
+means redshift, ``a`` means the cosmological scalefactor, ``h`` indicates
 the Hubble constant in standard units (100 km/s/Mpc).
 
 .. note:: Actually ``f.properties`` has some behaviour which is
@@ -148,8 +147,8 @@ that are currently in memory.
   Out[7]: ['eps']
 
 Right now it's empty! That's actually correct because data is only
-retrieved when you first access it. To find out what `could` be loaded,
-use the `pynbody`-specific method
+retrieved when you first access it. To find out what *could*` be loaded,
+use the ``pynbody``-specific method
 ``f.``:func:`~pynbody.snapshot.SimSnap.loadable_keys`.
 
 .. ipython::
@@ -180,7 +179,7 @@ particles.
 
  Array names are standardized across all file
  formats. For instance, even if you load a Gadget-HDF file -- which
- internally refers to the position array as `coordinates` -- you
+ internally refers to the position array as *coordinates* -- you
  still access that array from pynbody by the name ``pos``. The
  intention is that code never needs to be adapted simply because you
  have switched file format. However the name mapping is fully
@@ -222,11 +221,11 @@ So, we can get the density of the gas particles like this:
 
 
 .. note:: The :class:`~pynbody.array.SimArray` objects are actually
- `numpy` arrays with some added functionality (such as unit tracking,
+ ``numpy`` arrays with some added functionality (such as unit tracking,
  discussed below). Numerical operations are very nearly as fast as
  their numpy equivalents. However, if you want to squeeze the
  performance of your code, you can always get a vanilla numpy array by
- using the `numpy` view mechanism,
+ using the ``numpy`` view mechanism,
  e.g. ``f.gas['rho'].view(type=numpy.ndarray)``
 
 .. _create_arrays :
@@ -268,8 +267,8 @@ the array, the values are calculated and stored
 
   In [4]: f['thricethemass']
 
-This has the advantage that your new `thricethemass` array is
-automatically updated when you change the `mass` array:
+This has the advantage that your new ``thricethemass`` array is
+automatically updated when you change the ``mass`` array:
 
 .. ipython::
 
@@ -278,7 +277,7 @@ automatically updated when you change the `mass` array:
   In [6]: f['thricethemass']
 
 Note, however, that the array is not re-calculated every time you
-access it, only if the `mass` array has changed. Therefore you don't
+access it, only if the ``mass`` array has changed. Therefore you don't
 waste any time by using derived arrays. For more information see
 the reference documentation for :ref:`derived arrays <derived>`.
 
@@ -287,14 +286,14 @@ Keeping on top of units
 
 
 You might have noticed in the output from the above experiments that
-`pynbody` keeps track of unit information whenever it can.
+``pynbody`` keeps track of unit information whenever it can.
 
 .. warning:: It's worth understanding exactly where pynbody gets this
  information from, in case anything goes wrong. In the case
- of `Ramses`, and `Gadget-HDF` files the unit information is stored
+ of ``Ramses``, and ``Gadget-HDF`` files the unit information is stored
  within your snapshot, and pynbody takes advantage of this. For
- old-style `Gadget` snapshots, the default cosmological gadget setup is
- assumed. For `nchilada` and `tipsy`, an nchilada or gasoline
+ old-style ``Gadget`` snapshots, the default cosmological gadget setup is
+ assumed. For ``nchilada`` and ``tipsy``, an nchilada or gasoline
  ``.param`` file is sought in the directory from which you are loading
  the snapshot and its immediate parent. You can also create a text file
  with the same name as your snapshot but the extension ``.units`` to override
@@ -316,7 +315,7 @@ You can print out the units of any given array by accessing the
  Out[16]: Unit("kpc h**-1")
 
 However, it's usually more helpful to simply convert your arrays into
-something more managable than the internal units. `Pynbody` arrays can
+something more managable than the internal units. ``Pynbody`` arrays can
 be converted using the :func:`~pynbody.array.SimArray.in_units`
 function; just pass in a string representing the units you want.
 
@@ -338,7 +337,7 @@ function; just pass in a string representing the units you want.
  back in its original units. If you want to permanently convert the array in-place
  use :func:`~pynbody.array.SimArray.convert_units` or see below.
 
-Another option is to request that `pynbody` converts all your arrays
+Another option is to request that ``pynbody`` converts all your arrays
 into something sensible, using
 :func:`~pynbody.array.SimSnap.physical_units`,
 
@@ -430,9 +429,9 @@ For more information see the reference documentation for
 Subsnaps
 --------
 
-An important concept within `pynbody` is that of a subsnap. These are
+An important concept within ``pynbody`` is that of a subsnap. These are
 objects that look just like a :class:`~pynbody.snapshot.SimSnap` but actually only point
-at a subset of the particles within a `parent`. Subsnaps are always
+at a subset of the particles within a ``parent``. Subsnaps are always
 instances of the :class:`~pynbody.snapshot.SubSnap` class.
 
 You've already seen some examples of subsnaps, actually. When you
@@ -480,8 +479,8 @@ This change is reflected in the main snapshot.
  the old one.
 
 You can pass in an array of boolean values representing
-whether each successive particle should be included (`True`) or not
-(`False`).  This allows the use of `numpy`'s comparison
+whether each successive particle should be included (``True``) or not
+(``False``).  This allows the use of ``numpy``'s comparison
 operators. For example:
 
 .. ipython::
@@ -502,7 +501,7 @@ operators. For example:
  Out[44]: SimArray(4225.29345703125, dtype=float32)
 
 
-Here `f_slab` is pointing at only those particles which have
+Here ``f_slab`` is pointing at only those particles which have
 x-coordinates between 1000 and 2000.
 
 Note that subsnaps really do behave exactly like snapshots. So, for
@@ -517,7 +516,7 @@ instance, you can pick out sub-subsnaps or sub-sub-subsnaps.
  In [48]: f_slab[[100,105,252]].gas['pos']
 
 .. note:: Under most circumstances there is very little performance
- penalty to using a `SubSnap`. However in performance-critical code it
+ penalty to using a ``SubSnap``. However in performance-critical code it
  is worth understanding a little more about what's going on under the
  hood. See :ref:`performance`.
 
@@ -525,7 +524,7 @@ Filters
 -----------
 
 Another way you can select a subset of particles is to use a
-`filter`. This can lead to more readable code than the equivalent
+``filter``. This can lead to more readable code than the equivalent
 explicitly written condition. For example, to pick out a sphere
 centered on the origin, you can use:
 
@@ -542,7 +541,7 @@ For a list of filters, see  :py:mod:`pynbody.filt`.
 Where next?
 -----------
 
-This concludes the tutorial for basic use of `pynbody`. Further
+This concludes the tutorial for basic use of ``pynbody``. Further
 :ref:`tutorials <tutorials>` for specific tasks are available. We are
 happy to provide further assistance via our
 `user group email list

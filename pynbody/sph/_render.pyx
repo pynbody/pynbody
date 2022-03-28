@@ -1,10 +1,10 @@
 import numpy as np
 
-cimport numpy as np
 cimport cython
 cimport libc.math as cmath
+cimport numpy as np
 from libc.math cimport atan, pow
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport free, malloc
 
 # The following slightly odd repetitiveness is to force Cython to generate
 # code for different permutations of the possible integer inputs.

@@ -47,7 +47,7 @@ threatening, offensive, or harmful.
 
 This Code of Conduct applies both within project spaces and in public spaces
 when an individual is representing the project or its community. Examples of
-representing a project or community include acting as a representative at an 
+representing a project or community include acting as a representative at an
 online or offline event. Representation of a project may be
 further defined and clarified by project maintainers.
 

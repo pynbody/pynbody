@@ -9,12 +9,12 @@ Common Pitfalls
 I get errors like "Unknown units" or "Not convertible" from analysis or plotting routines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-One of the great things about `pynbody` is that it takes care of units, but
+One of the great things about ``pynbody`` is that it takes care of units, but
 if it can't figure out what units to use, everything is assumed to be
 dimensionless. Some analysis functions then get grumpy, because
 they're trying to be smart about using sensible units but the
 information just isn't available. The simplest way to avoid this
-situation is to make sure `pynbody` can work out the units for itself.
+situation is to make sure ``pynbody`` can work out the units for itself.
 
 In particular, *for gasoline/PKD/tipsy users, make sure you have a
 param file in the directory where you are analyzing a tipsy file, and
@@ -39,9 +39,9 @@ To tackle both of these issues in turn:
  is with the function :func:`pynbody.analysis.halo.center`; see
  :ref:`snapshot_manipulation` for an introduction.
 
- 2. The `width` keyword for the image function
+ 2. The ``width`` keyword for the image function
  expects a floating point number in the current units of the
- snapshot. It also defaults to the number `10`, which may be
+ snapshot. It also defaults to the number ``10``, which may be
  very large compared to your snapshot, depending on the units you
  have adopted. That means either you should *specify* a width which
  is more appropriate (i.e. your call might look like
@@ -57,9 +57,9 @@ To tackle both of these issues in turn:
 I'm trying to load a file which I'm sure is fine, but it says the format isn't recognized
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When you load a file with `pynbody` you don't have to specify what
+When you load a file with ``pynbody`` you don't have to specify what
 format it is. This is quite handy when everything works. However, if
-there is a minor problem with the file, `pynbody` may move onto trying
+there is a minor problem with the file, ``pynbody`` may move onto trying
 to interpret it as a different format and ultimately conclude it just
 doesn't understand what's going on. At that point you'll get an unhelpful error
 like this: ``File 'filename': format not understood or does not exist``.

@@ -3,10 +3,12 @@ import gzip
 import os.path
 import re
 import warnings
+
 import numpy as np
 
-from . import HaloCatalogue, logger, Halo, DummyHalo
-from .. import util, snapshot, config_parser
+from .. import config_parser, snapshot, util
+from . import DummyHalo, Halo, HaloCatalogue, logger
+
 
 class AHFCatalogue(HaloCatalogue):
 
@@ -74,8 +76,8 @@ class AHFCatalogue(HaloCatalogue):
 
         try:
             f = util.open_(self._ahfBasename + 'halos')
-        except IOError:
-            raise IOError(
+        except OSError:
+            raise OSError(
                 "Halo catalogue not found -- check the base name of catalogue data or try specifying a catalogue using the ahf_basename keyword")
 
         for i, l in enumerate(f):
@@ -127,7 +129,7 @@ class AHFCatalogue(HaloCatalogue):
             i = self._sorted_indices[item-1]
         else:
             i = item
-        return super(AHFCatalogue,self).__getitem__(i)
+        return super().__getitem__(i)
 
     def make_grp(self, name='grp'):
         """
@@ -145,7 +147,7 @@ class AHFCatalogue(HaloCatalogue):
                 else:
                     f.write(str(self._halos[i+1].properties['fstart']))
             f.close()
-        except IOError:
+        except OSError:
             warnings.warn("Unable to write AHF_fpos file; performance will be reduced. Pass write_fpos=False to halo constructor to suppress this message.")
 
     def get_group_array(self, top_level=False, family=None):
@@ -282,7 +284,7 @@ class AHFCatalogue(HaloCatalogue):
         else:
             f = util.open_(filename)
             for h in range(self._nhalos):
-                if len((f.readline().split())) == 1:
+                if len(f.readline().split()) == 1:
                     f.readline()
                 self._halos[h+1].properties['fstart'] = f.tell()
                 for i in range(self._halos[h+1].properties['npart']):
@@ -298,7 +300,7 @@ class AHFCatalogue(HaloCatalogue):
 
         if nparts is None:
             startline = f.readline()
-            if len((startline.split()))==1:
+            if len(startline.split())==1:
                 startline = f.readline()
             nparts = int(startline.split()[0])
 
@@ -406,7 +408,7 @@ class AHFCatalogue(HaloCatalogue):
         # that we will ignore
         for i in range(len(self._halos)):
             try:
-                haloid, nsubhalos = [int(x) for x in f.readline().split()]
+                haloid, nsubhalos = (int(x) for x in f.readline().split())
                 self._halos[haloid + 1].properties['children'] = [
                     int(x) + 1 for x in f.readline().split()]
                 for ichild in self._halos[haloid + 1].properties['children']:
@@ -515,10 +517,10 @@ class AHFCatalogue(HaloCatalogue):
         km/s/Mpc)), ignoring the snaphot arg for hubble constant
         (which sometimes has a large roundoff error).
         """
-        from ..snapshot import tipsy
-        from ..analysis import cosmology
-        from ..snapshot import new
         import math
+
+        from ..analysis import cosmology
+        from ..snapshot import new, tipsy
         s = snapshot
         outfile = tipsyoutfile
         nhalos = halos._nhalos
@@ -591,6 +593,7 @@ class AHFCatalogue(HaloCatalogue):
         # elif (sim is pynbody.gadget.GadgetSnap):
         #   typecode = '60' or '61'
         import pynbody.units as units
+
         # find AHFstep
 
         groupfinder = config_parser.get('AHFCatalogue', 'Path')

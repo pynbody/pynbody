@@ -8,11 +8,14 @@ Functions for dealing with and manipulating halos in simulations.
 
 """
 
-from .. import filt, util, config, array, units, transformation
-from . import cosmology, _com, profile
-import numpy as np
-import math
 import logging
+import math
+
+import numpy as np
+
+from .. import array, config, filt, transformation, units, util
+from . import _com, cosmology, profile
+
 logger = logging.getLogger('pynbody.analysis.halo')
 
 

@@ -16,9 +16,13 @@ It will:
 
 """
 
-import os, re, pydoc
-from docscrape_sphinx import get_doc_object, SphinxDocString
 import inspect
+import os
+import pydoc
+import re
+
+from docscrape_sphinx import SphinxDocString, get_doc_object
+
 
 def mangle_docstrings(app, what, name, obj, options, lines,
                       reference_offset=[0]):
@@ -88,7 +92,7 @@ def initialize(app):
 def setup(app, get_doc_object_=get_doc_object):
     global get_doc_object
     get_doc_object = get_doc_object_
-    
+
     app.connect('autodoc-process-docstring', mangle_docstrings)
     app.connect('builder-inited', initialize)
     app.add_config_value('numpydoc_edit_link', None, True)

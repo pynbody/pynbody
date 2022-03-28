@@ -7,15 +7,13 @@ Tools for bulge/disk/halo decomposition
 
 """
 
-from . import angmom
-from .. import array
-from .. import filt, util
-from .. import config
-from . import profile
-import numpy as np
-import sys
-
 import logging
+
+import numpy as np
+
+from .. import array, config, filt, util
+from . import angmom, profile
+
 logger = logging.getLogger('pynbody.analysis.decomp')
 
 

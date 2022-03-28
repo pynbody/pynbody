@@ -3,11 +3,13 @@
 """
 
 import inspect
-import textwrap
-import re
 import pydoc
-from StringIO import StringIO
+import re
+import textwrap
 from warnings import warn
+
+from StringIO import StringIO
+
 4
 class Reader(object):
     """A line-based string reader.
@@ -183,7 +185,7 @@ class NumpyDocString(object):
 
         return params
 
-    
+
     _name_rgx = re.compile(r"^\s*(:(?P<role>\w+):`(?P<name>[a-zA-Z0-9_.-]+)`|"
                            r" (?P<name2>[a-zA-Z0-9_.-]+))\s*", re.X)
     def _parse_see_also(self, content):
@@ -216,7 +218,7 @@ class NumpyDocString(object):
 
         current_func = None
         rest = []
-        
+
         for line in content:
             if not line.strip(): continue
 
@@ -258,7 +260,7 @@ class NumpyDocString(object):
             if len(line) > 2:
                 out[line[1]] = strip_each_in(line[2].split(','))
         return out
-    
+
     def _parse_summary(self):
         """Grab signature (if given) and summary"""
         if self._is_at_section():
@@ -266,7 +268,7 @@ class NumpyDocString(object):
 
         summary = self._doc.read_to_next_empty_line()
         summary_str = " ".join([s.strip() for s in summary]).strip()
-        if re.compile('^([\w., ]+=)?\s*[\w\.]+\(.*\)$').match(summary_str):
+        if re.compile(r'^([\w., ]+=)?\s*[\w\.]+\(.*\)$').match(summary_str):
             self['Signature'] = summary_str
             if not self._is_at_section():
                 self['Summary'] = self._doc.read_to_next_empty_line()
@@ -275,7 +277,7 @@ class NumpyDocString(object):
 
         if not self._is_at_section():
             self['Extended Summary'] = self._read_to_next_section()
-    
+
     def _parse(self):
         self._doc.reset()
         self._parse_summary()
@@ -306,7 +308,7 @@ class NumpyDocString(object):
 
     def _str_signature(self):
         if self['Signature']:
-            return [self['Signature'].replace('*','\*')] + ['']
+            return [self['Signature'].replace('*',r'\*')] + ['']
         else:
             return ['']
 
@@ -427,7 +429,7 @@ class FunctionDoc(NumpyDocString):
                 # try to read signature
                 argspec = inspect.getargspec(func)
                 argspec = inspect.formatargspec(*argspec)
-                argspec = argspec.replace('*','\*')
+                argspec = argspec.replace('*',r'\*')
                 signature = '%s%s' % (func_name, argspec)
             except TypeError, e:
                 signature = '%s()' % func_name
@@ -440,12 +442,12 @@ class FunctionDoc(NumpyDocString):
         else:
             func = self._f
         return func, func_name
-            
+
     def __str__(self):
         out = ''
 
         func, func_name = self.get_func()
-        signature = self['Signature'].replace('*', '\*')
+        signature = self['Signature'].replace('*', r'\*')
 
         roles = {'func': 'function',
                  'meth': 'method'}
@@ -493,5 +495,3 @@ class ClassDoc(NumpyDocString):
         #    out += '.. index::\n   single: %s; %s\n\n' % (self._name, m)
 
         return out
-
-

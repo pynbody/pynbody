@@ -3,7 +3,7 @@
 Automatically Derived Arrays
 ============================
 
-`Pynbody` includes a system which automatically derives one array from
+``Pynbody`` includes a system which automatically derives one array from
 others. The idea is that this system
 
   (1) permits analysis code to assume that certain arrays exist --
