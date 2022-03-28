@@ -75,7 +75,7 @@ void kdInitialize( KD kd,int nStore,int nBucket,double dTheta,int nTreeBitsLo,
 	}
 
     kd->dTheta2 = dTheta*dTheta;
-    
+
     /*
     ** Calculate the amount of memory (size) of each particle.  This is the
     ** size of a base particle (PARTICLE), plus any extra fields as defined
@@ -888,4 +888,3 @@ void kdFinish(KD kd) {
     free(kd->pTempPRIVATE);
     free(kd);
     }
-

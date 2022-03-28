@@ -1,4 +1,3 @@
-
 ### Make plots
 try:
 	pp.sbprofile(h[i],filename=simname+'.sbprof.png',center=False)
@@ -18,4 +17,3 @@ try:
 	pp.satlf(h[i],filename=simname+'.satlf.png')
 except:
 	pass
-

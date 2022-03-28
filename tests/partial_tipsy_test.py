@@ -1,6 +1,7 @@
-import pytest
-import pynbody
 import numpy as np
+import pytest
+
+import pynbody
 
 
 def test_indexing():

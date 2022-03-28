@@ -20,4 +20,3 @@ Essential Framework Modules
 
 .. automodule:: pynbody.util
    :members:
-

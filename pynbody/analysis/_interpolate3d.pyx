@@ -1,9 +1,12 @@
-cimport numpy as np
 cimport cython
-import numpy as np
+cimport numpy as np
+
 import sys
 
+import numpy as np
+
 from cython cimport floating
+
 
 cdef extern from "math.h":
     int floor(double)nogil
@@ -23,7 +26,7 @@ ctypedef fused fused_input_type_3:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def interpolate3d(int n, 
+def interpolate3d(int n,
                   np.ndarray[fused_input_type_1,ndim=1] x,
                   np.ndarray[fused_input_type_2,ndim=1] y,
                   np.ndarray[fused_input_type_3,ndim=1] z,
@@ -33,28 +36,28 @@ def interpolate3d(int n,
                   np.ndarray[np.float64_t,ndim=3] vals,
                   np.ndarray[np.float64_t,ndim=1] result_array) :
 
-    from cython.parallel cimport prange 
-    
+    from cython.parallel cimport prange
+
     cdef int x_top_ind, x_bot_ind, y_top_ind, y_bot_ind, z_top_ind, z_bot_ind, mid_ind
     cdef double x_fac, y_fac, z_fac
-    cdef double v0, v1, v00, v01, v10, v11, v000, v001, v010, v011, v100, v101, v110, v111    
+    cdef double v0, v1, v00, v01, v10, v11, v000, v001, v010, v011, v100, v101, v110, v111
     cdef double xi, yi, zi
     cdef Py_ssize_t i
 
     for i in prange(n,nogil=True) :
-        if n_x_vals > 0 :  
+        if n_x_vals > 0 :
             xi = x[i]
         yi = y[i]
         zi = z[i]
-        
-        if n_x_vals > 0 : 
+
+        if n_x_vals > 0 :
             # find x indices
             x_top_ind = n_x_vals - 1
             x_bot_ind = 0
-        
-            while(x_top_ind > x_bot_ind + 1) : 
+
+            while(x_top_ind > x_bot_ind + 1) :
                 mid_ind = floor((x_top_ind-x_bot_ind)/2)+x_bot_ind
-                if (xi > x_vals[mid_ind]) : 
+                if (xi > x_vals[mid_ind]) :
                     x_bot_ind = mid_ind
                 else :
                     x_top_ind = mid_ind
@@ -62,37 +65,37 @@ def interpolate3d(int n,
         else :
             x_top_ind = 0
             x_bot_ind = 0
-	
+
         # find y indices
         y_top_ind = n_y_vals - 1
         y_bot_ind = 0
-            
-        while(y_top_ind > y_bot_ind + 1) : 
+
+        while(y_top_ind > y_bot_ind + 1) :
             mid_ind = floor((y_top_ind-y_bot_ind)/2)+y_bot_ind
-            if (yi > y_vals[mid_ind]) : 
+            if (yi > y_vals[mid_ind]) :
                 y_bot_ind = mid_ind
             else :
                 y_top_ind = mid_ind
-        
-        # find z indices 
+
+        # find z indices
         z_top_ind = n_z_vals - 1
         z_bot_ind = 0
-        
-        while(z_top_ind > z_bot_ind + 1) : 
+
+        while(z_top_ind > z_bot_ind + 1) :
             mid_ind = floor((z_top_ind-z_bot_ind)/2)+z_bot_ind
-            if (zi > z_vals[mid_ind]) : 
+            if (zi > z_vals[mid_ind]) :
                 z_bot_ind = mid_ind
             else :
                 z_top_ind = mid_ind
-        
-        if n_x_vals > 0 :         
+
+        if n_x_vals > 0 :
             x_fac = (xi - x_vals[x_bot_ind])/(x_vals[x_top_ind] - x_vals[x_bot_ind])
 
         y_fac = (yi - y_vals[y_bot_ind])/(y_vals[y_top_ind] - y_vals[y_bot_ind])
-        z_fac = (zi - z_vals[z_bot_ind])/(z_vals[z_top_ind] - z_vals[z_bot_ind])        
+        z_fac = (zi - z_vals[z_bot_ind])/(z_vals[z_top_ind] - z_vals[z_bot_ind])
 
         # vertex values
-        if n_x_vals > 0 : 
+        if n_x_vals > 0 :
             v000 = vals[x_bot_ind,y_bot_ind,z_bot_ind]
             v001 = vals[x_bot_ind,y_bot_ind,z_top_ind]
             v010 = vals[x_bot_ind,y_top_ind,z_bot_ind]
@@ -107,7 +110,7 @@ def interpolate3d(int n,
             v01 = v001*(1.0-x_fac) + v101*x_fac
             v11 = v011*(1.0-x_fac) + v111*x_fac
 
-        else : 
+        else :
             v00 = vals[0, y_bot_ind, z_bot_ind]
             v01 = vals[0, y_bot_ind, z_top_ind]
             v10 = vals[0, y_top_ind, z_bot_ind]
@@ -127,9 +130,9 @@ cdef int bisect(np.float64_t x, int nval, np.float64_t [:] arr) nogil:
     top = nval - 1
     bot = 0
 
-    while(top > bot + 1) : 
+    while(top > bot + 1) :
         mid = floor((top-bot)/2)+bot
-        if (x > arr[mid]) : 
+        if (x > arr[mid]) :
             bot = mid
         else :
             top = mid

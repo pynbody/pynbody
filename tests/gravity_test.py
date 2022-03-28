@@ -1,6 +1,7 @@
-import pynbody
 import numpy as np
 import numpy.testing as npt
+
+import pynbody
 
 
 def test_gravity():

@@ -3,7 +3,7 @@
 Code-specific loaders
 ^^^^^^^^^^^^^^^^^^^^^
 
-`Pynbody` uses a number of different modules behind the scenes to take
+``Pynbody`` uses a number of different modules behind the scenes to take
 care of loading files in different formats. Unfortunately not all of
 these have the same capabilities; see below.
 
@@ -23,20 +23,20 @@ GrafIC    Yes        Yes               No         No                [5]_
 .. [1] Currently these modules do not support the standard partial
    loading mechanism. However they do allow you to load only certain
    CPU outputs. For instance if you wish to load CPU 3 data only, in
-   `Gadget` or `GadgetHDF`, you simply ask to load the
-   specific file `my_snapshot.003` instead of the imaginary file
-   `my_snapshot`. In `Ramses`, you add `cpus=[3]` to your load
+   ``Gadget`` or ``GadgetHDF``, you simply ask to load the
+   specific file ``my_snapshot.003`` instead of the imaginary file
+   ``my_snapshot``. In ``Ramses``, you add ``cpus=[3]`` to your load
    command, e.g. ``pynbody.load('output_00080', cpus=[3])``.
 
-.. [2] Requires the `h5py` python module. You can determine whether
+.. [2] Requires the ``h5py`` python module. You can determine whether
    you have this by typing ``import h5py`` into python. If you don't
    get an error, you have it. If you don't have it, see here
-   <http://www.h5py.org>
+   `the h5py website <http://www.h5py.org>`_.
 
-.. [3] Ramses gas cells are loaded and converted into `gas` particles,
+.. [3] Ramses gas cells are loaded and converted into ``gas`` particles,
    one at the centre of each maximally refined cell. You can ask to
    generate the particles at a higher level of refinement by passing
-   in a `maxlevel` argument. For example,
+   in a ``maxlevel`` argument. For example,
    ``pynbody.load('output_00080', maxlevel=10)`` will place gas
    particles at refinement level 10 or (numerically) lower.
 

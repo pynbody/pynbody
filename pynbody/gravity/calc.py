@@ -1,14 +1,11 @@
-from .. import units
-from .. import array
-from .. import config
-from ..util import get_eps, eps_as_simarray
-
 import math
-from . import tree
-import numpy as np
-
 import warnings
 
+import numpy as np
+
+from .. import array, config, units
+from ..util import eps_as_simarray, get_eps
+from . import tree
 from ._gravity import direct
 
 

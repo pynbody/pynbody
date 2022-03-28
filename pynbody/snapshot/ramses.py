@@ -17,22 +17,19 @@ the `ipython notebook demo
   # for py2.5
 
 
-from .. import array, util
-from .. import family
-from .. import units
-from .. import config, config_parser
-from .. import analysis
-from . import SimSnap
-from . import namemapper
-from ..extern.cython_fortran_utils import FortranFile
-
+import csv
+import logging
 import os
-import numpy as np
-import warnings
 import re
 import time
-import logging
-import csv
+import warnings
+
+import numpy as np
+
+from .. import analysis, array, config, config_parser, family, units
+from ..extern.cython_fortran_utils import FortranFile
+from . import SimSnap, namemapper
+
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
 from collections import OrderedDict
@@ -45,6 +42,7 @@ issue_multiprocess_warning = False
 if multiprocess:
     try:
         import multiprocessing
+
         import posix_ipc
         remote_exec = array.shared_array_remote
         remote_map = array.remote_map
@@ -269,7 +267,7 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
             exact_nvar = True
         else:
             raise ValueError("Unknown RAMSES load mode")
-    
+
         if nvar_file != nvar and exact_nvar:
             raise ValueError("Wrong number of variables in RAMSES dump")
         elif nvar_file < nvar:
@@ -280,23 +278,23 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
         elif nvar_file > nvar:
             warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)" % (
                 nvar_file, nvar), RuntimeWarning)
-    
+
         for level in range(maxlevel or header['nlevelmax']):
-    
+
             for cpuf in range(1, header['ncpu'] + 1):
                 flevel = f.read_int()
                 ncache = f.read_int()
                 assert flevel - 1 == level
-    
+
                 if ncache > 0:
                     if cpuf == cpu:
-    
+
                         coords, refine, gi_cpu, gi_level = next(grid_info_iter)
                         mark = np.where(refine == 0)
-    
+
                         assert gi_level == level
                         assert gi_cpu == cpu
-    
+
                     if cpuf == cpu and len(mark[0]) > 0:
                         for icel in range(2 ** ndim):
                             i0 = i1
@@ -304,12 +302,12 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
                             for ar in dims:
                                 ar[i0:i1] = f.read_vector(
                                     _float_type)[(refine[icel] == 0)]
-    
-                            f.skip((nvar_file - nvar))
-    
+
+                            f.skip(nvar_file - nvar)
+
                     else:
                         f.skip((2 ** ndim) * nvar_file)
-    
+
             for boundary in range(header['nboundary']):
                 flevel = f.read_int()
                 ncache = f.read_int()
@@ -384,9 +382,9 @@ negative_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('
 def read_descriptor(fname):
     description = []
     name_mapping = namemapper.AdaptiveNameMapper('ramses-name-mapping')
-    with open(fname, mode="r") as fd:
+    with open(fname) as fd:
         if fd.readline() != "# version:  1\n":
-            raise ValueError("Wrong file format")
+            raise OSError("Wrong file format")
         fd.readline()  # ivar, variable_name, variable_type
         for line in fd.readlines():
             i, name, dtype = (_.strip() for _ in line.split(","))
@@ -408,7 +406,7 @@ class RamsesSnap(SimSnap):
          """
 
         global config
-        super(RamsesSnap, self).__init__()
+        super().__init__()
 
         self.__setup_parallel_reading()
 
@@ -474,7 +472,7 @@ class RamsesSnap(SimSnap):
         for desc_type, default_block, descriptor_fname in zip(types, default_blocks, descriptors_fnames):
             try:
                 block = read_descriptor(descriptor_fname)
-            except (FileNotFoundError, ValueError):
+            except (FileNotFoundError, OSError):
                 block = default_block
 
             setattr(self, f"_{desc_type}_blocks", block)
@@ -483,8 +481,8 @@ class RamsesSnap(SimSnap):
         self._rt_blocks = []
         self._rt_blocks_3d = set()
         try:
-            f = open(self._filename+"/info_rt_" + _timestep_id(self._filename) + ".txt", "r")
-        except IOError:
+            f = open(self._filename+"/info_rt_" + _timestep_id(self._filename) + ".txt")
+        except OSError:
             return
 
         self._load_info_from_specified_file(f)
@@ -513,18 +511,18 @@ class RamsesSnap(SimSnap):
     def _load_infofile(self):
         self._info = {}
         f = open(
-            self._filename + "/info_" + _timestep_id(self._filename) + ".txt", "r")
+            self._filename + "/info_" + _timestep_id(self._filename) + ".txt")
 
         self._load_info_from_specified_file(f)
         try:
             f = open(
-                self._filename + "/header_" + _timestep_id(self._filename) + ".txt", "r")
+                self._filename + "/header_" + _timestep_id(self._filename) + ".txt")
             # most of this file is unhelpful, but depending on the ramses
             # version, there may be information on the particle fields present
             for l in f:
                 if "level" in l:
                     self._info['particle-blocks'] = l.split()
-        except IOError:
+        except OSError:
             warnings.warn(
                 "No header file found -- no particle block information available")
 
@@ -550,7 +548,7 @@ class RamsesSnap(SimSnap):
         self._namelist = {}
 
         if os.path.exists(self._filename + "/namelist.txt"):
-            f = open(self._filename + "/namelist.txt", "r")
+            f = open(self._filename + "/namelist.txt")
             try:
                 self._load_namelist_from_specified_file(f)
             except ValueError:
@@ -562,7 +560,7 @@ class RamsesSnap(SimSnap):
     def _setup_particle_descriptor(self):
         try:
             self._load_particle_descriptor()
-        except IOError:
+        except OSError:
             self._guess_particle_descriptor()
         self._has_explicit_particle_families = 'family' in self._particle_blocks
 
@@ -710,7 +708,7 @@ class RamsesSnap(SimSnap):
 
         self._sink_family = family.get_family(config_parser.get('ramses', 'type-sink'))
 
-        with open(self._sink_filename(),"r") as sink_file:
+        with open(self._sink_filename()) as sink_file:
             reader = csv.reader(sink_file, skipinitialspace=True)
             data = list(reader)
 
@@ -847,8 +845,7 @@ class RamsesSnap(SimSnap):
         refinement maps and levels working through the available CPUs and levels."""
 
         for cpu in self._cpus:
-            for x in _cpui_level_iterator(*self._cpui_level_iterator_args(cpu)):
-                yield x
+            yield from _cpui_level_iterator(*self._cpui_level_iterator_args(cpu))
 
     def _load_gas_pos(self):
         i0 = 0
@@ -1040,6 +1037,7 @@ class RamsesSnap(SimSnap):
             # Only attempt tform conversion for cosmological runs. The built-in tforms for isolated runs
             # are actually meaningful (issue 554)
             from ..analysis import ramses_util
+
             # Replace the tform array by its usual meaning using the birth files
             ramses_util.get_tform(self)
 
@@ -1081,7 +1079,7 @@ class RamsesSnap(SimSnap):
             elif array_name in self._particle_blocks:
                 self._load_particle_block(array_name)
             else:
-                raise IOError("No such array on disk")
+                raise OSError("No such array on disk")
 
         elif fam is family.gas:
 
@@ -1103,7 +1101,7 @@ class RamsesSnap(SimSnap):
                 for u_block in self._rt_blocks_3d:
                     self[fam][u_block].units = self._rt_unit
             else:
-                raise IOError("No such array on disk")
+                raise OSError("No such array on disk")
         elif fam is None and array_name in ['pos', 'vel']:
             # synchronized loading of pos/vel information
             if 'pos' not in self:
@@ -1130,7 +1128,7 @@ class RamsesSnap(SimSnap):
                 gasmass.convert_units(self['mass'].units)
                 self.gas['mass'] = gasmass
         else:
-            raise IOError("No such array on disk")
+            raise OSError("No such array on disk")
 
 
 

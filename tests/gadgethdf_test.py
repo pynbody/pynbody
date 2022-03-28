@@ -1,10 +1,13 @@
-import pynbody
-import numpy as np
-from itertools import chain
 import shutil
-import h5py
+from itertools import chain
 
+import h5py
+import numpy as np
 import pytest
+
+import pynbody
+
+
 def setup_module() :
     global snap,subfind
     snap = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')

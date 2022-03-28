@@ -1,7 +1,11 @@
+from os.path import isfile
+
+import h5py
+import numpy as np
+
 import pynbody
 
 
-import pytest
 def setup_module():
     global snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
     snap = pynbody.load('testdata/testL10N64/snapshot_000.hdf5')
@@ -73,12 +77,6 @@ def test_particle_data():
     hids = np.random.choice(range(len(halos)), 5)
     for hid in hids:
         assert(np.allclose(halos[hid].dm['iord'], htest[hid]['iord']))
-
-
-import six
-from os.path import isfile
-import numpy as np
-import h5py
 
 
 class Halos:
@@ -164,7 +162,7 @@ class Halos:
         result = {}
 
         # make sure fields is not a single element
-        if isinstance(fields, six.string_types):
+        if isinstance(fields, str):
             fields = [fields]
 
         # load header from first chunk
@@ -330,7 +328,3 @@ class Halos:
             return 5
 
         raise Exception("Unknown particle type name.")
-
-
-
-

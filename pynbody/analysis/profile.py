@@ -8,12 +8,17 @@ properties.
 
 """
 
-import numpy as np
-import pynbody
-from .. import family, units, array, util, backcompat
-import math
 import logging
+import math
 import warnings
+from time import process_time
+
+import numpy as np
+
+import pynbody
+
+from .. import array, units, util
+
 logger = logging.getLogger('pynbody.analysis.profile')
 
 
@@ -72,7 +77,7 @@ class Profile:
 
     *mass*       : mass in each bin
 
-    *mass_enc*   : enclosed mass 
+    *mass_enc*   : enclosed mass
 
     *fourier* : provides fourier coefficients, amplitude and phase for
      m=0 to m=6.  To access the amplitude profile of m=2 mode, do
@@ -98,7 +103,7 @@ class Profile:
 
     *beta*       : 3-D velocity anisotropy parameter
 
-    *magnitudes* : magnitudes in each bin - default band = 'v' 
+    *magnitudes* : magnitudes in each bin - default band = 'v'
 
     *sb*         : surface brightness - default band = 'v'
 
@@ -106,7 +111,7 @@ class Profile:
     Additional functions should use the profile_property to yield the
     desired profile.
 
-    **Lazy-loading arrays:** 
+    **Lazy-loading arrays:**
 
     The Profile class will automatically compute a mass-weighted
     profile for any lazy-loadable array of its parent SimSnap object.
@@ -469,6 +474,7 @@ class Profile:
         """Create a filename for the saved profile from a hash using the binning data"""
 
         import hashlib
+
         # Changing to the new() method, which will not fail if usedforsecurity is unsupported
         # in a given system configuration (issue 581)
         h = hashlib.new('md5')
@@ -660,10 +666,11 @@ def j_circ(p):
 
 @Profile.profile_property
 def v_circ(p, grav_sim=None):
-    """Circular velocity, i.e. rotation curve. Calculated by computing the gravity 
+    """Circular velocity, i.e. rotation curve. Calculated by computing the gravity
     in the midplane - can be expensive"""
 
     import pynbody.gravity.calc as gravity
+
     from .. import config
 
     global config
@@ -681,10 +688,10 @@ def v_circ(p, grav_sim=None):
     # elif hasattr(grav_sim,'base') :
     #    grav_sim = grav_sim.base
 
-    start = backcompat.clock()
+    start = process_time()
     rc = gravity.midplane_rot_curve(
         grav_sim, p['rbins']).in_units(p.sim['vel'].units)
-    end = backcompat.clock()
+    end = process_time()
     logger.info("Rotation curve calculated in %5.3g s" % (end - start))
     return rc
 
@@ -709,10 +716,10 @@ def pot(p):
     while hasattr(grav_sim, 'base') and "halo_id" in grav_sim.base.properties:
         grav_sim = grav_sim.base
 
-    start = backcompat.clock()
+    start = process_time()
     pot = gravity.midplane_potential(
         grav_sim, p['rbins']).in_units(p.sim['vel'].units ** 2)
-    end = backcompat.clock()
+    end = process_time()
     logger.info("Potential calculated in %5.3g s" % (end - start))
     return pot
 
@@ -778,7 +785,7 @@ def Q(self):
 
 @Profile.profile_property
 def X(self):
-    """X parameter defined as kappa^2*R/(2*pi*G*sigma*m) 
+    """X parameter defined as kappa^2*R/(2*pi*G*sigma*m)
     See Binney & Tremaine 2008, eq. 6.77"""
 
     lambda_crit = 4. * np.pi ** 2 * units.G * \
@@ -790,7 +797,7 @@ def X(self):
 @Profile.profile_property
 def jtot(self):
     """
-    Magnitude of the total angular momentum 
+    Magnitude of the total angular momentum
     """
     jtot = np.zeros(self.nbins)
 
@@ -868,9 +875,9 @@ class VerticalProfile(Profile):
 
     """
 
-    Creates a profile object that uses the absolute value of the z-coordinate for binning. 
+    Creates a profile object that uses the absolute value of the z-coordinate for binning.
 
-    **Input**: 
+    **Input**:
 
     *sim*: snapshot to make a profile from
 
@@ -880,7 +887,7 @@ class VerticalProfile(Profile):
 
     *zmax*: maximum height to consider in kpc
 
-    **Optional Keywords**: 
+    **Optional Keywords**:
 
     *ndim*: if ndim=2, an edge-on projected profile is produced,
      i.e. density is in units of mass/pc^2. If ndim=3 a volume
@@ -939,22 +946,22 @@ class QuantileProfile(Profile):
     Creates a profile object that returns the requested quantiles
     for a given array in a given bin.  The quantiles may be mass weighted.
 
-    **Input**: 
+    **Input**:
 
     *sim*: snapshot to make a profile from
 
-    *q (default: (0.16,0.5,0.84))*: 
+    *q (default: (0.16,0.5,0.84))*:
              The quantiles that will be returned.
              Default is median with 1-sigma on either side.
              q can be of arbitrary length allowing the user to select
              any quantiles they desire.
 
-    *weights (default:None)*:  
+    *weights (default:None)*:
              What should be used to weight the quantile.  You will usually
-             want to use particle mass: sim['mass'].  
+             want to use particle mass: sim['mass'].
              The default is to not weight by anything, weights=None.
 
-    **Optional Keywords**: 
+    **Optional Keywords**:
 
     *ndim*: if ndim=2, an edge-on projected profile is produced,
      i.e. density is in units of mass/pc^2. If ndim=3 a volume

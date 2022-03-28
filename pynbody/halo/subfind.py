@@ -1,11 +1,12 @@
 import os.path
-import weakref
 import warnings
+import weakref
+
 import numpy as np
 
-from . import HaloCatalogue, Halo
 from .. import units
 from ..array import SimArray
+from . import Halo, HaloCatalogue
 
 
 class SubfindCatalogue(HaloCatalogue):

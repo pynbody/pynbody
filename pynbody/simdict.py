@@ -29,10 +29,11 @@ property 'X', you would use the following code:
  @SimDict.setter
  def X_copy(d, value) :
      d['X'] = value
-   
+
 """
 
 import warnings
+
 from . import config
 
 __all__ = ['SimDict']
@@ -88,7 +89,7 @@ def z(d, z):
 def default_fn(name, value):
     """Return a getter function for the default name/value pair"""
     def f(d):
-        warnings.warn("Assuming default value for property '%s'=%.2e" % (
+        warnings.warn("Assuming default value for property '{}'={:.2e}".format(
             name, value), RuntimeWarning)
         d[name] = value
         return value

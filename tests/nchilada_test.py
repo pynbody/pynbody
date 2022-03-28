@@ -1,6 +1,7 @@
-import pynbody
 import numpy as np
 import numpy.testing as npt
+
+import pynbody
 
 correct_pos_3000 = np.array([[4.80664825e+01,  -8.99647751e+01,
                                  3.74038162e+01],
@@ -158,6 +159,8 @@ correct_pos_3000 = np.array([[4.80664825e+01,  -8.99647751e+01,
 
 
 import pytest
+
+
 def setup_module():
     global f
     f = pynbody.load("testdata/nchilada_test/12M.00001")

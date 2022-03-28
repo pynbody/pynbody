@@ -1,11 +1,10 @@
 import numpy as np
+import pytest
 from scipy.io import FortranFile as FF
 
 import pynbody
 from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
 from pynbody.halo import DummyHalo, Halo
-
-import pytest
 
 
 # Note: we do not use a module-wide fixture here to prevent caching of units

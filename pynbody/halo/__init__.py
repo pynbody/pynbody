@@ -14,14 +14,14 @@ examples.
 
 """
 
-import numpy as np
-import weakref
 import copy
 import logging
 import warnings
-from functools import reduce
+import weakref
 
-from .. import snapshot, util, units, array
+import numpy as np
+
+from .. import snapshot, util
 
 logger = logging.getLogger("pynbody.halo")
 
@@ -54,7 +54,7 @@ class Halo(snapshot.IndexedSubSnap):
     """
 
     def __init__(self, halo_id, halo_catalogue, *args, **kwa):
-        super(Halo, self).__init__(*args, **kwa)
+        super().__init__(*args, **kwa)
         self._halo_catalogue = halo_catalogue
         self._halo_id = halo_id
         self._descriptor = "halo_" + str(halo_id)
@@ -309,8 +309,8 @@ class GrpCatalogue(HaloCatalogue):
         getting a single halo, however."""
         self._sorted = np.argsort(
             self.base[self._array], kind='mergesort')  # mergesort for stability
-        self._boundaries = util.find_boundaries(
-            self.base[self._array][self._sorted])
+        self._unique_i = np.unique(self.base[self._array])
+        self._boundaries = np.searchsorted(self.base[self._array][self._sorted],self._unique_i)
 
     def get_group_array(self, family=None):
         if family is not None:
@@ -330,20 +330,18 @@ class GrpCatalogue(HaloCatalogue):
             return index
         else:
             # pre-calculated
-            if i >= len(self._boundaries) or i < 0:
-                raise no_exist
-            if self._boundaries[i] < 0:
+            if not np.isin(i,self._unique_i):
                 raise no_exist
 
-            start = self._boundaries[i]
-            if start is None:
-                raise no_exist
+            match = np.where(self._unique_i==i)[0]
 
-            end = None
-            j = i + 1
-            while j < len(self._boundaries) and end is None:
-                end = self._boundaries[j]
-                j += 1
+            start = self._boundaries[match][0]
+
+            if start == self._boundaries[-1]:
+                # This is the final halo
+                end = None
+            else:
+                end = self._boundaries[match+1][0]
 
             return self._sorted[start:end]
 
@@ -382,13 +380,14 @@ class AmigaGrpCatalogue(GrpCatalogue):
         return GrpCatalogue._can_load(sim, arr_name)
 
 
+from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
 from pynbody.halo.ahf import AHFCatalogue
 from pynbody.halo.hop import HOPCatalogue
-from pynbody.halo.adaptahop import NewAdaptaHOPCatalogue, AdaptaHOPCatalogue
 from pynbody.halo.legacy import RockstarIntermediateCatalogue
 from pynbody.halo.rockstar import RockstarCatalogue
 from pynbody.halo.subfind import SubfindCatalogue
-from pynbody.halo.subfindhdf import SubFindHDFHaloCatalogue, Gadget4SubfindHDFCatalogue
+from pynbody.halo.subfindhdf import Gadget4SubfindHDFCatalogue, SubFindHDFHaloCatalogue
+
 
 def _get_halo_classes():
     # AmigaGrpCatalogue MUST be scanned first, because if it exists we probably

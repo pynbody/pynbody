@@ -2,7 +2,7 @@ import os.path
 
 import numpy as np
 
-from . import HaloCatalogue, Halo
+from . import Halo, HaloCatalogue
 
 
 class RockstarIntermediateCatalogue(HaloCatalogue):

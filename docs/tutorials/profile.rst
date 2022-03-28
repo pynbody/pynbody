@@ -5,7 +5,7 @@ Profiles in Pynbody
 ===================
 
 
-Radial Density Profile 
+Radial Density Profile
 ----------------------
 
 Making profiles of all kinds of quantities is easy -- here's a simple
@@ -17,8 +17,8 @@ example that shows how to plot a density profile:
 Below is a more extended description of the
 :mod:`~pynbody.analysis.profile` module.
 
- 
-The Profile Class 
+
+The Profile Class
 -----------------
 
 The :class:`~pynbody.analysis.profile.Profile` class is meant to be a
@@ -33,7 +33,7 @@ defines the bins etc. Importantly, it also stores lists of particle
 indices corresponding to each bin, so you can easily identify where
 the particles belong.
 
-Let's quickly load a snapshot: 
+Let's quickly load a snapshot:
 
 .. ipython::
 
@@ -46,26 +46,26 @@ Let's quickly load a snapshot:
   In [3]: pynbody.analysis.angmom.faceon(h[1])
 
 We're centered on the main halo (as in the cookbook example above) and
-we make the :class:`~pynbody.analysis.profile.Profile` instance: 
+we make the :class:`~pynbody.analysis.profile.Profile` instance:
 
 .. ipython::
-  
+
   In [3]: p = profile.Profile(h[1].s, rmin='.01 kpc', rmax='50 kpc')
 
 With the default parameters, the profile is made in the xy-plane. To
 make a spherically-symmetric 3D profile, specify ``ndim=3`` when
-creating the profile. 
+creating the profile.
 
 .. ipython::
 
   In [3]: pdm_sph = profile.Profile(s.d, rmin = '.01 kpc', rmax = '250 kpc')
 
 Even though we use ``s.d`` here (i.e. the full snapshot, not
-just halo 1), the whole snapshot is still centered on halo 1. 
+just halo 1), the whole snapshot is still centered on halo 1.
 
 .. note:: You can pass unit strings to ``rmin`` and ``rmax`` and the
  conversion will be done automatically into whatever the current
- units of the snapshot are so you don't have to explicitly do any unit conversions.    
+ units of the snapshot are so you don't have to explicitly do any unit conversions.
 
 
 
@@ -132,13 +132,13 @@ dispersion:
 
     In [7]: plt.clf(); plt.plot(p['rbins'].in_units('kpc'),p['vr_disp'].in_units('km s^-1'),'k')
 
-    @savefig profile_fig2.png width=5in    
+    @savefig profile_fig2.png width=5in
     In [6]: plt.xlabel('$R$ [kpc]'); plt.ylabel('$\sigma_{r}$')
 
 
 In addition to doing this by hand, you can make a
 :class:`~pynbody.analysis.profile.QuantileProfile` that can return any
-desired quantile range. By default, this is the mean +/- 1-sigma: 
+desired quantile range. By default, this is the mean +/- 1-sigma:
 
 .. ipython::
 
@@ -147,7 +147,7 @@ desired quantile range. By default, this is the mean +/- 1-sigma:
     In [6]: plt.clf(); plt.plot(p_quant['rbins'], p_quant['feh'][:,1], 'k')
 
     In [6]: plt.fill_between(p_quant['rbins'], p_quant['feh'][:,0], p_quant['feh'][:,2], color = 'Grey', alpha=0.5)
-    
+
     @savefig profile_quant.png width=5in
     In [6]: plt.xlabel('$R$ [kpc]'); plt.ylabel('[Fe/H]')
 
@@ -175,9 +175,9 @@ halo 1 according to their age:
    In [5]: p_age = profile.Profile(h[1].s, calc_x = lambda x: x.s['age'], rmax = '10 Gyr')
 
    In [6]: plt.clf(); plt.plot(p_age['rbins'], p_age['feh'], 'k', label = 'mean [Fe/H]')
-   
-   In [6]: plt.plot(p_age['rbins'], p_age['feh_disp'], 'k--', label = 'dispersion') 
-   
+
+   In [6]: plt.plot(p_age['rbins'], p_age['feh_disp'], 'k--', label = 'dispersion')
+
    In [6]: plt.xlabel('Age [Gyr]'); plt.ylabel('[Fe/H]')
 
    @savefig profile_fig4.png width=5in
@@ -205,12 +205,10 @@ be used:
 
 
 Similarly, one can make inclined profiles using the
-:class:`~pynbody.analysis.profile.VerticalProfile`, but the snapshot needs to be rotated first: 
+:class:`~pynbody.analysis.profile.VerticalProfile`, but the snapshot needs to be rotated first:
 
 .. ipython::
 
    In [5]: s.rotate_x(60) # rotate the snapshot by 60-degrees
 
    In [5]: p_inc = profile.InclinedProfile(h[1].s, 60, rmin = '0.1 kpc', rmax = '50 kpc')
-
-

@@ -1,11 +1,13 @@
-import numpy as np
 import os.path
-import weakref
 import warnings
-import h5py
+import weakref
 
-from . import HaloCatalogue, Halo
-from .. import snapshot, config_parser, array, units
+import h5py
+import numpy as np
+
+from .. import array, config_parser, snapshot, units
+from . import Halo, HaloCatalogue
+
 
 class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
     """
@@ -16,7 +18,7 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
     """
 
     def __init__(self, group_id, group_catalogue) :
-        super(SubFindHDFSubhaloCatalogue,self).__init__(group_catalogue.base)
+        super().__init__(group_catalogue.base)
 
         self._group_id = group_id
         self._group_catalogue = group_catalogue
@@ -81,7 +83,7 @@ class SubFindHDFSubHalo(Halo) :
     """
 
     def __init__(self,halo_id, group_id, *args) :
-        super(SubFindHDFSubHalo,self).__init__(halo_id, *args)
+        super().__init__(halo_id, *args)
 
         self._group_id = group_id
         self._descriptor = "fof_group_%d_subhalo_%d"%(group_id,halo_id)
@@ -118,7 +120,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
     _sub_len_name = 'SUB_Length'
 
     def __init__(self, sim) :
-        super(SubFindHDFHaloCatalogue,self).__init__(sim)
+        super().__init__(sim)
 
         if not isinstance(sim, snapshot.gadgethdf.SubFindHDFSnap):
             raise ValueError("SubFindHDFHaloCatalogue can only work with a SubFindHDFSnap simulation")
@@ -297,7 +299,7 @@ class SubFindFOFGroup(Halo) :
     """
 
     def __init__(self, group_id, *args) :
-        super(SubFindFOFGroup,self).__init__(group_id, *args)
+        super().__init__(group_id, *args)
 
         self._subhalo_catalogue = SubFindHDFSubhaloCatalogue(group_id, self._halo_catalogue)
 
@@ -314,7 +316,7 @@ class SubFindFOFGroup(Halo) :
         if name == 'sub':
             return self._subhalo_catalogue
         else :
-            return super(SubFindFOFGroup,self).__getattr__(name)
+            return super().__getattr__(name)
 
 
 class Gadget4SubfindHDFCatalogue(HaloCatalogue):

@@ -7,11 +7,11 @@ Calculates luminosities -- NEEDS DOCUMENTATION
 
 """
 
+import os
+
 import numpy as np
 
-import os
-from ..array import SimArray
-
+from .. import filt
 from .interpolate import interpolate2d
 
 _cmd_lum_file = os.path.join(os.path.dirname(__file__), "cmdlum.npz")
@@ -64,7 +64,7 @@ def calc_mags(simstars, band='v', cmd_path=None):
     Marigo+ (2008), Girardi+ (2010)
 
     pynbody includes a grid of SSP luminosities for many bandpasses for
-    various stellar ages and metallicities.  This function linearly 
+    various stellar ages and metallicities.  This function linearly
     interpolates to the desired value and returns the value as a magnitude.
 
     **Usage:**
@@ -74,7 +74,7 @@ def calc_mags(simstars, band='v', cmd_path=None):
 
     **Optional keyword arguments:**
 
-       *band* (default='v'): Which observed bandpass magnitude in which 
+       *band* (default='v'): Which observed bandpass magnitude in which
             magnitude should be calculated
 
        *path* (default=None): Path to the CMD grid. If None, use the
@@ -134,7 +134,7 @@ def halo_mag(sim, band='v'):
 
     **Optional keyword arguments:**
 
-       *band* (default='v'): Which observed bandpass magnitude in which 
+       *band* (default='v'): Which observed bandpass magnitude in which
             magnitude should be calculated
     """
     if (len(sim.star) > 0):
@@ -158,7 +158,7 @@ def halo_lum(sim, band='v'):
 
     **Optional keyword arguments:**
 
-       *band* (default='v'): Which observed bandpass magnitude in which 
+       *band* (default='v'): Which observed bandpass magnitude in which
             magnitude should be calculated
     """
     sun_abs_mag = {'u':5.56,'b':5.45,'v':4.8,'r':4.46,'i':4.1,'j':3.66,
@@ -175,8 +175,6 @@ def half_light_r(sim, band='v', cylindrical=False):
 
     If cylindrical is True compute the half light radius as seen from the z-axis.
     '''
-    import pynbody
-    import pynbody.filt as f
     half_l = halo_lum(sim, band=band) * 0.5
 
     if cylindrical:
@@ -185,7 +183,7 @@ def half_light_r(sim, band='v', cylindrical=False):
         coord = 'r'
     max_high_r = np.max(sim.star[coord])
     test_r = 0.5 * max_high_r
-    testrf = f.LowPass(coord, test_r)
+    testrf = filt.LowPass(coord, test_r)
     min_low_r = 0.0
     test_l = halo_lum(sim[testrf], band=band)
     it = 0
@@ -198,7 +196,7 @@ def half_light_r(sim, band='v', cylindrical=False):
             test_r = 0.5 * (min_low_r + test_r)
         else:
             test_r = (test_r + max_high_r) * 0.5
-        testrf = f.LowPass(coord, test_r)
+        testrf = filt.LowPass(coord, test_r)
         test_l = halo_lum(sim[testrf], band=band)
 
         if (test_l > half_l):

@@ -25,4 +25,3 @@ Plotting
 
 .. automodule:: pynbody.plot.util
    :members:
-
