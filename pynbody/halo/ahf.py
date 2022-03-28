@@ -457,9 +457,9 @@ class AHFCatalogue(HaloCatalogue):
                     ),
                     haloid + 1
                 )
-                continue
+                children = []
 
-            self._halos[halo_index].properties['children_id'] = children
+            self._halos[halo_index].properties['children'] = children
             for ichild in children:
                 self._halos[ichild].properties['parent_id'] = halo_index
 
