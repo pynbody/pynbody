@@ -294,7 +294,7 @@ class AHFCatalogue(HaloCatalogue):
     @staticmethod
     def _count_particles(f):
         startline = f.readline()
-        if len((startline.split()))==1:
+        if len(startline.split())==1:
             startline = f.readline()
         return int(startline.split()[0])
 
