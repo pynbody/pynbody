@@ -102,12 +102,7 @@ class AHFCatalogue(HaloCatalogue):
             osort = np.argsort(nparr)[::-1]
             self._sorted_indices = osort + 1
 
-        if os.path.isfile(self._ahfBasename + 'substructure'):
-            logger.info("AHFCatalogue loading substructure")
-
-            self._load_ahf_substructure(self._ahfBasename + 'substructure')
-        else:
-            self._setup_children()
+        self._load_ahf_substructure(self._ahfBasename + 'substructure')
 
         if make_grp is None:
             make_grp = config_parser.getboolean('AHFCatalogue', 'AutoGrp')
@@ -423,24 +418,31 @@ class AHFCatalogue(HaloCatalogue):
         f.close()
 
     def _load_ahf_substructure(self, filename):
-        f = util.open_(filename)
-        # nhalos = int(f.readline())  # number of halos?  no, some crazy number
-        # that we will ignore
+        try:
+            f = util.open_(filename)
+        except FileNotFoundError:
+            self._setup_children()
+            return
+        logger.info("AHFCatalogue loading substructure")
 
-        # In the substructure catalog, halos are referenced by their
-        # ID, but pynbody stores them by their index, so we need to
-        # map.
-        ID2index = {
-            halo.properties["ID"]: i
-            for i, halo in self._halos.items()
-        }
+        # number of halos?  no, some crazy number that we will ignore
+        f.readline()
+
+        # In the substructure catalog, halos are either referenced by their index
+        # or by their ID (if they have one).
+        ID2index = {}
+        for i, halo in self._halos.items():
+            # If the "ID" property doesn't exist, use pynbody's internal index
+            id = halo.properties.get("ID", i)
+            ID2index[id] = i
+
         line = f.readline()
         while line:
             try:
                 haloid, _nsubhalos = (int(x) for x in line.split())
-                halo_index = ID2index[haloid]
+                halo_index = ID2index[haloid + 1]
                 children = [
-                    ID2index[int(x)] for x in f.readline().split()
+                    ID2index[int(x) + 1] for x in f.readline().split()
                 ]
             except ValueError:
                 logger.error(
@@ -453,7 +455,7 @@ class AHFCatalogue(HaloCatalogue):
                         "Could not identify some substructure of "
                         "halo %s. Ignoring"
                     ),
-                    haloid
+                    haloid + 1
                 )
                 continue
 
