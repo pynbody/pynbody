@@ -4,6 +4,8 @@ from typing import Sequence
 
 import numpy as np
 
+import pynbody
+
 from .. import array, units, util
 from ..extern.cython_fortran_utils import FortranFile
 from . import DummyHalo, Halo, HaloCatalogue, logger
