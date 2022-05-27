@@ -35,7 +35,7 @@ jobs:
           echo "CC=gcc-10" >> $GITHUB_ENV
           echo "CXX=g++-10" >> $GITHUB_ENV
 
-      - name: Install GCC (MacOS)
+      - name: Install clang + OpenMP libraries (MacOS)
         if: matrix.os == 'macos-10.15'
         shell: bash
         run: |
@@ -43,6 +43,12 @@ jobs:
           brew install libomp
           echo "CC=clang-13" >> $GITHUB_ENV
           echo "CXX=clang++-13" >> $GITHUB_ENV
+          libomp_arm64=$(brew fetch --force --bottle-tag=arm64_big_sur libomp | grep "Downloaded to" | awk '{ print $3 }')
+          tar -xzvf $libomp_arm64 .
+          omplib=$(ls -1d libomp/*/lib)
+          rm $omplib/*.dylib
+          echo LIBRARY_PATH=$omplib >> $GITHUB_ENV
+          cat $GITHUB_ENV
           
       - name: Specify architectures (MacOS)
         if: matrix.os == 'macos-10.15'
