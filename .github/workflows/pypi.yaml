@@ -40,9 +40,8 @@ jobs:
           brew install libomp
           echo "CC=clang-13" >> $GITHUB_ENV
           echo "CXX=clang++-13" >> $GITHUB_ENV
-          brew fetch --force --bottle-tag=arm64_big_sur libomp
           libomp_arm64="$(brew fetch --force --bottle-tag=arm64_big_sur libomp | grep "Downloaded to" | awk '{ print $3 }')"
-          tar -xzvf $libomp_arm64 .
+          tar -xzvf $libomp_arm64
           omplib=$(ls -1d libomp/*/lib)
           rm $omplib/*.dylib
           echo LIBRARY_PATH=$omplib >> $GITHUB_ENV
