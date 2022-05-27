@@ -23,9 +23,6 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Install numpy and cython
-        run: python -m "pip" install numpy cython
-
       - name: Install GCC (Ubuntu)
         if: matrix.os == 'ubuntu-20.04'
         shell: bash
@@ -43,6 +40,7 @@ jobs:
           brew install libomp
           echo "CC=clang-13" >> $GITHUB_ENV
           echo "CXX=clang++-13" >> $GITHUB_ENV
+          brew fetch --force --bottle-tag=arm64_big_sur libomp
           libomp_arm64="$(brew fetch --force --bottle-tag=arm64_big_sur libomp | grep "Downloaded to" | awk '{ print $3 }')"
           tar -xzvf $libomp_arm64 .
           omplib=$(ls -1d libomp/*/lib)
