@@ -12,8 +12,8 @@ jobs:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
-      CC: gcc-10
-      CXX: g++-10
+      CC: clang-13
+      CXX: clang++-10
     strategy:
       matrix:
         os: [ubuntu-20.04, macos-10.15]
@@ -34,13 +34,13 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update -qq
-          sudo apt install gcc-10 g++-10
+          sudo apt install clang-13 clang++-13
 
       - name: Install GCC (MacOS)
         if: matrix.os == 'macos-10.15'
         shell: bash
         run: |
-          brew install gcc@10
+          brew install llvm@13
           
       - name: Specify architectures (MacOS)
         if: matrix.os == 'macos-10.15'
