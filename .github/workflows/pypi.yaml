@@ -40,6 +40,7 @@ jobs:
         shell: bash
         run: |
           brew install llvm@13
+          brew install libomp
           echo "CC=clang-13" >> $GITHUB_ENV
           echo "CXX=clang++-13" >> $GITHUB_ENV
           
