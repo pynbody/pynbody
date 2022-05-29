@@ -5,11 +5,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from os import path
 
 import numpy.distutils.misc_util
 from Cython.Build import cythonize
-from os import path
 from setuptools import Extension, setup
+
 
 def check_for_pthread():
     # Create a temporary directory
@@ -217,5 +218,3 @@ setup(name = 'pynbody',
       long_description=long_description,
       long_description_content_type='text/markdown'
       )
-
-
