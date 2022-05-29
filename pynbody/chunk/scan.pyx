@@ -17,14 +17,14 @@ def scan_for_next_stop(np.ndarray[np.int64_t, ndim=1, mode="c"] ids not None,
 
     left = offset_start
     right = len(ids)-1
-    mid = (left+right)/2
+    mid = (left+right)//2
 
     while ids[mid-1]>id_maximum or ids[mid]<=id_maximum :
         if ids[mid]<=id_maximum :
             left = mid
         else :
             right = mid-1
-        mid = (left+right+1)/2
+        mid = (left+right+1)//2
         itr+=1
         if itr>1000 :
             break
