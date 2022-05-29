@@ -88,7 +88,7 @@ extra_link_args = []
 
 incdir = numpy.distutils.misc_util.get_numpy_include_dirs()
 
-kdmain = Extension('pynbody/sph/kdmain',
+kdmain = Extension('pynbody.sph.kdmain',
                    sources = ['pynbody/sph/kdmain.cpp', 'pynbody/sph/kd.cpp',
                               'pynbody/sph/smooth.cpp'],
                    include_dirs=incdir,
