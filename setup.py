@@ -98,6 +98,8 @@ kdmain = Extension('pynbody/sph/kdmain',
                    extra_compile_args=extra_compile_args,
                    extra_link_args=extra_link_args)
 
+ext_modules.append(kdmain)
+
 gravity = Extension('pynbody.gravity._gravity',
                         sources = ["pynbody/gravity/_gravity.pyx"],
                         include_dirs=incdir,
@@ -149,8 +151,9 @@ interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               extra_link_args=openmp_args)
 
 
-ext_modules+=[kdmain, gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
-              cython_fortran_file, cosmology_time, interpolate3d_pyx, omp_commands]
+ext_modules += cythonize([gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
+                          cython_fortran_file, cosmology_time, interpolate3d_pyx, omp_commands],
+                         language_level=3)
 
 install_requires = [
     'cython>=0.20',
@@ -203,7 +206,7 @@ setup(name = 'pynbody',
                                          'CAMB_WMAP7',
                                          'cambtemplate.ini'],
                     'pynbody/plot': ['tollerud2008mw']},
-      ext_modules = cythonize(ext_modules, language_level=3),
+      ext_modules = ext_modules,
       classifiers = ["Development Status :: 5 - Production/Stable",
                      "Intended Audience :: Developers",
                      "Intended Audience :: Science/Research",
