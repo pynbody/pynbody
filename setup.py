@@ -9,8 +9,8 @@ from os import path
 
 import numpy.distutils.misc_util
 from Cython.Build import build_ext
-from setuptools import Extension, setup
 from Cython.Compiler.Options import get_directive_defaults
+from setuptools import Extension, setup
 
 get_directive_defaults()['language_level'] = 3
 
