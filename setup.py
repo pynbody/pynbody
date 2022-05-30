@@ -8,8 +8,11 @@ import tempfile
 from os import path
 
 import numpy.distutils.misc_util
-from Cython.Build import cythonize
+from Cython.Build import build_ext
 from setuptools import Extension, setup
+from Cython.Compiler.Options import get_directive_defaults
+
+get_directive_defaults()['language_level'] = 3
 
 
 def check_for_pthread():
@@ -151,9 +154,8 @@ interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               extra_link_args=openmp_args)
 
 
-ext_modules += cythonize([gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
-                          cython_fortran_file, cosmology_time, interpolate3d_pyx, omp_commands],
-                         language_level=3)
+ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
+                cython_fortran_file, cosmology_time, interpolate3d_pyx, omp_commands]
 
 install_requires = [
     'cython>=0.20',
@@ -214,6 +216,7 @@ setup(name = 'pynbody',
                      "Programming Language :: Python :: 3",
                      "Topic :: Scientific/Engineering :: Astronomy",
                      "Topic :: Scientific/Engineering :: Visualization"],
+      cmdclass={'build_ext': build_ext},
       install_requires=install_requires,
       tests_require=tests_require,
       extras_require=extras_require,
