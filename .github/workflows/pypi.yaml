@@ -68,7 +68,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.6.0
         env:
           CIBW_ARCHS_LINUX: auto aarch64 
-          CIBW_BUILD: cp36-*
+          CIBW_SKIP: cp36-*
 
       - uses: actions/upload-artifact@v2
         with:
