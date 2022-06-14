@@ -563,9 +563,18 @@ class GadgetHDFSnap(SimSnap):
 
         cosmo = 'HubbleParam' in list(self._get_hdf_parameter_attrs().keys())
         if cosmo:
-            for fac in self._get_cosmo_factors(self._hdf_files[0], 'Coordinates'): dist_unit *= fac
-            for fac in self._get_cosmo_factors(self._hdf_files[0], 'Velocities'): vel_unit *= fac
-            for fac in self._get_cosmo_factors(self._hdf_files[0], 'Mass'): mass_unit *= fac
+            try:
+                for fac in self._get_cosmo_factors(self._hdf_files[0], 'Coordinates'): dist_unit *= fac
+            except:
+                dist_unit *= units.a * units.h**-1
+            try:
+                for fac in self._get_cosmo_factors(self._hdf_files[0], 'Velocities'): vel_unit *= fac
+            except:
+                vel_unit *= units.a**(1,2)
+            try:
+                for fac in self._get_cosmo_factors(self._hdf_files[0], 'Mass'): mass_unit *= fac
+            except:
+                mass_unit *= units.h**-1
 
         self._file_units_system = [units.Unit(x) for x in [
             vel_unit, dist_unit, mass_unit, "K"]]
