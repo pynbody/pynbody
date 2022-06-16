@@ -571,7 +571,7 @@ class GadgetHDFSnap(SimSnap):
                 vel_unit *= units.a**(1,2)
                 warnings.warn("Unable to find cosmological factors in HDF file; assuming velocity is %s" % vel_unit)
             try:
-                for fac in self._get_cosmo_factors(self._hdf_files[0], 'Mass'): vel_unit *= fac
+                for fac in self._get_cosmo_factors(self._hdf_files[0], 'Mass'): mass_unit *= fac
             except KeyError:
                 mass_unit *= units.h**-1
                 warnings.warn("Unable to find cosmological factors in HDF file; assuming mass is %s" % mass_unit)
