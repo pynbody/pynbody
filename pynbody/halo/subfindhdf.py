@@ -170,25 +170,17 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         return self.base._get_units_from_hdf_attr(hdf0[hdf_key][property_key].attrs)
 
     def __reshape_multidimensional_properties(self):
-        sub_properties = self._sub_properties
-        fof_properties = self._fof_properties
+        self.__reshape_multidimensional_properties_one_dictionary(self._sub_properties)
+        self.__reshape_multidimensional_properties_one_dictionary(self._fof_properties)
 
-        for key in list(sub_properties.keys()):
+    def __reshape_multidimensional_properties_one_dictionary(self, properties_dict):
+        for key in list(properties_dict.keys()):
             # Test if there are no remainders, i.e. array is multiple of halo length
             # then solve for the case where this is 1, 2 or 3 dimension
-            if len(sub_properties[key]) % self.nsubhalos == 0:
-                ndim = len(sub_properties[key]) // self.nsubhalos
+            if len(properties_dict[key]) % self.nsubhalos == 0:
+                ndim = len(properties_dict[key]) // self.nsubhalos
                 if ndim > 1:
-                    sub_properties[key] = sub_properties[key].reshape(self.nsubhalos, ndim)
-
-            try:
-                # The case fof FOF
-                if len(fof_properties[key]) % self.ngroups == 0:
-                    ndim = len(fof_properties[key]) // self.ngroups
-                    if ndim > 1:
-                        fof_properties[key] = fof_properties[key].reshape(self.ngroups, ndim)
-            except KeyError:
-                pass
+                    properties_dict[key] = properties_dict[key].reshape(self.nsubhalos, ndim)
 
     def __reassign_properties_from_sub_to_fof(self):
         reassign = []
