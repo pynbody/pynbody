@@ -373,7 +373,11 @@ from pynbody.halo.hop import HOPCatalogue
 from pynbody.halo.legacy import RockstarIntermediateCatalogue
 from pynbody.halo.rockstar import RockstarCatalogue
 from pynbody.halo.subfind import SubfindCatalogue
-from pynbody.halo.subfindhdf import Gadget4SubfindHDFCatalogue, SubFindHDFHaloCatalogue, ArepoSubfindHDFCatalogue
+from pynbody.halo.subfindhdf import (
+    ArepoSubfindHDFCatalogue,
+    Gadget4SubfindHDFCatalogue,
+    SubFindHDFHaloCatalogue,
+)
 
 
 def _get_halo_classes():
