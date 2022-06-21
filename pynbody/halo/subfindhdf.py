@@ -170,17 +170,17 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         return self.base._get_units_from_hdf_attr(hdf0[hdf_key][property_key].attrs)
 
     def __reshape_multidimensional_properties(self):
-        self.__reshape_multidimensional_properties_one_dictionary(self._sub_properties)
-        self.__reshape_multidimensional_properties_one_dictionary(self._fof_properties)
+        self.__reshape_multidimensional_properties_one_dictionary(self._sub_properties, self.nsubhalos)
+        self.__reshape_multidimensional_properties_one_dictionary(self._fof_properties, self.ngroups)
 
-    def __reshape_multidimensional_properties_one_dictionary(self, properties_dict):
+    def __reshape_multidimensional_properties_one_dictionary(self, properties_dict, expected_array_length):
         for key in list(properties_dict.keys()):
             # Test if there are no remainders, i.e. array is multiple of halo length
             # then solve for the case where this is 1, 2 or 3 dimension
-            if len(properties_dict[key]) % self.nsubhalos == 0:
-                ndim = len(properties_dict[key]) // self.nsubhalos
+            if len(properties_dict[key]) % expected_array_length == 0:
+                ndim = len(properties_dict[key]) // expected_array_length
                 if ndim > 1:
-                    properties_dict[key] = properties_dict[key].reshape(self.nsubhalos, ndim)
+                    properties_dict[key] = properties_dict[key].reshape(expected_array_length, ndim)
 
     def __reassign_properties_from_sub_to_fof(self):
         reassign = []
