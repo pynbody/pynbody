@@ -22,15 +22,22 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
 
         self._group_id = group_id
         self._group_catalogue = group_catalogue
+        self.__calc_len()
+
+    def __calc_len(self):
+        next_group_id = self._group_id + 1
+        next_first_subhalo = self._group_catalogue.nsubhalos
+        while next_group_id < len(self._group_catalogue._fof_group_first_subhalo)-1:
+            if self._group_catalogue._fof_group_first_subhalo[self._group_id + 1]!=-1:
+                next_first_subhalo = self._group_catalogue._fof_group_first_subhalo[next_group_id]
+                break
+            next_group_id+=1
 
 
+        self._len = (next_first_subhalo - self._group_catalogue._fof_group_first_subhalo[self._group_id])
 
     def __len__(self):
-        if self._group_id == (len(self._group_catalogue._fof_group_first_subhalo)-1) :
-            return self._group_catalogue.nsubhalos - self._group_catalogue._fof_group_first_subhalo[self._group_id]
-        else:
-            return (self._group_catalogue._fof_group_first_subhalo[self._group_id + 1] -
-                    self._group_catalogue._fof_group_first_subhalo[self._group_id])
+        return self._len
 
     def _get_halo(self, i):
         if self.base is None :
@@ -246,6 +253,20 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
     def _get_halodata_array(self, hdf_file, array_name, halo_or_group, particle_type):
         # In gadget3 implementation, halo_or_group is not needed. In Gadget4 implementation (below), it is.
         return hdf_file[particle_type][array_name]
+
+    def get_halo_properties(self, i, with_unit=True):
+        if with_unit:
+            extract = units.get_item_with_unit
+        else:
+            extract = lambda array, element: array[element]
+        properties = {}
+        if self._sub_mode:
+            for key in self._sub_properties:
+                properties[key] = extract(self._sub_properties[key], i)
+        else:
+            for key in self._fof_properties:
+                properties[key] = extract(self._fof_properties[key], i)
+        return properties
 
     def _get_halo(self, i) :
         if self.base is None :
