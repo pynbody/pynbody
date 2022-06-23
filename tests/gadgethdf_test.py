@@ -114,7 +114,7 @@ def test_halo_values() :
         assert(np.allclose(halo.properties['CenterOfMass'], FoF_CoM[i], rtol=1e-3))
 
         for j, s in enumerate(halo.sub) :
-	        assert(np.allclose(s.properties['CenterOfMass'], Sub_CoM[OffsetHalo[i]+j], rtol=1e-3))
+            assert(np.allclose(s.properties['CenterOfMass'], Sub_CoM[OffsetHalo[i]+j], rtol=1e-3))
 
     ###
     # Test the Halo particle information
