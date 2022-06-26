@@ -5,7 +5,8 @@ import weakref
 import h5py
 import numpy as np
 
-from .. import array, config_parser, snapshot, units
+from .. import array, config_parser, snapshot, units, snapshot
+from ..snapshot import gadgethdf
 from . import Halo, HaloCatalogue
 
 
@@ -150,18 +151,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
 
     def __get_property_dictionary_from_hdf(self, hdf_key):
-        hdf0 = self._hdf_files.get_file0_root()
 
-        props = {}
-
-        for h in self._hdf_files.iterroot():
-            for property_key in hdf0[hdf_key].keys():
-                if property_key in self.fof_ignore:
-                    continue
-                if property_key in props:
-                    props[property_key] = np.append(props[property_key], h[hdf_key][property_key][()])
-                else:
-                    props[property_key] = np.asarray(h[hdf_key][property_key])
+        props = self._get_properties_from_multifile(self._hdf_files, hdf_key)
 
         for property_key in list(props.keys()):
             arr_units = self._get_units(hdf_key, property_key)
@@ -170,6 +161,19 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                 props[property_key].units = arr_units
                 props[property_key].sim = self.base
 
+        return props
+
+    def _get_properties_from_multifile(self, multifile, hdf_key):
+        hdf0 = multifile.get_file0_root()
+        props = {}
+        for h in multifile.iterroot():
+            for property_key in hdf0[hdf_key].keys():
+                if property_key in self.fof_ignore:
+                    continue
+                if property_key in props:
+                    props[property_key] = np.append(props[property_key], h[hdf_key][property_key][()])
+                else:
+                    props[property_key] = np.asarray(h[hdf_key][property_key])
         return props
 
     def _get_units(self, hdf_key, property_key):
@@ -389,9 +393,12 @@ class SubFindHDFSubHalo(Halo) :
 
         # load properties
         sub_props = subfind_data_object._sub_properties
-        for key in sub_props :
-            self.properties[key] = array.SimArray(sub_props[key][absolute_id], sub_props[key].units)
-            self.properties[key].sim = self.base
+        for key in sub_props:
+            if units.has_units(sub_props[key]):
+                self.properties[key] = array.SimArray(sub_props[key][absolute_id], sub_props[key].units)
+                self.properties[key].sim = self.base
+            else:
+                self.properties[key] = sub_props[key][absolute_id]
 
 class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
@@ -409,6 +416,17 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
     _sub_offset_name = 'SubhaloOffsetType'
     _sub_len_name = 'SubhaloLenType'
+
+    def __init__(self, sim, subs=False, grp_array=False):
+        super().__init__(sim, subs, grp_array)
+        i = 0
+        for prog_or_desc in "prog", "desc":
+            try:
+                files = self._get_progenitor_or_descendant_multifile(sim, prog_or_desc)
+            except FileNotFoundError:
+                continue
+            props = self._get_properties_from_multifile(files, 'Subhalo')
+            self._sub_properties.update(props)
 
     def _get_halodata_array(self, hdf_file, array_name, halo_or_group, particle_type):
         return hdf_file[halo_or_group][array_name][:,int(particle_type[-1])]
@@ -432,18 +450,27 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
     @classmethod
     def _get_catalogue_multifile(cls, sim):
-        class Gadget4SubfindHdfMultiFileManager(snapshot.gadgethdf.SubfindHdfMultiFileManager):
+        class Gadget4SubfindHdfMultiFileManager(gadgethdf.SubfindHdfMultiFileManager):
             _nfiles_groupname = cls._fof_name
             _nfiles_attrname = "NTask"
             _subgroup_name = None
 
         return Gadget4SubfindHdfMultiFileManager(cls._catalogue_filename(sim))
 
+    @classmethod
+    def _get_progenitor_or_descendant_multifile(cls, sim, prog_or_desc):
+        class Gadget4SubfindHdfProgenitorsMultiFileManager(gadgethdf.SubfindHdfMultiFileManager):
+            _nfiles_groupname = "Header"
+            _nfiles_attrname = "NumFiles"
+            _subgroup_name = None
+
+        return Gadget4SubfindHdfProgenitorsMultiFileManager(cls._catalogue_filename(sim, "subhalo_"+prog_or_desc+"_"))
+
     @staticmethod
-    def _catalogue_filename(sim):
+    def _catalogue_filename(sim, namestem ="fof_subhalo_tab_"):
         snapnum = os.path.basename(sim.filename).split("_")[-1]
         parent_dir = os.path.dirname(os.path.abspath(sim.filename))
-        return os.path.join(parent_dir, "fof_subhalo_tab_" + snapnum)
+        return os.path.join(parent_dir, namestem + snapnum)
 
     @classmethod
     def _can_load(cls, sim, **kwargs):
