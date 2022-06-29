@@ -28,7 +28,7 @@ jobs:
 
       - name: Install numpy and cython
         run: python -m "pip" install numpy cython
-        
+
       - name: Set up QEMU
         if: runner.os == 'Linux'
         uses: docker/setup-qemu-action@v1
@@ -67,7 +67,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.6.0
         env:
-          CIBW_ARCHS_LINUX: auto aarch64 
+          CIBW_ARCHS_LINUX: auto aarch64
           CIBW_SKIP: cp36-* pp* *musllinux_aarch64 *i686
 
       - uses: actions/upload-artifact@v2
