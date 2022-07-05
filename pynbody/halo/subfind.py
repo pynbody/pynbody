@@ -119,8 +119,11 @@ class SubfindCatalogue(HaloCatalogue):
 
     def _readheader(self):
         header = np.array([], dtype='int32')
-        filename = self.halodir + "/subhalo_tab_" + \
-            self.halodir.split("_")[-1] + ".0"
+        iout = self.halodir.split("_")[-1]
+        filename = os.path.join(
+            self.halodir,
+            f"subhalo_tab_{iout}.0"
+        )
         fd = open(filename, "rb")
         # read header: this is strange but it works: there is an extra value in
         # header which we delete in the next step
@@ -131,9 +134,12 @@ class SubfindCatalogue(HaloCatalogue):
 
     def _read_ids(self):
         data_ids = np.array([], dtype=self.dtype_int)
+        iout = self.halodir.split("_")[-1]
         for n in range(0, self._tasks):
-            filename = self.halodir + "/subhalo_ids_" + \
-                self.halodir.split("_")[-1] + "." + str(n)
+            filename = os.path.join(
+                self.halodir,
+                f"subhalo_ids_{iout}.{n}"
+            )
             fd = open(filename, "rb")
             # for some reason there is an extra value in header which we delete
             # in the next step
@@ -169,7 +175,11 @@ class SubfindCatalogue(HaloCatalogue):
             self._keys=subkeys_flt+subkeys_int
 
         for n in range(0,self._tasks):
-            filename=self.halodir+"/subhalo_tab_"+self.halodir.split("_")[-1]+"." +str(n)
+            iout = self.halodir.split("_")[-1]
+            filename = os.path.join(
+                self.halodir,
+                f"subhalo_tab_{iout}.{n}"
+            )
             fd=open(filename, "rb")
             header1=np.fromfile(fd, dtype='int32', sep="", count=8)
             header=np.delete(header1,4)
