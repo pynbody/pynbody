@@ -128,7 +128,7 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
         pro_d._profiles['v_circ'] = v_c
         pro_d.v_circ_loaded = True
 
-    except:
+    except Exception:
         pro_d = profile.Profile(d, nbins=100, type='log')  # .D()
         # Nasty hack follows to force the full halo to be used in calculating the
         # gravity (otherwise get incorrect rotation curves)

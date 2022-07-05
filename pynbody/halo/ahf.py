@@ -428,7 +428,7 @@ class AHFCatalogue(HaloCatalogue):
         snapshot = self[1].ancestor
         try:
             snapshot['grp']
-        except:
+        except Exception:
             self.make_grp()
         if not grpoutfile:
             grpoutfile = snapshot.filename + '.grp'

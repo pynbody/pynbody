@@ -15,5 +15,5 @@ try:
 	pp.guo(h,baryfrac=True,filename=simname+'.guo.png')
 	pp.schmidtlaw(h[i],filename=simname+'.schmidt.png',center=False)
 	pp.satlf(h[i],filename=simname+'.satlf.png')
-except:
+except Exception:
 	pass

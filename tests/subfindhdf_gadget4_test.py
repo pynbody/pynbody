@@ -128,7 +128,7 @@ class Halos:
            (optionally restrict to a subset given by fields). """
         try:
             return self.loadObjects("Subhalo", "subhalos", fields)
-        except:
+        except Exception:
             return self.loadObjects("Subhalo", "subgroups", fields)
 
     def loadHalos(self, fields=None):

@@ -961,7 +961,7 @@ class GadgetSnap(SimSnap):
         except OSError:
             try:
                 fd = open(f + ".0", 'rb')
-            except:
+            except Exception:
                 return False
                 # If we can't open the file, we certainly can't load it...
         (r,) = struct.unpack('=I', fd.read(4))

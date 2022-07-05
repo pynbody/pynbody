@@ -34,5 +34,5 @@ try:
                  width=30,vmin=3,vmax=7)
     pynbody.plot.image(s.gas,qty='temp',width=500,center=False,
                        filename=simname+'.temp500kpc.png',vmin=3,vmax=7)
-except:
+except Exception:
     pass

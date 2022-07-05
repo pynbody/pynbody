@@ -346,7 +346,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             family = matched_families[0]
         try:
             data = self.base[family]
-        except:
+        except Exception:
             logger.error(type(self.base))
             logger.error(type(family))
             raise

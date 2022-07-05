@@ -413,7 +413,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
     def _get_persist(self, hash, name):
         try:
             return self._persistent_objects[hash][name]
-        except:
+        except Exception:
             return None
 
     def _set_persist(self, hash, name, obj=None):
@@ -1550,7 +1550,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
                 index_list = self.get_index_list(self.ancestor)
                 hash = hashlib.md5(index_list.data)
                 self.__inclusion_hash = hash.digest()
-            except:
+            except Exception:
                 logging.warn(
                     "Encountered a problem while calculating your inclusion hash. %s" % traceback.format_exc())
             rval = self.__inclusion_hash

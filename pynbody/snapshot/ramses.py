@@ -948,7 +948,7 @@ class RamsesSnap(SimSnap):
                        [_type] * len(self._cpus),
                        self._particle_family_ids_on_disk
                        )
-        except:
+        except Exception:
             warnings.warn("Exception encountered while reading %r; is there an incompatibility in your Ramses configuration?"%blockname)
             del self[blockname]
             raise
@@ -1044,7 +1044,7 @@ class RamsesSnap(SimSnap):
     def _read_proper_time(self):
         try:
             self._is_using_proper_time = config_parser.getboolean("ramses", "proper_time")
-        except:
+        except Exception:
             self._is_using_proper_time = False
 
     def _convert_metal_name(self):

@@ -103,7 +103,7 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     for key in ['pos', 'vel', 'mass', 'iord', 'metal']:
         try:
             s[key]
-        except:
+        except Exception:
             pass
 
     s['eps'] = s.g['smooth'].min()
@@ -115,7 +115,7 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     del(s.s['tform'])
     try:
         get_tform(s)
-    except:
+    except Exception:
         s.s['tform'] = -1.0
         s.s['tform'].units = 'Gyr'
 

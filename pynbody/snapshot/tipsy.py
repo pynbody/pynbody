@@ -578,17 +578,17 @@ class TipsySnap(SimSnap):
 
         try:
             u = units.Unit(res['units'])
-        except:
+        except Exception:
             u = None
         try:
             fams = [family.get_family(x.strip())
                     for x in res['families'].split(" ")]
-        except:
+        except Exception:
             fams = None
 
         try:
             dtype = np.dtype(res['dtype'])
-        except:
+        except Exception:
             dtype = None
 
         return u, fams, dtype
@@ -945,7 +945,7 @@ class TipsySnap(SimSnap):
         try:
             check = TipsySnap(f, verbose=False)
             del check
-        except:
+        except Exception as e:
             return False
 
         return True
@@ -1593,7 +1593,7 @@ def param2units(sim):
                     sim._file_units_system = [units.Unit(velunit_st),
                                               units.Unit(munit_st),
                                               units.Unit(dunit_st), units.K]
-                except:
+                except Exception:
                     pass
 
     sim._override_units_system()
