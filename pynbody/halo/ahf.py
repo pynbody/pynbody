@@ -425,9 +425,6 @@ class AHFCatalogue(HaloCatalogue):
             return
         logger.info("AHFCatalogue loading substructure")
 
-        # number of halos?  no, some crazy number that we will ignore
-        f.readline()
-
         # In the substructure catalog, halos are either referenced by their index
         # or by their ID (if they have one).
         ID2index = {}
@@ -442,7 +439,7 @@ class AHFCatalogue(HaloCatalogue):
                 haloid, _nsubhalos = (int(x) for x in line.split())
                 halo_index = ID2index[haloid + 1]
                 children = [
-                    ID2index[int(x) + 1] for x in f.readline().split()
+                    ID2index[int(x)] for x in f.readline().split()
                 ]
             except ValueError:
                 logger.error(
