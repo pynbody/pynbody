@@ -5,7 +5,7 @@ import weakref
 import h5py
 import numpy as np
 
-from .. import array, config_parser, snapshot, units, snapshot
+from .. import array, config_parser, snapshot, units
 from ..snapshot import gadgethdf
 from . import Halo, HaloCatalogue
 
