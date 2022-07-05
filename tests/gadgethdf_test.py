@@ -150,6 +150,14 @@ def test_write():
     snap2 = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
     assert(np.allclose(snap2[ar_name], snap[ar_name]))
 
+def test_grp_array():
+    h = subfind.halos()
+    grp = h.get_group_array()
+    print(grp)
+    for i in range(0,100,10):
+        assert len(subfind['iord'][grp==i]) == len(h[i])
+        assert (h[i]['iord'] == subfind['iord'][grp==i]).all()
+
 def test_hi_derivation():
     HI_answer = [  6.96499870e-06,   6.68348046e-06,   1.13855074e-05,
          1.10936027e-05,   1.40641633e-05,   1.67324738e-05,

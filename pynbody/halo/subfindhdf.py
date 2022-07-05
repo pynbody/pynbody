@@ -258,19 +258,52 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         # In gadget3 implementation, halo_or_group is not needed. In Gadget4 implementation (below), it is.
         return hdf_file[particle_type][array_name]
 
-    def get_halo_properties(self, i, with_unit=True):
+    def get_halo_properties(self, i, with_unit=True, subs=None):
+        """Get just the properties for halo/group i
+
+        Subs controls whether to get halo (True) or group (False) properties
+        If subs is None, return the halo/group according to whether subs=True/False when constructing the catalogue.
+        """
+
+        if subs is None:
+            subs = self._sub_mode
+
         if with_unit:
             extract = units.get_item_with_unit
         else:
             extract = lambda array, element: array[element]
         properties = {}
-        if self._sub_mode:
+        if subs:
             for key in self._sub_properties:
                 properties[key] = extract(self._sub_properties[key], i)
         else:
             for key in self._fof_properties:
                 properties[key] = extract(self._fof_properties[key], i)
+            properties['children'], = np.where(self._subfind_halo_parent_groups==i)
         return properties
+
+    def get_group_array(self):
+        if self._sub_mode:
+            lengths = self._subfind_halo_lengths
+            offsets = self._subfind_halo_offsets
+        else:
+            lengths = self._fof_group_lengths
+            offsets = self._fof_group_offsets
+
+        type_map = self.base._family_to_group_map
+
+        grp = np.empty(len(self.base), dtype=np.int32)
+        grp.fill(-1)
+
+        for ptype in self.base._families_ordered():
+            sl = self.base._family_slice[ptype]
+            for g_ptype in type_map[ptype]:
+                for i in range(len(self)):
+                    offset = offsets[g_ptype][i]
+                    length = lengths[g_ptype][i]
+                    grp[sl.start + offset:sl.start + offset + length] = i
+        return grp
+
 
     def _get_halo(self, i) :
         if self.base is None :
@@ -357,11 +390,7 @@ class SubFindFOFGroup(Halo) :
 
         self._descriptor = "fof_group_"+str(group_id)
 
-        # load properties
-        for key in list(self._halo_catalogue._fof_properties.keys()) :
-            self.properties[key] = array.SimArray(self._halo_catalogue._fof_properties[key][group_id],
-                                            self._halo_catalogue._fof_properties[key].units)
-            self.properties[key].sim = self.base
+        self.properties.update(self._halo_catalogue.get_halo_properties(group_id, subs=False))
 
 
     def __getattr__(self, name):
@@ -392,13 +421,8 @@ class SubFindHDFSubHalo(Halo) :
         absolute_id = subfind_data_object._fof_group_first_subhalo[self._group_id] + halo_id
 
         # load properties
-        sub_props = subfind_data_object._sub_properties
-        for key in sub_props:
-            if units.has_units(sub_props[key]):
-                self.properties[key] = array.SimArray(sub_props[key][absolute_id], sub_props[key].units)
-                self.properties[key].sim = self.base
-            else:
-                self.properties[key] = sub_props[key][absolute_id]
+        self.properties.update(subfind_data_object.get_halo_properties(absolute_id, subs=True))
+
 
 class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
