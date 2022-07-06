@@ -38,25 +38,27 @@ def test_lengths():
     assert len(halos_arepo)==447
     assert len(subhalos_arepo)==475
 
+
+def _test_halo_or_subhalo_properties(comparison_catalogue, pynbody_catalogue):
+
+    np.random.seed(1)
+    hids = np.random.choice(range(len(pynbody_catalogue)), 20)
+
+    for hid in hids:
+        for key in list(comparison_catalogue.keys()):
+            props = pynbody_catalogue.get_halo_properties(hid, with_unit=False)
+            if key in list(props.keys()):
+                np.testing.assert_allclose(props[key], comparison_catalogue[key][hid])
+
 def test_halo_properties():
     for htest_file, halocatalogue in [(htest, halos), (htest_arepo, halos_arepo)]:
-        r = htest_file.load()['halos']
-        hids = np.random.choice(range(len(halocatalogue)), 5)
-        for hid in hids:
-            for key in list(r.keys()):
-                if key in list(halocatalogue[hid].properties.keys()):
-                    np.testing.assert_allclose(halocatalogue[hid].properties[key], r[key][hid])
+        _test_halo_or_subhalo_properties(htest_file.load()['halos'], halocatalogue)
 
 
 def test_subhalo_properties():
     for htest_file, halocatalogue in [(htest, subhalos), (htest_arepo, subhalos_arepo)]:
-        r = htest_file.load()['subhalos']
-        np.random.seed(1)
-        hids = np.random.choice(range(len(halocatalogue)), 20)
-        for hid in hids:
-            for key in list(r.keys()):
-                if key in list(halocatalogue[hid].properties.keys()):
-                    np.testing.assert_allclose(halocatalogue[hid].properties[key], r[key][hid])
+        _test_halo_or_subhalo_properties(htest_file.load()['subhalos'], halocatalogue)
+
 
 
 def test_halo_loading() :

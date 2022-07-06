@@ -150,6 +150,14 @@ def test_write():
     snap2 = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
     assert(np.allclose(snap2[ar_name], snap[ar_name]))
 
+def test_grp_array():
+    h = subfind.halos()
+    grp = h.get_group_array()
+    print(grp)
+    for i in range(0,100,10):
+        assert len(subfind['iord'][grp==i]) == len(h[i])
+        assert (h[i]['iord'] == subfind['iord'][grp==i]).all()
+
 def test_hi_derivation():
     HI_answer = [  6.96499870e-06,   6.68348046e-06,   1.13855074e-05,
          1.10936027e-05,   1.40641633e-05,   1.67324738e-05,
@@ -172,10 +180,10 @@ def test_hi_derivation():
 
 def test_fof_vs_sub_assignment():
     h = subfind.halos()
-    assert(np.allclose(h[0].properties['Mass'],28.604694074339932))
-    assert(np.allclose( h[0].properties['Halo_M_Crit200'], 29.796955896599684))
-    assert(np.allclose(h[1].properties['Mass'], 8.880245794949587))
-    assert(np.allclose(h[1].properties['Halo_M_Crit200'],8.116568749712314))
+    assert(np.allclose(h.get_halo_properties(0, with_unit=False)['Mass'],28.604694074339932))
+    assert(np.allclose(h.get_halo_properties(0, with_unit=False)['Halo_M_Crit200'], 29.796955896599684))
+    assert(np.allclose(h.get_halo_properties(1, with_unit=False)['Mass'], 8.880245794949587))
+    assert(np.allclose(h.get_halo_properties(1, with_unit=False)['Halo_M_Crit200'],8.116568749712314))
 
 def test_hdf_ordering():
     # HDF files do not intrinsically specify the order in which the particle types occur
