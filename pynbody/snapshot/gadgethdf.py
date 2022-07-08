@@ -365,7 +365,7 @@ class GadgetHDFSnap(SimSnap):
     def _get_cosmo_factors(hdf, arr_name) :
         """Return the cosmological factors for a given array"""
         match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((s.endswith("/"+arr_name)) & ('PartType' in s))]
-        if (arr_name == 'Mass' or 'Masses') and len(match) == 0:
+        if (arr_name == 'Mass' or arr_name == 'Masses') and len(match) == 0:
             # mass stored in header. We're out in the cold on our own.
             warnings.warn("Masses are either stored in the header or have another dataset name; assuming the cosmological factor %s" % units.h**-1)
             return units.Unit('1.0'), units.h**-1
