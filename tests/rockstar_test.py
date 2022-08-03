@@ -1,7 +1,10 @@
-import pynbody
-import numpy as np, numpy.testing as npt
-
+import numpy as np
+import numpy.testing as npt
 import pytest
+
+import pynbody
+
+
 def setup_module():
     # create a dummy gadget file
     global f, h

@@ -9,8 +9,8 @@ Utility functions for the plotting module
 
 import numpy as np
 import scipy as sp
-import scipy.sparse
 import scipy.signal
+import scipy.sparse
 
 
 def fast_kde(x, y, kern_nx=None, kern_ny=None, gridsize=(100, 100),
@@ -18,7 +18,7 @@ def fast_kde(x, y, kern_nx=None, kern_ny=None, gridsize=(100, 100),
     """
     A faster gaussian kernel density estimate (KDE).  Intended for
     computing the KDE on a regular grid (different use case than
-    scipy's original scipy.stats.kde.gaussian_kde()).  
+    scipy's original scipy.stats.kde.gaussian_kde()).
 
     Author: Joe Kington
     License:  MIT License <http://www.opensource.org/licenses/mit-license.php>
@@ -26,8 +26,8 @@ def fast_kde(x, y, kern_nx=None, kern_ny=None, gridsize=(100, 100),
     Performs a gaussian kernel density estimate over a regular grid using a
     convolution of the gaussian kernel with a 2D histogram of the data.
 
-    This function is typically several orders of magnitude faster than 
-    scipy.stats.kde.gaussian_kde for large (>1e7) numbers of points and 
+    This function is typically several orders of magnitude faster than
+    scipy.stats.kde.gaussian_kde for large (>1e7) numbers of points and
     produces an essentially identical result.
 
     **Input**:
@@ -38,13 +38,13 @@ def fast_kde(x, y, kern_nx=None, kern_ny=None, gridsize=(100, 100),
         *y*: array
             The y-coords of the input data points
 
-        *kern_nx*: float 
+        *kern_nx*: float
             size (in units of *x*) of the kernel
 
         *kern_ny*: float
             size (in units of *y*) of the kernel
 
-        *gridsize*: (Nx , Ny) tuple (default: 200x200) 
+        *gridsize*: (Nx , Ny) tuple (default: 200x200)
             Size of the output grid
 
         *extents*: (default: extent of input data) A (xmin, xmax, ymin, ymax)
@@ -53,17 +53,17 @@ def fast_kde(x, y, kern_nx=None, kern_ny=None, gridsize=(100, 100),
         *nocorrelation*: (default: False) If True, the correlation between the
             x and y coords will be ignored when preforming the KDE.
 
-        *weights*: (default: None) An array of the same shape as x & y that 
+        *weights*: (default: None) An array of the same shape as x & y that
             weighs each sample (x_i, y_i) by each value in weights (w_i).
             Defaults to an array of ones the same size as x & y.
 
-        *norm*: boolean (default: False) 
+        *norm*: boolean (default: False)
             If False, the output is only corrected for the kernel. If True,
-            the result is normalized such that the integral over the area 
-            yields 1. 
+            the result is normalized such that the integral over the area
+            yields 1.
 
     **Output**:
-        A gridded 2D kernel density estimate of the input points. 
+        A gridded 2D kernel density estimate of the input points.
     """
 
     #---- Setup --------------------------------------------------------------
@@ -173,13 +173,13 @@ def inv_fourier(p, nmin=1000, mmin=1, mmax=7, nphi=100):
     Invert a profile with fourier coefficients to yield an overdensity
     map.
 
-    **Inputs:** 
+    **Inputs:**
 
     *p* : a :func:`~pynbody.analysis.profile.Profile` object
 
     **Optional Keywords:**
 
-    *nmin* (1000) : minimum number of particles required per bin 
+    *nmin* (1000) : minimum number of particles required per bin
 
     *mmin* (1)    : lowest multiplicity Fourier component
 

@@ -139,16 +139,18 @@ handler:
 
 """
 
-import numpy as np
-import weakref
-import os
-from . import units as units
-from functools import reduce
-_units = units
-from .backcompat import property
-from .backcompat import fractions
 import atexit
+import fractions
 import functools
+import os
+import weakref
+from functools import reduce
+
+import numpy as np
+
+from . import units as units
+
+_units = units
 
 
 class SimArray(np.ndarray):
@@ -405,7 +407,7 @@ class SimArray(np.ndarray):
                 cr = x.units.ratio(self.units,
                                    **context)
             except units.UnitsException:
-                raise ValueError("Incompatible physical dimensions %r and %r, context %r" % (
+                raise ValueError("Incompatible physical dimensions {!r} and {!r}, context {!r}".format(
                     str(self.units), str(x.units), str(self.conversion_context())))
 
             if cr == 1.0:
@@ -843,7 +845,7 @@ def _comparison_units(*a):
     return None
 
 
-class IndexedSimArray(object):
+class IndexedSimArray:
 
     @property
     def derived(self):
@@ -862,7 +864,7 @@ class IndexedSimArray(object):
 
     def _reexpress_index(self, index):
         if isinstance(index, tuple) or (isinstance(index, list) and len(index) > 0 and hasattr(index[0], '__len__')):
-            return [self._ptr[index[0]]] + list(index[1:])
+            return (self._ptr[index[0]],) + tuple(index[1:])
         else:
             return self._ptr[index]
 
@@ -975,14 +977,15 @@ for x in set(np.ndarray.__dict__).union(SimArray.__dict__):
 
 try:
     import ctypes
+    import functools
+    import mmap
     import multiprocessing
     import multiprocessing.sharedctypes
-    import tempfile
-    import functools
     import os
-    import time
     import random
-    import mmap
+    import tempfile
+    import time
+
     import posix_ipc
     _all_shared_arrays = []
 except ImportError:

@@ -25,7 +25,7 @@
 /* Debugging tools                                                          */
 /*==========================================================================*/
 #define DBG_LEVEL 0
-#define DBG(lvl) if (DBG_LEVEL >= lvl) 
+#define DBG(lvl) if (DBG_LEVEL >= lvl)
 
 /*==========================================================================*/
 /* Memory allocation wrappers.                                              */
@@ -53,7 +53,7 @@ PyObject *kdfree(PyObject *self, PyObject *args);
 
 PyObject *calculate(PyObject *self, PyObject *args);
 
-static PyMethodDef grav_methods[] = 
+static PyMethodDef grav_methods[] =
 {
     {"treeinit", treeinit, METH_VARARGS, "treeinit"},
     {"free", kdfree, METH_VARARGS, "free"},
@@ -91,7 +91,7 @@ PyObject *treeinit(PyObject *self, PyObject *args)
     /*
     ** Allocate particles.
     */
-    
+
     kd->pStorePRIVATE = (PARTICLE *)malloc(nbodies*kd->iParticleSize);
     assert(kd->pStorePRIVATE != NULL);
 
@@ -148,16 +148,16 @@ PyObject *calculate(PyObject *self, PyObject *args)
     int nPos;
     PyObject *kdobj, *acc, *pot, *pos;
     PARTICLE *testParticles;
-  
+
     PyArg_ParseTuple(args, "OOOOdi", &kdobj, &pos, &acc, &pot, &fSoft, &nPos);
     kd  = PyCObject_AsVoidPtr(kdobj);
     if (kd == NULL) return NULL;
-    
+
     testParticles = (PARTICLE *)malloc(nPos*sizeof(PARTICLE));
     assert(testParticles != NULL);
     for (i=0; i< nPos; i++) {
 	for (j=0; j < 3; j++) {
-	    testParticles[i].r[j] = 
+	    testParticles[i].r[j] =
 		(float)*((double *)PyArray_GETPTR2(pos, i, j));
 	    testParticles[i].a[j] = 0;
 	    }
@@ -171,11 +171,11 @@ PyObject *calculate(PyObject *self, PyObject *args)
 	kdGravWalk(kd, nReps, bPeriodic && bEwald, testParticles, nPos);
 
     Py_END_ALLOW_THREADS
-    
+
     for (i=0; i < nPos; i++) {
 	PyArray_SETITEM(pot, PyArray_GETPTR1(pot,i), PyFloat_FromDouble(testParticles[i].fPot));
 	for (j=0; j < 3; j++) {
-	    PyArray_SETITEM(acc, PyArray_GETPTR2(acc, i, j), 
+	    PyArray_SETITEM(acc, PyArray_GETPTR2(acc, i, j),
 			    PyFloat_FromDouble(testParticles[i].a[j]));
 	    }
 	}
@@ -190,4 +190,3 @@ PyObject *calculate(PyObject *self, PyObject *args)
     Py_INCREF(Py_None);
     return Py_None;
 }
-

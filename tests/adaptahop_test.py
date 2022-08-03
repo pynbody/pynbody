@@ -1,10 +1,9 @@
 import numpy as np
+import pytest
 from scipy.io import FortranFile as FF
 
 import pynbody
 from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
-
-import pytest
 
 
 # Note: we do not use a module-wide fixture here to prevent caching of units
@@ -190,3 +189,10 @@ def test_longint_contamination_autodetection(f, fname, Halo_T, ans):
     halos = Halo_T(f, fname=fname)
     assert halos._longint == ans["_longint"]
     assert halos._read_contamination == ans["_read_contamination"]
+
+def test_halo_iteration(halos):
+    h = list(halos)
+
+    assert len(h) == len(halos)
+    assert h[0] is halos[1]
+    assert h[-1] is halos[len(halos)]

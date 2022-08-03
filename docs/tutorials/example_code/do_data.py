@@ -15,7 +15,7 @@ sbprof = profile.Profile(diskstars,type='equaln')
 #decompprof = pynbody.analysis.decomp(h[i])
 #dec = h[i].star['decomp']
 
-### Save important numbers using pickle.  
+### Save important numbers using pickle.
 pickle.dump({'z':s.properties['z'],
              'time':s.properties['time'].in_units('Gyr'),
              'rvir':rvir,
@@ -30,13 +30,12 @@ pickle.dump({'z':s.properties['z'],
              'mgashot': np.sum(h[i].gas[filt.HighPass('temp',1e5)]['mass'].in_units('Msol')),
              'mgascool': np.sum(h[i].gas[filt.LowPass('temp',1e5)]['mass'].in_units('Msol')),
              'Jtot':Jtot,'lambda':(Jtot / np.sqrt(2*np.power(mvir,3)*rvir*units.G)).in_units('1'),
-             'denprof':{'r':rhoprof['rbins'].in_units('kpc'), 
+             'denprof':{'r':rhoprof['rbins'].in_units('kpc'),
                         'den':rhoprof['density']},
-             'rotcur':{'r':rcpro['rbins'].in_units('kpc'), 
+             'rotcur':{'r':rcpro['rbins'].in_units('kpc'),
                        'vc':rcpro['rotation_curve_spherical'].in_units('km s^-1'),
                        'fourier':rcpro['fourier']},
-             'sb':{'r':sbprof['rbins'].in_units('kpc'), 
+             'sb':{'r':sbprof['rbins'].in_units('kpc'),
                    'sb':sbprof['sb,i']}
              },
             open(simname+'.data','w'), pickle.HIGHEST_PROTOCOL)
-

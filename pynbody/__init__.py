@@ -25,14 +25,25 @@ version of pynbody (prior to version 1.0), by typing:
 pip install 'pynbody<1.0'
 """)
 
-from . import backcompat
-from . import configuration
-
-from .configuration import config, config_parser, logger
-
-from . import util, filt, array, family, snapshot
-from .snapshot import tipsy, gadget, gadgethdf, ramses, grafic, nchilada, ascii
-from . import analysis, halo, derived, bridge, gravity, sph, transformation
+# Note: we need to import the configuration first as it sets up the logging
+#       used in later imports
+from .configuration import config, logger, config_parser # isort:skip
+from . import (
+    analysis,
+    array,
+    bridge,
+    configuration,
+    derived,
+    family,
+    filt,
+    gravity,
+    halo,
+    snapshot,
+    sph,
+    transformation,
+    util,
+)
+from .snapshot import ascii, gadget, gadgethdf, grafic, nchilada, ramses, tipsy
 
 
 # The PlotModuleProxy serves to delay import of pynbody.plot until it's accessed.
@@ -41,7 +52,7 @@ from . import analysis, halo, derived, bridge, gravity, sph, transformation
 # pynbody.plot, it would seem to be too destructive to stop this behaviour.
 # So this hack is the compromise and should be completely transparent to most
 # users.
-class PlotModuleProxy(object):
+class PlotModuleProxy:
     def _do_import(self):
         global plot
         del plot
@@ -72,12 +83,12 @@ class PlotModuleProxy(object):
 
 plot = PlotModuleProxy()
 
-from .snapshot import new, load
+from .snapshot import load, new
 
 configuration.configure_snapshot_and_halo_loading_priority()
 
 derived_array = snapshot.SimSnap.derived_quantity
 
-__version__ = '1.1.0'
+__version__ = '1.2.3'
 
 __all__ = ['load', 'new', 'derived_array']

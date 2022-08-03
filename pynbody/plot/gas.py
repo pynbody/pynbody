@@ -7,12 +7,15 @@ Functions for plotting gas quantities
 
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-from ..analysis import profile, angmom, halo
-from .generic import hist2d
-from ..units import Unit
 import logging
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from ..analysis import angmom, halo, profile
+from ..units import Unit
+from .generic import hist2d
+
 logger = logging.getLogger('pynbody.plot.gas')
 
 
@@ -36,8 +39,6 @@ def rho_T(sim, rho_units=None, rho_range=None, t_range=None, two_phase='split', 
 
 
     """
-    from matplotlib import ticker, colors
-
     if rho_units is None:
         rho_units = sim.gas['rho'].units
 
@@ -70,7 +71,7 @@ def rho_T(sim, rho_units=None, rho_range=None, t_range=None, two_phase='split', 
 
     if 'uHot' in sim.loadable_keys() and 'MassHot' in sim.loadable_keys() and two_phase == 'split':
         E = sim.g['uHot']*sim.g['MassHot']+sim.g['u']*(sim.g['mass']-sim.g['MassHot'])
-        rho = np.concatenate((sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['u']), 
+        rho = np.concatenate((sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['u']),
             sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['uHot'])))
         temp = np.concatenate((sim.g['temp'], sim.g['temp']/sim.g['u']*sim.g['uHot']))
         temp = temp[np.where(np.isfinite(rho))]

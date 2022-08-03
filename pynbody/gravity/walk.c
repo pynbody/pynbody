@@ -112,7 +112,7 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
 		    /*printf("[%d]: %g ",j,rCheck[j]);*/
 		    }
 		/*printf("\n");*/
-		
+
 		kdNodeBnd(kd, kdn, &kbnd);
 		/*
 		** If this cell is a bucket we have to either open the checkcell
@@ -238,7 +238,7 @@ void kdGravWalk(KD kd, int nReps,int bEwald, PARTICLE *testParticles, int nPos){
 			}
 		    /*
 		    ilpAppend(kd->ilp,rCheck[0],rCheck[1],rCheck[2],
-			      kdNodeMom(kd,kdc)->m,4*kdc->fSoft2,-1); 
+			      kdNodeMom(kd,kdc)->m,4*kdc->fSoft2,-1);
 		    */
 		    kd->ilp[nPart].iOrder = -1; /* set iOrder to negative value for time step criterion */
 		    kd->ilp[nPart].m = kdNodeMom(kd,kdc)->m;

@@ -1,10 +1,10 @@
-import numpy as np
 import sys
-cimport numpy as npc
+
+import numpy as np
+
 cimport cython
-
+cimport numpy as npc
 from cython cimport integral
-
 
 # The following slightly odd repetitiveness is to force Cython to generate
 # code for different permutations of the possible integer inputs.

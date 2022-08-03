@@ -10,24 +10,18 @@ automatically via pynbody.load.
 """
 
 
-from .. import array, units
-from .. import family
-from .. import config
-from .. import config_parser
-from .. import util
-from .. import backcompat
-from . import SimSnap
-from . import namemapper
-
 import configparser
-import numpy as np
-import struct
-import sys
 import copy
-import os.path as path
-import warnings
 import errno
 import itertools
+import struct
+import sys
+import warnings
+
+import numpy as np
+
+from .. import array, config, config_parser, family, units
+from . import SimSnap, namemapper
 
 # This is set here and not in a config file because too many things break
 # if it is not 6
@@ -35,7 +29,7 @@ import itertools
 
 N_TYPE = 6
 
-_type_map = backcompat.OrderedDict({})
+_type_map = {}
 
 for name, gtypes in config_parser.items('gadget-type-mapping'):
     try:
@@ -71,7 +65,7 @@ def gadget_type(fam):
         return _type_map[fam]
 
 
-class GadgetBlock(object):
+class GadgetBlock:
 
     """Class to describe each block.
     Each block has a start, a length, and a length-per-particle"""
@@ -147,7 +141,7 @@ def _construct_gadget_header(data, endian='='):
     return header
 
 
-class GadgetHeader(object):
+class GadgetHeader:
 
     """Describes the header of gadget class files; this is all our metadata, so we are going to store it inline"""
 
@@ -254,7 +248,7 @@ class GadgetHeader(object):
         return data
 
 
-class GadgetFile(object):
+class GadgetFile:
 
     """Gadget file management class. Users should access gadget files through
     :class:`~pynbody.gadget.GadgetSnap`."""
@@ -284,17 +278,17 @@ class GadgetFile(object):
             # Do special things for the HEAD block
             if name[0:4] == b"HEAD":
                 if block.length != 256:
-                    raise IOError("Mis-sized HEAD block in " + filename)
+                    raise OSError("Mis-sized HEAD block in " + filename)
                 self.header = fd.read(256)
                 if len(self.header) != 256:
-                    raise IOError("Could not read HEAD block in " + filename)
+                    raise OSError("Could not read HEAD block in " + filename)
                 self.header = _construct_gadget_header(
                     self.header, self.endian)
                 record_size = self.read_block_foot(fd)
                 if record_size != 256:
-                    raise IOError("Bad record size for HEAD in " + filename)
+                    raise OSError("Bad record size for HEAD in " + filename)
                 t_part = self.header.npart.sum()
-                if  ((not self.format2) and 
+                if  ((not self.format2) and
                 	((self.header.npart != 0) * (self.header.mass == 0)).sum()==0):
                     # The "Spec" says that if all the existing particle masses
                     # are in the header, we shouldn't have a MASS block
@@ -335,7 +329,7 @@ class GadgetFile(object):
                 fd.seek(block.length, 1)
             record_size = self.read_block_foot(fd)
             if record_size != block.length:
-                raise IOError("Corrupt record in " +
+                raise OSError("Corrupt record in " +
                               filename + " footer for block " + name + "dtype" + str(block.data_type))
             if extra_len >= 2 ** 32:
                 block.length = extra_len
@@ -422,7 +416,7 @@ class GadgetFile(object):
             self.endian = '='
             self.format2 = False
         else:
-            raise IOError("File corrupt. First integer is: " + str(r))
+            raise OSError("File corrupt. First integer is: " + str(r))
         fd.seek(0, 0)
         return
 
@@ -430,7 +424,7 @@ class GadgetFile(object):
         """Unpacks the block footer, into a single integer"""
         record_size = fd.read(4)
         if len(record_size) != 4:
-            raise IOError("Could not read block footer")
+            raise OSError("Could not read block footer")
         (record_size,) = struct.unpack(self.endian + 'I', record_size)
         return record_size
 
@@ -445,7 +439,7 @@ class GadgetFile(object):
                 return ("    ", 0)
             head = struct.unpack(self.endian + 'I4sIII', head)
             if head[0] != 8 or head[3] != 8 or head[4] != head[2] - 8:
-                raise IOError(
+                raise OSError(
                     "Corrupt header record. Possibly incorrect file format")
             # Don't include the two "record_size" indicators in the total
             # length count
@@ -629,7 +623,7 @@ class GadgetFile(object):
         # a mode will ignore the file position, and w truncates the file.
         try:
             fd = open(filename, "r+b")
-        except IOError as xxx_todo_changeme:
+        except OSError as xxx_todo_changeme:
             # If we couldn't open it because it doesn't exist open it for
             # writing.
             (err, strerror) = xxx_todo_changeme.args
@@ -639,7 +633,7 @@ class GadgetFile(object):
                 fd = open(filename, "w+b")
             # If we couldn't open it for any other reason, reraise exception
             else:
-                raise IOError(err, strerror)
+                raise OSError(err, strerror)
         fd.seek(0)  # Header always at start of file
         # Write header
         fd.write(data)
@@ -707,7 +701,7 @@ class GadgetSnap(SimSnap):
     def __init__(self, filename, only_header=False, must_have_paramfile=False, ignore_cosmo=False):
 
         global config
-        super(GadgetSnap, self).__init__()
+        super().__init__()
         self._files = []
         self._filename = filename
         self._ignore_cosmo = ignore_cosmo
@@ -716,7 +710,7 @@ class GadgetSnap(SimSnap):
         try:
             fd = open(filename, 'rb')
             files = [filename]
-        except IOError:
+        except OSError:
             fd = open(filename + ".0", 'rb')
             # The second time if there is an exception we let it go through
             filename = filename + ".0"
@@ -760,8 +754,8 @@ class GadgetSnap(SimSnap):
 
         self._family_slice = {}
 
-        self._loadable_keys = set([])
-        self._family_keys = set([])
+        self._loadable_keys = set()
+        self._family_keys = set()
         self._family_arrays = {}
         self._arrays = {}
         #self.properties = {}
@@ -772,7 +766,7 @@ class GadgetSnap(SimSnap):
             g_types = _type_map[fam]
             length = 0
             for f in self._files:
-                length += sum([f.header.npart[x] for x in g_types])
+                length += sum(f.header.npart[x] for x in g_types)
             self._family_slice[fam] = slice(current, current + length)
             current += length
 
@@ -851,12 +845,12 @@ class GadgetSnap(SimSnap):
         """Get the number of particles present in a block, of a given type"""
         total = 0
         for f in self._files:
-            total += sum([f.get_block_parts(
-                name, gfam) for gfam in gadget_type(family)])
+            total += sum(f.get_block_parts(
+                name, gfam) for gfam in gadget_type(family))
         # Special-case MASS
         if name == b"MASS":
-            total += sum([self.header.npart[p] * np.array(self.header.mass[
-                         p], dtype=bool) for p in gadget_type(family)])
+            total += sum(self.header.npart[p] * np.array(self.header.mass[
+                         p], dtype=bool) for p in gadget_type(family))
         return total
 
     def check_headers(self, head1, head2):
@@ -906,7 +900,7 @@ class GadgetSnap(SimSnap):
                 raise KeyError(
                     "Block " + name + " is not available for all families")
             else:
-                raise IOError("No such array on disk")
+                raise OSError("No such array on disk")
 
         ndim = self._get_array_dims(name)
 
@@ -951,7 +945,7 @@ class GadgetSnap(SimSnap):
                continue
            (f_read, f_data) = f.get_block(g_name, p_type, f_parts)
            if f_read != f_parts:
-               raise IOError("Read of " + f._filename + " asked for " + str(
+               raise OSError("Read of " + f._filename + " asked for " + str(
                    f_parts) + " particles but got " + str(f_read))
            iread = self._get_array_dims(g_name)*f.header.npart[p_type]
            data[ipos:ipos + iread] = f_data
@@ -964,7 +958,7 @@ class GadgetSnap(SimSnap):
         the first 4 bytes"""
         try:
             fd = open(f, 'rb')
-        except IOError:
+        except OSError:
             try:
                 fd = open(f + ".0", 'rb')
             except:
@@ -1004,7 +998,7 @@ class GadgetSnap(SimSnap):
                 # 12 - the largest block is likely to  be POS with 12 bytes per particle.
                 # 2**31 is the largest size a gadget block can safely have
                 if self.__len__() * 12. > 2 ** 31 - 1:
-                    raise IOError(
+                    raise OSError(
                         "Data too large to fit into a single gadget file, and splitting not implemented. Cannot write.")
                 # Make npart
                 npart = np.zeros(N_TYPE, int)
@@ -1179,8 +1173,8 @@ def do_units(sim):
     dist_unit = config_parser.get('gadget-units', 'pos')
     mass_unit = config_parser.get('gadget-units', 'mass')
 
-    vel_unit, dist_unit, mass_unit = [
-        units.Unit(x) for x in (vel_unit, dist_unit, mass_unit)]
+    vel_unit, dist_unit, mass_unit = (
+        units.Unit(x) for x in (vel_unit, dist_unit, mass_unit))
 
     if sim._ignore_cosmo or not _header_suggests_cosmological(sim.header):
         # remove a and h dependences

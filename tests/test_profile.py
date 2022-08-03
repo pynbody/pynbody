@@ -1,22 +1,23 @@
-import pynbody
 import numpy as np
 import numpy.testing as npt
+
+import pynbody
 
 np.random.seed(1)
 
 def make_fake_bar(npart=100000, max=1, min=-1, barlength=.8, barwidth=0.05, phi=0, fraction=0.2):
-    
+
     x = np.random.sample(int(npart*fraction))*(max-min) + min
     y = np.random.sample(int(npart*fraction))*(max-min) + min
-    
+
     xbar = np.random.sample(npart, )*(barlength/2+barlength/2) - barlength/2
     ybar = np.random.sample(npart)*(barwidth/2+barwidth/2) - barwidth/2
 
     x = np.concatenate([x,xbar])
     y = np.concatenate([y,ybar])
-    
-    good = np.where((x**2 + y**2 < 1))[0]
-    
+
+    good = np.where(x**2 + y**2 < 1)[0]
+
     s = pynbody.snapshot.new(len(good))
     s['x'] = x[good]
     s['y'] = y[good]

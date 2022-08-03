@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # pynbody documentation build configuration file, created by
 # sphinx-quickstart on Mon Oct  3 11:57:24 2011.
@@ -11,7 +10,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import os
+import sys
 
 #import sphinx_bootstrap_theme
 
@@ -65,8 +65,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pynbody'
-copyright = u'2011-20, pynbody team'
+project = 'pynbody'
+copyright = '2011-20, pynbody team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -74,6 +74,7 @@ copyright = u'2011-20, pynbody team'
 #
 # The short X.Y version.
 import pynbody
+
 version = ".".join(pynbody.__version__.split(".")[:2])
 # The full version, including alpha/beta/rc tags.
 release = pynbody.__version__
@@ -126,7 +127,7 @@ html_theme_options = { 'logo': 'logo.svg', 'logo_name': False, 'sidebar_collapse
 
 html_theme_options = {
     'bootswatch_theme': 'spacelab',
-    
+
     'navbar_site_name': 'Sections',
 
     'source_link_position': 'footer'
@@ -217,8 +218,8 @@ htmlhelp_basename = 'pynbodydoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'pynbody.tex', u'pynbody Documentation',
-   u'pynbody team (https://github.com/pynbody/pynbody/graphs/contributors)', 'manual'),
+  ('index', 'pynbody.tex', 'pynbody Documentation',
+   'pynbody team (https://github.com/pynbody/pynbody/graphs/contributors)', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -250,8 +251,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'pynbody', u'pynbody Documentation',
-     [u'pynbody team'], 1)
+    ('index', 'pynbody', 'pynbody Documentation',
+     ['pynbody team'], 1)
 ]
 
 autodoc_member_order = 'bysource'

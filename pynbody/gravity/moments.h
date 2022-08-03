@@ -10,7 +10,7 @@ typedef double momFloat;
 
 /*
 ** The first 4 MOM/LOC structures can use different precisions by defining
-** momFloat to float, double or long double, but are not guaranteed to be 
+** momFloat to float, double or long double, but are not guaranteed to be
 ** safe to use at float precision. The moments are also assumed to be expanded
 ** about the center of mass, such that no diapole term is present.
 */
@@ -53,7 +53,7 @@ typedef struct locReduced {
 
 /*
 ** The next set of data structures are intended specifically for use with float
-** precision. These moments are usually scaled to a characteristic size of the 
+** precision. These moments are usually scaled to a characteristic size of the
 ** cell or volume. The convention is to use the scaling factor u for the multipole
 ** moments and scaling factor v for the local expansion.
 */

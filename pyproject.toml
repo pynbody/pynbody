@@ -3,3 +3,17 @@ requires = ["setuptools", "wheel", "oldest-supported-numpy", "cython"]
 
 [tool.pytest.ini_options]
 testpaths = ['tests']
+
+[tool.isort]
+profile = "black"
+combine_as_imports = true
+known_third_party = [
+  "IPython",
+  "numpy",
+  "matplotlib",
+  "pytest",
+]
+known_first_party = [
+  "pynbody",
+]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]

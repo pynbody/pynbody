@@ -9,8 +9,9 @@ Flexible and general plotting functions
 
 import numpy as np
 import pylab as plt
+
 import pynbody
-from ..analysis import profile, angmom, halo
+
 from .. import config
 from ..array import SimArray
 from ..units import NoUnit
@@ -276,8 +277,9 @@ Since this function produces a density estimate, the units of the
        *scalemax*: float
          maximum value to use for the color scale
     """
-    from .util import fast_kde
     from scipy.stats.kde import gaussian_kde
+
+    from .util import fast_kde
 
     global config
 
@@ -435,7 +437,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
          maximum value to use for the color scale
     """
 
-    from matplotlib import ticker, colors
+    from matplotlib import colors, ticker
 
     if not subplot:
         import matplotlib.pyplot as plt

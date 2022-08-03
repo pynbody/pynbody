@@ -1,11 +1,12 @@
 import os.path
-import weakref
 import warnings
+import weakref
+
 import numpy as np
 
-from . import HaloCatalogue, Halo
 from .. import units
 from ..array import SimArray
+from . import Halo, HaloCatalogue
 
 
 class SubfindCatalogue(HaloCatalogue):
@@ -85,17 +86,21 @@ class SubfindCatalogue(HaloCatalogue):
         else:
             extract = lambda array, element: array[element]
         properties = {}
+        halo_number_within_group = (self._subhalodat['sub_groupNr'][:i] == self._subhalodat['sub_groupNr'][i]).sum()
         if self._subs is False:
             for key in self._keys:
                 properties[key] = extract(self._halodat[key], i)
             if self.header[6] > 0:
-                properties['children'] = np.where(self._subhalodat['sub_groupNr'] == i)[
-                    0]  # this is the FIRST level of substructure, sub-subhalos (etc) can be accessed via the subs=True output (below)
+                properties['children'], = np.where(self._subhalodat['sub_groupNr'] == i)
+                # this is the FIRST level of substructure, sub-subhalos (etc) can be accessed via the
+                # subs=True output (below)
         else:
             for key in self._keys:
                 properties[key] = extract(self._subhalodat[key], i)
-            properties['children'] = np.where(self._subhalodat['sub_parent'] == i)[
-                0]  # this goes down one level in the hierarchy, i.e. a subhalo will have all its sub-subhalos listed, but not its sub-sub-subhalos (those will be listed in each sub-subhalo)
+            properties['children'], = np.where((self._subhalodat['sub_parent'] == halo_number_within_group) \
+                                               & (self._subhalodat['sub_groupNr'] == properties['sub_groupNr']))
+            # this goes down one level in the hierarchy, i.e. a subhalo will have all its sub-subhalos listed,
+            # but not its sub-sub-subhalos (those will be listed in each sub-subhalo)
         return properties
 
     def _get_halo(self,i):

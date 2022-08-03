@@ -21,12 +21,13 @@ in your simulation, see the `bridge tutorial
 
 
 import weakref
+
 import numpy as np
-import math
+
 from . import _bridge
 
 
-class Bridge(object):
+class Bridge:
 
     """Generic Bridge class"""
 
@@ -259,7 +260,7 @@ def bridge_factory(a, b):
     """Create a bridge connecting the two specified snapshots. For
     more information see :ref:`bridge-tutorial`."""
 
-    from ..snapshot import tipsy, gadget, ramses, nchilada, gadgethdf
+    from ..snapshot import gadget, gadgethdf, nchilada, ramses, tipsy
     a_top = a.ancestor
     b_top = b.ancestor
 

@@ -1,4 +1,4 @@
-"""
+r"""
 Defines a docutils directive for inserting inheritance diagrams.
 
 Provide the directive with one or more classes or modules (separated
@@ -33,6 +33,7 @@ import inspect
 import os
 import re
 import subprocess
+
 try:
     from hashlib import md5
 except ImportError:
@@ -42,11 +43,12 @@ from docutils.nodes import Body, Element
 from docutils.parsers.rst import directives
 from sphinx.roles import xfileref_role
 
+
 def my_import(name):
     """Module importer - taken from the python documentation.
 
     This function allows importing names with dots in them."""
-    
+
     mod = __import__(name)
     components = name.split('.')
     for comp in components[1:]:
@@ -101,7 +103,7 @@ class InheritanceGraph(object):
             # second call will force the equivalent of 'import a.b' to happen
             # after the top-level import above.
             my_import(fullname)
-            
+
         except ImportError:
             raise ValueError(
                 "Could not import class or module '%s' specified for inheritance diagram" % name)

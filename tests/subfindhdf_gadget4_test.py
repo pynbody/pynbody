@@ -1,16 +1,20 @@
+from os.path import isfile
+
+import h5py
+import numpy as np
+
 import pynbody
 
 
-import pytest
 def setup_module():
     global snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
     snap = pynbody.load('testdata/testL10N64/snapshot_000.hdf5')
-    halos = snap.halos()
-    subhalos = snap.halos(subs=True)
+    halos = pynbody.halo.Gadget4SubfindHDFCatalogue(snap)
+    subhalos = pynbody.halo.Gadget4SubfindHDFCatalogue(snap, subs=True)
     htest = Halos('testdata/testL10N64/', 0)
     snap_arepo = pynbody.load('testdata/arepo/cosmobox_015.hdf5')
-    halos_arepo = snap_arepo.halos()
-    subhalos_arepo = snap_arepo.halos(subs=True)
+    halos_arepo = pynbody.halo.ArepoSubfindHDFCatalogue(snap_arepo)
+    subhalos_arepo = pynbody.halo.ArepoSubfindHDFCatalogue(snap_arepo, subs=True)
     htest_arepo = Halos('testdata/arepo/', 15)
 
 
@@ -28,30 +32,33 @@ def test_catalogue():
         assert(isinstance(h, pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue)), \
             "Should be a Gadget4SubfindHDFCatalogue catalogue but instead it is a " + str(type(h))
 
+def test_lengths():
+    assert len(halos)==299
+    assert len(subhalos)==343
+    assert len(halos_arepo)==447
+    assert len(subhalos_arepo)==475
 
-def test_header():
-    assert(halos.header == htest.loadHeader())
-    assert(halos_arepo.header == htest_arepo.loadHeader())
 
+def _test_halo_or_subhalo_properties(comparison_catalogue, pynbody_catalogue):
+
+    np.random.seed(1)
+    hids = np.random.choice(range(len(pynbody_catalogue)), 20)
+
+    for hid in hids:
+        for key in list(comparison_catalogue.keys()):
+            props = pynbody_catalogue.get_halo_properties(hid, with_unit=False)
+            if key in list(props.keys()):
+                np.testing.assert_allclose(props[key], comparison_catalogue[key][hid])
 
 def test_halo_properties():
     for htest_file, halocatalogue in [(htest, halos), (htest_arepo, halos_arepo)]:
-        r = htest_file.load()['halos']
-        hids = np.random.choice(range(len(halocatalogue)), 5)
-        for hid in hids:
-            for key in list(r.keys()):
-                if key in list(halocatalogue[hid].properties.keys()):
-                    np.testing.assert_allclose(halocatalogue[hid].properties[key], r[key][hid])
+        _test_halo_or_subhalo_properties(htest_file.load()['halos'], halocatalogue)
 
 
 def test_subhalo_properties():
     for htest_file, halocatalogue in [(htest, subhalos), (htest_arepo, subhalos_arepo)]:
-        r = htest_file.load()['subhalos']
-        hids = np.random.choice(range(len(halocatalogue)), 5)
-        for hid in hids:
-            for key in list(r.keys()):
-                if key in list(halocatalogue[hid].properties.keys()):
-                    np.testing.assert_allclose(halocatalogue[hid].properties[key], r[key][hid])
+        _test_halo_or_subhalo_properties(htest_file.load()['subhalos'], halocatalogue)
+
 
 
 def test_halo_loading() :
@@ -66,19 +73,14 @@ def test_halo_loading() :
     _ = halos_arepo[0]['mass'].sum()
     _ = halos_arepo[1]['mass'].sum()
     assert(len(halos[0]['iord']) == len(halos[0]) == htest.load()['halos']['GroupLenType'][0, 1])
-    assert(len(halos_arepo[0]['iord']) == len(halos_arepo[0]) == htest_arepo.load()['halos']['GroupLenType'][0, 1])
+    arepo_halos = htest_arepo.load()['halos']
+    assert(len(halos_arepo[0]['iord']) == len(halos_arepo[0]) == np.sum(arepo_halos['GroupLenType'][0, :], axis=-1))
 
 
 def test_particle_data():
     hids = np.random.choice(range(len(halos)), 5)
     for hid in hids:
         assert(np.allclose(halos[hid].dm['iord'], htest[hid]['iord']))
-
-
-import six
-from os.path import isfile
-import numpy as np
-import h5py
 
 
 class Halos:
@@ -164,7 +166,7 @@ class Halos:
         result = {}
 
         # make sure fields is not a single element
-        if isinstance(fields, six.string_types):
+        if isinstance(fields, str):
             fields = [fields]
 
         # load header from first chunk
@@ -330,7 +332,3 @@ class Halos:
             return 5
 
         raise Exception("Unknown particle type name.")
-
-
-
-

@@ -14,6 +14,3 @@ git add -A
 git commit -m 'docs update'
 git push origin gh-pages
 git checkout master
-
-
-
