@@ -443,8 +443,10 @@ class AHFCatalogue(HaloCatalogue):
                 ]
             except ValueError:
                 logger.error(
-                    "An error occurred while reading substructure, aborting"
+                    "An error occurred while reading substructure file. "
+                    "Falling back to using the halo info."
                 )
+                self._setup_children()
                 break
             except KeyError:
                 logger.error(
