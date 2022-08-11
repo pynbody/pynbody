@@ -23,6 +23,7 @@ import os
 import re
 import time
 import warnings
+from pathlib import Path
 
 import numpy as np
 
@@ -410,6 +411,9 @@ class RamsesSnap(SimSnap):
 
         self.__setup_parallel_reading()
 
+        if isinstance(dirname, Path):
+            dirname = str(dirname)
+
         self._timestep_id = _timestep_id(dirname)
         self._filename = dirname
         self._load_sink_data_to_temporary_store()
@@ -481,7 +485,7 @@ class RamsesSnap(SimSnap):
         self._rt_blocks = []
         self._rt_blocks_3d = set()
         try:
-            f = open(self._filename+"/info_rt_" + _timestep_id(self._filename) + ".txt")
+            f = open(os.path.join(self._filename, f"info_rt_{self._timestep_id}.txt"))
         except OSError:
             return
 
@@ -510,13 +514,11 @@ class RamsesSnap(SimSnap):
 
     def _load_infofile(self):
         self._info = {}
-        f = open(
-            self._filename + "/info_" + _timestep_id(self._filename) + ".txt")
+        f = open(os.path.join(self._filename, f"info_{self._timestep_id}.txt"))
 
         self._load_info_from_specified_file(f)
         try:
-            f = open(
-                self._filename + "/header_" + _timestep_id(self._filename) + ".txt")
+            f = open(os.path.join(self._filename, f"header_{self._timestep_id}.txt"))
             # most of this file is unhelpful, but depending on the ramses
             # version, there may be information on the particle fields present
             for l in f:
@@ -547,8 +549,10 @@ class RamsesSnap(SimSnap):
     def _load_namelistfile(self):
         self._namelist = {}
 
-        if os.path.exists(self._filename + "/namelist.txt"):
-            f = open(self._filename + "/namelist.txt")
+        namelist_file = os.path.join(self._filename, "namelist.txt")
+
+        if os.path.exists(namelist_file):
+            f = open(namelist_file)
             try:
                 self._load_namelist_from_specified_file(f)
             except ValueError:
@@ -565,7 +569,7 @@ class RamsesSnap(SimSnap):
         self._has_explicit_particle_families = 'family' in self._particle_blocks
 
     def _load_particle_descriptor(self):
-        with open(self._filename+"/part_file_descriptor.txt") as f:
+        with open(os.path.join(self._filename, "part_file_descriptor.txt")) as f:
             self._particle_blocks = []
             self._particle_types = []
             self._translate_array_name = namemapper.AdaptiveNameMapper('ramses-name-mapping')
@@ -596,22 +600,22 @@ class RamsesSnap(SimSnap):
             self._particle_types += [type_] * (len(self._particle_blocks) - len(self._particle_types))
 
     def _particle_filename(self, cpu_id):
-        return self._filename + "/part_" + self._timestep_id + ".out" + _cpu_id(cpu_id)
+        return os.path.join(self._filename, f"part_{self._timestep_id}.out{_cpu_id(cpu_id)}")
 
     def _amr_filename(self, cpu_id):
-        return self._filename + "/amr_" + self._timestep_id + ".out" + _cpu_id(cpu_id)
+        return os.path.join(self._filename, f"amr_{self._timestep_id}.out{_cpu_id(cpu_id)}")
 
     def _hydro_filename(self, cpu_id):
-        return self._filename + "/hydro_" + self._timestep_id + ".out" + _cpu_id(cpu_id)
+        return os.path.join(self._filename, f"hydro_{self._timestep_id}.out{_cpu_id(cpu_id)}")
 
     def _grav_filename(self, cpu_id):
-        return self._filename + "/grav_" + self._timestep_id + ".out" + _cpu_id(cpu_id)
+        return os.path.join(self._filename, f"grav_{self._timestep_id}.out{_cpu_id(cpu_id)}")
 
     def _rt_filename(self, cpu_id):
-        return self._filename + "/rt_" + self._timestep_id + ".out" + _cpu_id(cpu_id)
+        return os.path.join(self._filename, f"rt_{self._timestep_id}.out{_cpu_id(cpu_id)}")
 
     def _sink_filename(self):
-        return self._filename + "/sink_" + self._timestep_id + ".csv"
+        return os.path.join(self._filename, f"sink_{self._timestep_id}.csv")
 
     def _count_particles(self):
         if self._has_explicit_particle_families:
@@ -1136,7 +1140,7 @@ class RamsesSnap(SimSnap):
     def _can_load(f):
         tsid = _timestep_id(f)
         if tsid:
-            return os.path.isdir(f) and os.path.exists(f + "/info_" + tsid + ".txt")
+            return os.path.isdir(f) and os.path.exists(os.path.join(f, f"info_{tsid}.txt"))
         return False
 
 

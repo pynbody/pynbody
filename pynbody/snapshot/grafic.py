@@ -178,7 +178,7 @@ class GrafICSnap(SimSnap):
 
     def _read_pvar(self):
         # passive variable map as produced by MUSIC and genetIC
-        filename = os.path.join(glob.glob(self._filename + "/ic_pvar*[0-9]")[0])
+        filename = os.path.join(glob.glob(os.path.join(self._filename, "ic_pvar*[0-9]"))[0])
         if not os.path.exists(filename):
             raise OSError("No pvar array")
 
