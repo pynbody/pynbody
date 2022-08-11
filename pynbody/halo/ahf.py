@@ -306,9 +306,14 @@ class AHFCatalogue(HaloCatalogue):
 
         if self.isnew:
             if not isinstance(f, gzip.GzipFile):
-                data = (np.fromfile(
-                    f, dtype=int, sep=" ", count=nparts * 2).reshape(nparts, 2))[:, 0]
-                data = np.ascontiguousarray(data)
+                if self.special:
+                    data = (np.fromfile(
+                        f, sep=" ", count=nparts * 8).reshape(nparts, 8))[:, 0]
+                    data = np.ascontiguousarray(data, dtype=int)
+                else:
+                    data = (np.fromfile(
+                        f, dtype=int, sep=" ", count=nparts * 2).reshape(nparts, 2))[:, 0]
+                    data = np.ascontiguousarray(data)
             else:
                 # unfortunately with gzipped files there does not
                 # seem to be an efficient way to load nparts lines
@@ -349,6 +354,16 @@ class AHFCatalogue(HaloCatalogue):
             self.isnew = True
         else:
             self.isnew = False
+
+        #test which file format we have, first take off the first two lines
+        with util.open_(filename) as tmp_f: 
+            line = tmp_f.readline()
+            line = tmp_f.readline()
+            if len(tmp_f.readline().split()) > 2:
+                # we have a new/special file format
+                self.special = True
+            else:
+                self.special = False 
 
         if self._all_parts is not None:
             for h in range(self._nhalos):
