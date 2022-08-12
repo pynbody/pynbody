@@ -437,7 +437,7 @@ class AHFCatalogue(HaloCatalogue):
         while line:
             try:
                 haloid, _nsubhalos = (int(x) for x in line.split())
-                halo_index = ID2index[haloid + 1]
+                halo_index = ID2index[haloid]
                 children = [
                     ID2index[int(x)] for x in f.readline().split()
                 ]
