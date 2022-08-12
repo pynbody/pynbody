@@ -48,4 +48,6 @@ jobs:
     - name: Uninstall posix_ipc
       run: python -m pip uninstall -y posix_ipc
     - name: Run ramses tests without shared memory support
-      run: python -m pytest tests/ramses_new_ptcl_format_test.py tests/ramses_test.py
+      run: |
+        cd tests
+        python -m pytest tests/ramses_new_ptcl_format_test.py tests/ramses_test.py
