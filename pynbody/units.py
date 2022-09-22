@@ -199,7 +199,10 @@ class UnitBase:
         elif _self_scale == 0.0 or _other_scale == 0.0:
             return False
         else:
-            return self.ratio(other) == 1.
+            try:
+                return self.ratio(other) == 1.
+            except UnitsException:
+                return False
 
 
     def __ne__(self, other):
