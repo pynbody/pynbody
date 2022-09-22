@@ -70,3 +70,9 @@ def test_units_addition():
     npt.assert_allclose((_3_Mpc - _2_kpc).in_units("kpc"), 2998)
     npt.assert_allclose((_2_kpc + 2.0).in_units("kpc"), 4.0)
     npt.assert_allclose((_3_Mpc + 2.0).in_units("kpc"), 5000)
+
+def test_units_zero_equality():
+    assert units.Unit("0.0 km s^-1") == units.Unit("0.0 cm s^-1")
+
+def test_units_equality():
+    assert units.Unit("1.0 km s^-1") == units.Unit("1e5 cm s^-1")

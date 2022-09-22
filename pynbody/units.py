@@ -188,10 +188,15 @@ class UnitBase:
         return 'Unit("' + str(self) + '")'
 
     def __eq__(self, other):
-        try:
-            return self.ratio(other) == 1.
-        except UnitsException:
+        if self.dimensionality_as_string() != other.dimensionality_as_string():
             return False
+        elif self._scale == 0.0 and other._scale == 0.0:
+            return True
+        elif self._scale == 0.0 or other._scale == 0.0:
+            return False
+        else:
+            return self.ratio(other) == 1.
+
 
     def __ne__(self, other):
         return not (self == other)
