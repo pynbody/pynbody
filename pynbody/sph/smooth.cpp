@@ -610,9 +610,45 @@ int smSmoothStep(SMX smx, int procid)
 	return nCnt;
 }
 
+template<typename T>
+float cubicSpline(SMX smx, float rs, float r2)
+{
+	// Cubic Spline Kernel
+	rs = 2.0 - sqrt(r2);
+	if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+	else rs = 0.25*rs*rs*rs;
+	if(rs<0 && !smx->warnings) {
+		fprintf(stderr, "Internal consistency error\n");
+		smx->warnings=true;
+	}
+	return rs;
+}
 
 template<typename T>
-void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+float Wendland(SMX smx, float rs, float r2, int nsmooth)
+{
+	// Wendland Kernel 
+	// Dehnen & Aly 2012 correction (1-0.0454684 at Ns=64) / 
+	Wzero = (21/16.)(1-0.0294*pow(nSmooth*0.01,-0.977));
+	if (r2 <= 0) rs = Wzero;
+	else {                                
+        double au = sqrt(r2*0.25);                    
+        rs = 1-au;                            
+        rs = rs*rs;                            
+        rs = rs*rs;                            
+        rs = (21/16.)*rs*(1+4*au);                    
+        }        
+	if(rs<0 && !smx->warnings) {
+		fprintf(stderr, "Internal consistency error\n");
+		smx->warnings=true;
+	}         
+	return rs;               
+}
+
+
+
+template<typename T>
+void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	T fNorm,ih2,r2,rs,ih;
 	int i,pj;
@@ -625,13 +661,8 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (i=0;i<nSmooth;++i) {
     	pj = pList[i];
 		r2 = fList[i]*ih2;
-                rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0 && !smx->warnings) {
-		  fprintf(stderr, "Internal consistency error\n");
-		  smx->warnings=true;
-		}
+		if Wendland rs = Wendland(smx, rs, r2, nsmooth);
+		else rs = cubicSpline(smx, rs, r2);
 		rs *= fNorm;
 		ACCUM<T>(kd->pNumpyDen,kd->p[pi].iOrder,rs*GET<T>(kd->pNumpyMass,kd->p[pj].iOrder));
 		ACCUM<T>(kd->pNumpyDen,kd->p[pj].iOrder,rs*GET<T>(kd->pNumpyMass,kd->p[pi].iOrder));
@@ -640,7 +671,7 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 }
 
 template<typename T>
-void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	T fNorm,ih2,r2,rs,ih;
 	int j,pj,pi_iord ;
@@ -654,10 +685,8 @@ void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if Wendland rs = Wendland(smx, rs, r2, nsmooth);
+		else rs = cubicSpline(smx, rs, r2);
 		rs *= fNorm;
 		ACCUM<T>(kd->pNumpyDen,pi_iord,rs*GET<T>(kd->pNumpyMass,kd->p[pj].iOrder));
 	}
@@ -665,7 +694,7 @@ void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 }
 
 template<typename Tf, typename Tq>
-void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,rs,ih,mass,rho;
 	int j,pj,pi_iord ;
@@ -681,10 +710,8 @@ void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if Wendland rs = Wendland(smx, rs, r2, nsmooth);
+		else rs = cubicSpline(smx, rs, r2);
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -695,7 +722,7 @@ void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 }
 
 template<typename Tf, typename Tq>
-void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,rs,ih,mass,rho;
 	int j,k,pj,pi_iord ;
@@ -712,10 +739,8 @@ void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if Wendland rs = Wendland(smx, rs, r2, nsmooth);
+		else rs = cubicSpline(smx, rs, r2);
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -727,8 +752,28 @@ void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 
 }
 
+template<typename T>
+float cubicSpline_gradient(float q, float rs, float ih, float r, float ih2)
+{
+	// Kernel gradient
+	if (q < 1.0) rs = -3.0*ih + 2.25*r*ih2;
+	else rs = -0.75*(2-q)*(2-q)/r;
+
+	return rs;
+}
+
+template<typename T>
+float Wendland_gradient(float q, float rs, float r)
+{
+	// Kernel gradient
+	if (q < 2.0) rs = -5.0*q*(1.0-0.5*q)*(1.0-0.5*q)*(1.0-0.5*q)/r;
+
+	return rs;
+}
+
+
 template<typename Tf, typename Tq>
-void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
+void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,r,rs,q2,q,ih,mass,rho, dqty[3], qty_i[3];
 	int j,k,pj,pi_iord, pj_iord;
@@ -760,9 +805,11 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		q2 = r2*ih2;
 		r = sqrt(r2);
 		q = sqrt(q2);
+
 		// Kernel gradient
-		if (q < 1.0) rs = -3.0*ih + 2.25*r*ih2;
-		else rs = -0.75*(2-q)*(2-q)/r;
+		if Wendland rs = Wendland_gradient(q, rs, r)
+		else rs = cubicSpline_gradient(q, rs, ih, r, ih2)
+
 		rs *= fNorm;
 
 		mass=GET<Tf>(kd->pNumpyMass, pj_iord);
@@ -782,7 +829,7 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 }
 
 template<typename Tf, typename Tq>
-void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
+void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,r,rs,q2,q,ih,mass,rho, div, dqty[3], qty_i[3];
 	int j,k,pj,pi_iord, pj_iord;
@@ -815,8 +862,9 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		r = sqrt(r2);
 		q = sqrt(q2);
 		// Kernel gradient
-		if (q < 1.0) rs = -3.0*ih + 2.25*r*ih2;
-		else rs = -0.75*(2-q)*(2-q)/r;
+		if Wendland rs = Wendland_gradient(q, rs, r)
+		else rs = cubicSpline_gradient(q, rs, ih, r, ih2)
+
 		rs *= fNorm;
 
 		mass=GET<Tf>(kd->pNumpyMass, pj_iord);
@@ -832,7 +880,7 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 }
 
 template<typename Tf, typename Tq>
-void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	float fNorm,ih2,r2,rs,ih,mass,rho;
 	int j,k,pj,pi_iord ;
@@ -858,10 +906,8 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if Wendland rs = Wendland(smx, rs, r2, nsmooth);
+		else rs = cubicSpline(smx, rs, r2);
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -874,10 +920,8 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if Wendland rs = Wendland(smx, rs, r2, nsmooth);
+		else rs = cubicSpline(smx, rs, r2);
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -895,7 +939,7 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 }
 
 template<typename Tf, typename Tq>
-void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	float fNorm,ih2,r2,rs,ih,mass,rho;
 	int j,pj,pi_iord ;
@@ -918,10 +962,8 @@ void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if Wendland rs = Wendland(smx, rs, r2, nsmooth);
+		else rs = cubicSpline(smx, rs, r2);
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -933,10 +975,8 @@ void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if Wendland rs = Wendland(smx, rs, r2, nsmooth);
+		else rs = cubicSpline(smx, rs, r2);
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);

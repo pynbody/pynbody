@@ -558,7 +558,7 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
     float ri[3];
     float hsm;
 
-    void (*pSmFn)(SMX ,int ,int ,int *,float *)=NULL;
+    void (*pSmFn)(SMX ,int ,int ,int *,float *, bool)=NULL;
 
     PyObject *kdobj, *smxobj;
 
@@ -650,7 +650,7 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
             nCnt = smBallGather<Tf>(smx_local,4*hsm*hsm,ri);
 
             // calculate the density
-            (*pSmFn)(smx_local, i, nCnt, smx_local->pList,smx_local->fList);
+            (*pSmFn)(smx_local, i, nCnt, smx_local->pList,smx_local->fList, Wendland);
 
             // select next particle in coordination with other threads
             i=smGetNext(smx_local);
