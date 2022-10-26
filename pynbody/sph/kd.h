@@ -1,7 +1,7 @@
 #ifndef KD_HINCLUDED
 #define KD_HINCLUDED
 
-#include <Python.h>
+#include <python3.8/Python.h>
 #include <numpy/arrayobject.h>
 
 #ifdef KDT_THREADING
