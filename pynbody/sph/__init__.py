@@ -180,6 +180,32 @@ def rho(self):
 
     return rho
 
+""""
+@snapshot.SimSnap.stable_derived_quantity
+def rho_W(self):
+    build_tree_or_trees(self)
+
+
+    logger.info('Calculating SPH density')
+    rho_W = array.SimArray(
+        np.empty(len(self['pos'])), self['mass'].units / self['pos'].units ** 3,
+        dtype=self['pos'].dtype)
+
+
+    start = time.time()
+
+
+    self.kdtree.set_array_ref('smooth',_get_smooth_array_ensuring_compatibility(self))
+    self.kdtree.set_array_ref('mass',self['mass'])
+    self.kdtree.set_array_ref('rho_W', rho_W)
+
+    self.kdtree.populate('rho', config['sph']['smooth-particles'], 'WendlandC2')
+
+    end = time.time()
+    logger.info('Density calculation done in %5.3g s' % (end - start))
+
+    return rho_W
+"""
 
 class Kernel:
 
@@ -203,7 +229,7 @@ class Kernel:
                 self._samples = np.array(
                     [self.get_value(x ** 0.5) for x in sample_pts], dtype=dtype)
         return self._samples
-
+    
     def get_value(self, d, h=1):
         """Get the value of the kernel for a given smoothing length."""
         # Default : spline kernel

@@ -116,7 +116,7 @@ _op_dict = {"mean": "mean velocity",
             }
 
 
-def _v_sph_operation(self, op):
+def _v_sph_operation(self, op, Kernel = 'CubicSpline'):
     """SPH-smoothed velocity operations"""
     from . import sph
 
@@ -141,7 +141,7 @@ def _v_sph_operation(self, op):
     self.kdtree.set_array_ref('qty_sm', sm)
 
     start = time.time()
-    self.kdtree.populate('qty_%s' % op, nsmooth)
+    self.kdtree.populate('qty_%s' % op, nsmooth, Kernel)
     end = time.time()
 
     logger.info(f'{_op_dict[op]} done in {end - start:5.3g} s')
@@ -154,6 +154,10 @@ def v_mean(self):
     """SPH-smoothed mean velocity"""
     return _v_sph_operation(self, "mean")
 
+@SimSnap.derived_quantity
+def v_mean_W(self):
+    """SPH-smoothed mean velocity"""
+    return _v_sph_operation(self, "mean", "WendlandC2")
 
 @SimSnap.derived_quantity
 def v_disp(self):
@@ -161,9 +165,19 @@ def v_disp(self):
     return _v_sph_operation(self, "disp")
 
 @SimSnap.derived_quantity
+def v_disp_W(self):
+    """SPH-smoothed velocity dispersion"""
+    return _v_sph_operation(self, "disp", "WendlandC2")
+
+@SimSnap.derived_quantity
 def v_curl(self):
     """SPH-smoothed curl of velocity"""
     return _v_sph_operation(self, "curl")
+
+@SimSnap.derived_quantity
+def v_curl_W(self):
+    """SPH-smoothed curl of velocity"""
+    return _v_sph_operation(self, "curl", 'WendlandC2')
 
 @SimSnap.derived_quantity
 def vorticity(self):
@@ -171,9 +185,19 @@ def vorticity(self):
     return _v_sph_operation(self, "curl")
 
 @SimSnap.derived_quantity
+def vorticity_W(self):
+    """SPH-smoothed vorticity"""
+    return _v_sph_operation(self, "curl", "WendlandC2")
+
+@SimSnap.derived_quantity
 def v_div(self):
     """SPH-smoothed divergence of velocity"""
     return _v_sph_operation(self, "div")
+
+@SimSnap.derived_quantity
+def v_div_W(self):
+    """SPH-smoothed divergence of velocity"""
+    return _v_sph_operation(self, "div", 'WendlandC2')
 
 @SimSnap.derived_quantity
 def age(self):

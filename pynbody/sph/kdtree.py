@@ -161,7 +161,7 @@ class KDTree:
         """Create the KDTree and perform the operation specified by `mode`.
 
         Parameters
-        ----------
+        --------
         mode : str (see `kdtree.smooth_operation_to_id`)
             Specify operation to perform (compute smoothing lengths, density, SPH mean, or SPH dispersion).
         nn : int
@@ -207,8 +207,8 @@ class KDTree:
                 [self.kdtree] * n_proc,
                 [smx] * n_proc,
                 [propid] * n_proc,
-                list(range(0, n_proc), 
-                [kernel] * n_proc),
+                list(range(0, n_proc)), 
+                [kernel] * n_proc
             )
 
         # Free C-structures memory
