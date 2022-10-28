@@ -557,13 +557,13 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
     int propid;
     float ri[3];
     float hsm;
-    bool Wendland;
+    int Wendland;
 
     void (*pSmFn)(SMX ,int ,int ,int *,float *, bool)=NULL;
 
     PyObject *kdobj, *smxobj;
 
-    PyArg_ParseTuple(args, "OOii", &kdobj, &smxobj, &propid, &procid, &Wendland);
+    PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid, &Wendland);
     kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
     smx_global = (SMX)PyCapsule_GetPointer(smxobj, NULL);
     #define BIGFLOAT ((float)1.0e37)
@@ -686,8 +686,9 @@ PyObject *populate(PyObject *self, PyObject *args)
     KD kd;
     PyObject *kdobj, *smxobj;
     int propid, procid, nF, nQ;
+    int Wendland;
 
-    PyArg_ParseTuple(args, "OOii", &kdobj, &smxobj, &propid, &procid);
+    PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid, &Wendland);
     kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
 
 

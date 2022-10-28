@@ -145,14 +145,17 @@ void smCurlQty(SMX,int,int,int *,float *, bool);
 
 bool smCheckFits(KD kd, float *fPeriod);
 
+template<typename T>
+T Wendland_kernel(SMX, T, int);
 
-float Wendland_kernel(SMX, float, float, int);
+template<typename T>
+T cubicSpline(SMX, T);
 
-float cubicSpline(SMX, float, float);
+template<typename Tf>
+Tf cubicSpline_gradient(Tf, Tf, Tf, Tf);
 
-float cubicSpline_gradient(float, float, float, float, float);
-
-float Wendland_gradient(float, float, float);
+template<typename Tf>
+Tf Wendland_gradient(Tf, Tf);
 
 /*
 void smMeanVel(SMX,int,int,int *,float *);
