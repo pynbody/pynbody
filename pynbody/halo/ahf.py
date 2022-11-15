@@ -627,15 +627,19 @@ class AHFCatalogue(HaloCatalogue):
         if ahf_basename is not None:
             candidates = glob.glob(f"{ahf_basename}*particles*")
         else:
-            candidates = glob.glob(f"{sim._filename}*z*particles*")
+            candidates = set(glob.glob(f"{sim._filename}*z*particles*"))
+            # use a set to ensure that no duplicates can be produced
+            # This could arise in an edge case where _filename is a directory
+            # and having the "/" at the end of it would lead to a first detection here
+            # and a second one again below
 
             if os.path.isdir(sim._filename):
-                candidates.extend(glob.glob(os.path.join(
+                candidates.union(glob.glob(os.path.join(
                     sim._filename,
                     "*z*particles*"
                 )))
 
-        return [file for file in candidates if os.path.exists(file)]
+        return list(candidates)
 
     @classmethod
     def _can_load(cls, sim, ahf_basename=None, **kwargs):
