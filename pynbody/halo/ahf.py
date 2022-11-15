@@ -404,7 +404,7 @@ class AHFCatalogue(HaloCatalogue):
 
         for h, line in enumerate(f):
             values = [
-                float(x) if any(_ in x for _ in (".", "e", "nan"))
+                float(x) if any(_ in x for _ in (".", "e", "nan", "inf"))
                 else int(x)
                 for x in line.split()
             ]
