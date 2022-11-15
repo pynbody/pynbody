@@ -643,7 +643,14 @@ class AHFCatalogue(HaloCatalogue):
 
     @classmethod
     def _can_load(cls, sim, ahf_basename=None, **kwargs):
-        return len(cls._list_possible_candidates(sim, ahf_basename)) == 1
+        candidates = cls._list_possible_candidates(sim, ahf_basename)
+        number_ahf_file_candidates = len(candidates)
+        if number_ahf_file_candidates < 1:
+            raise warnings.warn("Did not find a suitable AHF halo catalogue file -- will attempt to run AHF to generate one")
+        elif number_ahf_file_candidates > 1:
+            raise OSError("Found multiple AHF halo catalogue files:" + candidates)
+        else:
+            return True
 
     def _run_ahf(self, sim):
         # if (sim is pynbody.tipsy.TipsySnap) :
