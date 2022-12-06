@@ -161,13 +161,6 @@ def get_tipsy_units(sim):
     """
 
     # figure out the units starting with mass
-
-    #cmtokpc = 3.2407793e-22
-    #lenunit = sim._info['unit_l'] / sim.properties['a'] * cmtokpc
-    #massunit = pynbody.analysis.cosmology.rho_crit(sim, z=0, unit='Msol kpc^-3') * lenunit ** 3
-    #G_u = 4.4998712e-6  # G in kpc^3 / Msol / Gyr^2
-    #timeunit = np.sqrt(1 / G_u * lenunit ** 3 / massunit)
-
     lenunit = sim['x'].units.in_units("a kpc", **sim.conversion_context())
     massunit = pynbody.analysis.cosmology.rho_crit(sim, z=0, unit='Msol kpc^-3') * lenunit ** 3
     G = pynbody.units.G.in_units("kpc**3 Msol**-1 Gyr**-2")
@@ -217,8 +210,7 @@ def convert_to_tipsy_fullbox(output, write_param=True):
         del(s.g['metal'])
 
     if "star" in s.families():
-        get_tform(s)
-        s.st['tform']
+        s.st['tform'].convert_units(timeunit)
 
     del(s['smooth'])
 
