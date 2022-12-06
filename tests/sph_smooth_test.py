@@ -37,6 +37,10 @@ def rho():
     yield np.load(test_folder / 'test_rho.npy')
 
 @pytest.fixture
+def rho_W():
+    yield np.load(test_folder / 'test_rho_W.npy')
+
+@pytest.fixture
 def rho_periodic():
     yield np.load(test_folder / 'test_rho_periodic.npy')
 
@@ -80,6 +84,19 @@ def test_smooth(v_mean, v_disp, rho, smooth):
     )
 
     npt.assert_allclose(v_disp**2, v_disp_squared[::100], rtol=1e-3)
+
+
+def test_smooth_WendlandC2(rho_W):
+    
+    """
+        np.save('test_rho_W.npy', f.g['rho'][::100])
+    """
+    pynbody.config['Kernel'] = 'WendlandC2'
+    
+    f = pynbody.load("testdata/g15784.lr.01024")
+    
+    npt.assert_allclose(f.g['rho'][::100],
+                        rho_W,rtol=1e-5)
 
 def test_kd_delete():
     global f
