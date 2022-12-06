@@ -187,7 +187,7 @@ def convert_to_tipsy_fullbox(output, write_param=True):
 
     """
 
-    s = pynbody.load(output)
+    s = pynbody.load(output) 
 
     lenunit, massunit, timeunit, velunit, potentialunit = get_tipsy_units(s)
     tipsyfile = "%s_fullbox.tipsy" % (output)
@@ -195,8 +195,6 @@ def convert_to_tipsy_fullbox(output, write_param=True):
     s['mass'].convert_units(massunit)
     s['pos'].convert_units(lenunit)
     s['vel'].convert_units(velunit)
-    s['eps'] = s.g['smooth'].min()
-    s['eps'].units = s['pos'].units
 
     # try to load the potential array -- if it's not there, make it zeroes
     try:
@@ -205,9 +203,18 @@ def convert_to_tipsy_fullbox(output, write_param=True):
         s['phi'] = 0.0
 
     if "gas" in s.families():
+        s['eps'] = s.g['smooth'].min()
+        s['eps'].units = s['pos'].units
         s.g['temp']
         s.g['metals'] = s.g['metal']
         del(s.g['metal'])
+    else:
+        # If we don't have gas, i.e. a DMO sim,
+        # load with force_gas to get the AMR smoothing 
+        # This can only be temporary to ensure that the converted tipsy snapshot is still DMO
+        s_with_gas_forced = pynbody.load(output, force_gas=True) 
+        s['eps'] = s_with_gas_forced.g['smooth'].min()
+        s['eps'].units = s['pos'].units
 
     if "star" in s.families():
         s.st['tform'].convert_units(timeunit)
