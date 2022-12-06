@@ -162,14 +162,20 @@ def get_tipsy_units(sim):
 
     # figure out the units starting with mass
 
-    cmtokpc = 3.2407793e-22
-    lenunit = sim._info['unit_l'] / sim.properties['a'] * cmtokpc
-    massunit = pynbody.analysis.cosmology.rho_crit(
-        sim, z=0, unit='Msol kpc^-3') * lenunit ** 3
-    G_u = 4.4998712e-6  # G in kpc^3 / Msol / Gyr^2
-    timeunit = np.sqrt(1 / G_u * lenunit ** 3 / massunit)
+    #cmtokpc = 3.2407793e-22
+    #lenunit = sim._info['unit_l'] / sim.properties['a'] * cmtokpc
+    #massunit = pynbody.analysis.cosmology.rho_crit(sim, z=0, unit='Msol kpc^-3') * lenunit ** 3
+    #G_u = 4.4998712e-6  # G in kpc^3 / Msol / Gyr^2
+    #timeunit = np.sqrt(1 / G_u * lenunit ** 3 / massunit)
 
-    return Unit('%e kpc' % lenunit), Unit('%e Msol' % massunit), Unit('%e Gyr' % timeunit)
+    lenunit = sim['x'].units.in_units("a kpc", **sim.conversion_context())
+    massunit = pynbody.analysis.cosmology.rho_crit(sim, z=0, unit='Msol kpc^-3') * lenunit ** 3
+    G = pynbody.units.G.in_units("kpc**3 Msol**-1 Gyr**-2")
+    timeunit = np.sqrt(1 / G * lenunit ** 3 / massunit)
+    velunit = lenunit / timeunit
+    potentialunit = (velunit ** 2) 
+
+    return Unit('%.5e a kpc' % lenunit), Unit('%.5e Msol' % massunit), Unit('%.5e Gyr' % timeunit), Unit('%.5e a kpc Gyr**-1' % velunit), Unit('%.5e kpc**2 Gyr**-2 a**-1' % potentialunit)
 
 
 def convert_to_tipsy_fullbox(output, write_param=True):
@@ -190,20 +196,10 @@ def convert_to_tipsy_fullbox(output, write_param=True):
 
     s = pynbody.load(output)
 
-    lenunit, massunit, timeunit = get_tipsy_units(s)
-
-#    l_unit = Unit('%f kpc'%lenunit)
-#    t_unit = Unit('%f Gyr'%timeunit)
-    velunit = lenunit / timeunit
-
+    lenunit, massunit, timeunit, velunit, potentialunit = get_tipsy_units(s)
     tipsyfile = "%s_fullbox.tipsy" % (output)
 
     s['mass'].convert_units(massunit)
-    s.g['temp']
-
-    # get the appropriate tform
-    get_tform(s)
-    s.g['metals'] = s.g['metal']
     s['pos'].convert_units(lenunit)
     s['vel'].convert_units(velunit)
     s['eps'] = s.g['smooth'].min()
@@ -211,11 +207,19 @@ def convert_to_tipsy_fullbox(output, write_param=True):
 
     # try to load the potential array -- if it's not there, make it zeroes
     try:
-        s['phi']
+        s['phi'].convert_units(potentialunit)
     except KeyError:
         s['phi'] = 0.0
 
-    del(s.g['metal'])
+    if "gas" in s.families():
+        s.g['temp']
+        s.g['metals'] = s.g['metal']
+        del(s.g['metal'])
+
+    if "star" in s.families():
+        get_tform(s)
+        s.st['tform']
+
     del(s['smooth'])
 
     s.write(filename='%s' %
@@ -231,11 +235,7 @@ def write_tipsy_param(sim, tipsyfile):
     """
 
     # determine units
-    lenunit, massunit, timeunit = get_tipsy_units(sim)
-    h = Unit('%f km s^-1 Mpc^-1' % (sim.properties['h'] * 100))
-    l_unit = Unit('%f kpc' % lenunit)
-    t_unit = Unit('%f Gyr' % timeunit)
-    v_unit = l_unit / t_unit
+    lenunit, massunit, timeunit, velunit, _ = get_tipsy_units(sim)
 
     # write the param file
     f = open('%s.param' % tipsyfile, 'w')
@@ -244,7 +244,7 @@ def write_tipsy_param(sim, tipsyfile):
     f.write('dOmega0 = %f\n' % sim.properties['omegaM0'])
     f.write('dLambda = %f\n' % sim.properties['omegaL0'])
     h = Unit('%f km s^-1 Mpc^-1' % (sim.properties['h'] * 100))
-    f.write('dHubble0 = %f\n' % h.in_units(v_unit / l_unit))
+    f.write('dHubble0 = %f\n' % h.in_units(velunit / lenunit))
     f.write('bComove = 1\n')
     f.close()
 
@@ -256,11 +256,8 @@ def write_ahf_input(sim, tipsyfile):
     """
 
     # determine units
-    lenunit, massunit, timeunit = get_tipsy_units(sim)
+    lenunit, massunit, timeunit, velunit, _ = get_tipsy_units(sim)
     h = Unit('%f km s^-1 Mpc^-1' % (sim.properties['h'] * 100))
-    l_unit = Unit('%f kpc' % lenunit)
-    t_unit = Unit('%f Gyr' % timeunit)
-    v_unit = l_unit / t_unit
 
     f = open('%s.AHF.input' % tipsyfile, 'w')
     f.write('[AHF]\n')
@@ -282,14 +279,8 @@ def write_ahf_input(sim, tipsyfile):
     f.write('TIPSY_MUNIT   = %e\n' % (massunit * sim.properties['h']))
     f.write('TIPSY_OMEGA0  = %f\n' % sim.properties['omegaM0'])
     f.write('TIPSY_LAMBDA0 = %f\n' % sim.properties['omegaL0'])
-
- #   velunit = Unit('%f cm'%s._info['unit_l'])/Unit('%f s'%s._info['unit_t'])
-
     f.write('TIPSY_VUNIT   = %e\n' %
-            v_unit.ratio('km s^-1 a', **sim.conversion_context()))
-
-    # the thermal energy in K -> km^2/s^2
-
+            velunit.ratio('km s^-1 a', **sim.conversion_context()))
     f.write('TIPSY_EUNIT   = %e\n' % (
         (pynbody.units.k / pynbody.units.m_p).in_units('km^2 s^-2 K^-1') * 5. / 3.))
     f.close()

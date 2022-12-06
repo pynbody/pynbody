@@ -1072,9 +1072,9 @@ class RamsesSnap(SimSnap):
                 self._read_proper_time()
                 self._convert_tform()
 
-            elif array_name == 'metals' or array_name == 'metal':
-                self._load_particle_block('metal')
-                self._convert_metal_name()
+            #elif array_name == 'metals' or array_name == 'metal':
+            #    self._load_particle_block('metal')
+            #    self._convert_metal_name()
 
             elif array_name in self._split_arrays:
                 for array_1D in self._array_name_ND_to_1D(array_name):
