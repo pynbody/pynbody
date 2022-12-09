@@ -738,7 +738,7 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 	pi_iord = kd->p[pi].iOrder;
 	ih = 1.0/GET<Tf>(kd->pNumpySmooth, pi_iord);
 	ih2 = ih*ih;
-	fNorm = M_1_PI*ih2*ih2;
+	fNorm = M_1_PI*ih2*ih;
 
 	for(k=0;k<3;++k) {
 		SET2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, 0.0);
@@ -761,8 +761,8 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		r = sqrt(r2);
 		q = sqrt(q2);
 		// Kernel gradient
-		if (q < 1.0) rs = -3.0*ih + 2.25*r*ih2;
-		else rs = -0.75*(2-q)*(2-q)/r;
+		if (q < 1.0) rs = -3.0*q + 2.25*q*q;
+		else rs = -0.75*(2-q)*(2-q);
 		rs *= fNorm;
 
 		mass=GET<Tf>(kd->pNumpyMass, pj_iord);
@@ -792,7 +792,7 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 	pi_iord = kd->p[pi].iOrder;
 	ih = 1.0/GET<Tf>(kd->pNumpySmooth, pi_iord);
 	ih2 = ih*ih;
-	fNorm = M_1_PI*ih2*ih2;
+	fNorm = M_1_PI*ih2*ih;
 
 	SET<Tq>(kd->pNumpyQtySmoothed, pi_iord, 0.0);
 
@@ -815,8 +815,8 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		r = sqrt(r2);
 		q = sqrt(q2);
 		// Kernel gradient
-		if (q < 1.0) rs = -3.0*ih + 2.25*r*ih2;
-		else rs = -0.75*(2-q)*(2-q)/r;
+		if (q < 1.0) rs = -3.0*q + 2.25*q*q;
+		else rs = -0.75*(2-q)*(2-q);
 		rs *= fNorm;
 
 		mass=GET<Tf>(kd->pNumpyMass, pj_iord);
