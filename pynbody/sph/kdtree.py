@@ -157,7 +157,7 @@ class KDTree:
         else:
             raise ValueError("Unknown smoothing request %s" % name)
 
-    def populate(self, mode, nn, Kernel = 'CubicSpline'):
+    def populate(self, mode, nn, kernel = 'CubicSpline'):
         """Create the KDTree and perform the operation specified by `mode`.
 
         Parameters
@@ -166,7 +166,7 @@ class KDTree:
             Specify operation to perform (compute smoothing lengths, density, SPH mean, or SPH dispersion).
         nn : int
             Number of neighbours to be considered when smoothing.
-        Kernel : str 
+        kernel : str 
             Keyword to specify the smoothing kernel. Options: 'CubicSpline', 'WendlandC2'
         """
         from . import _thread_map
@@ -190,13 +190,13 @@ class KDTree:
         if propid == self.PROPID_HSM:
             kdmain.domain_decomposition(self.kdtree, n_proc)
 
-        if Kernel == 'CubicSpline':
+        if kernel == 'CubicSpline':
             kernel = 0
-        elif Kernel == 'WendlandC2':
+        elif kernel == 'WendlandC2':
             kernel = 1
         else:
             raise ValueError(
-                "Kernel keyword %s not recognised. Please choose either 'CubicSpline' or 'WendlandC2'." % Kernel
+                "Kernel keyword %s not recognised. Please choose either 'CubicSpline' or 'WendlandC2'." % kernel
             )
 
         if n_proc == 1:
