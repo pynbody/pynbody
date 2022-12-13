@@ -784,6 +784,8 @@ Tf Wendland_gradient(Tf q, Tf r)
 {
 	// Kernel gradient
 	Tf rs;
+	if (r < 1e-24) r = 1e-24; // Fix to avoid dividing by zero in case r = 0. 
+	// For this case q = 0 and rs = 0 in any case, so we can savely set r to a tiny value.
 	if (q < 2.0) rs = -5.0*q*(1.0-0.5*q)*(1.0-0.5*q)*(1.0-0.5*q)/r;
 
 	return rs;
@@ -971,6 +973,8 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendla
 	SET<Tq>(kd->pNumpyQtySmoothed,pi_iord,sqrt(GET<Tq>(kd->pNumpyQtySmoothed,pi_iord)));
 
 }
+
+
 
 template<typename Tf, typename Tq>
 void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
