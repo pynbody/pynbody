@@ -136,7 +136,7 @@ def smooth(self):
 
     start = time.time()
     self.kdtree.set_array_ref('smooth',sm)
-    self.kdtree.populate('hsm', config['sph']['smooth-particles'])
+    self.kdtree.populate('hsm', config['sph']['smooth-particles'], config['sph']['Kernel'])
     end = time.time()
 
     logger.info('Smoothing done in %5.3gs' % (end - start))

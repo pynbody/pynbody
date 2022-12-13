@@ -214,7 +214,7 @@ class KDTree:
         # Free C-structures memory
         kdmain.nn_stop(self.kdtree, smx)
 
-    def sph_mean(self, array, nsmooth=64):
+    def sph_mean(self, array, nsmooth=64, kernel = 'CubicSpline'):
         r"""Calculate the SPH mean of a simulation array.
 
         It's the application of the SPH interpolation formula for computing the smoothed quantity at particles position.
@@ -247,14 +247,14 @@ class KDTree:
 
         logger.info("Smoothing array with %d nearest neighbours" % nsmooth)
         start = time.time()
-        self.populate("qty_mean", nsmooth)
+        self.populate("qty_mean", nsmooth, kernel)
         end = time.time()
 
         logger.info("SPH smooth done in %5.3g s" % (end - start))
 
         return output
 
-    def sph_dispersion(self, array, nsmooth=64):
+    def sph_dispersion(self, array, nsmooth=64, kernel = 'CubicSpline'):
         r"""Calculate the SPH dispersion of a simulation array.
 
         It uses the cubic spline smoothing kernel W.
@@ -291,14 +291,14 @@ class KDTree:
 
         logger.info("Getting dispersion of array with %d nearest neighbours" % nsmooth)
         start = time.time()
-        self.populate("qty_disp", nsmooth)
+        self.populate("qty_disp", nsmooth, kernel)
         end = time.time()
 
         logger.info("SPH dispersion done in %5.3g s" % (end - start))
 
         return output
 
-    def _sph_differential_operator(self, array, op, nsmooth=64):
+    def _sph_differential_operator(self, array, op, nsmooth=64, kernel = 'CubicSpline'):
         if op == "div":
             op_label = "divergence"
             output = np.empty(len(array), dtype=array.dtype)
@@ -317,18 +317,18 @@ class KDTree:
 
         logger.info("Getting %s of array with %d nearest neighbours" % (op_label, nsmooth))
         start = time.time()
-        self.populate("qty_%s" % op, nsmooth)
+        self.populate("qty_%s" % op, nsmooth, kernel)
         end = time.time()
 
         logger.info(f"SPH {op_label} done in {end - start:5.3g} s")
 
         return output
 
-    def sph_curl(self, array, nsmooth=64):
-        return self._sph_differential_operator(array, "curl", nsmooth)
+    def sph_curl(self, array, nsmooth=64, kernel = 'CubicSpline'):
+        return self._sph_differential_operator(array, "curl", nsmooth, kernel)
 
-    def sph_divergence(self, array, nsmooth=64):
-        return self._sph_differential_operator(array, "div", nsmooth)
+    def sph_divergence(self, array, nsmooth=64, kernel = 'CubicSpline'):
+        return self._sph_differential_operator(array, "div", nsmooth, kernel)
 
     def __del__(self):
         if hasattr(self, "kdtree"):
