@@ -168,10 +168,12 @@ def get_tipsy_units(sim):
     velunit = lenunit / timeunit
     potentialunit = (velunit ** 2) 
 
-    return Unit('%.5e a kpc' % lenunit), Unit('%.5e Msol' % massunit), Unit('%.5e Gyr' % timeunit), Unit('%.5e a kpc Gyr**-1' % velunit), Unit('%.5e kpc**2 Gyr**-2 a**-1' % potentialunit)
+    return Unit('%.5e a kpc' % lenunit), Unit('%.5e Msol' % massunit),\
+           Unit('%.5e Gyr' % timeunit), Unit('%.5e a kpc Gyr**-1' % velunit),\
+           Unit('%.5e kpc**2 Gyr**-2 a**-1' % potentialunit)
 
 
-def convert_to_tipsy_fullbox(output, write_param=True):
+def convert_to_tipsy_fullbox(s, write_param=True):
     """
     Convert RAMSES file `output` to tipsy format readable by pkdgrav
     and Amiga Halo Finder. Does all unit conversions etc. into the
@@ -187,10 +189,8 @@ def convert_to_tipsy_fullbox(output, write_param=True):
 
     """
 
-    s = pynbody.load(output) 
-
     lenunit, massunit, timeunit, velunit, potentialunit = get_tipsy_units(s)
-    tipsyfile = "%s_fullbox.tipsy" % (output)
+    tipsyfile = "%s_fullbox.tipsy" % (s._filename)
 
     s['mass'].convert_units(massunit)
     s['pos'].convert_units(lenunit)
@@ -212,7 +212,7 @@ def convert_to_tipsy_fullbox(output, write_param=True):
         # If we don't have gas, i.e. a DMO sim,
         # load with force_gas to get the AMR smoothing 
         # This can only be temporary to ensure that the converted tipsy snapshot is still DMO
-        s_with_gas_forced = pynbody.load(output, force_gas=True) 
+        s_with_gas_forced = pynbody.load(s._filename, force_gas=True)
         s['eps'] = s_with_gas_forced.g['smooth'].min()
         s['eps'].units = s['pos'].units
 
