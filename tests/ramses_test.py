@@ -340,10 +340,3 @@ def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_bloc
         return np.zeros(len(snap))
 
     f_dmo.st['metals']
-
-
-
-
-
-
-
