@@ -364,7 +364,6 @@ def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
         npt.assert_allclose(ramses_snap.g['pos'], tipsy_snap.g['pos'], rtol=rtol)
         npt.assert_allclose(ramses_snap.g['vel'], tipsy_snap.g['vel'], rtol=rtol)
         npt.assert_allclose(ramses_snap.g['mass'], tipsy_snap.g['mass'], rtol=rtol)
-        npt.assert_allclose(ramses_snap.g['phi'], tipsy_snap.g['phi'], rtol=rtol)
 
 
 def test_tipsy_conversion_for_dmo():
@@ -381,33 +380,19 @@ def test_tipsy_conversion_for_dmo():
 
 
 def test_tipsy_conversion_for_cosmo_gas():
-    path = "testdata/ramses_partial_output_00250"
+    path = "testdata/output_00080"
+    # The namelist file is not included in the test data
+    # Write a quick one-liner to ensure that we identify cosmo correctly
+    # and get the correct time units
+    with open(path + os.sep + "namelist.txt", "w") as namelist:
+        namelist.write("cosmo=.true.")
+
     f = pynbody.load(path)
     pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
 
     tipsy_path = path + "_fullbox.tipsy"
     tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
-    raise KeyError()
 
     array_by_array_test_tipsy_converter(f, tipsy)
-
-# def test_tipsy_conversion_for_cosmo_gas_with_rt():
-#     # Test that converters still works when RT is used and proper time is used as an internal unit
-#     path = "testdata/ramses_rt_partial_output_00002"
-#     f = pynbody.load(path)
-#     pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
-#
-#     tipsy_path = path + "_fullbox.tipsy"
-#     tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
-#
-#     array_by_array_test_tipsy_converter(f, tipsy)
-
-
-# def test_tipsy_conversion_for_cosmo_gas_with_new_format():
-#     path = "testdata/ramses_new_format_partial_output_00001"
-#     pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(path, write_param=True)
-#
-#     f = pynbody.load(path)
-#     tipsy_path = path + "_fullbox.tipsy"
-#     tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
-#     array_by_array_test_tipsy_converter(f, tipsy)
+    # Clean up our namelist to avoid any other issues with other tests
+    os.remove(path + os.sep + "namelist.txt")
