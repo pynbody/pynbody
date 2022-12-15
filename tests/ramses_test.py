@@ -377,6 +377,8 @@ def test_tipsy_conversion_for_dmo():
     tipsy_dmo = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
 
     array_by_array_test_tipsy_converter(f_dmo, tipsy_dmo)
+    # Clean up our created param file to avoid it being detected and picked up by other tipsy tests
+    os.remove(tipsy_path + ".param")
 
 
 def test_tipsy_conversion_for_cosmo_gas():
@@ -396,3 +398,4 @@ def test_tipsy_conversion_for_cosmo_gas():
     array_by_array_test_tipsy_converter(f, tipsy)
     # Clean up our namelist to avoid any other issues with other tests
     os.remove(path + os.sep + "namelist.txt")
+    os.remove(tipsy_path + ".param")
