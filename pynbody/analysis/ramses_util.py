@@ -62,11 +62,11 @@ from pathlib import Path
 import numpy as np
 
 import pynbody
+from pynbody.snapshot.ramses import RamsesSnap
 
 from .. import config_parser
 from ..analysis._cosmology_time import friedman
 from ..units import Unit
-from pynbody.snapshot.ramses import RamsesSnap
 
 ramses_utils = config_parser.get('ramses', 'ramses_utils')
 
@@ -167,7 +167,7 @@ def get_tipsy_units(sim):
     G = pynbody.units.G.in_units("kpc**3 Msol**-1 Gyr**-2")
     timeunit = np.sqrt(1 / G * lenunit ** 3 / massunit)
     velunit = lenunit / timeunit
-    potentialunit = (velunit ** 2) 
+    potentialunit = (velunit ** 2)
 
     return Unit('%.5e a kpc' % lenunit), Unit('%.5e Msol' % massunit),\
            Unit('%.5e Gyr' % timeunit), Unit('%.5e a kpc Gyr**-1' % velunit),\
@@ -217,7 +217,7 @@ def convert_to_tipsy_fullbox(s, write_param=True):
         del(s.g['metal'])
     else:
         # If we don't have gas, i.e. a DMO sim,
-        # load with force_gas to get the AMR smoothing 
+        # load with force_gas to get the AMR smoothing
         # This can only be temporary to ensure that the converted tipsy snapshot is still DMO
         s_with_gas_forced = pynbody.load(s._filename, force_gas=True)
         s['eps'] = s_with_gas_forced.g['smooth'].min()
