@@ -330,6 +330,11 @@ class AHFCatalogue(HaloCatalogue):
                 # For classical Ramses snapshots, this is perfectly adequate, but
                 # for more modern outputs that have extra tracers, BHs families
                 # we need to offset the ids to return the correct slicing
+                # TODO These tests on snapshot type might not be necessary
+                #  as using the family logic properly should be general.
+                #  It is currently kept to ensure 100% backwards compatibility with previous behaviour,
+                #  as this code is not explicitly checked by the pynbody test distribution
+
                 if len(self.base) != nd + ns + ng:                      # We have extra families to the base ones
                     # First identify DM, star and gas particles in AHF
                     ahf_dm_mask = data < nd
@@ -340,11 +345,11 @@ class AHFCatalogue(HaloCatalogue):
                     # additional families before it, e.g. gas tracers
                     data[np.where(ahf_dm_mask)] += self.base._get_family_slice('dm').start
 
-                    # star ids used to start at NDM, now they start at the start of the star family slice
+                    # Star ids used to start at NDM, now they start with the star family slice
                     offset = self.base._get_family_slice('star').start - nd
                     data[np.where(ahf_star_mask)] += offset
 
-                    # Then identify gas particles that have IDs greater than NDM + NSTAR
+                    # Gas ids were greater than NDM + NSTAR, now they start with the gas slice
                     offset = self.base._get_family_slice('gas').start - nds
                     data[np.where(ahf_gas_mask)] += offset
 
