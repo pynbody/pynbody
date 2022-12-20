@@ -330,24 +330,24 @@ class AHFCatalogue(HaloCatalogue):
                 # For classical Ramses snapshots, this is perfectly adequate, but
                 # for more modern outputs that have extra tracers, BHs families
                 # we need to offset the ids to return the correct slicing
-                if len(self.base) != nd + ns + ng:
-                    # We have extra families to the base ones
-                    for family in self.base.families():
-                        if family == 'dm':
-                            # Offset the ids by the start index of DM
-                            ahf_dm_mask = data < nd
-                            data[np.where(ahf_dm_mask)] += self.base._get_family_slice('dm').start
-                            # data += self.base._get_family_slice('dm').start
-                        if family == 'star':
-                            # identify which of the iords are stars according to AHF
-                            ahf_star_mask = (data >= nd) & (data < nds)
-                            data[ahf_star_mask] += self.base._get_family_slice('star').start
-                            data[ahf_star_mask] -= nd
-                        if family == 'gas':
-                            # identify which of the iords are gas according to AHF
-                            ahf_gas_mask = data >= nds
-                            data[ahf_gas_mask] += self.base._get_family_slice('gas').start
-                            data[ahf_gas_mask] -= nds
+                if len(self.base) != nd + ns + ng:                      # We have extra families to the base ones
+                    # First identify DM, star and gas particles in AHF
+                    ahf_dm_mask = data < nd
+                    ahf_star_mask = (data >= nd) & (data < nds)
+                    ahf_gas_mask = data >= nds
+
+                    # Then offset them by DM family start, to account for
+                    # additional families before it, e.g. gas tracers
+                    data[np.where(ahf_dm_mask)] += self.base._get_family_slice('dm').start
+
+                    # star ids used to start at NDM, now they start at the start of the star family slice
+                    offset = self.base._get_family_slice('star').start - nd
+                    data[np.where(ahf_star_mask)] += offset
+
+                    # Then identify gas particles that have IDs greater than NDM + NSTAR
+                    offset = self.base._get_family_slice('gas').start - nds
+                    data[np.where(ahf_gas_mask)] += offset
+
             elif not isinstance(self.base, snapshot.nchilada.NchiladaSnap):
                 hi_mask = data >= nds
                 data[np.where(hi_mask)] -= nds

@@ -54,11 +54,11 @@ def test_ramses_ahf_family_mapping_with_new_format():
     assert len(halos) == 2719 # 2720 lines in AHF halos file
     print(halos._all_parts)
 
-    # Load first halo and check that stars, DM and gas are correctly mapped by pynbody
-    halo = halos[1]
-
-    print(halos._get_halo(1).st)
-    assert(halos._halos[1].properties['npart'] == halo.properties['npart'])
+    # Load two halos and check that stars, DM and gas are correctly mapped by pynbody
+    # Halo 1 is the main halo and has all three families, while other are random pickes
+    halo_numbers = [1, 10, 128, 256]
+    for halo_number in halo_numbers:
+        halo = halos[halo_number]
 
     # Ok so problem comes from get_halo and likely load_ahf_particle_block
     with pynbody.util.open_("testdata/output_00110/output_00110_fullbox.tipsy.z0.031.AHF_particles") as file:
@@ -71,6 +71,14 @@ def test_ramses_ahf_family_mapping_with_new_format():
 
         from collections import Counter
         print(ids)
+    #     import numpy as np
+    #     ndm = f._get_family_slice('dm').stop
+    #
+    #     masked_dm = ids[np.where(ids < ndm)]
+    #     print(masked_dm)
+    #     print(len(masked_dm))
+    #     masked_star = ids[np.where((ids >= ndm) & (ids < f._get_family_slice('st').stop))]
+    #     print(masked_star)
         # Find the correct offset for gas tracers
 
         # Reproduce the initialisation of the IndexedSubSnap
@@ -96,33 +104,32 @@ def test_ramses_ahf_family_mapping_with_new_format():
         # target = halos.base[famslice]
         # print(target)
 
-    # Minimal problem
-    assert(len(f[f._get_family_slice('star')]) == len(f.st))
-    # print(f._family_slice)
-    # print(halo._family_slice)
-
-
-
-
-
     # print(halos.get_group_array(halo))
     # print(halos.make_grp())
     # print(halo.d['grp'])
     # print(halo.st['grp'])
+        from collections import Counter
+        print(Counter(halo.d['mass'].in_units("Msol")))
 
-    # AHF assigned the same number of particles to the halo than its header
-    # family by family
-    assert(halo.properties['npart'] == len(halo) == 6404253)
-    ndm = halo.properties['npart'] - halo.properties['n_star'] - halo.properties['n_gas']
-    # assert(ndm == len(halo.d) == 3203750)
-    assert(halo.properties['n_star'] == len(halo.st) == 3616)
-    assert(halo.properties['n_gas'] == len(halo.g) == 3196887)
+        # There should not be any extra families in the halo particles
+        assert(all(fam in [pynbody.family.dm, pynbody.family.star, pynbody.family.gas] for fam in halo.families()))
 
-    # Derive some masses to check that we are identifying the right particles
-    dm_mass = halo.properties['Mhalo'] - halo.properties['M_star'] - halo.properties['M_gas']
-    star_mass = halo.properties['M_star']
-    gas_mass = halo.properties['M_gas']
-    import numpy.testing as npt
-    npt.assert_allclose(dm_mass, halo.d['mass'].sum().in_units("Msol"))
-    # assert(halo.properties['M_star'] == halo.st['mass'].sum().in_units("Msol"))
-    assert(halo.properties['M_gas'] == halo.g['mass'].sum().in_units("Msol"))
+        # AHF assigned the same number of particles to the halo
+        # than its header, family by family
+        assert(halo.properties['npart'] == len(halo))
+        assert(halo.properties['n_star'] == len(halo.st))
+        assert(halo.properties['n_gas'] == len(halo.g))
+        ndm = halo.properties['npart'] - halo.properties['n_star'] - halo.properties['n_gas']
+        assert(ndm == len(halo.d))
+
+        # Derive some masses to check that we are identifying the right particles
+        # dm_mass = halo.properties['Mhalo'] - halo.properties['M_star'] - halo.properties['M_gas']
+        star_mass = halo.properties['M_star']
+        gas_mass = halo.properties['M_gas']
+        import numpy.testing as npt
+        rtol = 1e-2 # We are not precise to per cent level with unit conversion through the different steps
+        # npt.assert_allclose(dm_mass, halo.d['mass'].sum().in_units("Msol"), rtol=rtol)
+        npt.assert_allclose(star_mass, halo.st['mass'].sum().in_units("Msol"), rtol=rtol)
+        npt.assert_allclose(gas_mass, halo.g['mass'].sum().in_units("Msol"), rtol=rtol)
+        npt.assert_allclose(halo.properties['Mhalo'], halo['mass'].sum().in_units("Msol"), rtol=rtol)
+
