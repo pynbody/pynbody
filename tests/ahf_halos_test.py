@@ -44,3 +44,9 @@ def test_ahf_unwritable():
     f = pynbody.load("testdata/test_unwritable/g15784.lr.01024")
     h = f.halos()
     assert len(h)==1411
+
+def test_detecting_ahf_catalogues_with_without_trailing_slash():
+    # Test small fixes in #688 to detect AHF catalogues with and wihtout trailing slashes in directories
+    for name in ["testdata/output_00110", "testdata/output_00110/"]:
+        f = pynbody.load(name)
+        halos = pynbody.halo.AHFCatalogue(f)

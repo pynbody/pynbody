@@ -634,10 +634,7 @@ class AHFCatalogue(HaloCatalogue):
             # and a second one again below
 
             if os.path.isdir(sim._filename):
-                candidates.union(glob.glob(os.path.join(
-                    sim._filename,
-                    "*z*particles*"
-                )))
+                candidates = candidates.union(glob.glob(os.path.join(sim._filename, "*z*particles*")))
 
         return list(candidates)
 
@@ -646,7 +643,7 @@ class AHFCatalogue(HaloCatalogue):
         candidates = cls._list_possible_candidates(sim, ahf_basename)
         number_ahf_file_candidates = len(candidates)
         if number_ahf_file_candidates < 1:
-            raise warnings.warn("Did not find a suitable AHF halo catalogue file -- will attempt to run AHF to generate one or fallback to other halo catalogues")
+            warnings.warn("Did not find a suitable AHF halo catalogue file -- will attempt to run AHF to generate one or fallback to other halo catalogues")
         elif number_ahf_file_candidates > 1:
             raise OSError("\n".join(candidates) + "\nare multiple AHF catalogue files -- do not know which one to choose")
         else:
