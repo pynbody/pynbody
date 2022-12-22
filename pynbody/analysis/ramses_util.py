@@ -191,10 +191,10 @@ def convert_to_tipsy_fullbox(s, write_param=True):
     """
 
     if type(s) is not RamsesSnap:
-        raise ValueError("This routine can only be used for Ramses snapshots but you are calling with" + type(s))
+        raise ValueError("This routine can only be used for Ramses snapshots but you are calling with " + str(type(s)))
 
-    warnings.warn("This routine currently makes the assumption that the ramses snapshot is cosmological"
-                  "when converting units. Beware if converting isolated runs")
+    warnings.warn("This routine currently makes the assumption that the ramses snapshot is cosmological\n"
+                  "when converting units. Beware if converting isolated runs.")
 
     lenunit, massunit, timeunit, velunit, potentialunit = get_tipsy_units(s)
     tipsyfile = "%s_fullbox.tipsy" % (s._filename)
