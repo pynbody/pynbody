@@ -50,7 +50,7 @@ def bridge(npc.ndarray[integral_1, ndim=1] iord_to,
             output_index[i] = 0
             found_match[i] = 0 # false
 
-    return (output_index, found_match.astype(np.bool))
+    return (output_index, found_match.astype(np.bool_))
 
 
 @cython.boundscheck(False)
