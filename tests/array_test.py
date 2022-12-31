@@ -178,7 +178,7 @@ def test_issue_485_2():
         rxy[i] = np.mean(stars[bininds]['rxy'].in_units('kpc'))
 
 
-    np.testing.assert_almost_equal(sigvz, np.array([19.68325233, 29.49512482,  0.]), rtol=1e-6)
-    np.testing.assert_almost_equal(sigvr, np.array([25.64306641, 26.01454544,  0.]), rtol=1e-6)
-    np.testing.assert_almost_equal(sigvt, np.array([28.49997711, 18.84262276,  0.]), rtol=1e-6)
-    np.testing.assert_almost_equal(rxy, np.array([1136892.125, 1606893.625, 1610494.75]), rtol=1e-6)
+    np.testing.assert_allclose(sigvz, np.array([19.68325233, 29.49512482,  0.]), rtol=1e-6)
+    np.testing.assert_allclose(sigvr, np.array([25.64306641, 26.01454544,  0.]), rtol=1e-6)
+    np.testing.assert_allclose(sigvt, np.array([28.49997711, 18.84262276,  0.]), rtol=1e-6)
+    np.testing.assert_allclose(rxy, np.array([1136892.125, 1606893.625, 1610494.75]), rtol=1e-6)
