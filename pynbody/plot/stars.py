@@ -217,7 +217,7 @@ def render(sim, filename=None,
 
 		for i in range(len(a_v)):
 			for j in range(len(a_v[0])):
-				ext = extinction.calzetti00(wave.astype(np.float), a_v[i][j].astype(np.float), 3.1, unit='aa', out=None)
+				ext = extinction.calzetti00(wave.astype(np.float_), a_v[i][j].astype(np.float_), 3.1, unit='aa', out=None)
 				ext_r[i][j] = ext[2]
 				ext_g[i][j] = ext[1]
 				ext_b[i][j] = ext[0]
