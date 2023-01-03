@@ -30,7 +30,7 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
 
 
     if num_threads == 0 :
-        num_threads = np.int(config["number_of_threads"])
+        num_threads = int(config["number_of_threads"])
 
     if num_threads < 0:
         num_threads = openmp.get_cpus()

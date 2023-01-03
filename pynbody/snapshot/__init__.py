@@ -260,7 +260,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             return SubSnap(self, i)
         elif isinstance(i, family.Family):
             return FamilySubSnap(self, i)
-        elif isinstance(i, np.ndarray) and np.issubdtype(np.bool, i.dtype):
+        elif isinstance(i, np.ndarray) and np.issubdtype(np.bool_, i.dtype):
             return self._get_subsnap_from_mask_array(i)
         elif isinstance(i, (list, tuple, np.ndarray, filt.Filter)):
             return IndexedSubSnap(self, i)
