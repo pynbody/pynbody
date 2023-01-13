@@ -9,6 +9,7 @@ import numpy as np
 from .. import config_parser, snapshot, util
 from . import DummyHalo, Halo, HaloCatalogue, logger
 
+
 class AHFCatalogue(HaloCatalogue):
 
     """

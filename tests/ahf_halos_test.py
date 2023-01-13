@@ -82,4 +82,3 @@ def test_ramses_ahf_family_mapping_with_new_format():
         npt.assert_allclose(dm_mass / hubble, halo.d['mass'].sum().in_units("Msol"), rtol=rtol)
         npt.assert_allclose(gas_mass / hubble, halo.g['mass'].sum().in_units("Msol"), rtol=rtol)
         npt.assert_allclose(halo.properties['Mhalo'] / hubble, halo['mass'].sum().in_units("Msol"), rtol=rtol)
-
