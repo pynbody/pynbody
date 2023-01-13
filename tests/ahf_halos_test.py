@@ -4,6 +4,8 @@ import shutil
 import stat
 import subprocess
 
+import numpy as np
+
 import pynbody
 
 
@@ -45,8 +47,45 @@ def test_ahf_unwritable():
     h = f.halos()
     assert len(h)==1411
 
+
 def test_detecting_ahf_catalogues_with_without_trailing_slash():
     # Test small fixes in #688 to detect AHF catalogues with and wihtout trailing slashes in directories
-    for name in ["testdata/output_00110", "testdata/output_00110/"]:
+    for name in ["testdata/ramses_new_format_cosmo_with_ahf_output_00110", "testdata/ramses_new_format_cosmo_with_ahf_output_00110/"]:
         f = pynbody.load(name)
         halos = pynbody.halo.AHFCatalogue(f)
+
+
+def test_ramses_ahf_family_mapping_with_new_format():
+    # Test Issue 691 where family mapping of AHF catalogues with Ramses new particle formats would go wrong
+    f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
+    halos = pynbody.halo.AHFCatalogue(f)
+
+    assert len(halos) == 149    # 150 lines in AHF halos file
+
+    # Load halos and check that stars, DM and gas are correctly mapped by pynbody
+    # Halo 1 is the main halo and has all three families, while other are random picks
+    halo_numbers = [1, 10, 15]
+    for halo_number in halo_numbers:
+        halo = halos[halo_number]
+
+        # There should not be any extra families in the halo particles
+        assert(all(fam in [pynbody.family.dm, pynbody.family.star, pynbody.family.gas] for fam in halo.families()))
+
+        # Check we now have the same number of particles assigned to the halo
+        # than its AHF header, family by family
+        assert(halo.properties['npart'] == len(halo))
+        assert(halo.properties['n_star'] == len(halo.st))
+        assert(halo.properties['n_gas'] == len(halo.g))
+        ndm = halo.properties['npart'] - halo.properties['n_star'] - halo.properties['n_gas']
+        assert(ndm == len(halo.d))
+
+        # Derive some masses to check that we are identifying the right particles, in addition to their right numbers
+        dm_mass = halo.properties['Mhalo'] - halo.properties['M_star'] - halo.properties['M_gas']
+        gas_mass = halo.properties['M_gas']
+
+        import numpy.testing as npt
+        rtol = 1e-2 # We are not precise to per cent level with unit conversion through the different steps
+        hubble = f.properties['h']      # AHF internal units are Msol/h and need to be manually corrected, which has not been done on this test output
+        npt.assert_allclose(dm_mass / hubble, halo.d['mass'].sum().in_units("Msol"), rtol=rtol)
+        npt.assert_allclose(gas_mass / hubble, halo.g['mass'].sum().in_units("Msol"), rtol=rtol)
+        npt.assert_allclose(halo.properties['Mhalo'] / hubble, halo['mass'].sum().in_units("Msol"), rtol=rtol)

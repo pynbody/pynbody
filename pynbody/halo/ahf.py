@@ -326,7 +326,34 @@ class AHFCatalogue(HaloCatalogue):
             if self._use_iord:
                 data = self._iord_to_fpos[data]
             elif isinstance(self.base, snapshot.ramses.RamsesSnap):
-                pass
+                # AHF only expects three families, DM, star, gas in this order
+                # and generates iords on disc according to this rule
+                # For classical Ramses snapshots, this is perfectly adequate, but
+                # for more modern outputs that have extra tracers, BHs families
+                # we need to offset the ids to return the correct slicing
+                # TODO These tests on snapshot type might not be necessary
+                #  as using the family logic properly should be general.
+                #  It is currently kept to ensure 100% backwards compatibility with previous behaviour,
+                #  as this code is not explicitly checked by the pynbody test distribution
+
+                if len(self.base) != nd + ns + ng:                      # We have extra families to the base ones
+                    # First identify DM, star and gas particles in AHF
+                    ahf_dm_mask = data < nd
+                    ahf_star_mask = (data >= nd) & (data < nds)
+                    ahf_gas_mask = data >= nds
+
+                    # Then offset them by DM family start, to account for
+                    # additional families before it, e.g. gas tracers
+                    data[np.where(ahf_dm_mask)] += self.base._get_family_slice('dm').start
+
+                    # Star ids used to start at NDM, now they start with the star family slice
+                    offset = self.base._get_family_slice('star').start - nd
+                    data[np.where(ahf_star_mask)] += offset
+
+                    # Gas ids were greater than NDM + NSTAR, now they start with the gas slice
+                    offset = self.base._get_family_slice('gas').start - nds
+                    data[np.where(ahf_gas_mask)] += offset
+
             elif not isinstance(self.base, snapshot.nchilada.NchiladaSnap):
                 hi_mask = data >= nds
                 data[np.where(hi_mask)] -= nds

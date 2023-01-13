@@ -25,11 +25,11 @@ if (len(sys.argv) > 2):
     # if there's a second argument, it can be a photogenic file
     # and analysis will follow the halo that contains those particles
     photiords = np.genfromtxt(sys.argv[2],dtype='i8')
-    frac = np.float(len(np.where(np.in1d(photiords,h[i]['iord']))[0]))/len(photiords)
+    frac = float(len(np.where(np.in1d(photiords,h[i]['iord']))[0]))/len(photiords)
     print('i: %d frac: %.2f'%(i,frac))
     while(((frac) < 0.5) & (i<100)):
         i=i+1
-        frac = np.float(len(np.where(np.in1d(photiords,h[i]['iord']))[0]))/len(photiords)
+        frac = float(len(np.where(np.in1d(photiords,h[i]['iord']))[0]))/len(photiords)
         print('i: %d frac: %.2f'%(i,frac))
 else:
     # otherwise follow largest halo with at least 2 stars
