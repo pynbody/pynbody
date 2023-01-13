@@ -48,6 +48,13 @@ def test_ahf_unwritable():
     assert len(h)==1411
 
 
+def test_detecting_ahf_catalogues_with_without_trailing_slash():
+    # Test small fixes in #688 to detect AHF catalogues with and wihtout trailing slashes in directories
+    for name in ["testdata/ramses_new_format_cosmo_with_ahf_output_00110", "testdata/ramses_new_format_cosmo_with_ahf_output_00110/"]:
+        f = pynbody.load(name)
+        halos = pynbody.halo.AHFCatalogue(f)
+
+
 def test_ramses_ahf_family_mapping_with_new_format():
     # Test Issue 691 where family mapping of AHF catalogues with Ramses new particle formats would go wrong
     f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")

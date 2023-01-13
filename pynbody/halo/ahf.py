@@ -431,7 +431,7 @@ class AHFCatalogue(HaloCatalogue):
 
         for h, line in enumerate(f):
             values = [
-                float(x) if any(_ in x for _ in (".", "e", "nan"))
+                float(x) if any(_ in x for _ in (".", "e", "nan", "inf"))
                 else int(x)
                 for x in line.split()
             ]
@@ -654,19 +654,27 @@ class AHFCatalogue(HaloCatalogue):
         if ahf_basename is not None:
             candidates = glob.glob(f"{ahf_basename}*particles*")
         else:
-            candidates = glob.glob(f"{sim._filename}*z*particles*")
+            candidates = set(glob.glob(f"{sim._filename}*z*particles*"))
+            # use a set to ensure that no duplicates can be produced
+            # This could arise in an edge case where _filename is a directory
+            # and having the "/" at the end of it would lead to a first detection here
+            # and a second one again below
 
             if os.path.isdir(sim._filename):
-                candidates.extend(glob.glob(os.path.join(
-                    sim._filename,
-                    "*z*particles*"
-                )))
+                candidates = candidates.union(glob.glob(os.path.join(sim._filename, "*z*particles*")))
 
-        return [file for file in candidates if os.path.exists(file)]
+        return list(candidates)
 
     @classmethod
     def _can_load(cls, sim, ahf_basename=None, **kwargs):
-        return len(cls._list_possible_candidates(sim, ahf_basename)) == 1
+        candidates = cls._list_possible_candidates(sim, ahf_basename)
+        number_ahf_file_candidates = len(candidates)
+        if number_ahf_file_candidates < 1:
+            warnings.warn("Did not find a suitable AHF halo catalogue file -- will attempt to run AHF to generate one or fallback to other halo catalogues")
+        elif number_ahf_file_candidates > 1:
+            raise OSError("\n".join(candidates) + "\nare multiple AHF catalogue files -- do not know which one to choose")
+        else:
+            return True
 
     def _run_ahf(self, sim):
         # if (sim is pynbody.tipsy.TipsySnap) :
