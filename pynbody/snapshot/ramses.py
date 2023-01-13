@@ -1067,14 +1067,18 @@ class RamsesSnap(SimSnap):
 
         elif fam is not family.gas and fam is not None:
 
+            # Deal with tform for stars that require extra conversion
             if array_name == 'tform' or array_name == 'tform_raw':
-                self._load_particle_block('tform')
-                self._read_proper_time()
-                self._convert_tform()
+                if 'tform' in self._particle_blocks: # Only attempt these conversion if tform is actually on disc (Issue #689)
+                    self._load_particle_block('tform')
+                    self._read_proper_time()
+                    self._convert_tform()
 
+            # Deal with metals for stars that have extra name mapping
             elif array_name == 'metals' or array_name == 'metal':
-                self._load_particle_block('metal')
-                self._convert_metal_name()
+                if 'metal' in self._particle_blocks:
+                    self._load_particle_block('metal')
+                    self._convert_metal_name()
 
             elif array_name in self._split_arrays:
                 for array_1D in self._array_name_ND_to_1D(array_name):

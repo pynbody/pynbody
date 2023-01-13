@@ -320,6 +320,30 @@ def test_file_descriptor_reading():
         assert field in loadable_fields
 
 
+def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_blocks():
+    # DMO snapshot would not have tform or metals in the header or defined on disc
+    f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", force_gas=True)
+
+    # This should break the loading with a Key Error that the array cannot be found
+    # Previous to the fix of #689, it would break with
+    # ValueError: 'metal' is not in list
+    # Because the field is not present in the particle blocks but was attempted to be accessed
+    try:
+        f_dmo.st['metals']
+    except KeyError as e:
+        assert("No array" in str(e))
+
+    # Now define a custom-derived metals array, which should enable us to access the array at all time
+    # Previously to #689, this would still break the loading with the same ValueError
+    # Now it loads the derived field without issues
+    from pynbody.snapshot.ramses import RamsesSnap
+    @RamsesSnap.derived_quantity
+    def metals(snap):
+        return np.zeros(len(snap))
+
+    f_dmo.st['metals']
+
+
 def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
     # Setup a function to extensively test whether Tipsy snapshot written to disc with ramses_util
     # match their original Ramses values and have correct units
