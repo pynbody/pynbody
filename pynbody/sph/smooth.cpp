@@ -5,7 +5,6 @@
 #include <assert.h>
 #include "smooth.h"
 #include "kd.h"
-
 #include <iostream>
 
 bool smCheckFits(KD kd, float *fPeriod) {
@@ -612,7 +611,44 @@ int smSmoothStep(SMX smx, int procid)
 
 
 template<typename T>
-void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+T cubicSpline(SMX smx, T r2)
+{
+        // Cubic Spline Kernel
+        T rs;
+        rs = 2.0 - sqrt(r2);
+        if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
+        else rs = 0.25*rs*rs*rs;
+        if(rs<0) rs=0;
+        return rs;
+}
+
+
+template<typename T>
+T Wendland_kernel(SMX smx, T r2, int nSmooth)
+{
+        // Wendland Kernel
+        T rs;
+        // Dehnen & Aly 2012 correction (1-0.0454684 at Ns=64) /
+        float Wzero = (21/16.)*(1-0.0294*pow(nSmooth*0.01,-0.977));
+        if (r2 <= 0) rs = Wzero;
+        else {
+        T au = sqrt(r2*0.25);
+        rs = 1-au;
+        rs = rs*rs;
+        rs = rs*rs;
+        rs = (21/16.)*rs*(1+4*au);
+        }
+        if(rs<0 && !smx->warnings) {
+                fprintf(stderr, "Internal consistency error\n");
+                smx->warnings=true;
+        }
+        return rs;
+}
+
+
+
+template<typename T>
+void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	T fNorm,ih2,r2,rs,ih;
 	int i,pj;
@@ -625,14 +661,13 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (i=0;i<nSmooth;++i) {
     	pj = pList[i];
 		r2 = fList[i]*ih2;
-                rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0 && !smx->warnings) {
-		  fprintf(stderr, "Internal consistency error\n");
-		  smx->warnings=true;
+		if (Wendland) {
+			rs = Wendland_kernel(smx, r2, nSmooth);
 		}
-		rs *= fNorm;
+		else {
+			rs = cubicSpline(smx, r2);
+		}
+			rs *= fNorm;
 		ACCUM<T>(kd->pNumpyDen,kd->p[pi].iOrder,rs*GET<T>(kd->pNumpyMass,kd->p[pj].iOrder));
 		ACCUM<T>(kd->pNumpyDen,kd->p[pj].iOrder,rs*GET<T>(kd->pNumpyMass,kd->p[pi].iOrder));
   }
@@ -640,7 +675,7 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 }
 
 template<typename T>
-void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	T fNorm,ih2,r2,rs,ih;
 	int j,pj,pi_iord ;
@@ -654,10 +689,12 @@ void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if (Wendland) {
+			rs = Wendland_kernel(smx, r2, nSmooth);
+		}
+		else {
+			rs = cubicSpline(smx, r2);
+		}
 		rs *= fNorm;
 		ACCUM<T>(kd->pNumpyDen,pi_iord,rs*GET<T>(kd->pNumpyMass,kd->p[pj].iOrder));
 	}
@@ -665,7 +702,7 @@ void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 }
 
 template<typename Tf, typename Tq>
-void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,rs,ih,mass,rho;
 	int j,pj,pi_iord ;
@@ -681,10 +718,12 @@ void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if (Wendland) {
+			rs = Wendland_kernel(smx, r2, nSmooth);
+		}
+		else {
+			rs = cubicSpline(smx, r2);
+		}
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -695,7 +734,7 @@ void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 }
 
 template<typename Tf, typename Tq>
-void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,rs,ih,mass,rho;
 	int j,k,pj,pi_iord ;
@@ -712,10 +751,12 @@ void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if (Wendland) {
+			rs = Wendland_kernel(smx, r2, nSmooth);
+		}
+		else {
+			rs = cubicSpline(smx, r2);
+		}
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -727,8 +768,32 @@ void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 
 }
 
+template<typename Tf>
+Tf cubicSpline_gradient(Tf q, Tf ih, Tf r, Tf ih2)
+{
+	// Kernel gradient
+	Tf rs;
+	if (q < 1.0) rs = -3.0*ih + 2.25*r*ih2;
+	else rs = -0.75*(2-q)*(2-q)/r;
+
+	return rs;
+}
+
+template<typename Tf>
+Tf Wendland_gradient(Tf q, Tf r)
+{
+	// Kernel gradient
+	Tf rs;
+	if (r < 1e-24) r = 1e-24; // Fix to avoid dividing by zero in case r = 0.
+	// For this case q = 0 and rs = 0 in any case, so we can savely set r to a tiny value.
+	if (q < 2.0) rs = -5.0*q*(1.0-0.5*q)*(1.0-0.5*q)*(1.0-0.5*q)/r;
+
+	return rs;
+}
+
+
 template<typename Tf, typename Tq>
-void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
+void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,r,rs,q2,q,ih,mass,rho, dqty[3], qty_i[3];
 	int j,k,pj,pi_iord, pj_iord;
@@ -760,9 +825,15 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		q2 = r2*ih2;
 		r = sqrt(r2);
 		q = sqrt(q2);
+
 		// Kernel gradient
-		if (q < 1.0) rs = -3.0*ih + 2.25*r*ih2;
-		else rs = -0.75*(2-q)*(2-q)/r;
+		if (Wendland) {
+			rs = Wendland_gradient(q, r);
+		}
+		else {
+			rs = cubicSpline_gradient(q, ih, r, ih2);
+		}
+
 		rs *= fNorm;
 
 		mass=GET<Tf>(kd->pNumpyMass, pj_iord);
@@ -782,7 +853,7 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 }
 
 template<typename Tf, typename Tq>
-void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
+void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,r,rs,q2,q,ih,mass,rho, div, dqty[3], qty_i[3];
 	int j,k,pj,pi_iord, pj_iord;
@@ -815,8 +886,13 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 		r = sqrt(r2);
 		q = sqrt(q2);
 		// Kernel gradient
-		if (q < 1.0) rs = -3.0*ih + 2.25*r*ih2;
-		else rs = -0.75*(2-q)*(2-q)/r;
+		if (Wendland) {
+			rs = Wendland_gradient(q, r);
+		}
+		else {
+			rs = cubicSpline_gradient(q, ih, r, ih2);
+		}
+
 		rs *= fNorm;
 
 		mass=GET<Tf>(kd->pNumpyMass, pj_iord);
@@ -832,7 +908,7 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList)
 }
 
 template<typename Tf, typename Tq>
-void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	float fNorm,ih2,r2,rs,ih,mass,rho;
 	int j,k,pj,pi_iord ;
@@ -858,10 +934,12 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if (Wendland) {
+			rs = Wendland_kernel(smx, r2, nSmooth);
+		}
+		else {
+			rs = cubicSpline(smx, r2);
+		}
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -874,10 +952,12 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if (Wendland) {
+			rs = Wendland_kernel(smx, r2, nSmooth);
+		}
+		else {
+			rs = cubicSpline(smx, r2);
+		}
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -894,8 +974,10 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 
 }
 
+
+
 template<typename Tf, typename Tq>
-void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
+void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
 {
 	float fNorm,ih2,r2,rs,ih,mass,rho;
 	int j,pj,pi_iord ;
@@ -918,10 +1000,13 @@ void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if (Wendland) {
+			rs = Wendland_kernel(smx, r2, nSmooth);
+		}
+		else {
+			rs = cubicSpline(smx, r2);
+		}
+
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -933,10 +1018,12 @@ void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		if(rs<0) rs=0;
+		if (Wendland) {
+			rs = Wendland_kernel(smx, r2, nSmooth);
+		}
+		else {
+			rs = cubicSpline(smx, r2);
+		}
 		rs *= fNorm;
 		mass=GET<Tf>(kd->pNumpyMass,kd->p[pj].iOrder);
 		rho=GET<Tf>(kd->pNumpyDen,kd->p[pj].iOrder);
@@ -967,10 +1054,10 @@ template
 int smSmoothStep<double>(SMX smx, int procid);
 
 template
-void smDensitySym<double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smDensitySym<double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smDensity<double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smDensity<double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 
 
@@ -987,88 +1074,88 @@ template
 int smSmoothStep<float>(SMX smx, int procid);
 
 template
-void smDensitySym<float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smDensitySym<float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smDensity<float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smDensity<float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 
-
-
-template
-void smMeanQty1D<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-template
-void smMeanQtyND<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-template
-void smDispQty1D<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-template
-void smDispQtyND<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-template
-void smCurlQty<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-template
-void smDivQty<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
 
 
 template
-void smMeanQty1D<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smMeanQty1D<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smMeanQtyND<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smMeanQtyND<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smDispQty1D<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smDispQty1D<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smDispQtyND<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smDispQtyND<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smCurlQty<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smCurlQty<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smDivQty<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-
-template
-void smMeanQty1D<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-template
-void smMeanQtyND<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-template
-void smDispQty1D<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-template
-void smDispQtyND<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-template
-void smCurlQty<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
-
-template
-void smDivQty<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smDivQty<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 
 template
-void smMeanQty1D<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smMeanQty1D<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smMeanQtyND<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smMeanQtyND<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smDispQty1D<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smDispQty1D<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smDispQtyND<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smDispQtyND<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smCurlQty<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smCurlQty<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 template
-void smDivQty<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList);
+void smDivQty<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+
+template
+void smMeanQty1D<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+template
+void smMeanQtyND<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+template
+void smDispQty1D<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+template
+void smDispQtyND<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+template
+void smCurlQty<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+template
+void smDivQty<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+
+template
+void smMeanQty1D<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+template
+void smMeanQtyND<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+template
+void smDispQty1D<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+template
+void smDispQtyND<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+template
+void smCurlQty<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+
+template
+void smDivQty<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 
 

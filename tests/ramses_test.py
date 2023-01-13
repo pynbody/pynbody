@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 
@@ -340,3 +342,84 @@ def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_bloc
         return np.zeros(len(snap))
 
     f_dmo.st['metals']
+
+
+def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
+    # Setup a function to extensively test whether Tipsy snapshot written to disc with ramses_util
+    # match their original Ramses values and have correct units
+    import numpy.testing as npt
+    ramses_snap.physical_units()
+    tipsy_snap.physical_units()
+
+    # Test lengths
+    assert (len(ramses_snap.d) == len(tipsy_snap.d))
+    assert (len(ramses_snap.st) == len(tipsy_snap.st))
+    assert (len(ramses_snap.g) == len(tipsy_snap.g))
+
+    # This level of precision is limited by the many hardcoded SI constants
+    # in the tipsy/ramses loaders and converters, which are not self-consitent with one another
+    rtol = 5e-4
+
+    # Test header properties
+    npt.assert_allclose(ramses_snap.properties['time'].in_units("Gyr"),
+                        tipsy_snap.properties['time'].in_units("Gyr"),
+                        rtol=rtol)
+    npt.assert_allclose(ramses_snap.properties['a'], tipsy_snap.properties['a'])
+    npt.assert_allclose(ramses_snap.properties['h'], tipsy_snap.properties['h'], rtol=rtol)
+    npt.assert_allclose(ramses_snap.properties['omegaM0'], tipsy_snap.properties['omegaM0'])
+    npt.assert_allclose(ramses_snap.properties['omegaL0'], tipsy_snap.properties['omegaL0'])
+    npt.assert_allclose(ramses_snap.properties['boxsize'].in_units("Mpc"),
+                        tipsy_snap.properties['boxsize'].in_units("Mpc"), rtol=rtol)
+
+    # Dark matter
+    npt.assert_allclose(ramses_snap.d['pos'], tipsy_snap.d['pos'], rtol=rtol)
+    npt.assert_allclose(ramses_snap.d['vel'], tipsy_snap.d['vel'], rtol=rtol)
+    npt.assert_allclose(ramses_snap.d['mass'], tipsy_snap.d['mass'], rtol=rtol)
+
+    # Stars
+    if len(tipsy_snap.st) > 0:
+        npt.assert_allclose(ramses_snap.st['pos'], tipsy_snap.st['pos'], rtol=rtol)
+        npt.assert_allclose(ramses_snap.st['vel'], tipsy_snap.st['vel'], rtol=rtol)
+        npt.assert_allclose(ramses_snap.st['mass'], tipsy_snap.st['mass'], rtol=rtol)
+        npt.assert_allclose(ramses_snap.st['tform'], tipsy_snap.st['tform'], rtol=rtol)
+
+    # Gas
+    if len(tipsy_snap.g) > 0:
+        npt.assert_allclose(ramses_snap.g['pos'], tipsy_snap.g['pos'], rtol=rtol)
+        npt.assert_allclose(ramses_snap.g['vel'], tipsy_snap.g['vel'], rtol=rtol)
+        npt.assert_allclose(ramses_snap.g['mass'], tipsy_snap.g['mass'], rtol=rtol)
+
+
+def test_tipsy_conversion_for_dmo():
+    path = "testdata/ramses_dmo_partial_output_00051"
+    f_dmo = pynbody.load(path)
+    pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f_dmo, write_param=True)
+
+    # There are many tipsy parameter files that are automatically detected by the loader
+    # in the testdata folder, make sure we point the right one
+    tipsy_path = path + "_fullbox.tipsy"
+    tipsy_dmo = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
+
+    array_by_array_test_tipsy_converter(f_dmo, tipsy_dmo)
+    # Clean up our created param file to avoid it being detected and picked up by other tipsy tests
+    os.remove(tipsy_path + ".param")
+
+
+def test_tipsy_conversion_for_cosmo_gas():
+    path = "testdata/output_00080"
+    # The namelist file is not included in the test data
+    # Write a quick one-liner to ensure that we identify cosmo correctly
+    # and get the correct time units
+    with open(path + os.sep + "namelist.txt", "w") as namelist:
+        namelist.write("cosmo=.true.")
+
+    f = pynbody.load(path)
+    pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
+
+    tipsy_path = path + "_fullbox.tipsy"
+    tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
+
+    array_by_array_test_tipsy_converter(f, tipsy)
+    # Clean up our namelist to avoid any other issues with other tests
+    os.remove(path + os.sep + "namelist.txt")
+    os.remove(tipsy_path + ".param")
