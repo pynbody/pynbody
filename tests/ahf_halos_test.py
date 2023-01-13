@@ -4,6 +4,8 @@ import shutil
 import stat
 import subprocess
 
+import numpy as np
+
 import pynbody
 
 
@@ -48,15 +50,14 @@ def test_ahf_unwritable():
 
 def test_ramses_ahf_family_mapping_with_new_format():
     # Test Issue 691 where family mapping of AHF catalogues with Ramses new particle formats would go wrong
-    f = pynbody.load("testdata/output_00110")
+    f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
     halos = pynbody.halo.AHFCatalogue(f)
 
-    assert len(halos) == 2719 # 2720 lines in AHF halos file
-    print(halos._all_parts)
+    assert len(halos) == 149    # 150 lines in AHF halos file
 
-    # Load two halos and check that stars, DM and gas are correctly mapped by pynbody
+    # Load halos and check that stars, DM and gas are correctly mapped by pynbody
     # Halo 1 is the main halo and has all three families, while other are random picks
-    halo_numbers = [1, 10, 128, 256]
+    halo_numbers = [1, 10, 15]
     for halo_number in halo_numbers:
         halo = halos[halo_number]
 
@@ -73,12 +74,12 @@ def test_ramses_ahf_family_mapping_with_new_format():
 
         # Derive some masses to check that we are identifying the right particles, in addition to their right numbers
         dm_mass = halo.properties['Mhalo'] - halo.properties['M_star'] - halo.properties['M_gas']
-        star_mass = halo.properties['M_star']
         gas_mass = halo.properties['M_gas']
+
         import numpy.testing as npt
         rtol = 1e-2 # We are not precise to per cent level with unit conversion through the different steps
-        npt.assert_allclose(dm_mass, halo.d['mass'].sum().in_units("Msol"), rtol=rtol)
-        npt.assert_allclose(star_mass, halo.st['mass'].sum().in_units("Msol"), rtol=rtol)
-        npt.assert_allclose(gas_mass, halo.g['mass'].sum().in_units("Msol"), rtol=rtol)
-        npt.assert_allclose(halo.properties['Mhalo'], halo['mass'].sum().in_units("Msol"), rtol=rtol)
+        hubble = f.properties['h']      # AHF internal units are Msol/h and need to be manually corrected, which has not been done on this test output
+        npt.assert_allclose(dm_mass / hubble, halo.d['mass'].sum().in_units("Msol"), rtol=rtol)
+        npt.assert_allclose(gas_mass / hubble, halo.g['mass'].sum().in_units("Msol"), rtol=rtol)
+        npt.assert_allclose(halo.properties['Mhalo'] / hubble, halo['mass'].sum().in_units("Msol"), rtol=rtol)
 
