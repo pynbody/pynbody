@@ -663,7 +663,7 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendl
 		r2 = fList[i]*ih2;
 		if (Wendland) {
 			rs = Wendland_kernel(smx, r2, nSmooth);
-		} 
+		}
 		else {
 			rs = cubicSpline(smx, r2);
 		}
@@ -718,7 +718,7 @@ void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendla
 	for (j=0;j<nSmooth;++j) {
 		pj = pList[j];
 		r2 = fList[j]*ih2;
-		if (Wendland) { 
+		if (Wendland) {
 			rs = Wendland_kernel(smx, r2, nSmooth);
 		}
 		else {
@@ -784,7 +784,7 @@ Tf Wendland_gradient(Tf q, Tf r)
 {
 	// Kernel gradient
 	Tf rs;
-	if (r < 1e-24) r = 1e-24; // Fix to avoid dividing by zero in case r = 0. 
+	if (r < 1e-24) r = 1e-24; // Fix to avoid dividing by zero in case r = 0.
 	// For this case q = 0 and rs = 0 in any case, so we can savely set r to a tiny value.
 	if (q < 2.0) rs = -5.0*q*(1.0-0.5*q)*(1.0-0.5*q)*(1.0-0.5*q)/r;
 
@@ -1041,7 +1041,7 @@ void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendla
 
 // instantiate the actual functions that are available:
 
-template 
+template
 void smBallSearch<double>(SMX smx,float fBall2,float *ri);
 
 template

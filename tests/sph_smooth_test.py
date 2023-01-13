@@ -87,14 +87,14 @@ def test_smooth(v_mean, v_disp, rho, smooth):
 
 
 def test_smooth_WendlandC2(rho_W):
-    
+
     """
         np.save('test_rho_W.npy', f.g['rho'][::100])
     """
     pynbody.config['Kernel'] = 'WendlandC2'
-    
+
     f = pynbody.load("testdata/g15784.lr.01024")
-    
+
     npt.assert_allclose(f.g['rho'][::100],
                         rho_W,rtol=1e-5)
 

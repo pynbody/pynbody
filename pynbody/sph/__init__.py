@@ -203,7 +203,7 @@ class Kernel:
                 self._samples = np.array(
                     [self.get_value(x ** 0.5) for x in sample_pts], dtype=dtype)
         return self._samples
-    
+
     def get_value(self, d, h=1):
         """Get the value of the kernel for a given smoothing length."""
         # Default : spline kernel

@@ -166,7 +166,7 @@ class KDTree:
             Specify operation to perform (compute smoothing lengths, density, SPH mean, or SPH dispersion).
         nn : int
             Number of neighbours to be considered when smoothing.
-        kernel : str 
+        kernel : str
             Keyword to specify the smoothing kernel. Options: 'CubicSpline', 'WendlandC2'
         """
         from . import _thread_map
@@ -207,7 +207,7 @@ class KDTree:
                 [self.kdtree] * n_proc,
                 [smx] * n_proc,
                 [propid] * n_proc,
-                list(range(0, n_proc)), 
+                list(range(0, n_proc)),
                 [kernel] * n_proc
             )
 
