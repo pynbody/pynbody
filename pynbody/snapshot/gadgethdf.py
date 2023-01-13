@@ -365,8 +365,9 @@ class GadgetHDFSnap(SimSnap):
     def _get_cosmo_factors(hdf, arr_name) :
         """Return the cosmological factors for a given array"""
         match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((s.endswith("/"+arr_name)) & ('PartType' in s))]
-        if arr_name == 'Mass' and len(match) == 0:
+        if (arr_name == 'Mass' or arr_name == 'Masses') and len(match) == 0:
             # mass stored in header. We're out in the cold on our own.
+            warnings.warn("Masses are either stored in the header or have another dataset name; assuming the cosmological factor %s" % units.h**-1)
             return units.Unit('1.0'), units.h**-1
         if len(match) > 0 :
             try:
@@ -383,12 +384,8 @@ class GadgetHDFSnap(SimSnap):
         else :
             return units.Unit('1.0'), units.Unit('1.0')
 
-
     def _get_units_from_hdf_attr(self, hdfattrs) :
         """Return the units based on HDF attributes VarDescription"""
-
-
-
         VarDescription = str(hdfattrs['VarDescription'])
         CGSConversionFactor = float(hdfattrs['CGSConversionFactor'])
         aexp = hdfattrs['aexp-scale-exponent']
@@ -563,9 +560,21 @@ class GadgetHDFSnap(SimSnap):
 
         cosmo = 'HubbleParam' in list(self._get_hdf_parameter_attrs().keys())
         if cosmo:
-            for fac in self._get_cosmo_factors(self._hdf_files[0], 'Coordinates'): dist_unit *= fac
-            for fac in self._get_cosmo_factors(self._hdf_files[0], 'Velocities'): vel_unit *= fac
-            for fac in self._get_cosmo_factors(self._hdf_files[0], 'Mass'): mass_unit *= fac
+            try:
+                for fac in self._get_cosmo_factors(self._hdf_files[0], 'Coordinates'): dist_unit *= fac
+            except KeyError:
+                dist_unit *= units.a * units.h**-1
+                warnings.warn("Unable to find cosmological factors in HDF file; assuming position is %s" % dist_unit)
+            try:
+                for fac in self._get_cosmo_factors(self._hdf_files[0], 'Velocities'): vel_unit *= fac
+            except KeyError:
+                vel_unit *= units.a**(1,2)
+                warnings.warn("Unable to find cosmological factors in HDF file; assuming velocity is %s" % vel_unit)
+            try:
+                for fac in self._get_cosmo_factors(self._hdf_files[0], 'Mass'): mass_unit *= fac
+            except KeyError:
+                mass_unit *= units.h**-1
+                warnings.warn("Unable to find cosmological factors in HDF file; assuming mass is %s" % mass_unit)
 
         self._file_units_system = [units.Unit(x) for x in [
             vel_unit, dist_unit, mass_unit, "K"]]
