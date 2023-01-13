@@ -125,25 +125,37 @@ int smSmoothStep(SMX smx, int procid);
 void smSmoothInitStep(SMX smx, int nProcs);
 
 template<typename T>
-void smDensitySym(SMX,int,int,int *,float *);
+void smDensitySym(SMX,int,int,int *,float *, bool);
 
 template<typename T>
-void smDensity(SMX,int,int,int *,float *);
+void smDensity(SMX,int,int,int *,float *, bool);
 
 template<typename Tf, typename Tq>
-void smMeanQtyND(SMX,int,int,int *,float *);
+void smMeanQtyND(SMX,int,int,int *,float *, bool);
 template<typename Tf, typename Tq>
-void smDispQtyND(SMX,int,int,int *,float *);
+void smDispQtyND(SMX,int,int,int *,float *, bool);
 template<typename Tf, typename Tq>
-void smMeanQty1D(SMX,int,int,int *,float *);
+void smMeanQty1D(SMX,int,int,int *,float *, bool);
 template<typename Tf, typename Tq>
-void smDispQty1D(SMX,int,int,int *,float *);
+void smDispQty1D(SMX,int,int,int *,float *, bool);
 template<typename Tf, typename Tq>
-void smDivQty(SMX,int,int,int *,float *);
+void smDivQty(SMX,int,int,int *,float *, bool);
 template<typename Tf, typename Tq>
-void smCurlQty(SMX,int,int,int *,float *);
+void smCurlQty(SMX,int,int,int *,float *, bool);
 
 bool smCheckFits(KD kd, float *fPeriod);
+
+template<typename T>
+T Wendland_kernel(SMX, T, int);
+
+template<typename T>
+T cubicSpline(SMX, T);
+
+template<typename Tf>
+Tf cubicSpline_gradient(Tf, Tf, Tf, Tf);
+
+template<typename Tf>
+Tf Wendland_gradient(Tf, Tf);
 
 /*
 void smMeanVel(SMX,int,int,int *,float *);
