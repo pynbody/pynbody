@@ -171,12 +171,15 @@ class Bridge:
 
 
         if only_family is None:
-
-
             g1 = groups_1.get_group_array()[restriction_start_indices]
             g2 = groups_2.get_group_array()[restriction_end_indices]
 
         else:
+            # Need to account for the fact that get_group_array(only_family) will return an array of length Nfamily
+            # while restriction_start_indices are global indeces to the ancestor snapshot,
+            # which can start anywhere depending on the family ordering ==> Need to offset them back to start at 0.
+            restriction_start_indices -= start.ancestor._get_family_slice(only_family).start
+            restriction_end_indices -= end.ancestor._get_family_slice(only_family).start
 
             g1 = groups_1.get_group_array(family=only_family)[restriction_start_indices]
             g2 = groups_2.get_group_array(family=only_family)[restriction_end_indices]
