@@ -39,7 +39,7 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         python -m pip install numpy${{ matrix.numpy-version }}
     - name: Manually build h5py for python 3.11
-      if: ${{ matrix.python-version == "3.11" }}
+      if: ${{ matrix.python-version == '3.11' }}
       run: pip install --no-binary=h5py h5py
     - name: Build and install pynbody
       run: |
