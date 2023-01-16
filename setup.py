@@ -161,7 +161,7 @@ install_requires = [
     'cython>=0.20',
     'h5py>=2.10.0',
     'matplotlib>=3.0.0',
-    'numpy>=1.14.0',
+    'numpy>=1.21.6',
     'posix_ipc>=0.8',
     'scipy>=1.0.0'
 ]
@@ -220,7 +220,7 @@ setup(name = 'pynbody',
       install_requires=install_requires,
       tests_require=tests_require,
       extras_require=extras_require,
-      python_requires='>=3.5',
+      python_requires='>=3.8',
       long_description=long_description,
       long_description_content_type='text/markdown'
       )
