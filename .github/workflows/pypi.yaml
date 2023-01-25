@@ -3,25 +3,33 @@ name: Push to PyPI
 on:
   push:
     tags: v*
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/pypi.yaml'
 
   workflow_dispatch:
 
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build wheels on ${{ matrix.buildplat[0] }}
+    runs-on: ${{ matrix.buildplat[0] }}
     env:
       CC: gcc-10
       CXX: g++-10
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-10.15]
-
+        # Following numpy's setup
+        buildplat:
+        - [ubuntu-20.04, manylinux, x86_64]
+        - [macos-10.15, macosx, x86_64]
+        python: ["cp38", "cp39", "cp310", "cp311"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           python-version: '3.8'
@@ -30,24 +38,26 @@ jobs:
         run: python -m "pip" install numpy cython
 
       - name: Install GCC (Ubuntu)
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.buildplat[0] == 'ubuntu-20.04'
         shell: bash
         run: |
           sudo apt-get update -qq
           sudo apt install gcc-10 g++-10
 
       - name: Install GCC (MacOS)
-        if: matrix.os == 'macos-10.15'
+        if: matrix.buildplat[0] == 'macos-10.15'
         shell: bash
         run: |
           brew install gcc@10
 
       - name: Determine version tag
+        if: github.event_name != 'pull_request'
         run: |
           echo "SETUP_VERSION=`python setup.py --version`" >> $GITHUB_ENV
           echo "VERSION_TAG=`git describe --tags | cut -c 2-`" >> $GITHUB_ENV
 
       - name: Verify version naming is consistent
+        if: github.event_name != 'pull_request'
         run: |
           if [ "${{ env.VERSION_TAG }}" == "${{ env.SETUP_VERSION }}" ]; then
               echo Git tag and python setup.py versions match: ${{ env.VERSION_TAG }}
@@ -59,19 +69,23 @@ jobs:
           fi
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.1.1
+        uses: pypa/cibuildwheel@v2.12.0
+        env:
+          CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
+          CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
 
   build_sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           python-version: '3.8'
@@ -82,7 +96,7 @@ jobs:
       - name: Build sdist
         run: python setup.py sdist
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: dist/*.tar.gz
 
@@ -90,13 +104,14 @@ jobs:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     environment: PyPI
+    if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: artifact
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
+      - uses: pypa/gh-action-pypi-publish@v1.6.4
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
