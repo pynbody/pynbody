@@ -10,8 +10,8 @@ automatically via pynbody.load.
 """
 
 import os
+import struct
 import warnings
-import xdrlib
 import xml.dom.minidom
 
 import numpy as np
@@ -33,10 +33,18 @@ _max_buf = 1024 * 512
 class NchiladaSnap(SimSnap):
 
     def _load_header(self, f):
-        u = xdrlib.Unpacker(f.read(28))
-        assert u.unpack_int() == 1062053
-        t = u.unpack_double()
-        highword, nbod, ndim, code = (u.unpack_int() for i in range(4))
+        # Used to use xdrlib, but that is deprecated in Python 3.11
+        # The following code just follows the old xdrlib implementation
+        buf= f.read(28)
+        pos= 0
+        # Read int, walrus assignment updates pos
+        assert struct.unpack('>l',buf[pos:(pos:=pos+4)])[0] == 1062053
+        # Read double, walrus assignment updates pos
+        t= struct.unpack('>d',buf[pos:(pos:=pos+8)])[0]
+        # Read four ints, walrus assignment updates pos
+        highword, nbod, ndim, code = (
+            struct.unpack('>l',buf[pos:(pos:=pos+4)])[0] for i in range(4)
+        )
         return t, nbod, ndim, _type_codes[code]
 
     def _update_loadable_keys(self):
