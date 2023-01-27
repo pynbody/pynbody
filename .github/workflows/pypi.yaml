@@ -65,7 +65,7 @@ jobs:
           response=$(arm-brew fetch --force --bottle-tag=arm64_big_sur llvm@15 | grep "Downloaded to")
           parsed=($response)  
 
-          arm-brew install $parsed[3] 
+          arm-brew install --ignore-dependencies $parsed[3] 
 
           librarydir=$(pwd)/arm-homebrew/opt/llvm@15/lib/ 
           
