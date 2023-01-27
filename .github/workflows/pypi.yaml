@@ -67,7 +67,7 @@ jobs:
           # arm-brew install $parsed[3] 
           tar -xzf $parsed[3]
           librarydir=$(pwd)/$(echo llvm/*/lib/)
-          echo "LDFLAGS=$librarydir" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$librarydir" >> $GITHUB_ENV
           
       - name: Determine version tag
         if: github.event_name != 'pull_request'
