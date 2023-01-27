@@ -56,7 +56,8 @@ jobs:
           echo 'CPPFLAGS="-I/usr/local/opt/llvm/include"' >> $GITHUB_ENV
           
       - name: Install relevant libraries for arm64 (MacOS)
-        if: startsWith(matrix.buildplat[0], 'macos') && matrix.buildplat[3] == 'arm64'
+        if: startsWith(matrix.buildplat[0], 'macos') && matrix.buildplat[2] == 'arm64'
+        shell: bash
         run: | 
           setopt sh_word_split
           mkdir arm-homebrew && curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C arm-homebrew 
