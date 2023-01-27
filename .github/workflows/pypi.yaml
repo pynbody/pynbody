@@ -44,7 +44,7 @@ jobs:
           echo "CC=gcc-10" >> $GITHUB_ENV
           echo "CXX=g++-10" >> $GITHUB_ENV
 
-      - name: Install GCC (MacOS)
+      - name: Install Clang (MacOS)
         if: startsWith(matrix.buildplat[0], 'macos')
         shell: bash
         run: |
@@ -54,7 +54,20 @@ jobs:
           echo 'LDFLAGS="-L/usr/local/opt/llvm/lib"' >> $GITHUB_ENV
           echo 'CFLAGS="-I/usr/local/opt/llvm/include"' >> $GITHUB_ENV
           echo 'CPPFLAGS="-I/usr/local/opt/llvm/include"' >> $GITHUB_ENV
-
+          
+      - name: Install relevant libraries for arm64 (MacOS)
+        if: startsWith(matrix.buildplat[0], 'macos') && matrix.buildplat[3] == 'arm64'
+        run: | 
+          setopt sh_word_split
+          mkdir arm-homebrew && curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C arm-homebrew 
+          alias arm-brew='$(pwd)/arm-homebrew/bin/brew'
+          response=$(arm-brew fetch --force --bottle-tag=arm64_big_sur llvm@15 | grep "Downloaded to")
+          parsed=($response)  
+          # arm-brew install $parsed[3] 
+          tar -xzf $parsed[3]
+          librarydir=$(pwd)$(echo llvm/*/lib/)
+          echo "LDFLAGS=$librarydir" >> $GITHUB_ENV
+          
       - name: Determine version tag
         if: github.event_name != 'pull_request'
         run: |
