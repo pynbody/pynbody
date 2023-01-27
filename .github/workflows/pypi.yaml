@@ -66,7 +66,7 @@ jobs:
           parsed=($response)  
           # arm-brew install $parsed[3] 
           tar -xzf $parsed[3]
-          librarydir=$(pwd)$(echo llvm/*/lib/)
+          librarydir=$(pwd)/$(echo llvm/*/lib/)
           echo "LDFLAGS=$librarydir" >> $GITHUB_ENV
           
       - name: Determine version tag
