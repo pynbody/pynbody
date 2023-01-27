@@ -45,7 +45,7 @@ jobs:
           echo "CXX=g++-10" >> $GITHUB_ENV
 
       - name: Install GCC (MacOS)
-        if: matrix.buildplat[0].startswith('macos')
+        if: startsWith(matrix.buildplat[0], 'macos')
         shell: bash
         run: |
           brew install llvm@15
