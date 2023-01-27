@@ -16,9 +16,6 @@ jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.buildplat[0] }}
     runs-on: ${{ matrix.buildplat[0] }}
-    env:
-      CC: gcc-10
-      CXX: g++-10
     strategy:
       matrix:
         # Following numpy's setup
@@ -44,12 +41,19 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt install gcc-10 g++-10
+          echo "CC=gcc-10" >> $GITHUB_ENV
+          echo "CXX=g++-10" >> $GITHUB_ENV
 
       - name: Install GCC (MacOS)
-        if: matrix.buildplat[0] == 'macos-10.15'
+        if: matrix.buildplat[0].startswith('macos')
         shell: bash
         run: |
-          brew install gcc@10
+          brew install llvm@15
+          echo "CC=/usr/local/opt/llvm@15/bin/clang" >> $GITHUB_ENV
+          echo "CXX=/usr/local/opt/llvm@15/bin/clang++" >> $GITHUB_ENV
+          echo 'LDFLAGS="-L/usr/local/opt/llvm/lib"' >> $GITHUB_ENV
+          echo 'CFLAGS="-I/usr/local/opt/llvm/include"' >> $GITHUB_ENV
+          echo 'CPPFLAGS="-I/usr/local/opt/llvm/include"' >> $GITHUB_ENV
 
       - name: Determine version tag
         if: github.event_name != 'pull_request'
