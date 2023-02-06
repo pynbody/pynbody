@@ -560,12 +560,13 @@ class TipsySnap(SimSnap):
 
     def _get_loadable_array_metadata(self, array_name):
         """Given an array name, returns the metadata consisting of
-        the tuple units, families.
+        the tuple units, families, dtype.
 
         Returns:
          *units*: the units of this data on disk
          *families*: a list of family objects for which data is on disk
-                     for this array, or None if this cannot be determined"""
+                     for this array, or None if this cannot be determined
+         *dtype*: the data type of this data on disk"""
 
         try:
             f = open(self.filename + "." + array_name + ".pynbody-meta")
@@ -609,7 +610,7 @@ class TipsySnap(SimSnap):
             print(x.name, end=' ', file=f)
         print(file=f)
         if dtype is not None:
-            print("dtype:", TipsySnap.__get_write_dtype(dtype), file=f)
+            print("dtype:", TipsySnap.__get_write_dtype(dtype).name, file=f)
 
         f.close()
 
