@@ -610,7 +610,7 @@ class TipsySnap(SimSnap):
             print(x.name, end=' ', file=f)
         print(file=f)
         if dtype is not None:
-            print("dtype:", TipsySnap.__get_write_dtype(dtype).name, file=f)
+            print("dtype:", np.dtype(TipsySnap.__get_write_dtype(dtype)).name, file=f)
 
         f.close()
 
