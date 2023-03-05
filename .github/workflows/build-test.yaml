@@ -29,6 +29,12 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - uses: actions/checkout@v3
+    - name: Cache testdata
+      uses: actions/cache@v3
+      id: cache-testdata
+      with:
+        path: tests/testdata
+        key: testdata-v1
     - name: Install gcc
       run: |
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
@@ -38,28 +44,22 @@ jobs:
       run: |
         python -m pip install --upgrade pip setuptools wheel
         python -m pip install numpy${{ matrix.numpy-version }}
-    - name: Manually build h5py for python 3.11
-      if: ${{ matrix.python-version == '3.11' }}
-      run: |
-        sudo apt-get install libhdf5-dev
-        pip install --no-binary=h5py h5py
     - name: Build and install pynbody
       run: |
         python -m pip install -v .[tests]
         echo "[ramses]" >> ~/.pynbodyrc
         echo "parallel-read=2" >> ~/.pynbodyrc
     - name: Fetch and unpack test data
+      if: steps.cache-testdata.outputs.cache-hit != 'true'
+      working-directory: tests
       run: |
-        cd tests
         wget -q http://star.ucl.ac.uk/~app/testdata.tar.gz
         tar --exclude="._*" -xzvf testdata.tar.gz
     - name: Run all tests
-      run: |
-        cd tests
-        python -m pytest
+      working-directory: tests
+      run: python -m pytest
     - name: Uninstall posix_ipc
       run: python -m pip uninstall -y posix_ipc
     - name: Run ramses tests without shared memory support
-      run: |
-        cd tests
-        python -m pytest ramses_new_ptcl_format_test.py ramses_test.py
+      working-directory: tests
+      run: python -m pytest ramses_new_ptcl_format_test.py ramses_test.py
