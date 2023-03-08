@@ -824,6 +824,7 @@ class TipsySnap(SimSnap):
             dtype = self._get_preferred_dtype(array_name)
 
         try:
+            # Assume ASCII file
             l = int(f.readline())
             binary = False
             if l != self._load_control.disk_num_particles:
@@ -838,14 +839,23 @@ class TipsySnap(SimSnap):
                     dtype = float
                 else:
                     dtype = int
-
-                # Restart at head of file
+                # Infer the number of dimensions
+                try:
+                    ndim = infer_tipsy_ascii_dim(f)
+                except RuntimeError as e:
+                    message = e.args[0] + "\nAssuming ndim = 1"
+                    warnings.warn(message)
+                    ndim =1
+                # Restart after header
                 f.seek(0)
                 f.readline()
-
-            loadblock = lambda count: np.fromfile(
-                f, dtype=dtype, sep="\n", count=count)
-            # data = np.fromfile(f, dtype=tp, sep="\n")
+            if isinstance(f, gzip.GzipFile):
+                # np.fromfile does not work with gzip files
+                readlines = lambda count: ''.join([f.readline() for _ in xrange(count)])
+                loadblock = lambda count: np.fromstring(readlines(count), dtype=dtype, sep='\n')
+            else:
+                loadblock = lambda count: np.fromfile(
+                    f, dtype=dtype, sep="\n", count=count)
         except ValueError:
             # this is probably a binary file
             binary = True
@@ -868,35 +878,55 @@ class TipsySnap(SimSnap):
                     dtype = 'i'
                 else:
                     dtype = 'f'
+            # Try to infer dimensions
+            try:
+                ndim = infer_tipsy_binary_dim(f, dtype, self._byteswap)
+            except RuntimeError as e:
+                message = e.args[0] + "\nAssuming ndim = 1"
+                warnings.warn(message)
+                ndim =1
 
             # Read longest data array possible.
             # Assume byteswap since most will be.
             if self._byteswap:
-                loadblock = lambda count: np.fromstring(
-                    f.read(count * 4), dtype=dtype, count=count).byteswap()
-                # data = np.fromstring(f.read(3*len(self)*4),dtype).byteswap()
+                loadblock = lambda count: np.fromstring(f.read(count*4*ndim), \
+                            dtype=dtype, count=count*ndim).byteswap()
             else:
-                loadblock = lambda count: np.fromstring(
-                    f.read(count * 4), dtype=dtype, count=count)
-                # data = np.fromstring(f.read(3*len(self)*4),dtype)
-
-        ndim = 1
+                loadblock = lambda count: np.fromstring(f.read(count*4*ndim), \
+                            dtype=dtype, count=count*ndim)
 
         self.ancestor._tipsy_arrays_binary = binary
-
+        
+        # Initialize array
         all_fam = [family.dm, family.gas, family.star]
         if fam is None:
             fam = all_fam
-            r = np.empty(len(self), dtype=dtype).view(array.SimArray)
+            n_read = len(self)
         else:
-            r = np.empty(len(self[fam]), dtype=dtype).view(array.SimArray)
-
-        for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
-            buf = loadblock(readlen)
-            if mem_index is not None:
-                r[mem_index] = buf[buf_index]
-
-
+            n_read = len(self[fam])
+        array_shape = [n_read, ndim]
+        r = np.empty(array_shape, dtype=dtype).view(array.SimArray)
+        
+        if binary:
+            # Binary files are stored in 'C' order, with the last dimension
+            # changing first
+            for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
+                buf = loadblock(readlen)
+                if mem_index is not None:
+                    array_shape[0] = readlen
+                    buf = buf.reshape(array_shape)
+                    r[mem_index] = buf[buf_index]
+        else:
+            # ASCII files are stored in fortran order, with the first dimension
+            # changing first
+            for icol in range(ndim):
+                iterator = self._load_control.iterate(all_fam, fam)
+                for readlen, buf_index, mem_index in iterator:
+                    buf = loadblock(readlen)
+                    if mem_index is not None:
+                        r[mem_index, icol] = buf[buf_index]
+        if ndim == 1:
+            r.shape = len(r)
         if units is not None:
             r.units = units
 
@@ -953,6 +983,128 @@ class TipsySnap(SimSnap):
             return False
 
         return True
+
+def read_next_line_size(f, seek=None):
+    """
+    Starting from an arbitrary point in the file f (defined by seek, in bytes),
+    scan until the next newline character, then read a line
+    
+    Returns the size of the line in bytes
+    """
+    if seek is not None:
+        f.seek(seek)
+    f.readline()
+    start = f.tell()
+    f.readline()
+    end = f.tell()
+    return end-start
+
+def gzip_uncompressed_filesize(filename):
+    """
+    Return the uncompressed filesize for a gzipped file, modulo 2**32.
+    
+    Uncompressed filesizes >4GB will overflow and be incorrect
+    """
+    with open(filename, 'rb') as gfile:
+        gfile.seek(-4, os.SEEK_END)
+        # Uncompressed file size modulo 2^32
+        f_size_bytes, = struct.unpack("I", gfile.read(4))
+    return f_size_bytes
+
+def infer_tipsy_binary_dim(f, dtype, byteswap):
+    """
+    Infer the array dimension (number of columns) of a tipsy auxiliary binary
+    array, e.g. 1 for most arrays, 3 for positional or velocity arrays.
+    
+    f should be an open file or a gzip.GzipFile
+    
+    If f is a normal file, the number of dimensions can be robustly calculated
+    
+    If f is gzipped file, the inferred dimension should be correct, but can
+    be wrong.  This is because gzip files store the uncompressed file size
+    as a 32-bit integer, i.e. modulo 2**32
+    """
+    stream_loc = f.tell()
+    number_size_bytes = np.dtype(dtype).itemsize
+    try:
+        # Parse header for number of particles
+        f.seek(0)
+        if byteswap:
+            n_particles = struct.unpack(">i", f.read(4))[0]
+        else:
+            n_particles = struct.unpack("i", f.read(4))[0]
+        
+        if isinstance(f, gzip.GzipFile):
+            # This is a Gzipped file
+            # Get uncompressed file size, modulo 2**32
+            f_size_bytes = gzip_uncompressed_filesize(f.name)
+            # Uncompressed size of a column
+            col_size_bytes = number_size_bytes * n_particles
+            ndim = 1
+            max_dim = 100
+            while ndim < max_dim:
+                pred_size = np.uint32(col_size_bytes * ndim + 4)
+                if pred_size == f_size_bytes:
+                    break
+                ndim += 1
+            if ndim == max_dim:
+                raise RuntimeError, "max_col reached.  Could not infer array dim"
+            
+        else:
+            # Regular file
+            f_size_bytes = os.fstat(f.fileno()).st_size
+            number_size_bytes = np.dtype(dtype).itemsize
+            n_nums = (f_size_bytes - 4)/number_size_bytes
+            ndim = float(n_nums)/n_particles
+            if (ndim % 1) != 0:
+                msg = "Non-integer array dim {0}".format(ndim)
+                raise RuntimeError, msg
+            ndim = int(ndim)
+    finally:
+        f.seek(stream_loc)
+    
+    return ndim
+
+def infer_tipsy_ascii_dim(f, read_lines=1000):
+    """
+    Infers the dimension of a tipsy auxilliary ASCII array, e.g. 1 for 
+    most arrays, 3 for positional or velocity arrays.
+    
+    f should be a an open file
+    
+    This function works by estimating the average size in bytes of a single
+    line (single number) in the ASCII file and comparing that to the 
+    file size to estimate the number of columns (given the number of particles)
+    
+    This is currently not implemented for gzipped files, since this method 
+    involves seeking through the file which is slow with gzipped files.
+    """
+    if isinstance(f, gzip.GzipFile):
+        raise RuntimeError, "Cannot infer array dims for gzipped ASCII arrays"
+    i0 = f.tell()
+    try:
+        f.seek(0)
+        n_particles = int(f.readline())
+        chunk_start = f.tell()
+        file_size = os.fstat(f.fileno()).st_size
+        # Check the size (in bytes) of N lines, evenly spaced throughout the file
+        ind = np.linspace(chunk_start, file_size, read_lines + 1)[0:-1]
+        ind = np.round(ind).astype(int)
+        line_sizes = np.array([read_next_line_size(f, i) for i in ind])
+        n_lines_approx = (file_size-chunk_start)/line_sizes.mean()
+        ndim_approx = n_lines_approx/n_particles
+    except:
+        f.seek(i0)
+        raise
+    
+    ndim = int(np.round(ndim_approx))
+    
+    if abs(ndim - ndim_approx) > 0.1:
+        warnings.warn("Trouble inferring ndim for tipsy ascii array")
+    if ndim < 1:
+        raise RuntimeError, "Inferred array dim < 1"
+    
+    return ndim
 
 # caculate the number fraction YH, YHe as a function of metalicity. Cosmic
 # production rate of helium relative to metals (in mass)
