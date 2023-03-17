@@ -220,7 +220,8 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         'galaxies':  np.dtype(
         [
                 ("id", np.int64),
-                ("pos", np.float32, 6),
+                ("pos", np.float32, 3),
+                ("vel", np.float32, 3),
                 ("corevel", np.float32, 3),
                 ("bulkvel", np.float32, 3),
                 ("m", np.float32),
@@ -311,6 +312,8 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
 
     def detect_format_revision(self, f, format_revision):
         if format_revision is None:
+            # The 'galaxies' format can be either 1 or 2, so we need to try it
+            # in both cases.
             format_revision_to_try = [self._head['format_revision'][0], "galaxies"]
         else:
             format_revision_to_try = [format_revision]
