@@ -8,6 +8,10 @@ from .. import util
 from . import DummyHalo, Halo, HaloCatalogue
 
 
+class RockstarFormatRevisionError(RuntimeError):
+    pass
+
+
 class RockstarCatalogue(HaloCatalogue):
     def __init__(self, sim, dummy=False, pathname=None, format_revision=None,
                  filenames=None, sort=False, **kwargs):
@@ -31,8 +35,9 @@ class RockstarCatalogue(HaloCatalogue):
         *pathname*: the path of the output folder with the individual RockStar outputs
 
         *format_revision*: Override the header's format revision information. Specify
-                    1, 2, or 'caterpillar' for Rockstar prior to 2014, post 2014, and
-                    customized for the caterpillar project respectively
+                    1, 2, 'caterpillar', galaxies for Rockstar prior to 2014, post 2014,
+                    customized for the caterpillar project and for rockstar
+                    galaxies respectively
 
         """
         HaloCatalogue.__init__(self, sim)
@@ -211,7 +216,57 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
                           ('min_pos_err','f'),('min_vel_err','f'),
                           ('min_bulkvel_err','f'),
                           ('num_bound', 'i8'), ('num_iter', 'i8')]
-                                , align=True) # Hacked rockstar from caterpillar project
+                                , align=True), # Hacked rockstar from caterpillar project
+        'galaxies':  np.dtype(
+        [
+                ("id", np.int64),
+                ("pos", np.float32, 6),
+                ("corevel", np.float32, 3),
+                ("bulkvel", np.float32, 3),
+                ("m", np.float32),
+                ("r", np.float32),
+                ("child_r", np.float32),
+                ("vmax_r", np.float32),
+                ("mgrav", np.float32),
+                ("vmax", np.float32),
+                ("rvmax", np.float32),
+                ("rs", np.float32),
+                ("klypin_rs", np.float32),
+                ("vrms", np.float32),
+                ("J", np.float32, 3),
+                ("energy", np.float32),
+                ("spin", np.float32),
+                ("alt_m", np.float32, 4),
+                ("Xoff", np.float32),
+                ("Voff", np.float32),
+                ("b_to_a", np.float32),
+                ("c_to_a", np.float32),
+                ("A", np.float32, 3),
+                ("b_to_a2", np.float32),
+                ("c_to_a2", np.float32),
+                ("A2", np.float32, 3),
+                ("bullock_spin", np.float32),
+                ("kin_to_pot", np.float32),
+                ("m_pe_b", np.float32),
+                ("m_pe_d", np.float32),
+                ("num_p", np.int64),
+                ("num_child_particles", np.int64),
+                ("p_start", np.int64),
+                ("desc", np.int64),
+                ("flags", np.int64),
+                ("n_core", np.int64),
+                ("min_pos_err", np.float32),
+                ("min_vel_err", np.float32),
+                ("min_bulkvel_err", np.float32),
+                ("type", np.int32),
+                ("sm", np.float32),
+                ("gas", np.float32),
+                ("bh", np.float32),
+                ("peak_density", np.float32),
+                ("av_density", np.float32),
+            ],
+            align=True
+        ), # Galaxy format from Rockstar
     }
 
 
@@ -237,25 +292,42 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         else:
             self._rsFilename = util.cutgz(glob.glob('halos*.bin')[0])
 
-        try :
-            f = util.open_(self._rsFilename, 'rb')
-        except OSError:
-            raise OSError("Halo catalogue not found -- check the file name of catalogue data or try specifying a catalogue using the filename keyword")
+        if not os.path.exists(self._rsFilename):
+            raise OSError(
+                "Halo catalogue not found -- check the file name of catalogue data"
+                " or try specifying a catalogue using the filename keyword"
+            )
 
-        with f:
+        with util.open_(self._rsFilename, 'rb') as f:
             self._head = np.fromstring(f.read(self.head_type.itemsize),
                                        dtype=self.head_type)
-            if format_revision is None:
-                format_revision = self._head['format_revision'][0]
 
-            self.halo_type = self.halo_types[format_revision]
-            unused = f.read(256 - self._head.itemsize)
+            # Seek to absolute position
+            f.seek(256)
 
             self._nhalos = self._head['num_halos'][0]
 
-            self._load_rs_halos(f,sim)
+            self.detect_format_revision(f, format_revision)
 
+    def detect_format_revision(self, f, format_revision):
+        if format_revision is None:
+            format_revision_to_try = [self._head['format_revision'][0], "galaxies"]
+        else:
+            format_revision_to_try = [format_revision]
 
+        current_pos = f.tell()
+        for format_revision in format_revision_to_try:
+            f.seek(current_pos)
+            try:
+                self.halo_type = self.halo_types[format_revision]
+                self._load_rs_halos(f)
+                return
+            except RockstarFormatRevisionError:
+                pass
+
+        raise RockstarFormatRevisionError(
+            "Could not detect the format revision of the Rockstar catalogue."
+        )
 
 
     def __len__(self):
@@ -308,7 +380,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         return hn
 
 
-    def _load_rs_halos(self, f, sim):
+    def _load_rs_halos(self, f):
         self._haloprops_offset = f.tell()
         self._halo_offsets = np.empty(self._head['num_halos'][0],dtype=np.int64)
         self._halo_lens = np.empty(self._head['num_halos'][0],dtype=np.int64)
@@ -322,9 +394,13 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
 
         this_id = self._halo_min
 
-        for h in range(self._head['num_halos'][0]):
+        for _h in range(self._head['num_halos'][0]):
             halo_data =np.fromfile(f, dtype=self.halo_type, count=1)
-            assert halo_data['id']==this_id
+            if halo_data['id'] != this_id:
+                raise RockstarFormatRevisionError(
+                    "Error while reading halo catalogue. Expected "
+                    "halo ID %d, but got %d" % (this_id, halo_data['id'])
+                )
             self._halo_offsets[this_id-self._halo_min] = int(offset)
             if 'num_bound' in self.halo_type.names:
                 num_ptcls = int(halo_data['num_bound'])
