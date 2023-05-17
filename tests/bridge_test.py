@@ -124,4 +124,3 @@ def test_fuzzy_match_only_one_family():
     # Test that it also works with only_family:
     assert b.fuzzy_match_catalog(only_family=pynbody.family.gas, groups_1=h, groups_2=h2)[1] == [(1, 1.0)]
     assert b.fuzzy_match_catalog(only_family=pynbody.family.dm, groups_1=h, groups_2=h2)[1] == [(1, 0.6), (2, 0.4)]
-
