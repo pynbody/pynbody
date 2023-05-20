@@ -490,15 +490,15 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
         return Gadget4SubfindHdfProgenitorsMultiFileManager(cls._catalogue_filename(sim, "subhalo_"+prog_or_desc+"_"))
 
-    @staticmethod
-    def _catalogue_filename(sim, namestem ="fof_subhalo_tab_"):
+    @classmethod
+    def _catalogue_filename(cls, sim, namestem ="fof_subhalo_tab_"):
         snapnum = os.path.basename(sim.filename).split("_")[-1]
         parent_dir = os.path.dirname(os.path.abspath(sim.filename))
         return os.path.join(parent_dir, namestem + snapnum)
 
     @classmethod
     def _can_load(cls, sim, **kwargs):
-        file = Gadget4SubfindHDFCatalogue._catalogue_filename(sim)
+        file = cls._catalogue_filename(sim)
         if os.path.exists(file) and (file.endswith(".hdf5") or os.listdir(file)[0].endswith(".hdf5")):
             # very hard to figure out whether it's the right sort of hdf5 file without just going ahead and loading it
             try:
@@ -522,3 +522,11 @@ class ArepoSubfindHDFCatalogue(Gadget4SubfindHDFCatalogue):
             return np.concatenate(([0],np.cumsum(lens)[:-1]))
         else:
             return super()._get_halodata_array(hdf_file, array_name, halo_or_group, particle_type)
+
+class TNGSubfindHDFCatalogue(ArepoSubfindHDFCatalogue):
+    @classmethod
+    def _catalogue_filename(cls, sim, namestem ="fof_subhalo_tab_"):
+        snapnum = os.path.basename(sim.filename).split("_")[-1]
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(sim.filename)))
+        f = os.path.join(parent_dir, "groups_"+snapnum, namestem + snapnum + ".0.hdf5")
+        return f

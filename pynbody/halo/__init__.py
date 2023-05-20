@@ -377,6 +377,7 @@ from pynbody.halo.subfindhdf import (
     ArepoSubfindHDFCatalogue,
     Gadget4SubfindHDFCatalogue,
     SubFindHDFHaloCatalogue,
+    TNGSubfindHDFCatalogue
 )
 
 
@@ -388,7 +389,7 @@ def _get_halo_classes():
         RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,
         NewAdaptaHOPCatalogue, AdaptaHOPCatalogue,
         RockstarIntermediateCatalogue, HOPCatalogue, Gadget4SubfindHDFCatalogue,
-        ArepoSubfindHDFCatalogue
+        ArepoSubfindHDFCatalogue, TNGSubfindHDFCatalogue
     ]
 
     return _halo_classes
