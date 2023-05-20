@@ -445,6 +445,13 @@ class GadgetHDFSnap(SimSnap):
             translated_name = self._translate_array_name(array_name)
             dtype, dy, units = self.__get_dtype_dims_and_units(fam, translated_name)
 
+            if array_name=='mass':
+                dtype = self._mass_dtype
+                # always load mass with this dtype, even if not the one in the file. This
+                # is to cope with cases where it's partly in the header and partly not.
+                # It also forces masses to the same dtype as the positions, which
+                # is important for the KDtree code.
+
             if fam is None:
                 target = self
                 all_fams_to_load = self.families()
