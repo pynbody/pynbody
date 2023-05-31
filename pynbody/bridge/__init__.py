@@ -111,15 +111,24 @@ class Bridge:
 
     def fuzzy_match_catalog(self, min_index=1, max_index=30, threshold=0.01,
                             groups_1 = None, groups_2 = None, use_family=None, only_family=None):
-        """fuzzy_match_catalog returns, for each halo in groups_1, a list of possible
+        """Match catalogs, returning multiple possible matches for each source halo.
+
+        fuzzy_match_catalog returns, for each halo in groups_1, a list of possible
         identifications in groups_2, along with the fraction of particles in common
-        between the two.
+        between the two. If no possible matches in groups_2 is found, the entry for
+        that halo is the empty list [].
 
         Normally, match_catalog is simpler to use, but this routine offers greater
         flexibility for advanced users. The first entry for each halo corresponds
         to the output from match_catalog.
 
-        If no identification is found, the entry is the empty list [].
+        Arguments:
+            threshold -- minimum fraction of particles in common for a match to be considered
+
+        Other arguments are passed to match_catalog; see its documentation for details.
+
+        Returns:
+            A list of lists, where the first index corresponds to the halo number in groups_1. See above for details.
         """
 
         transfer_matrix = self.catalog_transfer_matrix(min_index,max_index,groups_1,groups_2,use_family,only_family)
@@ -143,7 +152,22 @@ class Bridge:
         the row group in groups_1 to the column group in groups_2.
 
         Normally, match_catalog (or fuzzy_match_catalog) are easier to use, but this routine
-        provides the maximal information."""
+        provides the maximal information.
+
+        Arguments:
+            min_index -- minimum halo number to be matched
+            max_index -- maximum halo number to be matched
+            groups_1 -- Halos object for the first catalogue (default: None, in which case it is obtained from the start point of the bridge)
+            groups_2 -- Halos object for the second catalogue (default: None, in which case it is obtained from the end point of the bridge)
+            use_family -- only match particles of this family (default: None, in which case all particles are matched)
+            only_family -- only match particles of this family, like use_family, but try not even to load data about
+                           other particles (thus saving memory). Don't specify use_family if you specify only_family.
+        """
+
+        if only_family is not None:
+            if use_family!=only_family and use_family is not None:
+                raise ValueError("use_family and only_family must be the same if both specified")
+            use_family = only_family
 
         start, end = self._get_ends()
         if groups_1 is None:
