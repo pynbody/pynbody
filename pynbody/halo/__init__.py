@@ -377,7 +377,7 @@ from pynbody.halo.subfindhdf import (
     ArepoSubfindHDFCatalogue,
     Gadget4SubfindHDFCatalogue,
     SubFindHDFHaloCatalogue,
-    TNGSubfindHDFCatalogue
+    TNGSubfindHDFCatalogue,
 )
 
 
