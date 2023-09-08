@@ -92,6 +92,23 @@ def test_rotate():
 
     npt.assert_almost_equal(f['pos'], f['pos'])
 
+def test_family_rotate():
+    """Test that rotating a family works as expected
+
+    See issue #728"""
+    f = pynbody.new(dm=10, gas=20, bh=10)
+    f['pos'] = np.zeros((40, 3))
+    f['pos'][:, 0] = 1.0
+
+    del f['vel']
+
+    f.bh['vel'] = np.zeros((10, 3))
+    f.bh['vel'][:, 0] = 1.0
+
+    f.rotate_z(90)
+
+    npt.assert_almost_equal(f['pos'][:, 1], 1.0)
+    npt.assert_almost_equal(f.bh['vel'][:, 1], 1.0)
 
 def test_chaining():
     with pynbody.transformation.translate(f.rotate_x(90), [0, 1, 0]):
