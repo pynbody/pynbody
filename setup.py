@@ -7,7 +7,7 @@ import sys
 import tempfile
 from os import path
 
-import numpy.distutils.misc_util
+import numpy as np
 from Cython.Build import build_ext
 from Cython.Compiler.Options import get_directive_defaults
 from setuptools import Extension, setup
@@ -89,7 +89,7 @@ if have_pthread:
 
 extra_link_args = []
 
-incdir = numpy.distutils.misc_util.get_numpy_include_dirs()
+incdir = [np.get_include()]
 
 kdmain = Extension('pynbody.sph.kdmain',
                    sources = ['pynbody/sph/kdmain.cpp', 'pynbody/sph/kd.cpp',
