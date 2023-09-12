@@ -515,7 +515,8 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
     @classmethod
     def _can_load(cls, sim, **kwargs):
         file = cls._catalogue_filename(sim)
-        if os.path.exists(file) and (file.endswith(".hdf5") or os.listdir(file)[0].endswith(".hdf5")):
+        if os.path.exists(file) and (file.endswith(".hdf5") or os.listdir(file)[0].endswith(".hdf5")) \
+                or os.path.exists(file+".0.hdf5"):
             # very hard to figure out whether it's the right sort of hdf5 file without just going ahead and loading it
             try:
                 cls(sim, **kwargs)
