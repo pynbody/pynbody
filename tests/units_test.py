@@ -76,3 +76,10 @@ def test_units_zero_equality():
 
 def test_units_equality():
     assert units.Unit("1.0 km s^-1") == units.Unit("1e5 cm s^-1")
+
+def test_get_with_unit():
+    ar1d = pynbody.array.SimArray([1.,2.,3.], units="km")
+    ar2d = pynbody.array.SimArray([[1., 2., 3.], [4., 5., 6.]], units="km")
+    assert pynbody.units.get_item_with_unit(ar1d, 1) == pynbody.units.Unit("2 km")
+    assert pynbody.units.get_item_with_unit(ar2d, 1).units == "km"
+    npt.assert_allclose(pynbody.units.get_item_with_unit(ar2d, 1), [4., 5., 6.])

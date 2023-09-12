@@ -835,7 +835,7 @@ def has_unit(obj):
 has_units = has_unit
 
 def get_item_with_unit(array, item):
-    if has_unit(array):
+    if has_unit(array) and len(array.shape)==1:
         return array[item]*array.units
     else:
         return array[item]
