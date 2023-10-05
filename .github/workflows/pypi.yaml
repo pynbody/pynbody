@@ -27,11 +27,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-#      - uses: actions/setup-python@v4
-#        name: Install Python
-#        with:
-#          python-version: '3.10'
-
       - name: Install GCC (Ubuntu)
         if: matrix.buildplat[0] == 'ubuntu-20.04'
         shell: bash
@@ -58,17 +53,17 @@ jobs:
           echo "SETUP_VERSION=`python setup.py --version`" >> $GITHUB_ENV
           echo "VERSION_TAG=`git describe --tags | cut -c 2-`" >> $GITHUB_ENV
 
-#      - name: Verify version naming is consistent
-#        if: github.event_name != 'pull_request'
-#        run: |
-#          if [ "${{ env.VERSION_TAG }}" == "${{ env.SETUP_VERSION }}" ]; then
-#              echo Git tag and python setup.py versions match: ${{ env.VERSION_TAG }}
-#          else
-#              echo Version label mismatch
-#              echo Git tag-derived version is ${{ env.VERSION_TAG }}
-#              echo setup.py-derived version is ${{ env.SETUP_VERSION }}
-#              exit 1;
-#          fi
+      - name: Verify version naming is consistent
+        if: github.event_name != 'pull_request'
+        run: |
+          if [ "${{ env.VERSION_TAG }}" == "${{ env.SETUP_VERSION }}" ]; then
+              echo Git tag and python setup.py versions match: ${{ env.VERSION_TAG }}
+          else
+              echo Version label mismatch
+              echo Git tag-derived version is ${{ env.VERSION_TAG }}
+              echo setup.py-derived version is ${{ env.SETUP_VERSION }}
+              exit 1;
+          fi
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.0
