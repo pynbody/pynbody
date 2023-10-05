@@ -48,7 +48,7 @@ jobs:
         if: startsWith(matrix.buildplat[0], 'macos')
         shell: bash
         run: |
-          brew install llvm@15 libomp@15
+          brew install llvm@15 libomp
           echo "CC=/usr/local/opt/llvm@15/bin/clang" >> $GITHUB_ENV
           echo "CXX=/usr/local/opt/llvm@15/bin/clang++" >> $GITHUB_ENV
           echo 'LDFLAGS="-L/usr/local/opt/llvm/lib -L/usr/local/opt/libomp/lib"' >> $GITHUB_ENV
