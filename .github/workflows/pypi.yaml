@@ -51,9 +51,9 @@ jobs:
           brew install llvm@15 libomp
           echo "CC=/usr/local/opt/llvm@15/bin/clang" >> $GITHUB_ENV
           echo "CXX=/usr/local/opt/llvm@15/bin/clang++" >> $GITHUB_ENV
-          echo 'LDFLAGS="-L/usr/local/opt/llvm/lib -L/usr/local/opt/libomp/lib"' >> $GITHUB_ENV
-          echo 'CFLAGS="-I/usr/local/opt/llvm/include -I/usr/local/opt/libomp/include"' >> $GITHUB_ENV
-          echo 'CPPFLAGS="-I/usr/local/opt/llvm/include -I/usr/local/opt/libomp/include"' >> $GITHUB_ENV
+          echo 'LDFLAGS=-L/usr/local/opt/llvm/lib -L/usr/local/opt/libomp/lib' >> $GITHUB_ENV
+          echo 'CFLAGS=-I/usr/local/opt/llvm/include -I/usr/local/opt/libomp/include' >> $GITHUB_ENV
+          echo 'CPPFLAGS=-I/usr/local/opt/llvm/include -I/usr/local/opt/libomp/include' >> $GITHUB_ENV
 
       - name: Determine version tag
         if: github.event_name != 'pull_request'
