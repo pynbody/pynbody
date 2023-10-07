@@ -74,7 +74,16 @@ class AHFCatalogue(HaloCatalogue):
         if ahf_basename is not None:
             self._ahfBasename = ahf_basename
         else:
-            candidate = self._list_possible_candidates(sim, ahf_basename)[0]
+            candidates = self._list_possible_candidates(sim, ahf_basename)
+            if len(candidates) == 1:
+                candidate = candidates[0]
+            elif len(candidates) == 0:
+                raise FileNotFoundError("No candidate AHF catalogue found; try specifying a catalogue using the "
+                                        "ahf_basename keyword")
+            else:
+                candidate = candidates[0]
+                warnings.warn(f"Multiple candidate AHF catalogues found; using {candidate}. To specify a different "
+                              "catalogue, use the ahf_basename keyword, or move the other catalogues.")
             self._ahfBasename = util.cutgz(candidate)[:-9]
 
         try:
@@ -82,7 +91,7 @@ class AHFCatalogue(HaloCatalogue):
                 # The first line contains headers, need to skip it
                 self._nhalos = sum(1 for i in f) - 1
         except OSError as e:
-            raise OSError(
+            raise FileNotFoundError(
                 "Halo catalogue not found -- check the base name of catalogue "
                 "data or try specifying a catalogue using the ahf_basename "
                 "keyword"
@@ -669,12 +678,7 @@ class AHFCatalogue(HaloCatalogue):
     def _can_load(cls, sim, ahf_basename=None, **kwargs):
         candidates = cls._list_possible_candidates(sim, ahf_basename)
         number_ahf_file_candidates = len(candidates)
-        if number_ahf_file_candidates < 1:
-            warnings.warn("Did not find a suitable AHF halo catalogue file -- will attempt to run AHF to generate one or fallback to other halo catalogues")
-        elif number_ahf_file_candidates > 1:
-            raise OSError("\n".join(candidates) + "\nare multiple AHF catalogue files -- do not know which one to choose")
-        else:
-            return True
+        return number_ahf_file_candidates > 0
 
     def _run_ahf(self, sim):
         # if (sim is pynbody.tipsy.TipsySnap) :
