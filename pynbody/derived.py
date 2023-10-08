@@ -10,10 +10,12 @@ getting the radial position. For more information see :ref:`derived`.
 import functools
 import logging
 import time
+import warnings
 
 import numpy as np
 
 from . import analysis, array, config, units
+from .dependencytracker import DependencyError
 from .snapshot import SimSnap
 
 logger = logging.getLogger('pynbody.derived')
@@ -228,21 +230,40 @@ def cs(self):
 
 
 @SimSnap.derived_quantity
-def mu(sim, t0=None):
-	"""mean molecular mass, i.e. the mean atomic mass per particle"""
-	try:
-		x = sim["HI"] + 2 * sim["HII"] + sim["HeI"] + \
-            2 * sim["HeII"] + 3 * sim["HeIII"]
-		x = x**-1
-	except KeyError:
-		x = np.empty(len(sim)).view(array.SimArray)
-		if t0 is None:
-			t0 = sim['temp']
-		x[np.where(t0 >= 1e4)[0]] = 0.59
-		x[np.where(t0 < 1e4)[0]] = 1.3
+def mu(sim, t0=None, Y=0.245):
+    """Mean molecular mass, i.e. the mean atomic mass per particle. Assumes primordial abundances."""
+    try:
+        x = _mu_from_electron_frac(sim, Y)
+    except (KeyError, DependencyError):
+        try:
+            x = _mu_from_HI_HeI_HeII_HeIII(sim)
+        except KeyError:
+            x = _mu_from_temperature_threshold(sim, Y, t0)
 
-	x.units = units.Unit("1")
-	return x
+    x.units = units.Unit("1")
+    return x
+
+
+def _mu_from_temperature_threshold(sim, Y, t0):
+    warnings.warn("No ionization fractions found, assuming fully ionised gas above 10^4 and neutral below 10^4K"
+                  "This is a very crude approximation.")
+    x = np.empty(len(sim)).view(array.SimArray)
+    if t0 is None:
+        t0 = sim['temp']
+    x[np.where(t0 >= 1e4)[0]] = 4. / (8 - 5 * Y)
+    x[np.where(t0 < 1e4)[0]] = 4. / (4 - 3 * Y)
+    return x
+
+
+def _mu_from_HI_HeI_HeII_HeIII(sim):
+    x = sim["HI"] + 2 * sim["HII"] + sim["HeI"] + \
+        2 * sim["HeII"] + 3 * sim["HeIII"]
+    x = x ** -1
+    return x
+
+def _mu_from_electron_frac(sim, Y):
+    return 4./(4.-3.*Y+4*(1.-Y)*sim['ElectronAbundance'])
+
 
 
 @SimSnap.derived_quantity
@@ -267,6 +288,7 @@ def temp(self):
     mu_est = np.ones(len(self))
     for i in range(5):
         temp = (self['u'] * units.m_p / units.k) * (mu_est * (gamma - 1))
+        temp.sim = self # to allow use of conversion context, e.g. scalefactor
         temp.convert_units("K")
         mu_est = mu(self, temp)
     return temp
