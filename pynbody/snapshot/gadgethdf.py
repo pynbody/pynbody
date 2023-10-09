@@ -391,7 +391,7 @@ class GadgetHDFSnap(SimSnap):
         elif 'length_scaling' in hdfattrs:
             return self._get_units_from_hdf_attr_arepo_style(hdfattrs)
         else:
-            warnings.warning("Unable to infer units from HDF attributes")
+            warnings.warn("Unable to infer units from HDF attributes")
             return units.NoUnit()
     def _get_units_from_hdf_attr_gadget_style(self, hdfattrs):
         VarDescription = str(hdfattrs['VarDescription'])
@@ -408,7 +408,11 @@ class GadgetHDFSnap(SimSnap):
     def _get_units_from_hdf_attr_arepo_style(self, hdfattrs):
         l, m, v, a, h = [float(hdfattrs[x]) for x in ['length_scaling', 'mass_scaling', 'velocity_scaling', 'a_scaling', 'h_scaling']]
         base_units = [units.cm, units.g, units.cm/units.s, units.a, units.h]
-        arr_units = units.Unit(float(hdfattrs['to_cgs']))
+        if float(hdfattrs['to_cgs'])==0.0:
+            # 0.0 is used in dimensionless cases
+            arr_units = units.Unit(1.0)
+        else:
+            arr_units = units.Unit(float(hdfattrs['to_cgs']))
         for exponent, base_unit in zip([l, m, v, a, h], base_units):
             if not np.allclose(exponent, 0.0):
                 arr_units *= base_unit ** util.fractions.Fraction.from_float(float(exponent)).limit_denominator()

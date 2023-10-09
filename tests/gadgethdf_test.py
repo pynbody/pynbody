@@ -222,3 +222,13 @@ def test_arepo_style_units():
     # On the other hand, pynbody should just reflect back that error
     # to the user, really; we can't get involved in compensating for bugs in other codes,
     # or all hell will break loose. So, we check for the 'wrong' units.
+
+    npt.assert_allclose(f.st['AREPOEMP_Metallicity'].units.in_units(1.0),
+                        1.0, rtol=1e-5)
+    # the above is a special case of a dimensionless array
+
+    from pynbody import units
+    assert f.st['EMP_BirthTemperature'].units == units.NoUnit()
+    # here is a case where no unit information is recorded in the file (who knows why)
+
+
