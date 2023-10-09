@@ -230,5 +230,3 @@ def test_arepo_style_units():
     from pynbody import units
     assert f.st['EMP_BirthTemperature'].units == units.NoUnit()
     # here is a case where no unit information is recorded in the file (who knows why)
-
-

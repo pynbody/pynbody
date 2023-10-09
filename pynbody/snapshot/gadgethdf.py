@@ -406,7 +406,7 @@ class GadgetHDFSnap(SimSnap):
         return arr_units
 
     def _get_units_from_hdf_attr_arepo_style(self, hdfattrs):
-        l, m, v, a, h = [float(hdfattrs[x]) for x in ['length_scaling', 'mass_scaling', 'velocity_scaling', 'a_scaling', 'h_scaling']]
+        l, m, v, a, h = (float(hdfattrs[x]) for x in ['length_scaling', 'mass_scaling', 'velocity_scaling', 'a_scaling', 'h_scaling'])
         base_units = [units.cm, units.g, units.cm/units.s, units.a, units.h]
         if float(hdfattrs['to_cgs'])==0.0:
             # 0.0 is used in dimensionless cases
