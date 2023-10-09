@@ -111,6 +111,7 @@ You can even define completely new dimensions.
 import fractions
 import functools
 import keyword
+import numbers
 import re
 from collections import defaultdict
 
@@ -698,35 +699,39 @@ def Unit(s):
 
     if isinstance(s, UnitBase):
         return s
-    elif isinstance(s, int):
+    elif isinstance(s, numbers.Number):
+        scale = float(s)
+        units = []
+        powers = []
+    else:
         s = str(s)
 
-    x = s.split()
-    try:
-        scale = float(x[0])
-        del x[0]
-    except (ValueError, IndexError):
-        scale = 1.0
+        x = s.split()
+        try:
+            scale = float(x[0])
+            del x[0]
+        except (ValueError, IndexError):
+            scale = 1.0
 
-    units = []
-    powers = []
+        units = []
+        powers = []
 
-    for com in x:
-        if "**" in com or "^" in com:
-            s = com.split("**" if "**" in com else "^")
-            try:
-                u = _registry[s[0]]
-            except KeyError:
-                raise ValueError("Unknown unit " + s[0])
-            p = Fraction(s[1])
-            if p.denominator == 1:
-                p = p.numerator
-        else:
-            u = _registry[com]
-            p = 1
+        for com in x:
+            if "**" in com or "^" in com:
+                s = com.split("**" if "**" in com else "^")
+                try:
+                    u = _registry[s[0]]
+                except KeyError:
+                    raise ValueError("Unknown unit " + s[0])
+                p = Fraction(s[1])
+                if p.denominator == 1:
+                    p = p.numerator
+            else:
+                u = _registry[com]
+                p = 1
 
-        units.append(u)
-        powers.append(p)
+            units.append(u)
+            powers.append(p)
 
     return CompositeUnit(scale, units, powers)
 
