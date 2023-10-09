@@ -386,18 +386,36 @@ class GadgetHDFSnap(SimSnap):
 
     def _get_units_from_hdf_attr(self, hdfattrs) :
         """Return the units based on HDF attributes VarDescription"""
+        if 'VarDescription' in hdfattrs:
+            return self._get_units_from_hdf_attr_gadget_style(hdfattrs)
+        elif 'length_scaling' in hdfattrs:
+            return self._get_units_from_hdf_attr_arepo_style(hdfattrs)
+        else:
+            warnings.warn("Unable to infer units from HDF attributes")
+            return units.NoUnit()
+    def _get_units_from_hdf_attr_gadget_style(self, hdfattrs):
         VarDescription = str(hdfattrs['VarDescription'])
         CGSConversionFactor = float(hdfattrs['CGSConversionFactor'])
         aexp = hdfattrs['aexp-scale-exponent']
         hexp = hdfattrs['h-scale-exponent']
-
         arr_units = self._get_units_from_description(VarDescription, CGSConversionFactor)
-
         if not np.allclose(aexp, 0.0):
-            arr_units *= (units.a)**util.fractions.Fraction.from_float(float(aexp)).limit_denominator()
+            arr_units *= (units.a) ** util.fractions.Fraction.from_float(float(aexp)).limit_denominator()
         if not np.allclose(hexp, 0.0):
-            arr_units *= (units.h)**util.fractions.Fraction.from_float(float(hexp)).limit_denominator()
+            arr_units *= (units.h) ** util.fractions.Fraction.from_float(float(hexp)).limit_denominator()
+        return arr_units
 
+    def _get_units_from_hdf_attr_arepo_style(self, hdfattrs):
+        l, m, v, a, h = (float(hdfattrs[x]) for x in ['length_scaling', 'mass_scaling', 'velocity_scaling', 'a_scaling', 'h_scaling'])
+        base_units = [units.cm, units.g, units.cm/units.s, units.a, units.h]
+        if float(hdfattrs['to_cgs'])==0.0:
+            # 0.0 is used in dimensionless cases
+            arr_units = units.Unit(1.0)
+        else:
+            arr_units = units.Unit(float(hdfattrs['to_cgs']))
+        for exponent, base_unit in zip([l, m, v, a, h], base_units):
+            if not np.allclose(exponent, 0.0):
+                arr_units *= base_unit ** util.fractions.Fraction.from_float(float(exponent)).limit_denominator()
         return arr_units
 
     def _get_units_from_description(self, description, expectedCgsConversionFactor=None):

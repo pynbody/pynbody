@@ -63,6 +63,13 @@ def test_dimensionless_addition():
     npt.assert_allclose(float(dimless_unit-0.25),0.25)
     npt.assert_allclose(float(dimless_unit+0.25),0.75)
 
+def test_nounit_equality():
+    assert units.Unit("1") == units.Unit("1")
+    assert units.Unit("1") != units.NoUnit()
+    assert units.NoUnit() == units.NoUnit()
+def test_unit_from_numeric():
+    assert units.Unit(1) == units.Unit("1")
+    assert units.Unit(0.5) == units.Unit("0.5")
 def test_units_addition():
     _2_kpc = units.Unit("2.0 kpc")
     _3_Mpc = units.Unit("3.0 Mpc")

@@ -3,6 +3,7 @@ from itertools import chain
 
 import h5py
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
@@ -204,3 +205,28 @@ def test_mass_in_header():
     f.physical_units()
     # don't load all masses, allow it to be loaded for DM only
     assert np.allclose(f.dm['mass'][0], 3981879.2046075417)
+
+def test_gadgethdf_style_units():
+    f = pynbody.load("testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5")
+    npt.assert_allclose(f.st['InitialMass'].units.in_units("1.989e43 g h^-1"), 1.0,
+                        rtol=1e-3)
+
+def test_arepo_style_units():
+    f = pynbody.load("testdata/arepo/agora_100.hdf5")
+    npt.assert_allclose(f.st['EMP_InitialStellarMass'].units.in_units("1.989e42 g"),
+                        1.0, rtol=1e-3)
+    # I strongly suspect that the units in this file are wrong -- the masses are
+    # in h^-1 units, so presumably these initial stellar masses should also be in
+    # h^-1 units. This is backed up by checking that, numerically,
+    #    (f.st['EMP_InitialStellarMass']/f.st['mass']).min() == 1.0
+    # On the other hand, pynbody should just reflect back that error
+    # to the user, really; we can't get involved in compensating for bugs in other codes,
+    # or all hell will break loose. So, we check for the 'wrong' units.
+
+    npt.assert_allclose(f.st['AREPOEMP_Metallicity'].units.in_units(1.0),
+                        1.0, rtol=1e-5)
+    # the above is a special case of a dimensionless array
+
+    from pynbody import units
+    assert f.st['EMP_BirthTemperature'].units == units.NoUnit()
+    # here is a case where no unit information is recorded in the file (who knows why)
