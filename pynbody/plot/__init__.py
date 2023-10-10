@@ -1,13 +1,13 @@
-import imp
+import importlib
 
 from . import gas, generic, metals, profile, stars, util
 
-imp.reload(profile)
-imp.reload(generic)
-imp.reload(stars)
-imp.reload(gas)
-imp.reload(metals)
-imp.reload(util)
+importlib.reload(profile)
+importlib.reload(generic)
+importlib.reload(stars)
+importlib.reload(gas)
+importlib.reload(metals)
+importlib.reload(util)
 
 from .gas import rho_T, temp_profile
 from .generic import fourier_map, gauss_kde, hist2d, qprof
