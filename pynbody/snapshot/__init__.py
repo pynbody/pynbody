@@ -282,7 +282,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
         self._assert_not_family_array(name)
 
-        if isinstance(item, array.SimArray):
+        if isinstance(item, array.SimArray) or isinstance(item, array.IndexedSimArray):
             ax = item
         else:
             ax = np.asanyarray(item).view(array.SimArray)
