@@ -14,26 +14,18 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.buildplat[0] }}
+    name: Build wheels on ${{ matrix.buildplat[0] }} ${{ matrix.buildplat[2] }} ${{ matrix.python}}
     runs-on: ${{ matrix.buildplat[0] }}
     strategy:
       matrix:
         # Following numpy's setup
         buildplat:
-        - [ubuntu-20.04, manylinux, x86_64]
-        - [macos-11, macosx, x86_64]
-        - [macos-11, macosx, arm64]
+        - [ubuntu-20.04, manylinux, x86_64, ""]
+        - [macos-13, macosx, x86_64, "/usr/local/opt/"]
+        - [macos-13-xlarge, macosx, arm64, "/opt/homebrew/opt/"]
         python: ["cp38", "cp39", "cp310", "cp311"]
     steps:
       - uses: actions/checkout@v3
-
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: '3.8'
-
-      - name: Install numpy and cython
-        run: python -m "pip" install numpy cython
 
       - name: Install GCC (Ubuntu)
         if: matrix.buildplat[0] == 'ubuntu-20.04'
@@ -48,29 +40,12 @@ jobs:
         if: startsWith(matrix.buildplat[0], 'macos')
         shell: bash
         run: |
-          brew install llvm@15
-          echo "CC=/usr/local/opt/llvm@15/bin/clang" >> $GITHUB_ENV
-          echo "CXX=/usr/local/opt/llvm@15/bin/clang++" >> $GITHUB_ENV
-          echo 'LDFLAGS="-L/usr/local/opt/llvm/lib"' >> $GITHUB_ENV
-          echo 'CFLAGS="-I/usr/local/opt/llvm/include"' >> $GITHUB_ENV
-          echo 'CPPFLAGS="-I/usr/local/opt/llvm/include"' >> $GITHUB_ENV
-
-      - name: Install relevant libraries for arm64 (MacOS)
-        if: startsWith(matrix.buildplat[0], 'macos') && matrix.buildplat[2] == 'arm64'
-        shell: /bin/zsh {0}
-        run: |
-          setopt sh_word_split
-          mkdir arm-homebrew && curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C arm-homebrew
-          alias arm-brew='$(pwd)/arm-homebrew/bin/brew'
-          response=$(arm-brew fetch --force --bottle-tag=arm64_big_sur llvm@15 | grep "Downloaded to")
-          parsed=($response)
-
-          arm-brew install --ignore-dependencies $parsed[3]
-
-          librarydir=$(pwd)/arm-homebrew/opt/llvm@15/lib/
-
-          echo "LDFLAGS=-L$librarydir" >> $GITHUB_ENV
-          echo "CIBW_REPAIR_WHEEL_COMMAND_MACOS=DYLD_LIBRARY_PATH=$librarydir; delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"  >> $GITHUB_ENV
+          brew install llvm@15 libomp pipx
+          echo "CC=${{matrix.buildplat[3]}}/llvm@15/bin/clang" >> $GITHUB_ENV
+          echo "CXX=${{matrix.buildplat[3]}}/llvm@15/bin/clang++" >> $GITHUB_ENV
+          echo 'LDFLAGS=-L${{matrix.buildplat[3]}}/llvm/lib -L${{matrix.buildplat[3]}}/libomp/lib' >> $GITHUB_ENV
+          echo 'CFLAGS=-I${{matrix.buildplat[3]}}/llvm/include -I${{matrix.buildplat[3]}}/libomp/include' >> $GITHUB_ENV
+          echo 'CPPFLAGS=-I${{matrix.buildplat[3]}}/llvm/include -I${{matrix.buildplat[3]}}/libomp/include' >> $GITHUB_ENV
 
       - name: Determine version tag
         if: github.event_name != 'pull_request'
@@ -110,7 +85,7 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.9'
 
       - name: Install numpy and cython
         run: python -m "pip" install numpy cython

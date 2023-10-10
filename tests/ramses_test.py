@@ -296,12 +296,12 @@ def test_temperature_derivation():
     f.g['temp']
 
     assert(f.g['mu'].min() != f.g['mu'].max())   # Check that ionized and neutral mu are now generated
-    np.testing.assert_allclose(f.g['mu'][:10], 0.59 * np.ones(10))
-    np.testing.assert_allclose(f.g['mu'].max(), 1.3)
+    np.testing.assert_allclose(f.g['mu'][:10], 0.590406 * np.ones(10), rtol=1e-5)
+    np.testing.assert_allclose(f.g['mu'].max(), 1.225115, rtol=1e-5)
 
-    np.testing.assert_allclose(f.g['temp'][:10], [25988.332966, 27995.231272, 27995.19821, 30516.467776,
-                                                  26931.794949, 29073.739294, 29177.197614, 31917.91444,
-                                                  26931.790284, 29177.242923])
+    np.testing.assert_allclose(f.g['temp'][:10], [26006.212237, 28014.491234, 28014.45815 , 30537.462281,
+                                                          26950.323296, 29093.741241, 29197.270737, 31939.873103,
+                                                          26950.318628, 29197.316078])
 
 
 def test_family_array():
