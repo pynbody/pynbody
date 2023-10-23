@@ -1168,8 +1168,23 @@ def translate_info(sim):
     if sim._not_cosmological():
         sim.properties['time'] = sim._info['time'] * t_unit
     else:
-        sim.properties['time'] = analysis.cosmology.age(
-            sim) * units.Unit('Gyr')
+        from pynbody.analysis._cosmology_time import friedman
+        _tau_frw, t_frw, aexp_frw, _hexp_out, _ntable, time_tot = friedman(
+            sim.properties["omegaM0"],
+            sim.properties["omegaL0"],
+            1.0 - sim.properties["omegaM0"] - sim.properties["omegaL0"],
+        )
+        aexp = sim.properties["a"]
+
+        i = np.searchsorted(-aexp_frw, -aexp)
+        time_simu = (
+            t_frw[i]*(aexp-aexp_frw[i-1])/(aexp_frw[i]-aexp_frw[i-1])+
+            t_frw[i-1]*(aexp-aexp_frw[i])/(aexp_frw[i-1]-aexp_frw[i])
+        )
+        h0 = sim.properties["h"] * 100 * units.Unit("km s^-1 Mpc^-1")
+        h0 = h0.in_units("s^-1")
+
+        sim.properties['time'] = (time_tot + time_simu) / h0 * units.Unit("s")
 
     sim._file_units_system = [d_unit, t_unit, l_unit]
 

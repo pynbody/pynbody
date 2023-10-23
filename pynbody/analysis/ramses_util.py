@@ -399,29 +399,25 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     cm_per_Mpc = 3.085677580962325e+24
     s_per_Gyr = 3.1556926e+16
 
-    tau_frw, t_frw, dtau, n_frw, time_tot = friedman(
+    tau_frw, t_frw, _axp_out, _hexp_out, _ntable, time_tot = friedman(
         top.properties["omegaM0"],
         top.properties["omegaL0"],
         1.0 - top.properties["omegaM0"] - top.properties["omegaL0"],
     )
-    h100 = top.properties["h"]
-    nOver2 = n_frw / 2
-    unit_t = top._info["unit_t"]
-    t_scale = 1.0 / (h100 * 100 * cm_per_km / cm_per_Mpc) / unit_t
 
-    # calculate index into lookup table (n_frw elements in
-    # lookup table)
-    dage = 1 + (10 * conformal_ages / dtau)
-    dage = np.minimum(dage, nOver2 + (dage - nOver2) / 10.0)
-    iage = np.array(dage, dtype=np.int32)
+    # tau_frw is a grid of conformal times
+    # t_frw is a grid of physical times
+    H0 = top.properties["h"] * 100
+    iii = np.searchsorted(-tau_frw, -conformal_ages)
 
-    # linearly interpolate physical times from t_frw and tau_frw lookup
-    # tables.
-    t = t_frw[iage] * (conformal_ages - tau_frw[iage - 1]) / (tau_frw[iage] - tau_frw[iage - 1])
-    t = t + (
-        t_frw[iage - 1] * (conformal_ages - tau_frw[iage]) / (tau_frw[iage - 1] - tau_frw[iage])
+    dtau = tau_frw[iii] - tau_frw[iii - 1]
+    times = (
+        t_frw[iii] * (conformal_ages - tau_frw[iii-1]) / dtau +
+        t_frw[iii-1] * (tau_frw[iii] - conformal_ages) / dtau
     )
 
-    top.s["tform"] = pynbody.analysis.cosmology.age(sim, z=0) + t * t_scale * unit_t / s_per_Gyr
-    top.s['tform'].units = 'Gyr'
+    birth_date = (time_tot + times) / (H0 * cm_per_km / cm_per_Mpc) / s_per_Gyr
+
+    top.s["tform"] = birth_date
+    top.s['tform'].units = "Gyr"
     return sim.s["tform"]
