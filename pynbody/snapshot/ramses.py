@@ -1057,6 +1057,10 @@ class RamsesSnap(SimSnap):
 
         return self._is_using_proper_time
 
+    @is_using_proper_time.setter
+    def is_using_proper_time(self, value):
+        self._is_using_proper_time = value
+
     def _convert_metal_name(self):
         # Name of ramses metallicity has no 's' at the end, contrary to tipsy and gadget
         # Correcting this prevents analysis routines relying on 'metals' field from breaking.

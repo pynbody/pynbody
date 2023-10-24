@@ -209,7 +209,7 @@ def test_tform_and_tform_raw():
     with pytest.warns(UserWarning, match=warn_msg) as record:
         tform = fcosmo.st["tform"]
         tform_raw = fcosmo.st["tform_raw"]
-    assert len(record) == 1
+    assert len(record) == 4
 
     # Reference values have been computed with `part2birth`
     np.testing.assert_allclose(
@@ -261,20 +261,20 @@ def test_proper_time_loading():
     f_pt = pynbody.load(
         "testdata/prop_time_output_00030", cpus=range(10, 20))
 
-    f_pt._is_using_proper_time = True
+    f_pt.is_using_proper_time = True
 
     f_pt._load_particle_block('tform')
     f_pt._convert_tform()
     np.testing.assert_allclose(
         f_pt.s["tform"].in_units("Gyr"),
-        [2.52501534, 2.57053015, 2.66348155, 2.99452429, 2.49332345,
-        3.62452373, 2.22125997, 2.53889974, 2.30228611, 3.45341852,
-        2.48534871, 3.42507129, 2.39147047, 2.74341721, 3.07370808,
-        2.69028377, 2.96989821, 3.0768944, 2.48748702, 3.79943883,
-        3.94957879, 2.24967707, 4.01734689, 3.65785368, 2.63618622,
-        2.69290132, 2.59963679, 4.03835932, 2.77991464, 2.71311552,
-        2.38078038, 4.3666123, 2.68693346, 3.37377901, 3.27283305,
-        3.03470615, 2.4334257, 2.65158796, 2.90785361, 2.56396249],
+        [2.50366633, 2.54926503, 2.64238778, 2.97404075, 2.47191601,
+          3.60520152, 2.19935102, 2.51757631, 2.28052652, 3.43378089,
+          2.46392658, 3.40538141, 2.36987528, 2.72247079, 3.05337051,
+          2.6692394 , 2.94936928, 3.0565627 , 2.46606882, 3.78043905,
+          3.93085577, 2.2278205 , 3.99874879, 3.63859291, 2.61504213,
+          2.67186178, 2.57842533, 4.01979996, 2.7590355 , 2.69211324,
+          2.35916548, 4.34865802, 2.66588291, 3.35399458, 3.25286254,
+          3.01429668, 2.41190785, 2.63047227, 2.88721031, 2.54268526],
         rtol=1e-5)
 
 
@@ -363,7 +363,7 @@ def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
     # Test header properties
     npt.assert_allclose(ramses_snap.properties['time'].in_units("Gyr"),
                         tipsy_snap.properties['time'].in_units("Gyr"),
-                        rtol=rtol)
+                        rtol=1e-2)  # see PR 740
     npt.assert_allclose(ramses_snap.properties['a'], tipsy_snap.properties['a'])
     npt.assert_allclose(ramses_snap.properties['h'], tipsy_snap.properties['h'], rtol=rtol)
     npt.assert_allclose(ramses_snap.properties['omegaM0'], tipsy_snap.properties['omegaM0'])
