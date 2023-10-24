@@ -341,11 +341,10 @@ def get_tform_using_part2birth(sim, part2birth_path):
 
     return sim.s['tform']
 
-
-def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
+def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path, is_proper_time=False):
     """
 
-    Convert conformal times to physical times for stars and **replaces** the original
+    Convert RAMSES times to physical times for stars and **replaces** the original
      `tform` array.
 
     Parameters
@@ -358,6 +357,9 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     part2birth_path : str, optional
         Path to the `part2birth` util. Only used if `use_part2birth` is also True.
         See notes for the default value.
+    is_proper_time : boolean, optional
+        If True, `tform` is assumed to be in proper time. Otherwise, it is assumed
+        to be in conformal time.
 
 
     Notes
@@ -393,7 +395,7 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     else:
         top = sim
 
-    conformal_ages = top.star["tform_raw"].view(np.ndarray)
+    birth_raw = top.star["tform_raw"].view(np.ndarray)
 
     cm_per_km = 1e5
     cm_per_Mpc = 3.085677580962325e+24
@@ -408,13 +410,17 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     # tau_frw is a grid of conformal times
     # t_frw is a grid of physical times
     H0 = top.properties["h"] * 100
-    iii = np.searchsorted(-tau_frw, -conformal_ages)
 
-    dtau = tau_frw[iii] - tau_frw[iii - 1]
-    times = (
-        t_frw[iii] * (conformal_ages - tau_frw[iii-1]) / dtau +
-        t_frw[iii-1] * (tau_frw[iii] - conformal_ages) / dtau
-    )
+    if is_proper_time:
+        times = birth_raw
+    else:
+        iii = np.searchsorted(-tau_frw, -birth_raw)
+
+        dtau = tau_frw[iii] - tau_frw[iii - 1]
+        times = (
+            t_frw[iii] * (birth_raw - tau_frw[iii-1]) / dtau +
+            t_frw[iii-1] * (tau_frw[iii] - birth_raw) / dtau
+        )
 
     birth_date = (time_tot + times) / (H0 * cm_per_km / cm_per_Mpc) / s_per_Gyr
 

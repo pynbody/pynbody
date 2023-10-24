@@ -288,7 +288,7 @@ def test_is_cosmological_without_namelist():
         "is cosmological from cosmological parameters assuming flat LCDM."
     )
     with pytest.warns(UserWarning, match=warn_msg):
-        assert f_without_namelist._not_cosmological() is False
+        assert f_without_namelist.is_cosmological
 
 
 def test_temperature_derivation():

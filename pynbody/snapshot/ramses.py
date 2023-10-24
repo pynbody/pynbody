@@ -1014,6 +1014,14 @@ class RamsesSnap(SimSnap):
             keys_ND.add(self._array_name_1D_to_ND(key) or key)
         return list(keys_ND)
 
+    @property
+    def is_cosmological(self):
+        return not self._not_cosmological()
+
+    @property
+    def is_not_cosmological(self):
+        return self._not_cosmological()
+
     def _not_cosmological(self):
         not_cosmological = True
 
@@ -1032,24 +1040,28 @@ class RamsesSnap(SimSnap):
         self.star['tform_raw'] = self.star['tform']
         self.star['tform_raw'].units = self._file_units_system[1]
 
-        if self._is_using_proper_time:
-            t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
-            birth_time = t0 + self.s["tform_raw"].in_units("Gyr") / self.properties["a"] ** 2
-            birth_time[birth_time > t0] = t0 - 1e-7
-            self.star['tform'] = birth_time
-        elif not self._not_cosmological():
+        if self.is_cosmological:
             # Only attempt tform conversion for cosmological runs. The built-in tforms for isolated runs
             # are actually meaningful (issue 554)
             from ..analysis import ramses_util
 
             # Replace the tform array by its usual meaning using the birth files
-            ramses_util.get_tform(self)
+            ramses_util.get_tform(self, is_proper_time=self.is_using_proper_time)
+            # t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
+            # birth_time = t0 + self.s["tform_raw"].in_units("Gyr") / self.properties["a"] ** 2
+            # birth_time[birth_time > t0] = t0 - 1e-7
+            # self.star['tform'] = birth_time
 
-    def _read_proper_time(self):
+    @property
+    def is_using_proper_time(self):
+        if hasattr(self, "_is_using_proper_time"):
+            return self._is_using_proper_time
         try:
             self._is_using_proper_time = config_parser.getboolean("ramses", "proper_time")
         except:
-            self._is_using_proper_time = False
+            self._is_using_proper_time = self._cosmological()
+
+        return self._is_using_proper_time
 
     def _convert_metal_name(self):
         # Name of ramses metallicity has no 's' at the end, contrary to tipsy and gadget
@@ -1165,7 +1177,7 @@ def translate_info(sim):
 
     sim.properties['boxsize'] = sim._info['boxlen'] * l_unit
 
-    if sim._not_cosmological():
+    if sim.is_not_cosmological:
         sim.properties['time'] = sim._info['time'] * t_unit
     else:
         from pynbody.analysis._cosmology_time import friedman
