@@ -4,6 +4,8 @@ from typing import Sequence
 
 import numpy as np
 
+import pynbody
+
 from .. import array, units, util
 from ..extern.cython_fortran_utils import FortranFile
 from . import DummyHalo, Halo, HaloCatalogue, logger
@@ -15,6 +17,7 @@ unit_angular_momentum = unit_mass * unit_vel * unit_length
 unit_energy = unit_mass * unit_vel ** 2
 unit_temperature = units.Unit("K")
 unit_density = unit_mass / unit_length ** 3
+unit_time = units.Unit("yr")
 
 UNITS = {
     'pos_x': unit_length,
@@ -30,18 +33,26 @@ UNITS = {
     'r_90percent_mass': unit_length,
     'max_velocity_radius': unit_length,
     'radius_profile': unit_length,
+    'radius_profile_star': unit_length,
     'virial_radius': unit_length,
+    'Reff': unit_length,
     'velocity_dispersion': unit_vel,
     'vel_x': unit_vel,
     'vel_y': unit_vel,
     'vel_z': unit_vel,
     'max_velocity': unit_vel,
     'virial_velocity': unit_vel,
+    'Vsigma': unit_vel,
+    'Vsigma_disk': unit_vel,
+    'sigma1d': unit_vel,
+    'sigma1d_disk': unit_vel,
+    'sigma_bulge': unit_vel,
     'angular_momentum_x': unit_angular_momentum,
     'angular_momentum_y': unit_angular_momentum,
     'angular_momentum_z': unit_angular_momentum,
     'm': unit_mass,
     'M200c': unit_mass,
+    'M_bulge': unit_mass,
     'm_contam': unit_mass,
     'mtot': unit_mass,
     'mtot_contam': unit_mass,
@@ -52,6 +63,22 @@ UNITS = {
     'virial_temperature': unit_temperature,
     'nfw_rho0': unit_density,
     'density_profile': unit_density,
+    'density_profile_star': unit_density,
+    'sfr10': unit_mass / unit_time,
+    'sfr100': unit_mass / unit_time,
+    'sfr1000': unit_mass / unit_time,
+    'age': unit_time,
+    'stellar_age': unit_time,
+    "Reff": unit_length,
+    "stellar_age": unit_time,
+    "Vsigma": unit_vel,
+    "Vsigma_disk": unit_vel,
+    "sigma_bulge": unit_vel,
+    "radius_profile_star": unit_length,
+    "density_profile_star": unit_density,
+    "sigma1d": unit_vel,
+    "sigma1d_disk": unit_vel,
+    "M_bulge": unit_mass,
 }
 
 
@@ -68,6 +95,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _halo_attributes = tuple()
     _halo_attributes_contam = tuple()
     _header_attributes = tuple()
+    _family = pynbody.family.dm
 
     def __init__(self, sim, fname=None, read_contamination=None, longint=None):
         if FortranFile is None:
@@ -101,7 +129,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         super().__init__(sim)
 
         # Initialize internal data
-        self._base_dm = sim.dm
+        self._base_family = sim[self._family]
 
         self._halos = {}
         self._fname = fname
@@ -153,7 +181,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         for all halos in one operation. This is slow compared to
         getting a single halo, however."""
         # Get the mapping from particle to halo
-        self._base_dm._family_index()  # filling the cache
+        self._base_family._family_index()  # filling the cache
         self._group_array = self.get_group_array(group_to_indices=True)
 
     def _ahop_compute_offset(self):
@@ -306,7 +334,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             index_array = None
             iord_array = iord_array
         halo = Halo(
-            halo_id, self, self._base_dm, index_array=index_array, iord_array=iord_array
+            halo_id, self, self._base_family, index_array=index_array, iord_array=iord_array
         )
         for k, v in props.items():
             halo.properties[k] = v
@@ -317,7 +345,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         return halo
 
-    def get_group_array(self, family="dm", group_to_indices=False):
+    def get_group_array(self, family=None, group_to_indices=False):
         """Return an array with an integer for each particle in the simulation
         indicating which halo that particle is associated with. If there are multiple
         levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
@@ -325,7 +353,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         Arguments
         ---------
-        family : optional, default : dm
+        family : optional, default : self._family
             The family of the particles that make the group
         group_to_indices : optional, bool
             If True, store the mapping from groups to particle on-disk location.
@@ -337,13 +365,14 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         """
         logger.debug("Get_group_array")
         if family is None:
-            family == self.base.families()[0]
+            family = self._family
         elif isinstance(family, str):
             families = self.base.families()
             matched_families = [f for f in families if f.name == family]
             if len(matched_families) != 1:
                 raise Exception("Could not find family %s" % family)
             family = matched_families[0]
+
         try:
             data = self.base[family]
         except:
@@ -490,6 +519,40 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
         (("m_contam", "mtot_contam"), 2, "d"),
         (("n_contam", "ntot_contam"), 2, "i8b"),
     )
+
+class NewAdaptaHOPCatalogueWithStars(BaseAdaptaHOPCatalogue):
+    _header_attributes = (
+        ("npart", 1, "i8b"),
+        ("massp", 1, "d"),
+        ("aexp", 1, "d"),
+        ("omega_t", 1, "d"),
+        ("age", 1, "d"),
+        (("nhalos", "nsubs"), 2, "i"),
+    )
+
+    # List of the attributes read from file. This does *not* include the number of particles,
+    # the list of particles, the id of the halo and the "timestep" (first 4 records).
+    _halo_attributes = (
+        *NewAdaptaHOPCatalogue._halo_attributes,
+        ("Reff", 1, "d"),
+        ("metallicity", 1, "d"),
+        ("stellar_age", 1, "d"),
+        (("sfr10", "sfr100", "sfr1000"), 3, "d"),
+        (("Vsigma", "sigma1d"), 2, "d"),
+        (("Vsigma_disk", "sigma1d_disk"), 2, "d"),
+        (("sigma_bulge", "M_bulge"), 2, "d"),
+        ("nbin_profile_star", 1, "i"),
+        ("radius_profile_star", -1, "d"),
+        ("density_profile_star", -1, "d"),
+    )
+
+    _halo_attributes_contam = (
+        ("contaminated", 1, "i"),
+        (("m_contam", "mtot_contam"), 2, "d"),
+        (("n_contam", "ntot_contam"), 2, "i8b"),
+    )
+
+    _family = pynbody.family.star
 
 
 class AdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
