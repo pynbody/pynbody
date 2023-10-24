@@ -23,11 +23,13 @@ import logging
 import os
 import re
 import warnings
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
 from .. import array, config_parser, family, units
+from ..analysis._cosmology_time import friedman
 from ..extern.cython_fortran_utils import FortranFile
 from . import SimSnap, namemapper
 
@@ -59,6 +61,14 @@ if not multiprocess:
 _float_type = 'd'
 _int_type = 'i'
 
+@dataclass
+class CosmoInterpTable:
+    tau_frw: np.ndarray
+    t_frw: np.ndarray
+    aexp_frw: np.ndarray
+    hexp_out: np.ndarray
+    ntable: int
+    time_tot: float
 
 def _timestep_id(basename):
     try:
@@ -1142,6 +1152,33 @@ class RamsesSnap(SimSnap):
             return os.path.isdir(f) and os.path.exists(os.path.join(f, f"info_{tsid}.txt"))
         return False
 
+    @property
+    def cosmological_interpolation_table(self):
+        "Interpolation tables to convert to/from cosmological times."
+        if self.is_not_cosmological:
+            return None
+
+        ret = getattr(self, "_cosmological_interpolation_table", None)
+        if ret is not None:
+            return ret
+        tau_frw, t_frw, aexp_frw, hexp_out, ntable, time_tot = friedman(
+            self.properties["omegaM0"],
+            self.properties["omegaL0"],
+            1.0 - self.properties["omegaM0"] - self.properties["omegaL0"],
+        )
+
+        self._cosmological_interpolation_table = CosmoInterpTable(
+            tau_frw=tau_frw,
+            t_frw=t_frw,
+            aexp_frw=aexp_frw,
+            hexp_out=hexp_out,
+            ntable=ntable,
+            time_tot=time_tot,
+        )
+        return self._cosmological_interpolation_table
+
+
+
 
 @RamsesSnap.decorator
 def translate_info(sim):
@@ -1163,12 +1200,9 @@ def translate_info(sim):
     if sim.is_not_cosmological:
         sim.properties['time'] = sim._info['time'] * t_unit
     else:
-        from pynbody.analysis._cosmology_time import friedman
-        _tau_frw, t_frw, aexp_frw, _hexp_out, _ntable, time_tot = friedman(
-            sim.properties["omegaM0"],
-            sim.properties["omegaL0"],
-            1.0 - sim.properties["omegaM0"] - sim.properties["omegaL0"],
-        )
+        t_frw = sim.cosmological_interpolation_table.t_frw
+        aexp_frw = sim.cosmological_interpolation_table.aexp_frw
+        time_tot = sim.cosmological_interpolation_table.time_tot
         aexp = sim.properties["a"]
 
         time_simu = np.interp(-aexp, -aexp_frw, t_frw)

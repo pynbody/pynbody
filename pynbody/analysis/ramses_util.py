@@ -399,19 +399,15 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path, is_prop
     cm_per_Mpc = 3.085677580962325e+24
     s_per_Gyr = 3.1556926e+16
 
-    tau_frw, t_frw, _axp_out, _hexp_out, _ntable, time_tot = friedman(
-        top.properties["omegaM0"],
-        top.properties["omegaL0"],
-        1.0 - top.properties["omegaM0"] - top.properties["omegaL0"],
-    )
+    time_tot = top.cosmological_interpolation_table.time_tot
 
-    # tau_frw is a grid of conformal times
-    # t_frw is a grid of physical times
     H0 = top.properties["h"] * 100
 
     if is_proper_time:
         times = birth_raw
     else:
+        tau_frw = top.cosmological_interpolation_table.tau_frw
+        t_frw = top.cosmological_interpolation_table.t_frw
         times = np.interp(-birth_raw, -tau_frw, t_frw)
 
     birth_date = (time_tot + times) / (H0 * cm_per_km / cm_per_Mpc) / s_per_Gyr
