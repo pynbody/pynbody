@@ -412,13 +412,7 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path, is_prop
     if is_proper_time:
         times = birth_raw
     else:
-        iii = np.searchsorted(-tau_frw, -birth_raw)
-
-        dtau = tau_frw[iii] - tau_frw[iii - 1]
-        times = (
-            t_frw[iii] * (birth_raw - tau_frw[iii-1]) / dtau +
-            t_frw[iii-1] * (tau_frw[iii] - birth_raw) / dtau
-        )
+        times = np.interp(-birth_raw, -tau_frw, t_frw)
 
     birth_date = (time_tot + times) / (H0 * cm_per_km / cm_per_Mpc) / s_per_Gyr
 

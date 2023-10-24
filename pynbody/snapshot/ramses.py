@@ -1174,11 +1174,8 @@ def translate_info(sim):
         )
         aexp = sim.properties["a"]
 
-        i = np.searchsorted(-aexp_frw, -aexp)
-        time_simu = (
-            t_frw[i]*(aexp-aexp_frw[i-1])/(aexp_frw[i]-aexp_frw[i-1])+
-            t_frw[i-1]*(aexp-aexp_frw[i])/(aexp_frw[i-1]-aexp_frw[i])
-        )
+        time_simu = np.interp(-aexp, -aexp_frw, t_frw)
+
         h0 = sim.properties["h"] * 100 * units.Unit("km s^-1 Mpc^-1")
         h0 = h0.in_units("s^-1")
 
