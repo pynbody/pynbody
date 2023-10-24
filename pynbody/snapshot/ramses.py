@@ -1033,10 +1033,7 @@ class RamsesSnap(SimSnap):
 
             # Replace the tform array by its usual meaning using the birth files
             ramses_util.get_tform(self, is_proper_time=self.is_using_proper_time)
-            # t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
-            # birth_time = t0 + self.s["tform_raw"].in_units("Gyr") / self.properties["a"] ** 2
-            # birth_time[birth_time > t0] = t0 - 1e-7
-            # self.star['tform'] = birth_time
+
 
     @property
     def is_using_proper_time(self):
