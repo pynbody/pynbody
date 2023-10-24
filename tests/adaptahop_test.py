@@ -3,6 +3,7 @@ import pytest
 from scipy.io import FortranFile as FF
 
 import pynbody
+from pynbody.halo import DummyHalo, Halo
 from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
 
 
@@ -189,6 +190,69 @@ def test_longint_contamination_autodetection(f, fname, Halo_T, ans):
     halos = Halo_T(f, fname=fname)
     assert halos._longint == ans["_longint"]
     assert halos._read_contamination == ans["_read_contamination"]
+
+
+def test_halo_iteration(halos):
+    h = list(halos)
+
+    assert len(h) == len(halos)
+    assert h[0] is halos[1]
+    assert h[-1] is halos[len(halos)]
+
+
+def _check_equality(a, b):
+    for key in set(a).union(b):
+        va, vb = a[key], b[key]
+        assert type(va) is type(vb)
+
+        if isinstance(va, pynbody.units.CompositeUnit):
+            assert str(va) == str(vb)
+        else:
+            np.testing.assert_almost_equal(va, vb)
+
+
+def test_dummy_halo_on_load(f):
+    h = f.halos(dummy=True)
+    href = f.halos()
+
+    assert h._dummy
+    assert isinstance(h[1], DummyHalo)
+    assert isinstance(href[1], Halo)
+
+    assert len(h[1]) == len(href[1])
+
+    _check_equality(h[1].properties, href[1].properties)
+
+def test_dummy_halo_on_property(f):
+    h = f.halos()
+    href = f.halos()
+
+    h.dummy = True
+
+    assert h._dummy
+    assert isinstance(h[1], DummyHalo)
+    assert isinstance(href[1], Halo)
+
+    assert len(h[1]) == len(href[1])
+
+    _check_equality(h[1].properties, href[1].properties)
+
+
+def test_dummy_halo_conversion(f):
+    h = f.halos()
+    href = f.halos()
+
+    h.dummy = True
+    h.physical_units()
+    href.physical_units()
+
+    assert h._dummy
+    assert isinstance(h[1], DummyHalo)
+    assert isinstance(href[1], Halo)
+
+    assert len(h[1]) == len(href[1])
+
+    _check_equality(h[1].properties, href[1].properties)
 
 def test_halo_iteration(halos):
     h = list(halos)

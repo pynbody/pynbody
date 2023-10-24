@@ -302,7 +302,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
             f.seek(self._haloprops_offset+(n-self._halo_min)*self.halo_type.itemsize)
             halo_data = np.fromfile(f, dtype=self.halo_type, count=1)
 
-        hn = DummyHalo()
+        hn = DummyHalo(base=self.base, halo_id=n, npart=halo_data["num_p"])
         # TODO: properties are in Msun / h, Mpc / h
         hn.properties = dict(list(zip(halo_data.dtype.names,halo_data[0])))
         return hn

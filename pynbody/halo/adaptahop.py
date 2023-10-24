@@ -69,7 +69,31 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _halo_attributes_contam = tuple()
     _header_attributes = tuple()
 
-    def __init__(self, sim, fname=None, read_contamination=None, longint=None):
+    def __init__(self, sim, fname=None, read_contamination=None, longint=None, dummy=False):
+        """
+        Initialize an AdaptaHOP Catalogue.
+
+        Parameters
+        ----------
+        sim : pynbody.snapshot.SimSnap
+            The parent simulation
+
+        fname : str, optional
+            Path to the AdaptaHOP file. By default, it is inferred from the parent simulation.
+
+        read_contamination : bool, optional
+            Whether to read the contamination information. By default, it is inferred from the
+            AdaptaHOP file.
+
+        longint : bool, optional
+            Whether the catalogue has was written with long integers. By default, it is inferred
+            from the AdaptaHOP file.
+
+        dummy : bool, default False
+            If True, the Halo objects will be DummyHalo objects (i.e. they won't be sliced of the
+            parent dataset). This is much faster but more limited
+
+        """
         if FortranFile is None:
             raise RuntimeError(
                 "Support for AdaptaHOP requires the package `cython-fortran-file` to be installed."
@@ -84,6 +108,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 raise RuntimeError(
                     "Unable to find AdaptaHOP brick file in simulation directory"
                 )
+
+        self.dummy = dummy
         if read_contamination is None or longint is None:
             read_contamination, longint = self._detect_file_format(fname)
         self._read_contamination = read_contamination
@@ -112,6 +138,14 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         # Compute offsets
         self._ahop_compute_offset()
         logger.debug("AdaptaHOPCatalogue loaded")
+
+    @property
+    def dummy(self):
+        return self._dummy
+
+    @dummy.setter
+    def dummy(self, value):
+        self._dummy = value
 
     def _detect_file_format(self, fname):
         """
@@ -173,28 +207,71 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
             for _ in range(nhalos + nsubs):
                 ipos = fpu.tell()
-                fpu.skip(2)  # number + ids of parts
+                if self._longint:
+                    ntot = fpu.read_int64()
+                else:
+                    ntot = fpu.read_int()
+
+                fpu.skip(1)  # ids of parts
                 halo_ID = fpu.read_int()
                 fpu.skip(Nskip)
 
                 # Fill-in data
-                dummy = DummyHalo()
+                dummy = DummyHalo(base=self.base, halo_id=halo_ID, npart=ntot)
                 dummy.properties["file_offset"] = ipos
                 self._halos[halo_ID] = dummy
 
     def calc_item(self, halo_id):
         return self._get_halo(halo_id)
 
+
+    def _get_halo_helper_build_halo_container(self, halo_id, halo_dummy):
+        properties_loaded = getattr(halo_dummy, "_properties_loaded", False)
+
+        if properties_loaded:
+            return halo_dummy
+
+        halo_data = self._read_halo_data(halo_id, halo_dummy.properties["file_offset"])
+
+        # If the "dummy" flag is set, we will simply copy the halo data into the dummy
+        # halo.properties dictionary. Otherwise, we initialize a fully-fledge halo object.
+        if self.dummy:
+            halo = halo_dummy
+        else:
+            # Create halo object and fill properties
+            if hasattr(self, "_group_to_indices"):
+                index_array = self._group_to_indices[halo_id]
+                iord_array = None
+            else:
+                index_array = None
+                iord_array = halo_data["members"]
+            halo = Halo(
+                halo_id, self, self._base_dm, index_array=index_array, iord_array=iord_array
+            )
+
+            halo.dummy = halo_dummy
+
+        for k, v in halo_data.items():
+            halo.properties[k] = v
+
+        halo._properties_loaded = True
+
+        # Need to convert the units of the halo object as we
+        # just updated them
+        halo._autoconvert_properties()
+
+        return halo
+
     def _get_halo(self, halo_id):
         if halo_id not in self._halos:
             raise KeyError(f"Halo with id '{halo_id}' does not seem to exist in the catalog.")
 
         halo = self._halos[halo_id]
-        halo_dummy = self._halos[halo_id]
+        properties_loaded = getattr(halo, "_properties_loaded", False)
         if isinstance(halo, DummyHalo):
-            halo = self._read_halo_data(halo_id, halo.properties["file_offset"])
-            halo.dummy = halo_dummy
-            self._halos[halo_id] = halo
+            halo = self._get_halo_helper_build_halo_container(halo_id, halo)
+
+        self._halos[halo_id] = halo
 
         return halo
 
@@ -297,25 +374,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             units=props["vel_x"].units,
             sim=self.base,
         )
-
-        # Create halo object and fill properties
-        if hasattr(self, "_group_to_indices"):
-            index_array = self._group_to_indices[halo_id]
-            iord_array = None
-        else:
-            index_array = None
-            iord_array = iord_array
-        halo = Halo(
-            halo_id, self, self._base_dm, index_array=index_array, iord_array=iord_array
-        )
-        for k, v in props.items():
-            halo.properties[k] = v
-
-        # Need to convert the units of the halo object as we
-        # just updated them
-        halo._autoconvert_properties()
-
-        return halo
+        return props
 
     def get_group_array(self, family="dm", group_to_indices=False):
         """Return an array with an integer for each particle in the simulation
