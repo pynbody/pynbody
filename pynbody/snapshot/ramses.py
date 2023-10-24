@@ -17,23 +17,21 @@ the `ipython notebook demo
   # for py2.5
 
 
+import configparser
 import csv
 import logging
 import os
 import re
-import time
 import warnings
 from pathlib import Path
 
 import numpy as np
 
-from .. import analysis, array, config, config_parser, family, units
+from .. import array, config_parser, family, units
 from ..extern.cython_fortran_utils import FortranFile
 from . import SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.ramses')
-
-from collections import OrderedDict
 
 multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
 multiprocess = (multiprocess_num > 1)
@@ -44,7 +42,6 @@ if multiprocess:
     try:
         import multiprocessing
 
-        import posix_ipc
         remote_exec = array.shared_array_remote
         remote_map = array.remote_map
     except ImportError:
@@ -53,11 +50,7 @@ if multiprocess:
 
 if not multiprocess:
     def remote_exec(fn):
-        def q(*args):
-            t0 = time.time()
-            r = fn(*args)
-            return r
-        return q
+        return fn
 
     def remote_map(*args, **kwargs):
         return list(map(*args[1:], **kwargs))
@@ -122,7 +115,7 @@ def _cpui_count_particles_with_explicit_families(filename, family_field, family_
 @remote_exec
 def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, family_mask):
     with FortranFile(filename) as f:
-        header = f.read_attrs(ramses_particle_header)
+        _header = f.read_attrs(ramses_particle_header)
         f.skip(offset)
         data = f.read_vector(type_)
         for fam_id, ar in enumerate(arrays):
@@ -501,9 +494,9 @@ class RamsesSnap(SimSnap):
             self._rt_blocks_3d.add(self._array_name_1D_to_ND(block) or block)
 
     def _load_info_from_specified_file(self, f):
-        for l in f:
-            if '=' in l:
-                name, val = list(map(str.strip, l.split('=')))
+        for line in f:
+            if '=' in line:
+                name, val = list(map(str.strip, line.split('=')))
                 try:
                     if '.' in val:
                         self._info[name] = float(val)
@@ -521,18 +514,18 @@ class RamsesSnap(SimSnap):
             f = open(os.path.join(self._filename, f"header_{self._timestep_id}.txt"))
             # most of this file is unhelpful, but depending on the ramses
             # version, there may be information on the particle fields present
-            for l in f:
-                if "level" in l:
-                    self._info['particle-blocks'] = l.split()
+            for line in f:
+                if "level" in line:
+                    self._info['particle-blocks'] = line.split()
         except OSError:
             warnings.warn(
                 "No header file found -- no particle block information available")
 
     def _load_namelist_from_specified_file(self, f):
-        for l in f:
-            l = l.split("!")[0]  # remove fortran comments
-            if '=' in l:
-                name, val = map(str.strip, l.split('='))
+        for line in f:
+            line = line.split("!")[0]  # remove fortran comments
+            if '=' in line:
+                name, val = map(str.strip, line.split('='))
                 if val == ".true.":
                     self._namelist[name] = True
                 elif val == ".false.":
@@ -573,9 +566,9 @@ class RamsesSnap(SimSnap):
             self._particle_blocks = []
             self._particle_types = []
             self._translate_array_name = namemapper.AdaptiveNameMapper('ramses-name-mapping')
-            for l in f:
-                if not l.startswith("#"):
-                    ivar, name, dtype = list(map(str.strip,l.split(",")))
+            for line in f:
+                if not line.startswith("#"):
+                    ivar, name, dtype = list(map(str.strip,line.split(",")))
                     self._particle_blocks.append(self._translate_array_name(name, reverse=True))
                     self._particle_types.append(dtype)
             self._particle_blocks_are_explictly_known = True
@@ -622,7 +615,7 @@ class RamsesSnap(SimSnap):
             return self._count_particles_using_explicit_families()
         else:
             ndm, nstar = self._count_particles_using_implicit_families()
-            return OrderedDict([(family.dm, ndm), (family.star, nstar)])
+            return {family.dm: ndm, family.star: nstar}
 
     def _has_particle_file(self):
         """Check whether the output has a particle file available"""
@@ -634,7 +627,7 @@ class RamsesSnap(SimSnap):
     def _count_particles_using_explicit_families(self):
         """Returns an ordered dictionary of family types based on the new explicit RAMSES particle file format"""
         if not self._has_particle_file():
-            return OrderedDict()
+            return {}
         family_block = self._particle_blocks.index('family')
         family_dtype = self._particle_types[family_block]
         self._particle_family_ids_on_disk = []
@@ -684,7 +677,7 @@ class RamsesSnap(SimSnap):
         for fid in self._particle_family_ids_on_disk:
             fid[:] = ramses_id_to_internal_id[fid]
 
-        return_d = OrderedDict()
+        return_d = {}
         self._particle_file_start_indices = [ [] for x in results]
         for internal_family_id in range(256):
             if aggregate_counts_remapped[internal_family_id]>0:
@@ -852,7 +845,6 @@ class RamsesSnap(SimSnap):
             yield from _cpui_level_iterator(*self._cpui_level_iterator_args(cpu))
 
     def _load_gas_pos(self):
-        i0 = 0
         self.gas['pos'].set_default_units()
         smooth = self.gas['smooth']
         smooth.set_default_units()
@@ -869,8 +861,6 @@ class RamsesSnap(SimSnap):
                    self._cpui_level_iterator_args())
 
     def _load_gas_vars(self, mode=_gv_load_hydro):
-        i1 = 0
-
         dims = []
 
         for i in [self._hydro_blocks, self._grav_blocks, self._rt_blocks][mode]:
@@ -883,7 +873,6 @@ class RamsesSnap(SimSnap):
             dims.append(self.gas[i])
             self.gas[i].set_default_units()
 
-
         if not os.path.exists(self._hydro_filename(1)):
             #Case where force_gas = True, make sure rho is non-zero and such that mass=1.
             # This does not keep track of units for mass or rho since their value is enforced.
@@ -893,10 +882,7 @@ class RamsesSnap(SimSnap):
             self.gas['rho'].set_default_units()
 
 
-
-        nvar = len(dims)
-
-        grid_info_iter = self._level_iterator()
+        _grid_info_iter = self._level_iterator()
 
         logger.info("Loading %s files", ['hydro', 'grav', 'rt'][mode])
 
@@ -1056,9 +1042,10 @@ class RamsesSnap(SimSnap):
     def is_using_proper_time(self):
         if hasattr(self, "_is_using_proper_time"):
             return self._is_using_proper_time
+
         try:
             self._is_using_proper_time = config_parser.getboolean("ramses", "proper_time")
-        except:
+        except configparser.NoOptionError:
             self._is_using_proper_time = self._cosmological()
 
         return self._is_using_proper_time
