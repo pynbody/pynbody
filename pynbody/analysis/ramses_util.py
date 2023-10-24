@@ -104,7 +104,7 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     for key in ['pos', 'vel', 'mass', 'iord', 'metal']:
         try:
             s[key]
-        except:
+        except KeyError:
             pass
 
     s['eps'] = s.g['smooth'].min()
@@ -116,7 +116,7 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     del(s.s['tform'])
     try:
         get_tform(s)
-    except:
+    except Exception:
         s.s['tform'] = -1.0
         s.s['tform'].units = 'Gyr'
 
@@ -124,7 +124,6 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     dunit = 1.0  # in kpc
     denunit = massunit / dunit ** 3
     velunit = 8.0285 * np.sqrt(6.67384e-8 * denunit) * dunit
-    timeunit = dunit / velunit * 0.97781311
 
     s['pos'].convert_units('kpc')
     s['vel'].convert_units('%e km s^-1' % velunit)
@@ -262,8 +261,7 @@ def write_ahf_input(sim, tipsyfile):
     """
 
     # determine units
-    lenunit, massunit, timeunit, velunit, _ = get_tipsy_units(sim)
-    h = Unit('%f km s^-1 Mpc^-1' % (sim.properties['h'] * 100))
+    _lenunit, massunit, _timeunit, velunit, _ = get_tipsy_units(sim)
 
     f = open('%s.AHF.input' % tipsyfile, 'w')
     f.write('[AHF]\n')
