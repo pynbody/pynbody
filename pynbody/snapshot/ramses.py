@@ -17,13 +17,11 @@ the `ipython notebook demo
   # for py2.5
 
 
-import configparser
 import csv
 import logging
 import os
 import re
 import warnings
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -62,15 +60,6 @@ if not multiprocess:
 
 _float_type = 'd'
 _int_type = 'i'
-
-@dataclass
-class CosmoInterpTable:
-    tau_frw: np.ndarray
-    t_frw: np.ndarray
-    aexp_frw: np.ndarray
-    hexp_out: np.ndarray
-    ntable: int
-    time_tot: float
 
 def _timestep_id(basename):
     try:
