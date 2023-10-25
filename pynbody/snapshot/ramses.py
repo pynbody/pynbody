@@ -29,8 +29,7 @@ from pathlib import Path
 import numpy as np
 
 from .. import array, config_parser, family, units
-from ..analysis._cosmology_time import friedman
-from ..analysis.cosmology import age, tau
+from ..analysis.cosmology import age
 from ..extern.cython_fortran_utils import FortranFile
 from . import SimSnap, namemapper
 
