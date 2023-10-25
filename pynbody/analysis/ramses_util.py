@@ -66,6 +66,7 @@ from pynbody.snapshot.ramses import RamsesSnap
 
 from .. import config_parser
 from ..analysis._cosmology_time import friedman
+from ..analysis.cosmology import H, age, hzoverh0, tau
 from ..units import Unit
 
 ramses_utils = config_parser.get('ramses', 'ramses_utils')
@@ -335,6 +336,7 @@ def get_tform_using_part2birth(sim, part2birth_path):
         done += len(new)
 
         birth_file.close()
+    assert done == len(top.s), f"Not all particles have a formation time. Found {done}/{len(top.s)}"
     top.s['tform'].units = 'Gyr'
 
     return sim.s['tform']
@@ -399,18 +401,25 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path, is_prop
     cm_per_Mpc = 3.085677580962325e+24
     s_per_Gyr = 3.1556926e+16
 
-    time_tot = top.cosmological_interpolation_table.time_tot
+    # time_tot_ref = top.cosmological_interpolation_table.time_tot
 
-    H0 = top.properties["h"] * 100
+    H0 = (top.properties["h"] * 100 * Unit("km s^-1 Mpc^-1")).in_units("Gyr^-1")
+    time_tot = age(top, z=0) * H0
 
     if is_proper_time:
+        # Times are computed in units of H0
+        # with a value of 0 corresponding to z=0
         times = birth_raw
-    else:
-        tau_frw = top.cosmological_interpolation_table.tau_frw
-        t_frw = top.cosmological_interpolation_table.t_frw
-        times = np.interp(-birth_raw, -tau_frw, t_frw)
 
-    birth_date = (time_tot + times) / (H0 * cm_per_km / cm_per_Mpc) / s_per_Gyr
+        birth_date = (time_tot + times) / H0
+
+    else:
+        h0 = top.properties["h"]
+        aexp_bins = np.geomspace(1e-3, 1, 10_000)
+        z_bins = 1 / aexp_bins - 1
+        tau_bins = tau(top, z=z_bins) * h0
+        age_bins = age(top, z=z_bins)
+        birth_date = np.interp(birth_raw, tau_bins, age_bins)
 
     top.s["tform"] = birth_date
     top.s['tform'].units = "Gyr"

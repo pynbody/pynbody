@@ -30,6 +30,7 @@ import numpy as np
 
 from .. import array, config_parser, family, units
 from ..analysis._cosmology_time import friedman
+from ..analysis.cosmology import age, tau
 from ..extern.cython_fortran_utils import FortranFile
 from . import SimSnap, namemapper
 
@@ -1204,17 +1205,7 @@ def translate_info(sim):
     if sim.is_not_cosmological:
         sim.properties['time'] = sim._info['time'] * t_unit
     else:
-        t_frw = sim.cosmological_interpolation_table.t_frw
-        aexp_frw = sim.cosmological_interpolation_table.aexp_frw
-        time_tot = sim.cosmological_interpolation_table.time_tot
-        aexp = sim.properties["a"]
-
-        time_simu = np.interp(-aexp, -aexp_frw, t_frw)
-
-        h0 = sim.properties["h"] * 100 * units.Unit("km s^-1 Mpc^-1")
-        h0 = h0.in_units("s^-1")
-
-        sim.properties['time'] = (time_tot + time_simu) / h0 * units.Unit("s")
+        sim.properties["time"] = age(sim, unit="Gyr") * units.Unit("Gyr")
 
     sim._file_units_system = [d_unit, t_unit, l_unit]
 

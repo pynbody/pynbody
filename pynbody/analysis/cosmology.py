@@ -10,9 +10,12 @@ A set of functions for common cosmological calculations.
 import math
 
 import numpy as np
+import scipy
+import scipy.integrate
+from scipy.interpolate import interp1d
 
-numpy = np  # alias the alias
 from .. import units
+from ..array import SimArray
 from ..configuration import config_parser
 
 _interp_points = int(config_parser.get('general','cosmo-interpolation-points'))
@@ -27,14 +30,21 @@ def _a_dot_recip(*args):
     return 1. / _a_dot(*args)
 
 
+def _da_dtau(a, h0, om_m, om_l):
+    return a**2 * _a_dot(a, h0, om_m, om_l)
+
+def _da_dtau_recip(*args):
+    return 1. / _da_dtau(*args)
+
+
 def hzoverh0(a, omegam0):
     """ returns: H(a) / H0  = [omegam/a**3 + (1-omegam)]**0.5 """
-    return numpy.sqrt(omegam0 * numpy.power(a, -3) + (1. - omegam0))
+    return np.sqrt(omegam0 * np.power(a, -3) + (1. - omegam0))
 
 
 def _lingrowthintegrand(a, omegam0):
     """ (e.g. eq. 8 in lukic et al. 2008)   returns: da / [a*H(a)/H0]**3 """
-    return numpy.power((a * hzoverh0(a, omegam0)), -3)
+    return np.power((a * hzoverh0(a, omegam0)), -3)
 
 
 def _lingrowthfac(red, omegam0, omegal0, return_norm=False):
@@ -148,18 +158,11 @@ def age(f, z=None, unit='Gyr'):
     **Optional Keywords**:
 
     *z (None)*: desired redshift. Can be a single number, a list, or a
-    numpy.ndarray.
+    np.ndarray.
 
     *unit ('Gyr')*: desired units for age output
 
     """
-
-    import scipy
-    import scipy.integrate
-    from scipy.interpolate import interp1d
-
-    from ..array import SimArray
-
     if z is None:
         z = f.properties['z']
 
@@ -182,12 +185,49 @@ def age(f, z=None, unit='Gyr'):
             log_a_input = np.log(1./(1.+z))
             results = np.exp(interp(log_a_input))
         else:
-            results = np.array(list(map(get_age, z)))
+            results = np.array([get_age(_z) for _z in z])
         results = results.view(SimArray)
         results.units = unit
         return results
     else:
         return get_age(z)
+
+def tau(f, z=None):
+    """
+    Calculate the conformal time of the universe in the snapshot f
+    by integrating the Friedmann equation.
+
+    The output is given in the specified units. If a redshift
+    z is specified, it is used in place of the redshift in the
+    output f.
+
+    **Input**:
+
+    *f*: SimSnap
+
+    **Optional Keywords**:
+
+    *z (None)*: desired redshift. Can be a single number, a list, or a
+    np.ndarray.
+    """
+    if z is None:
+        z = f.properties['z']
+
+    h0 = f.properties['h']
+    omM = f.properties['omegaM0']
+    omL = f.properties['omegaL0']
+
+    @np.vectorize
+    def get_tau(z):
+        aexp = 1.0 / (1.0 + z)
+        return scipy.integrate.quad(
+            _da_dtau_recip,
+            1,
+            aexp,
+            args=(h0, omM, omL)
+        )[0]
+
+    return get_tau(z)
 
 
 @units.takes_arg_in_units((1, "Gyr"), context_arg=0)
@@ -206,7 +246,7 @@ def redshift(f, time):
     *f*: SimSnap with cosmological parameters defined
 
     *time*: time since the Big Bang in Gyr for which a redshift should
-     be returned. float, list, or numpy.ndarray
+     be returned. float, list, or np.ndarray
 
     """
 
