@@ -374,7 +374,7 @@ def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
     # Test header properties
     npt.assert_allclose(ramses_snap.properties['time'].in_units("Gyr"),
                         tipsy_snap.properties['time'].in_units("Gyr"),
-                        rtol=1e-2)  # see PR 740
+                        rtol=rtol)
     npt.assert_allclose(ramses_snap.properties['a'], tipsy_snap.properties['a'])
     npt.assert_allclose(ramses_snap.properties['h'], tipsy_snap.properties['h'], rtol=rtol)
     npt.assert_allclose(ramses_snap.properties['omegaM0'], tipsy_snap.properties['omegaM0'])
