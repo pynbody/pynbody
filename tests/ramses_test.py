@@ -258,24 +258,35 @@ def test_tform_and_tform_raw_without_sidecar_files(use_part2birth_by_default):
     _test_tform_checker(tform_raw)
 
 def test_proper_time_loading():
-    f_pt = pynbody.load(
-        "testdata/prop_time_output_00030", cpus=range(10, 20))
+    expected_times = np.array([
+        2.50421602, 2.54981476, 2.64293759, 2.97459085, 2.47246567,
+        3.60575216, 2.19990045, 2.51812602, 2.28107602, 3.43433139,
+        2.46447623, 3.40593189, 2.37042486, 2.72302068, 3.05392067,
+        2.66978924, 2.94991936, 3.05711287, 2.46661848, 3.78098984,
+        3.9314067 , 2.22836996, 3.99929978, 3.63914358, 2.61559192,
+        2.67241162, 2.57897509, 4.02035096, 2.75958541, 2.69266309,
+        2.35971505, 4.34920931, 2.66643275, 3.354545  , 3.25341288,
+        3.01484682, 2.41245746, 2.63102207, 2.88776033, 2.54323499
+    ])
+    for (load_opts, force) in (
+        ({"times_are_proper": True}, False),
+        ({}, True),
+    ):
+        f_pt = pynbody.load(
+            "testdata/prop_time_output_00030",
+            cpus=range(10, 20),
+            **load_opts,
+        )
+        if force:
+            f_pt.times_are_proper = True
 
-    f_pt.is_using_proper_time = True
-
-    f_pt._load_particle_block('tform')
-    f_pt._convert_tform()
-    np.testing.assert_allclose(
-        f_pt.s["tform"].in_units("Gyr"),
-        [2.50421602, 2.54981476, 2.64293759, 2.97459085, 2.47246567,
-          3.60575216, 2.19990045, 2.51812602, 2.28107602, 3.43433139,
-          2.46447623, 3.40593189, 2.37042486, 2.72302068, 3.05392067,
-          2.66978924, 2.94991936, 3.05711287, 2.46661848, 3.78098984,
-          3.9314067 , 2.22836996, 3.99929978, 3.63914358, 2.61559192,
-          2.67241162, 2.57897509, 4.02035096, 2.75958541, 2.69266309,
-          2.35971505, 4.34920931, 2.66643275, 3.354545  , 3.25341288,
-          3.01484682, 2.41245746, 2.63102207, 2.88776033, 2.54323499],
-        rtol=1e-5)
+        f_pt._load_particle_block('tform')
+        f_pt._convert_tform()
+        np.testing.assert_allclose(
+            f_pt.s["tform"].in_units("Gyr"),
+            expected_times,
+            rtol=1e-5
+        )
 
 
 def test_is_cosmological_without_namelist():

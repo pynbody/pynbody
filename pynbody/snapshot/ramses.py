@@ -401,14 +401,41 @@ def read_descriptor(fname):
 class RamsesSnap(SimSnap):
     reader_pool = None
 
-    def __init__(self, dirname, **kwargs):
-        """Initialize a RamsesSnap. Extra kwargs supported:
+    def __init__(
+        self,
+        dirname,
+        cpus=None,
+        maxlevel=None,
+        with_gas=True,
+        force_gas=False,
+        times_are_proper=None,
+    ):
+        """
+        Initialize a RamsesSnap.
 
-         *cpus* : a list of the CPU IDs to load. If not set, load all CPU's data.
-         *maxlevel* : the maximum refinement level to load. If not set, the deepest level is loaded.
-         *with_gas* : if False, never load any gas cells (particles only) - default is True
-         *force_gas* : if True, load the AMR cells as "gas particles" even if they don't actually contain gas in the run
-         """
+        Parameters
+        ----------
+        dirname : str
+            Directory containing the RAMSES output
+        cpus : list of int, optional
+            A list of the CPU IDs to load. If not set, load all
+            CPU's data.
+        maxlevel : int, optional
+            The maximum refinement level to load. If not set, the
+            deepest level is loaded.
+        with_gas : bool
+            If False, never load any gas cells (particles only).
+            Default is True
+        force_gas : bool
+            If True, load the AMR cells as "gas particles" even if
+            they don't actually contain gas in the run. Default is
+            False.
+        times_are_proper : bool
+            If True, the times in the output are assumed to be proper
+            times. If False, they are assumed to be conformal. If
+            unset, assume proper for non-cosmological simulations
+            and conformal for cosmological ones.
+        """
 
         global config
         super().__init__()
@@ -432,19 +459,22 @@ class RamsesSnap(SimSnap):
 
         self._ndim = self._info['ndim']
         self.ncpu = self._info['ncpu']
-        if 'cpus' in kwargs:
-            self._cpus = kwargs['cpus']
+        if cpus is not None:
+            self._cpus = cpus
         else:
             self._cpus = list(range(1, self.ncpu + 1))
-        self._maxlevel = kwargs.get('maxlevel', None)
+        self._maxlevel = maxlevel
 
         type_map = self._count_particles()
 
         has_gas = os.path.exists(
-            self._hydro_filename(1)) or kwargs.get('force_gas', False)
+            self._hydro_filename(1)
+        ) or force_gas
 
-        if not kwargs.get('with_gas',True):
+        if not with_gas:
             has_gas = False
+
+        self.times_are_proper = times_are_proper
 
         ngas = self._count_gas_cells() if has_gas else 0
 
@@ -1043,23 +1073,18 @@ class RamsesSnap(SimSnap):
             from ..analysis import ramses_util
 
             # Replace the tform array by its usual meaning using the birth files
-            ramses_util.get_tform(self, is_proper_time=self.is_using_proper_time)
+            ramses_util.get_tform(self, times_are_proper=self.times_are_proper)
 
 
     @property
-    def is_using_proper_time(self):
+    def times_are_proper(self):
         if hasattr(self, "_is_using_proper_time"):
             return self._is_using_proper_time
 
-        try:
-            self._is_using_proper_time = config_parser.getboolean("ramses", "proper_time")
-        except configparser.NoOptionError:
-            self._is_using_proper_time = self._cosmological()
+        return None
 
-        return self._is_using_proper_time
-
-    @is_using_proper_time.setter
-    def is_using_proper_time(self, value):
+    @times_are_proper.setter
+    def times_are_proper(self, value):
         self._is_using_proper_time = value
 
     def _convert_metal_name(self):
@@ -1156,33 +1181,6 @@ class RamsesSnap(SimSnap):
         if tsid:
             return os.path.isdir(f) and os.path.exists(os.path.join(f, f"info_{tsid}.txt"))
         return False
-
-    @property
-    def cosmological_interpolation_table(self):
-        "Interpolation tables to convert to/from cosmological times."
-        if self.is_not_cosmological:
-            return None
-
-        ret = getattr(self, "_cosmological_interpolation_table", None)
-        if ret is not None:
-            return ret
-        tau_frw, t_frw, aexp_frw, hexp_out, ntable, time_tot = friedman(
-            self.properties["omegaM0"],
-            self.properties["omegaL0"],
-            1.0 - self.properties["omegaM0"] - self.properties["omegaL0"],
-        )
-
-        self._cosmological_interpolation_table = CosmoInterpTable(
-            tau_frw=tau_frw,
-            t_frw=t_frw,
-            aexp_frw=aexp_frw,
-            hexp_out=hexp_out,
-            ntable=ntable,
-            time_tot=time_tot,
-        )
-        return self._cosmological_interpolation_table
-
-
 
 
 @RamsesSnap.decorator

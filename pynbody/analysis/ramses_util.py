@@ -58,6 +58,7 @@ import os
 import subprocess
 import warnings
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 
@@ -65,8 +66,7 @@ import pynbody
 from pynbody.snapshot.ramses import RamsesSnap
 
 from .. import config_parser
-from ..analysis._cosmology_time import friedman
-from ..analysis.cosmology import H, age, hzoverh0, tau
+from ..analysis.cosmology import age, tau
 from ..units import Unit
 
 ramses_utils = config_parser.get('ramses', 'ramses_utils')
@@ -341,7 +341,7 @@ def get_tform_using_part2birth(sim, part2birth_path):
 
     return sim.s['tform']
 
-def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path, is_proper_time=False):
+def get_tform(sim, use_part2birth: Optional[bool]=None, part2birth_path: str=part2birth_path, times_are_proper: Optional[bool]=None):
     """
 
     Convert RAMSES times to physical times for stars and **replaces** the original
@@ -357,10 +357,9 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path, is_prop
     part2birth_path : str, optional
         Path to the `part2birth` util. Only used if `use_part2birth` is also True.
         See notes for the default value.
-    is_proper_time : boolean, optional
-        If True, `tform` is assumed to be in proper time. Otherwise, it is assumed
-        to be in conformal time.
-
+    times_are_proper : boolean, optional
+        If True, `tform` is assumed to be in proper time.
+        If False, it is assumed to be in conformal time.
 
     Notes
     -----
@@ -387,6 +386,9 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path, is_prop
     if use_part2birth is None:
         use_part2birth = config_parser.getboolean('ramses', 'use_part2birth_by_default')
 
+    if times_are_proper is None:
+        times_are_proper = config_parser.getboolean('ramses', 'proper_time')
+
     if use_part2birth:
         return get_tform_using_part2birth(sim, part2birth_path=part2birth_path)
 
@@ -397,22 +399,15 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path, is_prop
 
     birth_raw = top.star["tform_raw"].view(np.ndarray)
 
-    cm_per_km = 1e5
-    cm_per_Mpc = 3.085677580962325e+24
-    s_per_Gyr = 3.1556926e+16
-
-    # time_tot_ref = top.cosmological_interpolation_table.time_tot
-
     H0 = (top.properties["h"] * 100 * Unit("km s^-1 Mpc^-1")).in_units("Gyr^-1")
-    time_tot = age(top, z=0) * H0
 
-    if is_proper_time:
+    if times_are_proper:
         # Times are computed in units of H0
         # with a value of 0 corresponding to z=0
         times = birth_raw
 
+        time_tot = age(top, z=0) * H0
         birth_date = (time_tot + times) / H0
-
     else:
         h0 = top.properties["h"]
         aexp_bins = np.geomspace(1e-3, 1, 10_000)
