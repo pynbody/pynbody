@@ -45,6 +45,8 @@ if multiprocess:
     try:
         import multiprocessing
 
+        import posix_ipc  # noqa: F401
+
         remote_exec = array.shared_array_remote
         remote_map = array.remote_map
     except ImportError:
