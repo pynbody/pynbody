@@ -341,7 +341,7 @@ def get_tform_using_part2birth(sim, part2birth_path):
 
     return sim.s['tform']
 
-def get_tform(sim, use_part2birth: Optional[bool]=None, part2birth_path: str=part2birth_path, times_are_proper: Optional[bool]=None):
+def get_tform(sim, *, times_are_proper: bool, use_part2birth: Optional[bool]=None, part2birth_path: str=part2birth_path, ):
     """
 
     Convert RAMSES times to physical times for stars and **replaces** the original
@@ -385,9 +385,6 @@ def get_tform(sim, use_part2birth: Optional[bool]=None, part2birth_path: str=par
     """
     if use_part2birth is None:
         use_part2birth = config_parser.getboolean('ramses', 'use_part2birth_by_default')
-
-    if times_are_proper is None:
-        times_are_proper = config_parser.getboolean('ramses', 'proper_time')
 
     if use_part2birth:
         return get_tform_using_part2birth(sim, part2birth_path=part2birth_path)

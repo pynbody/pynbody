@@ -202,14 +202,24 @@ def test_tform_and_tform_raw():
 
     fcosmo = pynbody.load("testdata/output_00080")
 
-    warn_msg = (
+    warn_msgs = ((
         "Namelist file either not found or unable to read. Guessing whether "
         "run is cosmological from cosmological parameters assuming flat LCDM."
-    )
-    with pytest.warns(UserWarning, match=warn_msg) as record:
+        ),(
+        "Assumed times to be in conformal units because no RT file was found. "
+        "If this is incorrect, pass the `times_are_proper` keyword argument when "
+        "loading the dataset, or set the option `proper_time` in your .pynbodyrc."
+    ))
+    with pytest.warns(UserWarning) as record:
         tform = fcosmo.st["tform"]
         tform_raw = fcosmo.st["tform_raw"]
-    assert len(record) == 1
+
+    for rec in record:
+        assert rec.category == UserWarning
+        assert rec.message.args[0] in warn_msgs
+
+    # Make sure we use conformal times
+    assert fcosmo.times_are_proper is False
 
     # Reference values have been computed with `part2birth`
     np.testing.assert_allclose(
@@ -229,6 +239,26 @@ def test_tform_and_tform_raw():
         rtol=1e-2,
     )
     _test_tform_checker(tform_raw)
+
+
+def test_rt_conformal_time_detection():
+    path = "testdata/ramses_new_format_cosmo_with_ahf_output_00110"
+    f = pynbody.load(path, cpus=[1, 2, 3, 4])
+
+    rt_path = os.path.join(path, "rt_00110.out00001")
+
+    print(f._particle_blocks)
+    warn_msg = (
+        f"Assumed times to be in conformal units because one RT file was detected ({rt_path}). "
+        "If this is incorrect, pass the `times_are_proper` keyword argument when "
+        "loading the dataset, or set the option `proper_time` in your .pynbodyrc."
+    )
+
+    with pytest.warns(UserWarning, match=warn_msg):
+        f.st["tform"]
+
+    assert f.times_are_proper
+
 
 @pytest.fixture
 def use_part2birth_by_default():

@@ -437,6 +437,10 @@ class RamsesSnap(SimSnap):
 
         self._timestep_id = _timestep_id(dirname)
         self._filename = dirname
+        if os.path.isdir(dirname):
+            self._dirname = dirname
+        else:
+            self._dirname = os.path.split(dirname)[0]
         self._load_sink_data_to_temporary_store()
         self._load_infofile()
         self._load_namelistfile()
@@ -464,7 +468,8 @@ class RamsesSnap(SimSnap):
         if not with_gas:
             has_gas = False
 
-        self.times_are_proper = times_are_proper
+        if times_are_proper is not None:
+            self.times_are_proper = times_are_proper
 
         ngas = self._count_gas_cells() if has_gas else 0
 
@@ -1069,9 +1074,43 @@ class RamsesSnap(SimSnap):
     @property
     def times_are_proper(self):
         if hasattr(self, "_is_using_proper_time"):
-            return self._is_using_proper_time
+            # Already set, skipping
+            pass
+        elif config_parser.has_option("ramses", "proper_time"):
+            self.times_are_proper = config_parser.getboolean(
+                "ramses", "proper_time"
+            )
+        elif self.is_not_cosmological:
+            self.times_are_proper = True
+        else:
+            # If we detect an RT file, assume proper time
+            iout = self._timestep_id
+            rt_file_candidates = (
+                os.path.join(
+                    self._dirname,
+                    f"rt{iout}.out{icpu:05d}",
+                )
+                for icpu in self._cpus
+            )
+            for rt_file in rt_file_candidates:
+                if not os.path.exists(rt_file):
+                    continue
+                choice = "proper"
+                reason = f"one RT file was detected ({rt_file})"
+                self.times_are_proper = True
+                break
+            else:
+                choice = "conformal"
+                reason = "no RT file was found"
+                self.times_are_proper = False
+            warnings.warn(
+                f"Assumed times to be in {choice} units because {reason}. "
+                "If this is incorrect, pass the `times_are_proper` keyword "
+                "argument when loading the dataset, or set the option `proper_time` "
+                "in your .pynbodyrc."
+            )
 
-        return None
+        return self._is_using_proper_time
 
     @times_are_proper.setter
     def times_are_proper(self, value):
