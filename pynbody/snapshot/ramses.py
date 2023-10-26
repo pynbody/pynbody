@@ -1088,7 +1088,7 @@ class RamsesSnap(SimSnap):
             rt_file_candidates = (
                 os.path.join(
                     self._dirname,
-                    f"rt{iout}.out{icpu:05d}",
+                    f"rt_{iout}.out{icpu:05d}",
                 )
                 for icpu in self._cpus
             )
