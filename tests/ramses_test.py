@@ -247,33 +247,40 @@ def test_tform_and_tform_raw():
 
 
 def test_rt_conformal_time_detection():
-    path = "testdata/ramses_rt_partial_output_00002"
-    f = pynbody.load(path, cpus=[1, 2, 3])
+    from pathlib import Path
+    path = Path("testdata/output_00080")
+    f = pynbody.load(str(path), cpus=[1, 2, 3])
 
-    rt_path = os.path.join(path, "rt_00002.out00001")
+    rt_path = path / "rt_00080.out00001"
 
-    warn_msgs = (
-        (
-            "Assumed times to be in proper units because one RT file "
-            f"was detected ({rt_path}). If this is incorrect, pass the "
-            "`times_are_proper` keyword argument when loading the dataset, "
-            "or set the option `proper_time` in your .pynbodyrc."
-        ),
-        (
-            "Namelist file either not found or unable to read. Guessing "
-            "whether run is cosmological from cosmological parameters "
-            "assuming flat LCDM."
-        ),
-    )
+    try:
+        rt_path.touch()
 
-    with pytest.warns(UserWarning) as record:
-        f.st["tform"]
+        warn_msgs = (
+            (
+                "Assumed times to be in proper units because one RT file "
+                f"was detected ({str(rt_path)}). If this is incorrect, pass the "
+                "`times_are_proper` keyword argument when loading the dataset, "
+                "or set the option `proper_time` in your .pynbodyrc."
+            ),
+            (
+                "Namelist file either not found or unable to read. Guessing "
+                "whether run is cosmological from cosmological parameters "
+                "assuming flat LCDM."
+            ),
+        )
 
-    for rec in record:
-        assert rec.category == UserWarning
-        assert rec.message.args[0] in warn_msgs
+        with pytest.warns(UserWarning) as record:
+            assert f.times_are_proper
 
-    assert f.times_are_proper
+        for rec in record:
+            assert rec.category == UserWarning
+            assert rec.message.args[0] in warn_msgs
+
+    finally:
+        rt_path.unlink(missing_ok=True)
+
+
 
 
 @pytest.fixture
