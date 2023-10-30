@@ -3,6 +3,7 @@ from itertools import chain
 
 import h5py
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
@@ -150,6 +151,14 @@ def test_write():
     snap2 = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
     assert(np.allclose(snap2[ar_name], snap[ar_name]))
 
+def test_grp_array():
+    h = subfind.halos()
+    grp = h.get_group_array()
+    print(grp)
+    for i in range(0,100,10):
+        assert len(subfind['iord'][grp==i]) == len(h[i])
+        assert (h[i]['iord'] == subfind['iord'][grp==i]).all()
+
 def test_hi_derivation():
     HI_answer = [  6.96499870e-06,   6.68348046e-06,   1.13855074e-05,
          1.10936027e-05,   1.40641633e-05,   1.67324738e-05,
@@ -172,10 +181,10 @@ def test_hi_derivation():
 
 def test_fof_vs_sub_assignment():
     h = subfind.halos()
-    assert(np.allclose(h[0].properties['Mass'],28.604694074339932))
-    assert(np.allclose( h[0].properties['Halo_M_Crit200'], 29.796955896599684))
-    assert(np.allclose(h[1].properties['Mass'], 8.880245794949587))
-    assert(np.allclose(h[1].properties['Halo_M_Crit200'],8.116568749712314))
+    assert(np.allclose(h.get_halo_properties(0, with_unit=False)['Mass'],28.604694074339932))
+    assert(np.allclose(h.get_halo_properties(0, with_unit=False)['Halo_M_Crit200'], 29.796955896599684))
+    assert(np.allclose(h.get_halo_properties(1, with_unit=False)['Mass'], 8.880245794949587))
+    assert(np.allclose(h.get_halo_properties(1, with_unit=False)['Halo_M_Crit200'],8.116568749712314))
 
 def test_hdf_ordering():
     # HDF files do not intrinsically specify the order in which the particle types occur
@@ -196,3 +205,28 @@ def test_mass_in_header():
     f.physical_units()
     # don't load all masses, allow it to be loaded for DM only
     assert np.allclose(f.dm['mass'][0], 3981879.2046075417)
+
+def test_gadgethdf_style_units():
+    f = pynbody.load("testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5")
+    npt.assert_allclose(f.st['InitialMass'].units.in_units("1.989e43 g h^-1"), 1.0,
+                        rtol=1e-3)
+
+def test_arepo_style_units():
+    f = pynbody.load("testdata/arepo/agora_100.hdf5")
+    npt.assert_allclose(f.st['EMP_InitialStellarMass'].units.in_units("1.989e42 g"),
+                        1.0, rtol=1e-3)
+    # I strongly suspect that the units in this file are wrong -- the masses are
+    # in h^-1 units, so presumably these initial stellar masses should also be in
+    # h^-1 units. This is backed up by checking that, numerically,
+    #    (f.st['EMP_InitialStellarMass']/f.st['mass']).min() == 1.0
+    # On the other hand, pynbody should just reflect back that error
+    # to the user, really; we can't get involved in compensating for bugs in other codes,
+    # or all hell will break loose. So, we check for the 'wrong' units.
+
+    npt.assert_allclose(f.st['AREPOEMP_Metallicity'].units.in_units(1.0),
+                        1.0, rtol=1e-5)
+    # the above is a special case of a dimensionless array
+
+    from pynbody import units
+    assert f.st['EMP_BirthTemperature'].units == units.NoUnit()
+    # here is a case where no unit information is recorded in the file (who knows why)

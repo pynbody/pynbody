@@ -58,13 +58,15 @@ import os
 import subprocess
 import warnings
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 
 import pynbody
+from pynbody.snapshot.ramses import RamsesSnap
 
 from .. import config_parser
-from ..analysis._cosmology_time import friedman
+from ..analysis.cosmology import age, tau
 from ..units import Unit
 
 ramses_utils = config_parser.get('ramses', 'ramses_utils')
@@ -103,7 +105,7 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     for key in ['pos', 'vel', 'mass', 'iord', 'metal']:
         try:
             s[key]
-        except Exception:
+        except KeyError:
             pass
 
     s['eps'] = s.g['smooth'].min()
@@ -123,7 +125,6 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     dunit = 1.0  # in kpc
     denunit = massunit / dunit ** 3
     velunit = 8.0285 * np.sqrt(6.67384e-8 * denunit) * dunit
-    timeunit = dunit / velunit * 0.97781311
 
     s['pos'].convert_units('kpc')
     s['vel'].convert_units('%e km s^-1' % velunit)
@@ -161,18 +162,19 @@ def get_tipsy_units(sim):
     """
 
     # figure out the units starting with mass
+    lenunit = sim['x'].units.in_units("a kpc", **sim.conversion_context())
+    massunit = pynbody.analysis.cosmology.rho_crit(sim, z=0, unit='Msol kpc^-3') * lenunit ** 3
+    G = pynbody.units.G.in_units("kpc**3 Msol**-1 Gyr**-2")
+    timeunit = np.sqrt(1 / G * lenunit ** 3 / massunit)
+    velunit = lenunit / timeunit
+    potentialunit = (velunit ** 2)
 
-    cmtokpc = 3.2407793e-22
-    lenunit = sim._info['unit_l'] / sim.properties['a'] * cmtokpc
-    massunit = pynbody.analysis.cosmology.rho_crit(
-        sim, z=0, unit='Msol kpc^-3') * lenunit ** 3
-    G_u = 4.4998712e-6  # G in kpc^3 / Msol / Gyr^2
-    timeunit = np.sqrt(1 / G_u * lenunit ** 3 / massunit)
-
-    return Unit('%e kpc' % lenunit), Unit('%e Msol' % massunit), Unit('%e Gyr' % timeunit)
+    return Unit('%.5e a kpc' % lenunit), Unit('%.5e Msol' % massunit),\
+           Unit('%.5e Gyr' % timeunit), Unit('%.5e a kpc Gyr**-1' % velunit),\
+           Unit('%.5e kpc**2 Gyr**-2 a**-1' % potentialunit)
 
 
-def convert_to_tipsy_fullbox(output, write_param=True):
+def convert_to_tipsy_fullbox(s, write_param=True):
     """
     Convert RAMSES file `output` to tipsy format readable by pkdgrav
     and Amiga Halo Finder. Does all unit conversions etc. into the
@@ -188,34 +190,42 @@ def convert_to_tipsy_fullbox(output, write_param=True):
 
     """
 
-    s = pynbody.load(output)
+    if type(s) is not RamsesSnap:
+        raise ValueError("This routine can only be used for Ramses snapshots but you are calling with " + str(type(s)))
 
-    lenunit, massunit, timeunit = get_tipsy_units(s)
+    warnings.warn("This routine currently makes the assumption that the ramses snapshot is cosmological\n"
+                  "when converting units. Beware if converting isolated runs.")
 
-#    l_unit = Unit('%f kpc'%lenunit)
-#    t_unit = Unit('%f Gyr'%timeunit)
-    velunit = lenunit / timeunit
-
-    tipsyfile = "%s_fullbox.tipsy" % (output)
+    lenunit, massunit, timeunit, velunit, potentialunit = get_tipsy_units(s)
+    tipsyfile = "%s_fullbox.tipsy" % (s._filename)
 
     s['mass'].convert_units(massunit)
-    s.g['temp']
-
-    # get the appropriate tform
-    get_tform(s)
-    s.g['metals'] = s.g['metal']
     s['pos'].convert_units(lenunit)
     s['vel'].convert_units(velunit)
-    s['eps'] = s.g['smooth'].min()
-    s['eps'].units = s['pos'].units
 
     # try to load the potential array -- if it's not there, make it zeroes
     try:
-        s['phi']
+        s['phi'].convert_units(potentialunit)
     except KeyError:
         s['phi'] = 0.0
 
-    del(s.g['metal'])
+    if "gas" in s.families():
+        s['eps'] = s.g['smooth'].min()
+        s['eps'].units = s['pos'].units
+        s.g['temp']
+        s.g['metals'] = s.g['metal']
+        del(s.g['metal'])
+    else:
+        # If we don't have gas, i.e. a DMO sim,
+        # load with force_gas to get the AMR smoothing
+        # This can only be temporary to ensure that the converted tipsy snapshot is still DMO
+        s_with_gas_forced = pynbody.load(s._filename, force_gas=True)
+        s['eps'] = s_with_gas_forced.g['smooth'].min()
+        s['eps'].units = s['pos'].units
+
+    if "star" in s.families():
+        s.st['tform'].convert_units(timeunit)
+
     del(s['smooth'])
 
     s.write(filename='%s' %
@@ -231,11 +241,7 @@ def write_tipsy_param(sim, tipsyfile):
     """
 
     # determine units
-    lenunit, massunit, timeunit = get_tipsy_units(sim)
-    h = Unit('%f km s^-1 Mpc^-1' % (sim.properties['h'] * 100))
-    l_unit = Unit('%f kpc' % lenunit)
-    t_unit = Unit('%f Gyr' % timeunit)
-    v_unit = l_unit / t_unit
+    lenunit, massunit, timeunit, velunit, _ = get_tipsy_units(sim)
 
     # write the param file
     f = open('%s.param' % tipsyfile, 'w')
@@ -244,7 +250,7 @@ def write_tipsy_param(sim, tipsyfile):
     f.write('dOmega0 = %f\n' % sim.properties['omegaM0'])
     f.write('dLambda = %f\n' % sim.properties['omegaL0'])
     h = Unit('%f km s^-1 Mpc^-1' % (sim.properties['h'] * 100))
-    f.write('dHubble0 = %f\n' % h.in_units(v_unit / l_unit))
+    f.write('dHubble0 = %f\n' % h.in_units(velunit / lenunit))
     f.write('bComove = 1\n')
     f.close()
 
@@ -256,11 +262,7 @@ def write_ahf_input(sim, tipsyfile):
     """
 
     # determine units
-    lenunit, massunit, timeunit = get_tipsy_units(sim)
-    h = Unit('%f km s^-1 Mpc^-1' % (sim.properties['h'] * 100))
-    l_unit = Unit('%f kpc' % lenunit)
-    t_unit = Unit('%f Gyr' % timeunit)
-    v_unit = l_unit / t_unit
+    _lenunit, massunit, _timeunit, velunit, _ = get_tipsy_units(sim)
 
     f = open('%s.AHF.input' % tipsyfile, 'w')
     f.write('[AHF]\n')
@@ -282,14 +284,8 @@ def write_ahf_input(sim, tipsyfile):
     f.write('TIPSY_MUNIT   = %e\n' % (massunit * sim.properties['h']))
     f.write('TIPSY_OMEGA0  = %f\n' % sim.properties['omegaM0'])
     f.write('TIPSY_LAMBDA0 = %f\n' % sim.properties['omegaL0'])
-
- #   velunit = Unit('%f cm'%s._info['unit_l'])/Unit('%f s'%s._info['unit_t'])
-
     f.write('TIPSY_VUNIT   = %e\n' %
-            v_unit.ratio('km s^-1 a', **sim.conversion_context()))
-
-    # the thermal energy in K -> km^2/s^2
-
+            velunit.ratio('km s^-1 a', **sim.conversion_context()))
     f.write('TIPSY_EUNIT   = %e\n' % (
         (pynbody.units.k / pynbody.units.m_p).in_units('km^2 s^-2 K^-1') * 5. / 3.))
     f.close()
@@ -340,15 +336,15 @@ def get_tform_using_part2birth(sim, part2birth_path):
         done += len(new)
 
         birth_file.close()
+    assert done == len(top.s), f"Not all particles have a formation time. Found {done}/{len(top.s)}"
     top.s['tform'].units = 'Gyr'
 
     return sim.s['tform']
 
-
-def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
+def get_tform(sim, *, times_are_proper: bool, use_part2birth: Optional[bool]=None, part2birth_path: str=part2birth_path, ):
     """
 
-    Convert conformal times to physical times for stars and **replaces** the original
+    Convert RAMSES times to physical times for stars and **replaces** the original
      `tform` array.
 
     Parameters
@@ -361,7 +357,9 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     part2birth_path : str, optional
         Path to the `part2birth` util. Only used if `use_part2birth` is also True.
         See notes for the default value.
-
+    times_are_proper : boolean, optional
+        If True, `tform` is assumed to be in proper time.
+        If False, it is assumed to be in conformal time.
 
     Notes
     -----
@@ -396,35 +394,25 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     else:
         top = sim
 
-    conformal_ages = top.star["tform_raw"].view(np.ndarray)
+    birth_raw = top.star["tform_raw"].view(np.ndarray)
 
-    cm_per_km = 1e5
-    cm_per_Mpc = 3.085677580962325e+24
-    s_per_Gyr = 3.1556926e+16
+    H0 = (top.properties["h"] * 100 * Unit("km s^-1 Mpc^-1")).in_units("Gyr^-1")
 
-    tau_frw, t_frw, dtau, n_frw, time_tot = friedman(
-        top.properties["omegaM0"],
-        top.properties["omegaL0"],
-        1.0 - top.properties["omegaM0"] - top.properties["omegaL0"],
-    )
-    h100 = top.properties["h"]
-    nOver2 = n_frw / 2
-    unit_t = top._info["unit_t"]
-    t_scale = 1.0 / (h100 * 100 * cm_per_km / cm_per_Mpc) / unit_t
+    if times_are_proper:
+        # Times are computed in units of H0
+        # with a value of 0 corresponding to z=0
+        times = birth_raw
 
-    # calculate index into lookup table (n_frw elements in
-    # lookup table)
-    dage = 1 + (10 * conformal_ages / dtau)
-    dage = np.minimum(dage, nOver2 + (dage - nOver2) / 10.0)
-    iage = np.array(dage, dtype=np.int32)
+        time_tot = age(top, z=0) * H0
+        birth_date = (time_tot + times) / H0
+    else:
+        h0 = top.properties["h"]
+        aexp_bins = np.geomspace(1e-3, 1, 10_000)
+        z_bins = 1 / aexp_bins - 1
+        tau_bins = tau(top, z=z_bins) * h0
+        age_bins = age(top, z=z_bins)
+        birth_date = np.interp(birth_raw, tau_bins, age_bins)
 
-    # linearly interpolate physical times from t_frw and tau_frw lookup
-    # tables.
-    t = t_frw[iage] * (conformal_ages - tau_frw[iage - 1]) / (tau_frw[iage] - tau_frw[iage - 1])
-    t = t + (
-        t_frw[iage - 1] * (conformal_ages - tau_frw[iage]) / (tau_frw[iage - 1] - tau_frw[iage])
-    )
-
-    top.s["tform"] = pynbody.analysis.cosmology.age(sim, z=0) + t * t_scale * unit_t / s_per_Gyr
-    top.s['tform'].units = 'Gyr'
+    top.s["tform"] = birth_date
+    top.s['tform'].units = "Gyr"
     return sim.s["tform"]

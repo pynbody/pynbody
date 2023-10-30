@@ -111,6 +111,7 @@ You can even define completely new dimensions.
 import fractions
 import functools
 import keyword
+import numbers
 import re
 from collections import defaultdict
 
@@ -188,10 +189,22 @@ class UnitBase:
         return 'Unit("' + str(self) + '")'
 
     def __eq__(self, other):
-        try:
-            return self.ratio(other) == 1.
-        except UnitsException:
+        if not isinstance(other, UnitBase):
+            other = Unit(other)
+        _self_scale = getattr(self, '_scale', None)
+        _other_scale = getattr(other, '_scale', None)
+        if self.dimensionality_as_string() != other.dimensionality_as_string():
             return False
+        elif _self_scale == 0.0 and _other_scale == 0.0:
+            return True
+        elif _self_scale == 0.0 or _other_scale == 0.0:
+            return False
+        else:
+            try:
+                return self.ratio(other) == 1.
+            except UnitsException:
+                return False
+
 
     def __ne__(self, other):
         return not (self == other)
@@ -686,35 +699,39 @@ def Unit(s):
 
     if isinstance(s, UnitBase):
         return s
-    elif isinstance(s, int):
+    elif isinstance(s, numbers.Number):
+        scale = float(s)
+        units = []
+        powers = []
+    else:
         s = str(s)
 
-    x = s.split()
-    try:
-        scale = float(x[0])
-        del x[0]
-    except (ValueError, IndexError):
-        scale = 1.0
+        x = s.split()
+        try:
+            scale = float(x[0])
+            del x[0]
+        except (ValueError, IndexError):
+            scale = 1.0
 
-    units = []
-    powers = []
+        units = []
+        powers = []
 
-    for com in x:
-        if "**" in com or "^" in com:
-            s = com.split("**" if "**" in com else "^")
-            try:
-                u = _registry[s[0]]
-            except KeyError:
-                raise ValueError("Unknown unit " + s[0])
-            p = Fraction(s[1])
-            if p.denominator == 1:
-                p = p.numerator
-        else:
-            u = _registry[com]
-            p = 1
+        for com in x:
+            if "**" in com or "^" in com:
+                s = com.split("**" if "**" in com else "^")
+                try:
+                    u = _registry[s[0]]
+                except KeyError:
+                    raise ValueError("Unknown unit " + s[0])
+                p = Fraction(s[1])
+                if p.denominator == 1:
+                    p = p.numerator
+            else:
+                u = _registry[com]
+                p = 1
 
-        units.append(u)
-        powers.append(p)
+            units.append(u)
+            powers.append(p)
 
     return CompositeUnit(scale, units, powers)
 
@@ -823,7 +840,7 @@ def has_unit(obj):
 has_units = has_unit
 
 def get_item_with_unit(array, item):
-    if has_unit(array):
+    if has_unit(array) and len(array.shape)==1:
         return array[item]*array.units
     else:
         return array[item]

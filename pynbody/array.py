@@ -951,12 +951,7 @@ class IndexedSimArray:
 
 def _wrap_fn(w):
     def q(s, *y,  **kw):
-        # AP: I Don't understand why the following condition should be necessary,
-        # but it seems required on McMaster setup (Py 2.6.5, NP 1.4.1)
-        if kw != {}:
-            return w(SimArray(s), *y, **kw)
-        else:
-            return w(SimArray(s), *y)
+        return w(SimArray(s), *y, **kw)
 
     q.__name__ = w.__name__
     return q
@@ -967,7 +962,7 @@ _override = "__eq__", "__ne__", "__gt__", "__ge__", "__lt__", "__le__"
 
 for x in set(np.ndarray.__dict__).union(SimArray.__dict__):
     w = getattr(SimArray, x)
-    if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and hasattr(w, '__call__'):
+    if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and hasattr(w, '__call__') and x!="__buffer__":
         setattr(IndexedSimArray, x, _wrap_fn(w))
 
 

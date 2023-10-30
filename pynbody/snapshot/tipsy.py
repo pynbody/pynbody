@@ -434,6 +434,10 @@ class TipsySnap(SimSnap):
         ng = len(self.gas)
         nd = len(self.dark)
         ns = len(self.star)
+        if n != ng + nd + ns:
+            warnings.warn("Snapshot contains extra particles than DM, stars and gas (extra families?). "
+                          "Tipsy writing is not set up to handle those. Reverting Tipsy header ntot to ng + nd + ns")
+            n = ng + nd + ns
 
         byteswap = getattr(self, "_byteswap", sys.byteorder == "little")
 

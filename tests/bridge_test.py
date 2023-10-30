@@ -84,3 +84,43 @@ def test_family_morphing():
 
     assert (b(f2).dm['iord']==np.array([0,2,4,1,3])).all()
     assert (b(f2).gas['iord'] == np.array([6, 8, 5, 7, 9])).all()
+
+
+def test_bridging_with_more_families():
+    # Test that we can create a group array for snapshots that have a complex family structure,
+    # and bridge only with one family (DM). This is necessary for e.g. Tangos linking
+    f1 = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
+    g1 = pynbody.halo.AHFCatalogue(f1, get_all_parts="testdata/output_00110/output_00110_fullbox.tipsy.z0.031.AHF_particles")       # Force loading of all particles
+
+    # Work only on one family and create a useless bridge which is enough to break the code
+    f1 = f1.dm
+    b = pynbody.bridge.OrderBridge(f1, f1)
+
+    # The line below would fail with IndexError: index is out of bound when called for a single family
+    # The family slicing is done wrto to the base ancestor, but the IDs were not offset
+    # by family.start and would run over the array. This is now fixed
+    mat = b.catalog_transfer_matrix(max_index=5, groups_1=g1, groups_2=g1, use_family=pynbody.family.dm, only_family=pynbody.family.dm)
+    # Now it works and produces a diagonla matrix  since we are mapping the same snapshot
+    assert(np.count_nonzero(mat - np.diag(np.diagonal(mat))) == 0)
+    assert(mat[0, 0] == 12)
+
+def test_fuzzy_match_only_one_family():
+    f = pynbody.new(dm=10, gas=10)
+    f['iord'] = np.arange(0,20)
+    f['grp'] = np.array([0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,1,1,1,1,1],dtype=np.int32)
+
+    f2 = pynbody.new(dm=10, gas=10)
+    f2['iord'] = np.arange(0, 20)
+    f2['grp'] = f['grp']
+    f2.dm['grp'] = np.array([0,0,0,0,0,1,1,1,2,2],dtype=np.int32)
+
+    h = pynbody.halo.GrpCatalogue(f)
+    h2 = pynbody.halo.GrpCatalogue(f2)
+    b = pynbody.bridge.OrderBridge(f,f2)
+    assert b.fuzzy_match_catalog(use_family=pynbody.family.gas,groups_1=h, groups_2=h2)[1]==[(1, 1.0)]
+    assert b.fuzzy_match_catalog(use_family=pynbody.family.dm, groups_1=h, groups_2=h2)[1] == [(1, 0.6), (2, 0.4)]
+    assert b.fuzzy_match_catalog(groups_1=h, groups_2=h2)[1] == [(1, 0.8), (2, 0.2)]
+
+    # Test that it also works with only_family:
+    assert b.fuzzy_match_catalog(only_family=pynbody.family.gas, groups_1=h, groups_2=h2)[1] == [(1, 1.0)]
+    assert b.fuzzy_match_catalog(only_family=pynbody.family.dm, groups_1=h, groups_2=h2)[1] == [(1, 0.6), (2, 0.4)]

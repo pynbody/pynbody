@@ -7,7 +7,7 @@ import sys
 import tempfile
 from os import path
 
-import numpy.distutils.misc_util
+import numpy as np
 from Cython.Build import build_ext
 from Cython.Compiler.Options import get_directive_defaults
 from setuptools import Extension, setup
@@ -89,7 +89,7 @@ if have_pthread:
 
 extra_link_args = []
 
-incdir = numpy.distutils.misc_util.get_numpy_include_dirs()
+incdir = [np.get_include()]
 
 kdmain = Extension('pynbody.sph.kdmain',
                    sources = ['pynbody/sph/kdmain.cpp', 'pynbody/sph/kd.cpp',
@@ -143,9 +143,6 @@ cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
                                 sources=['pynbody/extern/_cython_fortran_utils.pyx'],
                                 include_dirs=incdir)
 
-cosmology_time = Extension('pynbody.analysis._cosmology_time',
-                           sources=['pynbody/analysis/_cosmology_time.pyx'],
-                           include_dirs=incdir)
 
 interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               sources = ['pynbody/analysis/_interpolate3d.pyx'],
@@ -155,13 +152,13 @@ interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
 
 
 ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
-                cython_fortran_file, cosmology_time, interpolate3d_pyx, omp_commands]
+                cython_fortran_file, interpolate3d_pyx, omp_commands]
 
 install_requires = [
     'cython>=0.20',
     'h5py>=2.10.0',
     'matplotlib>=3.0.0',
-    'numpy>=1.14.0',
+    'numpy>=1.21.6',
     'posix_ipc>=0.8',
     'scipy>=1.0.0'
 ]
@@ -220,7 +217,7 @@ setup(name = 'pynbody',
       install_requires=install_requires,
       tests_require=tests_require,
       extras_require=extras_require,
-      python_requires='>=3.5',
+      python_requires='>=3.8',
       long_description=long_description,
       long_description_content_type='text/markdown'
       )

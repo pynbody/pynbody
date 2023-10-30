@@ -6,6 +6,7 @@ import h5py
 import numpy as np
 
 from .. import array, config_parser, snapshot, units
+from ..snapshot import gadgethdf
 from . import Halo, HaloCatalogue
 
 
@@ -150,18 +151,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
 
     def __get_property_dictionary_from_hdf(self, hdf_key):
-        hdf0 = self._hdf_files.get_file0_root()
 
-        props = {}
-
-        for h in self._hdf_files.iterroot():
-            for property_key in hdf0[hdf_key].keys():
-                if property_key in self.fof_ignore:
-                    continue
-                if property_key in props:
-                    props[property_key] = np.append(props[property_key], h[hdf_key][property_key][()])
-                else:
-                    props[property_key] = np.asarray(h[hdf_key][property_key])
+        props = self._get_properties_from_multifile(self._hdf_files, hdf_key)
 
         for property_key in list(props.keys()):
             arr_units = self._get_units(hdf_key, property_key)
@@ -170,6 +161,19 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                 props[property_key].units = arr_units
                 props[property_key].sim = self.base
 
+        return props
+
+    def _get_properties_from_multifile(self, multifile, hdf_key):
+        hdf0 = multifile.get_file0_root()
+        props = {}
+        for h in multifile.iterroot():
+            for property_key in hdf0[hdf_key].keys():
+                if property_key in self.fof_ignore or property_key not in h[hdf_key]:
+                    continue
+                if property_key in props:
+                    props[property_key] = np.append(props[property_key], h[hdf_key][property_key][()])
+                else:
+                    props[property_key] = np.asarray(h[hdf_key][property_key])
         return props
 
     def _get_units(self, hdf_key, property_key):
@@ -205,11 +209,11 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         self._subfind_halo_parent_groups = np.empty(self.nsubhalos, dtype=int)
         self._fof_group_first_subhalo = np.empty(self.ngroups, dtype=int)
         for h in self._hdf_files.iterroot():
-            parent_groups = h[self._subfind_name][self._subfind_grnr_name]
+            parent_groups = h[self._subfind_name].get(self._subfind_grnr_name, [])
             self._subfind_halo_parent_groups[nsub:nsub + len(parent_groups)] = parent_groups
             nsub += len(parent_groups)
 
-            first_groups = h[self._subfind_first_gr_name]
+            first_groups = h.get(self._subfind_first_gr_name,[])
             self._fof_group_first_subhalo[nfof:nfof + len(first_groups)] = first_groups
             nfof += len(first_groups)
 
@@ -237,36 +241,85 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
                 for h in self._hdf_files:
                     # fof groups
-                    offset = self._get_halodata_array(h, self._grp_offset_name, self._fof_name, ptype)
-                    length = self._get_halodata_array(h, self._grp_len_name, self._fof_name, ptype)
+                    offset = self._get_halodata_array_with_default(h, self._grp_offset_name, self._fof_name, ptype, [])
+                    length = self._get_halodata_array_with_default(h, self._grp_len_name, self._fof_name, ptype, [])
                     self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset
                     self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
                     curr_groups += len(offset)
 
                     # subfind subhalos
-                    offset = self._get_halodata_array(h, self._sub_offset_name, self._subfind_name, ptype)
-                    length = self._get_halodata_array(h, self._sub_len_name, self._subfind_name, ptype)
+                    offset = self._get_halodata_array_with_default(h, self._sub_offset_name, self._subfind_name, ptype, [])
+                    length = self._get_halodata_array_with_default(h, self._sub_len_name, self._subfind_name, ptype, [])
                     self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
                     self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
                     curr_subhalos += len(offset)
+                if curr_groups!=self.ngroups:
+                    warnings.warn(f"Incorrect number of groups recovered from HDF files. Expected {self.ngroups}, found {curr_groups}")
+                    self.ngroups = curr_groups
+                    self._fof_group_offsets[ptype] = self._fof_group_offsets[ptype][:curr_groups]
+                    self._fof_group_lengths[ptype] = self._fof_group_lengths[ptype][:curr_groups]
+                if curr_subhalos!=self.nsubhalos:
+                    warnings.warn(f"Incorrect number of subhalos recovered from HDF files. Expected {self.nsubhalos}, found {curr_subhalos}")
+                    self.nsubhalos = curr_subhalos
+                    self._subfind_halo_offsets[ptype] = self._subfind_halo_offsets[ptype][:curr_groups]
+                    self._subfind_halo_lengths[ptype] = self._subfind_halo_lengths[ptype][:curr_groups]
 
     def _get_halodata_array(self, hdf_file, array_name, halo_or_group, particle_type):
         # In gadget3 implementation, halo_or_group is not needed. In Gadget4 implementation (below), it is.
         return hdf_file[particle_type][array_name]
 
-    def get_halo_properties(self, i, with_unit=True):
+    def _get_halodata_array_with_default(self, hdf_file, array_name, halo_or_group, particle_type, default):
+        try:
+            return self._get_halodata_array(hdf_file, array_name, halo_or_group, particle_type)
+        except KeyError:
+            return default
+
+    def get_halo_properties(self, i, with_unit=True, subs=None):
+        """Get just the properties for halo/group i
+
+        Subs controls whether to get halo (True) or group (False) properties
+        If subs is None, return the halo/group according to whether subs=True/False when constructing the catalogue.
+        """
+
+        if subs is None:
+            subs = self._sub_mode
+
         if with_unit:
             extract = units.get_item_with_unit
         else:
             extract = lambda array, element: array[element]
         properties = {}
-        if self._sub_mode:
+        if subs:
             for key in self._sub_properties:
                 properties[key] = extract(self._sub_properties[key], i)
         else:
             for key in self._fof_properties:
                 properties[key] = extract(self._fof_properties[key], i)
+            properties['children'], = np.where(self._subfind_halo_parent_groups==i)
         return properties
+
+    def get_group_array(self):
+        if self._sub_mode:
+            lengths = self._subfind_halo_lengths
+            offsets = self._subfind_halo_offsets
+        else:
+            lengths = self._fof_group_lengths
+            offsets = self._fof_group_offsets
+
+        type_map = self.base._family_to_group_map
+
+        grp = np.empty(len(self.base), dtype=np.int32)
+        grp.fill(-1)
+
+        for ptype in self.base._families_ordered():
+            sl = self.base._family_slice[ptype]
+            for g_ptype in type_map[ptype]:
+                for i in range(len(self)):
+                    offset = offsets[g_ptype][i]
+                    length = lengths[g_ptype][i]
+                    grp[sl.start + offset:sl.start + offset + length] = i
+        return grp
+
 
     def _get_halo(self, i) :
         if self.base is None :
@@ -353,11 +406,7 @@ class SubFindFOFGroup(Halo) :
 
         self._descriptor = "fof_group_"+str(group_id)
 
-        # load properties
-        for key in list(self._halo_catalogue._fof_properties.keys()) :
-            self.properties[key] = array.SimArray(self._halo_catalogue._fof_properties[key][group_id],
-                                            self._halo_catalogue._fof_properties[key].units)
-            self.properties[key].sim = self.base
+        self.properties.update(self._halo_catalogue.get_halo_properties(group_id, subs=False))
 
 
     def __getattr__(self, name):
@@ -388,10 +437,8 @@ class SubFindHDFSubHalo(Halo) :
         absolute_id = subfind_data_object._fof_group_first_subhalo[self._group_id] + halo_id
 
         # load properties
-        sub_props = subfind_data_object._sub_properties
-        for key in sub_props :
-            self.properties[key] = array.SimArray(sub_props[key][absolute_id], sub_props[key].units)
-            self.properties[key].sim = self.base
+        self.properties.update(subfind_data_object.get_halo_properties(absolute_id, subs=True))
+
 
 class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
@@ -409,6 +456,17 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
     _sub_offset_name = 'SubhaloOffsetType'
     _sub_len_name = 'SubhaloLenType'
+
+    def __init__(self, sim, subs=False, grp_array=False):
+        super().__init__(sim, subs, grp_array)
+        i = 0
+        for prog_or_desc in "prog", "desc":
+            try:
+                files = self._get_progenitor_or_descendant_multifile(sim, prog_or_desc)
+            except FileNotFoundError:
+                continue
+            props = self._get_properties_from_multifile(files, 'Subhalo')
+            self._sub_properties.update(props)
 
     def _get_halodata_array(self, hdf_file, array_name, halo_or_group, particle_type):
         return hdf_file[halo_or_group][array_name][:,int(particle_type[-1])]
@@ -432,23 +490,33 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
     @classmethod
     def _get_catalogue_multifile(cls, sim):
-        class Gadget4SubfindHdfMultiFileManager(snapshot.gadgethdf.SubfindHdfMultiFileManager):
+        class Gadget4SubfindHdfMultiFileManager(gadgethdf.SubfindHdfMultiFileManager):
             _nfiles_groupname = cls._fof_name
             _nfiles_attrname = "NTask"
             _subgroup_name = None
 
         return Gadget4SubfindHdfMultiFileManager(cls._catalogue_filename(sim))
 
-    @staticmethod
-    def _catalogue_filename(sim):
+    @classmethod
+    def _get_progenitor_or_descendant_multifile(cls, sim, prog_or_desc):
+        class Gadget4SubfindHdfProgenitorsMultiFileManager(gadgethdf.SubfindHdfMultiFileManager):
+            _nfiles_groupname = "Header"
+            _nfiles_attrname = "NumFiles"
+            _subgroup_name = None
+
+        return Gadget4SubfindHdfProgenitorsMultiFileManager(cls._catalogue_filename(sim, "subhalo_"+prog_or_desc+"_"))
+
+    @classmethod
+    def _catalogue_filename(cls, sim, namestem ="fof_subhalo_tab_"):
         snapnum = os.path.basename(sim.filename).split("_")[-1]
         parent_dir = os.path.dirname(os.path.abspath(sim.filename))
-        return os.path.join(parent_dir, "fof_subhalo_tab_" + snapnum)
+        return os.path.join(parent_dir, namestem + snapnum)
 
     @classmethod
     def _can_load(cls, sim, **kwargs):
-        file = Gadget4SubfindHDFCatalogue._catalogue_filename(sim)
-        if os.path.exists(file) and (file.endswith(".hdf5") or os.listdir(file)[0].endswith(".hdf5")):
+        file = cls._catalogue_filename(sim)
+        if os.path.exists(file) and (file.endswith(".hdf5") or os.listdir(file)[0].endswith(".hdf5")) \
+                or os.path.exists(file+".0.hdf5"):
             # very hard to figure out whether it's the right sort of hdf5 file without just going ahead and loading it
             try:
                 cls(sim, **kwargs)
@@ -471,3 +539,20 @@ class ArepoSubfindHDFCatalogue(Gadget4SubfindHDFCatalogue):
             return np.concatenate(([0],np.cumsum(lens)[:-1]))
         else:
             return super()._get_halodata_array(hdf_file, array_name, halo_or_group, particle_type)
+
+class TNGSubfindHDFCatalogue(ArepoSubfindHDFCatalogue):
+    @classmethod
+    def _catalogue_filename(cls, sim, namestem ="fof_subhalo_tab_"):
+        snapnum = os.path.basename(sim.filename).split("_")[-1]
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(sim.filename)))
+        f = os.path.join(parent_dir, "groups_"+snapnum, namestem + snapnum)
+        return f
+
+    @classmethod
+    def _get_catalogue_multifile(cls, sim):
+        class TNGSubfindHdfMultiFileManager(gadgethdf.SubfindHdfMultiFileManager):
+            _nfiles_groupname = "Header"
+            _nfiles_attrname = "NumFiles"
+            _subgroup_name = None
+
+        return TNGSubfindHdfMultiFileManager(cls._catalogue_filename(sim))

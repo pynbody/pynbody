@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 
@@ -200,14 +202,29 @@ def test_tform_and_tform_raw():
 
     fcosmo = pynbody.load("testdata/output_00080")
 
-    warn_msg = (
-        "Namelist file either not found or unable to read. Guessing whether "
-        "run is cosmological from cosmological parameters assuming flat LCDM."
+    warn_msgs = (
+        (
+            "Assumed times to be in conformal units because no RT file "
+            "was found. If this is incorrect, pass the "
+            "`times_are_proper` keyword argument when loading the dataset, "
+            "or set the option `proper_time` in your .pynbodyrc."
+        ),
+        (
+            "Namelist file either not found or unable to read. Guessing "
+            "whether run is cosmological from cosmological parameters "
+            "assuming flat LCDM."
+        ),
     )
-    with pytest.warns(UserWarning, match=warn_msg) as record:
+    with pytest.warns(UserWarning) as record:
         tform = fcosmo.st["tform"]
         tform_raw = fcosmo.st["tform_raw"]
-    assert len(record) == 1
+
+    for rec in record:
+        assert rec.category == UserWarning
+        assert rec.message.args[0] in warn_msgs
+
+    # Make sure we use conformal times
+    assert fcosmo.times_are_proper is False
 
     # Reference values have been computed with `part2birth`
     np.testing.assert_allclose(
@@ -227,6 +244,44 @@ def test_tform_and_tform_raw():
         rtol=1e-2,
     )
     _test_tform_checker(tform_raw)
+
+
+def test_rt_conformal_time_detection():
+    from pathlib import Path
+    path = Path("testdata/output_00080")
+    f = pynbody.load(str(path), cpus=[1, 2, 3])
+
+    rt_path = path / "rt_00080.out00001"
+
+    try:
+        rt_path.touch()
+
+        warn_msgs = (
+            (
+                "Assumed times to be in proper units because one RT file "
+                f"was detected ({str(rt_path)}). If this is incorrect, pass the "
+                "`times_are_proper` keyword argument when loading the dataset, "
+                "or set the option `proper_time` in your .pynbodyrc."
+            ),
+            (
+                "Namelist file either not found or unable to read. Guessing "
+                "whether run is cosmological from cosmological parameters "
+                "assuming flat LCDM."
+            ),
+        )
+
+        with pytest.warns(UserWarning) as record:
+            assert f.times_are_proper
+
+        for rec in record:
+            assert rec.category == UserWarning
+            assert rec.message.args[0] in warn_msgs
+
+    finally:
+        rt_path.unlink(missing_ok=True)
+
+
+
 
 @pytest.fixture
 def use_part2birth_by_default():
@@ -256,24 +311,35 @@ def test_tform_and_tform_raw_without_sidecar_files(use_part2birth_by_default):
     _test_tform_checker(tform_raw)
 
 def test_proper_time_loading():
-    f_pt = pynbody.load(
-        "testdata/prop_time_output_00030", cpus=range(10, 20))
+    expected_times = np.array([
+        2.50421602, 2.54981476, 2.64293759, 2.97459085, 2.47246567,
+        3.60575216, 2.19990045, 2.51812602, 2.28107602, 3.43433139,
+        2.46447623, 3.40593189, 2.37042486, 2.72302068, 3.05392067,
+        2.66978924, 2.94991936, 3.05711287, 2.46661848, 3.78098984,
+        3.9314067 , 2.22836996, 3.99929978, 3.63914358, 2.61559192,
+        2.67241162, 2.57897509, 4.02035096, 2.75958541, 2.69266309,
+        2.35971505, 4.34920931, 2.66643275, 3.354545  , 3.25341288,
+        3.01484682, 2.41245746, 2.63102207, 2.88776033, 2.54323499
+    ])
+    for (load_opts, force) in (
+        ({"times_are_proper": True}, False),
+        ({}, True),
+    ):
+        f_pt = pynbody.load(
+            "testdata/prop_time_output_00030",
+            cpus=range(10, 20),
+            **load_opts,
+        )
+        if force:
+            f_pt.times_are_proper = True
 
-    f_pt._is_using_proper_time = True
-
-    f_pt._load_particle_block('tform')
-    f_pt._convert_tform()
-    np.testing.assert_allclose(
-        f_pt.s["tform"].in_units("Gyr"),
-        [2.52501534, 2.57053015, 2.66348155, 2.99452429, 2.49332345,
-        3.62452373, 2.22125997, 2.53889974, 2.30228611, 3.45341852,
-        2.48534871, 3.42507129, 2.39147047, 2.74341721, 3.07370808,
-        2.69028377, 2.96989821, 3.0768944, 2.48748702, 3.79943883,
-        3.94957879, 2.24967707, 4.01734689, 3.65785368, 2.63618622,
-        2.69290132, 2.59963679, 4.03835932, 2.77991464, 2.71311552,
-        2.38078038, 4.3666123, 2.68693346, 3.37377901, 3.27283305,
-        3.03470615, 2.4334257, 2.65158796, 2.90785361, 2.56396249],
-        rtol=1e-5)
+        f_pt._load_particle_block('tform')
+        f_pt._convert_tform()
+        np.testing.assert_allclose(
+            f_pt.s["tform"].in_units("Gyr"),
+            expected_times,
+            rtol=1e-5
+        )
 
 
 def test_is_cosmological_without_namelist():
@@ -286,7 +352,7 @@ def test_is_cosmological_without_namelist():
         "is cosmological from cosmological parameters assuming flat LCDM."
     )
     with pytest.warns(UserWarning, match=warn_msg):
-        assert f_without_namelist._not_cosmological() is False
+        assert f_without_namelist.is_cosmological
 
 
 def test_temperature_derivation():
@@ -294,12 +360,12 @@ def test_temperature_derivation():
     f.g['temp']
 
     assert(f.g['mu'].min() != f.g['mu'].max())   # Check that ionized and neutral mu are now generated
-    np.testing.assert_allclose(f.g['mu'][:10], 0.59 * np.ones(10))
-    np.testing.assert_allclose(f.g['mu'].max(), 1.3)
+    np.testing.assert_allclose(f.g['mu'][:10], 0.590406 * np.ones(10), rtol=1e-5)
+    np.testing.assert_allclose(f.g['mu'].max(), 1.225115, rtol=1e-5)
 
-    np.testing.assert_allclose(f.g['temp'][:10], [25988.332966, 27995.231272, 27995.19821, 30516.467776,
-                                                  26931.794949, 29073.739294, 29177.197614, 31917.91444,
-                                                  26931.790284, 29177.242923])
+    np.testing.assert_allclose(f.g['temp'][:10], [26006.212237, 28014.491234, 28014.45815 , 30537.462281,
+                                                          26950.323296, 29093.741241, 29197.270737, 31939.873103,
+                                                          26950.318628, 29197.316078])
 
 
 def test_family_array():
@@ -316,3 +382,108 @@ def test_file_descriptor_reading():
 
     for field in expected_fields:
         assert field in loadable_fields
+
+
+def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_blocks():
+    # DMO snapshot would not have tform or metals in the header or defined on disc
+    f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", force_gas=True)
+
+    # This should break the loading with a Key Error that the array cannot be found
+    # Previous to the fix of #689, it would break with
+    # ValueError: 'metal' is not in list
+    # Because the field is not present in the particle blocks but was attempted to be accessed
+    try:
+        f_dmo.st['metals']
+    except KeyError as e:
+        assert("No array" in str(e))
+
+    # Now define a custom-derived metals array, which should enable us to access the array at all time
+    # Previously to #689, this would still break the loading with the same ValueError
+    # Now it loads the derived field without issues
+    from pynbody.snapshot.ramses import RamsesSnap
+    @RamsesSnap.derived_quantity
+    def metals(snap):
+        return np.zeros(len(snap))
+
+    f_dmo.st['metals']
+
+
+def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
+    # Setup a function to extensively test whether Tipsy snapshot written to disc with ramses_util
+    # match their original Ramses values and have correct units
+    import numpy.testing as npt
+    ramses_snap.physical_units()
+    tipsy_snap.physical_units()
+
+    # Test lengths
+    assert (len(ramses_snap.d) == len(tipsy_snap.d))
+    assert (len(ramses_snap.st) == len(tipsy_snap.st))
+    assert (len(ramses_snap.g) == len(tipsy_snap.g))
+
+    # This level of precision is limited by the many hardcoded SI constants
+    # in the tipsy/ramses loaders and converters, which are not self-consitent with one another
+    rtol = 5e-4
+
+    # Test header properties
+    npt.assert_allclose(ramses_snap.properties['time'].in_units("Gyr"),
+                        tipsy_snap.properties['time'].in_units("Gyr"),
+                        rtol=rtol)
+    npt.assert_allclose(ramses_snap.properties['a'], tipsy_snap.properties['a'])
+    npt.assert_allclose(ramses_snap.properties['h'], tipsy_snap.properties['h'], rtol=rtol)
+    npt.assert_allclose(ramses_snap.properties['omegaM0'], tipsy_snap.properties['omegaM0'])
+    npt.assert_allclose(ramses_snap.properties['omegaL0'], tipsy_snap.properties['omegaL0'])
+    npt.assert_allclose(ramses_snap.properties['boxsize'].in_units("Mpc"),
+                        tipsy_snap.properties['boxsize'].in_units("Mpc"), rtol=rtol)
+
+    # Dark matter
+    npt.assert_allclose(ramses_snap.d['pos'], tipsy_snap.d['pos'], rtol=rtol)
+    npt.assert_allclose(ramses_snap.d['vel'], tipsy_snap.d['vel'], rtol=rtol)
+    npt.assert_allclose(ramses_snap.d['mass'], tipsy_snap.d['mass'], rtol=rtol)
+
+    # Stars
+    if len(tipsy_snap.st) > 0:
+        npt.assert_allclose(ramses_snap.st['pos'], tipsy_snap.st['pos'], rtol=rtol)
+        npt.assert_allclose(ramses_snap.st['vel'], tipsy_snap.st['vel'], rtol=rtol)
+        npt.assert_allclose(ramses_snap.st['mass'], tipsy_snap.st['mass'], rtol=rtol)
+        npt.assert_allclose(ramses_snap.st['tform'], tipsy_snap.st['tform'], rtol=rtol)
+
+    # Gas
+    if len(tipsy_snap.g) > 0:
+        npt.assert_allclose(ramses_snap.g['pos'], tipsy_snap.g['pos'], rtol=rtol)
+        npt.assert_allclose(ramses_snap.g['vel'], tipsy_snap.g['vel'], rtol=rtol)
+        npt.assert_allclose(ramses_snap.g['mass'], tipsy_snap.g['mass'], rtol=rtol)
+
+
+def test_tipsy_conversion_for_dmo():
+    path = "testdata/ramses_dmo_partial_output_00051"
+    f_dmo = pynbody.load(path)
+    pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f_dmo, write_param=True)
+
+    # There are many tipsy parameter files that are automatically detected by the loader
+    # in the testdata folder, make sure we point the right one
+    tipsy_path = path + "_fullbox.tipsy"
+    tipsy_dmo = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
+
+    array_by_array_test_tipsy_converter(f_dmo, tipsy_dmo)
+    # Clean up our created param file to avoid it being detected and picked up by other tipsy tests
+    os.remove(tipsy_path + ".param")
+
+
+def test_tipsy_conversion_for_cosmo_gas():
+    path = "testdata/output_00080"
+    # The namelist file is not included in the test data
+    # Write a quick one-liner to ensure that we identify cosmo correctly
+    # and get the correct time units
+    with open(path + os.sep + "namelist.txt", "w") as namelist:
+        namelist.write("cosmo=.true.")
+
+    f = pynbody.load(path)
+    pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
+
+    tipsy_path = path + "_fullbox.tipsy"
+    tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
+
+    array_by_array_test_tipsy_converter(f, tipsy)
+    # Clean up our namelist to avoid any other issues with other tests
+    os.remove(path + os.sep + "namelist.txt")
+    os.remove(tipsy_path + ".param")

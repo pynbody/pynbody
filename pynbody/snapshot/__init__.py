@@ -260,7 +260,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             return SubSnap(self, i)
         elif isinstance(i, family.Family):
             return FamilySubSnap(self, i)
-        elif isinstance(i, np.ndarray) and np.issubdtype(np.bool, i.dtype):
+        elif isinstance(i, np.ndarray) and np.issubdtype(np.bool_, i.dtype):
             return self._get_subsnap_from_mask_array(i)
         elif isinstance(i, (list, tuple, np.ndarray, filt.Filter)):
             return IndexedSubSnap(self, i)
@@ -282,7 +282,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
         self._assert_not_family_array(name)
 
-        if isinstance(item, array.SimArray):
+        if isinstance(item, array.SimArray) or isinstance(item, array.IndexedSimArray):
             ax = item
         else:
             ax = np.asanyarray(item).view(array.SimArray)
@@ -880,10 +880,23 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
     def _transform(self, matrix):
         """Transforms the snapshot according to the 3x3 matrix given."""
-        for x in list(self.keys()):
-            ar = self[x]
+
+        # NB though it might seem more efficient to access _arrays and
+        # _family_arrays directly, this would not work for SubSnaps.
+        snapshot_keys = self.keys()
+
+        for array_name in snapshot_keys:
+            ar = self[array_name]
             if len(ar.shape) == 2 and ar.shape[1] == 3:
-                self[x] = np.dot(matrix, ar.transpose()).transpose()
+                ar[:] = np.dot(matrix, ar.transpose()).transpose()
+
+        for fam in self.families():
+            family_keys = self[fam].keys()
+            family_keys_not_in_snapshot = set(family_keys) - set(snapshot_keys)
+            for array_name in family_keys_not_in_snapshot:
+                ar = self[fam][array_name]
+                if len(ar.shape) == 2 and ar.shape[1] == 3:
+                    ar[:] = np.dot(matrix, ar.transpose()).transpose()
 
     def rotate_x(self, angle):
         """Rotates the snapshot about the current x-axis by 'angle' degrees."""
