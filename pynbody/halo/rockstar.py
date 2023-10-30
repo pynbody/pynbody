@@ -35,7 +35,7 @@ class RockstarCatalogue(HaloCatalogue):
         *pathname*: the path of the output folder with the individual RockStar outputs
 
         *format_revision*: Override the header's format revision information. Specify
-                    1, 2, 'caterpillar', galaxies for Rockstar prior to 2014, post 2014,
+                    1, 2, 'caterpillar', 'galaxies' for Rockstar prior to 2014, post 2014,
                     customized for the caterpillar project and for rockstar
                     galaxies respectively
 
