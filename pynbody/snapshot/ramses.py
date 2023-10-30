@@ -974,7 +974,7 @@ class RamsesSnap(SimSnap):
                        [_type] * len(self._cpus),
                        self._particle_family_ids_on_disk
                        )
-        except:
+        except Exception:
             warnings.warn("Exception encountered while reading %r; is there an incompatibility in your Ramses configuration?"%blockname)
             del self[blockname]
             raise

@@ -511,7 +511,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
                 plt.set_xlabel(xlabel)
             else:
                 plt.xlabel(xlabel)
-        except:
+        except Exception:
             pass
 
     if 'ylabel' in kwargs:
@@ -531,7 +531,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
                 plt.set_ylabel(ylabel)
             else:
                 plt.ylabel(ylabel)
-        except:
+        except Exception:
             pass
 
 

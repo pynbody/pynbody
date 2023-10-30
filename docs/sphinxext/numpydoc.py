@@ -86,7 +86,7 @@ def mangle_signature(app, what, name, obj, options, sig, retann):
 def initialize(app):
     try:
         app.connect('autodoc-process-signature', mangle_signature)
-    except:
+    except Exception:
         monkeypatch_sphinx_ext_autodoc()
 
 def setup(app, get_doc_object_=get_doc_object):

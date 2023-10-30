@@ -88,9 +88,10 @@ class InheritanceGraph(object):
         """
         try:
             path, base = self.py_sig_re.match(name).groups()
-        except:
+        except Exception as e:
             raise ValueError(
-                "Invalid class or module '%s' specified for inheritance diagram" % name)
+                "Invalid class or module '%s' specified for inheritance diagram" % name
+            ) from e
         fullname = (path or '') + base
         path = (path and path.rstrip('.'))
         if not path:
@@ -269,12 +270,12 @@ class InheritanceGraph(object):
             dot = subprocess.Popen(['dot'] + list(args),
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                    close_fds=True)
-        except OSError:
-            raise DotException("Could not execute 'dot'.  Are you sure you have 'graphviz' installed?")
-        except ValueError:
-            raise DotException("'dot' called with invalid arguments")
-        except:
-            raise DotException("Unexpected error calling 'dot'")
+        except OSError as e:
+            raise DotException("Could not execute 'dot'. Are you sure you have 'graphviz' installed?") from e
+        except ValueError as e:
+            raise DotException("'dot' called with invalid arguments") from e
+        except Exception as e:
+            raise DotException("Unexpected error calling 'dot'") from e
 
         self.generate_dot(dot.stdin, name, parts, urls, graph_options,
                           node_options, edge_options)

@@ -125,7 +125,7 @@ class HaloCatalogue(snapshot.ContainerWithPhysicalUnitsOption):
             if isinstance(self._halos[i],DummyHalo):
                 try:
                     return self._get_halo(i)
-                except:
+                except Exception:
                     return self._halos[i]
             else:
                 return self._halos[i]
