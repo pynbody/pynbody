@@ -58,6 +58,7 @@ import os
 import subprocess
 import warnings
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 
@@ -65,7 +66,7 @@ import pynbody
 from pynbody.snapshot.ramses import RamsesSnap
 
 from .. import config_parser
-from ..analysis._cosmology_time import friedman
+from ..analysis.cosmology import age, tau
 from ..units import Unit
 
 ramses_utils = config_parser.get('ramses', 'ramses_utils')
@@ -104,7 +105,7 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     for key in ['pos', 'vel', 'mass', 'iord', 'metal']:
         try:
             s[key]
-        except:
+        except KeyError:
             pass
 
     s['eps'] = s.g['smooth'].min()
@@ -116,7 +117,7 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     del(s.s['tform'])
     try:
         get_tform(s)
-    except:
+    except Exception:
         s.s['tform'] = -1.0
         s.s['tform'].units = 'Gyr'
 
@@ -124,7 +125,6 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     dunit = 1.0  # in kpc
     denunit = massunit / dunit ** 3
     velunit = 8.0285 * np.sqrt(6.67384e-8 * denunit) * dunit
-    timeunit = dunit / velunit * 0.97781311
 
     s['pos'].convert_units('kpc')
     s['vel'].convert_units('%e km s^-1' % velunit)
@@ -262,8 +262,7 @@ def write_ahf_input(sim, tipsyfile):
     """
 
     # determine units
-    lenunit, massunit, timeunit, velunit, _ = get_tipsy_units(sim)
-    h = Unit('%f km s^-1 Mpc^-1' % (sim.properties['h'] * 100))
+    _lenunit, massunit, _timeunit, velunit, _ = get_tipsy_units(sim)
 
     f = open('%s.AHF.input' % tipsyfile, 'w')
     f.write('[AHF]\n')
@@ -337,15 +336,15 @@ def get_tform_using_part2birth(sim, part2birth_path):
         done += len(new)
 
         birth_file.close()
+    assert done == len(top.s), f"Not all particles have a formation time. Found {done}/{len(top.s)}"
     top.s['tform'].units = 'Gyr'
 
     return sim.s['tform']
 
-
-def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
+def get_tform(sim, *, times_are_proper: bool, use_part2birth: Optional[bool]=None, part2birth_path: str=part2birth_path, ):
     """
 
-    Convert conformal times to physical times for stars and **replaces** the original
+    Convert RAMSES times to physical times for stars and **replaces** the original
      `tform` array.
 
     Parameters
@@ -358,7 +357,9 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     part2birth_path : str, optional
         Path to the `part2birth` util. Only used if `use_part2birth` is also True.
         See notes for the default value.
-
+    times_are_proper : boolean, optional
+        If True, `tform` is assumed to be in proper time.
+        If False, it is assumed to be in conformal time.
 
     Notes
     -----
@@ -393,35 +394,25 @@ def get_tform(sim, use_part2birth=None, part2birth_path=part2birth_path):
     else:
         top = sim
 
-    conformal_ages = top.star["tform_raw"].view(np.ndarray)
+    birth_raw = top.star["tform_raw"].view(np.ndarray)
 
-    cm_per_km = 1e5
-    cm_per_Mpc = 3.085677580962325e+24
-    s_per_Gyr = 3.1556926e+16
+    H0 = (top.properties["h"] * 100 * Unit("km s^-1 Mpc^-1")).in_units("Gyr^-1")
 
-    tau_frw, t_frw, dtau, n_frw, time_tot = friedman(
-        top.properties["omegaM0"],
-        top.properties["omegaL0"],
-        1.0 - top.properties["omegaM0"] - top.properties["omegaL0"],
-    )
-    h100 = top.properties["h"]
-    nOver2 = n_frw / 2
-    unit_t = top._info["unit_t"]
-    t_scale = 1.0 / (h100 * 100 * cm_per_km / cm_per_Mpc) / unit_t
+    if times_are_proper:
+        # Times are computed in units of H0
+        # with a value of 0 corresponding to z=0
+        times = birth_raw
 
-    # calculate index into lookup table (n_frw elements in
-    # lookup table)
-    dage = 1 + (10 * conformal_ages / dtau)
-    dage = np.minimum(dage, nOver2 + (dage - nOver2) / 10.0)
-    iage = np.array(dage, dtype=np.int32)
+        time_tot = age(top, z=0) * H0
+        birth_date = (time_tot + times) / H0
+    else:
+        h0 = top.properties["h"]
+        aexp_bins = np.geomspace(1e-3, 1, 10_000)
+        z_bins = 1 / aexp_bins - 1
+        tau_bins = tau(top, z=z_bins) * h0
+        age_bins = age(top, z=z_bins)
+        birth_date = np.interp(birth_raw, tau_bins, age_bins)
 
-    # linearly interpolate physical times from t_frw and tau_frw lookup
-    # tables.
-    t = t_frw[iage] * (conformal_ages - tau_frw[iage - 1]) / (tau_frw[iage] - tau_frw[iage - 1])
-    t = t + (
-        t_frw[iage - 1] * (conformal_ages - tau_frw[iage]) / (tau_frw[iage - 1] - tau_frw[iage])
-    )
-
-    top.s["tform"] = pynbody.analysis.cosmology.age(sim, z=0) + t * t_scale * unit_t / s_per_Gyr
-    top.s['tform'].units = 'Gyr'
+    top.s["tform"] = birth_date
+    top.s['tform'].units = "Gyr"
     return sim.s["tform"]

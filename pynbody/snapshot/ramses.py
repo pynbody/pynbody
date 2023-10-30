@@ -21,19 +21,17 @@ import csv
 import logging
 import os
 import re
-import time
 import warnings
 from pathlib import Path
 
 import numpy as np
 
-from .. import analysis, array, config, config_parser, family, units
+from .. import array, config_parser, family, units
+from ..analysis.cosmology import age
 from ..extern.cython_fortran_utils import FortranFile
 from . import SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.ramses')
-
-from collections import OrderedDict
 
 multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
 multiprocess = (multiprocess_num > 1)
@@ -44,7 +42,8 @@ if multiprocess:
     try:
         import multiprocessing
 
-        import posix_ipc
+        import posix_ipc  # noqa: F401
+
         remote_exec = array.shared_array_remote
         remote_map = array.remote_map
     except ImportError:
@@ -53,11 +52,7 @@ if multiprocess:
 
 if not multiprocess:
     def remote_exec(fn):
-        def q(*args):
-            t0 = time.time()
-            r = fn(*args)
-            return r
-        return q
+        return fn
 
     def remote_map(*args, **kwargs):
         return list(map(*args[1:], **kwargs))
@@ -65,7 +60,6 @@ if not multiprocess:
 
 _float_type = 'd'
 _int_type = 'i'
-
 
 def _timestep_id(basename):
     try:
@@ -122,7 +116,7 @@ def _cpui_count_particles_with_explicit_families(filename, family_field, family_
 @remote_exec
 def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, family_mask):
     with FortranFile(filename) as f:
-        header = f.read_attrs(ramses_particle_header)
+        _header = f.read_attrs(ramses_particle_header)
         f.skip(offset)
         data = f.read_vector(type_)
         for fam_id, ar in enumerate(arrays):
@@ -397,14 +391,41 @@ def read_descriptor(fname):
 class RamsesSnap(SimSnap):
     reader_pool = None
 
-    def __init__(self, dirname, **kwargs):
-        """Initialize a RamsesSnap. Extra kwargs supported:
+    def __init__(
+        self,
+        dirname,
+        cpus=None,
+        maxlevel=None,
+        with_gas=True,
+        force_gas=False,
+        times_are_proper=None,
+    ):
+        """
+        Initialize a RamsesSnap.
 
-         *cpus* : a list of the CPU IDs to load. If not set, load all CPU's data.
-         *maxlevel* : the maximum refinement level to load. If not set, the deepest level is loaded.
-         *with_gas* : if False, never load any gas cells (particles only) - default is True
-         *force_gas* : if True, load the AMR cells as "gas particles" even if they don't actually contain gas in the run
-         """
+        Parameters
+        ----------
+        dirname : str
+            Directory containing the RAMSES output
+        cpus : list of int, optional
+            A list of the CPU IDs to load. If not set, load all
+            CPU's data.
+        maxlevel : int, optional
+            The maximum refinement level to load. If not set, the
+            deepest level is loaded.
+        with_gas : bool
+            If False, never load any gas cells (particles only).
+            Default is True
+        force_gas : bool
+            If True, load the AMR cells as "gas particles" even if
+            they don't actually contain gas in the run. Default is
+            False.
+        times_are_proper : bool
+            If True, the times in the output are assumed to be proper
+            times. If False, they are assumed to be conformal. If
+            unset, assume proper for non-cosmological simulations
+            and conformal for cosmological ones.
+        """
 
         global config
         super().__init__()
@@ -416,6 +437,10 @@ class RamsesSnap(SimSnap):
 
         self._timestep_id = _timestep_id(dirname)
         self._filename = dirname
+        if os.path.isdir(dirname):
+            self._dirname = dirname
+        else:
+            self._dirname = os.path.split(dirname)[0]
         self._load_sink_data_to_temporary_store()
         self._load_infofile()
         self._load_namelistfile()
@@ -428,19 +453,23 @@ class RamsesSnap(SimSnap):
 
         self._ndim = self._info['ndim']
         self.ncpu = self._info['ncpu']
-        if 'cpus' in kwargs:
-            self._cpus = kwargs['cpus']
+        if cpus is not None:
+            self._cpus = cpus
         else:
             self._cpus = list(range(1, self.ncpu + 1))
-        self._maxlevel = kwargs.get('maxlevel', None)
+        self._maxlevel = maxlevel
 
         type_map = self._count_particles()
 
         has_gas = os.path.exists(
-            self._hydro_filename(1)) or kwargs.get('force_gas', False)
+            self._hydro_filename(1)
+        ) or force_gas
 
-        if not kwargs.get('with_gas',True):
+        if not with_gas:
             has_gas = False
+
+        if times_are_proper is not None:
+            self.times_are_proper = times_are_proper
 
         ngas = self._count_gas_cells() if has_gas else 0
 
@@ -501,9 +530,9 @@ class RamsesSnap(SimSnap):
             self._rt_blocks_3d.add(self._array_name_1D_to_ND(block) or block)
 
     def _load_info_from_specified_file(self, f):
-        for l in f:
-            if '=' in l:
-                name, val = list(map(str.strip, l.split('=')))
+        for line in f:
+            if '=' in line:
+                name, val = list(map(str.strip, line.split('=')))
                 try:
                     if '.' in val:
                         self._info[name] = float(val)
@@ -521,18 +550,18 @@ class RamsesSnap(SimSnap):
             f = open(os.path.join(self._filename, f"header_{self._timestep_id}.txt"))
             # most of this file is unhelpful, but depending on the ramses
             # version, there may be information on the particle fields present
-            for l in f:
-                if "level" in l:
-                    self._info['particle-blocks'] = l.split()
+            for line in f:
+                if "level" in line:
+                    self._info['particle-blocks'] = line.split()
         except OSError:
             warnings.warn(
                 "No header file found -- no particle block information available")
 
     def _load_namelist_from_specified_file(self, f):
-        for l in f:
-            l = l.split("!")[0]  # remove fortran comments
-            if '=' in l:
-                name, val = map(str.strip, l.split('='))
+        for line in f:
+            line = line.split("!")[0]  # remove fortran comments
+            if '=' in line:
+                name, val = map(str.strip, line.split('='))
                 if val == ".true.":
                     self._namelist[name] = True
                 elif val == ".false.":
@@ -573,9 +602,9 @@ class RamsesSnap(SimSnap):
             self._particle_blocks = []
             self._particle_types = []
             self._translate_array_name = namemapper.AdaptiveNameMapper('ramses-name-mapping')
-            for l in f:
-                if not l.startswith("#"):
-                    ivar, name, dtype = list(map(str.strip,l.split(",")))
+            for line in f:
+                if not line.startswith("#"):
+                    ivar, name, dtype = list(map(str.strip,line.split(",")))
                     self._particle_blocks.append(self._translate_array_name(name, reverse=True))
                     self._particle_types.append(dtype)
             self._particle_blocks_are_explictly_known = True
@@ -622,7 +651,7 @@ class RamsesSnap(SimSnap):
             return self._count_particles_using_explicit_families()
         else:
             ndm, nstar = self._count_particles_using_implicit_families()
-            return OrderedDict([(family.dm, ndm), (family.star, nstar)])
+            return {family.dm: ndm, family.star: nstar}
 
     def _has_particle_file(self):
         """Check whether the output has a particle file available"""
@@ -634,7 +663,7 @@ class RamsesSnap(SimSnap):
     def _count_particles_using_explicit_families(self):
         """Returns an ordered dictionary of family types based on the new explicit RAMSES particle file format"""
         if not self._has_particle_file():
-            return OrderedDict()
+            return {}
         family_block = self._particle_blocks.index('family')
         family_dtype = self._particle_types[family_block]
         self._particle_family_ids_on_disk = []
@@ -684,7 +713,7 @@ class RamsesSnap(SimSnap):
         for fid in self._particle_family_ids_on_disk:
             fid[:] = ramses_id_to_internal_id[fid]
 
-        return_d = OrderedDict()
+        return_d = {}
         self._particle_file_start_indices = [ [] for x in results]
         for internal_family_id in range(256):
             if aggregate_counts_remapped[internal_family_id]>0:
@@ -852,7 +881,6 @@ class RamsesSnap(SimSnap):
             yield from _cpui_level_iterator(*self._cpui_level_iterator_args(cpu))
 
     def _load_gas_pos(self):
-        i0 = 0
         self.gas['pos'].set_default_units()
         smooth = self.gas['smooth']
         smooth.set_default_units()
@@ -869,8 +897,6 @@ class RamsesSnap(SimSnap):
                    self._cpui_level_iterator_args())
 
     def _load_gas_vars(self, mode=_gv_load_hydro):
-        i1 = 0
-
         dims = []
 
         for i in [self._hydro_blocks, self._grav_blocks, self._rt_blocks][mode]:
@@ -883,7 +909,6 @@ class RamsesSnap(SimSnap):
             dims.append(self.gas[i])
             self.gas[i].set_default_units()
 
-
         if not os.path.exists(self._hydro_filename(1)):
             #Case where force_gas = True, make sure rho is non-zero and such that mass=1.
             # This does not keep track of units for mass or rho since their value is enforced.
@@ -893,10 +918,7 @@ class RamsesSnap(SimSnap):
             self.gas['rho'].set_default_units()
 
 
-
-        nvar = len(dims)
-
-        grid_info_iter = self._level_iterator()
+        _grid_info_iter = self._level_iterator()
 
         logger.info("Loading %s files", ['hydro', 'grav', 'rt'][mode])
 
@@ -1014,6 +1036,14 @@ class RamsesSnap(SimSnap):
             keys_ND.add(self._array_name_1D_to_ND(key) or key)
         return list(keys_ND)
 
+    @property
+    def is_cosmological(self):
+        return not self._not_cosmological()
+
+    @property
+    def is_not_cosmological(self):
+        return self._not_cosmological()
+
     def _not_cosmological(self):
         not_cosmological = True
 
@@ -1032,24 +1062,59 @@ class RamsesSnap(SimSnap):
         self.star['tform_raw'] = self.star['tform']
         self.star['tform_raw'].units = self._file_units_system[1]
 
-        if self._is_using_proper_time:
-            t0 = analysis.cosmology.age(self, z=0.0, unit="Gyr")
-            birth_time = t0 + self.s["tform_raw"].in_units("Gyr") / self.properties["a"] ** 2
-            birth_time[birth_time > t0] = t0 - 1e-7
-            self.star['tform'] = birth_time
-        elif not self._not_cosmological():
+        if self.is_cosmological:
             # Only attempt tform conversion for cosmological runs. The built-in tforms for isolated runs
             # are actually meaningful (issue 554)
             from ..analysis import ramses_util
 
             # Replace the tform array by its usual meaning using the birth files
-            ramses_util.get_tform(self)
+            ramses_util.get_tform(self, times_are_proper=self.times_are_proper)
 
-    def _read_proper_time(self):
-        try:
-            self._is_using_proper_time = config_parser.getboolean("ramses", "proper_time")
-        except:
-            self._is_using_proper_time = False
+
+    @property
+    def times_are_proper(self):
+        if hasattr(self, "_is_using_proper_time"):
+            # Already set, skipping
+            pass
+        elif config_parser.has_option("ramses", "proper_time"):
+            self.times_are_proper = config_parser.getboolean(
+                "ramses", "proper_time"
+            )
+        elif self.is_not_cosmological:
+            self.times_are_proper = True
+        else:
+            # If we detect an RT file, assume proper time
+            iout = self._timestep_id
+            rt_file_candidates = (
+                os.path.join(
+                    self._dirname,
+                    f"rt_{iout}.out{icpu:05d}",
+                )
+                for icpu in self._cpus
+            )
+            for rt_file in rt_file_candidates:
+                if not os.path.exists(rt_file):
+                    continue
+                choice = "proper"
+                reason = f"one RT file was detected ({rt_file})"
+                self.times_are_proper = True
+                break
+            else:
+                choice = "conformal"
+                reason = "no RT file was found"
+                self.times_are_proper = False
+            warnings.warn(
+                f"Assumed times to be in {choice} units because {reason}. "
+                "If this is incorrect, pass the `times_are_proper` keyword "
+                "argument when loading the dataset, or set the option `proper_time` "
+                "in your .pynbodyrc."
+            )
+
+        return self._is_using_proper_time
+
+    @times_are_proper.setter
+    def times_are_proper(self, value):
+        self._is_using_proper_time = value
 
     def _convert_metal_name(self):
         # Name of ramses metallicity has no 's' at the end, contrary to tipsy and gadget
@@ -1068,14 +1133,13 @@ class RamsesSnap(SimSnap):
         elif fam is not family.gas and fam is not None:
 
             # Deal with tform for stars that require extra conversion
-            if array_name == 'tform' or array_name == 'tform_raw':
+            if array_name in ('tform', 'tform_raw'):
                 if 'tform' in self._particle_blocks: # Only attempt these conversion if tform is actually on disc (Issue #689)
                     self._load_particle_block('tform')
-                    self._read_proper_time()
                     self._convert_tform()
 
             # Deal with metals for stars that have extra name mapping
-            elif array_name == 'metals' or array_name == 'metal':
+            elif array_name in ('metals', 'metal'):
                 if 'metal' in self._particle_blocks:
                     self._load_particle_block('metal')
                     self._convert_metal_name()
@@ -1165,11 +1229,10 @@ def translate_info(sim):
 
     sim.properties['boxsize'] = sim._info['boxlen'] * l_unit
 
-    if sim._not_cosmological():
+    if sim.is_not_cosmological:
         sim.properties['time'] = sim._info['time'] * t_unit
     else:
-        sim.properties['time'] = analysis.cosmology.age(
-            sim) * units.Unit('Gyr')
+        sim.properties["time"] = age(sim, unit="Gyr") * units.Unit("Gyr")
 
     sim._file_units_system = [d_unit, t_unit, l_unit]
 

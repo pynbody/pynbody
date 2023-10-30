@@ -202,14 +202,29 @@ def test_tform_and_tform_raw():
 
     fcosmo = pynbody.load("testdata/output_00080")
 
-    warn_msg = (
-        "Namelist file either not found or unable to read. Guessing whether "
-        "run is cosmological from cosmological parameters assuming flat LCDM."
+    warn_msgs = (
+        (
+            "Assumed times to be in conformal units because no RT file "
+            "was found. If this is incorrect, pass the "
+            "`times_are_proper` keyword argument when loading the dataset, "
+            "or set the option `proper_time` in your .pynbodyrc."
+        ),
+        (
+            "Namelist file either not found or unable to read. Guessing "
+            "whether run is cosmological from cosmological parameters "
+            "assuming flat LCDM."
+        ),
     )
-    with pytest.warns(UserWarning, match=warn_msg) as record:
+    with pytest.warns(UserWarning) as record:
         tform = fcosmo.st["tform"]
         tform_raw = fcosmo.st["tform_raw"]
-    assert len(record) == 1
+
+    for rec in record:
+        assert rec.category == UserWarning
+        assert rec.message.args[0] in warn_msgs
+
+    # Make sure we use conformal times
+    assert fcosmo.times_are_proper is False
 
     # Reference values have been computed with `part2birth`
     np.testing.assert_allclose(
@@ -229,6 +244,44 @@ def test_tform_and_tform_raw():
         rtol=1e-2,
     )
     _test_tform_checker(tform_raw)
+
+
+def test_rt_conformal_time_detection():
+    from pathlib import Path
+    path = Path("testdata/output_00080")
+    f = pynbody.load(str(path), cpus=[1, 2, 3])
+
+    rt_path = path / "rt_00080.out00001"
+
+    try:
+        rt_path.touch()
+
+        warn_msgs = (
+            (
+                "Assumed times to be in proper units because one RT file "
+                f"was detected ({str(rt_path)}). If this is incorrect, pass the "
+                "`times_are_proper` keyword argument when loading the dataset, "
+                "or set the option `proper_time` in your .pynbodyrc."
+            ),
+            (
+                "Namelist file either not found or unable to read. Guessing "
+                "whether run is cosmological from cosmological parameters "
+                "assuming flat LCDM."
+            ),
+        )
+
+        with pytest.warns(UserWarning) as record:
+            assert f.times_are_proper
+
+        for rec in record:
+            assert rec.category == UserWarning
+            assert rec.message.args[0] in warn_msgs
+
+    finally:
+        rt_path.unlink(missing_ok=True)
+
+
+
 
 @pytest.fixture
 def use_part2birth_by_default():
@@ -258,24 +311,35 @@ def test_tform_and_tform_raw_without_sidecar_files(use_part2birth_by_default):
     _test_tform_checker(tform_raw)
 
 def test_proper_time_loading():
-    f_pt = pynbody.load(
-        "testdata/prop_time_output_00030", cpus=range(10, 20))
+    expected_times = np.array([
+        2.50421602, 2.54981476, 2.64293759, 2.97459085, 2.47246567,
+        3.60575216, 2.19990045, 2.51812602, 2.28107602, 3.43433139,
+        2.46447623, 3.40593189, 2.37042486, 2.72302068, 3.05392067,
+        2.66978924, 2.94991936, 3.05711287, 2.46661848, 3.78098984,
+        3.9314067 , 2.22836996, 3.99929978, 3.63914358, 2.61559192,
+        2.67241162, 2.57897509, 4.02035096, 2.75958541, 2.69266309,
+        2.35971505, 4.34920931, 2.66643275, 3.354545  , 3.25341288,
+        3.01484682, 2.41245746, 2.63102207, 2.88776033, 2.54323499
+    ])
+    for (load_opts, force) in (
+        ({"times_are_proper": True}, False),
+        ({}, True),
+    ):
+        f_pt = pynbody.load(
+            "testdata/prop_time_output_00030",
+            cpus=range(10, 20),
+            **load_opts,
+        )
+        if force:
+            f_pt.times_are_proper = True
 
-    f_pt._is_using_proper_time = True
-
-    f_pt._load_particle_block('tform')
-    f_pt._convert_tform()
-    np.testing.assert_allclose(
-        f_pt.s["tform"].in_units("Gyr"),
-        [2.52501534, 2.57053015, 2.66348155, 2.99452429, 2.49332345,
-        3.62452373, 2.22125997, 2.53889974, 2.30228611, 3.45341852,
-        2.48534871, 3.42507129, 2.39147047, 2.74341721, 3.07370808,
-        2.69028377, 2.96989821, 3.0768944, 2.48748702, 3.79943883,
-        3.94957879, 2.24967707, 4.01734689, 3.65785368, 2.63618622,
-        2.69290132, 2.59963679, 4.03835932, 2.77991464, 2.71311552,
-        2.38078038, 4.3666123, 2.68693346, 3.37377901, 3.27283305,
-        3.03470615, 2.4334257, 2.65158796, 2.90785361, 2.56396249],
-        rtol=1e-5)
+        f_pt._load_particle_block('tform')
+        f_pt._convert_tform()
+        np.testing.assert_allclose(
+            f_pt.s["tform"].in_units("Gyr"),
+            expected_times,
+            rtol=1e-5
+        )
 
 
 def test_is_cosmological_without_namelist():
@@ -288,7 +352,7 @@ def test_is_cosmological_without_namelist():
         "is cosmological from cosmological parameters assuming flat LCDM."
     )
     with pytest.warns(UserWarning, match=warn_msg):
-        assert f_without_namelist._not_cosmological() is False
+        assert f_without_namelist.is_cosmological
 
 
 def test_temperature_derivation():
