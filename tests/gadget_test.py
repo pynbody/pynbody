@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
@@ -112,10 +113,10 @@ def test_write():
     and the written and the read are the same."""
     snap.write(filename='testdata/test_gadget_write')
     snap3 = pynbody.load('testdata/test_gadget_write')
-    assert(set(snap.loadable_keys()) == set(snap3.loadable_keys()))
-    assert((snap3["pos"].view(np.ndarray) == snap["pos"]).all())
-    assert((snap3.gas["rho"].view(np.ndarray) == snap.gas["rho"]).all())
-    assert(snap3.check_headers(snap.header, snap3.header))
+    assert set(snap.loadable_keys()) == set(snap3.loadable_keys())
+    npt.assert_equal(snap3["pos"].view(np.ndarray), snap["pos"])
+    npt.assert_equal(snap3.gas["rho"].view(np.ndarray), snap.gas["rho"])
+    assert snap3.check_headers(snap.header, snap3.header)
 
 
 def test_conversion():

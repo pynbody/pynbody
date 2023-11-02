@@ -759,9 +759,9 @@ class GadgetSnap(SimSnap):
                 mm = nn.lower().strip()
             else:
                 mm = nn.lower().strip().decode('utf-8')
-            if not nn in _rev_name_map:
+            if nn not in _rev_name_map:
                 _rev_name_map[nn] = mm
-            if not mm in _name_map:
+            if mm not in _name_map:
                 _name_map[mm] = nn
 
         # Use translated keys only
@@ -960,7 +960,7 @@ class GadgetSnap(SimSnap):
             all_keys = set(self.loadable_keys()).union(
                 list(self.keys())).union(self.family_keys())
             all_keys = [
-                k for k in all_keys if not k in ["x", "y", "z", "vx", "vy", "vz"]]
+                k for k in all_keys if k not in ["x", "y", "z", "vx", "vy", "vz"]]
             # This code supports (limited) format conversions
             if self.__class__ is not GadgetSnap:
                 # We need a filename if we are writing to a new type
