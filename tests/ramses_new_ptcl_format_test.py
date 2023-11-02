@@ -125,7 +125,7 @@ def test_load_no_ptcls():
     assert len(f.gas) == 196232
 
 def test_loaded_namelist():
-    assert f._namelist['cosmo'] == False
-    assert f._namelist['hydro'] == True
+    assert f._namelist['cosmo'] is False
+    assert f._namelist['hydro'] is True
     assert f._namelist['z_ave'] == 0.1
-    assert f._namelist.get("non_existent_key") == None
+    assert f._namelist.get("non_existent_key") is None

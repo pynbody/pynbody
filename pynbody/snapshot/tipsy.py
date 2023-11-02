@@ -1270,7 +1270,7 @@ class StarLog(SimSnap):
                         str(file_structure.itemsize))
                 else:
                     bigstarlog = True
-            if molecH == True: print("h2 information found in StarLog!")
+            if molecH is True: print("h2 information found in StarLog!")
 
         datasize = os.path.getsize(filename) - f.tell()
 
@@ -1484,7 +1484,7 @@ def param2units(sim):
             pass
 
         if munit is None or dunit is None:
-            if hub != None:
+            if hub is not None:
                 sim.properties['h'] = hub
             return
 
@@ -1693,7 +1693,7 @@ def slparam2units(sim):
         timeunit_st = ("%.5g" % timeunit) + " Gyr"
 
 
-        if hub != None:
+        if hub is not None:
             # append dependence on 'a' for cosmological runs
             dunit_st += " aform"
 

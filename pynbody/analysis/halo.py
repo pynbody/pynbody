@@ -387,8 +387,8 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     almnt = lambda E: np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
     #-----------------------------FUNCTIONS-----------------------------
 
-    if (rout == None): rout = sim.dm['r'].max()
-    if (rin == None): rin = rout/1E3
+    if (rout is None): rout = sim.dm['r'].max()
+    if (rin is None): rin = rout/1E3
 
     posr = np.array(sim.dm['r'])[np.where(sim.dm['r'] < rout)]
     pos = np.array(sim.dm['pos'])[np.where(sim.dm['r'] < rout)]

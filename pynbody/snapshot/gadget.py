@@ -869,7 +869,7 @@ class GadgetSnap(SimSnap):
 
     def _load_array(self, name, fam=None):
         """Read in data from a Gadget file.
-        If fam != None, loads only data for that particle family"""
+        If fam is not None, loads only data for that particle family"""
         # g_name is the internal name
         g_name = _translate_array_name(name)
 
@@ -964,7 +964,7 @@ class GadgetSnap(SimSnap):
             # This code supports (limited) format conversions
             if self.__class__ is not GadgetSnap:
                 # We need a filename if we are writing to a new type
-                if filename == None:
+                if filename is None:
                     raise Exception(
                         "Please specify a filename to write a new file.")
             # Splitting the files correctly is hard; the particles need to be reordered, and
@@ -1043,7 +1043,7 @@ class GadgetSnap(SimSnap):
                 return
 
             # Write headers
-            if filename != None:
+            if filename is not None:
                 if np.size(self._files) > 1:
                     for i in np.arange(0, np.size(self._files)):
                         ffile = filename + "." + str(i)
@@ -1109,7 +1109,7 @@ class GadgetSnap(SimSnap):
                         if f_parts[i]==0:
                             continue
                         # Set up filename
-                        if filename != None:
+                        if filename is not None:
                             ffile = filename + "." + str(i)
                             if nfiles == 1:
                                 ffile = filename
