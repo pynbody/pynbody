@@ -18,7 +18,7 @@ def test_construct():
     """Check the basic properties of the snapshot"""
     assert np.size(snap._files) == 2
     assert snap.header.num_files == 2
-    assert snap.filename == "testdata/test_g2_snap")
+    assert snap.filename == "testdata/test_g2_snap"
     assert snap._num_particles == 8192
     for f in snap._files:
         assert f.format2
