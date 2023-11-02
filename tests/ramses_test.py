@@ -22,9 +22,9 @@ def test_properties():
     np.testing.assert_almost_equal(f.properties['h'], 0.01)
     np.testing.assert_almost_equal(f.properties['omegaM0'], 1.0)
 
+@pytest.mark.filterwarnings(r"ignore:More hydro variables \(\d*\).*:RuntimeWarning")
 def test_particle_arrays():
-    with pytest.warns(RuntimeWarning, match="More hydro variables.*"):
-        f['pos']
+    f['pos']
     f['vel']
     np.testing.assert_allclose(f.star['pos'][50], [ 29.93861623,  29.29166795,  29.77920022])
     np.testing.assert_allclose(f.dm['pos'][50], [ 23.76016295,  21.64945726,   7.70719058])
@@ -34,6 +34,7 @@ def test_particle_arrays():
        144166,  26147])
     np.testing.assert_allclose(f.dm['vel'][50], [ 0.32088361, -0.82660566, -0.32874243])
 
+@pytest.mark.filterwarnings(r"ignore:More hydro variables \(\d*\).*:RuntimeWarning")
 def test_array_unit_sanity():
     """Picks up on problems with converting arrays as they
     get promoted from family to simulation level"""
@@ -113,9 +114,9 @@ def test_rt_unit_warning_for_photon_rho():
         f1.gas['rad_0_rho']
 
 
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_all_dm():
-    with pytest.warns(UserWarning, match=r"Using field at offset \d to distinguish.*"):
-        f1 = pynbody.load("testdata/ramses_dmo_partial_output_00051")
+    f1 = pynbody.load("testdata/ramses_dmo_partial_output_00051")
 
     assert len(f1.families())==1
     assert len(f1.dm)==274004
@@ -133,9 +134,9 @@ def test_all_dm():
                                rtol=1e-5
                                )
 
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_forcegas_dmo():
-    with pytest.warns(UserWarning, match=r"Using field at offset \d to distinguish.*"):
-        f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", cpus=[1], force_gas=True)
+    f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", cpus=[1], force_gas=True)
     assert len(f_dmo.families())==2
     assert len(f_dmo.dm)==274004
     assert len(f_dmo.g)==907818
@@ -350,10 +351,10 @@ def test_proper_time_loading():
         )
 
 
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_is_cosmological_without_namelist():
     # Load a cosmo run, but without the namelist.txt file and checks that cosmo detection works with a warning
-    with pytest.warns(UserWarning, match=r"Using field at offset \d to distinguish.*"):
-        f_without_namelist = pynbody.load("testdata/ramses_dmo_partial_output_00051")
+    f_without_namelist = pynbody.load("testdata/ramses_dmo_partial_output_00051")
     f_without_namelist.physical_units()
 
     warn_msg = (
@@ -364,9 +365,10 @@ def test_is_cosmological_without_namelist():
         assert f_without_namelist.is_cosmological
 
 
+@pytest.mark.filterwarnings("ignore:No ionization fractions found, assuming.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:More hydro variables \(\d*\).*:RuntimeWarning")
 def test_temperature_derivation():
-    with pytest.warns(UserWarning, match="No ionization fractions found, assuming.*"):
-        f.g['mu']
+    f.g['mu']
     f.g['temp']
 
     assert(f.g['mu'].min() != f.g['mu'].max())   # Check that ionized and neutral mu are now generated
@@ -394,10 +396,10 @@ def test_file_descriptor_reading():
         assert field in loadable_fields
 
 
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_blocks():
     # DMO snapshot would not have tform or metals in the header or defined on disc
-    with pytest.warns(UserWarning, match=r"Using field at offset \d to distinguish.*"):
-        f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", force_gas=True)
+    f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", force_gas=True)
 
     # This should break the loading with a Key Error that the array cannot be found
     # Previous to the fix of #689, it would break with
@@ -462,10 +464,10 @@ def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
         npt.assert_allclose(ramses_snap.g['mass'], tipsy_snap.g['mass'], rtol=rtol)
 
 
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_tipsy_conversion_for_dmo():
     path = "testdata/ramses_dmo_partial_output_00051"
-    with pytest.warns(UserWarning, match=r"Using field at offset \d to distinguish.*"):
-        f_dmo = pynbody.load(path)
+    f_dmo = pynbody.load(path)
 
     with pytest.warns(UserWarning, match=r"This routine currently makes the assumption that the ramses snapshot is cosmological.*"):
         pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f_dmo, write_param=True)
