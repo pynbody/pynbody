@@ -105,7 +105,8 @@ def test_header():
 
 def test_g1_load():
     """Check we can load gadget-1 files also"""
-    snap2 = pynbody.load("testdata/gadget1.snap")
+    with pytest.warns(RuntimeWarning, match=r"Run out of block names in the config file. Using fallbacks: UNK\*"):
+        snap2 = pynbody.load("testdata/gadget1.snap")
 
 
 def test_write():
