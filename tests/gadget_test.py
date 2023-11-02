@@ -16,13 +16,13 @@ def teardown_module():
 
 def test_construct():
     """Check the basic properties of the snapshot"""
-    assert (np.size(snap._files) == 2)
-    assert(snap.header.num_files == 2)
-    assert (snap.filename == "testdata/test_g2_snap")
-    assert(snap._num_particles == 8192)
+    assert np.size(snap._files) == 2
+    assert snap.header.num_files == 2
+    assert snap.filename == "testdata/test_g2_snap")
+    assert snap._num_particles == 8192
     for f in snap._files:
-        assert(f.format2 == True)
-        assert(f.endian == "=")
+        assert f.format2
+        assert f.endian == "="
 
 def test_properties():
     assert "time" in snap.properties
