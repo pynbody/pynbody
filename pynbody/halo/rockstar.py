@@ -139,10 +139,9 @@ class RockstarCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_load(sim, **kwargs):
-        for file in glob.glob(os.path.join(os.path.dirname(sim.filename), 'halos*.bin')):
-            if os.path.exists(file):
-                return True
-        return False
+        return len(
+            glob.glob(os.path.join(os.path.dirname(sim.filename), 'halos*.bin'))
+        ) > 0
 
 
 class RockstarCatalogueOneCpu(HaloCatalogue):

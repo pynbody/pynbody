@@ -514,11 +514,12 @@ class RamsesSnap(SimSnap):
         self._rt_blocks = []
         self._rt_blocks_3d = set()
         try:
-            f = open(os.path.join(self._filename, f"info_rt_{self._timestep_id}.txt"))
+            with open(os.path.join(self._filename, f"info_rt_{self._timestep_id}.txt")) as f:
+                lines = f.readlines()
         except OSError:
             return
 
-        self._load_info_from_specified_file(f)
+        self._load_info_from_specified_file(lines)
 
         for group in range(self._info['nGroups']):
             for block in rt_blocks:
@@ -529,8 +530,8 @@ class RamsesSnap(SimSnap):
         for block in self._rt_blocks:
             self._rt_blocks_3d.add(self._array_name_1D_to_ND(block) or block)
 
-    def _load_info_from_specified_file(self, f):
-        for line in f:
+    def _load_info_from_specified_file(self, lines):
+        for line in lines:
             if '=' in line:
                 name, val = list(map(str.strip, line.split('=')))
                 try:

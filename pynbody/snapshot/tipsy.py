@@ -218,14 +218,13 @@ class TipsySnap(SimSnap):
     def _update_loadable_keys(self):
         def is_readable_array(x):
             try:
-                f = util.open_(x, 'r')
-                return int(f.readline()) == len(self)
+                with util.open_(x, 'r') as f:
+                    return int(f.readline()) == len(self)
             except ValueError:
                 # could be a binary file
-                f = util.open_(x, 'rb')
-
-                header = f.read(4)
-                if len(header)!=4:
+                with util.open_(x, 'rb') as f:
+                    header = f.read(4)
+                if len(header) != 4:
                     return False
 
                 if self._byteswap:
@@ -300,10 +299,11 @@ class TipsySnap(SimSnap):
             for arr in ['vx', 'vy', 'vz']:
                 arrays.append(arr)
 
-        with self.lazy_off:
-            fin = util.open_(self.filename, "rb")
-            fout = util.open_(self.filename + ".tmp", "wb")
-
+        with (
+            self.lazy_off,
+            util.open_(self.filename, "rb") as fin,
+            util.open_(self.filename + ".tmp", "wb") as fout
+        ):
             if self._byteswap:
                 t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", fin.read(28))
                 fout.write(struct.pack(">diiiiii", t, n, ndim, ng, nd, ns, 0))
@@ -568,12 +568,13 @@ class TipsySnap(SimSnap):
                      for this array, or None if this cannot be determined"""
 
         try:
-            f = open(self.filename + "." + array_name + ".pynbody-meta")
+            with open(self.filename + "." + array_name + ".pynbody-meta") as f:
+                lines = f.readlines()
         except OSError:
             return self._default_units_for(array_name), None, None
 
         res = {}
-        for l in f:
+        for l in lines:
 
             X = l.split(":")
 
@@ -600,18 +601,16 @@ class TipsySnap(SimSnap):
     @staticmethod
     def _write_array_metafile(self, filename, units, families, dtype):
 
-        f = open(filename + ".pynbody-meta", "w")
-        print("# This file automatically created by pynbody", file=f)
-        if not hasattr(units, "_no_unit"):
-            print("units:", units, file=f)
-        print("families:", end=' ', file=f)
-        for x in families:
-            print(x.name, end=' ', file=f)
-        print(file=f)
-        if dtype is not None:
-            print("dtype:", TipsySnap.__get_write_dtype(dtype), file=f)
-
-        f.close()
+        with open(filename + ".pynbody-meta", "w") as f:
+            print("# This file automatically created by pynbody", file=f)
+            if not hasattr(units, "_no_unit"):
+                print("units:", units, file=f)
+            print("families:", end=' ', file=f)
+            for x in families:
+                print(x.name, end=' ', file=f)
+            print(file=f)
+            if dtype is not None:
+                print("dtype:", TipsySnap.__get_write_dtype(dtype), file=f)
 
         if isinstance(self, TipsySnap):
             # update the loadable keys if this operation is likely to have
@@ -1418,58 +1417,50 @@ class StarLog(SimSnap):
 @StarLog.decorator
 @nchilada.NchiladaSnap.decorator
 def load_paramfile(sim):
-    x = os.path.abspath(sim._filename)
-    done = False
+    x = os.path.dirname(os.path.abspath(sim._filename))
     sim._paramfile = {}
-    f = None
+    ok = False
     if sim._paramfilename is None:
-        for i in range(2):
-            x = os.path.dirname(x)
-            l = [x for x in glob.glob(
-                os.path.join(x, "*.param")) if "mpeg" not in x]
-
-            for filename in l:
-                # Attempt the loading of information
-                try:
-                    f = open(filename)
-                    done = True
-                    break  # the file is there, break out of the loop
-                except OSError:
-                    l = glob.glob(os.path.join(x, "../*.param"))
-                    if l == []:
-                        continue
-                    try:
-                        for filename in l:
-                            f = open(filename)
-                            break  # the file is there, break out of the loop
-                    except OSError:
-                        continue
-            if done:
-                break
-
+        candidates = [
+            *glob.glob(os.path.join(x, "*.param")),
+            *glob.glob(os.path.join(x, "../*.param")),
+        ]
     else:
-        filename = sim._paramfilename
+        candidates = [sim._paramfilename]
+
+    for filename in candidates:
         try:
-            f = open(filename)
+            with open(filename):
+                pass
+            ok = True
+            break
         except OSError:
-            raise OSError("The parameter filename you supplied is invalid")
-
-    if f is None:
-        return
-
-    for line in f:
-        try:
-            if line[0] != "#":
-                s = line.split("#")[0].split()
-                sim._paramfile[s[0]] = " ".join(s[2:])
-
-        except IndexError as ValueError:
             pass
 
-        if len(sim._paramfile) > 1:
-            sim._paramfile["filename"] = filename
 
-    f.close()
+    if not ok:
+        if sim._paramfile:
+            raise OSError("The parameter filename you supplied is invalid")
+        return
+
+    with open(filename) as f:
+        lines = f.readlines()
+
+    for line in lines:
+        if line.startswith("#"):
+            continue
+        # Remove comments
+        line = line.split("#")[0]
+
+        # Lines are "key  =  val"
+        try:
+            key, val = (_.strip() for _ in line.split("="))
+        except ValueError:
+            continue
+        sim._paramfile[key] = val
+
+    if len(sim._paramfile) > 1:
+        sim._paramfile["filename"] = filename
 
 @TipsySnap.decorator
 @StarLog.decorator
