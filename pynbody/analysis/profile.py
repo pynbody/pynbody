@@ -10,6 +10,7 @@ properties.
 
 import logging
 import math
+import pickle
 import warnings
 from time import process_time
 
@@ -164,12 +165,12 @@ class Profile:
         x = self._x
 
         if load_from_file:
-            import pickle
 
             filename = self._get_unique_filepath_from_particle_list()
 
             try:
-                data = pickle.load(open(filename, 'rb'))
+                with open(filename, "rb") as f:
+                    data = pickle.load(f)
                 self._properties = data['properties']
                 self.max = data['max']
                 self.min = data['min']
@@ -509,8 +510,6 @@ class Profile:
 
         """
 
-        import pickle
-
         # record all the important data except for the snapshot itself
         # use the hash generated from the particle list for the file name
         # suffix
@@ -519,13 +518,18 @@ class Profile:
 
         logger.info("Writing profile to %s", filename)
 
-        pickle.dump({'properties': self._properties,
-                     'max': self.max,
-                     'min': self.min,
-                     'nbins': self.nbins,
-                     'profiles': self._profiles,
-                     'binind': self.binind},
-                    open(filename, 'wb'))   # Open file in binary mode to allow python 3.X writing
+        with open(filename, "wb") as f:
+            pickle.dump(
+                {
+                    'properties': self._properties,
+                    'max': self.max,
+                    'min': self.min,
+                    'nbins': self.nbins,
+                    'profiles': self._profiles,
+                    'binind': self.binind
+                },
+                f,
+            )
 
     @staticmethod
     def profile_property(fn):
