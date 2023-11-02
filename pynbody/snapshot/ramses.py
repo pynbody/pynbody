@@ -582,11 +582,11 @@ class RamsesSnap(SimSnap):
         namelist_file = os.path.join(self._filename, "namelist.txt")
 
         if os.path.exists(namelist_file):
-            f = open(namelist_file)
-            try:
-                self._load_namelist_from_specified_file(f)
-            except ValueError:
-                warnings.warn("Namelist found but unable to read.")
+            with open(namelist_file) as f:
+                try:
+                    self._load_namelist_from_specified_file(f)
+                except ValueError:
+                    warnings.warn("Namelist found but unable to read.")
 
         else:
             warnings.warn("No namelist file found.")

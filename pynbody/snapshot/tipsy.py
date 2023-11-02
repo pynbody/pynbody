@@ -1469,6 +1469,7 @@ def load_paramfile(sim):
         if len(sim._paramfile) > 1:
             sim._paramfile["filename"] = filename
 
+    f.close()
 
 @TipsySnap.decorator
 @StarLog.decorator
