@@ -2,17 +2,21 @@ from os.path import isfile
 
 import h5py
 import numpy as np
+import pytest
 
 import pynbody
 
 
 def setup_module():
     global snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
-    snap = pynbody.load('testdata/testL10N64/snapshot_000.hdf5')
+    with pytest.warns(UserWarning, match="Masses are either stored in the header or have another dataset .*"):
+        snap = pynbody.load('testdata/testL10N64/snapshot_000.hdf5')
+        snap_arepo = pynbody.load('testdata/arepo/cosmobox_015.hdf5')
+
     halos = pynbody.halo.Gadget4SubfindHDFCatalogue(snap)
     subhalos = pynbody.halo.Gadget4SubfindHDFCatalogue(snap, subs=True)
     htest = Halos('testdata/testL10N64/', 0)
-    snap_arepo = pynbody.load('testdata/arepo/cosmobox_015.hdf5')
+
     halos_arepo = pynbody.halo.ArepoSubfindHDFCatalogue(snap_arepo)
     subhalos_arepo = pynbody.halo.ArepoSubfindHDFCatalogue(snap_arepo, subs=True)
     htest_arepo = Halos('testdata/arepo/', 15)
@@ -60,7 +64,7 @@ def test_subhalo_properties():
         _test_halo_or_subhalo_properties(htest_file.load()['subhalos'], halocatalogue)
 
 
-
+@pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
 def test_halo_loading() :
     """ Check that halo loading works """
     # check that data loading for individual fof groups works
@@ -77,6 +81,7 @@ def test_halo_loading() :
     assert(len(halos_arepo[0]['iord']) == len(halos_arepo[0]) == np.sum(arepo_halos['GroupLenType'][0, :], axis=-1))
 
 
+@pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
 def test_particle_data():
     hids = np.random.choice(range(len(halos)), 5)
     for hid in hids:
