@@ -946,7 +946,7 @@ class TipsySnap(SimSnap):
         try:
             check = TipsySnap(f, verbose=False)
             del check
-        except Exception as e:
+        except Exception:
             return False
 
         return True
@@ -1315,7 +1315,7 @@ class StarLog(SimSnap):
         self._create_arrays(["iord"], dtype='int32')
         self._create_arrays(
             ["iorderGas", "massform", "rhoform", "tempform", "metals", "tform"])
-        if molecH==True:
+        if molecH:
             self._create_arrays(["h2form"])
         if bigstarlog:
             self._create_arrays(["phiform", "nsmooth"])

@@ -8,7 +8,6 @@ Functional forms of common profiles (NFW as an example)
 """
 
 import abc
-import sys
 
 import numpy as np
 

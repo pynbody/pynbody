@@ -47,7 +47,7 @@ _approximate_image = config_parser.getboolean('sph', 'approximate-fast-images')
 def _exception_catcher(call_fn, exception_list, *args):
     try:
         call_fn(*args)
-    except Exception as e:
+    except Exception:
         exception_list.append(sys.exc_info())
 
 def _thread_map(func, *args):
