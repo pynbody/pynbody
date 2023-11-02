@@ -8,6 +8,7 @@ filterwarnings = [
     # Ignore Warnings thrown by RAMSES when namelist cannot be read
     'ignore:No header file found -- no particle block information available:UserWarning',
     'ignore:No namelist file found\.:UserWarning',
+    'ignore:Namelist found but unable to read\.:UserWarning',
     'ignore:Namelist file either not found or unable to read.*assuming flat LCDM:UserWarning',
     'ignore:Conjoining derived and non-derived arrays.*:RuntimeWarning',
 ]

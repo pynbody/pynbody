@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
@@ -22,7 +23,8 @@ def test_properties():
     np.testing.assert_almost_equal(f.properties['omegaM0'], 1.0)
 
 def test_particle_arrays():
-    f['pos']
+    with pytest.warns(RuntimeWarning, match="More hydro variables.*"):
+        f['pos']
     f['vel']
     np.testing.assert_allclose(f.star['pos'][50], [ 29.93861623,  29.29166795,  29.77920022])
     np.testing.assert_allclose(f.dm['pos'][50], [ 23.76016295,  21.64945726,   7.70719058])
@@ -64,12 +66,14 @@ def test_mass_unit_sanity():
     array and a loaded array)"""
 
     f1 = pynbody.load("testdata/ramses_partial_output_00250")
-    f1['mass']
+    with pytest.warns(RuntimeWarning, match="More hydro variables.*"):
+        f1['mass']
     f1.physical_units()
 
     f2 = pynbody.load("testdata/ramses_partial_output_00250")
     f2.physical_units()
-    f2['mass']
+    with pytest.warns(RuntimeWarning, match="More hydro variables.*"):
+        f2['mass']
 
     np.testing.assert_allclose(f1.dm['mass'], f2.dm['mass'], atol=1e-5)
 
@@ -80,7 +84,8 @@ def test_rt_arrays():
         assert 'rad_%d_rho'%group in f1.gas.loadable_keys()
         assert 'rad_%d_flux'%group in f1.gas.loadable_keys()
 
-    f1.gas['rad_0_flux'] # ensure 3d name triggers loading
+    with pytest.warns(UserWarning, match="Loading RT data from disk. Photon densities are stored in flux units*"):
+        f1.gas['rad_0_flux'] # ensure 3d name triggers loading
 
     np.testing.assert_allclose(f1.gas['rad_0_rho'][::5000],
       [  8.63987256e-02,   3.73498855e-04,   3.46061505e-04,
@@ -411,7 +416,6 @@ def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_bloc
 def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
     # Setup a function to extensively test whether Tipsy snapshot written to disc with ramses_util
     # match their original Ramses values and have correct units
-    import numpy.testing as npt
     ramses_snap.physical_units()
     tipsy_snap.physical_units()
 
@@ -456,8 +460,11 @@ def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
 
 def test_tipsy_conversion_for_dmo():
     path = "testdata/ramses_dmo_partial_output_00051"
-    f_dmo = pynbody.load(path)
-    pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f_dmo, write_param=True)
+    with pytest.warns(UserWarning, match=r"Using field at offset \d to distinguish.*"):
+        f_dmo = pynbody.load(path)
+
+    with pytest.warns(UserWarning, match=r"This routine currently makes the assumption that the ramses snapshot is cosmological.*"):
+        pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f_dmo, write_param=True)
 
     # There are many tipsy parameter files that are automatically detected by the loader
     # in the testdata folder, make sure we point the right one
@@ -478,7 +485,8 @@ def test_tipsy_conversion_for_cosmo_gas():
         namelist.write("cosmo=.true.")
 
     f = pynbody.load(path)
-    pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
+    with pytest.warns(UserWarning, match=r"This routine currently makes the assumption that the ramses snapshot is cosmological.*"):
+        pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
 
     tipsy_path = path + "_fullbox.tipsy"
     tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
