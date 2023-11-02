@@ -337,10 +337,10 @@ class TipsySnap(SimSnap):
 
                     # Read in the block
                     if(self._byteswap):
-                        g = np.fromstring(
+                        g = np.frombuffer(
                             fin.read(len(st) * n_block * 4), 'f').byteswap().reshape((n_block, len(st)))
                     else:
-                        g = np.fromstring(
+                        g = np.frombuffer(
                             fin.read(len(st) * n_block * 4), 'f').reshape((n_block, len(st)))
 
                     if fam in fam_out:
@@ -1230,10 +1230,10 @@ class StarLog(SimSnap):
                 # no moleculuarH with big iOrders.  Attempt to distinguish here
                 if(iSize == file_structure.itemsize):
                     if(self._byteswap):
-                        testread = np.fromstring(
+                        testread = np.frombuffer(
                             f.read(iSize), dtype=file_structure).byteswap()
                     else:
-                        testread = np.fromstring(f.read(iSize), dtype=file_structure)
+                        testread = np.frombuffer(f.read(iSize), dtype=file_structure)
                     # All star iorders are greater than any gas iorder
                     # so this indicates a bad format. (N.B. there is the
                     # possibility of a false negative)
@@ -1284,10 +1284,10 @@ class StarLog(SimSnap):
 
         logger.info("Reading starlog file %s", filename)
         if(self._byteswap):
-            g = np.fromstring(
+            g = np.frombuffer(
                 f.read(datasize), dtype=file_structure).byteswap()
         else:
-            g = np.fromstring(f.read(datasize), dtype=file_structure)
+            g = np.frombuffer(f.read(datasize), dtype=file_structure)
 
         # hoping to provide backward compatibility for np.unique by
         # copying relavent part of current numpy source:
