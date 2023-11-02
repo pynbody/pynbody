@@ -70,8 +70,8 @@ class NchiladaSnap(SimSnap):
         # set up a logical map of particles on disk
         for f in sorted(self._loadable_keys_registry.keys()):
             ars = self._loadable_keys_registry[f]
-            tf = open(list(ars.values())[0], 'rb')
-            header_time, nbod, _, _ = self._load_header(tf)
+            with open(list(ars.values())[0], 'rb') as tf:
+                header_time, nbod, _, _ = self._load_header(tf)
             disk_family_slice[f] = slice(i, i + nbod)
             i += nbod
             self.properties['a'] = header_time
@@ -132,7 +132,8 @@ class NchiladaSnap(SimSnap):
             return
         for fam in fams:
             # this will raise an IOError propagating upwards if any family doesn't have the appropriate array
-            _, nbod, ndim, dtype = self._load_header(self._open_file_for_array(fam, array_name))
+            with self._open_file_for_array(fam, array_name) as f:
+                _, nbod, ndim, dtype = self._load_header(f)
             if universal_dtype is not None:
                 if ndim!=universal_ndim:
                     raise OSError("Mismatching dimensions for array")
@@ -180,6 +181,7 @@ class NchiladaSnap(SimSnap):
 
             if mem_index is not None:
                 r[mem_index] = b[buf_index]
+        f.close()
 
     """
     def _write_array(self, array_name, fam=None) :
