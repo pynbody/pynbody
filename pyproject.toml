@@ -3,6 +3,13 @@ requires = ["setuptools", "wheel", "oldest-supported-numpy", "cython"]
 
 [tool.pytest.ini_options]
 testpaths = ['tests']
+filterwarnings = [
+    "error",
+    # Ignore Warnings thrown by RAMSES when namelist cannot be read
+    'ignore:No header file found -- no particle block information available:UserWarning',
+    'ignore:No namelist file found\.:UserWarning',
+    'ignore:Namelist file either not found or unable to read.*assuming flat LCDM:UserWarning',
+]
 
 [tool.isort]
 profile = "black"

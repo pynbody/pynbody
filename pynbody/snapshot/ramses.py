@@ -543,16 +543,17 @@ class RamsesSnap(SimSnap):
 
     def _load_infofile(self):
         self._info = {}
-        f = open(os.path.join(self._filename, f"info_{self._timestep_id}.txt"))
-
-        self._load_info_from_specified_file(f)
+        info_fname = os.path.join(self._filename, f"info_{self._timestep_id}.txt")
+        header_fname = os.path.join(self._filename, f"header_{self._timestep_id}.txt")
+        with open(info_fname) as f:
+            self._load_info_from_specified_file(f)
         try:
-            f = open(os.path.join(self._filename, f"header_{self._timestep_id}.txt"))
             # most of this file is unhelpful, but depending on the ramses
             # version, there may be information on the particle fields present
-            for line in f:
-                if "level" in line:
-                    self._info['particle-blocks'] = line.split()
+            with open(header_fname) as f:
+                for line in f:
+                    if "level" in line:
+                        self._info['particle-blocks'] = line.split()
         except OSError:
             warnings.warn(
                 "No header file found -- no particle block information available")
