@@ -652,21 +652,23 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         its best guess at the units.
         """
         try:
-            f = open(self.filename+".units")
+            with open(self.filename+".units") as f:
+                lines = f.readlines()
         except OSError:
             return
 
         name_mapping = {'pos': 'distance', 'vel': 'velocity'}
         units_dict = {}
 
-        for line in f:
-            if (not line.startswith("#")):
-                if ":" not in line:
-                    raise OSError("Unknown format for units file %r"%(self.filename+".units"))
-                else:
-                    t, u = list(map(str.strip,line.split(":")))
-                    t = name_mapping.get(t,t)
-                    units_dict[t] = u
+        for line in lines:
+            if line.startswith("#"):
+                continue
+            if ":" not in line:
+                raise OSError("Unknown format for units file %r"%(self.filename+".units"))
+            else:
+                t, u = list(map(str.strip,line.split(":")))
+                t = name_mapping.get(t,t)
+                units_dict[t] = u
 
         self.set_units_system(**units_dict)
 
