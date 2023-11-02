@@ -204,7 +204,7 @@ class TipsySnap(SimSnap):
                     f.seek(st_len * readlen, 1)
                     continue
 
-                buf = np.fromstring(f.read(st_len * readlen), dtype=dtype)
+                buf = np.frombuffer(f.read(st_len * readlen), dtype=dtype)
 
                 if self._byteswap:
                     buf = buf.byteswap()
@@ -214,6 +214,8 @@ class TipsySnap(SimSnap):
                     for name in dtype.names:
                         if name in write:
                             self_fam[name][mem_index] = buf[name][buf_index]
+
+        f.close()
 
     def _update_loadable_keys(self):
         def is_readable_array(x):
@@ -813,7 +815,6 @@ class TipsySnap(SimSnap):
             else:
                 filename = self._filename + "." + array_name
 
-        f = util.open_(filename, 'r')
 
         logger.info("Attempting to load auxiliary array %s", filename)
         # if we get here, we've got the file - try loading it
@@ -823,61 +824,64 @@ class TipsySnap(SimSnap):
             dtype = self._get_preferred_dtype(array_name)
 
         try:
-            l = int(f.readline())
-            binary = False
-            if l != self._load_control.disk_num_particles:
-                raise OSError("Incorrect file format")
+            with util.open_(filename, 'r') as f:
+                l = int(f.readline())
+                binary = False
+                if l != self._load_control.disk_num_particles:
+                    raise OSError("Incorrect file format")
 
-            if not dtype:
-                # Inspect the first line to see whether it's float or int
-                l = "0\n"
-                while l == "0\n":
-                    l = f.readline()
-                if "." in l or "e" in l or l[:-1] == "inf":
-                    dtype = float
-                else:
-                    dtype = int
+                if not dtype:
+                    # Inspect the first line to see whether it's float or int
+                    l = "0\n"
+                    while l == "0\n":
+                        l = f.readline()
+                    if "." in l or "e" in l or l[:-1] == "inf":
+                        dtype = float
+                    else:
+                        dtype = int
 
-                # Restart at head of file
-                f.seek(0)
-                f.readline()
+                    # Restart at head of file
+                    f.seek(0)
+                    f.readline()
 
-            loadblock = lambda count: np.fromfile(
-                f, dtype=dtype, sep="\n", count=count)
+                loadblock = lambda count: np.fromfile(
+                    f, dtype=dtype, sep="\n", count=count)
             # data = np.fromfile(f, dtype=tp, sep="\n")
         except ValueError:
             # this is probably a binary file
             binary = True
-            f = util.open_(filename, 'rb')
+            with util.open_(filename, 'rb')as f:
 
-            # Read header and check endianness
-            if self._byteswap:
-                l = struct.unpack(">i", f.read(4))[0]
-            else:
-                l = struct.unpack("i", f.read(4))[0]
-
-            if l != self._load_control.disk_num_particles:
-                raise OSError("Incorrect file format")
-
-            if dtype is None:
-                # Set data format to be read (float or int) based on config
-                int_arrays = list(map(
-                    str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(",")))
-                if array_name in int_arrays:
-                    dtype = 'i'
+                # Read header and check endianness
+                if self._byteswap:
+                    l = struct.unpack(">i", f.read(4))[0]
                 else:
-                    dtype = 'f'
+                    l = struct.unpack("i", f.read(4))[0]
 
-            # Read longest data array possible.
-            # Assume byteswap since most will be.
-            if self._byteswap:
-                loadblock = lambda count: np.fromstring(
-                    f.read(count * 4), dtype=dtype, count=count).byteswap()
-                # data = np.fromstring(f.read(3*len(self)*4),dtype).byteswap()
-            else:
-                loadblock = lambda count: np.fromstring(
-                    f.read(count * 4), dtype=dtype, count=count)
-                # data = np.fromstring(f.read(3*len(self)*4),dtype)
+                if l != self._load_control.disk_num_particles:
+                    raise OSError("Incorrect file format")
+
+                if dtype is None:
+                    # Set data format to be read (float or int) based on config
+                    int_arrays = list(map(
+                        str.strip, config_parser.get('tipsy', 'binary-int-arrays').split(",")))
+                    if array_name in int_arrays:
+                        dtype = 'i'
+                    else:
+                        dtype = 'f'
+
+                # Read longest data array possible.
+                # Assume byteswap since most will be.
+                if self._byteswap:
+                    loadblock = lambda count: np.frombuffer(
+                        f.read(count * 4), dtype=dtype, count=count).byteswap()
+                    # data = np.fromstring(f.read(3*len(self)*4),dtype).byteswap()
+                else:
+                    loadblock = lambda count: np.frombuffer(
+                        f.read(count * 4), dtype=dtype, count=count)
+                    # data = np.fromstring(f.read(3*len(self)*4),dtype)
+
+        f.close()
 
         ndim = 1
 
