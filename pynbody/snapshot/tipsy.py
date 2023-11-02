@@ -1289,6 +1289,7 @@ class StarLog(SimSnap):
         else:
             g = np.frombuffer(f.read(datasize), dtype=file_structure)
 
+        f.close()
         # hoping to provide backward compatibility for np.unique by
         # copying relavent part of current numpy source:
         # numpy/lib/arraysetops.py:192 (on 22nd March 2011)
