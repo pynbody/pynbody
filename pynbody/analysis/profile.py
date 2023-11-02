@@ -677,7 +677,7 @@ def v_circ(p, grav_sim=None):
 
     grav_sim = grav_sim or p.sim
 
-    logger.warn(
+    logger.warning(
         "Profile v_circ -- this routine assumes the disk is in the x-y plane")
 
     # If this is a cosmological run, go up to the halo level
@@ -708,7 +708,7 @@ def pot(p):
     #from . import gravity
     import pynbody.gravity.calc as gravity
 
-    logger.warn(
+    logger.warning(
         "Profile pot -- this routine assumes the disk is in the x-y plane")
 
     grav_sim = p.sim
