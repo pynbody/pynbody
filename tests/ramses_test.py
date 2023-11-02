@@ -114,7 +114,9 @@ def test_rt_unit_warning_for_photon_rho():
 
 
 def test_all_dm():
-    f1 = pynbody.load("testdata/ramses_dmo_partial_output_00051")
+    with pytest.warns(UserWarning, match=r"Using field at offset \d to distinguish.*"):
+        f1 = pynbody.load("testdata/ramses_dmo_partial_output_00051")
+
     assert len(f1.families())==1
     assert len(f1.dm)==274004
     np.testing.assert_allclose(f1.dm['x'][::5000],
@@ -132,7 +134,8 @@ def test_all_dm():
                                )
 
 def test_forcegas_dmo():
-    f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", cpus=[1], force_gas=True)
+    with pytest.warns(UserWarning, match=r"Using field at offset \d to distinguish.*"):
+        f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", cpus=[1], force_gas=True)
     assert len(f_dmo.families())==2
     assert len(f_dmo.dm)==274004
     assert len(f_dmo.g)==907818
@@ -349,7 +352,8 @@ def test_proper_time_loading():
 
 def test_is_cosmological_without_namelist():
     # Load a cosmo run, but without the namelist.txt file and checks that cosmo detection works with a warning
-    f_without_namelist = pynbody.load("testdata/ramses_dmo_partial_output_00051")
+    with pytest.warns(UserWarning, match=r"Using field at offset \d to distinguish.*"):
+        f_without_namelist = pynbody.load("testdata/ramses_dmo_partial_output_00051")
     f_without_namelist.physical_units()
 
     warn_msg = (
@@ -361,7 +365,8 @@ def test_is_cosmological_without_namelist():
 
 
 def test_temperature_derivation():
-    f.g['mu']
+    with pytest.warns(UserWarning, match="No ionization fractions found, assuming.*"):
+        f.g['mu']
     f.g['temp']
 
     assert(f.g['mu'].min() != f.g['mu'].max())   # Check that ionized and neutral mu are now generated
@@ -391,16 +396,15 @@ def test_file_descriptor_reading():
 
 def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_blocks():
     # DMO snapshot would not have tform or metals in the header or defined on disc
-    f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", force_gas=True)
+    with pytest.warns(UserWarning, match=r"Using field at offset \d to distinguish.*"):
+        f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", force_gas=True)
 
     # This should break the loading with a Key Error that the array cannot be found
     # Previous to the fix of #689, it would break with
     # ValueError: 'metal' is not in list
     # Because the field is not present in the particle blocks but was attempted to be accessed
-    try:
+    with pytest.raises(KeyError, match="No array.*"):
         f_dmo.st['metals']
-    except KeyError as e:
-        assert("No array" in str(e))
 
     # Now define a custom-derived metals array, which should enable us to access the array at all time
     # Previously to #689, this would still break the loading with the same ValueError
