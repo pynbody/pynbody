@@ -12,6 +12,7 @@ automatically via pynbody.load.
 
 import configparser
 import copy
+import errno
 import itertools
 import os
 import struct
@@ -614,8 +615,22 @@ class GadgetFile:
         data += head.serialize()
         if filename is None:
             filename = self._filename
-        # a mode will ignore the file position, and w truncates the file.
-        with open(filename, "ab") as fd:
+
+        try:
+            fd = open(filename, "r+b")
+        except OSError as error:
+            # If we couldn't open it because it doesn't exist open it for
+            # writing.
+            (err, strerror) = error.args
+            # If we couldn't open it because it doesn't exist open it for
+            # writing.
+            if err == errno.ENOENT:
+                fd = open(filename, "w+b")
+            # If we couldn't open it for any other reason, reraise exception
+            else:
+                raise OSError(err, strerror)
+
+        try:
             fd.seek(0)  # Header always at start of file
             # Write header
             fd.write(data)
@@ -624,6 +639,8 @@ class GadgetFile:
             fd.seek(48, 1)
             data = self.write_block_footer(b"HEAD", 256)
             fd.write(data)
+        finally:
+            fd.close()
 
 
 class GadgetWriteFile (GadgetFile):
