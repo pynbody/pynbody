@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pynbody
 import pynbody.snapshot
@@ -102,3 +103,14 @@ def test_loadable_keys():
     assert 'new_array' not in f_c.dm.keys()
     # it's in the parent keys, but not yet copied across
     assert 'new_array' in f_c.dm.loadable_keys()
+
+def test_only_try_loading_once():
+    f = pynbody.new(10)
+    f_c = f.get_copy_on_access_view()
+
+
+    with pytest.raises(OSError, match="Not found"):
+        f_c.dm._load_array('nonexistent')
+
+    with pytest.raises(OSError, match="Previously tried"):
+        f_c.dm._load_array('nonexistent')

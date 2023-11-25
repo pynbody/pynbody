@@ -34,10 +34,13 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
         self._num_particles = len(base)
         self._family_slice = {f: base._get_family_slice(f) for f in base.families()}
         self._filename = base._filename+":copied_on_access"
+        self._dont_try_accessing = []
         self.properties = copy.deepcopy(base.properties)
 
 
     def _load_array(self, array_name, fam=None):
+        if (array_name, fam) in self._dont_try_accessing:
+            raise OSError("Previously tried to get this array without success; not trying again")
         try:
             with self._copy_from.lazy_derive_off:
                 if fam is None:
@@ -45,6 +48,7 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
                 else:
                     self[fam][array_name] = self._copy_from[fam][array_name]
         except KeyError as e:
+            self._dont_try_accessing.append((array_name, fam))
             raise OSError("Not found in underlying snapshot") from e
 
     def loadable_keys(self, fam=None):
