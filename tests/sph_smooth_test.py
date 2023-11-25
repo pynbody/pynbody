@@ -117,6 +117,7 @@ def test_kd_issue_88() :
     with pytest.raises(ValueError):
         f["smooth"]
 
+@pytest.mark.filterwarnings(r"ignore:overflow.*:RuntimeWarning")
 def test_float_kd():
     f = pynbody.load("testdata/test_g2_snap")
     del f.properties['boxsize']
