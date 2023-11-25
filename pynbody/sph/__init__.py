@@ -25,6 +25,8 @@ import numpy as np
 import scipy
 import scipy.ndimage
 
+import pynbody.snapshot.simsnap
+
 logger = logging.getLogger('pynbody.sph')
 
 from .. import array, config, config_parser, snapshot, units, util
@@ -124,7 +126,7 @@ def build_tree_or_trees(sim):
     logger.info('Tree build done in %5.3g s' % (end - start))
 
 
-@snapshot.SimSnap.stable_derived_quantity
+@pynbody.snapshot.simsnap.SimSnap.stable_derived_quantity
 def smooth(self):
     build_tree_or_trees(self)
 
@@ -155,7 +157,7 @@ def _get_smooth_array_ensuring_compatibility(self):
         self['smooth'] = smooth_ar = smooth(self)
     return smooth_ar
 
-@snapshot.SimSnap.stable_derived_quantity
+@pynbody.snapshot.simsnap.SimSnap.stable_derived_quantity
 def rho(self):
     build_tree_or_trees(self)
 

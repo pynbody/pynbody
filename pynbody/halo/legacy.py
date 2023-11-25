@@ -2,6 +2,7 @@ import os.path
 
 import numpy as np
 
+import pynbody.snapshot.simsnap
 from . import Halo, HaloCatalogue
 
 
@@ -13,7 +14,7 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
     _part_type = np.dtype('int64')
 
     def __init__(self, sim, sort=True, correct=False, **kwargs):
-        assert isinstance(sim,snapshot.SimSnap)
+        assert isinstance(sim, pynbody.snapshot.simsnap.SimSnap)
         self._correct=correct
         HaloCatalogue.__init__(self, sim)
 
