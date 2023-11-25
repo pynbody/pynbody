@@ -10,9 +10,8 @@ represent different views of an existing :class:`~pynbody.snapshot.SimSnap`.
 
 import logging
 
-from . import util
 from .. import config, family
-
+from . import util
 from .simsnap import SimSnap
 
 logger = logging.getLogger('pynbody.snapshot')
@@ -95,4 +94,4 @@ def _get_snap_classes():
 
     return _snap_classes
 
-from .subsnap import SubSnap, IndexedSubSnap, FamilySubSnap, CopyOnAccessIndexedSubSnap
+from .subsnap import FamilySubSnap, IndexedSubSnap, SubSnap

@@ -1,7 +1,8 @@
 import numpy as np
 
-from pynbody import util, filt
+from pynbody import filt, util
 from pynbody.snapshot import SimSnap
+
 
 class ExposedBaseSnapshotMixin:
     # The following will be objects common to a SimSnap and all its SubSnaps
@@ -292,40 +293,6 @@ class IndexedSubSnap(IndexingViewMixin, ExposedBaseSnapshotMixin, SubSnapBase):
     def _create_array(self, *args, **kwargs):
         self._subsnap_base._create_array(*args, **kwargs)
 
-
-class UnderlyingClassMixin:
-    def __init__(self, underlying_class, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._underlying_class = underlying_class
-
-    def _find_deriving_function(self, name):
-        cl = self._underlying_class
-        if cl in self._derived_quantity_registry \
-                and name in self._derived_quantity_registry[cl]:
-            return self._derived_quantity_registry[cl][name]
-        else:
-            return super()._find_deriving_function(name)
-
-
-class CopyOnAccessIndexedSubSnap(UnderlyingClassMixin, IndexingViewMixin, SimSnap):
-    """Behaves like an IndexedSubSnap but copies data instead of pointing towards it"""
-
-    def __init__(self, base: SimSnap, index_array=None, iord_array=None, underlying_class=None):
-        self._subsnap_base = base
-        if underlying_class is None:
-            underlying_class = type(base.ancestor)
-
-        super().__init__(underlying_class, index_array=index_array, iord_array=iord_array)
-
-    def _load_array(self, array_name, fam=None):
-        try:
-            with self._subsnap_base.lazy_derive_off:
-                if fam is None:
-                    self[array_name] = self._subsnap_base[array_name][self._slice]
-                else:
-                    self[fam][array_name] = self._subsnap_base[fam][array_name][self._family_indices[fam]]
-        except KeyError as e:
-            raise OSError("Not found in underlying snapshot") from e
 
 class FamilySubSnap(SubSnap):
 

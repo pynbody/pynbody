@@ -22,6 +22,7 @@ import weakref
 import numpy as np
 
 import pynbody.snapshot.subsnap
+
 from .. import snapshot, util
 
 logger = logging.getLogger("pynbody.halo")

@@ -11,9 +11,9 @@ from functools import reduce
 
 import numpy as np
 
-from .. import family, dependencytracker, util, simdict, filt, array, units
-from .util import ContainerWithPhysicalUnitsOption
+from .. import array, dependencytracker, family, filt, simdict, units, util
 from ..units import has_units
+from .util import ContainerWithPhysicalUnitsOption
 
 logger = logging.getLogger('pynbody.snapshot.simsnap')
 
@@ -1610,3 +1610,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         new_snap._file_units_system = copy.deepcopy(self._file_units_system, memo)
 
         return new_snap
+
+    def get_copy_on_access_view(self):
+        """Return a new SimSnap that copies data out of this one when accessed
+
+        This provides a degree of isolation (e.g. modifications made to the arrays in the copy-on-access
+        view are not reflected back into the original snapshot). It is intended for advanced use, e.g. by
+        tangos."""
+        from .copy_on_access import CopyOnAccessSimSnap
+        return CopyOnAccessSimSnap(self)
