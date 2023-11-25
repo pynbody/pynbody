@@ -1050,7 +1050,6 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             source_array = array._array_factory(dims, dtype, zeros, shared)
         else:
             assert isinstance(source_array, array.SimArray)
-            print(array_name, "check",source_array.shape, dims)
             assert source_array.shape == dims
 
         source_array._sim = weakref.ref(self)
