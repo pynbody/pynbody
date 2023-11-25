@@ -17,7 +17,10 @@ class UnderlyingClassMixin:
             return super()._find_deriving_function(name)
 
 class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
-    """Behaves like an IndexedSubSnap but copies data instead of pointing towards it"""
+    """SimSnap that copies data from another SimSnap when that data is needed.
+
+    To the user, data which is already loaded in the underlying snapshot presents merely as 'loadable'
+    (i.e. in loadable_keys)."""
 
     def __init__(self, base: SimSnap, underlying_class=None):
         self._copy_from = base
@@ -29,7 +32,7 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
         self._unifamily = base._unifamily
         self._file_units_system = base._file_units_system
         self._num_particles = len(base)
-        self._family_slice = copy.deepcopy(base._family_slice)
+        self._family_slice = {f: base._get_family_slice(f) for f in base.families()}
         self._filename = base._filename+":copied_on_access"
         self.properties = copy.deepcopy(base.properties)
 
@@ -50,5 +53,3 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
         else:
             loaded_keys_in_parent = self._copy_from.family_keys(fam)
         return set(self._copy_from.loadable_keys(fam)).union(loaded_keys_in_parent)
-
-
