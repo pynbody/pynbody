@@ -49,7 +49,7 @@ _approximate_image = config_parser.getboolean('sph', 'approximate-fast-images')
 def _exception_catcher(call_fn, exception_list, *args):
     try:
         call_fn(*args)
-    except Exception as e:
+    except Exception:
         exception_list.append(sys.exc_info())
 
 def _thread_map(func, *args):
@@ -442,7 +442,7 @@ def _interpolated_renderer(fn, levels):
             kwargs['res_downgrade'] = sub
             new_im = fn(*args, **kwargs)
             zoom = [float(x)/y for x,y in zip(base.shape, new_im.shape)]
-            base += scipy.ndimage.interpolation.zoom(new_im, zoom, order=1)
+            base += scipy.ndimage.zoom(new_im, zoom, order=1)
         return base
     return render_fn
 

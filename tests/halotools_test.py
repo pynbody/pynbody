@@ -59,13 +59,16 @@ def test_binning_hmf():
     h = subfind.halos()
     assert len(h) == 4226
 
-    center, means, err = pynbody.analysis.hmf.simulation_halo_mass_function(subfind,
-                                                                            log_M_min=8,
-                                                                            log_M_max=14,
-                                                                            delta_log_M=0.5,
-                                                                            subsample_catalogue=100)
+    with pytest.warns(UserWarning, match=r"Halo finder masses not provided\. Calculating them.*"):
+        center, means, err = pynbody.analysis.hmf.simulation_halo_mass_function(
+            subfind,
+            log_M_min=8,
+            log_M_max=14,
+            delta_log_M=0.5,
+            subsample_catalogue=100
+        )
 
-    assert(len(means) == len(center) == len(err) == 12)
+    assert len(means) == len(center) == len(err) == 12
 
     np.testing.assert_allclose(center, [2.08113883e+08,   6.58113883e+08,   2.08113883e+09,   6.58113883e+09,
                                         2.08113883e+10,   6.58113883e+10,   2.08113883e+11,   6.58113883e+11,

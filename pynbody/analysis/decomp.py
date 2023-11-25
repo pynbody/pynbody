@@ -193,9 +193,9 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
     logger.info("j_crit = %.2e" % j_crit)
 
     if j_crit > j_disk_min:
-        logger.warn(
+        logger.warning(
             "!! j_crit exceeds j_disk_min. This is usually a sign that something is going wrong (train-wreck galaxy?)")
-        logger.warn("!! j_crit will be reset to j_disk_min=%.2e" % j_disk_min)
+        logger.warning("!! j_crit will be reset to j_disk_min=%.2e" % j_disk_min)
         j_crit = j_disk_min
 
     sphere = np.where(h_star['jz_by_jzcirc'] < j_crit)

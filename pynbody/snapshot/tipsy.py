@@ -64,24 +64,22 @@ class TipsySnap(SimSnap):
 
         self._filename = util.cutgz(filename)
 
-        f = util.open_(filename, 'rb')
-
         if not only_header:
             logger.info("Loading %s", filename)
+        with util.open_(filename, 'rb') as f:
+            t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
+            if (ndim > 3 or ndim < 1):
+                self._byteswap = True
+                f.seek(0)
+                t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
+            else:
+                self._byteswap = False
 
-        t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
-        if (ndim > 3 or ndim < 1):
-            self._byteswap = True
-            f.seek(0)
-            t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
-        else:
-            self._byteswap = False
+            assert ndim == 3
 
-        assert ndim == 3
+            self._header_t = t
 
-        self._header_t = t
-
-        f.read(4)
+            f.read(4)
 
         disk_family_slice = dict({family.gas: slice(0, ng),
                                   family.dm: slice(ng, nd + ng),
@@ -134,8 +132,6 @@ class TipsySnap(SimSnap):
 
         if time_unit is not None:
             self.properties['time'] *= time_unit
-
-        del f
 
     def _load_main_file(self):
 
@@ -204,7 +200,7 @@ class TipsySnap(SimSnap):
                     f.seek(st_len * readlen, 1)
                     continue
 
-                buf = np.fromstring(f.read(st_len * readlen), dtype=dtype)
+                buf = np.frombuffer(f.read(st_len * readlen), dtype=dtype)
 
                 if self._byteswap:
                     buf = buf.byteswap()
@@ -215,17 +211,18 @@ class TipsySnap(SimSnap):
                         if name in write:
                             self_fam[name][mem_index] = buf[name][buf_index]
 
+        f.close()
+
     def _update_loadable_keys(self):
         def is_readable_array(x):
             try:
-                f = util.open_(x, 'r')
-                return int(f.readline()) == len(self)
+                with util.open_(x, 'r') as f:
+                    return int(f.readline()) == len(self)
             except ValueError:
                 # could be a binary file
-                f = util.open_(x, 'rb')
-
-                header = f.read(4)
-                if len(header)!=4:
+                with util.open_(x, 'rb') as f:
+                    header = f.read(4)
+                if len(header) != 4:
                     return False
 
                 if self._byteswap:
@@ -300,10 +297,11 @@ class TipsySnap(SimSnap):
             for arr in ['vx', 'vy', 'vz']:
                 arrays.append(arr)
 
-        with self.lazy_off:
-            fin = util.open_(self.filename, "rb")
-            fout = util.open_(self.filename + ".tmp", "wb")
-
+        with (
+            self.lazy_off,
+            util.open_(self.filename, "rb") as fin,
+            util.open_(self.filename + ".tmp", "wb") as fout
+        ):
             if self._byteswap:
                 t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", fin.read(28))
                 fout.write(struct.pack(">diiiiii", t, n, ndim, ng, nd, ns, 0))
@@ -339,10 +337,10 @@ class TipsySnap(SimSnap):
 
                     # Read in the block
                     if(self._byteswap):
-                        g = np.fromstring(
+                        g = np.frombuffer(
                             fin.read(len(st) * n_block * 4), 'f').byteswap().reshape((n_block, len(st)))
                     else:
-                        g = np.fromstring(
+                        g = np.frombuffer(
                             fin.read(len(st) * n_block * 4), 'f').reshape((n_block, len(st)))
 
                     if fam in fam_out:
@@ -568,12 +566,13 @@ class TipsySnap(SimSnap):
                      for this array, or None if this cannot be determined"""
 
         try:
-            f = open(self.filename + "." + array_name + ".pynbody-meta")
+            with open(self.filename + "." + array_name + ".pynbody-meta") as f:
+                lines = f.readlines()
         except OSError:
             return self._default_units_for(array_name), None, None
 
         res = {}
-        for l in f:
+        for l in lines:
 
             X = l.split(":")
 
@@ -600,18 +599,16 @@ class TipsySnap(SimSnap):
     @staticmethod
     def _write_array_metafile(self, filename, units, families, dtype):
 
-        f = open(filename + ".pynbody-meta", "w")
-        print("# This file automatically created by pynbody", file=f)
-        if not hasattr(units, "_no_unit"):
-            print("units:", units, file=f)
-        print("families:", end=' ', file=f)
-        for x in families:
-            print(x.name, end=' ', file=f)
-        print(file=f)
-        if dtype is not None:
-            print("dtype:", TipsySnap.__get_write_dtype(dtype), file=f)
-
-        f.close()
+        with open(filename + ".pynbody-meta", "w") as f:
+            print("# This file automatically created by pynbody", file=f)
+            if not hasattr(units, "_no_unit"):
+                print("units:", units, file=f)
+            print("families:", end=' ', file=f)
+            for x in families:
+                print(x.name, end=' ', file=f)
+            print(file=f)
+            if dtype is not None:
+                print("dtype:", TipsySnap.__get_write_dtype(dtype), file=f)
 
         if isinstance(self, TipsySnap):
             # update the loadable keys if this operation is likely to have
@@ -814,7 +811,6 @@ class TipsySnap(SimSnap):
             else:
                 filename = self._filename + "." + array_name
 
-        f = util.open_(filename, 'r')
 
         logger.info("Attempting to load auxiliary array %s", filename)
         # if we get here, we've got the file - try loading it
@@ -824,6 +820,7 @@ class TipsySnap(SimSnap):
             dtype = self._get_preferred_dtype(array_name)
 
         try:
+            f = util.open_(filename, 'r')
             l = int(f.readline())
             binary = False
             if l != self._load_control.disk_num_particles:
@@ -847,10 +844,10 @@ class TipsySnap(SimSnap):
                 f, dtype=dtype, sep="\n", count=count)
             # data = np.fromfile(f, dtype=tp, sep="\n")
         except ValueError:
+            f.close()
             # this is probably a binary file
             binary = True
             f = util.open_(filename, 'rb')
-
             # Read header and check endianness
             if self._byteswap:
                 l = struct.unpack(">i", f.read(4))[0]
@@ -872,15 +869,13 @@ class TipsySnap(SimSnap):
             # Read longest data array possible.
             # Assume byteswap since most will be.
             if self._byteswap:
-                loadblock = lambda count: np.fromstring(
+                loadblock = lambda count: np.frombuffer(
                     f.read(count * 4), dtype=dtype, count=count).byteswap()
                 # data = np.fromstring(f.read(3*len(self)*4),dtype).byteswap()
             else:
-                loadblock = lambda count: np.fromstring(
+                loadblock = lambda count: np.frombuffer(
                     f.read(count * 4), dtype=dtype, count=count)
                 # data = np.fromstring(f.read(3*len(self)*4),dtype)
-
-        ndim = 1
 
         self.ancestor._tipsy_arrays_binary = binary
 
@@ -891,11 +886,13 @@ class TipsySnap(SimSnap):
         else:
             r = np.empty(len(self[fam]), dtype=dtype).view(array.SimArray)
 
-        for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
-            buf = loadblock(readlen)
-            if mem_index is not None:
-                r[mem_index] = buf[buf_index]
-
+        try:
+            for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
+                buf = loadblock(readlen)
+                if mem_index is not None:
+                    r[mem_index] = buf[buf_index]
+        finally:
+            f.close()
 
         if units is not None:
             r.units = units
@@ -949,7 +946,7 @@ class TipsySnap(SimSnap):
         try:
             check = TipsySnap(f, verbose=False)
             del check
-        except Exception as e:
+        except Exception:
             return False
 
         return True
@@ -1233,10 +1230,10 @@ class StarLog(SimSnap):
                 # no moleculuarH with big iOrders.  Attempt to distinguish here
                 if(iSize == file_structure.itemsize):
                     if(self._byteswap):
-                        testread = np.fromstring(
+                        testread = np.frombuffer(
                             f.read(iSize), dtype=file_structure).byteswap()
                     else:
-                        testread = np.fromstring(f.read(iSize), dtype=file_structure)
+                        testread = np.frombuffer(f.read(iSize), dtype=file_structure)
                     # All star iorders are greater than any gas iorder
                     # so this indicates a bad format. (N.B. there is the
                     # possibility of a false negative)
@@ -1273,7 +1270,7 @@ class StarLog(SimSnap):
                         str(file_structure.itemsize))
                 else:
                     bigstarlog = True
-            if molecH == True: print("h2 information found in StarLog!")
+            if molecH is True: print("h2 information found in StarLog!")
 
         datasize = os.path.getsize(filename) - f.tell()
 
@@ -1287,11 +1284,12 @@ class StarLog(SimSnap):
 
         logger.info("Reading starlog file %s", filename)
         if(self._byteswap):
-            g = np.fromstring(
+            g = np.frombuffer(
                 f.read(datasize), dtype=file_structure).byteswap()
         else:
-            g = np.fromstring(f.read(datasize), dtype=file_structure)
+            g = np.frombuffer(f.read(datasize), dtype=file_structure)
 
+        f.close()
         # hoping to provide backward compatibility for np.unique by
         # copying relavent part of current numpy source:
         # numpy/lib/arraysetops.py:192 (on 22nd March 2011)
@@ -1317,7 +1315,7 @@ class StarLog(SimSnap):
         self._create_arrays(["iord"], dtype='int32')
         self._create_arrays(
             ["iorderGas", "massform", "rhoform", "tempform", "metals", "tform"])
-        if molecH==True:
+        if molecH:
             self._create_arrays(["h2form"])
         if bigstarlog:
             self._create_arrays(["phiform", "nsmooth"])
@@ -1418,57 +1416,50 @@ class StarLog(SimSnap):
 @StarLog.decorator
 @nchilada.NchiladaSnap.decorator
 def load_paramfile(sim):
-    x = os.path.abspath(sim._filename)
-    done = False
+    x = os.path.dirname(os.path.abspath(sim._filename))
     sim._paramfile = {}
-    f = None
+    ok = False
     if sim._paramfilename is None:
-        for i in range(2):
-            x = os.path.dirname(x)
-            l = [x for x in glob.glob(
-                os.path.join(x, "*.param")) if "mpeg" not in x]
-
-            for filename in l:
-                # Attempt the loading of information
-                try:
-                    f = open(filename)
-                    done = True
-                    break  # the file is there, break out of the loop
-                except OSError:
-                    l = glob.glob(os.path.join(x, "../*.param"))
-                    if l == []:
-                        continue
-                    try:
-                        for filename in l:
-                            f = open(filename)
-                            break  # the file is there, break out of the loop
-                    except OSError:
-                        continue
-            if done:
-                break
-
+        candidates = [
+            *glob.glob(os.path.join(x, "*.param")),
+            *glob.glob(os.path.join(x, "../*.param")),
+        ]
     else:
-        filename = sim._paramfilename
+        candidates = [sim._paramfilename]
+
+    for filename in candidates:
         try:
-            f = open(filename)
+            with open(filename):
+                pass
+            ok = True
+            break
         except OSError:
-            raise OSError("The parameter filename you supplied is invalid")
-
-    if f is None:
-        return
-
-    for line in f:
-        try:
-            if line[0] != "#":
-                s = line.split("#")[0].split()
-                sim._paramfile[s[0]] = " ".join(s[2:])
-
-        except IndexError as ValueError:
             pass
 
-        if len(sim._paramfile) > 1:
-            sim._paramfile["filename"] = filename
 
+    if not ok:
+        if sim._paramfile:
+            raise OSError("The parameter filename you supplied is invalid")
+        return
+
+    with open(filename) as f:
+        lines = f.readlines()
+
+    for line in lines:
+        if line.startswith("#"):
+            continue
+        # Remove comments
+        line = line.split("#")[0]
+
+        # Lines are "key  =  val"
+        try:
+            key, val = (_.strip() for _ in line.split("="))
+        except ValueError:
+            continue
+        sim._paramfile[key] = val
+
+    if len(sim._paramfile) > 1:
+        sim._paramfile["filename"] = filename
 
 @TipsySnap.decorator
 @StarLog.decorator
@@ -1493,7 +1484,7 @@ def param2units(sim):
             pass
 
         if munit is None or dunit is None:
-            if hub != None:
+            if hub is not None:
                 sim.properties['h'] = hub
             return
 
@@ -1702,7 +1693,7 @@ def slparam2units(sim):
         timeunit_st = ("%.5g" % timeunit) + " Gyr"
 
 
-        if hub != None:
+        if hub is not None:
             # append dependence on 'a' for cosmological runs
             dunit_st += " aform"
 

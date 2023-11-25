@@ -139,10 +139,9 @@ class RockstarCatalogue(HaloCatalogue):
 
     @staticmethod
     def _can_load(sim, **kwargs):
-        for file in glob.glob(os.path.join(os.path.dirname(sim.filename), 'halos*.bin')):
-            if os.path.exists(file):
-                return True
-        return False
+        return len(
+            glob.glob(os.path.join(os.path.dirname(sim.filename), 'halos*.bin'))
+        ) > 0
 
 
 class RockstarCatalogueOneCpu(HaloCatalogue):
@@ -300,7 +299,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
             )
 
         with util.open_(self._rsFilename, 'rb') as f:
-            self._head = np.fromstring(f.read(self.head_type.itemsize),
+            self._head = np.frombuffer(f.read(self.head_type.itemsize),
                                        dtype=self.head_type)
 
             # Seek to absolute position
@@ -390,7 +389,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         offset = self._haloprops_offset+self.halo_type.itemsize*self._head['num_halos'][0]
 
 
-        self._halo_min = int(np.fromfile(f, dtype=self.halo_type, count=1)['id'])
+        self._halo_min = int(np.fromfile(f, dtype=self.halo_type, count=1)['id'][0])
         self._halo_max = int(self._halo_min+self._head['num_halos'][0])
 
         f.seek(self._haloprops_offset)
@@ -398,7 +397,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         this_id = self._halo_min
 
         for _h in range(self._head['num_halos'][0]):
-            halo_data =np.fromfile(f, dtype=self.halo_type, count=1)
+            halo_data = np.fromfile(f, dtype=self.halo_type, count=1)
             if halo_data['id'] != this_id:
                 raise RockstarFormatRevisionError(
                     "Error while reading halo catalogue. Expected "
@@ -406,9 +405,9 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
                 )
             self._halo_offsets[this_id-self._halo_min] = int(offset)
             if 'num_bound' in self.halo_type.names:
-                num_ptcls = int(halo_data['num_bound'])
+                num_ptcls = int(halo_data['num_bound'][0])
             else:
-                num_ptcls = int(halo_data['num_p'])
+                num_ptcls = int(halo_data['num_p'][0])
             self._halo_lens[this_id-self._halo_min] = num_ptcls
             offset+=num_ptcls*np.dtype('int64').itemsize
             this_id+=1

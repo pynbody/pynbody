@@ -11,7 +11,7 @@ def test_pickle():
 def test_family_array_dtype() :
     # test for issue #186
     f = pynbody.load('testdata/g15784.lr.01024.gz')
-    f.g['rho'] = np.zeros(len(f.g),dtype=np.float32)
+    f.g['rho'] = np.zeros(len(f.g), dtype=np.float32)
     f.s['rho']
 
 def test_family_array_null_slice():

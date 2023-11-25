@@ -1,9 +1,7 @@
-import pickle
 from pathlib import Path
 
 import numpy as np
 import numpy.testing as npt
-import pylab as p
 import pytest
 
 import pynbody
@@ -121,7 +119,8 @@ def test_denoise_projected_image_throws():
 
 def test_render_stars(stars_2d):
     global f
-    im = pynbody.plot.stars.render(f, width=10.0, resolution=100, ret_im=True, plot=False)
+    with pytest.warns(UserWarning, match=r"No log file found; reverting to guess-and-check"):
+        im = pynbody.plot.stars.render(f, width=10.0, resolution=100, ret_im=True, plot=False)
 
     # np.save("test_stars_2d.npy", im[40:60])
 
@@ -132,6 +131,9 @@ def test_render_stars(stars_2d):
 def intentional_circular_reference(sim):
     return sim['intentional_circular_reference']
 
+# Note: we ignore all warnings here, since pytest will otherwise
+# trigger a warning internally because of the exception propagation
+@pytest.mark.filterwarnings("ignore:.*")
 def test_exception_propagation():
     with pytest.raises(RuntimeError):
         pynbody.plot.sph.image(f.gas, qty='intentional_circular_reference')

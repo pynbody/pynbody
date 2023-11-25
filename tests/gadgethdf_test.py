@@ -7,6 +7,7 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+from pynbody import units
 
 
 def setup_module() :
@@ -136,20 +137,26 @@ def test_halo_values() :
             assert(np.allclose(s.s['mass'].sum(), Sub_MassType[OffsetHalo[i]+j,4], rtol=1e-3))
             assert(np.allclose(s['mass'].sum(), Sub_Mass[OffsetHalo[i]+j], rtol=1e-3))
 
-    FoF_Temp = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Temperature', sub_dir='fof', nopanda=True, silent=True, physunits=True)
-    FoF_Length = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Length', sub_dir='fof', nopanda=True, silent=True, physunits=True)
-    FoF_Offset = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Offset', sub_dir='fof', nopanda=True, silent=True, physunits=True)
+    FoF_Temp = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Temperature', sub_dir='fof', nopanda=True, silent=True, physunits=True)[:, 0]
+    FoF_Length = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Length', sub_dir='fof', nopanda=True, silent=True, physunits=True).astype(int)[:, 0]
+    FoF_Offset = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Offset', sub_dir='fof', nopanda=True, silent=True, physunits=True).astype(int)[:, 0]
 
     # Test the Particle Temperature and implicitly the particle ordering
     for i,halo in enumerate(h[0:10]) :
-        assert(np.allclose(list(halo.g['temp']), list(chain.from_iterable(FoF_Temp[np.arange(FoF_Offset[i],FoF_Offset[i]+FoF_Length[i],dtype=np.int64)])), rtol=1e-3))
+        npt.assert_allclose(
+            halo.g['temp'],
+            FoF_Temp[FoF_Offset[i]:FoF_Offset[i]+FoF_Length[i]],
+        )
 
 def test_write():
     ar_name = 'test_array'
     snap[ar_name] = np.random.uniform(0,1,len(snap))
     snap[ar_name].write()
     snap2 = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
-    assert(np.allclose(snap2[ar_name], snap[ar_name]))
+    v = snap[ar_name]
+    with pytest.warns(UserWarning, match="Unable to infer units from HDF attributes"):
+        v2 = snap2[ar_name]
+    npt.assert_allclose(v, v2)
 
 def test_grp_array():
     h = subfind.halos()
@@ -181,10 +188,10 @@ def test_hi_derivation():
 
 def test_fof_vs_sub_assignment():
     h = subfind.halos()
-    assert(np.allclose(h.get_halo_properties(0, with_unit=False)['Mass'],28.604694074339932))
-    assert(np.allclose(h.get_halo_properties(0, with_unit=False)['Halo_M_Crit200'], 29.796955896599684))
-    assert(np.allclose(h.get_halo_properties(1, with_unit=False)['Mass'], 8.880245794949587))
-    assert(np.allclose(h.get_halo_properties(1, with_unit=False)['Halo_M_Crit200'],8.116568749712314))
+    npt.assert_allclose(h.get_halo_properties(0, with_unit=False)['Mass'],28.604694074339932)
+    npt.assert_allclose(h.get_halo_properties(0, with_unit=False)['Halo_M_Crit200'], 29.796955896599684)
+    npt.assert_allclose(h.get_halo_properties(1, with_unit=False)['Mass'], 8.880245794949587)
+    npt.assert_allclose(h.get_halo_properties(1, with_unit=False)['Halo_M_Crit200'],8.116568749712314)
 
 def test_hdf_ordering():
     # HDF files do not intrinsically specify the order in which the particle types occur
@@ -212,7 +219,8 @@ def test_gadgethdf_style_units():
                         rtol=1e-3)
 
 def test_arepo_style_units():
-    f = pynbody.load("testdata/arepo/agora_100.hdf5")
+    with pytest.warns(UserWarning, match=r"Masses are either stored in the header or have.*"):
+        f = pynbody.load("testdata/arepo/agora_100.hdf5")
     npt.assert_allclose(f.st['EMP_InitialStellarMass'].units.in_units("1.989e42 g"),
                         1.0, rtol=1e-3)
     # I strongly suspect that the units in this file are wrong -- the masses are
@@ -227,6 +235,6 @@ def test_arepo_style_units():
                         1.0, rtol=1e-5)
     # the above is a special case of a dimensionless array
 
-    from pynbody import units
-    assert f.st['EMP_BirthTemperature'].units == units.NoUnit()
+    with pytest.warns(UserWarning, match="Unable to infer units from HDF attributes"):
+        assert f.st['EMP_BirthTemperature'].units == units.NoUnit()
     # here is a case where no unit information is recorded in the file (who knows why)
