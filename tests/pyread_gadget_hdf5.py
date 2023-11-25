@@ -279,7 +279,7 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
     ## For the case of a Baryon run, check if the user is asking for an element
     ## AND if that's a smoothed quantity then change their request slightly...
     if numpart_total[0] > 0 or numpart_total[4] > 0 or numpart_total[5] > 0:
-        if var_name in elementnames:
+        if var_name in list(elementnames):
             var_name = 'ElementAbundance/'+var_name
         if smooth is not None:
             var_name = 'Smoothed'+var_name

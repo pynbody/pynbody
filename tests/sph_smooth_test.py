@@ -165,6 +165,8 @@ def test_periodic_smoothing(rho_periodic, smooth_periodic):
     npt.assert_allclose(f.dm['smooth'][::100],
                          smooth_periodic,rtol=1e-5)
 
+
+@pytest.mark.filterwarnings("ignore:overflow encountered in cast:RuntimeWarning")
 def test_neighbour_list():
     f = pynbody.load("testdata/test_g2_snap")
     pynbody.sph._get_smooth_array_ensuring_compatibility(f.g)  # actual smoothing

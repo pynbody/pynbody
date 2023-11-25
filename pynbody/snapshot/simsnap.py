@@ -635,14 +635,15 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         its best guess at the units.
         """
         try:
-            f = open(self.filename+".units")
+            with open(self.filename + ".units") as f:
+                lines = f.readlines()
         except OSError:
             return
 
         name_mapping = {'pos': 'distance', 'vel': 'velocity'}
         units_dict = {}
 
-        for line in f:
+        for line in lines:
             if (not line.startswith("#")):
                 if ":" not in line:
                     raise OSError("Unknown format for units file %r"%(self.filename+".units"))
@@ -884,23 +885,23 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
     def rotate_x(self, angle):
         """Rotates the snapshot about the current x-axis by 'angle' degrees."""
         angle *= np.pi / 180
-        return self.transform(np.matrix([[1,      0,             0],
-                                         [0, np.cos(angle), -np.sin(angle)],
-                                         [0, np.sin(angle),  np.cos(angle)]]))
+        return self.transform(np.array([[1,      0,             0],
+                                        [0, np.cos(angle), -np.sin(angle)],
+                                        [0, np.sin(angle),  np.cos(angle)]]))
 
     def rotate_y(self, angle):
         """Rotates the snapshot about the current y-axis by 'angle' degrees."""
         angle *= np.pi / 180
-        return self.transform(np.matrix([[np.cos(angle),    0,   np.sin(angle)],
-                                         [0,                1,        0],
-                                         [-np.sin(angle),   0,   np.cos(angle)]]))
+        return self.transform(np.array([[np.cos(angle),    0,   np.sin(angle)],
+                                        [0,                1,        0],
+                                        [-np.sin(angle),   0,   np.cos(angle)]]))
 
     def rotate_z(self, angle):
         """Rotates the snapshot about the current z-axis by 'angle' degrees."""
         angle *= np.pi / 180
-        return self.transform(np.matrix([[np.cos(angle), -np.sin(angle), 0],
-                                         [np.sin(angle),  np.cos(angle), 0],
-                                         [0,             0,        1]]))
+        return self.transform(np.array([[np.cos(angle), -np.sin(angle), 0],
+                                        [np.sin(angle),  np.cos(angle), 0],
+                                        [0,             0,        1]]))
 
     def wrap(self, boxsize=None, convention='center'):
         """Wraps the positions of the particles in the box to lie between

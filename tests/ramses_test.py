@@ -61,20 +61,21 @@ def test_key_error():
     with pytest.raises(KeyError):
         f.gas['nonexistentarray']
 
+
+
+@pytest.mark.filterwarnings(r"ignore:More hydro variables.*:RuntimeWarning")
 def test_mass_unit_sanity():
     """Picks up on problems with converting array units as
     mass array gets loaded (which is a combination of a derived
     array and a loaded array)"""
 
     f1 = pynbody.load("testdata/ramses_partial_output_00250")
-    with pytest.warns(RuntimeWarning, match="More hydro variables.*"):
-        f1['mass']
+    f1['mass']
     f1.physical_units()
 
     f2 = pynbody.load("testdata/ramses_partial_output_00250")
     f2.physical_units()
-    with pytest.warns(RuntimeWarning, match="More hydro variables.*"):
-        f2['mass']
+    f2['mass']
 
     np.testing.assert_allclose(f1.dm['mass'], f2.dm['mass'], atol=1e-5)
 

@@ -27,17 +27,17 @@ def test_copy_on_access_subsnap_data_isolation():
         assert (f['blob'] == np.arange(10)).all()
 
 
-class TestSnap(pynbody.snapshot.simsnap.SimSnap):
+class ExampleSnap(pynbody.snapshot.simsnap.SimSnap):
     pass
 
 
-@TestSnap.derived_quantity
+@ExampleSnap.derived_quantity
 def foo(sim):
     return sim['blob']+5
 
 
 def test_copy_on_access_subsnap_emulating_class():
-    f = pynbody.new(10, class_=TestSnap)
+    f = pynbody.new(10, class_=ExampleSnap)
     f['blob'] = np.arange(10)
 
     f_sub = f[[2, 3, 4]].get_copy_on_access_view()
