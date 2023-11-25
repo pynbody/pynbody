@@ -10,18 +10,20 @@ def test_copy_on_access_subsnap_data_isolation():
     f = pynbody.new(10)
     f['blob'] = np.arange(10)
 
-    f_sub = f[[2, 3, 4]].get_copy_on_access_view()
-    # doesn't simply copy everything in to start with:
-    assert 'blob' not in f_sub.keys()
+    for subscript in ([2, 3, 4], slice(2,5)):
 
-    # can get the underlying data lazily
-    assert (f_sub['blob'] == [2,3,4]).all()
+        f_sub = f[subscript].get_copy_on_access_view()
+        # doesn't simply copy everything in to start with:
+        assert 'blob' not in f_sub.keys()
 
-    f_sub['blob'] = [100,101,102]
-    assert (f_sub['blob'] == [100, 101, 102]).all()
+        # can get the underlying data lazily
+        assert (f_sub['blob'] == [2,3,4]).all()
 
-    # copy_on_access: shouldn't have updated the underlying
-    assert (f['blob'] == np.arange(10)).all()
+        f_sub['blob'] = [100,101,102]
+        assert (f_sub['blob'] == [100, 101, 102]).all()
+
+        # copy_on_access: shouldn't have updated the underlying
+        assert (f['blob'] == np.arange(10)).all()
 
 
 class TestSnap(pynbody.snapshot.simsnap.SimSnap):
@@ -65,3 +67,38 @@ def test_base_correctness():
     f_sub = f[[2,3,4]].get_copy_on_access_view()
     assert f_sub.ancestor is f_sub
     assert not hasattr(f_sub, 'base')
+
+def test_properties():
+    f = pynbody.new(10)
+    f.properties['test_property'] = 101
+    f_c = f.get_copy_on_access_view()
+    # should have been copied in:
+    assert f_c.properties['test_property'] == 101
+
+    # should not reflect back to parent:
+    f_c.properties['test_property'] = 100
+    assert f_c.properties['test_property'] == 100
+    assert f.properties['test_property'] == 101
+
+def test_repr():
+    f = pynbody.load("testdata/g15784.lr.01024")
+    f_c = f.get_copy_on_access_view()
+
+    assert repr(f_c) == '<SimSnap "testdata/g15784.lr.01024:copied_on_access" len=1717156>'
+
+def test_loadable_keys():
+    f = pynbody.load("testdata/g15784.lr.01024")
+    f['pos'] # noqa
+    f.dm['new_array'] = np.empty(len(f.dm))
+
+    f_c = f.get_copy_on_access_view()
+    # anything loadable in the base is loadable in the copy
+    assert 'pos' in f_c.loadable_keys()
+    assert 'HI' in f_c.gas.loadable_keys()
+
+    # check HI will actually load:
+    f_c.gas['HI'] # noqa
+
+    assert 'new_array' not in f_c.dm.keys()
+    # it's in the parent keys, but not yet copied across
+    assert 'new_array' in f_c.dm.loadable_keys()
