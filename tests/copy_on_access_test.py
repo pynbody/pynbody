@@ -13,7 +13,7 @@ def test_copy_on_access_subsnap_data_isolation():
 
     for subscript in ([2, 3, 4], slice(2,5)):
 
-        f_sub = f[subscript].get_copy_on_access_view()
+        f_sub = f[subscript].get_copy_on_access_simsnap()
         # doesn't simply copy everything in to start with:
         assert 'blob' not in f_sub.keys()
 
@@ -40,7 +40,7 @@ def test_copy_on_access_subsnap_emulating_class():
     f = pynbody.new(10, class_=ExampleSnap)
     f['blob'] = np.arange(10)
 
-    f_sub = f[[2, 3, 4]].get_copy_on_access_view()
+    f_sub = f[[2, 3, 4]].get_copy_on_access_simsnap()
     assert (f_sub['foo'] == [7, 8, 9]).all()
 
     assert 'foo' not in f.keys()
@@ -51,7 +51,7 @@ def test_copy_on_access_subsnap_family_array():
     f.dm['dm_only'] = np.arange(10)
     f.st['star_only'] = np.arange(10,20)
 
-    f_sub = f[np.arange(0,20,2)].get_copy_on_access_view()
+    f_sub = f[np.arange(0,20,2)].get_copy_on_access_simsnap()
     assert (f_sub.dm['dm_only'] == np.arange(0,10,2)).all()
     assert (f_sub.star['star_only'] == np.arange(10, 20, 2)).all()
     assert 'dm_only' not in f_sub.keys()
@@ -65,14 +65,14 @@ def test_base_correctness():
     f_sub = f[::2]
     assert f_sub.ancestor is f
 
-    f_sub = f[[2,3,4]].get_copy_on_access_view()
+    f_sub = f[[2,3,4]].get_copy_on_access_simsnap()
     assert f_sub.ancestor is f_sub
     assert not hasattr(f_sub, 'base')
 
 def test_properties():
     f = pynbody.new(10)
     f.properties['test_property'] = 101
-    f_c = f.get_copy_on_access_view()
+    f_c = f.get_copy_on_access_simsnap()
     # should have been copied in:
     assert f_c.properties['test_property'] == 101
 
@@ -83,7 +83,7 @@ def test_properties():
 
 def test_repr():
     f = pynbody.load("testdata/g15784.lr.01024")
-    f_c = f.get_copy_on_access_view()
+    f_c = f.get_copy_on_access_simsnap()
 
     assert repr(f_c) == '<SimSnap "testdata/g15784.lr.01024:copied_on_access" len=1717156>'
 
@@ -92,7 +92,7 @@ def test_loadable_keys():
     f['pos'] # noqa
     f.dm['new_array'] = np.empty(len(f.dm))
 
-    f_c = f.get_copy_on_access_view()
+    f_c = f.get_copy_on_access_simsnap()
     # anything loadable in the base is loadable in the copy
     assert 'pos' in f_c.loadable_keys()
     assert 'HI' in f_c.gas.loadable_keys()
@@ -106,7 +106,7 @@ def test_loadable_keys():
 
 def test_only_try_loading_once():
     f = pynbody.new(10)
-    f_c = f.get_copy_on_access_view()
+    f_c = f.get_copy_on_access_simsnap()
 
 
     with pytest.raises(OSError, match="Not found"):

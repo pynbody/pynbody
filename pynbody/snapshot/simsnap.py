@@ -1611,7 +1611,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
         return new_snap
 
-    def get_copy_on_access_view(self):
+    def get_copy_on_access_simsnap(self):
         """Return a new SimSnap that copies data out of this one when accessed
 
         This provides a degree of isolation (e.g. modifications made to the arrays in the copy-on-access
