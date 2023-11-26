@@ -7,63 +7,57 @@ import pytest
 import pynbody
 
 
-def setup_module():
-    global f
-    f = pynbody.load("testdata/ramses_partial_output_00250")
+@pytest.fixture
+def ramses_file():
+    yield pynbody.load("testdata/ramses_partial_output_00250")
 
+def test_lengths(ramses_file):
+    assert len(ramses_file.gas) == 152667
+    assert len(ramses_file.star) == 2655
+    assert len(ramses_file.dm) == 51887
 
-def test_lengths():
-    assert len(f.gas) == 152667
-    assert len(f.star) == 2655
-    assert len(f.dm) == 51887
+def test_properties(ramses_file):
+    np.testing.assert_almost_equal(ramses_file.properties['a'], 1.0)
+    np.testing.assert_almost_equal(ramses_file.properties['h'], 0.01)
+    np.testing.assert_almost_equal(ramses_file.properties['omegaM0'], 1.0)
 
-def test_properties():
-    np.testing.assert_almost_equal(f.properties['a'], 1.0)
-    np.testing.assert_almost_equal(f.properties['h'], 0.01)
-    np.testing.assert_almost_equal(f.properties['omegaM0'], 1.0)
-
-@pytest.mark.filterwarnings(r"ignore:More hydro variables \(\d*\).*:RuntimeWarning")
-def test_particle_arrays():
-    f['pos']
-    f['vel']
-    np.testing.assert_allclose(f.star['pos'][50], [ 29.93861623,  29.29166795,  29.77920022])
-    np.testing.assert_allclose(f.dm['pos'][50], [ 23.76016295,  21.64945726,   7.70719058])
-    np.testing.assert_equal(f.dm['iord'][-50:-40],[126079, 679980, 602104, 352311, 306943, 147989, 121521, 915870,
+def test_particle_arrays(ramses_file):
+    ramses_file['pos'] # noqa
+    ramses_file['vel'] # noqa
+    np.testing.assert_allclose(ramses_file.star['pos'][50], [ 29.93861623,  29.29166795,  29.77920022])
+    np.testing.assert_allclose(ramses_file.dm['pos'][50], [ 23.76016295,  21.64945726,   7.70719058])
+    np.testing.assert_equal(ramses_file.dm['iord'][-50:-40],[126079, 679980, 602104, 352311, 306943, 147989, 121521, 915870,
        522489, 697169])
-    np.testing.assert_equal(f.star['iord'][-50:-40],[124122,  65978, 160951,  83281, 120237, 117882, 124849, 111615,
+    np.testing.assert_equal(ramses_file.star['iord'][-50:-40],[124122,  65978, 160951,  83281, 120237, 117882, 124849, 111615,
        144166,  26147])
-    np.testing.assert_allclose(f.dm['vel'][50], [ 0.32088361, -0.82660566, -0.32874243])
+    np.testing.assert_allclose(ramses_file.dm['vel'][50], [ 0.32088361, -0.82660566, -0.32874243])
 
-@pytest.mark.filterwarnings(r"ignore:More hydro variables \(\d*\).*:RuntimeWarning")
-def test_array_unit_sanity():
+def test_array_unit_sanity(ramses_file):
     """Picks up on problems with converting arrays as they
     get promoted from family to simulation level"""
 
-    f.gas['pos']
-    f.star['pos']
-    f.dm['pos']
-    f.physical_units()
+    ramses_file.gas['pos'] # noqa
+    ramses_file.star['pos'] # noqa
+    ramses_file.dm['pos'] # noqa
+    ramses_file.physical_units()
 
     f2 = pynbody.load("testdata/ramses_partial_output_00250")
     f2.physical_units()
-    f2.gas['pos']
-    f2.dm['pos']
-    f2.star['pos']
+    f2.gas['pos'] # noqa
+    f2.dm['pos'] # noqa
+    f2.star['pos'] # noqa
 
-    np.testing.assert_allclose(f2['pos'], f['pos'], atol=1e-5)
+    np.testing.assert_allclose(f2['pos'], ramses_file['pos'], atol=1e-5)
 
-def test_key_error():
+def test_key_error(ramses_file):
     """Tests that the appropriate KeyError is raised when a
     hydro array is not found. This is a regression test for
     a problem where AttributeError could be raised instead because
     _rt_blocks_3d was missing for non-RT runs"""
 
     with pytest.raises(KeyError):
-        f.gas['nonexistentarray']
+        ramses_file.gas['nonexistentarray'] # noqa
 
-
-
-@pytest.mark.filterwarnings(r"ignore:More hydro variables.*:RuntimeWarning")
 def test_mass_unit_sanity():
     """Picks up on problems with converting array units as
     mass array gets loaded (which is a combination of a derived
@@ -182,8 +176,8 @@ def test_forcegas_dmo():
             1.80143985e+16], rtol=1e-5)
 
 
-def test_metals_field_correctly_copied_from_metal():
-    np.testing.assert_allclose(f.st['metals'][::5000], f.st['metal'][::5000], rtol=1e-5)
+def test_metals_field_correctly_copied_from_metal(ramses_file):
+    np.testing.assert_allclose(ramses_file.st['metals'][::5000], ramses_file.st['metal'][::5000], rtol=1e-5)
 
 
 def _test_tform_checker(tform_raw):
@@ -204,11 +198,11 @@ def _test_tform_checker(tform_raw):
         rtol=1e-5,
     )
 
-def test_tform_and_tform_raw():
+def test_tform_and_tform_raw(ramses_file):
     # Standard test output is a non-cosmological run, for which tform should be read from disk,
     # rather than transformed. Tform raw and transformed are therefore the same
-    assert len(f.st["tform"]) == len(f.st["tform_raw"]) == 2655
-    np.testing.assert_allclose(f.st["tform_raw"], f.st["tform"])
+    assert len(ramses_file.st["tform"]) == len(ramses_file.st["tform_raw"]) == 2655
+    np.testing.assert_allclose(ramses_file.st["tform_raw"], ramses_file.st["tform"])
 
     fcosmo = pynbody.load("testdata/output_00080")
 
@@ -256,7 +250,7 @@ def test_tform_and_tform_raw():
     _test_tform_checker(tform_raw)
 
 
-def test_rt_conformal_time_detection():
+def test_rt_conformal_time_detection(ramses_file):
     from pathlib import Path
     path = Path("testdata/output_00080")
     f = pynbody.load(str(path), cpus=[1, 2, 3])
@@ -281,7 +275,7 @@ def test_rt_conformal_time_detection():
         )
 
         with pytest.warns(UserWarning) as record:
-            assert f.times_are_proper
+            assert ramses_file.times_are_proper
 
         for rec in record:
             assert rec.category == UserWarning
@@ -367,24 +361,23 @@ def test_is_cosmological_without_namelist():
 
 
 @pytest.mark.filterwarnings("ignore:No ionization fractions found, assuming.*:UserWarning")
-@pytest.mark.filterwarnings(r"ignore:More hydro variables \(\d*\).*:RuntimeWarning")
-def test_temperature_derivation():
-    f.g['mu']
-    f.g['temp']
+def test_temperature_derivation(ramses_file):
+    ramses_file.g['mu']
+    ramses_file.g['temp']
 
-    assert(f.g['mu'].min() != f.g['mu'].max())   # Check that ionized and neutral mu are now generated
-    np.testing.assert_allclose(f.g['mu'][:10], 0.590406 * np.ones(10), rtol=1e-5)
-    np.testing.assert_allclose(f.g['mu'].max(), 1.225115, rtol=1e-5)
+    assert(ramses_file.g['mu'].min() != ramses_file.g['mu'].max())   # Check that ionized and neutral mu are now generated
+    np.testing.assert_allclose(ramses_file.g['mu'][:10], 0.590406 * np.ones(10), rtol=1e-5)
+    np.testing.assert_allclose(ramses_file.g['mu'].max(), 1.225115, rtol=1e-5)
 
-    np.testing.assert_allclose(f.g['temp'][:10], [26006.212237, 28014.491234, 28014.45815 , 30537.462281,
+    np.testing.assert_allclose(ramses_file.g['temp'][:10], [26006.212237, 28014.491234, 28014.45815 , 30537.462281,
                                                           26950.323296, 29093.741241, 29197.270737, 31939.873103,
                                                           26950.318628, 29197.316078])
 
 
-def test_family_array():
-    f.dm['mass']
-    assert "mass" in f.family_keys()
-    assert f.dm['mass'].sim == f.dm
+def test_family_array(ramses_file):
+    ramses_file.dm['mass']
+    assert "mass" in ramses_file.family_keys()
+    assert ramses_file.dm['mass'].sim == ramses_file.dm
 
 
 def test_file_descriptor_reading():
@@ -407,7 +400,7 @@ def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_bloc
     # ValueError: 'metal' is not in list
     # Because the field is not present in the particle blocks but was attempted to be accessed
     with pytest.raises(KeyError, match="No array.*"):
-        f_dmo.st['metals']
+        f_dmo.st['metals'] # noqa
 
     # Now define a custom-derived metals array, which should enable us to access the array at all time
     # Previously to #689, this would still break the loading with the same ValueError
@@ -417,7 +410,7 @@ def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_bloc
     def metals(snap):
         return np.zeros(len(snap))
 
-    f_dmo.st['metals']
+    f_dmo.st['metals'] # noqa
 
 
 def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):

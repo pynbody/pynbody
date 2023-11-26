@@ -10,6 +10,8 @@ filterwarnings = [
     'ignore:No namelist file found\.:UserWarning',
     'ignore:Namelist found but unable to read\.:UserWarning',
     'ignore:Namelist file either not found or unable to read.*assuming flat LCDM:UserWarning',
+    'ignore:More hydro variables.*:RuntimeWarning',
+    # ignore other common farily harmless scenarios:
     'ignore:Conjoining derived and non-derived arrays.*:RuntimeWarning',
     'ignore:invalid value encountered in multiply:RuntimeWarning',
 ]
