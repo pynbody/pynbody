@@ -40,12 +40,12 @@ jobs:
         if: startsWith(matrix.buildplat[0], 'macos')
         shell: bash
         run: |
-          brew install llvm@15 libomp pipx
-          echo "CC=${{matrix.buildplat[3]}}/llvm@15/bin/clang" >> $GITHUB_ENV
-          echo "CXX=${{matrix.buildplat[3]}}/llvm@15/bin/clang++" >> $GITHUB_ENV
-          echo 'LDFLAGS=-L${{matrix.buildplat[3]}}/llvm/lib -L${{matrix.buildplat[3]}}/libomp/lib' >> $GITHUB_ENV
-          echo 'CFLAGS=-I${{matrix.buildplat[3]}}/llvm/include -I${{matrix.buildplat[3]}}/libomp/include' >> $GITHUB_ENV
-          echo 'CPPFLAGS=-I${{matrix.buildplat[3]}}/llvm/include -I${{matrix.buildplat[3]}}/libomp/include' >> $GITHUB_ENV
+          brew install gcc@13 pipx
+          echo "CC=${{matrix.buildplat[3]}}/gcc@13/bin/gcc" >> $GITHUB_ENV
+          echo "CXX=${{matrix.buildplat[3]}}/gcc@13/bin/g++" >> $GITHUB_ENV
+          echo 'LDFLAGS=-L${{matrix.buildplat[3]}}/gcc@13/lib' >> $GITHUB_ENV
+          echo 'CFLAGS=-I${{matrix.buildplat[3]}}/gcc@13/include' >> $GITHUB_ENV
+          echo 'CPPFLAGS=-I${{matrix.buildplat[3]}}/gcc@13/include' >> $GITHUB_ENV
 
       # - name: Determine version tag
       #   if: github.event_name != 'pull_request'
