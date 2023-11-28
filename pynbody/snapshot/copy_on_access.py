@@ -25,7 +25,11 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
     def __init__(self, base: SimSnap, underlying_class=None):
         self._copy_from = base
         if underlying_class is None:
-            underlying_class = type(base.ancestor)
+            ancestor = base.ancestor
+            if hasattr(ancestor, "_underlying_class"):
+                underlying_class = ancestor._underlying_class
+            else:
+                underlying_class = type(ancestor)
 
         super().__init__(underlying_class)
 

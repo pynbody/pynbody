@@ -45,6 +45,21 @@ def test_copy_on_access_subsnap_emulating_class():
 
     assert 'foo' not in f.keys()
 
+def test_copy_on_access_subsnap_emulating_class_two_layers_down():
+    f = pynbody.new(10, class_=ExampleSnap)
+    f['blob'] = np.arange(10)
+
+    f_sub_copy = f[[2, 3, 4]].get_copy_on_access_simsnap()
+
+    f_sub_copy_copy = f_sub_copy.get_copy_on_access_simsnap()
+
+
+    assert (f_sub_copy_copy['foo'] == [7, 8, 9]).all()
+
+    assert 'foo' not in f_sub_copy.keys()
+    assert 'foo' not in f.keys()
+
+
 
 def test_copy_on_access_subsnap_family_array():
     f = pynbody.new(dm=10,star=10)
