@@ -64,6 +64,27 @@ def test_copy_on_access_subsnap_emulating_class_two_layers_down():
 def test_copy_on_access_subsnap_family_array():
     f = pynbody.new(dm=10,star=10)
     f.dm['dm_only'] = np.arange(10)
+
+    def test_copy_on_access_mixing_derived_and_nonderived():
+        f = pynbody.new(dm=10, star=10, gas=10, class_=ExampleSnap)
+        f.dm['blob'] = np.arange(10)
+        f.star['foo'] = np.arange(10, 20)
+
+        f_copy = f.get_copy_on_access_simsnap()
+        assert (f_copy.dm['foo'] == np.arange(5, 15)).all()
+        assert f_copy.dm['foo'].derived
+
+        assert (f_copy.star['foo'] == np.arange(10, 20)).all()
+
+        assert f_copy.dm['foo'].derived
+        assert not f_copy.star['foo'].derived
+
+        f_copy.dm['blob'] += 1
+
+        assert (f_copy.dm['blob'] == np.arange(1, 11)).all()
+        assert (f_copy.dm['foo'] == np.arange(6, 16)).all()
+        assert (f_copy.star['foo'] == np.arange(10, 20)).all()
+        assert (f.dm['blob'] == np.arange(10)).all()
     f.st['star_only'] = np.arange(10,20)
 
     f_sub = f[np.arange(0,20,2)].get_copy_on_access_simsnap()

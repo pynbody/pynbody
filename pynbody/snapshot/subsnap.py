@@ -122,7 +122,8 @@ class SubSnapBase(SimSnap):
         self._subsnap_base.physical_units(*args, **kwargs)
 
     def is_derived_array(self, v, fam=None):
-        return self._subsnap_base.is_derived_array(v)
+        fam = fam or self._unifamily
+        return self._subsnap_base.is_derived_array(v, fam)
 
     def unlink_array(self, name):
         self._subsnap_base.unlink_array(name)

@@ -1483,10 +1483,19 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
         if not self.auto_propagate_off:
             for d_ar in self._dependency_tracker.get_dependents(name):
-                if d_ar in self or self.has_family_key(d_ar):
+                if d_ar in self:
                     if self.is_derived_array(d_ar):
                         del self[d_ar]
                         self._dirty(d_ar)
+                elif self.has_family_key(d_ar):
+                    was_derived = False
+                    for fam in self.families():
+                        if self.is_derived_array(d_ar, fam):
+                            was_derived = True
+                            del self[fam][d_ar]
+                    if was_derived:
+                        self._dirty(d_ar)
+
 
     def is_derived_array(self, name, fam=None):
         """Returns True if the array or family array of given name is

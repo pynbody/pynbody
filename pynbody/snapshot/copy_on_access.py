@@ -46,7 +46,7 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
         if (array_name, fam) in self._dont_try_accessing:
             raise OSError("Previously tried to get this array without success; not trying again")
         try:
-            with self._copy_from.lazy_derive_off:
+            with self._copy_from.lazy_derive_off, self.lazy_derive_off, self.auto_propagate_off:
                 if fam is None:
                     self[array_name] = self._copy_from[array_name]
                 else:
