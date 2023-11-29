@@ -277,7 +277,6 @@ Since this function produces a density estimate, the units of the
        *scalemax*: float
          maximum value to use for the color scale
     """
-    from scipy.stats.kde import gaussian_kde
 
     from .util import fast_kde
 
@@ -437,7 +436,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
          maximum value to use for the color scale
     """
 
-    from matplotlib import colors, ticker
+    from matplotlib import colors
 
     if not subplot:
         import matplotlib.pyplot as plt

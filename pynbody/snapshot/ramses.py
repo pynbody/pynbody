@@ -514,11 +514,12 @@ class RamsesSnap(SimSnap):
         self._rt_blocks = []
         self._rt_blocks_3d = set()
         try:
-            f = open(os.path.join(self._filename, f"info_rt_{self._timestep_id}.txt"))
+            with open(os.path.join(self._filename, f"info_rt_{self._timestep_id}.txt")) as f:
+                lines = f.readlines()
         except OSError:
             return
 
-        self._load_info_from_specified_file(f)
+        self._load_info_from_specified_file(lines)
 
         for group in range(self._info['nGroups']):
             for block in rt_blocks:
@@ -529,8 +530,8 @@ class RamsesSnap(SimSnap):
         for block in self._rt_blocks:
             self._rt_blocks_3d.add(self._array_name_1D_to_ND(block) or block)
 
-    def _load_info_from_specified_file(self, f):
-        for line in f:
+    def _load_info_from_specified_file(self, lines):
+        for line in lines:
             if '=' in line:
                 name, val = list(map(str.strip, line.split('=')))
                 try:
@@ -543,16 +544,17 @@ class RamsesSnap(SimSnap):
 
     def _load_infofile(self):
         self._info = {}
-        f = open(os.path.join(self._filename, f"info_{self._timestep_id}.txt"))
-
-        self._load_info_from_specified_file(f)
+        info_fname = os.path.join(self._filename, f"info_{self._timestep_id}.txt")
+        header_fname = os.path.join(self._filename, f"header_{self._timestep_id}.txt")
+        with open(info_fname) as f:
+            self._load_info_from_specified_file(f)
         try:
-            f = open(os.path.join(self._filename, f"header_{self._timestep_id}.txt"))
             # most of this file is unhelpful, but depending on the ramses
             # version, there may be information on the particle fields present
-            for line in f:
-                if "level" in line:
-                    self._info['particle-blocks'] = line.split()
+            with open(header_fname) as f:
+                for line in f:
+                    if "level" in line:
+                        self._info['particle-blocks'] = line.split()
         except OSError:
             warnings.warn(
                 "No header file found -- no particle block information available")
@@ -581,11 +583,11 @@ class RamsesSnap(SimSnap):
         namelist_file = os.path.join(self._filename, "namelist.txt")
 
         if os.path.exists(namelist_file):
-            f = open(namelist_file)
-            try:
-                self._load_namelist_from_specified_file(f)
-            except ValueError:
-                warnings.warn("Namelist found but unable to read.")
+            with open(namelist_file) as f:
+                try:
+                    self._load_namelist_from_specified_file(f)
+                except ValueError:
+                    warnings.warn("Namelist found but unable to read.")
 
         else:
             warnings.warn("No namelist file found.")

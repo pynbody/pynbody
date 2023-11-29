@@ -112,7 +112,7 @@ def calc_mags(simstars, band='v', cmd_path=None):
     try:
         vals = output_mags - 2.5 * \
             np.log10(simstars['massform'].in_units('Msol'))
-    except KeyError as ValueError:
+    except KeyError:
         vals = output_mags - 2.5 * np.log10(simstars['mass'].in_units('Msol'))
 
     vals.units = None

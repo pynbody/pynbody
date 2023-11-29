@@ -21,8 +21,8 @@ jobs:
         # Following numpy's setup
         buildplat:
         - [ubuntu-20.04, manylinux, x86_64, ""]
-        - [macos-13, macosx, x86_64, "/usr/local/opt/"]
-        - [macos-13-xlarge, macosx, arm64, "/opt/homebrew/opt/"]
+        - [macos-13, macosx, x86_64, "/usr/local"]
+        - [macos-13-xlarge, macosx, arm64, "/opt/homebrew"]
         python: ["cp39", "cp310", "cp311", "cp312"]
     steps:
       - uses: actions/checkout@v3
@@ -36,16 +36,13 @@ jobs:
           echo "CC=gcc-10" >> $GITHUB_ENV
           echo "CXX=g++-10" >> $GITHUB_ENV
 
-      - name: Install Clang (MacOS)
+      - name: Install GCC (MacOS)
         if: startsWith(matrix.buildplat[0], 'macos')
         shell: bash
         run: |
-          brew install llvm@15 libomp pipx
-          echo "CC=${{matrix.buildplat[3]}}/llvm@15/bin/clang" >> $GITHUB_ENV
-          echo "CXX=${{matrix.buildplat[3]}}/llvm@15/bin/clang++" >> $GITHUB_ENV
-          echo 'LDFLAGS=-L${{matrix.buildplat[3]}}/llvm/lib -L${{matrix.buildplat[3]}}/libomp/lib' >> $GITHUB_ENV
-          echo 'CFLAGS=-I${{matrix.buildplat[3]}}/llvm/include -I${{matrix.buildplat[3]}}/libomp/include' >> $GITHUB_ENV
-          echo 'CPPFLAGS=-I${{matrix.buildplat[3]}}/llvm/include -I${{matrix.buildplat[3]}}/libomp/include' >> $GITHUB_ENV
+          brew install gcc@13 pipx
+          echo "CC=${{matrix.buildplat[3]}}/bin/gcc-13" >> $GITHUB_ENV
+          echo "CXX=${{matrix.buildplat[3]}}/bin/g++-13" >> $GITHUB_ENV
 
       # - name: Determine version tag
       #   if: github.event_name != 'pull_request'

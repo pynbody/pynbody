@@ -357,7 +357,7 @@ def mollview(map=None,fig=None,plot=False,filenme=None,
 	# Create the figure
 
 	if not (hold or sub):
-		if fig == None:
+		if fig is None:
 			f=plt.figure(figsize=(8.5,5.4))
 			extent = (0.02,0.05,0.96,0.9)
 		else:

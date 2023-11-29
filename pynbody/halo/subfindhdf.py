@@ -1,8 +1,6 @@
 import os.path
 import warnings
-import weakref
 
-import h5py
 import numpy as np
 
 from .. import array, config_parser, snapshot, units

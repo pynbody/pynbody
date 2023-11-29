@@ -25,6 +25,8 @@ import numpy as np
 import scipy
 import scipy.ndimage
 
+import pynbody.snapshot.simsnap
+
 logger = logging.getLogger('pynbody.sph')
 
 from .. import array, config, config_parser, snapshot, units, util
@@ -47,7 +49,7 @@ _approximate_image = config_parser.getboolean('sph', 'approximate-fast-images')
 def _exception_catcher(call_fn, exception_list, *args):
     try:
         call_fn(*args)
-    except Exception as e:
+    except Exception:
         exception_list.append(sys.exc_info())
 
 def _thread_map(func, *args):
@@ -124,7 +126,7 @@ def build_tree_or_trees(sim):
     logger.info('Tree build done in %5.3g s' % (end - start))
 
 
-@snapshot.SimSnap.stable_derived_quantity
+@pynbody.snapshot.simsnap.SimSnap.stable_derived_quantity
 def smooth(self):
     build_tree_or_trees(self)
 
@@ -155,7 +157,7 @@ def _get_smooth_array_ensuring_compatibility(self):
         self['smooth'] = smooth_ar = smooth(self)
     return smooth_ar
 
-@snapshot.SimSnap.stable_derived_quantity
+@pynbody.snapshot.simsnap.SimSnap.stable_derived_quantity
 def rho(self):
     build_tree_or_trees(self)
 
@@ -440,7 +442,7 @@ def _interpolated_renderer(fn, levels):
             kwargs['res_downgrade'] = sub
             new_im = fn(*args, **kwargs)
             zoom = [float(x)/y for x,y in zip(base.shape, new_im.shape)]
-            base += scipy.ndimage.interpolation.zoom(new_im, zoom, order=1)
+            base += scipy.ndimage.zoom(new_im, zoom, order=1)
         return base
     return render_fn
 

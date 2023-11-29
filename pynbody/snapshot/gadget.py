@@ -14,13 +14,14 @@ import configparser
 import copy
 import errno
 import itertools
+import os
 import struct
 import sys
 import warnings
 
 import numpy as np
 
-from .. import array, config, config_parser, family, units
+from .. import array, config_parser, family, units
 from . import SimSnap, namemapper
 
 # This is set here and not in a config file because too many things break
@@ -259,106 +260,103 @@ class GadgetFile:
         self.endian = ''
         self.format2 = True
         t_part = 0
-        fd = open(filename, "rb")
-        self.check_format(fd)
-        # If format 1, load the block definitions.
-        if not self.format2:
-            self.block_names = config_parser.get(
-                'gadget-1-blocks', "blocks").split(",")
-            self.block_names = [q.upper().ljust(4) for q in self.block_names]
-            if sys.version_info[0] > 2:
-                self.block_names = [str.encode(x, 'utf-8') for x in self.block_names]
-            # This is a counter for the fallback
-            self.extra = 0
-        while True:
-            block = GadgetBlock()
-            (name, block.length) = self.read_block_head(fd)
-            if block.length == 0:
-                break
-            # Do special things for the HEAD block
-            if name[0:4] == b"HEAD":
-                if block.length != 256:
-                    raise OSError("Mis-sized HEAD block in " + filename)
-                self.header = fd.read(256)
-                if len(self.header) != 256:
-                    raise OSError("Could not read HEAD block in " + filename)
-                self.header = _construct_gadget_header(
-                    self.header, self.endian)
+        with open(filename, "rb") as fd:
+            self.check_format(fd)
+            # If format 1, load the block definitions.
+            if not self.format2:
+                self.block_names = config_parser.get(
+                    'gadget-1-blocks', "blocks").split(",")
+                self.block_names = [q.upper().ljust(4) for q in self.block_names]
+                if sys.version_info[0] > 2:
+                    self.block_names = [str.encode(x, 'utf-8') for x in self.block_names]
+                # This is a counter for the fallback
+                self.extra = 0
+            while True:
+                block = GadgetBlock()
+                (name, block.length) = self.read_block_head(fd)
+                if block.length == 0:
+                    break
+                # Do special things for the HEAD block
+                if name[0:4] == b"HEAD":
+                    if block.length != 256:
+                        raise OSError("Mis-sized HEAD block in " + filename)
+                    self.header = fd.read(256)
+                    if len(self.header) != 256:
+                        raise OSError("Could not read HEAD block in " + filename)
+                    self.header = _construct_gadget_header(
+                        self.header, self.endian)
+                    record_size = self.read_block_foot(fd)
+                    if record_size != 256:
+                        raise OSError("Bad record size for HEAD in " + filename)
+                    t_part = self.header.npart.sum()
+                    if  ((not self.format2) and
+                        ((self.header.npart != 0) * (self.header.mass == 0)).sum()==0):
+                        # The "Spec" says that if all the existing particle masses
+                        # are in the header, we shouldn't have a MASS block
+                        self.block_names.remove(b"MASS")
+                    continue
+                # Set the partlen, using our amazing heuristics
+                success = False
+                if name[0:4] == b"POS " or name[0:4] == b"VEL ":
+                    if block.length == t_part * 24:
+                        block.partlen = 24
+                        block.data_type = np.float64
+                    else:
+                        block.partlen = 12
+                        block.data_type = np.float32
+                    block.p_types = self.header.npart != 0
+                    success = True
+                elif name[0:4] == b"ID  ":
+                    # Heuristic for long (64-bit) IDs
+                    if block.length == t_part * 4:
+                        block.partlen = 4
+                        block.data_type = np.int32
+                    else:
+                        block.partlen = 8
+                        block.data_type = np.int64
+                    block.p_types = self.header.npart != 0
+                    success = True
+
+                block.start = fd.tell()
+                # Check for the case where the record size overflows an int.
+                # If this is true, we can't get record size from the length and we just have to guess
+                # At least the record sizes at either end should be consistently wrong.
+                # Better hope this only happens for blocks where all particles are
+                # present.
+                extra_len = int(t_part) * block.partlen
+                if extra_len >= 2 ** 32:
+                    fd.seek(extra_len, 1)
+                else:
+                    fd.seek(block.length, 1)
                 record_size = self.read_block_foot(fd)
-                if record_size != 256:
-                    raise OSError("Bad record size for HEAD in " + filename)
-                t_part = self.header.npart.sum()
-                if  ((not self.format2) and
-                	((self.header.npart != 0) * (self.header.mass == 0)).sum()==0):
-                    # The "Spec" says that if all the existing particle masses
-                    # are in the header, we shouldn't have a MASS block
-                    self.block_names.remove(b"MASS")
-                continue
-            # Set the partlen, using our amazing heuristics
-            success = False
-            if name[0:4] == b"POS " or name[0:4] == b"VEL ":
-                if block.length == t_part * 24:
-                    block.partlen = 24
-                    block.data_type = np.float64
+                if record_size != block.length:
+                    raise OSError("Corrupt record in " +
+                                filename + " footer for block " + name + "dtype" + str(block.data_type))
+                if extra_len >= 2 ** 32:
+                    block.length = extra_len
+
+                if not success:
+                    # Figure out what particles are here and what types
+                    # they have. This also is a heuristic, which assumes
+                    # that blocks are either fully present or not for a
+                    # given particle. It also has to try all
+                    # possibilities of dimensions of array and data type.
+                    for dim, tp in (1, np.float32), (1, np.float64), (3, np.float32), (3, np.float64), (11, np.float32):
+                        try:
+                            block.data_type = tp
+                            block.partlen = np.dtype(tp).itemsize * dim
+                            block.p_types = self.get_block_types(
+                                block, self.header.npart)
+                            success = True
+                            break
+                        except ValueError:
+                            continue
+
+                if not success:
+                    warnings.warn("Encountered a gadget block %r which could not be interpreted - is it a strange length or data type (length=%d)?" %
+                                (name, block.length), RuntimeWarning)
                 else:
-                    block.partlen = 12
-                    block.data_type = np.float32
-                block.p_types = self.header.npart != 0
-                success = True
-            elif name[0:4] == b"ID  ":
-                # Heuristic for long (64-bit) IDs
-                if block.length == t_part * 4:
-                    block.partlen = 4
-                    block.data_type = np.int32
-                else:
-                    block.partlen = 8
-                    block.data_type = np.int64
-                block.p_types = self.header.npart != 0
-                success = True
-
-            block.start = fd.tell()
-            # Check for the case where the record size overflows an int.
-            # If this is true, we can't get record size from the length and we just have to guess
-            # At least the record sizes at either end should be consistently wrong.
-            # Better hope this only happens for blocks where all particles are
-            # present.
-            extra_len = int(t_part) * block.partlen
-            if extra_len >= 2 ** 32:
-                fd.seek(extra_len, 1)
-            else:
-                fd.seek(block.length, 1)
-            record_size = self.read_block_foot(fd)
-            if record_size != block.length:
-                raise OSError("Corrupt record in " +
-                              filename + " footer for block " + name + "dtype" + str(block.data_type))
-            if extra_len >= 2 ** 32:
-                block.length = extra_len
-
-            if not success:
-                # Figure out what particles are here and what types
-                # they have. This also is a heuristic, which assumes
-                # that blocks are either fully present or not for a
-                # given particle. It also has to try all
-                # possibilities of dimensions of array and data type.
-                for dim, tp in (1, np.float32), (1, np.float64), (3, np.float32), (3, np.float64), (11, np.float32):
-                    try:
-                        block.data_type = tp
-                        block.partlen = np.dtype(tp).itemsize * dim
-                        block.p_types = self.get_block_types(
-                            block, self.header.npart)
-                        success = True
-                        break
-                    except ValueError:
-                        continue
-
-            if not success:
-                warnings.warn("Encountered a gadget block %r which could not be interpreted - is it a strange length or data type (length=%d)?" %
-                              (name, block.length), RuntimeWarning)
-            else:
-                self.blocks[name[0:4]] = block
-
-        # and we're done.
-        fd.close()
+                    self.blocks[name[0:4]] = block
 
         # Make a mass block if one isn't found.
         if b'MASS' not in self.blocks:
@@ -471,14 +469,14 @@ class GadgetFile:
         p_start = self.get_start_part(name, p_type)
         if p_toread > parts:
             p_toread = parts
-        fd = open(self._filename, 'rb')
-        fd.seek(cur_block.start + int(cur_block.partlen * p_start), 0)
-        # This is just so that we can get a size for the type
-        dt = np.dtype(cur_block.data_type)
-        n_type = p_toread * cur_block.partlen // dt.itemsize
-        data = np.fromfile(
-            fd, dtype=cur_block.data_type, count=n_type, sep='')
-        fd.close()
+        with open(self._filename, 'rb') as fd:
+            fd.seek(cur_block.start + int(cur_block.partlen * p_start), 0)
+            # This is just so that we can get a size for the type
+            dt = np.dtype(cur_block.data_type)
+            n_type = p_toread * cur_block.partlen // dt.itemsize
+            data = np.fromfile(
+                fd, dtype=cur_block.data_type, count=n_type, sep='')
+
         if self.endian != '=':
             data = data.byteswap(True)
         return (p_toread, data)
@@ -538,33 +536,30 @@ class GadgetFile:
         if bt.kind != dt.kind:
             raise ValueError("Data of incorrect type passed to write_block")
         # Open the file
-        if filename == None:
-            fd = open(self._filename, "r+b")
-        else:
-            fd = open(filename, "r+b")
-        # Seek to the start of the block
-        fd.seek(cur_block.start + cur_block.partlen * p_start, 0)
-        # Add the block header if we are at the start of a block
-        if p_type == MinType or p_type < 0:
-            data = self.write_block_header(name, cur_block.length)
-            # Better seek back a bit first.
-            fd.seek(-len(data), 1)
-            fd.write(data)
+        fn = self._filename if filename is None else filename
 
-        if self.endian != '=':
-            big_data = big_data.byteswap(False)
+        with open(fn, 'r+b') as fd:
+            # Seek to the start of the block
+            fd.seek(cur_block.start + cur_block.partlen * p_start, 0)
+            # Add the block header if we are at the start of a block
+            if p_type == MinType or p_type < 0:
+                data = self.write_block_header(name, cur_block.length)
+                # Better seek back a bit first.
+                fd.seek(-len(data), 1)
+                fd.write(data)
 
-        # Actually write the data
-        # Make sure to ravel it, otherwise the wrong amount will be written,
-        # because it will also write nulls every time the first array dimension
-        # changes.
-        d = np.ravel(big_data.astype(dt)).tostring()
-        fd.write(d)
-        if p_type == MaxType or p_type < 0:
-            data = self.write_block_footer(name, cur_block.length)
-            fd.write(data)
+            if self.endian != '=':
+                big_data = big_data.byteswap(False)
 
-        fd.close()
+            # Actually write the data
+            # Make sure to ravel it, otherwise the wrong amount will be written,
+            # because it will also write nulls every time the first array dimension
+            # changes.
+            d = np.ravel(big_data.astype(dt)).tobytes()
+            fd.write(d)
+            if p_type == MaxType or p_type < 0:
+                data = self.write_block_footer(name, cur_block.length)
+                fd.write(data)
 
     def add_file_block(self, name, blocksize, partlen=4, dtype=np.float32, p_types=None):
         """Add a block to the block table at the end of the file. Do not actually write anything"""
@@ -618,15 +613,15 @@ class GadgetFile:
         head.npart = np.array(self.header.npart)
         data = self.write_block_header(b"HEAD", 256)
         data += head.serialize()
-        if filename == None:
+        if filename is None:
             filename = self._filename
-        # a mode will ignore the file position, and w truncates the file.
+
         try:
             fd = open(filename, "r+b")
-        except OSError as xxx_todo_changeme:
+        except OSError as error:
             # If we couldn't open it because it doesn't exist open it for
             # writing.
-            (err, strerror) = xxx_todo_changeme.args
+            (err, strerror) = error.args
             # If we couldn't open it because it doesn't exist open it for
             # writing.
             if err == errno.ENOENT:
@@ -634,15 +629,18 @@ class GadgetFile:
             # If we couldn't open it for any other reason, reraise exception
             else:
                 raise OSError(err, strerror)
-        fd.seek(0)  # Header always at start of file
-        # Write header
-        fd.write(data)
-        # Seek 48 bytes forward, to skip the padding (which may contain extra
-        # data)
-        fd.seek(48, 1)
-        data = self.write_block_footer(b"HEAD", 256)
-        fd.write(data)
-        fd.close()
+
+        try:
+            fd.seek(0)  # Header always at start of file
+            # Write header
+            fd.write(data)
+            # Seek 48 bytes forward, to skip the padding (which may contain extra
+            # data)
+            fd.seek(48, 1)
+            data = self.write_block_footer(b"HEAD", 256)
+            fd.write(data)
+        finally:
+            fd.close()
 
 
 class GadgetWriteFile (GadgetFile):
@@ -707,15 +705,12 @@ class GadgetSnap(SimSnap):
         self._ignore_cosmo = ignore_cosmo
         npart = np.empty(N_TYPE)
         # Check whether the file exists, and get the ".0" right
-        try:
-            fd = open(filename, 'rb')
+        if os.path.exists(filename):
             files = [filename]
-        except OSError:
-            fd = open(filename + ".0", 'rb')
-            # The second time if there is an exception we let it go through
+        elif os.path.exists(filename + ".0"):
             filename = filename + ".0"
             files = None
-        fd.close()
+
         if filename[-2:] == ".0":
             self._filename = filename[:-2]
         # Read the first file and use it to get an idea of how many files we
@@ -781,9 +776,9 @@ class GadgetSnap(SimSnap):
                 mm = nn.lower().strip()
             else:
                 mm = nn.lower().strip().decode('utf-8')
-            if not nn in _rev_name_map:
+            if nn not in _rev_name_map:
                 _rev_name_map[nn] = mm
-            if not mm in _name_map:
+            if mm not in _name_map:
                 _name_map[mm] = nn
 
         # Use translated keys only
@@ -891,7 +886,7 @@ class GadgetSnap(SimSnap):
 
     def _load_array(self, name, fam=None):
         """Read in data from a Gadget file.
-        If fam != None, loads only data for that particle family"""
+        If fam is not None, loads only data for that particle family"""
         # g_name is the internal name
         g_name = _translate_array_name(name)
 
@@ -956,19 +951,18 @@ class GadgetSnap(SimSnap):
     def _can_load(f):
         """Check whether we can load the file as Gadget format by reading
         the first 4 bytes"""
-        try:
-            fd = open(f, 'rb')
-        except OSError:
-            try:
-                fd = open(f + ".0", 'rb')
-            except Exception:
+        fname = f
+        if not os.path.exists(f):
+            if not os.path.exists(f + ".0"):
                 return False
-                # If we can't open the file, we certainly can't load it...
-        (r,) = struct.unpack('=I', fd.read(4))
-        fd.close()
+            fname = f + ".0"
+
+        with open(fname, "br") as fd:
+            r, = struct.unpack('=I', fd.read(4))
+
         # First int32 is 8 for a Gadget 2 file, or 256 for Gadget 1, or the
         # byte swapped equivalent.
-        if r == 8 or r == 134217728 or r == 65536 or r == 256:
+        if r in (8, 134217728, 65536, 256):
             return True
         else:
             return False
@@ -983,11 +977,11 @@ class GadgetSnap(SimSnap):
             all_keys = set(self.loadable_keys()).union(
                 list(self.keys())).union(self.family_keys())
             all_keys = [
-                k for k in all_keys if not k in ["x", "y", "z", "vx", "vy", "vz"]]
+                k for k in all_keys if k not in ["x", "y", "z", "vx", "vy", "vz"]]
             # This code supports (limited) format conversions
             if self.__class__ is not GadgetSnap:
                 # We need a filename if we are writing to a new type
-                if filename == None:
+                if filename is None:
                     raise Exception(
                         "Please specify a filename to write a new file.")
             # Splitting the files correctly is hard; the particles need to be reordered, and
@@ -1066,7 +1060,7 @@ class GadgetSnap(SimSnap):
                 return
 
             # Write headers
-            if filename != None:
+            if filename is not None:
                 if np.size(self._files) > 1:
                     for i in np.arange(0, np.size(self._files)):
                         ffile = filename + "." + str(i)
@@ -1132,7 +1126,7 @@ class GadgetSnap(SimSnap):
                         if f_parts[i]==0:
                             continue
                         # Set up filename
-                        if filename != None:
+                        if filename is not None:
                             ffile = filename + "." + str(i)
                             if nfiles == 1:
                                 ffile = filename

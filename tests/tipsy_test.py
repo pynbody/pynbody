@@ -157,6 +157,7 @@ def test_array_write():
     assert all(np.abs(f['array_write_test'] - f['array_read_test']) < 1.e-5)
 
 
+@pytest.mark.filterwarnings("ignore:Paramfile suggests time is cosmological.*:RuntimeWarning")
 def test_isolated_read():
     s = pynbody.load('testdata/isolated_ics.std')
 
@@ -290,6 +291,7 @@ def test_unit_persistence():
     assert f1['pos'].units != 'kpc'
 
 
+@pytest.mark.filterwarnings("ignore:No log file found; reverting to guess-and-check:UserWarning")
 def test_3d_interpolation():
     # this is the result using scipy.interpolate.interp
     ref3d = np.array([0.07527991,  0.06456315,  0.08380653,  0.15143689,  0.15568259,
@@ -372,6 +374,7 @@ def test_issue_313():
 def test_issue_315():
     assert np.allclose(f.g['cs'][:3], [ 319.46246429,  359.4923197,   300.13751002])
 
+@pytest.mark.filterwarnings("ignore:No log file found; reverting to guess-and-check:UserWarning")
 def test_read_starlog_no_log():
     rhoform = f.s['rhoform'].in_units('Msol kpc**-3')[:1000:100]
     correct = np.array([ 2472533.42024787,  5336799.91228041, 64992197.77874849,

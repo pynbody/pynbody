@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
@@ -16,13 +17,13 @@ def teardown_module():
 
 def test_construct():
     """Check the basic properties of the snapshot"""
-    assert (np.size(snap._files) == 2)
-    assert(snap.header.num_files == 2)
-    assert (snap.filename == "testdata/test_g2_snap")
-    assert(snap._num_particles == 8192)
+    assert np.size(snap._files) == 2
+    assert snap.header.num_files == 2
+    assert snap.filename == "testdata/test_g2_snap"
+    assert snap._num_particles == 8192
     for f in snap._files:
-        assert(f.format2 == True)
-        assert(f.endian == "=")
+        assert f.format2
+        assert f.endian == "="
 
 def test_properties():
     assert "time" in snap.properties
@@ -104,7 +105,8 @@ def test_header():
 
 def test_g1_load():
     """Check we can load gadget-1 files also"""
-    snap2 = pynbody.load("testdata/gadget1.snap")
+    with pytest.warns(RuntimeWarning, match=r"Run out of block names in the config file. Using fallbacks: UNK\*"):
+        snap2 = pynbody.load("testdata/gadget1.snap")
 
 
 def test_write():
@@ -112,10 +114,10 @@ def test_write():
     and the written and the read are the same."""
     snap.write(filename='testdata/test_gadget_write')
     snap3 = pynbody.load('testdata/test_gadget_write')
-    assert(set(snap.loadable_keys()) == set(snap3.loadable_keys()))
-    assert((snap3["pos"].view(np.ndarray) == snap["pos"]).all())
-    assert((snap3.gas["rho"].view(np.ndarray) == snap.gas["rho"]).all())
-    assert(snap3.check_headers(snap.header, snap3.header))
+    assert set(snap.loadable_keys()) == set(snap3.loadable_keys())
+    npt.assert_equal(snap3["pos"].view(np.ndarray), snap["pos"])
+    npt.assert_equal(snap3.gas["rho"].view(np.ndarray), snap.gas["rho"])
+    assert snap3.check_headers(snap.header, snap3.header)
 
 
 def test_conversion():

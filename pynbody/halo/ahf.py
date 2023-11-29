@@ -147,13 +147,12 @@ class AHFCatalogue(HaloCatalogue):
 
     def _write_fpos(self):
         try:
-            f = open(self._ahfBasename + 'fpos', 'w')
-            for i in range(self._nhalos):
-                if i < self._nhalos - 1:
-                    f.write(str(self._halos[i+1].properties['fstart'])+'\n')
-                else:
-                    f.write(str(self._halos[i+1].properties['fstart']))
-            f.close()
+            with open(self._ahfBasename + 'fpos', 'w') as f:
+                for i in range(self._nhalos):
+                    if i < self._nhalos - 1:
+                        f.write(str(self._halos[i+1].properties['fstart'])+'\n')
+                    else:
+                        f.write(str(self._halos[i+1].properties['fstart']))
         except OSError:
             warnings.warn("Unable to write AHF_fpos file; performance will be reduced. Pass write_fpos=False to halo constructor to suppress this message.")
 
@@ -202,28 +201,32 @@ class AHFCatalogue(HaloCatalogue):
         if self._all_parts is None:
             f = util.open_(self._ahfBasename+'particles')
 
-        cnt = 0
-        ar = np.empty(len(target),dtype=np.int32)
-        ar[:]=-1
-        for i in hord:
-            halo = self._halos[i]
-            if self._all_parts is not None:
-                ids = halo.get_index_list(self.base)
-            else:
-                f.seek(halo.properties['fstart'],0)
-                ids = self._load_ahf_particle_block(f,halo.properties['npart'])
-            if family is None:
-                ar[ids] = hcnt[cnt]
-            else:
-                if famslice:
-                    t_mask = (ids >= famslice.start) & (ids < famslice.stop)
-                    id_t = ids[np.where(t_mask)] - famslice.start
-                else:
-                    fpos_ar = target.get_index_list(self.base)
-                    id_t, = np.where(np.in1d(fpos_ar, ids))
+        try:
+            cnt = 0
+            ar = np.full(len(target), -1, dtype=np.int32)
 
-                ar[id_t] = hcnt[cnt]
-            cnt += 1
+            for i in hord:
+                halo = self._halos[i]
+                if self._all_parts is not None:
+                    ids = halo.get_index_list(self.base)
+                else:
+                    f.seek(halo.properties['fstart'], 0)
+                    ids = self._load_ahf_particle_block(f, halo.properties['npart'])
+                if family is None:
+                    ar[ids] = hcnt[cnt]
+                else:
+                    if famslice:
+                        t_mask = (ids >= famslice.start) & (ids < famslice.stop)
+                        id_t = ids[np.where(t_mask)] - famslice.start
+                    else:
+                        fpos_ar = target.get_index_list(self.base)
+                        id_t, = np.where(np.in1d(fpos_ar, ids))
+
+                    ar[id_t] = hcnt[cnt]
+                cnt += 1
+        finally:
+            if self._all_parts is None:
+                f.close()
         return ar
 
     def _setup_children(self):
@@ -250,8 +253,8 @@ class AHFCatalogue(HaloCatalogue):
             raise RuntimeError("Parent SimSnap has been deleted")
         if self._all_parts is not None:
             return self._halos[i]
-        else:
-            f = util.open_(self._ahfBasename+'particles')
+
+        with util.open_(self._ahfBasename+'particles') as f:
             fpos = self._halos[i].properties['fstart']
             f.seek(fpos,0)
             return Halo(
@@ -275,13 +278,10 @@ class AHFCatalogue(HaloCatalogue):
         if self._dosort is not None:
             i = self._sorted_indices[i-1]
 
-        f = util.open_(self._ahfBasename + 'particles')
-
-        fpos = self._halos[i].properties['fstart']
-        f.seek(fpos,0)
-        ids = self._load_ahf_particle_block(f, nparts=self._halos[i].properties['npart'])
-
-        f.close()
+        with util.open_(self._ahfBasename + 'particles') as f:
+            fpos = self._halos[i].properties['fstart']
+            f.seek(fpos,0)
+            ids = self._load_ahf_particle_block(f, nparts=self._halos[i].properties['npart'])
 
         return load(self.base.filename, take=ids)
 
@@ -289,19 +289,17 @@ class AHFCatalogue(HaloCatalogue):
         """Get the starting positions of each halo's particle information within the
         AHF_particles file for faster access later"""
         if os.path.exists(self._ahfBasename + 'fpos'):
-            f = util.open_(self._ahfBasename + 'fpos')
-            for i in range(self._nhalos):
-                self._halos[i+1].properties['fstart'] = int(f.readline())
-            f.close()
+            with util.open_(self._ahfBasename + 'fpos') as f:
+                for i in range(self._nhalos):
+                    self._halos[i+1].properties['fstart'] = int(f.readline())
         else:
-            f = util.open_(filename)
-            for h in range(self._nhalos):
-                if len(f.readline().split()) == 1:
-                    f.readline()
-                self._halos[h+1].properties['fstart'] = f.tell()
-                for i in range(self._halos[h+1].properties['npart']):
-                    f.readline()
-            f.close()
+            with util.open_(filename) as f:
+                for h in range(self._nhalos):
+                    if len(f.readline().split()) == 1:
+                        f.readline()
+                    self._halos[h+1].properties['fstart'] = f.tell()
+                    for i in range(self._halos[h+1].properties['npart']):
+                        f.readline()
 
     def _load_ahf_particle_block(self, f, nparts=None):
         """Load the particles for the next halo described in particle file f"""
@@ -388,31 +386,32 @@ class AHFCatalogue(HaloCatalogue):
             self._iord_to_fpos = np.zeros(self.base['iord'].max()+1,dtype=int)
             self._iord_to_fpos[self.base['iord']] = np.arange(len(self._base()))
 
-        f = util.open_(filename)
         if filename.split("z")[-2][-1] == ".":
             self.isnew = True
         else:
             self.isnew = False
 
-        if self._all_parts is not None:
+        if self._all_parts is None:
+            for h in range(self._nhalos):
+                self._halos[h + 1] = DummyHalo()
+            return
+
+        with util.open_(filename) as f:
             for h in range(self._nhalos):
                 self._halos[h + 1] = Halo(
                     h + 1, self, self.base, self._load_ahf_particle_block(f))
                 self._halos[h + 1]._descriptor = "halo_" + str(h + 1)
-        else:
-            for h in range(self._nhalos):
-                self._halos[h + 1] = DummyHalo()
-
-        f.close()
 
     def _load_ahf_halos(self, filename):
         # Note: we need to open in 'rt' mode in case the AHF catalogue
         # is gzipped.
-        f = util.open_(filename, "rt")
-        line = f.readline()
+        with util.open_(filename, "rt") as f:
+            first_line = f.readline()
+            lines = f.readlines()
+
         # get all the property names from the first, commented line
         # remove (#)
-        fields = line.replace("#", "").split()
+        fields = first_line.replace("#", "").split()
         keys = [re.sub(r'\([0-9]*\)', '', field)
                 for field in fields]
         # provide translations
@@ -438,7 +437,7 @@ class AHFCatalogue(HaloCatalogue):
             if keys[0] == '#':
                 keys = keys[1:]
 
-        for h, line in enumerate(f):
+        for h, line in enumerate(lines):
             values = [
                 float(x) if any(_ in x for _ in (".", "e", "nan", "inf"))
                 else int(x)
@@ -451,11 +450,11 @@ class AHFCatalogue(HaloCatalogue):
                     self._halos[h + 1].properties[key] = values[i]
                 else:
                     self._halos[h + 1].properties[key] = values[i - 1]
-        f.close()
 
     def _load_ahf_substructure(self, filename):
         try:
-            f = util.open_(filename)
+            with util.open_(filename) as f:
+                lines = f.readlines()
         except FileNotFoundError:
             self._setup_children()
             return
@@ -469,8 +468,7 @@ class AHFCatalogue(HaloCatalogue):
             id = halo.properties.get("ID", i)
             ID2index[id] = i
 
-        line = f.readline()
-        while line:
+        for line in lines:
             try:
                 haloid, _nsubhalos = (int(x) for x in line.split())
                 halo_index = ID2index[haloid]
@@ -498,10 +496,6 @@ class AHFCatalogue(HaloCatalogue):
             for ichild in children:
                 self._halos[ichild].properties['parent_id'] = halo_index
 
-            line = f.readline()
-
-        f.close()
-
     def writegrp(self, grpoutfile=False):
         """
         simply write a skid style .grp file from ahf_particles
@@ -516,18 +510,17 @@ class AHFCatalogue(HaloCatalogue):
         if not grpoutfile:
             grpoutfile = snapshot.filename + '.grp'
         logger.info("Writing grp file to %s" % grpoutfile)
-        fpout = open(grpoutfile, "w")
-        print(len(snapshot['grp']), file=fpout)
+        with open(grpoutfile, "w") as fpout:
+            print(len(snapshot['grp']), file=fpout)
 
-        # writing 1st to a string sacrifices memory for speed.
-        # but this is much faster than numpy.savetxt (could make an option).
-        # it is assumed that max halo id <= nhalos (i.e.length of string is set
-        # len(str(nhalos))
-        stringarray = snapshot['grp'].astype(
-            '|S' + str(len(str(self._nhalos))))
-        outstring = "\n".join(stringarray)
-        print(outstring, file=fpout)
-        fpout.close()
+            # writing 1st to a string sacrifices memory for speed.
+            # but this is much faster than numpy.savetxt (could make an option).
+            # it is assumed that max halo id <= nhalos (i.e.length of string is set
+            # len(str(nhalos))
+            stringarray = snapshot['grp'].astype(
+                '|S' + str(len(str(self._nhalos))))
+            outstring = "\n".join(stringarray)
+            print(outstring, file=fpout)
 
     def writestat(self, snapshot, halos, statoutfile, hubble=None):
         """
@@ -549,46 +542,46 @@ class AHFCatalogue(HaloCatalogue):
 
         outfile = statoutfile
         logger.info("Writing stat file to %s" % statoutfile)
-        fpout = open(outfile, "w")
-        header = "#Grp  N_tot     N_gas      N_star    N_dark    Mvir(M_sol)       Rvir(kpc)       GasMass(M_sol) StarMass(M_sol)  DarkMass(M_sol)  V_max  R@V_max  VelDisp    Xc   Yc   Zc   VXc   VYc   VZc   Contam   Satellite?   False?   ID_A"
-        print(header, file=fpout)
-        nhalos = halos._nhalos
-        for ii in range(nhalos):
-            h = halos[ii + 1].properties  # halo index starts with 1 not 0
-            # 'Contaminated'? means multiple dark matter particle masses in halo)"
-            icontam = np.where(halos[ii + 1].dark['mass'] > mindarkmass)
-            if (len(icontam[0]) > 0):
-                contam = "contam"
-            else:
-                contam = "clean"
-            # may want to add implement satellite test and false central
-            # breakup test.
+        with open(outfile, "w") as fout:
+            header = "#Grp  N_tot     N_gas      N_star    N_dark    Mvir(M_sol)       Rvir(kpc)       GasMass(M_sol) StarMass(M_sol)  DarkMass(M_sol)  V_max  R@V_max  VelDisp    Xc   Yc   Zc   VXc   VYc   VZc   Contam   Satellite?   False?   ID_A"
+            print(header, file=fpout)
+            nhalos = halos._nhalos
+            for ii in range(nhalos):
+                h = halos[ii + 1].properties  # halo index starts with 1 not 0
+                # 'Contaminated'? means multiple dark matter particle masses in halo)"
+                icontam = np.where(halos[ii + 1].dark['mass'] > mindarkmass)
+                if (len(icontam[0]) > 0):
+                    contam = "contam"
+                else:
+                    contam = "clean"
+                # may want to add implement satellite test and false central
+                # breakup test.
 
-            n_dark = h['npart'] - h['n_gas'] - h['n_star']
-            M_dark = h['mass'] - h['M_gas'] - h['M_star']
-            ss = "     "  # can adjust column spacing
-            outstring = str(int(h['halo_id'])) + ss
-            outstring += str(int(h['npart'])) + ss + str(int(h['n_gas'])) + ss
-            outstring += str(int(h['n_star'])) + ss + str(int(n_dark)) + ss
-            outstring += str(h['mass'] / hubble) + ss + \
-                str(h['Rvir'] / hubble) + ss
-            outstring += str(h['M_gas'] / hubble) + ss + \
-                str(h['M_star'] / hubble) + ss
-            outstring += str(M_dark / hubble) + ss
-            outstring += str(h['Vmax']) + ss + str(h['Rmax'] / hubble) + ss
-            outstring += str(h['sigV']) + ss
-            # pos: convert kpc/h to mpc (no h).
-            outstring += str(h['Xc'] / hubble / 1000.) + ss
-            outstring += str(h['Yc'] / hubble / 1000.) + ss
-            outstring += str(h['Zc'] / hubble / 1000.) + ss
-            outstring += str(h['VXc']) + ss + \
-                str(h['VYc']) + ss + str(h['VZc']) + ss
-            outstring += contam + ss
-            outstring += "unknown" + \
-                ss  # unknown means sat. test not implemented.
-            outstring += "unknown" + ss  # false central breakup.
-            print(outstring, file=fpout)
-        fpout.close()
+                n_dark = h['npart'] - h['n_gas'] - h['n_star']
+                M_dark = h['mass'] - h['M_gas'] - h['M_star']
+                ss = "     "  # can adjust column spacing
+                outstring = str(int(h['halo_id'])) + ss
+                outstring += str(int(h['npart'])) + ss + str(int(h['n_gas'])) + ss
+                outstring += str(int(h['n_star'])) + ss + str(int(n_dark)) + ss
+                outstring += str(h['mass'] / hubble) + ss + \
+                    str(h['Rvir'] / hubble) + ss
+                outstring += str(h['M_gas'] / hubble) + ss + \
+                    str(h['M_star'] / hubble) + ss
+                outstring += str(M_dark / hubble) + ss
+                outstring += str(h['Vmax']) + ss + str(h['Rmax'] / hubble) + ss
+                outstring += str(h['sigV']) + ss
+                # pos: convert kpc/h to mpc (no h).
+                outstring += str(h['Xc'] / hubble / 1000.) + ss
+                outstring += str(h['Yc'] / hubble / 1000.) + ss
+                outstring += str(h['Zc'] / hubble / 1000.) + ss
+                outstring += str(h['VXc']) + ss + \
+                    str(h['VYc']) + ss + str(h['VZc']) + ss
+                outstring += contam + ss
+                outstring += "unknown" + \
+                    ss  # unknown means sat. test not implemented.
+                outstring += "unknown" + ss  # false central breakup.
+                print(outstring, file=fpout)
+
         return 1
 
     def writetipsy(self, snapshot, halos, tipsyoutfile, hubble=None):
@@ -713,46 +706,42 @@ class AHFCatalogue(HaloCatalogue):
             isAHFstep = False
         # build units file
         if isAHFstep:
-            f = open('tipsy.info', 'w')
-            f.write(str(sim.properties['omegaM0']) + "\n")
-            f.write(str(sim.properties['omegaL0']) + "\n")
-            f.write(str(sim['pos'].units.ratio(
-                units.kpc, a=1) / 1000.0 * sim.properties['h']) + "\n")
-            f.write(
-                str(sim['vel'].units.ratio(units.km / units.s, a=1)) + "\n")
-            f.write(str(sim['mass'].units.ratio(units.Msol)) + "\n")
-            f.close()
-            # make input file
-            f = open('AHF.in', 'w')
-            f.write(sim._filename + " " + str(typecode) + " 1\n")
-            f.write(sim._filename + "\n256\n5\n5\n0\n0\n0\n0\n")
-            f.close()
+            with open('tipsy.info', 'w') as f:
+                f.write(str(sim.properties['omegaM0']) + "\n")
+                f.write(str(sim.properties['omegaL0']) + "\n")
+                f.write(str(sim['pos'].units.ratio(
+                    units.kpc, a=1) / 1000.0 * sim.properties['h']) + "\n")
+                f.write(
+                    str(sim['vel'].units.ratio(units.km / units.s, a=1)) + "\n")
+                f.write(str(sim['mass'].units.ratio(units.Msol)) + "\n")
+                f.close()
+                # make input file
+                f = open('AHF.in', 'w')
+                f.write(sim._filename + " " + str(typecode) + " 1\n")
+                f.write(sim._filename + "\n256\n5\n5\n0\n0\n0\n0\n")
         else:
-            # make input file
-            f = open('AHF.in', 'w')
-
             lgmax = np.min([int(2 ** np.floor(np.log2(
                 1.0 / np.min(sim['eps'])))), 131072])
             # hardcoded maximum 131072 might not be necessary
 
-            print(config_parser.get('AHFCatalogue', 'Config', vars={
-                'filename': sim._filename,
-                'typecode': typecode,
-                'gridmax': lgmax
-            }), file=f)
+            # make input file
+            with open('AHF.in', 'w') as f:
+                print(config_parser.get('AHFCatalogue', 'Config', vars={
+                    'filename': sim._filename,
+                    'typecode': typecode,
+                    'gridmax': lgmax
+                }), file=f)
 
-            print(config_parser.get('AHFCatalogue', 'ConfigTipsy', vars={
-                'omega0': sim.properties['omegaM0'],
-                'lambda0': sim.properties['omegaL0'],
-                'boxsize': sim['pos'].units.ratio('Mpc a h^-1', **sim.conversion_context()),
-                'vunit': sim['vel'].units.ratio('km s^-1 a', **sim.conversion_context()),
-                'munit': sim['mass'].units.ratio('Msol h^-1', **sim.conversion_context()),
-                'eunit': 0.03  # surely this can't be right?
-            }), file=f)
+                print(config_parser.get('AHFCatalogue', 'ConfigTipsy', vars={
+                    'omega0': sim.properties['omegaM0'],
+                    'lambda0': sim.properties['omegaL0'],
+                    'boxsize': sim['pos'].units.ratio('Mpc a h^-1', **sim.conversion_context()),
+                    'vunit': sim['vel'].units.ratio('km s^-1 a', **sim.conversion_context()),
+                    'munit': sim['mass'].units.ratio('Msol h^-1', **sim.conversion_context()),
+                    'eunit': 0.03  # surely this can't be right?
+                }), file=f)
 
-            f.close()
-
-        if (not os.path.exists(sim._filename)):
+        if not os.path.exists(sim._filename):
             os.system("gunzip " + sim._filename + ".gz")
         # determine parallel possibilities
 

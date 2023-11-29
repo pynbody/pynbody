@@ -169,11 +169,11 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
 ##
 #########################################################
 
-    if cgsunits != None and physunits != None:
+    if cgsunits is not None and physunits is not None:
         print("[ERROR] Can't convert units to both CGS and PHYS, as CGS includes PHYS, assuming CGS ")
-        physunits == None
+        physunits is None
 
-    if silent == None:
+    if silent is None:
         print("User gave "+filename)
 
     ## Determine the file type, i.e. SubFind, Snapshot or old FOF.
@@ -186,7 +186,7 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
     elif filename.rfind('/snap') >= 0:
         inputtype = 'Snapshot' ## Define File type
         inputname = 'snap'
-    if silent == None:
+    if silent is None:
         print("This is a "+inputtype+" output filetype")
 
     ## Check that the file given and the ptype used makes sense
@@ -198,7 +198,7 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
         return -1
 
     if ptype < 6:
-        if inputtype == 'SubFind' and sub_dir == None:
+        if inputtype == 'SubFind' and sub_dir is None:
             print('[ERROR] ptype = '+str(ptype)+' is not allowed without specifying sub_dir flag')
             return -2
 
@@ -211,10 +211,10 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
     snapnum_index = filename[:folder_index-1].rfind('_')
     snapnum = int(filename[snapnum_index+1:folder_index-1])
     numfile = len(fnmatch.filter(os.listdir(filename[:folder_index]), '*.hdf5'))
-    if noloop != None:
+    if noloop is not None:
         numfile = 1 ## Force the code to only consider the input file
 
-    if silent == None:
+    if silent is None:
         print("Considering "+str(numfile)+" subfiles")
 #########################################################
 ##
@@ -239,13 +239,13 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
 ##  Read in unit conversion
 ##
 #########################################################
-        if cgsunits != None or physunits != None:
+        if cgsunits is not None or physunits is not None:
             gamma = fin['Constants'].attrs['GAMMA']
             solar_mass = fin['Constants'].attrs['SOLAR_MASS'] ## [g]
             boltzmann = fin['Constants'].attrs['BOLTZMANN'] ## [erg/K]
             protonmass = fin['Constants'].attrs['PROTONMASS'] ## [g]
             sec_per_year = fin['Constants'].attrs['SEC_PER_YEAR']
-        if silent == None:
+        if silent is None:
             print("Note h="+("%.3f" % hubble)+" in this simulation"+\
             " and snapshot is at a="+("%.3f" % aexp)+\
             " (z="+("%.3f" % (1./aexp-1.))+")")
@@ -256,10 +256,10 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
 ##
 #########################################################
         e = 'Parameters/ChemicalElements' in fin
-        if e == True:
+        if e is True:
             nelements = fin['Parameters/ChemicalElements'].attrs['BG_NELEMENTS']
             elementnames = fin['Parameters/ChemicalElements'].attrs['ElementNames']
-            if silent == None:
+            if silent is None:
                 print("Number of Elements Tracked "+str(nelements)+", they are")
                 for elementtype in elementnames:
                     print(elementtype)
@@ -279,9 +279,9 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
     ## For the case of a Baryon run, check if the user is asking for an element
     ## AND if that's a smoothed quantity then change their request slightly...
     if numpart_total[0] > 0 or numpart_total[4] > 0 or numpart_total[5] > 0:
-        if var_name in elementnames:
+        if var_name in list(elementnames):
             var_name = 'ElementAbundance/'+var_name
-        if smooth != None:
+        if smooth is not None:
             var_name = 'Smoothed'+var_name
     if ptype < 6:
         global_var_name = '/'+'PartType'+str(ptype)+'/'+var_name+'/'
@@ -294,10 +294,10 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
     elif ptype == 13:
         global_var_name = '/Stars/'+var_name+'/'
 
-    if sub_dir != None:
+    if sub_dir is not None:
         global_var_name = sub_dir.upper()+global_var_name
 
-    if silent == None:
+    if silent is None:
         print("Now select the requested variable "+global_var_name)
 
 #########################################################
@@ -307,17 +307,17 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
 #########################################################
     prefix_index = filename.rfind('.hdf5') ## First HDF5
     for ifile in range(0,numfile):
-        if noloop != None:
+        if noloop is not None:
             newinfile = filename
         else:
             newinfile = filename[0:folder_index] + inputname +'_'+str(snapnum).zfill(3)+'.'+str(ifile)+filename[prefix_index:]
-        if silent == None:
+        if silent is None:
             print("Reading from "+newinfile)
 
         with h5py.File(newinfile, "r") as fin:
 ## If the dataset is present in the file then read it into tmpset, and if dataset exists concatenate them
             e = global_var_name in fin
-            if e == True:
+            if e is True:
                 tmpset = pd.DataFrame(fin[global_var_name][()]) ## Let HDF5 metadata dictate array format
 
                 try:
@@ -325,7 +325,7 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
                 except NameError:
                     dataset = tmpset
                     ## Grab the conversion factors while we find this dataset for the first time
-                    if cgsunits != None or physunits != None:
+                    if cgsunits is not None or physunits is not None:
                         cgsconvfactor = fin[global_var_name].attrs['CGSConversionFactor']
                         aexpscaleexponent = fin[global_var_name].attrs['aexp-scale-exponent']
                         hscaleexponent = fin[global_var_name].attrs['h-scale-exponent']
@@ -340,7 +340,7 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
             ## Have to hardwire in the case for collisionless particles, which all have the same mass,
             ## as given by the masstable, and a number of particles given by Header numppart_total
             ## Assume that the standard Gadget units are used.
-                if cgsunits != None or physunits != None:
+                if cgsunits is not None or physunits is not None:
                     cgsconvfactor=1.989e43
                     aexpscaleexponent=0.0
                     hscaleexponent=-1.0
@@ -358,7 +358,7 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
 ##  Horribe Bug in the Code which has the FOF CoM wrong scaling
 ##
 #########################################################
-        if cgsunits != None or physunits != None:
+        if cgsunits is not None or physunits is not None:
             if global_var_name == 'FOF/CenterOfMassVelocity/' and abs(aexpscaleexponent-0.5) < 0.01:
                 print("OWLS SubFind had a bug which stated FoF CenterOfMassVelocity had aexp of 0.5, in reality it was -1.0 ")
                 aexpscaleexponent = -1.0
@@ -369,14 +369,14 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
 ##  for 'a' and 'h' dependencies, else output in code units
 ##
 #########################################################
-    if cgsunits != None:
-        if leaveh != None:
+    if cgsunits is not None:
+        if leaveh is not None:
             convfactor = aexp**aexpscaleexponent * cgsconvfactor
         else:
             convfactor = aexp**aexpscaleexponent * hubble**hscaleexponent * cgsconvfactor
 
-    if physunits != None:
-        if leaveh != None:
+    if physunits is not None:
+        if leaveh is not None:
             convfactor = aexp**aexpscaleexponent
         else:
             convfactor = aexp**aexpscaleexponent * hubble**hscaleexponent
@@ -392,22 +392,22 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
         if  var_name == 'MaximumEntropy':
             convfactor *= cgsconvfactor*protonmass**gamma / boltzmann
 
-    if cgsunits != None or physunits != None:
+    if cgsunits is not None or physunits is not None:
         dataset *= convfactor
-        if silent == None:
-            if cgsunits != None:
+        if silent is None:
+            if cgsunits is not None:
                 print("Converting units to CGS")
-            if physunits != None:
+            if physunits is not None:
                 print("Converting units to Proper Normalised Units ")
             print("Scale Factor dependency "+str(aexpscaleexponent))
-            if leaveh != None:
+            if leaveh is not None:
                 print("User asked to leave little h unchanged! ")
             else:
                 print("little h dependency "+str(hscaleexponent))
 
             print("Overall conversion factor "+str(convfactor))
     else:
-        if silent == None:
+        if silent is None:
             print("No conversion - still in Code units")
 
 #########################################################
@@ -432,14 +432,14 @@ def pyread_gadget_hdf5(filename, ptype, var_name, sub_dir=None,\
         nadded = len(dataset.index) // ncols
         dataset = pd.DataFrame(dataset.values.reshape((nadded,ncols)))
 
-    if floatunits != None:
+    if floatunits is not None:
         dataset = dataset.astype('f4')## Make the units float32
 
-    if silent == None:
+    if silent is None:
         print("Done ")
 
     ## User wants to change from Dataframe to numpy format
-    if nopanda != None:
+    if nopanda is not None:
         dataset = numpy.ascontiguousarray(dataset)
 
     return dataset

@@ -21,11 +21,13 @@ import weakref
 
 import numpy as np
 
+import pynbody.snapshot.subsnap
+
 from .. import snapshot, util
 
 logger = logging.getLogger("pynbody.halo")
 
-class DummyHalo(snapshot.ContainerWithPhysicalUnitsOption):
+class DummyHalo(snapshot.util.ContainerWithPhysicalUnitsOption):
 
     def __init__(self):
         self.properties = {}
@@ -34,7 +36,7 @@ class DummyHalo(snapshot.ContainerWithPhysicalUnitsOption):
         pass
 
 
-class Halo(snapshot.IndexedSubSnap):
+class Halo(pynbody.snapshot.subsnap.IndexedSubSnap):
 
     """
     Generic class representing a halo.
@@ -109,7 +111,7 @@ class Halo(snapshot.IndexedSubSnap):
 # General HaloCatalogue class #
 #-----------------------------#
 
-class HaloCatalogue(snapshot.ContainerWithPhysicalUnitsOption):
+class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
     """
     Generic halo catalogue object.

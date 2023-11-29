@@ -244,16 +244,14 @@ def write_tipsy_param(sim, tipsyfile):
     lenunit, massunit, timeunit, velunit, _ = get_tipsy_units(sim)
 
     # write the param file
-    f = open('%s.param' % tipsyfile, 'w')
-    f.write('dKpcUnit = %f\n' % lenunit)
-    f.write('dMsolUnit = %e\n' % massunit)
-    f.write('dOmega0 = %f\n' % sim.properties['omegaM0'])
-    f.write('dLambda = %f\n' % sim.properties['omegaL0'])
-    h = Unit('%f km s^-1 Mpc^-1' % (sim.properties['h'] * 100))
-    f.write('dHubble0 = %f\n' % h.in_units(velunit / lenunit))
-    f.write('bComove = 1\n')
-    f.close()
-
+    with open('%s.param' % tipsyfile, 'w') as f:
+        f.write('dKpcUnit = %f\n' % lenunit)
+        f.write('dMsolUnit = %e\n' % massunit)
+        f.write('dOmega0 = %f\n' % sim.properties['omegaM0'])
+        f.write('dLambda = %f\n' % sim.properties['omegaL0'])
+        h = Unit('%f km s^-1 Mpc^-1' % (sim.properties['h'] * 100))
+        f.write('dHubble0 = %f\n' % h.in_units(velunit / lenunit))
+        f.write('bComove = 1\n')
 
 def write_ahf_input(sim, tipsyfile):
     """Write an input file that can be used by the `Amiga Halo Finder
@@ -264,31 +262,30 @@ def write_ahf_input(sim, tipsyfile):
     # determine units
     _lenunit, massunit, _timeunit, velunit, _ = get_tipsy_units(sim)
 
-    f = open('%s.AHF.input' % tipsyfile, 'w')
-    f.write('[AHF]\n')
-    f.write('ic_filename = %s\n' % tipsyfile)
-    f.write('ic_filetype = 90\n')
-    f.write('outfile_prefix = %s\n' % tipsyfile)
-    f.write('LgridDomain = 256\n')
-    f.write('LgridMax = 2097152\n')
-    f.write('NperDomCell = 5\n')
-    f.write('NperRefCell = 5\n')
-    f.write('VescTune = 1.0\n')
-    f.write('NminPerHalo = 50\n')
-    f.write('RhoVir = 0\n')
-    f.write('Dvir = 200\n')
-    f.write('MaxGatherRad = 1.0\n')
-    f.write('[TIPSY]\n')
-    f.write('TIPSY_BOXSIZE = %e\n' % (sim.properties['boxsize'].in_units(
-        'Mpc') * sim.properties['h'] / sim.properties['a']))
-    f.write('TIPSY_MUNIT   = %e\n' % (massunit * sim.properties['h']))
-    f.write('TIPSY_OMEGA0  = %f\n' % sim.properties['omegaM0'])
-    f.write('TIPSY_LAMBDA0 = %f\n' % sim.properties['omegaL0'])
-    f.write('TIPSY_VUNIT   = %e\n' %
-            velunit.ratio('km s^-1 a', **sim.conversion_context()))
-    f.write('TIPSY_EUNIT   = %e\n' % (
-        (pynbody.units.k / pynbody.units.m_p).in_units('km^2 s^-2 K^-1') * 5. / 3.))
-    f.close()
+    with open('%s.AHF.input' % tipsyfile, 'w') as f:
+        f.write('[AHF]\n')
+        f.write('ic_filename = %s\n' % tipsyfile)
+        f.write('ic_filetype = 90\n')
+        f.write('outfile_prefix = %s\n' % tipsyfile)
+        f.write('LgridDomain = 256\n')
+        f.write('LgridMax = 2097152\n')
+        f.write('NperDomCell = 5\n')
+        f.write('NperRefCell = 5\n')
+        f.write('VescTune = 1.0\n')
+        f.write('NminPerHalo = 50\n')
+        f.write('RhoVir = 0\n')
+        f.write('Dvir = 200\n')
+        f.write('MaxGatherRad = 1.0\n')
+        f.write('[TIPSY]\n')
+        f.write('TIPSY_BOXSIZE = %e\n' % (sim.properties['boxsize'].in_units(
+            'Mpc') * sim.properties['h'] / sim.properties['a']))
+        f.write('TIPSY_MUNIT   = %e\n' % (massunit * sim.properties['h']))
+        f.write('TIPSY_OMEGA0  = %f\n' % sim.properties['omegaM0'])
+        f.write('TIPSY_LAMBDA0 = %f\n' % sim.properties['omegaL0'])
+        f.write('TIPSY_VUNIT   = %e\n' %
+                velunit.ratio('km s^-1 a', **sim.conversion_context()))
+        f.write('TIPSY_EUNIT   = %e\n' % (
+            (pynbody.units.k / pynbody.units.m_p).in_units('km^2 s^-2 K^-1') * 5. / 3.))
 
 
 def get_tform_using_part2birth(sim, part2birth_path):

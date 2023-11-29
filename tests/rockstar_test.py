@@ -12,7 +12,8 @@ def setup_module():
     f['iord'] = np.arange(2097152)
     f.properties['z']=1.6591479493605812
     f._filename = "testdata/rockstar/snapshot_015"
-    h = f.halos()
+    with pytest.warns(RuntimeWarning, match=r"No iord array available; assuming.*"):
+        h = f.halos()
 
 
 def test_load_rockstar():

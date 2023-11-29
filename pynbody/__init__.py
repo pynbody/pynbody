@@ -76,8 +76,8 @@ from .snapshot import load, new
 
 configuration.configure_snapshot_and_halo_loading_priority()
 
-derived_array = snapshot.SimSnap.derived_quantity
+derived_array = snapshot.simsnap.SimSnap.derived_quantity
 
-__version__ = '1.4.2'
+__version__ = '1.5.0'
 
 __all__ = ['load', 'new', 'derived_array']
