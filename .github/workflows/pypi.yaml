@@ -42,8 +42,8 @@ jobs:
         run: |
           wget -q http://star.ucl.ac.uk/~app/macos_gcc/${{ matrix.buildplat[3] }}
           sudo tar -xzf ${{ matrix.buildplat[3] }} -C /
-          echo "CC=/usr/bin/gcc" >> $GITHUB_ENV
-          echo "CXX=/usr/bin/g++" >> $GITHUB_ENV
+          echo "CC=/usr/local/bin/gcc" >> $GITHUB_ENV
+          echo "CXX=/usr/local/bin/g++" >> $GITHUB_ENV
 
       # - name: Determine version tag
       #   if: github.event_name != 'pull_request'
