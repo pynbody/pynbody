@@ -21,8 +21,8 @@ jobs:
         # Following numpy's setup
         buildplat:
         - [ubuntu-20.04, manylinux, x86_64, ""]
-        - [macos-13, macosx, x86_64, "/usr/local"]
-        - [macos-13-xlarge, macosx, arm64, "/opt/homebrew"]
+        - [macos-13, macosx, x86_64, "gcc-9.2-bin.tar.gz"]
+        #- [macos-13-xlarge, macosx, arm64, "gcc-m1-bin.tar.gz"]
         python: ["cp39", "cp310", "cp311", "cp312"]
     steps:
       - uses: actions/checkout@v3
@@ -36,13 +36,13 @@ jobs:
           echo "CC=gcc-10" >> $GITHUB_ENV
           echo "CXX=g++-10" >> $GITHUB_ENV
 
-      - name: Install Clang (MacOS)
+      - name: Install GCC (MacOS)
         if: startsWith(matrix.buildplat[0], 'macos')
         shell: bash
         run: |
-          brew install gcc@13 pipx
-          echo "CC=${{matrix.buildplat[3]}}/bin/gcc-13" >> $GITHUB_ENV
-          echo "CXX=${{matrix.buildplat[3]}}/bin/g++-13" >> $GITHUB_ENV
+          wget -q http://star.ucl.ac.uk/~app/macos_gcc/${{ matrix.buildplat[3] }}
+          echo "CC=/usr/bin/gcc" >> $GITHUB_ENV
+          echo "CXX=/usr/bin/g++" >> $GITHUB_ENV
 
       # - name: Determine version tag
       #   if: github.event_name != 'pull_request'
