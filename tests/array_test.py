@@ -1,4 +1,6 @@
 import pynbody
+import pynbody.array
+import pynbody.array.shared
 
 SA = pynbody.array.SimArray
 import numpy as np
@@ -69,7 +71,6 @@ def test_iop_units():
     z = SA([1000, 2000, 3000, 4000])
     z.units = 'm s^-1'
 
-    print(repr(x))
     assert repr(x) == "SimArray([1, 2, 3, 4], 'kpc')"
 
     with pytest.raises(ValueError):
@@ -182,3 +183,44 @@ def test_issue_485_2():
     np.testing.assert_allclose(sigvr, np.array([25.64306641, 26.01454544,  0.]), rtol=1e-6)
     np.testing.assert_allclose(sigvt, np.array([28.49997711, 18.84262276,  0.]), rtol=1e-6)
     np.testing.assert_allclose(rxy, np.array([1136892.125, 1606893.625, 1610494.75]), rtol=1e-6)
+
+
+def _test_and_alter_shared_value(array_info):
+    array = pynbody.array.shared._shared_array_reconstruct(array_info)
+    assert (array[:] == np.arange(3)[: , np.newaxis] * np.arange(5)[np.newaxis, :]).all()
+    array[:] = np.arange(3)[:, np.newaxis]
+
+def test_shared_arrays():
+    import gc
+
+    import pynbody.array as pyn_array
+
+    gc.collect() # this is to start with a clean slate, get rid of any shared arrays that might be hanging around
+    baseline_num_shared_arrays = pyn_array.shared.get_num_shared_arrays() # hopefully zero, but we can't guarantee that
+
+    ar = pyn_array._array_factory((3,5), dtype=np.float32, zeros=True, shared=True)
+
+    assert ar.shape == (3,5)
+    assert (ar == 0.0).all()
+
+    ar[:] = np.arange(3)[: , np.newaxis] * np.arange(5)[np.newaxis, :]
+
+    # now let's see if we can transfer it to another process:
+
+    import multiprocessing as mp
+    p = mp.Process(target=_test_and_alter_shared_value, args=(pyn_array.shared._shared_array_deconstruct(ar),))
+    p.start()
+    p.join()
+
+    # check that the other process has successfully changed our value:
+    assert (ar[:] ==  np.arange(3)[:, np.newaxis] ).all()
+
+    assert pyn_array.shared.get_num_shared_arrays() == 1 + baseline_num_shared_arrays
+
+    ar2 = pyn_array._array_factory((3,5), dtype=np.float32, zeros=True, shared=True)
+    assert pyn_array.shared.get_num_shared_arrays() == 2 + baseline_num_shared_arrays
+
+    del ar, ar2
+    gc.collect()
+
+    assert pyn_array.shared.get_num_shared_arrays() == baseline_num_shared_arrays

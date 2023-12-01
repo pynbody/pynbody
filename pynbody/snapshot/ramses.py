@@ -26,6 +26,8 @@ from pathlib import Path
 
 import numpy as np
 
+import pynbody.array.shared
+
 from .. import array, config_parser, family, units
 from ..analysis.cosmology import age
 from ..extern.cython_fortran_utils import FortranFile
@@ -44,8 +46,8 @@ if multiprocess:
 
         import posix_ipc  # noqa: F401
 
-        remote_exec = array.shared_array_remote
-        remote_map = array.remote_map
+        remote_exec = pynbody.array.shared.shared_array_remote
+        remote_map = pynbody.array.shared.remote_map
     except ImportError:
         issue_multiprocess_warning = True
         multiprocess = False
