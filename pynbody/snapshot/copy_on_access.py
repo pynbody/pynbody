@@ -60,4 +60,4 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
             loaded_keys_in_parent = self._copy_from.keys()
         else:
             loaded_keys_in_parent = self._copy_from.family_keys(fam)
-        return set(self._copy_from.loadable_keys(fam)).union(loaded_keys_in_parent)
+        return list(set(self._copy_from.loadable_keys(fam)).union(loaded_keys_in_parent))
