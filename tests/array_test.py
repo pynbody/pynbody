@@ -3,12 +3,14 @@ import pynbody.array
 import pynbody.array.shared as shared
 
 SA = pynbody.array.SimArray
-import numpy as np
 import os
-import pytest
 import signal
 import sys
 import time
+
+import numpy as np
+import pytest
+
 
 def test_pickle():
     import pickle
