@@ -10,7 +10,6 @@ sink_filename = "testdata/ramses_new_format_partial_output_00001/sink_00001.csv"
 sink_filename_moved = sink_filename+".temporarily_moved"
 
 
-
 def setup_module():
     global f
     f = pynbody.load("testdata/ramses_new_format_partial_output_00001")

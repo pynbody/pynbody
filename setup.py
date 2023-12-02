@@ -159,7 +159,6 @@ install_requires = [
     'h5py>=2.10.0',
     'matplotlib>=3.0.0',
     'numpy>=1.21.6',
-    'posix_ipc>=0.8',
     'scipy>=1.0.0'
 ]
 
@@ -195,7 +194,7 @@ setup(name = 'pynbody',
       description = 'Light-weight astronomical N-body/SPH analysis for python',
       url = 'https://github.com/pynbody/pynbody/releases',
       package_dir = {'pynbody/': ''},
-      packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules',
+      packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 'pynbody/array',
                   'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
                   'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/extern'],
       package_data={'pynbody': ['default_config.ini'],

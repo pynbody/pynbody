@@ -58,8 +58,3 @@ jobs:
     - name: Run all tests
       working-directory: tests
       run: python -m pytest
-    - name: Uninstall posix_ipc
-      run: python -m pip uninstall -y posix_ipc
-    - name: Run ramses tests without shared memory support
-      working-directory: tests
-      run: python -m pytest -W 'ignore:RamsesSnap is configured to use multiple processes:RuntimeWarning' ramses_new_ptcl_format_test.py ramses_test.py

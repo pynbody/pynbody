@@ -14,9 +14,6 @@ the `ipython notebook demo
 
 """
 
-  # for py2.5
-
-
 import csv
 import logging
 import os
@@ -25,6 +22,8 @@ import warnings
 from pathlib import Path
 
 import numpy as np
+
+import pynbody.array.shared
 
 from .. import array, config_parser, family, units
 from ..analysis.cosmology import age
@@ -36,21 +35,12 @@ logger = logging.getLogger('pynbody.snapshot.ramses')
 multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
 multiprocess = (multiprocess_num > 1)
 
-issue_multiprocess_warning = False
-
 if multiprocess:
-    try:
-        import multiprocessing
+    import multiprocessing
 
-        import posix_ipc  # noqa: F401
-
-        remote_exec = array.shared_array_remote
-        remote_map = array.remote_map
-    except ImportError:
-        issue_multiprocess_warning = True
-        multiprocess = False
-
-if not multiprocess:
+    remote_exec = pynbody.array.shared.shared_array_remote
+    remote_map = pynbody.array.shared.remote_map
+else:
     def remote_exec(fn):
         return fn
 
@@ -492,10 +482,6 @@ class RamsesSnap(SimSnap):
             self._shared_arrays = True
             if (RamsesSnap.reader_pool is None):
                 RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
-        elif issue_multiprocess_warning:
-            warnings.warn(
-                "RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.",
-                RuntimeWarning)
 
     def _load_fluid_descriptors(self):
         types = ["hydro", "grav"]

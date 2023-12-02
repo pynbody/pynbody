@@ -139,16 +139,16 @@ handler:
 
 """
 
-import atexit
 import fractions
 import functools
 import os
+import random
+import time
 import weakref
-from functools import reduce
 
 import numpy as np
 
-from . import units as units
+from .. import units as units
 
 _units = units
 
@@ -658,15 +658,8 @@ class SimArray(np.ndarray):
         else:
             raise RuntimeError("No link to SimSnap")
 
-    def __del__(self):
-        """Clean up disk if this was made from a named
-        shared array"""
-
-        if getattr(self, '_shared_del', False):
-            _shared_array_unlink(self)
 
 # Set up the correct comparison functions
-
 
 def _unit_aware_comparison(ar, other, comparison_op=None):
     # guaranteed to be called with ar a SimArray instance
@@ -966,79 +959,23 @@ for x in set(np.ndarray.__dict__).union(SimArray.__dict__):
         setattr(IndexedSimArray, x, _wrap_fn(w))
 
 
-############################################################
-# SUPPORT FOR SHARING ARRAYS BETWEEN PROCESSES
-############################################################
-
-try:
-    import ctypes
-    import functools
-    import mmap
-    import multiprocessing
-    import multiprocessing.sharedctypes
-    import os
-    import random
-    import tempfile
-    import time
-
-    import posix_ipc
-    _all_shared_arrays = []
-except ImportError:
-    posix_ipc = None
-
-
 def _array_factory(dims, dtype, zeros, shared):
     """Create an array of dimensions *dims* with the given numpy *dtype*.
     If *zeros* is True, the returned array is guaranteed zeroed. If *shared*
     is True, the returned array uses shared memory so can be efficiently
     shared across processes."""
-    global _all_shared_arrays
-
     if not hasattr(dims, '__len__'):
         dims = (dims,)
 
-    if shared and posix_ipc:
+    if shared:
         random.seed(os.getpid() * time.time())
         fname = "pynbody-" + \
             ("".join([random.choice('abcdefghijklmnopqrstuvwxyz')
                       for i in range(10)]))
-        _all_shared_arrays.append(fname)
-        # memmaps of zero length seem not to be permitted, so have to
-        # make zero length arrays a special case
-        zero_size = False
-        if dims[0] == 0:
-            zero_size = True
-            dims = (1,) + dims[1:]
-        if hasattr(dims, '__len__'):
-            size = reduce(np.multiply, dims)
-        else:
-            size = dims
 
-        mem = posix_ipc.SharedMemory(fname, posix_ipc.O_CREX, size=int(np.dtype(dtype).itemsize*size))
-        # write zeros into the file pointer before memmaping, to get a graceful exception if the
-        # promised memory isn't available (otherwise will trigger a bus error)
-        try:
-            zeros=(b"\0")*1024*1024
-            remaining = int(np.dtype(dtype).itemsize*size)
-            while remaining > 0 :
-                os.write(mem.fd, zeros[:remaining])
-                remaining-=len(zeros)
 
-        except OSError as exc :
-            if not ((exc.errno == 45 or exc.errno == 6) and os.uname()[0] == "Darwin"):
-                _shared_array_unlink(fname)
-                raise MemoryError("Unable to create shared memory region")
-
-        # fd, fname = tempfile.mkstemp()
-        # ret_ar = np.memmap(os.fdopen(mem.fd), dtype=dtype, shape=dims).view(SimArray)
-        mapfile = mmap.mmap(mem.fd, mem.size)
-        ret_ar = np.frombuffer(mapfile, dtype=dtype, count=size).reshape(
-            dims).view(SimArray)
-        ret_ar._shared_fname = fname
-        ret_ar._shared_del = True
-        if zero_size:
-            ret_ar = ret_ar[1:]
-        mem.close_fd()
+        from . import shared
+        ret_ar = shared.make_shared_array(dims, dtype, zeros, fname)
 
     else:
         if zeros:
@@ -1046,142 +983,3 @@ def _array_factory(dims, dtype, zeros, shared):
         else:
             ret_ar = np.empty(dims, dtype=dtype).view(SimArray)
     return ret_ar
-
-
-if posix_ipc:
-
-    class _deconstructed_shared_array(tuple):
-        pass
-
-    class RemoteKeyboardInterrupt(Exception):
-        pass
-
-    def _shared_array_deconstruct(ar, transfer_ownership=False):
-        """Deconstruct an array backed onto shared memory into something that can be
-        passed between processes efficiently. If *transfer_ownership* is True,
-        also transfers responsibility for deleting the underlying memory (if this
-        process has it) to the reconstructing process."""
-
-        assert isinstance(ar, SimArray)
-        ar_base = ar
-        while isinstance(ar_base.base, SimArray):
-            ar_base = ar_base.base
-
-        assert hasattr(ar_base,'_shared_fname'), "Cannot prepare an array for shared use unless it was created in shared memory"
-
-        ownership_out = transfer_ownership and ar_base._shared_del
-        if transfer_ownership:
-            ar_base._shared_del = False
-
-        offset = ar.__array_interface__['data'][0] - \
-                  ar_base.__array_interface__['data'][0]
-
-        return _deconstructed_shared_array((ar.dtype, ar.shape, ar_base._shared_fname, ownership_out,
-                                            offset, ar.strides))
-
-    def _shared_array_reconstruct(X):
-        dtype, dims, fname, ownership, offset, strides = X
-        mem = posix_ipc.SharedMemory(fname)
-        mapfile = mmap.mmap(mem.fd, mem.size)
-        size = reduce(np.multiply, dims)
-        # new_ar =  np.memmap(mem.fd, dtype=dtype, shape=dims, mode='r+').view(SimArray)
-        new_ar = np.frombuffer(
-            mapfile, dtype=dtype, count=size, offset=offset).reshape(dims).view(SimArray)
-        new_ar.strides = strides
-        mem.close_fd()
-        new_ar._shared_fname = fname
-        new_ar._shared_del = ownership
-        return new_ar
-
-    def _shared_array_unlink(X) :
-        if isinstance(X,str):
-            name = X
-        else :
-            name = X._shared_fname
-
-        try:
-            posix_ipc.unlink_shared_memory(name)
-        except (posix_ipc.ExistentialError, OSError) :
-            pass
-
-    def _recursive_shared_array_deconstruct(input, transfer_ownership=False) :
-        """Works through items in input, deconstructing any shared memory arrays
-        into transferrable references"""
-        output = []
-        for item in input:
-            if isinstance(item, SimArray):
-                item = _shared_array_deconstruct(item, transfer_ownership)
-            elif isinstance(item, list) or isinstance(item, tuple):
-                item = _recursive_shared_array_deconstruct(item, transfer_ownership)
-            output.append(item)
-        return output
-
-    def _recursive_shared_array_reconstruct(input):
-        """Works through items in input, reconstructing any shared memory arrays
-        from transferrable references"""
-        output = []
-        for item in input:
-            if isinstance(item, _deconstructed_shared_array):
-                item = _shared_array_reconstruct(item)
-            elif isinstance(item, list) or isinstance(item, tuple):
-                item = _recursive_shared_array_reconstruct(item)
-            output.append(item)
-        return output
-
-    def shared_array_remote(fn):
-        """A decorator for functions returning a new function that is
-        suitable for use remotely. Inputs to and outputs from the function
-        can be transferred efficiently if they are backed onto shared
-        memory. Ownership of any shared memory returned by the function
-        is transferred."""
-
-        @functools.wraps(fn)
-        def new_fn(args, **kwargs):
-            try:
-                import signal
-                assert hasattr(
-                    args, '__len__'), "Function must be called from remote_map to use shared arrays"
-                assert args[
-                    0] == '__pynbody_remote_array__', "Function must be called from remote_map to use shared arrays"
-                args = _recursive_shared_array_reconstruct(args)
-                signal.signal(signal.SIGINT, signal.SIG_DFL)
-                output = fn(*args[1:], **kwargs)
-                signal.signal(signal.SIGINT, signal.SIG_IGN)
-                return _recursive_shared_array_deconstruct([output], True)[0]
-            except KeyboardInterrupt:
-                signal.signal(signal.SIGINT, signal.SIG_IGN)
-                raise RemoteKeyboardInterrupt()
-        new_fn.__pynbody_remote_array__ = True
-
-        return new_fn
-
-    def remote_map(pool, fn, *iterables):
-        """A replacement for python's in-built map function, sending out tasks
-        to the pool and performing the magic required to transport shared memory arrays
-        correctly. The function *fn* must be wrapped with the *shared_array_remote*
-        decorator to interface correctly with this magic."""
-
-        assert getattr(fn, '__pynbody_remote_array__',
-                       False), "Function must be wrapped with shared_array_remote to use shared arrays"
-        iterables_deconstructed = _recursive_shared_array_deconstruct(
-            iterables)
-        try:
-            results = pool.map(fn, list(zip(
-                ['__pynbody_remote_array__'] * len(iterables_deconstructed[0]), *iterables_deconstructed)))
-        except RemoteKeyboardInterrupt:
-            raise KeyboardInterrupt
-        return _recursive_shared_array_reconstruct(results)
-
-    @atexit.register
-    def exit_cleanup():
-        """Clean up any shared memory that has not yet been freed. In
-        theory this should not be required, but it is here as a safety
-        net."""
-
-        global _all_shared_arrays
-
-        for fname in _all_shared_arrays:
-            try:
-                posix_ipc.unlink_shared_memory(fname)
-            except (posix_ipc.ExistentialError, OSError):
-                pass
