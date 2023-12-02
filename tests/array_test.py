@@ -1,11 +1,14 @@
 import pynbody
 import pynbody.array
-import pynbody.array.shared
+import pynbody.array.shared as shared
 
 SA = pynbody.array.SimArray
 import numpy as np
+import os
 import pytest
-
+import signal
+import sys
+import time
 
 def test_pickle():
     import pickle
@@ -224,3 +227,52 @@ def test_shared_arrays():
     gc.collect()
 
     assert pyn_array.shared.get_num_shared_arrays() == baseline_num_shared_arrays
+
+
+def _test_shared_arrays_cleaned_on_exit():
+    global ar
+    ar = shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")
+    # intentionally don't delete it, to see if it gets cleaned up on exit
+
+def test_shared_arrays_cleaned_on_exit():
+    stderr = _run_function_externally("_test_shared_arrays_cleaned_on_exit")
+
+    assert "leaked shared_memory" not in stderr  # should have cleaned up without fuss
+
+    _assert_shared_memory_cleaned_up()
+
+
+def _test_shared_arrays_cleaned_on_kill():
+    # designed to run in a completely separate python process (i.e. not a subprocess of the test process)
+    ar = shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")
+
+    # send SIGKILL to ourselves:
+    os.kill(os.getpid(), signal.SIGKILL)
+
+    # wait to die...
+    time.sleep(2.0)
+
+
+def test_shared_arrays_cleaned_on_kill():
+    stderr = _run_function_externally("_test_shared_arrays_cleaned_on_kill")
+
+    assert "leaked shared_memory" in stderr # this tells us the resource tracker has claimed to clean it up
+
+    _assert_shared_memory_cleaned_up()
+
+
+def _assert_shared_memory_cleaned_up():
+    with pytest.raises(FileNotFoundError):
+        _ = shared.make_shared_array((10,), dtype=np.int32, zeros=False,
+                                     fname="pynbody-test-cleanup", create=False)
+
+
+def _run_function_externally(function_name):
+    pwd = os.path.dirname(__file__)
+    python = sys.executable
+    import subprocess
+    process = subprocess.Popen([python, "-c",
+                                f"from array_test import {function_name}; {function_name}()"]
+                               , cwd=pwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    return stderr.decode("utf-8")

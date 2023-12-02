@@ -33,8 +33,11 @@ class QuietSharedMemory(shmem.SharedMemory):
             # at exit handler below.
             pass
 
-def make_shared_array(dims, dtype, zeros, fname):
+def make_shared_array(dims, dtype, zeros, fname, create=True):
     """Create an array of dimensions *dims* with the given numpy *dtype*.
+
+    If *create* is True (default), the array is created if it doesn't already exist.
+    Note that if the array does exist, the dimensions and dtype are not checked.
     If *zeros* is True, the returned array is guaranteed zeroed. If *shared*
     is True, the returned array uses shared memory so can be efficiently
     shared across processes."""
@@ -52,10 +55,10 @@ def make_shared_array(dims, dtype, zeros, fname):
     else:
         size = dims
 
-    mem = QuietSharedMemory(fname, create=True, size=int(np.dtype(dtype).itemsize*size))
+    mem = QuietSharedMemory(fname, create=create, size=int(np.dtype(dtype).itemsize*size))
     _mem_weakrefs_to_unlink.append(weakref.ref(mem))
 
-    buffer = _get_auto_closing_shared_memory_buffer(mem, unlink=True, dtype=dtype, size=size)
+    buffer = _get_auto_closing_shared_memory_buffer(mem, unlink=create, dtype=dtype, size=size)
 
     ret_ar = buffer.reshape(dims).view(SimArray)
 
@@ -73,23 +76,29 @@ def make_shared_array(dims, dtype, zeros, fname):
 def atex():
     import gc
     gc.collect()
-    _ensure_shared_memory_clean()
+
+    memory_to_unlink = [m() for m in _mem_weakrefs_to_unlink if m() is not None]
+
+    _ensure_shared_memory_clean(stop_tracking=True)
 
     # if numpy arrays are still alive, the above fails to clean them up.
     # here is the last line of defence against leaving shared memory in place.
     # we don't try to close() because that throws an error when the memory is still
     # 'claimed' by a numpy object
-    for m in _mem_weakrefs_to_unlink:
-        if m() is not None:
-            try:
-                m().unlink()
-            except FileNotFoundError:
-                pass
+    for m in memory_to_unlink:
+        try:
+            m.unlink()
+        except FileNotFoundError:
+            pass
 
-def _ensure_shared_memory_clean():
+
+def _ensure_shared_memory_clean(stop_tracking=False):
     """Ensures that all shared memory has been cleaned up. This is called
     automatically by the shared array code, but can be called manually if
-    required."""
+    required
+
+    If stop_tracking is True, then we stop tracking the shared memory
+    (used when the shared memory is about to be forcibly cleaned up at exit)"""
     global _pending_cleanups
 
     for t in _pending_cleanups:
@@ -98,7 +107,10 @@ def _ensure_shared_memory_clean():
     _pending_cleanups = []
 
     global _buf_weakrefs
-    _buf_weakrefs = [w for w in _buf_weakrefs if w() is not None]
+    if stop_tracking:
+        _buf_weakrefs = []
+    else:
+        _buf_weakrefs = [w for w in _buf_weakrefs if w() is not None]
 
 
 def get_num_shared_arrays():
