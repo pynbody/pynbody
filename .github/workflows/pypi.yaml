@@ -25,7 +25,7 @@ jobs:
         - [macos-13-xlarge, macosx, arm64, "/opt/homebrew"]
         python: ["cp39", "cp310", "cp311", "cp312"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install GCC (Ubuntu)
         if: matrix.buildplat[0] == 'ubuntu-20.04'
@@ -77,7 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         name: Install Python
