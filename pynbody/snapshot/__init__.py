@@ -85,10 +85,11 @@ def new(n_particles=0, order=None, class_=SimSnap, **families):
     return x
 
 def _get_snap_classes():
-    from . import ascii, gadget, gadgethdf, grafic, nchilada, ramses, tipsy
+    from . import ascii, gadget, gadgethdf, grafic, nchilada, ramses, swift, tipsy
 
     _snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, gadgethdf.EagleLikeHDFSnap,
                      nchilada.NchiladaSnap, gadget.GadgetSnap,
+                     swift.SwiftSnap,
                      tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap,
                      ascii.AsciiSnap]
 

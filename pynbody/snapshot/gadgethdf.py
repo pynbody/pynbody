@@ -164,12 +164,12 @@ class GadgetHDFSnap(SimSnap):
         self._init_hdf_filemanager(filename)
 
         self._translate_array_name = namemapper.AdaptiveNameMapper('gadgethdf-name-mapping')
-        self.__init_unit_information()
+        self._init_unit_information()
         self.__init_family_map()
         self.__init_file_map()
         self.__init_loadable_keys()
         self.__infer_mass_dtype()
-
+        self._init_properties()
         self._decorate()
 
     def _get_hdf_header_attrs(self):
@@ -545,13 +545,18 @@ class GadgetHDFSnap(SimSnap):
             dtype = self._mass_dtype
         return dtype, dy, inferred_units
 
-    def __init_unit_information(self):
+    _velocity_unit_key = 'UnitVelocity_in_cm_per_s'
+    _length_unit_key = 'UnitLength_in_cm'
+    _mass_unit_key = 'UnitMass_in_g'
+    _time_unit_key = 'UnitTime_in_s'
+
+    def _init_unit_information(self):
         try:
             atr = self._hdf_files.get_unit_attrs()
         except KeyError:
             # Gadget 4 stores unit information in Parameters attr <sigh>
             atr = self._hdf_files.get_parameter_attrs()
-            if 'UnitVelocity_in_cm_per_s' not in atr.keys():
+            if self._velocity_unit_key not in atr.keys():
                 warnings.warn("No unit information found in GadgetHDF file. Using gadget default units.", RuntimeWarning)
                 vel_unit = config_parser.get('gadget-units', 'vel')
                 dist_unit = config_parser.get('gadget-units', 'pos')
@@ -561,21 +566,35 @@ class GadgetHDFSnap(SimSnap):
                 return
 
         # Define the SubFind units, we will parse the attribute VarDescriptions for these
-        vel_unit = atr['UnitVelocity_in_cm_per_s'] * units.cm / units.s
-        dist_unit = atr['UnitLength_in_cm'] * units.cm
-        mass_unit = atr['UnitMass_in_g'] * units.g
+        if self._velocity_unit_key is not None:
+            vel_unit = atr[self._velocity_unit_key]
+        else:
+            vel_unit = None
+
+        dist_unit = atr[self._length_unit_key]
+        mass_unit = atr[self._mass_unit_key]
         try:
-            time_unit = atr['UnitTime_in_s'] * units.s
+            time_unit = atr[self._time_unit_key] * units.s
         except KeyError:
             # Gadget 4 seems not to store time units explicitly <sigh>
             time_unit = dist_unit/vel_unit
 
+        if vel_unit is None:
+            # Swift files don't store the velocity explicitly
+            vel_unit = dist_unit / time_unit
+
+        temp_unit = 1.0
+
         # Create a dictionary for the units, this will come in handy later
-        unitvar = {'U_V': vel_unit, 'U_L': dist_unit, 'U_M': mass_unit,
-                   'U_T': time_unit, '[K]': units.K,
-                   'SEC_PER_YEAR': units.yr, 'SOLAR_MASS': units.Msol,
-                   'solar masses / yr': units.Msol/units.yr, 'BH smoothing': dist_unit}
-        # Some arrays like StarFormationRate don't follow the patter of U_ units
+        unitvar = {'U_V': vel_unit * units.cm/units.s, 'U_L': dist_unit * units.cm,
+                   'U_M': mass_unit * units.g,
+                   'U_T': time_unit,
+                   '[K]': temp_unit * units.K,
+                   'SEC_PER_YEAR': units.yr,
+                   'SOLAR_MASS': units.Msol,
+                   'solar masses / yr': units.Msol/units.yr,
+                   'BH smoothing': dist_unit}
+        # Some arrays like StarFormationRate don't follow the pattern of U_ units
         cgsvar = {'U_M': 'g', 'SOLAR_MASS': 'g', 'U_T': 's',
                   'SEC_PER_YEAR': 's', 'U_V': 'cm s**-1', 'U_L': 'cm', '[K]': 'K',
                   'solar masses / yr': 'g s**-1', 'BH smoothing': 'cm'}
@@ -634,44 +653,41 @@ class GadgetHDFSnap(SimSnap):
                     "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
             return False
 
+    def _init_properties(self):
+        atr = self._get_hdf_header_attrs()
 
+        # expansion factor could be saved as redshift
+        try:
+            self.properties['a'] = atr['ExpansionFactor']
+        except KeyError:
+            self.properties['a'] = 1. / (1 + atr['Redshift'])
 
-@GadgetHDFSnap.decorator
-def do_properties(sim):
-    atr = sim._get_hdf_header_attrs()
+        # Gadget 4 stores parameters in a separate dictionary <sigh>. For older formats, this will point back to the same
+        # as the header attributes.
+        atr = self._get_hdf_parameter_attrs()
 
-    # expansion factor could be saved as redshift
-    try:
-        sim.properties['a'] = atr['ExpansionFactor']
-    except KeyError:
-        sim.properties['a'] = 1. / (1 + atr['Redshift'])
+        # not all omegas need to be specified in the attributes
+        try:
+            self.properties['omegaB0'] = atr['OmegaBaryon']
+        except KeyError:
+            pass
 
-    # Gadget 4 stores parameters in a separate dictionary <sigh>. For older formats, this will point back to the same
-    # as the header attributes.
-    atr = sim._get_hdf_parameter_attrs()
+        self.properties['omegaM0'] = atr['Omega0']
+        self.properties['omegaL0'] = atr['OmegaLambda']
+        self.properties['boxsize'] = atr['BoxSize'] * self.infer_original_units('cm')
+        self.properties['z'] = (1. / self.properties['a']) - 1
+        self.properties['h'] = atr['HubbleParam']
 
-    # not all omegas need to be specified in the attributes
-    try:
-        sim.properties['omegaB0'] = atr['OmegaBaryon']
-    except KeyError:
-        pass
+        # time unit might not be set in the attributes
+        if "Time_GYR" in atr:
+            self.properties['time'] = units.Gyr * atr['Time_GYR']
+        else:
+            from .. import analysis
+            self.properties['time'] = analysis.cosmology.age(self) * units.Gyr
 
-    sim.properties['omegaM0'] = atr['Omega0']
-    sim.properties['omegaL0'] = atr['OmegaLambda']
-    sim.properties['boxsize'] = atr['BoxSize'] * sim.infer_original_units('cm')
-    sim.properties['z'] = (1. / sim.properties['a']) - 1
-    sim.properties['h'] = atr['HubbleParam']
-
-    # time unit might not be set in the attributes
-    if "Time_GYR" in atr:
-        sim.properties['time'] = units.Gyr * atr['Time_GYR']
-    else:
-        from .. import analysis
-        sim.properties['time'] = analysis.cosmology.age(sim) * units.Gyr
-
-    for s,value in sim._get_hdf_header_attrs().items():
-        if s not in ['ExpansionFactor', 'Time_GYR', 'Time', 'Omega0', 'OmegaBaryon', 'OmegaLambda', 'BoxSize', 'HubbleParam']:
-            sim.properties[s] = value
+        for s,value in self._get_hdf_header_attrs().items():
+            if s not in ['ExpansionFactor', 'Time_GYR', 'Time', 'Omega0', 'OmegaBaryon', 'OmegaLambda', 'BoxSize', 'HubbleParam']:
+                self.properties[s] = value
 
 ###################
 # SubFindHDF class
