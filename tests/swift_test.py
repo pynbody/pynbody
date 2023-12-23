@@ -2,26 +2,144 @@ import numpy as np
 import pynbody
 import pynbody.snapshot.swift
 
-def test_load_swift():
-    f = pynbody.snapshot.swift.SwiftSnap("testdata/swiftsnap.hdf5")
-
 def test_load_identifies_swift():
-    f = pynbody.load("testdata/swiftsnap.hdf5")
+    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5")
     assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
 
 def test_swift_properties():
-    f = pynbody.load("testdata/swiftsnap.hdf5")
+    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5")
 
-    assert f.properties['a'] == 1.0
-    assert f.properties['z'] == 0.0
-    assert np.allclose(f.properties['h'], 0.681)
-    assert np.allclose(f.properties['boxsize'].in_units("Mpc a"), 200.)
-    assert np.allclose(f.properties['OmegaM0'], 0.304611)
-    assert np.allclose(f.properties['OmegaL0'], 0.693922)
-    assert np.allclose(f.properties['OmegaNu0'], 0.0013891)
+    assert np.allclose(f.properties['a'], 0.38234515)
+    assert np.allclose(f.properties['z'], 1.61543791)
+    assert np.allclose(f.properties['h'], 0.703)
+    assert np.allclose(f.properties['boxsize'].in_units("Mpc a h^-1", **f.conversion_context()), 100.)
+    assert np.allclose(f.properties['omegaM0'], 0.276)
+    assert np.allclose(f.properties['omegaL0'], 0.724)
+    assert np.allclose(f.properties['omegaNu0'], 0.0)
 
 def test_swift_arrays():
-    f = pynbody.load("testdata/swiftsnap.hdf5")
-    print(f['pos'], f['pos'].units)
-    assert False # TODO: implement test
+    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5")
+    assert np.allclose(f.dm['pos'].units.ratio("Mpc a", **f.conversion_context()), 1.0)
+    assert np.allclose(f.dm['vel'].units.ratio("km s^-1", **f.conversion_context()), 1.0)
+    # the reason the following isn't exactly 1.0 is because our solar mass is slightly different to swift's
+    # (the pynbody value is outdated but it will need some work to think about how to fix this without
+    # breaking backwards compatibility)
+    assert np.allclose(f.dm['mass'].units.ratio("1e10 Msol", **f.conversion_context()), 0.9997436)
+    assert np.allclose(f.dm['vel'][::50000], np.array([[-249.5395 ,   122.65865 , -144.79892 ],
+                                             [  75.57313 ,  -51.598354 , 250.10258 ],
+                                             [-139.62218 , -132.5298   , 479.02545 ],
+                                             [ 147.22443 , -168.17662  ,-249.17387 ],
+                                             [  27.643984,  161.06497  ,  21.430338],
+                                             [  79.65777 ,   25.674492 , -45.813534]]))
+    assert np.allclose(f.gas['pos'][::50000], np.array([[  2.54333146,   0.56501471,   3.08184457],
+                                                        [ 27.33643304,  78.82288643,  62.55081956],
+                                                        [ 50.74337741, 134.5097336 ,  95.28821923],
+                                                        [ 86.53860045,  83.61342416, 129.95370508],
+                                                        [111.7177823 ,  24.85736548,  55.55540164],
+                                                        [128.76603044,  73.44601203, 139.65444299]]))
 
+    assert np.allclose(float(f.dm['mass'].sum()+f.gas['mass'].sum()), 10895511.25)
+
+def _assert_multifile_contents_is_sensible(f):
+    assert len(f.dm) == 262144
+    assert np.allclose(f.dm['pos'][::50000], np.array([[0.90574413, 1.23148826, 1.08457044],
+                                                       [63.52396676, 5.42349734, 27.65864702],
+                                                       [114.45492871, 9.92260142, 54.59853019],
+                                                       [32.11092237, 32.28962438, 81.32341474],
+                                                       [83.46050257, 20.91647755, 116.546989],
+                                                       [125.83232028, 49.9732396, 72.2264199]]))
+
+def test_swift_multifile_with_vds():
+    f = pynbody.load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
+    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+    assert len(f._hdf_files) == 1
+    assert f._hdf_files.is_virtual()
+    _assert_multifile_contents_is_sensible(f)
+
+
+def test_swift_multifile_without_vds():
+    f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
+    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+    assert len(f._hdf_files) == 10
+    assert not f._hdf_files.is_virtual()
+    _assert_multifile_contents_is_sensible(f)
+
+def test_swift_singlefile_is_not_vds():
+    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5")
+    assert not f._hdf_files.is_virtual()
+
+
+
+# TODO: test partial loading where the region wraps around the periodic box
+
+def test_swift_singlefile_partial_loading():
+    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5",
+                     take_swift_cells=[5,15,20,25])
+    assert len(f.dm) == 1849
+    assert len(f.gas) == 1882
+    assert (f.dm['iord'][::100] == [ 16468,   9172,  41176,  49874,   9342,  10234,  33908,  25852,
+                                     42628,  34566,  26566,  10818, 502992,  67776,  34896,  68286,
+                                     28052,  35988,  69524]).all()
+    assert (f.gas['iord'][::100] == [16471,  8667, 49109, 57813, 17913, 26115, 10115, 50429, 50437,
+                                     26367,  2503, 26825, 10827, 59463, 26703, 51909, 27927, 12057,
+                                     36761]).all()
+
+def test_swift_multifile_partial_loading():
+    f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
+                     take_swift_cells=[0,5,20,200])
+
+    assert len(f) == 2048
+
+    assert np.allclose(f['pos'][::100],
+                       [[  0.90574413,   1.23148826,   1.08457044],
+                          [  5.38928105,   3.39531932,  12.16627829],
+                          [  0.94682741,   9.99268563,  14.42636433],
+                          [ 16.65709673,   3.38461118,   5.47390269],
+                          [  9.87028024,  14.62473673,   0.98727947],
+                          [ 14.47500443,  16.773776  ,   9.74889636],
+                          [ 54.2541276 ,  25.47568787,  14.10461116],
+                          [ 58.85629125,  34.2701821 ,   7.44578035],
+                          [ 67.83300647,  18.60943356,   0.78988041],
+                          [ 63.32954201,  27.78617349,   0.87468019],
+                          [ 67.95890776,  27.66693028,  16.39712484],
+                          [  3.26246761,   1.20717194, 103.37377035],
+                          [  5.47939785,  14.4774205 ,  92.18117726],
+                          [  9.93556488,   5.69315011,  92.2609549 ],
+                          [ 16.79507021,   7.98814361, 103.17866188],
+                          [ 10.07660354,  16.88916246, 105.41116598],
+                          [  1.3004053 ,  36.6884804 ,  81.22794421],
+                          [  7.71374451,  45.49463307,  74.65383169],
+                          [ 12.14706372,  38.8390906 ,  76.86117397],
+                          [ 16.59894837,  36.67247821,  85.82433427],
+                          [  9.79404938,  52.28051827,  81.30710868]])
+
+def test_swift_multifile_partial_loading_order_insensitive():
+    f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
+                     take_swift_cells=[0, 5, 20, 200])
+    f2 = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
+                     take_swift_cells=[0, 5, 20, 200][::-1])
+    assert (f['iord'] == f2['iord']).all()
+
+def test_swift_vds_partial_loading():
+    f = pynbody.load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", # <-- VDS file
+                     take_swift_cells=[0,5,20,200])
+    f2 = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
+                      take_swift_cells=[0, 5, 20, 200][::-1])
+    assert (f['iord'] == f2['iord']).all()
+
+# TODO:
+def test_swift_partial_load_region():
+    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5",
+                     take=pynbody.filt.Sphere(20.0, (40.0, 40.0, 40.0)))
+    print(len(f))
+    assert False
+
+# TODO:
+def test_swift_partial_load_region_that_wraps():
+    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5",
+                     take=pynbody.filt.Sphere(20.0, (0.0, 40.0, 40.0)))
+    print(len(f))
+    assert False
+
+
+# TODO: loading FoF cat

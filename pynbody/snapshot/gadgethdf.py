@@ -79,6 +79,7 @@ class DummyHDFData:
 class GadgetHdfMultiFileManager:
     _nfiles_groupname = "Header"
     _nfiles_attrname = "NumFilesPerSnapshot"
+    _size_from_hdf5_key = "ParticleIDs"
     _subgroup_name = None
 
     def __init__(self, filename, mode='r') :
@@ -89,9 +90,15 @@ class GadgetHdfMultiFileManager:
         else:
             h1 = h5py.File(filename + ".0.hdf5", mode)
             self._numfiles = h1[self._nfiles_groupname].attrs[self._nfiles_attrname]
+            if hasattr(self._numfiles, "__len__"):
+                assert len(self._numfiles) == 1
+                self._numfiles = self._numfiles[0]
             self._filenames = [filename+"."+str(i)+".hdf5" for i in range(self._numfiles)]
 
         self._open_files = {}
+
+    def __len__(self):
+        return self._numfiles
 
     def __iter__(self) :
         for i in range(self._numfiles) :
@@ -108,6 +115,12 @@ class GadgetHdfMultiFileManager:
         except KeyError :
             self._open_files[i] = next(itertools.islice(self,i,i+1))
             return self._open_files[i]
+
+    def iter_particle_groups_with_name(self, hdf_family_name):
+        for hdf in self:
+            if hdf_family_name in hdf:
+                if self._size_from_hdf5_key in hdf[hdf_family_name]:
+                    yield hdf[hdf_family_name]
 
     def get_header_attrs(self):
         return self[0].parent['Header'].attrs
@@ -206,17 +219,13 @@ class GadgetHDFSnap(SimSnap):
         self._loadable_keys = list(self._loadable_keys)
 
     def _all_hdf_groups(self):
-        for hdf in self._hdf_files:
-            for hdf_family_name in _all_hdf_particle_groups:
-                if hdf_family_name in hdf:
-                    yield hdf[hdf_family_name]
+        for hdf_family_name in _all_hdf_particle_groups:
+            yield from self._hdf_files.iter_particle_groups_with_name(hdf_family_name)
 
     def _all_hdf_groups_in_family(self, fam):
         for hdf_family_name in self._family_to_group_map[fam]:
-            for hdf in self._hdf_files:
-                if hdf_family_name in hdf:
-                    if self._size_from_hdf5_key in hdf[hdf_family_name]:
-                        yield hdf[hdf_family_name]
+            yield from self._hdf_files.iter_particle_groups_with_name(hdf_family_name)
+
 
     def __init_file_map(self):
         family_slice_start = 0
