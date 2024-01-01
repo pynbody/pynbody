@@ -164,5 +164,3 @@ def test_swift_partial_load_region_that_wraps():
     print(len(f))
     assert False
 
-
-# TODO: loading FoF cat

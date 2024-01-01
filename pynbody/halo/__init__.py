@@ -184,7 +184,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
     def _init_iord_to_fpos(self):
         if not hasattr(self, "_iord_to_fpos"):
             if 'iord' in self.base.loadable_keys():
-                self._iord_to_fpos = np.empty(self.base['iord'].max()+1,dtype=np.int64)
+                self._iord_to_fpos = np.empty(int(self.base['iord'].max())+1,dtype=np.int64)
                 self._iord_to_fpos[self.base['iord']] = np.arange(len(self.base))
             else:
                 warnings.warn("No iord array available; assuming halo catalogue is using sequential particle IDs",
@@ -369,29 +369,29 @@ class AmigaGrpCatalogue(GrpCatalogue):
         return GrpCatalogue._can_load(sim, arr_name)
 
 
-from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
-from pynbody.halo.ahf import AHFCatalogue
-from pynbody.halo.hop import HOPCatalogue
-from pynbody.halo.legacy import RockstarIntermediateCatalogue
-from pynbody.halo.rockstar import RockstarCatalogue
-from pynbody.halo.subfind import SubfindCatalogue
-from pynbody.halo.subfindhdf import (
+from .adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
+from .ahf import AHFCatalogue
+from .hop import HOPCatalogue
+from .legacy import RockstarIntermediateCatalogue
+from .rockstar import RockstarCatalogue
+from .subfind import SubfindCatalogue
+from .subfindhdf import (
     ArepoSubfindHDFCatalogue,
     Gadget4SubfindHDFCatalogue,
     SubFindHDFHaloCatalogue,
     TNGSubfindHDFCatalogue,
 )
+from .velociraptor import VelociraptorCatalogue
 
 
 def _get_halo_classes():
-    # AmigaGrpCatalogue MUST be scanned first, because if it exists we probably
-    # want to use it, but an AHFCatalogue will probably be on-disk too.
     _halo_classes = [
         GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
         RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,
         NewAdaptaHOPCatalogue, AdaptaHOPCatalogue,
         RockstarIntermediateCatalogue, HOPCatalogue, Gadget4SubfindHDFCatalogue,
-        ArepoSubfindHDFCatalogue, TNGSubfindHDFCatalogue
+        ArepoSubfindHDFCatalogue, TNGSubfindHDFCatalogue,
+        VelociraptorCatalogue
     ]
 
     return _halo_classes
