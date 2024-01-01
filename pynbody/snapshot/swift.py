@@ -5,10 +5,7 @@ import h5py
 import numpy as np
 
 from .. import halo, units, util
-from .gadgethdf import (
-    GadgetHdfMultiFileManager,
-    GadgetHDFSnap,
-)
+from .gadgethdf import GadgetHdfMultiFileManager, GadgetHDFSnap
 
 
 class SwiftMultiFileManager(GadgetHdfMultiFileManager):
@@ -232,3 +229,11 @@ class SwiftSnap(GadgetHDFSnap):
 
         self._file_units_system = [vel_unit, dist_unit, mass_unit, temp_unit]
 
+    def halos(self, **kwargs):
+        h = super().halos(**kwargs)
+
+        if isinstance(h, halo.GrpCatalogue):
+            ignore = int(self._hdf_files.get_parameter_attrs()['FOF:group_id_default'])
+            return halo.GrpCatalogue(self, ignore=ignore, **kwargs)
+
+        return h

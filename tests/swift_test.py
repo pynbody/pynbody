@@ -163,4 +163,3 @@ def test_swift_partial_load_region_that_wraps():
                      take=pynbody.filt.Sphere(20.0, (0.0, 40.0, 40.0)))
     print(len(f))
     assert False
-

@@ -1,5 +1,6 @@
 import pynbody
 
+
 def test_swift_velociraptor():
     # TODO: replace with a small enough file to include in test data
     f = pynbody.load("...")
@@ -24,4 +25,3 @@ def test_swift_velociraptor_parents_and_children():
 
     assert h[100].properties['parent'] == -1
     assert h[100].properties['children']
-
