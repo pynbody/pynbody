@@ -168,6 +168,7 @@ class GadgetHDFSnap(SimSnap):
     _multifile_manager_class = GadgetHdfMultiFileManager
     _readable_hdf5_test_key = "PartType?"
     _size_from_hdf5_key = "ParticleIDs"
+    _namemapper_config_section = "gadgethdf-name-mapping"
 
     def __init__(self, filename, ):
         super().__init__()
@@ -176,7 +177,7 @@ class GadgetHDFSnap(SimSnap):
 
         self._init_hdf_filemanager(filename)
 
-        self._translate_array_name = namemapper.AdaptiveNameMapper('gadgethdf-name-mapping')
+        self._translate_array_name = namemapper.AdaptiveNameMapper(self._namemapper_config_section)
         self._init_unit_information()
         self.__init_family_map()
         self.__init_file_map()

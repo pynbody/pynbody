@@ -1,11 +1,15 @@
-import numpy as np
 import os
-import h5py
 import tempfile
 
-from .gadgethdf import GadgetHDFSnap, GadgetHdfMultiFileManager, _all_hdf_particle_groups
-from . import SimSnap
-from .. import units, util
+import h5py
+import numpy as np
+
+from .. import halo, units, util
+from .gadgethdf import (
+    GadgetHdfMultiFileManager,
+    GadgetHDFSnap,
+)
+
 
 class SwiftMultiFileManager(GadgetHdfMultiFileManager):
 
@@ -40,7 +44,7 @@ class SwiftMultiFileManager(GadgetHdfMultiFileManager):
         pass
 
     def _identify_cells_to_take(self, take):
-
+        pass
 
     def get_unit_attrs(self):
         return self[0].parent['InternalCodeUnits'].attrs
@@ -152,6 +156,8 @@ class SwiftSnap(GadgetHDFSnap):
     _length_unit_key = 'Unit length in cgs (U_L)'
     _mass_unit_key = 'Unit mass in cgs (U_M)'
     _time_unit_key = 'Unit time in cgs (U_t)'
+
+    _namemapper_config_section = 'swift-name-mapping'
 
     def __init__(self, filename, take_swift_cells=None, take=None):
         self._take_swift_cells = take_swift_cells

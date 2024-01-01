@@ -1,13 +1,17 @@
 import numpy as np
+from pytest import raises
+
 import pynbody
+import pynbody.halo.velociraptor
 import pynbody.snapshot.swift
 
+
 def test_load_identifies_swift():
-    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5")
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
     assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
 
 def test_swift_properties():
-    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5")
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
 
     assert np.allclose(f.properties['a'], 0.38234515)
     assert np.allclose(f.properties['z'], 1.61543791)
@@ -18,7 +22,7 @@ def test_swift_properties():
     assert np.allclose(f.properties['omegaNu0'], 0.0)
 
 def test_swift_arrays():
-    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5")
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
     assert np.allclose(f.dm['pos'].units.ratio("Mpc a", **f.conversion_context()), 1.0)
     assert np.allclose(f.dm['vel'].units.ratio("km s^-1", **f.conversion_context()), 1.0)
     # the reason the following isn't exactly 1.0 is because our solar mass is slightly different to swift's
@@ -65,7 +69,7 @@ def test_swift_multifile_without_vds():
     _assert_multifile_contents_is_sensible(f)
 
 def test_swift_singlefile_is_not_vds():
-    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5")
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
     assert not f._hdf_files.is_virtual()
 
 
@@ -73,7 +77,7 @@ def test_swift_singlefile_is_not_vds():
 # TODO: test partial loading where the region wraps around the periodic box
 
 def test_swift_singlefile_partial_loading():
-    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5",
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
                      take_swift_cells=[5,15,20,25])
     assert len(f.dm) == 1849
     assert len(f.gas) == 1882
@@ -127,16 +131,35 @@ def test_swift_vds_partial_loading():
                       take_swift_cells=[0, 5, 20, 200][::-1])
     assert (f['iord'] == f2['iord']).all()
 
+def test_swift_fof_groups():
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+    h = f.halos()
+
+    with raises(ValueError):
+        _ = h[0]
+
+    assert len(h[1]) == 444
+    assert len(h[1].dm) == 247
+    assert len(h[1].gas) == 197
+
+    assert len(h) < 1000
+
+def test_swift_dtypes():
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+    assert np.issubdtype(f['iord'].dtype, np.integer)
+    assert np.issubdtype(f['pos'].dtype, np.floating)
+
+
 # TODO:
 def test_swift_partial_load_region():
-    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5",
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
                      take=pynbody.filt.Sphere(20.0, (40.0, 40.0, 40.0)))
     print(len(f))
     assert False
 
 # TODO:
 def test_swift_partial_load_region_that_wraps():
-    f = pynbody.load("testdata/SWIFT/swiftsnap_0150.hdf5",
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
                      take=pynbody.filt.Sphere(20.0, (0.0, 40.0, 40.0)))
     print(len(f))
     assert False
