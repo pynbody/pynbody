@@ -65,7 +65,7 @@ class VelociraptorCatalogue(HaloCatalogue):
             self._path = Path(vr_basename)
 
         if self._path is None:
-            raise IOError("Could not find velociraptor catalogue. Try specifying vr_basename='path/to/output', where the velociraptor outputs are output.properties.0 etc")
+            raise OSError("Could not find velociraptor catalogue. Try specifying vr_basename='path/to/output', where the velociraptor outputs are output.properties.0 etc")
         self._grps = h5py.File(str(self._path.with_suffix('.catalog_groups.0')), 'r')
         self._part_ids = h5py.File(str(self._path.with_suffix('.catalog_particles.0')), 'r')
         if include_unbound:
