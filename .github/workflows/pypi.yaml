@@ -70,6 +70,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
+          name: artifact-${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           path: ./wheelhouse/*.whl
 
   build_sdist:
@@ -92,6 +93,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
+          name: artifact-source
           path: dist/*.tar.gz
 
   upload_pypi:
@@ -100,9 +102,10 @@ jobs:
     environment: PyPI
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: artifact
+          name: artifact-*
+          merge-multiple: true
           path: dist
 
       - uses: pypa/gh-action-pypi-publish@v1.8.11
