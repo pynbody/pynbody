@@ -338,7 +338,7 @@ class GrpCatalogue(HaloCatalogue):
     def _get_halo(self, i):
         x = Halo(i, self, self.base, self._get_halo_indices(i))
         if len(x) == 0:
-            raise ValueError("Halo %s does not exist" % (str(i)))
+            raise IndexError("Halo %s does not exist" % (str(i)))
         x._descriptor = "halo_" + str(i)
         return x
 

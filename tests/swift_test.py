@@ -133,9 +133,9 @@ def test_swift_vds_partial_loading():
 
 def test_swift_fof_groups():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
-    h = f.halos()
+    h = f.halos(try_classes = [pynbody.halo.GrpCatalogue])
 
-    with raises(ValueError):
+    with raises(IndexError):
         _ = h[0]
 
     assert len(h[1]) == 444
@@ -150,16 +150,6 @@ def test_swift_dtypes():
     assert np.issubdtype(f['pos'].dtype, np.floating)
 
 
-# TODO:
-def test_swift_partial_load_region():
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
-                     take=pynbody.filt.Sphere(20.0, (40.0, 40.0, 40.0)))
-    print(len(f))
-    assert False
-
-# TODO:
-def test_swift_partial_load_region_that_wraps():
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
-                     take=pynbody.filt.Sphere(20.0, (0.0, 40.0, 40.0)))
-    print(len(f))
-    assert False
+# TODO: test loading a region (currently unimplemented)
+# TODO: test loading a region that wraps around the box (currently unimplemented)
+# TODO: test loading a halo (currently unimplemented)

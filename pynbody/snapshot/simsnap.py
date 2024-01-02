@@ -754,14 +754,16 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         configuration files)."""
         from .. import config
 
-        for c in config['halo-class-priority']:
+        try_classes = kwargs.pop('try_classes', config['halo-class-priority'])
+
+        for c in try_classes:
             try:
                 if c._can_load(self, *args, **kwargs):
                     return c(self, *args, **kwargs)
             except TypeError:
                 pass
 
-        for c in config['halo-class-priority']:
+        for c in try_classes:
             try:
                 if c._can_run(self, *args, **kwargs):
                     return c(self, *args, **kwargs)

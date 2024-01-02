@@ -25,8 +25,8 @@ class VelociraptorCatalogue(HaloCatalogue):
         # from filename snap_nnnn[.m].hdf5 get integer n
         try:
             snapshot_num = int(filename.split('_')[1].split('.')[0])
-        except ValueError:
-            return None
+        except (ValueError, IndexError):
+            snapshot_num = None
 
         possible_paths = [
             simpath.parent,
@@ -38,7 +38,7 @@ class VelociraptorCatalogue(HaloCatalogue):
         for basepath in possible_paths:
             if basepath.is_dir():
                 for p in basepath.iterdir():
-                    if p.is_dir() and f'{snapshot_num:04d}' in p.name:
+                    if snapshot_num and p.is_dir() and f'{snapshot_num:04d}' in p.name:
                         possible_paths.append(p)
                     if 'catalog_groups.0' in p.name and p.is_file():
                         return basepath / str(p.name)[:-(len('.catalog_groups.0'))]

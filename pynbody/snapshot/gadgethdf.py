@@ -631,7 +631,7 @@ class GadgetHDFSnap(SimSnap):
                 warnings.warn("Unable to find cosmological factors in HDF file; assuming mass is %s" % mass_unit)
 
         self._file_units_system = [units.Unit(x) for x in [
-            vel_unit, dist_unit, mass_unit, "K"]]
+            vel_unit*units.cm/units.s, dist_unit*units.cm, mass_unit*units.g, "K"]]
 
     @classmethod
     def _test_for_hdf5_key(cls, f):
