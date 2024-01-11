@@ -52,16 +52,16 @@ own chosing:
 
 >>> x = SimArray([1,2], "Msol")
 >>> x.convert_units('kg')
->>> print x
+>>> print(x)
 SimArray([  1.99e+30,   3.98e+30], 'kg')
 
 Or you can leave the original array alone and get a *copy* in
 different units, correctly converted:
 
 >>> x = SimArray([1,2], "Msol")
->>> print x.in_units("kg")
+>>> print(x.in_units("kg"))
 SimArray([  1.99e+30,   3.98e+30], 'kg')
->>> print x
+>>> print(x)
 SimArray([1,2], "Msol")
 
 If the SimArray was created by a SimSnap (which is most likely), it

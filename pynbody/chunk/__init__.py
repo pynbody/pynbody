@@ -252,7 +252,6 @@ class LoadControl:
 
             disk_ptr = 0
             mem_ptr = 0
-            # print current_family, disk_sl.stop
 
             while disk_ptr < disk_sl.stop - disk_sl.start:
                 disk_ptr_end = disk_ptr + \
@@ -269,9 +268,6 @@ class LoadControl:
                     mem_slice = None
 
                 disk_mask = ids[i:j] - disk_ptr
-
-                # print mem_slice, (j-i), len(disk_mask), disk_ptr,
-                # disk_ptr_end, nread_disk
 
                 mem_ptr = mem_ptr + j - i
                 i = j
@@ -303,10 +299,6 @@ class LoadControl:
         next_dip = disk_interrupt_points[i]
         for nread_disk, disk_slice, mem_slice in self.iterate(families_on_disk, families_in_memory, multiskip):
             while next_dip and fpos + nread_disk > next_dip:
-
-                # print "ORIGINAL:",nread_disk, disk_slice, mem_slice,"starts@",fpos
-                # print "   INTERRUPT AT:",next_dip
-
                 # an interrupt falls in the middle of our slice
                 # work out what to read first
                 len_pre = next_dip - fpos
@@ -353,7 +345,6 @@ class LoadControl:
                     d_slice_post = None
                     m_slice_post = None
 
-                # print "PRE-INTERRUPT:",len_pre,d_slice_pre,m_slice_pre
                 yield len_pre, d_slice_pre, m_slice_pre
                 fpos += len_pre
                 disk_interrupt_fn(disk_interrupt_points[i])
@@ -370,8 +361,6 @@ class LoadControl:
                 # decomposition)
                 nread_disk, disk_slice, mem_slice = len_post, d_slice_post, m_slice_post
 
-                # print "POST-INTERRUPT:",nread_disk, disk_slice,
-                # mem_slice,"continues@",fpos
 
             yield nread_disk, disk_slice, mem_slice
             fpos += nread_disk

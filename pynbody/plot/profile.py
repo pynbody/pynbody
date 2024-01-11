@@ -230,8 +230,6 @@ def density_profile(sim, linestyle=False, center=True, clear=True, fit=False,in_
         alphfit = np.polyfit(np.log10(r[fit_inds]),
                              np.log10(den[fit_inds]), 1)
 
-#        print "alpha: ", alphfit[0], "  norm:", alphfit[1]
-
         fit = np.poly1d(alphfit)
         plt.plot(r[fit_inds], 10**fit(np.log10(r[fit_inds])),
                  color='k',linestyle='dashed',
