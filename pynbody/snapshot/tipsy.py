@@ -67,19 +67,24 @@ class TipsySnap(SimSnap):
         if not only_header:
             logger.info("Loading %s", filename)
         with util.open_(filename, 'rb') as f:
-            t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
+            t, n, ndim, ng, nd, ns,pad = struct.unpack("diiiiii", f.read(32))
             if (ndim > 3 or ndim < 1):
                 self._byteswap = True
                 f.seek(0)
-                t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
+                t, n, ndim, ng, nd, ns,pad = struct.unpack(">diiiiii", f.read(32))
             else:
                 self._byteswap = False
 
             assert ndim == 3
+            if (n == 0 or n != ng+nd+ns):
+                n += ((pad & 0x000000ff) << 32)
+                ng += ((pad & 0x0000ff00) << 24)
+                nd += ((pad & 0x00ff0000) << 16)
+                ns += ((pad & 0xff000000) << 8)
+            assert n == ng+nd+ns
 
             self._header_t = t
 
-            f.read(4)
 
         disk_family_slice = dict({family.gas: slice(0, ng),
                                   family.dm: slice(ng, nd + ng),
