@@ -42,16 +42,14 @@ class Halo(pynbody.snapshot.subsnap.IndexedSubSnap):
     Generic class representing a halo.
     """
 
-    def __init__(self, halo_id, halo_catalogue, *args, **kwa):
+    def __init__(self, halo_id, properties, halo_catalogue, *args, **kwa):
         super().__init__(*args, **kwa)
         self._halo_catalogue = halo_catalogue
         self._halo_id = halo_id
         self._descriptor = "halo_" + str(halo_id)
         self.properties = copy.copy(self.properties)
         self.properties['halo_id'] = halo_id
-        if halo_id in halo_catalogue._halos:
-            for key in list(halo_catalogue._halos[halo_id].properties.keys()):
-                self.properties[key] = halo_catalogue._halos[halo_id].properties[key]
+        self.properties.update(properties)
 
         # Inherit autoconversion from parent
         self._autoconvert_properties()
@@ -107,81 +105,170 @@ class Halo(pynbody.snapshot.subsnap.IndexedSubSnap):
             self._autoconvert_properties()
 
 
+class IndexList:
+    def __init__(self, /, object_id_per_particle=None, particle_ids=None, unique_obj_numbers=None, boundaries=None):
+
+        if object_id_per_particle is not None:
+            assert particle_ids is None
+            assert unique_obj_numbers is None
+            assert boundaries is None
+            self.sort_key = np.argsort(object_id_per_particle, kind='mergesort')  # mergesort for stability
+            self.unique_obj_numbers = np.unique(object_id_per_particle)
+            self.boundaries = np.searchsorted(object_id_per_particle[self.sort_key], self.unique_obj_numbers)
+        else:
+            assert particle_ids is not None
+            assert unique_obj_numbers is not None
+            assert boundaries is not None
+            self.sort_key = particle_ids
+            self.unique_obj_numbers = unique_obj_numbers
+            self.boundaries = boundaries
+
+    def get_index_list(self, obj_number):
+        """Get the index list for the specified halo/object ID"""
+        obj_offset = np.searchsorted(self.unique_obj_numbers, obj_number)
+        if obj_offset >= len(self.unique_obj_numbers) or self.unique_obj_numbers[obj_offset] != obj_number:
+            raise KeyError(f"No such halo {obj_number}")
+
+        ptcl_start = self.boundaries[obj_offset]
+
+        if obj_offset == len(self.unique_obj_numbers) - 1:
+            ptcl_end = len(self.sort_key)
+        else:
+            ptcl_end = self.boundaries[obj_offset + 1]
+
+        return self.sort_key[ptcl_start:ptcl_end]
+
+    def __getitem__(self, obj_number):
+        return self.get_index_list(obj_number)
+
+    def __len__(self):
+        return len(self.unique_obj_numbers)
+
+
+
+
 # ----------------------------#
 # General HaloCatalogue class #
 #-----------------------------#
 
 class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
-    """
-    Generic halo catalogue object.
+    """Generic halo catalogue object.
+
+    To the user, this presents a simple interface where calling h[i] returns halo i.
+
+    By convention, i should use the halo finder's own indexing scheme, e.g. if the halo-finder is one-based then
+    h[1] should return the first halo.
+
+    To support a new format, subclass this and implement the following methods:
+      _get_index_list_all_halos [essential]
+      _get_halo_ids [optional, if it's possible to do this more efficiently than calling _get_index_list_all_halos]
+      _get_index_list_one_halo [optional, if it's possible to do this more efficiently than _get_index_list_all_halos]
+      _get_properties_one_halo [only if you have halo finder-provided properties to expose]
+      _get_halo [only if you want to add further customization to halos]
+      _get_num_halos [optional, if it's possible to do this more efficiently than calling _get_index_list_all_halos]
+      get_group_array [only if it's possible to do this more efficiently than the default implementation]
+
     """
 
     def __init__(self, sim):
         self._base = weakref.ref(sim)
-        self._halos = {}
-        self.lazy_off = util.ExecutionControl()
+        self._cached_index_lists = None
+        self._cached_halos = {}
 
-    def calc_item(self, i):
-        if i in self._halos:  # and self._halos[i]() is not None :
-            if isinstance(self._halos[i],DummyHalo):
-                try:
-                    return self._get_halo(i)
-                except Exception:
-                    return self._halos[i]
-            else:
-                return self._halos[i]
+    def load_all(self):
+        """Loads all halos, which is normally more efficient if a large fraction of them will be accessed."""
+        if not self._cached_index_lists:
+            self._cached_index_lists = self._get_index_list_all_halos()
+
+    @util.deprecated("precalculate has been renamed to load_all")
+    def precalculate(self):
+        self.load_all()
+
+    def _get_num_halos(self):
+        if self._cached_index_lists is not None:
+            return len(self._cached_index_lists)
         else:
-            h = self._get_halo(i)
-            self._halos[i] = h  # weakref.ref(h)
-            return h
+            return len(self._get_halo_ids())
+
+    def _get_index_list_all_halos_cached(self):
+        """Get the index information for all halos, using a cached version if available"""
+        self.load_all()
+        return self._cached_index_lists
+
+    def _get_halo_ids(self):
+        """Get the IDs of all halos.
+
+        A default implementation is provided but subclasses may override this if they can do it more efficiently."""
+        self.load_all()
+        return self._cached_index_lists.unique_obj_numbers
+
+    def _get_index_list_all_halos(self):
+        """Returns information about the index list for all halos.
+
+        Returns an IndexList object, which is a container for the following information:
+        - particle_ids: particle IDs contained in halos, sorted by halo ID
+        - unique_obj_numbers: the halo IDs, in ascending order
+        - boundaries: the indices in particle_ids where each halo starts and ends
+        """
+        raise NotImplementedError("This halo catalogue does not support loading all halos at once")
+
+    def _get_properties_one_halo(self, i):
+        """Returns a dictionary of properties for a single halo"""
+        return {}
+
+    def _get_index_list_one_halo(self, i):
+        """Get the index list for a single halo.
+
+        A generic implementation is provided that fetches index lists for all halos and then extracts the one"""
+        self.load_all()
+        return self._cached_index_lists[i]
+
+    def _get_index_list_via_most_efficient_route(self, i):
+        if self._cached_index_lists:
+            return self._cached_index_lists[i]
+        else:
+            return self._get_index_list_one_halo(i)
+            # NB subclasses may implement loading one halo direct from disk in the above
+            # if not, the default implementation will populate _cached_index_lists
+
+    def _get_halo_cached(self, i):
+        if i not in self._cached_halos:
+            self._cached_halos[i] = self._get_halo(i)
+        return self._cached_halos[i]
+
+    def _get_halo(self, i):
+        return Halo(i, self._get_properties_one_halo(i), self, self.base,
+                 self._get_index_list_one_halo(i))
+
+
+
+    def get_dummy_halo(self, i):
+        """Return a DummyHalo object containing only the halo properties, no particle information"""
+        h = DummyHalo()
+        h.properties.update(self._get_properties_one_halo(i))
+        return h
 
     def __len__(self):
-        return len(self._halos)
+        return self._get_num_halos()
 
     def __iter__(self):
         return self._halo_generator()
 
     def __getitem__(self, item):
         if isinstance(item, slice):
-            for x in self._halo_generator(item.start,item.stop) : pass
-            indices = item.indices(len(self._halos))
-            res = [self.calc_item(i) for i in range(*indices)]
-            return res
+            return (self._get_halo_cached(i) for i in range(*item.indices(len(self))))
         else:
-            return self.calc_item(item)
+            return self._get_halo_cached(item)
 
     @property
     def base(self):
         return self._base()
 
-    def _halo_generator(self, i_start=None, i_stop=None) :
-        if len(self) == 0 : return
-        if i_start is None or i_stop is None:
-            try:
-                self[0]
-                one_indexed = False
-            except KeyError :
-                one_indexed = True
-
-        if i_start is None:
-            i = 1 if one_indexed else 0
-        else :
-            i = i_start
-
-        if i_stop is None:
-            i_stop = len(self) + 1 if one_indexed else len(self)
-
-        while True:
-            try:
-                yield self[i]
-                i+=1
-                if i!=i_stop and len(self[i]) == 0: continue
-            except RuntimeError:
-                break
-            if i == i_stop: return
-
     def _init_iord_to_fpos(self):
+        """Create a member array, _iord_to_fpos, that maps particle IDs to file positions.
+
+        This is a convenience function for subclasses to use."""
         if not hasattr(self, "_iord_to_fpos"):
             if 'iord' in self.base.loadable_keys():
                 self._iord_to_fpos = np.empty(self.base['iord'].max()+1,dtype=np.int64)
@@ -224,42 +311,6 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
     @staticmethod
     def _can_load(self):
         return False
-
-    @staticmethod
-    def _can_run(self):
-        return False
-
-    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):
-        """
-        Converts all array's units to be consistent with the
-        distance, velocity, mass basis units specified.
-
-        Base units can be specified using keywords.
-
-        **Optional Keywords**:
-
-           *distance*: string (default = 'kpc')
-
-           *velocity*: string (default = 'km s^-1')
-
-           *mass*: string (default = 'Msol')
-
-           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
-
-           *convert_parent*: boolean (default = None); ignored for HaloCatalogue objects
-
-        """
-        self.base.physical_units(distance=distance, velocity=velocity, mass=mass, persistent=persistent)
-
-        # Convert all instantiated subhalos
-        for halo in self._halos.values():
-            halo.physical_units(
-                distance,
-                velocity,
-                mass,
-                persistent=persistent,
-                convert_parent=False
-            )
 
 
 class GrpCatalogue(HaloCatalogue):

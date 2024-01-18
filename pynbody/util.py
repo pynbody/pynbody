@@ -8,6 +8,7 @@ Various utility routines used internally by pynbody.
 """
 
 import fractions
+import functools
 import gzip
 import logging
 import math
@@ -16,6 +17,7 @@ import struct
 import sys
 import threading
 import time
+import warnings
 
 import numpy as np
 
@@ -654,3 +656,18 @@ def _thread_map(func, *args):
     if excp is None:
         return rets
     raise excp  # Note this is a re-raised exception from within a thread
+
+
+def deprecated(func, message=None):
+    """Mark a method or function as deprecated"""
+    if isinstance(func, str):
+        return functools.partial(deprecated, message=func)
+
+    if message is None:
+        message = f"Call to deprecated function {func.__name__}."
+
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        warnings.warn(message, category=DeprecationWarning)
+        return func(*args, **kwargs)
+    return new_func
