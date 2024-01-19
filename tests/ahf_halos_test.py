@@ -15,14 +15,39 @@ def test_load_ahf_catalogue():
     h = pynbody.halo.AHFCatalogue(f)
     assert len(h)==1411
 
-def test_load_ahf_catalogue_non_gzipped():
-    subprocess.call(["gunzip","testdata/g15784.lr.01024.z0.000.AHF_halos.gz"])
+@pytest.mark.parametrize("do_load_all", [True, False])
+def test_ahf_particles(do_load_all):
+    f = pynbody.load("testdata/g15784.lr.01024")
+    h = pynbody.halo.AHFCatalogue(f)
+
+    if do_load_all:
+        h.load_all()
+
+    assert len(h[1])==502300
+    assert (h[1]['iord'][::10000]==[57, 27875, 54094, 82969, 112002, 140143, 173567, 205840, 264606,
+           301694, 333383, 358730, 374767, 402300, 430180, 456015, 479885, 496606,
+           519824, 539971, 555195, 575204, 596047, 617669, 652724, 1533992, 1544021,
+           1554045, 1564080, 1574107, 1584130, 1594158, 1604204, 1614257, 1624308, 1634376,
+           1644485, 1654580, 1664698, 1674831, 1685054, 1695252, 1705513, 1715722, 1725900,
+           1736070, 1746235, 1756400, 1766584, 1776754, 1786886]).all()
+    assert len(h[20])==3272
+    assert(h[20]['iord'][::1000] == [232964, 341019, 752354, 793468]).all()
+
+
+@pytest.mark.parametrize("do_load_all", [True, False])
+def test_load_ahf_catalogue_non_gzipped(do_load_all):
+    for extension in ["halos", "particles", "substructure"]:
+        subprocess.call(["gunzip",f"testdata/g15784.lr.01024.z0.000.AHF_{extension}.gz"])
     try:
         f = pynbody.load("testdata/g15784.lr.01024")
         h = pynbody.halo.AHFCatalogue(f)
+        if do_load_all:
+            h.load_all()
         assert len(h)==1411
     finally:
-        subprocess.call(["gzip","testdata/g15784.lr.01024.z0.000.AHF_halos"])
+        for extension in ["halos", "particles", "substructure"]:
+            subprocess.call(["gzip", f"testdata/g15784.lr.01024.z0.000.AHF_{extension}.gz"])
+
 
 def test_ahf_properties():
     f = pynbody.load("testdata/g15784.lr.01024")

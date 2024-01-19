@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 
 from .. import config_parser, snapshot, util
-from . import DummyHalo, Halo, HaloCatalogue, logger
+from . import DummyHalo, Halo, HaloCatalogue, IndexList, logger
 
 
 class AHFCatalogue(HaloCatalogue):
@@ -53,12 +53,7 @@ class AHFCatalogue(HaloCatalogue):
                     get_dummy_halo instead]
 
         """
-
-        import os.path
-        if not self._can_load(sim, ahf_basename):
-            self._run_ahf(sim)
-
-        HaloCatalogue.__init__(self, sim)
+        super().__init__(sim)
 
         if use_iord is None:
             use_iord = isinstance(
@@ -67,31 +62,31 @@ class AHFCatalogue(HaloCatalogue):
             )
 
         self._use_iord = use_iord
-
-        self._all_parts = get_all_parts
-
         self._only_stat = only_stat
         self._try_writing_fpos = write_fpos
 
         if only_stat:
-            raise DeprecationWarning("only_stat keyword is deprecated; instead, use the catalogue's get_dummy_halo method")
-        if get_all_parts:
-            raise DeprecationWarning("get_all_parts keyword is deprecated; instead, use the catalogue's load_all method")
+            warnings.warn(DeprecationWarning("only_stat keyword is deprecated; instead, use the catalogue's get_dummy_halo method"))
         if make_grp:
-            raise DeprecationWarning("make_grp keyword is deprecated; instead, use the catalogue's get_group_array method")
+            warnings.warn(DeprecationWarning("make_grp keyword is deprecated; instead, use the catalogue's get_group_array method"))
 
         if ahf_basename is not None:
             self._ahfBasename = ahf_basename
         else:
             self._ahfBasename = self._infer_ahf_basename()
 
+        self._determine_format_revision_from_filename()
+
         logger.info("AHFCatalogue loading halo properties")
         self._load_ahf_halo_properties(self._ahfBasename + 'halos')
 
         logger.info("AHFCatalogue loading particles")
-        self._load_ahf_particles(self._ahfBasename + 'particles')
+
+        if self._use_iord:
+            self._init_iord_to_fpos()
 
         if dosort is not None:
+            warnings.warn(DeprecationWarning("dosort keyword is deprecated"))
             npart = np.array([properties['npart'] for properties in self._halo_properties])
             osort = np.argsort(-npart) # this is better than argsort(npart)[::-1], because it's stable
             self._halo_ids = osort + 1
@@ -102,17 +97,23 @@ class AHFCatalogue(HaloCatalogue):
             make_grp = config_parser.getboolean('AHFCatalogue', 'AutoGrp')
 
         if make_grp:
-            self.make_grp()
+            self.base['grp'] = self.get_group_array()
 
-        if config_parser.getboolean('AHFCatalogue', 'AutoPid'):
-            sim['pid'] = np.arange(0, len(sim))
-
-
+        if get_all_parts:
+            warnings.warn(
+                DeprecationWarning("get_all_parts keyword is deprecated; instead, use the catalogue's load_all method"))
+            self.load_all()
 
         logger.info("AHFCatalogue loaded")
 
+    def _determine_format_revision_from_filename(self):
+        if self._ahfBasename.split("z")[-2][-1] == ".":
+            self._is_new_format = True
+        else:
+            self._is_new_format = False
+
     def _infer_ahf_basename(self):
-        candidates = self._list_candidate_ahf_basenames(sim)
+        candidates = self._list_candidate_ahf_basenames(self.base)
         if len(candidates) == 1:
             candidate = candidates[0]
         elif len(candidates) == 0:
@@ -124,71 +125,13 @@ class AHFCatalogue(HaloCatalogue):
                           "catalogue, use the ahf_basename keyword, or move the other catalogues.")
         return util.cutgz(candidate)[:-9]
 
-    def __getitem__(self,item):
-        """
-        get the appropriate halo if dosort is on
-        """
-        if self._dosort is not None:
-            i = self._sorted_indices[item-1]
-        else:
-            i = item
-        return super().__getitem__(i)
-
-    def make_grp(self, name='grp'):
-        """
-        Creates a 'grp' array which labels each particle according to
-        its parent halo.
-        """
-        self.base[name] = self.get_group_array()
 
     def _write_fpos(self):
         try:
-            with open(self._ahfBasename + 'fpos', 'w') as f:
-                for i in range(self._nhalos):
-                    if i < self._nhalos - 1:
-                        f.write(str(self._halos[i+1].properties['fstart'])+'\n')
-                    else:
-                        f.write(str(self._halos[i+1].properties['fstart']))
+            np.savetxt(self._ahfBasename+'fpos', self._fpos, fmt="%d")
         except OSError:
             warnings.warn("Unable to write AHF_fpos file; performance will be reduced. Pass write_fpos=False to halo constructor to suppress this message.")
         self._try_writing_fpos = False
-
-    def _setup_children(self):
-        """
-        Creates a 'children' array inside each halo's 'properties'
-        listing the halo IDs of its children. Used in case the reading
-        of substructure data from the AHF-supplied _substructure file
-        fails for some reason.
-        """
-
-        for i in range(self._nhalos):
-            self._halos[i + 1].properties['children'] = []
-
-        for i in range(self._nhalos):
-            host = self._halos[i + 1].properties.get('hostHalo', -2)
-            if host > -1:
-                try:
-                    self._halos[host + 1].properties['children'].append(i + 1)
-                except KeyError:
-                    pass
-
-    def _get_halo(self, i):
-        if self.base is None:
-            raise RuntimeError("Parent SimSnap has been deleted")
-        if self._all_parts is not None:
-            return self._halos[i]
-
-        with util.open_(self._ahfBasename+'particles') as f:
-            fpos = self._halos[i].properties['fstart']
-            f.seek(fpos,0)
-            return Halo(
-                i,
-                self,
-                self.base,
-                self._load_ahf_particle_block(f, self._halos[i].properties['npart'])
-            )
-
-
 
     @property
     def base(self):
@@ -209,124 +152,131 @@ class AHFCatalogue(HaloCatalogue):
 
         return load(self.base.filename, take=ids)
 
-    def _get_file_positions(self, filename):
+    def _get_file_positions(self):
         """Get the starting positions of each halo's particle information within the
         AHF_particles file for faster access later"""
-        if os.path.exists(self._ahfBasename + 'fpos'):
-            with util.open_(self._ahfBasename + 'fpos') as f:
-                for i in range(self._nhalos):
-                    self._halos[i+1].properties['fstart'] = int(f.readline())
-        else:
-            with util.open_(filename) as f:
-                for h in range(self._nhalos):
-                    if len(f.readline().split()) == 1:
-                        f.readline()
-                    self._halos[h+1].properties['fstart'] = f.tell()
-                    for i in range(self._halos[h+1].properties['npart']):
-                        f.readline()
-            if self._try_writing_fpos:
-                if not os.path.exists(self._ahfBasename + 'fpos'):
-                    self._write_fpos()
+        if not hasattr(self, "_fpos"):
+            if os.path.exists(self._ahfBasename + 'fpos'):
+                self._fpos = np.loadtxt(self._ahfBasename+'fpos', dtype=int)
+            else:
+                self._fpos = np.empty(len(self._halo_ids), dtype=int)
+                with util.open_(self._ahfBasename + 'particles') as f:
+                    for hnum in range(len(self._halo_ids)):
+                        if len(f.readline().split()) == 1:
+                            f.readline()
+                        self._fpos[hnum] = f.tell()
+                        for i in range(self._halo_properties[hnum]['numpart']):
+                            f.readline()
+                if self._try_writing_fpos:
+                    if not os.path.exists(self._ahfBasename + 'fpos'):
+                        self._write_fpos()
 
-    def _load_ahf_particle_block(self, f, nparts=None):
+        return self._fpos
+
+    def _load_ahf_particle_block(self, f, nparts):
         """Load the particles for the next halo described in particle file f"""
-        ng = len(self.base.gas)
-        nd = len(self.base.dark)
-        ns = len(self.base.star)
-        nds = nd+ns
 
-        if nparts is None:
-            startline = f.readline()
-            if len(startline.split())==1:
-                startline = f.readline()
-            nparts = int(startline.split()[0])
-
-        if self.isnew:
+        if self._is_new_format:
             if not isinstance(f, gzip.GzipFile):
+                print(nparts)
                 data = np.fromfile(
                     f,
                     dtype=int,
                     sep=" ",
                     count=nparts * 2
-                ).reshape(nparts, 2)[:, 0]
+                )[::2]
                 data = np.ascontiguousarray(data)
             else:
                 # unfortunately with gzipped files there does not
                 # seem to be an efficient way to load nparts lines
-                data = np.zeros(nparts, dtype=int)
+                data = np.empty(nparts, dtype=int)
                 for i in range(nparts):
                     data[i] = int(f.readline().split()[0])
 
-            if self._use_iord:
-                data = self._iord_to_fpos[data]
-            elif isinstance(self.base, snapshot.ramses.RamsesSnap):
-                # AHF only expects three families, DM, star, gas in this order
-                # and generates iords on disc according to this rule
-                # For classical Ramses snapshots, this is perfectly adequate, but
-                # for more modern outputs that have extra tracers, BHs families
-                # we need to offset the ids to return the correct slicing
-                # TODO These tests on snapshot type might not be necessary
-                #  as using the family logic properly should be general.
-                #  It is currently kept to ensure 100% backwards compatibility with previous behaviour,
-                #  as this code is not explicitly checked by the pynbody test distribution
-
-                if len(self.base) != nd + ns + ng:                      # We have extra families to the base ones
-                    # First identify DM, star and gas particles in AHF
-                    ahf_dm_mask = data < nd
-                    ahf_star_mask = (data >= nd) & (data < nds)
-                    ahf_gas_mask = data >= nds
-
-                    # Then offset them by DM family start, to account for
-                    # additional families before it, e.g. gas tracers
-                    data[np.where(ahf_dm_mask)] += self.base._get_family_slice('dm').start
-
-                    # Star ids used to start at NDM, now they start with the star family slice
-                    offset = self.base._get_family_slice('star').start - nd
-                    data[np.where(ahf_star_mask)] += offset
-
-                    # Gas ids were greater than NDM + NSTAR, now they start with the gas slice
-                    offset = self.base._get_family_slice('gas').start - nds
-                    data[np.where(ahf_gas_mask)] += offset
-
-            elif not isinstance(self.base, snapshot.nchilada.NchiladaSnap):
-                hi_mask = data >= nds
-                data[np.where(hi_mask)] -= nds
-                data[np.where(~hi_mask)] += ng
-            else:
-                st_mask = (data >= nd) & (data < nds)
-                g_mask = data >= nds
-                data[np.where(st_mask)] += ng
-                data[np.where(g_mask)] -= ns
+            data = self._ahf_to_pynbody_particle_ids(data)
         else:
             if not isinstance(f, gzip.GzipFile):
                 data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
             else:
                 # see comment above on gzipped files
-                data = np.zeros(nparts, dtype=int)
+                data = np.empty(nparts, dtype=int)
                 for i in range(nparts):
                     data[i] = int(f.readline())
         data.sort()
         return data
 
-    def _load_ahf_particles(self, filename):
+    def _ahf_to_pynbody_particle_ids(self, data):
+        ng = len(self.base.gas)
+        nd = len(self.base.dark)
+        ns = len(self.base.star)
+        nds = nd + ns
         if self._use_iord:
-            self._init_iord_to_fpos()
+            data = self._iord_to_fpos[data]
+        elif isinstance(self.base, snapshot.ramses.RamsesSnap):
+            # AHF only expects three families, DM, star, gas in this order
+            # and generates iords on disc according to this rule
+            # For classical Ramses snapshots, this is perfectly adequate, but
+            # for more modern outputs that have extra tracers, BHs families
+            # we need to offset the ids to return the correct slicing
+            # TODO These tests on snapshot type might not be necessary
+            #  as using the family logic properly should be general.
+            #  It is currently kept to ensure 100% backwards compatibility with previous behaviour,
+            #  as this code is not explicitly checked by the pynbody test distribution
 
+            if len(self.base) != nd + ns + ng:  # We have extra families to the base ones
+                # First identify DM, star and gas particles in AHF
+                ahf_dm_mask = data < nd
+                ahf_star_mask = (data >= nd) & (data < nds)
+                ahf_gas_mask = data >= nds
 
-        if filename.split("z")[-2][-1] == ".":
-            self.isnew = True
+                # Then offset them by DM family start, to account for
+                # additional families before it, e.g. gas tracers
+                data[np.where(ahf_dm_mask)] += self.base._get_family_slice('dm').start
+
+                # Star ids used to start at NDM, now they start with the star family slice
+                offset = self.base._get_family_slice('star').start - nd
+                data[np.where(ahf_star_mask)] += offset
+
+                # Gas ids were greater than NDM + NSTAR, now they start with the gas slice
+                offset = self.base._get_family_slice('gas').start - nds
+                data[np.where(ahf_gas_mask)] += offset
+        elif not isinstance(self.base, snapshot.nchilada.NchiladaSnap):
+            hi_mask = data >= nds
+            data[np.where(hi_mask)] -= nds
+            data[np.where(~hi_mask)] += ng
         else:
-            self.isnew = False
+            st_mask = (data >= nd) & (data < nds)
+            g_mask = data >= nds
+            data[np.where(st_mask)] += ng
+            data[np.where(g_mask)] -= ns
+        return data
 
-        if self._all_parts:
-            self.load_all()
+    def _get_index_list_one_halo(self, i):
+        fpos = self._get_file_positions()
+        file_index = np.where(self._halo_ids == i)[0][0]
+        with util.open_(self._ahfBasename + 'particles') as f:
+            f.seek(fpos[file_index],0)
+            ids = self._load_ahf_particle_block(f, nparts=self._halo_properties[file_index]['npart'])
+        return ids
 
-    def load_all(self):
-        with util.open_(filename) as f:
-            for h in range(self._nhalos):
-                self._halos[h + 1] = Halo(
-                    h + 1, self, self.base, self._load_ahf_particle_block(f))
-                self._halos[h + 1]._descriptor = "halo_" + str(h + 1)
+    def _get_index_list_all_halos(self):
+        boundaries = np.cumsum([0] + [properties['npart'] for properties in self._halo_properties])
+        boundaries = np.vstack((boundaries[:-1], boundaries[1:])).T
+        particle_ids = np.empty(boundaries[-1,1], dtype=int)
+        with util.open_(self._ahfBasename + 'particles') as f:
+            f.readline()
+            for properties, (start, end) in zip(self._halo_properties, boundaries):
+                f.readline()
+                particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=properties['npart'])
+
+
+        return IndexList(particle_ids=particle_ids,
+                         boundaries=boundaries,
+                         halo_numbers=self._halo_ids)
+
+
+    def _get_halo_ids(self):
+        return self._halo_ids
 
     def _load_ahf_halo_properties(self, filename):
         # Note: we need to open in 'rt' mode in case the AHF catalogue
@@ -345,7 +295,7 @@ class AHFCatalogue(HaloCatalogue):
                 for field in fields]
         # provide translations
         for i, key in enumerate(keys):
-            if self.isnew:
+            if self._is_new_format:
                 if(key == '#npart'):
                     keys[i] = 'npart'
             else:
@@ -360,7 +310,7 @@ class AHFCatalogue(HaloCatalogue):
             if(key == 'Mvir'):
                 keys[i] = 'mass'
 
-        if self.isnew:
+        if self._is_new_format:
             # fix for column 0 being a non-column in some versions of the AHF
             # output
             if keys[0] == '#':
@@ -375,7 +325,7 @@ class AHFCatalogue(HaloCatalogue):
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as
             # well
             for i, key in enumerate(keys):
-                if self.isnew:
+                if self._is_new_format:
                     properties[key] = values[i]
                 else:
                     properties[key] = values[i - 1]
@@ -385,17 +335,12 @@ class AHFCatalogue(HaloCatalogue):
             with util.open_(filename) as f:
                 lines = f.readlines()
         except FileNotFoundError:
-            self._setup_children()
             return
         logger.info("AHFCatalogue loading substructure")
 
         # In the substructure catalog, halos are either referenced by their index
         # or by their ID (if they have one).
-        ID2index = {}
-        for i, halo in self._halos.items():
-            # If the "ID" property doesn't exist, use pynbody's internal index
-            id = halo.properties.get("ID", i)
-            ID2index[id] = i
+        ID2index = {self._halo_properties[i].get("ID", i): i for i in range(len(self._halo_properties))}
 
         for line in lines:
             try:
@@ -407,9 +352,7 @@ class AHFCatalogue(HaloCatalogue):
             except ValueError:
                 logger.error(
                     "An error occurred while reading substructure file. "
-                    "Falling back to using the halo info."
                 )
-                self._setup_children()
                 break
             except KeyError:
                 logger.error(
@@ -419,11 +362,11 @@ class AHFCatalogue(HaloCatalogue):
                     ),
                     haloid + 1
                 )
-                children = []
+                break
 
-            self._halos[halo_index].properties['children'] = children
+            self._halo_properties[halo_index]['children'] = children
             for ichild in children:
-                self._halos[ichild].properties['parent_id'] = halo_index
+                self._halo_properties[ichild]['parent_id'] = halo_index
 
 
     @staticmethod
@@ -446,4 +389,3 @@ class AHFCatalogue(HaloCatalogue):
         candidates = cls._list_candidate_ahf_basenames(sim)
         number_ahf_file_candidates = len(candidates)
         return number_ahf_file_candidates > 0
-
