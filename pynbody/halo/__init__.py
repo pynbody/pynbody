@@ -107,36 +107,91 @@ class Halo(pynbody.snapshot.subsnap.IndexedSubSnap):
 
 class IndexList:
     def __init__(self, /, object_id_per_particle=None, particle_ids=None, unique_obj_numbers=None, boundaries=None):
+        """An IndexList represents abstract information about object membership
+
+        Either an object_id_per_particle can be specified, which is an array of object IDs for each particle
+        (length should be the number of particles in the simulation).
+
+        Or, alternatively, an array of particle_ids can be specified, which is then sub-divided into the
+        particle ids for each object according to the boundaries array passed. The objects are then labelled
+        by the specified unique_obj_numbers.
+
+        """
 
         if object_id_per_particle is not None:
             assert particle_ids is None
             assert unique_obj_numbers is None
             assert boundaries is None
-            self.sort_key = np.argsort(object_id_per_particle, kind='mergesort')  # mergesort for stability
+            self.particle_ids = np.argsort(object_id_per_particle, kind='mergesort')  # mergesort for stability
             self.unique_obj_numbers = np.unique(object_id_per_particle)
-            self.boundaries = np.searchsorted(object_id_per_particle[self.sort_key], self.unique_obj_numbers)
+            self.boundaries = np.searchsorted(object_id_per_particle[self.particle_ids], self.unique_obj_numbers)
         else:
             assert particle_ids is not None
             assert unique_obj_numbers is not None
             assert boundaries is not None
-            self.sort_key = particle_ids
+            self.particle_ids = particle_ids
             self.unique_obj_numbers = unique_obj_numbers
+
+            # check the obj numbers really are unique:
+            assert len(np.unique(self.unique_obj_numbers)) == len(self.unique_obj_numbers)
+
             self.boundaries = boundaries
+
+            # check the boundaries are in strictly ascending order, though allow for length zero objects:
+            assert (np.diff(self.boundaries)>=0).all()
+
+            assert len(self.boundaries) == len(self.unique_obj_numbers)
+
+            assert self.boundaries[-1]<=len(self.particle_ids)
 
     def get_index_list(self, obj_number):
         """Get the index list for the specified halo/object ID"""
+        obj_offset = self._get_obj_offset_from_id(obj_number)
+        return self.particle_ids[self._get_index_slice_from_obj_offset(obj_offset)]
+
+    def _get_obj_offset_from_id(self, obj_number):
+        """Get the offset in the index boundary array for the specified object number"""
         obj_offset = np.searchsorted(self.unique_obj_numbers, obj_number)
         if obj_offset >= len(self.unique_obj_numbers) or self.unique_obj_numbers[obj_offset] != obj_number:
             raise KeyError(f"No such halo {obj_number}")
+        return obj_offset
 
+    def _get_index_slice_from_obj_offset(self, obj_offset):
+        """Get the slice for the index array corresponding to the object *offset* (not ID),
+        i.e. the one whose index list starts at self.boundaries[obj_offset]"""
         ptcl_start = self.boundaries[obj_offset]
-
         if obj_offset == len(self.unique_obj_numbers) - 1:
-            ptcl_end = len(self.sort_key)
+            ptcl_end = len(self.particle_ids)
         else:
             ptcl_end = self.boundaries[obj_offset + 1]
+        return slice(ptcl_start, ptcl_end)
 
-        return self.sort_key[ptcl_start:ptcl_end]
+    def get_object_id_per_particle(self, sim_length, fill_value=-1, dtype=int):
+        """Return an array of object IDs, one per particle.
+
+        Where a particle belongs to more than one object, the smallest object is favoured on the assumption that
+        will identify the sub-halos etc in any reasonable case."""
+        lengths = np.diff(np.concatenate((self.boundaries, [len(self.particle_ids)])))
+        ordering = np.argsort(-lengths, kind='stable')
+
+        id_array = np.empty(sim_length, dtype=dtype)
+        id_array.fill(fill_value)
+
+        for obj_offset in ordering:
+            object_id = self.unique_obj_numbers[obj_offset]
+            indexing_slice = self._get_index_slice_from_obj_offset(obj_offset)
+            id_array[self.particle_ids[indexing_slice]] = object_id
+
+        return id_array
+
+
+
+
+
+
+
+    def __iter__(self):
+        yield from self.unique_obj_numbers
 
     def __getitem__(self, obj_number):
         return self.get_index_list(obj_number)
@@ -253,7 +308,10 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         return self._get_num_halos()
 
     def __iter__(self):
-        return self._halo_generator()
+        self.load_all()
+        for i in self._cached_index_lists:
+            yield self[i]
+
 
     def __getitem__(self, item):
         if isinstance(item, slice):
@@ -306,7 +364,15 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         indicating which halo that particle is associated with. If there are multiple
         levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
         the smallest subhalo."""
-        raise NotImplementedError
+        self.load_all()
+        return self._cached_index_lists.get_object_id_per_particle(len(self.base))
+
+    def load_copy(self, i):
+        """Load a fresh SimSnap with only the particles in halo i
+
+        This relies on the underlying SimSnap being capable of partial loading."""
+        from .. import load
+        return load(self.base.filename, take=self._get_index_list_via_most_efficient_route(i))
 
     @staticmethod
     def _can_load(self):
@@ -326,82 +392,21 @@ class GrpCatalogue(HaloCatalogue):
         *ignore* - a special value indicating "no halo", or None if no such special value is defined
         """
         sim[array] # trigger lazy-loading and/or kick up a fuss if unavailable
-        self._halos = {}
         self._array = array
-        self._sorted = None
         self._ignore = ignore
         HaloCatalogue.__init__(self,sim)
 
-    def __len__(self):
-        if self._ignore is None:
-            N = self.base[self._array].max()
-        else:
-            N = self.base[self._array]
-            N = N[N!=self._ignore]
-            N = N.max()
-        if N<0:
-            N=0
-        return N
+    def _get_index_list_all_halos(self):
+        return IndexList(object_id_per_particle=self.base[self._array])
 
-    def precalculate(self):
-        """Speed up future operations by precalculating the indices
-        for all halos in one operation. This is slow compared to
-        getting a single halo, however."""
-        self._sorted = np.argsort(
-            self.base[self._array], kind='mergesort')  # mergesort for stability
-        self._unique_i = np.unique(self.base[self._array])
-        self._boundaries = np.searchsorted(self.base[self._array][self._sorted],self._unique_i)
+    def _get_index_list_one_halo(self, i):
+        return np.where(self.base[self._array] == i)[0]
 
     def get_group_array(self, family=None):
         if family is not None:
             return self.base[family][self._array]
         else:
             return self.base[self._array]
-
-    def _get_halo_indices(self, i):
-        if self.base is None:
-            raise RuntimeError("Parent SimSnap has been deleted")
-
-        no_exist = ValueError("Halo %s does not exist" % (str(i)))
-
-        if self._sorted is None:
-            # one-off selection
-            index = np.where(self.base[self._array] == i)
-            return index
-        else:
-            # pre-calculated
-            if not np.isin(i,self._unique_i):
-                raise no_exist
-
-            match = np.where(self._unique_i==i)[0]
-
-            start = self._boundaries[match][0]
-
-            if start == self._boundaries[-1]:
-                # This is the final halo
-                end = None
-            else:
-                end = self._boundaries[match+1][0]
-
-            return self._sorted[start:end]
-
-
-    def _get_halo(self, i):
-        x = Halo(i, self, self.base, self._get_halo_indices(i))
-        if len(x) == 0:
-            raise ValueError("Halo %s does not exist" % (str(i)))
-        x._descriptor = "halo_" + str(i)
-        return x
-
-
-    def load_copy(self, i):
-        """Load the a fresh SimSnap with only the particle in halo i"""
-        from .. import load
-        return load(self.base.filename, take=self._get_halo_indices(i))
-
-    @property
-    def base(self):
-        return self._base()
 
     @staticmethod
     def _can_load(sim, arr_name='grp'):
