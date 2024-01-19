@@ -1,9 +1,9 @@
 """Test the generic halo catalogue mechanisms, using a very simple reference implementation"""
 
 import numpy as np
-import pynbody
 import pytest
 
+import pynbody
 from pynbody import halo
 
 

@@ -18,11 +18,10 @@ import copy
 import logging
 import warnings
 import weakref
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
-
-from typing import Any
 
 import pynbody.snapshot.subsnap
 
