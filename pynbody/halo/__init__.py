@@ -111,7 +111,7 @@ class Halo(pynbody.snapshot.subsnap.IndexedSubSnap):
 class IndexList:
     def __init__(self, /, halo_id_per_particle: npt.NDArray[int] = None, ignore_halo_id: int = None,
                  particle_ids: npt.NDArray[int] = None, halo_numbers: npt.NDArray[int]= None,
-                 boundaries: npt.NDArray[int] = None):
+                 boundaries: np.ndarray[(Any, 2), int] = None):
         """An IndexList represents abstract information about halo membership
 
         Either an halo_id_per_particle can be specified, which is an array of halo IDs for each particle
@@ -151,24 +151,21 @@ class IndexList:
 
             self.particle_index_list_boundaries = boundaries
 
-            # check the boundaries are in strictly ascending order, though allow for length zero halos:
-            assert (np.diff(self.particle_index_list_boundaries) >= 0).all()
+            # should have a start and stop for each halo in the index list:
+            assert self.particle_index_list_boundaries.shape == (len(self.halo_numbers), 2)
 
-            assert len(self.particle_index_list_boundaries) == len(self.halo_numbers)
-
-            assert self.particle_index_list_boundaries[-1] <= len(self.particle_index_list)
 
     def _setup_internals_from_halo_id_array(self, halo_id_per_particle, ignore_halo_id):
         self.particle_index_list = np.argsort(halo_id_per_particle, kind='mergesort')  # mergesort for stability
         self.halo_numbers = np.unique(halo_id_per_particle)
-        self.particle_index_list_boundaries = np.searchsorted(halo_id_per_particle[self.particle_index_list], self.halo_numbers)
+        start = np.searchsorted(halo_id_per_particle[self.particle_index_list], self.halo_numbers)
+        stop = np.concatenate((start[1:], [len(self.particle_index_list)]))
+        self.particle_index_list_boundaries = np.hstack((start[:,np.newaxis],stop[:,np.newaxis]))
         if ignore_halo_id is not None and ignore_halo_id in self.halo_numbers:
             if ignore_halo_id == self.halo_numbers[0]:
-                self.particle_index_list = self.particle_index_list[self.particle_index_list_boundaries[1]:]
-                self.particle_index_list_boundaries = self.particle_index_list_boundaries[1:] - self.particle_index_list_boundaries[0]
+                self.particle_index_list_boundaries = self.particle_index_list_boundaries[1:]
                 self.halo_numbers = self.halo_numbers[1:]
             elif ignore_halo_id == self.halo_numbers[-1]:
-                self.particle_index_list = self.particle_index_list[:self.particle_index_list_boundaries[-1]]
                 self.particle_index_list_boundaries = self.particle_index_list_boundaries[:-1]
                 self.halo_numbers = self.halo_numbers[:-1]
             else:
@@ -189,11 +186,7 @@ class IndexList:
     def _get_index_slice_from_halo_offset(self, obj_offset):
         """Get the slice for the index array corresponding to the object *offset* (not ID),
         i.e. the one whose index list starts at self.boundaries[obj_offset]"""
-        ptcl_start = self.particle_index_list_boundaries[obj_offset]
-        if obj_offset == len(self.halo_numbers) - 1:
-            ptcl_end = len(self.particle_index_list)
-        else:
-            ptcl_end = self.particle_index_list_boundaries[obj_offset + 1]
+        ptcl_start, ptcl_end = self.particle_index_list_boundaries[obj_offset]
         return slice(ptcl_start, ptcl_end)
 
     def get_object_id_per_particle(self, sim_length, fill_value=-1, dtype=int):
@@ -201,7 +194,7 @@ class IndexList:
 
         Where a particle belongs to more than one object, the smallest object is favoured on the assumption that
         will identify the sub-halos etc in any reasonable case."""
-        lengths = np.diff(np.concatenate((self.particle_index_list_boundaries, [len(self.particle_index_list)])))
+        lengths = np.diff(self.particle_index_list_boundaries, axis=1).ravel()
         ordering = np.argsort(-lengths, kind='stable')
 
         id_array = np.empty(sim_length, dtype=dtype)
@@ -213,12 +206,6 @@ class IndexList:
             id_array[self.particle_index_list[indexing_slice]] = object_id
 
         return id_array
-
-
-
-
-
-
 
     def __iter__(self):
         yield from self.halo_numbers
@@ -319,7 +306,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
     def _get_halo(self, i):
         return Halo(i, self._get_properties_one_halo(i), self, self.base,
-                 self._get_index_list_one_halo(i))
+                 self._get_index_list_via_most_efficient_route(i))
 
 
 

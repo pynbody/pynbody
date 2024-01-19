@@ -14,10 +14,14 @@ class SimpleHaloCatalogue(halo.HaloCatalogue):
         indexes = np.random.permutation(np.arange(len(self.base)))[:(len(self.base)*80)//100]
         # above means ~80% of particles should be in a halo
 
-        boundaries = np.sort(np.random.randint(0, len(indexes), len(halo_ids)))
-        boundaries[0] = 0
+        start = np.sort(np.random.randint(0, len(indexes), len(halo_ids)))
+        start[0] = 0
         # above makes up some boundaries in the index list to divide up into halos
         # nb the last boundary is always implicitly len(indexes)
+
+        stop = np.concatenate((start[1:], [len(indexes)]))
+
+        boundaries = np.vstack((start,stop)).T
 
         return halo.IndexList(particle_ids=indexes, boundaries=boundaries, halo_numbers=halo_ids)
 
@@ -30,8 +34,8 @@ class SimpleHaloCatalogueWithMultiMembership(halo.HaloCatalogue):
         num_objs = 10
         halo_ids = np.arange(1,num_objs+1)
         lengths = np.random.randint(0,len(self.base)//5,num_objs)
-        boundaries = np.concatenate(([0], np.cumsum(lengths)))[:-1]
-
+        ptrs = np.concatenate(([0], np.cumsum(lengths)))
+        boundaries = np.vstack((ptrs[:-1], ptrs[1:])).T
         members = np.concatenate([np.sort(np.random.choice(len(self.base), length)) for length in lengths])
 
         return halo.IndexList(particle_ids = members, boundaries = boundaries, halo_numbers=halo_ids)
