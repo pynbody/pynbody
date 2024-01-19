@@ -19,7 +19,7 @@ class SimpleHaloCatalogue(halo.HaloCatalogue):
         # above makes up some boundaries in the index list to divide up into halos
         # nb the last boundary is always implicitly len(indexes)
 
-        return halo.IndexList(particle_ids=indexes, boundaries=boundaries, unique_obj_numbers=halo_ids)
+        return halo.IndexList(particle_ids=indexes, boundaries=boundaries, halo_numbers=halo_ids)
 
     def _get_properties_one_halo(self, i):
         return {'testproperty': 1.5*i, 'testproperty_with_units': 2.0*i*pynbody.units.Mpc}
@@ -32,9 +32,9 @@ class SimpleHaloCatalogueWithMultiMembership(halo.HaloCatalogue):
         lengths = np.random.randint(0,len(self.base)//5,num_objs)
         boundaries = np.concatenate(([0], np.cumsum(lengths)))[:-1]
 
-        members = np.concatenate([np.random.choice(len(self.base), length) for length in lengths])
+        members = np.concatenate([np.sort(np.random.choice(len(self.base), length)) for length in lengths])
 
-        return halo.IndexList(particle_ids = members, boundaries = boundaries, unique_obj_numbers=halo_ids)
+        return halo.IndexList(particle_ids = members, boundaries = boundaries, halo_numbers=halo_ids)
 
 def test_get_halo():
     f = pynbody.new(dm=100)
@@ -96,9 +96,11 @@ def test_last_halo():
     assert len(h[9]) == 21
 
 def test_get_group_array():
-    f = pynbody.new(dm=100)
+    f = pynbody.new(dm=100,gas=100)
     h = SimpleHaloCatalogueWithMultiMembership(f)
     grp = h.get_group_array()
+    dm_grp = h.get_group_array(pynbody.family.dm)
+    gas_grp = h.get_group_array(pynbody.family.gas)
     # grp should contain the halo id of the smallest halo to which each particle belongs
 
     # let's construct an independent test of tht
@@ -109,6 +111,8 @@ def test_get_group_array():
         halo['comparison_grp'] = halo.properties['halo_id']
 
     assert (f['comparison_grp'] == grp).all()
+    assert (f.dm['comparison_grp'] == dm_grp).all()
+    assert (f.gas['comparison_grp'] == gas_grp).all()
 
 
 
@@ -120,15 +124,42 @@ def snap_with_grp():
     yield f
 
 
-def test_grp_catalogue_single_halo(snap_with_grp):
+@pytest.mark.parametrize("do_load_all", [True, False])
+def test_grp_catalogue_single_halo(snap_with_grp, do_load_all):
     f = snap_with_grp
     h = pynbody.halo.GrpCatalogue(f)
-    assert (f[f['grp'] == 1]['id'] == h[1]['id']).all()
+    if do_load_all:
+        h.load_all()
 
-def test_grp_catalogue_multihalo(snap_with_grp):
+    for halo_id in range(1,10):
+        assert (h[halo_id]['id'] == f[f['grp'] == halo_id]['id']).all()
+
+    with pytest.raises(KeyError):
+        _ = h[10]
+
+
+@pytest.mark.parametrize("do_load_all", [True, False])
+@pytest.mark.parametrize("ignore_value", [0, 9])
+def test_grp_catalogue_with_ignore_value(snap_with_grp, do_load_all, ignore_value):
     f = snap_with_grp
-    h = pynbody.halo.GrpCatalogue(f)
-    h.load_all()
+    h = pynbody.halo.GrpCatalogue(snap_with_grp, ignore=ignore_value)
+    if do_load_all:
+        h.load_all()
 
-    assert (f[f['grp'] == 1]['id'] == h[1]['id']).all()
-    assert (f[f['grp'] == 5]['id'] == h[5]['id']).all()
+    with pytest.raises(KeyError):
+        _ = h[ignore_value]
+
+    for halo_id in range(1,10):
+        if halo_id != ignore_value:
+            assert (h[halo_id]['id'] == f[f['grp'] == halo_id]['id']).all()
+
+def test_grp_catalogue_generated(snap_with_grp):
+    h = snap_with_grp.halos()
+    assert isinstance(h, pynbody.halo.GrpCatalogue)
+
+def test_amiga_grp_catalogue_generated(snap_with_grp):
+    snap_with_grp['amiga.grp'] = snap_with_grp['grp']
+    del snap_with_grp['grp']
+    h = snap_with_grp.halos()
+
+    assert isinstance(h, pynbody.halo.AmigaGrpCatalogue)

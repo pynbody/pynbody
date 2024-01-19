@@ -20,6 +20,9 @@ import warnings
 import weakref
 
 import numpy as np
+import numpy.typing as npt
+
+from typing import Any
 
 import pynbody.snapshot.subsnap
 
@@ -106,64 +109,91 @@ class Halo(pynbody.snapshot.subsnap.IndexedSubSnap):
 
 
 class IndexList:
-    def __init__(self, /, object_id_per_particle=None, particle_ids=None, unique_obj_numbers=None, boundaries=None):
-        """An IndexList represents abstract information about object membership
+    def __init__(self, /, halo_id_per_particle: npt.NDArray[int] = None, ignore_halo_id: int = None,
+                 particle_ids: npt.NDArray[int] = None, halo_numbers: npt.NDArray[int]= None,
+                 boundaries: npt.NDArray[int] = None):
+        """An IndexList represents abstract information about halo membership
 
-        Either an object_id_per_particle can be specified, which is an array of object IDs for each particle
-        (length should be the number of particles in the simulation).
+        Either an halo_id_per_particle can be specified, which is an array of halo IDs for each particle
+        (length should be the number of particles in the simulation). If this is the case, ignore_halo_id specifies
+        a special value that indicates "no halo" (e.g. -1), or None if no such special value is defined. Note that
+        ignore_halo_id must be either the smallest or largest value in halo_id_per_particle.
 
-        Or, alternatively, an array of particle_ids can be specified, which is then sub-divided into the
-        particle ids for each object according to the boundaries array passed. The objects are then labelled
-        by the specified unique_obj_numbers.
+        Alternatively, an array of particle_ids can be specified, which is then sub-divided into the
+        particle ids for each halo according to the boundaries array passed. The halos are then labelled
+        by the specified halo_numbers (which must be unique).
+
+        To summarise, the parameters are:
+
+        * halo_id_per_particle: array of halo IDs for each particle, length Npart
+        * ignore_halo_id: a special value that indicates "no halo" (e.g. -1), or None if no such special value is defined
+        * particle_ids: array of particle IDs (mutually exclusive with halo_id_per_particle), length Npart_in_halos
+        * halo_numbers: array of halo IDs (mutually exclusive with halo_id_per_particle), length Nhalo, must be unique
+        * boundaries: array of indices in particle_ids where each halo starts (mutually exclusive with
+                      halo_id_per_particle), length Nhalo; must be monotonically increasing
 
         """
-
-        if object_id_per_particle is not None:
+        if halo_id_per_particle is not None:
             assert particle_ids is None
-            assert unique_obj_numbers is None
+            assert halo_numbers is None
             assert boundaries is None
-            self.particle_ids = np.argsort(object_id_per_particle, kind='mergesort')  # mergesort for stability
-            self.unique_obj_numbers = np.unique(object_id_per_particle)
-            self.boundaries = np.searchsorted(object_id_per_particle[self.particle_ids], self.unique_obj_numbers)
+            self._setup_internals_from_halo_id_array(halo_id_per_particle, ignore_halo_id)
+
         else:
             assert particle_ids is not None
-            assert unique_obj_numbers is not None
+            assert halo_numbers is not None
             assert boundaries is not None
-            self.particle_ids = particle_ids
-            self.unique_obj_numbers = unique_obj_numbers
+            self.particle_index_list = particle_ids
+            self.halo_numbers = halo_numbers
 
-            # check the obj numbers really are unique:
-            assert len(np.unique(self.unique_obj_numbers)) == len(self.unique_obj_numbers)
+            # check the halo numbers really are unique:
+            assert len(np.unique(self.halo_numbers)) == len(self.halo_numbers)
 
-            self.boundaries = boundaries
+            self.particle_index_list_boundaries = boundaries
 
-            # check the boundaries are in strictly ascending order, though allow for length zero objects:
-            assert (np.diff(self.boundaries)>=0).all()
+            # check the boundaries are in strictly ascending order, though allow for length zero halos:
+            assert (np.diff(self.particle_index_list_boundaries) >= 0).all()
 
-            assert len(self.boundaries) == len(self.unique_obj_numbers)
+            assert len(self.particle_index_list_boundaries) == len(self.halo_numbers)
 
-            assert self.boundaries[-1]<=len(self.particle_ids)
+            assert self.particle_index_list_boundaries[-1] <= len(self.particle_index_list)
 
-    def get_index_list(self, obj_number):
+    def _setup_internals_from_halo_id_array(self, halo_id_per_particle, ignore_halo_id):
+        self.particle_index_list = np.argsort(halo_id_per_particle, kind='mergesort')  # mergesort for stability
+        self.halo_numbers = np.unique(halo_id_per_particle)
+        self.particle_index_list_boundaries = np.searchsorted(halo_id_per_particle[self.particle_index_list], self.halo_numbers)
+        if ignore_halo_id is not None and ignore_halo_id in self.halo_numbers:
+            if ignore_halo_id == self.halo_numbers[0]:
+                self.particle_index_list = self.particle_index_list[self.particle_index_list_boundaries[1]:]
+                self.particle_index_list_boundaries = self.particle_index_list_boundaries[1:] - self.particle_index_list_boundaries[0]
+                self.halo_numbers = self.halo_numbers[1:]
+            elif ignore_halo_id == self.halo_numbers[-1]:
+                self.particle_index_list = self.particle_index_list[:self.particle_index_list_boundaries[-1]]
+                self.particle_index_list_boundaries = self.particle_index_list_boundaries[:-1]
+                self.halo_numbers = self.halo_numbers[:-1]
+            else:
+                raise ValueError("ignore_halo_id must be either the smallest or largest value in halo_id_per_particle")
+
+    def get_index_list(self, halo_number):
         """Get the index list for the specified halo/object ID"""
-        obj_offset = self._get_obj_offset_from_id(obj_number)
-        return self.particle_ids[self._get_index_slice_from_obj_offset(obj_offset)]
+        halo_offset = self._get_halo_offset_from_id(halo_number)
+        return self.particle_index_list[self._get_index_slice_from_halo_offset(halo_offset)]
 
-    def _get_obj_offset_from_id(self, obj_number):
+    def _get_halo_offset_from_id(self, obj_number):
         """Get the offset in the index boundary array for the specified object number"""
-        obj_offset = np.searchsorted(self.unique_obj_numbers, obj_number)
-        if obj_offset >= len(self.unique_obj_numbers) or self.unique_obj_numbers[obj_offset] != obj_number:
+        obj_offset = np.searchsorted(self.halo_numbers, obj_number)
+        if obj_offset >= len(self.halo_numbers) or self.halo_numbers[obj_offset] != obj_number:
             raise KeyError(f"No such halo {obj_number}")
         return obj_offset
 
-    def _get_index_slice_from_obj_offset(self, obj_offset):
+    def _get_index_slice_from_halo_offset(self, obj_offset):
         """Get the slice for the index array corresponding to the object *offset* (not ID),
         i.e. the one whose index list starts at self.boundaries[obj_offset]"""
-        ptcl_start = self.boundaries[obj_offset]
-        if obj_offset == len(self.unique_obj_numbers) - 1:
-            ptcl_end = len(self.particle_ids)
+        ptcl_start = self.particle_index_list_boundaries[obj_offset]
+        if obj_offset == len(self.halo_numbers) - 1:
+            ptcl_end = len(self.particle_index_list)
         else:
-            ptcl_end = self.boundaries[obj_offset + 1]
+            ptcl_end = self.particle_index_list_boundaries[obj_offset + 1]
         return slice(ptcl_start, ptcl_end)
 
     def get_object_id_per_particle(self, sim_length, fill_value=-1, dtype=int):
@@ -171,16 +201,16 @@ class IndexList:
 
         Where a particle belongs to more than one object, the smallest object is favoured on the assumption that
         will identify the sub-halos etc in any reasonable case."""
-        lengths = np.diff(np.concatenate((self.boundaries, [len(self.particle_ids)])))
+        lengths = np.diff(np.concatenate((self.particle_index_list_boundaries, [len(self.particle_index_list)])))
         ordering = np.argsort(-lengths, kind='stable')
 
         id_array = np.empty(sim_length, dtype=dtype)
         id_array.fill(fill_value)
 
         for obj_offset in ordering:
-            object_id = self.unique_obj_numbers[obj_offset]
-            indexing_slice = self._get_index_slice_from_obj_offset(obj_offset)
-            id_array[self.particle_ids[indexing_slice]] = object_id
+            object_id = self.halo_numbers[obj_offset]
+            indexing_slice = self._get_index_slice_from_halo_offset(obj_offset)
+            id_array[self.particle_index_list[indexing_slice]] = object_id
 
         return id_array
 
@@ -191,20 +221,15 @@ class IndexList:
 
 
     def __iter__(self):
-        yield from self.unique_obj_numbers
+        yield from self.halo_numbers
 
     def __getitem__(self, obj_number):
         return self.get_index_list(obj_number)
 
     def __len__(self):
-        return len(self.unique_obj_numbers)
+        return len(self.halo_numbers)
 
 
-
-
-# ----------------------------#
-# General HaloCatalogue class #
-#-----------------------------#
 
 class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
@@ -256,7 +281,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
         A default implementation is provided but subclasses may override this if they can do it more efficiently."""
         self.load_all()
-        return self._cached_index_lists.unique_obj_numbers
+        return self._cached_index_lists.halo_numbers
 
     def _get_index_list_all_halos(self):
         """Returns information about the index list for all halos.
@@ -320,7 +345,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
             return self._get_halo_cached(item)
 
     @property
-    def base(self):
+    def base(self) -> pynbody.snapshot.SimSnap:
         return self._base()
 
     def _init_iord_to_fpos(self):
@@ -359,13 +384,17 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
     def __contains__(self, haloid):
         return self.contains(haloid)
 
-    def get_group_array(self):
+    def get_group_array(self, family=None):
         """Return an array with an integer for each particle in the simulation
         indicating which halo that particle is associated with. If there are multiple
         levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
         the smallest subhalo."""
         self.load_all()
-        return self._cached_index_lists.get_object_id_per_particle(len(self.base))
+        id_per_particle = self._cached_index_lists.get_object_id_per_particle(len(self.base))
+        if family is not None:
+            return id_per_particle[self.base._get_family_slice(family)]
+        else:
+            return id_per_particle
 
     def load_copy(self, i):
         """Load a fresh SimSnap with only the particles in halo i
@@ -391,16 +420,24 @@ class GrpCatalogue(HaloCatalogue):
         *array* - the name of the array which should be present, loadable or derivable across the simulation
         *ignore* - a special value indicating "no halo", or None if no such special value is defined
         """
-        sim[array] # trigger lazy-loading and/or kick up a fuss if unavailable
+        sim[array] # noqa - trigger lazy-loading and/or kick up a fuss if unavailable
         self._array = array
         self._ignore = ignore
         HaloCatalogue.__init__(self,sim)
 
     def _get_index_list_all_halos(self):
-        return IndexList(object_id_per_particle=self.base[self._array])
+        return IndexList(halo_id_per_particle=self.base[self._array], ignore_halo_id=self._ignore)
 
     def _get_index_list_one_halo(self, i):
-        return np.where(self.base[self._array] == i)[0]
+        if i == self._ignore:
+            self._no_such_halo(i)
+        array = np.where(self.base[self._array] == i)[0]
+        if len(array) == 0:
+            self._no_such_halo(i)
+        return array
+
+    def _no_such_halo(self, i):
+        raise KeyError(f"No such halo {i}")
 
     def get_group_array(self, family=None):
         if family is not None:
@@ -417,8 +454,8 @@ class GrpCatalogue(HaloCatalogue):
 
 
 class AmigaGrpCatalogue(GrpCatalogue):
-    def __init__(self, sim, arr_name='amiga.grp',**kwargs):
-        GrpCatalogue.__init__(self, sim, arr_name)
+    def __init__(self, sim):
+        GrpCatalogue.__init__(self, sim, array='amiga.grp')
 
     @staticmethod
     def _can_load(sim,arr_name='amiga.grp'):
