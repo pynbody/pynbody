@@ -137,21 +137,6 @@ class AHFCatalogue(HaloCatalogue):
     def base(self):
         return self._base()
 
-    def load_copy(self, i):
-        """Load the a fresh SimSnap with only the particle in halo i"""
-
-        from .. import load
-
-        if self._dosort is not None:
-            i = self._sorted_indices[i-1]
-
-        with util.open_(self._ahfBasename + 'particles') as f:
-            fpos = self._halos[i].properties['fstart']
-            f.seek(fpos,0)
-            ids = self._load_ahf_particle_block(f, nparts=self._halos[i].properties['npart'])
-
-        return load(self.base.filename, take=ids)
-
     def _get_file_positions(self):
         """Get the starting positions of each halo's particle information within the
         AHF_particles file for faster access later"""
@@ -277,6 +262,9 @@ class AHFCatalogue(HaloCatalogue):
 
     def _get_halo_ids(self):
         return self._halo_ids
+
+    def _get_properties_one_halo(self, i):
+        return self._halo_properties[i]
 
     def _load_ahf_halo_properties(self, filename):
         # Note: we need to open in 'rt' mode in case the AHF catalogue
