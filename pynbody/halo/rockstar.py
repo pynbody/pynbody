@@ -361,7 +361,7 @@ class RockstarCatalogueOneCpu(HaloCatalogue):
         """Insert into an existing grp array halos from this CPU"""
         self._load_all()
         for halo in list(self._halos.values()):
-            ar[halo.get_index_list(self.base)] = halo._halo_id
+            ar[halo.get_index_list(self.base)] = halo._halo_number
 
 
     def _load_rs_halo_if_required(self, i):

@@ -77,7 +77,7 @@ class SubfindCatalogue(HaloCatalogue):
             if v:
                 print("Halo #", i , "of", self.header[1])
             halo=self[i]
-            ar[halo.get_index_list(self.base)] = halo._halo_id
+            ar[halo.get_index_list(self.base)] = halo._halo_number
         return ar
 
     def get_halo_properties(self, i, with_unit=True):

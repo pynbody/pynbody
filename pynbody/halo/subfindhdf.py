@@ -418,7 +418,7 @@ class SubFindHDFSubHalo(Halo) :
     SubFind subhalo class
     """
 
-    def __init__(self, halo_id, group_id, subfind_data_object, *args) :
+    def __init__(self, halo_number, group_id, subfind_data_object, *args) :
         """Construct a special halo representing subfind's subhalo
 
         *halo_id*: The halo_id, where 0 is the first halo within the specified group
@@ -427,12 +427,12 @@ class SubFindHDFSubHalo(Halo) :
 
         Other arguments get passed to the standard halo constructor
         """
-        super().__init__(halo_id, *args)
+        super().__init__(halo_number, *args)
         self._group_id = group_id
-        self._descriptor = "fof_group_%d_subhalo_%d"%(group_id,halo_id)
+        self._descriptor = "fof_group_%d_subhalo_%d"%(group_id, halo_number)
 
         # need this to index the global offset and length arrays
-        absolute_id = subfind_data_object._fof_group_first_subhalo[self._group_id] + halo_id
+        absolute_id = subfind_data_object._fof_group_first_subhalo[self._group_id] + halo_number
 
         # load properties
         self.properties.update(subfind_data_object.get_halo_properties(absolute_id, subs=True))

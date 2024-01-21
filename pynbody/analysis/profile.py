@@ -685,8 +685,8 @@ def v_circ(p, grav_sim=None):
         "Profile v_circ -- this routine assumes the disk is in the x-y plane")
 
     # If this is a cosmological run, go up to the halo level
-    # if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
-    #    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+    # if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_number") :
+    #    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_number") :
     #        grav_sim = grav_sim.base
 
     # elif hasattr(grav_sim,'base') :
@@ -717,7 +717,7 @@ def pot(p):
 
     grav_sim = p.sim
     # Go up to the halo level
-    while hasattr(grav_sim, 'base') and "halo_id" in grav_sim.base.properties:
+    while hasattr(grav_sim, 'base') and "halo_number" in grav_sim.base.properties:
         grav_sim = grav_sim.base
 
     start = process_time()
