@@ -7,7 +7,8 @@ import warnings
 import numpy as np
 
 from .. import config_parser, snapshot, util
-from . import DummyHalo, Halo, HaloCatalogue, IndexList, logger
+from . import DummyHalo, Halo, HaloCatalogue, HaloParticleIndices, logger
+from .details.number_mapper import HaloNumberMapper, SimpleHaloNumberMapper
 
 
 class AHFCatalogue(HaloCatalogue):
@@ -53,7 +54,7 @@ class AHFCatalogue(HaloCatalogue):
                     get_dummy_halo instead]
 
         """
-        super().__init__(sim)
+
 
         if use_iord is None:
             use_iord = isinstance(
@@ -67,36 +68,36 @@ class AHFCatalogue(HaloCatalogue):
 
         if only_stat:
             warnings.warn(DeprecationWarning("only_stat keyword is deprecated; instead, use the catalogue's get_dummy_halo method"))
-        if make_grp:
-            warnings.warn(DeprecationWarning("make_grp keyword is deprecated; instead, use the catalogue's get_group_array method"))
 
         if ahf_basename is not None:
             self._ahfBasename = ahf_basename
         else:
-            self._ahfBasename = self._infer_ahf_basename()
+            self._ahfBasename = self._infer_ahf_basename(sim)
 
         self._determine_format_revision_from_filename()
 
         logger.info("AHFCatalogue loading halo properties")
         self._load_ahf_halo_properties(self._ahfBasename + 'halos')
 
-        logger.info("AHFCatalogue loading particles")
+        # Now we know what halos we have, we can initialise the base class
+        # TODO - here is where dosort should be implemented, and also where AHF's own halo numbering could be used
+        if dosort is not None:
+            warnings.warn(DeprecationWarning("dosort keyword is deprecated"))
+            npart = np.array([properties['npart'] for properties in self._halo_properties])
+            osort = np.argsort(-npart)  # this is better than argsort(npart)[::-1], because it's stable
+            raise NotImplementedError("Need to do a different halo number mapper here")
+
+        number_mapper = SimpleHaloNumberMapper(1, len(self._halo_properties))
+        super().__init__(sim, number_mapper)
 
         if self._use_iord:
             self._init_iord_to_fpos()
 
-        if dosort is not None:
-            warnings.warn(DeprecationWarning("dosort keyword is deprecated"))
-            npart = np.array([properties['npart'] for properties in self._halo_properties])
-            osort = np.argsort(-npart) # this is better than argsort(npart)[::-1], because it's stable
-            self._halo_ids = osort + 1
-
         self._load_ahf_substructure(self._ahfBasename + 'substructure')
 
-        if make_grp is None:
-            make_grp = config_parser.getboolean('AHFCatalogue', 'AutoGrp')
 
         if make_grp:
+            warnings.warn(DeprecationWarning("make_grp keyword is deprecated; instead, use the catalogue's get_group_array method"))
             self.base['grp'] = self.get_group_array()
 
         if get_all_parts:
@@ -112,8 +113,9 @@ class AHFCatalogue(HaloCatalogue):
         else:
             self._is_new_format = False
 
-    def _infer_ahf_basename(self):
-        candidates = self._list_candidate_ahf_basenames(self.base)
+    @classmethod
+    def _infer_ahf_basename(cls, sim):
+        candidates = cls._list_candidate_ahf_basenames(sim)
         if len(candidates) == 1:
             candidate = candidates[0]
         elif len(candidates) == 0:
@@ -130,7 +132,7 @@ class AHFCatalogue(HaloCatalogue):
         try:
             np.savetxt(self._ahfBasename+'fpos', self._fpos, fmt="%d")
         except OSError:
-            warnings.warn("Unable to write AHF_fpos file; performance will be reduced. Pass write_fpos=False to halo constructor to suppress this message.")
+            warnings.warn("Unable to write AHF_fpos file; performance will be reduced. Pass write_fpos=False to halo constructor to suppress this message, or use load_all() method to remove need for storing fpos information.")
         self._try_writing_fpos = False
 
     @property
@@ -144,13 +146,13 @@ class AHFCatalogue(HaloCatalogue):
             if os.path.exists(self._ahfBasename + 'fpos'):
                 self._fpos = np.loadtxt(self._ahfBasename+'fpos', dtype=int)
             else:
-                self._fpos = np.empty(len(self._halo_ids), dtype=int)
+                self._fpos = np.empty(len(self._number_mapper), dtype=int)
                 with util.open_(self._ahfBasename + 'particles') as f:
-                    for hnum in range(len(self._halo_ids)):
+                    for hnum in range(len(self._number_mapper)):
                         if len(f.readline().split()) == 1:
                             f.readline()
                         self._fpos[hnum] = f.tell()
-                        for i in range(self._halo_properties[hnum]['numpart']):
+                        for i in range(self._halo_properties[hnum]['npart']):
                             f.readline()
                 if self._try_writing_fpos:
                     if not os.path.exists(self._ahfBasename + 'fpos'):
@@ -163,7 +165,6 @@ class AHFCatalogue(HaloCatalogue):
 
         if self._is_new_format:
             if not isinstance(f, gzip.GzipFile):
-                print(nparts)
                 data = np.fromfile(
                     f,
                     dtype=int,
@@ -238,13 +239,13 @@ class AHFCatalogue(HaloCatalogue):
 
     def _get_index_list_one_halo(self, i):
         fpos = self._get_file_positions()
-        file_index = np.where(self._halo_ids == i)[0][0]
+        file_index = self._number_mapper.number_to_index(i)
         with util.open_(self._ahfBasename + 'particles') as f:
             f.seek(fpos[file_index],0)
             ids = self._load_ahf_particle_block(f, nparts=self._halo_properties[file_index]['npart'])
         return ids
 
-    def _get_index_list_all_halos(self):
+    def _get_all_particle_indices(self):
         boundaries = np.cumsum([0] + [properties['npart'] for properties in self._halo_properties])
         boundaries = np.vstack((boundaries[:-1], boundaries[1:])).T
         particle_ids = np.empty(boundaries[-1,1], dtype=int)
@@ -255,16 +256,13 @@ class AHFCatalogue(HaloCatalogue):
                 particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=properties['npart'])
 
 
-        return IndexList(particle_ids=particle_ids,
-                         boundaries=boundaries,
-                         halo_numbers=self._halo_ids)
+        return HaloParticleIndices(particle_ids=particle_ids,
+                                   boundaries=boundaries,
+                                   halo_number_mapper=self._number_mapper)
 
-
-    def _get_halo_ids(self):
-        return self._halo_ids
 
     def _get_properties_one_halo(self, i):
-        return self._halo_properties[i]
+        return self._halo_properties[self._number_mapper.number_to_index(i)]
 
     def _load_ahf_halo_properties(self, filename):
         # Note: we need to open in 'rt' mode in case the AHF catalogue
@@ -273,35 +271,18 @@ class AHFCatalogue(HaloCatalogue):
             first_line = f.readline()
             lines = f.readlines()
 
-        self._halo_ids = np.arange(1, len(lines) + 1)
-        self._halo_properties = [{} for i in self._halo_ids]
+        self._halo_properties = [{} for h in range(len(lines))]
 
         # get all the property names from the first, commented line
         # remove (#)
         fields = first_line.replace("#", "").split()
         keys = [re.sub(r'\([0-9]*\)', '', field)
                 for field in fields]
-        # provide translations
-        for i, key in enumerate(keys):
-            if self._is_new_format:
-                if(key == '#npart'):
-                    keys[i] = 'npart'
-            else:
-                if(key == '#'):
-                    keys[i] = 'dumb'
-            if(key == 'a'):
-                keys[i] = 'a_axis'
-            if(key == 'b'):
-                keys[i] = 'b_axis'
-            if(key == 'c'):
-                keys[i] = 'c_axis'
-            if(key == 'Mvir'):
-                keys[i] = 'mass'
 
         if self._is_new_format:
             # fix for column 0 being a non-column in some versions of the AHF
             # output
-            if keys[0] == '#':
+            if keys[0] == '':
                 keys = keys[1:]
 
         for properties, line in zip(self._halo_properties, lines):

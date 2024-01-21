@@ -4,10 +4,18 @@ import shutil
 import stat
 import subprocess
 
+import numpy as np
 import numpy.testing as npt
 import pytest
+import warnings
 
 import pynbody
+
+@pytest.fixture
+def cleanup_fpos_file():
+    if os.path.exists("testdata/g15784.lr.01024.AHF_fpos"):
+        os.remove("testdata/g15784.lr.01024.AHF_fpos")
+    yield
 
 
 def test_load_ahf_catalogue():
@@ -16,7 +24,7 @@ def test_load_ahf_catalogue():
     assert len(h)==1411
 
 @pytest.mark.parametrize("do_load_all", [True, False])
-def test_ahf_particles(do_load_all):
+def test_ahf_particles(do_load_all, cleanup_fpos_file):
     f = pynbody.load("testdata/g15784.lr.01024")
     h = pynbody.halo.AHFCatalogue(f)
 
@@ -46,14 +54,15 @@ def test_load_ahf_catalogue_non_gzipped(do_load_all):
         assert len(h)==1411
     finally:
         for extension in ["halos", "particles", "substructure"]:
-            subprocess.call(["gzip", f"testdata/g15784.lr.01024.z0.000.AHF_{extension}.gz"])
+            subprocess.call(["gzip", f"testdata/g15784.lr.01024.z0.000.AHF_{extension}"])
 
 
 def test_ahf_properties():
     f = pynbody.load("testdata/g15784.lr.01024")
     h = pynbody.halo.AHFCatalogue(f)
-    assert h[1].properties['children']==[]
-    assert h[1].properties['fstart']==23
+    assert np.allclose(h[1].properties['Mvir'], 1.69639e+12)
+    assert np.allclose(h[2].properties['Ekin'],6.4911e+17)
+    assert np.allclose(h[2].properties['Mvir'], 1.19684e+13)
 
 
 @pytest.fixture
@@ -70,9 +79,23 @@ def setup_unwritable_ahf_situation():
 
 def test_ahf_unwritable(setup_unwritable_ahf_situation):
     f = pynbody.load("testdata/test_unwritable/g15784.lr.01024")
+
+    # check we can still get a halo even without ability to write fpos file, but a warning is issued
     with pytest.warns(UserWarning, match="Unable to write AHF_fpos file;.*"):
-         h = f.halos()
-    assert len(h)==1411
+        h = f.halos()
+        _ = h[1]
+
+    # check no subsequent warning issued
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _ = h[2]
+
+    # check if we use load_all there is no warning
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        h = f.halos()
+        h.load_all()
+        _ = h[1]
 
 
 def test_detecting_ahf_catalogues_with_without_trailing_slash():
@@ -118,3 +141,7 @@ def test_ramses_ahf_family_mapping_with_new_format():
         npt.assert_allclose(dm_mass / hubble, halo.d['mass'].sum().in_units("Msol"), rtol=rtol)
         npt.assert_allclose(gas_mass / hubble, halo.g['mass'].sum().in_units("Msol"), rtol=rtol)
         npt.assert_allclose(halo.properties['Mhalo'] / hubble, halo['mass'].sum().in_units("Msol"), rtol=rtol)
+
+def test_ahf_substructure():
+    # TODO
+    assert False
