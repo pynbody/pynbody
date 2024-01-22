@@ -3,13 +3,13 @@ from typing import Any
 import numpy as np
 from numpy import typing as npt
 
-from pynbody.halo import HaloNumberMapper
+from pynbody.halo import MonotonicHaloNumberMapper
 
 
 class HaloParticleIndices:
     def __init__(self, /, halo_number_per_particle: npt.NDArray[int] = None, ignore_halo_number: int = None,
                  particle_ids: npt.NDArray[int] = None,
-                 halo_number_mapper: HaloNumberMapper = None,
+                 halo_number_mapper: MonotonicHaloNumberMapper = None,
                  boundaries: np.ndarray[(Any, 2), int] = None):
         """An IndexList represents abstract information about halo membership
 
@@ -70,7 +70,7 @@ class HaloParticleIndices:
             else:
                 raise ValueError("ignore_halo_number must be either the smallest or largest value in halo_number_per_particle")
 
-        self.halo_number_mapper = HaloNumberMapper(halo_numbers)
+        self.halo_number_mapper = MonotonicHaloNumberMapper(halo_numbers)
 
     def get_index_list_for_halo_number(self, halo_number):
         """Get the index list for the specified halo/object ID"""

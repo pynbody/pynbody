@@ -55,7 +55,7 @@ class SimpleHaloCatalogueWithMultiMembership(halo.HaloCatalogue):
 
 def test_halo_number_mapper():
     halo_numbers = np.array([-5, -3, 0, 10])
-    mapper = pynbody.halo.details.number_mapper.HaloNumberMapper(halo_numbers)
+    mapper = pynbody.halo.details.number_mapper.MonotonicHaloNumberMapper(halo_numbers)
     assert mapper.number_to_index(-5) == 0
     assert mapper.number_to_index(-3) == 1
     assert mapper.number_to_index(0) == 2
@@ -83,6 +83,38 @@ def test_halo_number_mapper():
     assert (list(mapper) == halo_numbers).all()
 
     assert (mapper.all_numbers == halo_numbers).all()
+
+def test_non_monotonic_halo_number_mapper():
+    halo_numbers = np.array([10, -5, 0, -3])
+    mapper = pynbody.halo.details.number_mapper.NonMonotonicHaloNumberMapper(halo_numbers)
+    assert mapper.number_to_index(-5) == 1
+    assert mapper.number_to_index(-3) == 3
+    assert mapper.number_to_index(0) == 2
+    assert mapper.number_to_index(10) == 0
+    with pytest.raises(KeyError):
+        _ = mapper.number_to_index(5)
+
+    assert (mapper.number_to_index([10,0]) == [0,2]).all()
+
+    with pytest.raises(KeyError):
+        _ = mapper.number_to_index([10,5])
+
+    assert mapper.index_to_number(0) == 10
+    assert mapper.index_to_number(1) == -5
+    assert mapper.index_to_number(3) == -3
+    assert (mapper.index_to_number([0,1,3]) == [10,-5,-3]).all()
+
+    with pytest.raises(IndexError):
+        mapper.index_to_number(4)
+
+    with pytest.raises(IndexError):
+        mapper.index_to_number([1,4])
+
+    assert len(mapper) == 4
+
+    assert (list(mapper) == halo_numbers).all()
+
+    assert (mapper.all_numbers == [10, -5, 0, -3]).all()
 
 def test_simple_halo_number_mapper():
     mapper = pynbody.halo.details.number_mapper.SimpleHaloNumberMapper(1, 10)

@@ -8,7 +8,7 @@ import numpy as np
 
 from .. import config_parser, snapshot, util
 from . import DummyHalo, Halo, HaloCatalogue, HaloParticleIndices, logger
-from .details.number_mapper import HaloNumberMapper, SimpleHaloNumberMapper
+from .details.number_mapper import MonotonicHaloNumberMapper, SimpleHaloNumberMapper
 
 
 class AHFCatalogue(HaloCatalogue):
@@ -130,7 +130,7 @@ class AHFCatalogue(HaloCatalogue):
         has_id = 'ID' in self._halo_properties[0]
         if has_id:
             # TODO - no reason that AHF is monotonically increasing
-            self._ahf_own_number_mapper = HaloNumberMapper([properties['ID'] for properties in self._halo_properties])
+            self._ahf_own_number_mapper = MonotonicHaloNumberMapper([properties['ID'] for properties in self._halo_properties])
         else:
             # if no explicit IDs, ahf implicitly numbers starting at 0 in file order
             self._ahf_own_number_mapper = SimpleHaloNumberMapper(0, len(self._halo_properties))

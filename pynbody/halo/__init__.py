@@ -22,7 +22,7 @@ import weakref
 import numpy as np
 
 import pynbody.snapshot.subsnap
-from .details.number_mapper import HaloNumberMapper
+from .details.number_mapper import MonotonicHaloNumberMapper
 from .details.particle_indices import HaloParticleIndices
 
 from .. import snapshot, util
@@ -131,7 +131,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
     def __init__(self, sim, number_mapper):
         self._base: weakref[pynbody.snapshot.SimSnap] = weakref.ref(sim)
-        self._number_mapper: HaloNumberMapper = number_mapper
+        self._number_mapper: MonotonicHaloNumberMapper = number_mapper
         self._index_lists: Optional[HaloParticleIndices] = None
         self._cached_halos: dict[Halo] = {}
 
@@ -288,7 +288,7 @@ class GrpCatalogue(HaloCatalogue):
         sim[array] # noqa - trigger lazy-loading and/or kick up a fuss if unavailable
         self._array = array
         self._ignore = ignore
-        number_mapper = HaloNumberMapper(np.unique(sim[array]))
+        number_mapper = MonotonicHaloNumberMapper(np.unique(sim[array]))
         HaloCatalogue.__init__(self, sim, number_mapper=number_mapper)
 
     def _get_all_particle_indices(self):
