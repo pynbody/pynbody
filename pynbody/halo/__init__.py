@@ -22,7 +22,7 @@ import weakref
 import numpy as np
 
 import pynbody.snapshot.subsnap
-from .details.number_mapper import MonotonicHaloNumberMapper
+from .details.number_mapper import MonotonicHaloNumberMapper, create_halo_number_mapper
 from .details.particle_indices import HaloParticleIndices
 
 from .. import snapshot, util
@@ -170,11 +170,15 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
         A generic implementation is provided that fetches index lists for all halos and then extracts the one"""
         self.load_all()
-        return self._index_lists[i]
+        return self._index_lists.get_particle_index_list_for_halo(
+            self._number_mapper.number_to_index(i)
+        )
 
     def _get_index_list_via_most_efficient_route(self, i):
         if self._index_lists:
-            return self._index_lists[i]
+            return self._index_lists.get_particle_index_list_for_halo(
+                self._number_mapper.number_to_index(i)
+            )
         else:
             return self._get_index_list_one_halo(i)
             # NB subclasses may implement loading one halo direct from disk in the above
@@ -200,7 +204,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
     def __iter__(self):
         self.load_all()
-        for i in self._index_lists:
+        for i in self._number_mapper:
             yield self[i]
 
     def __getitem__(self, item):
@@ -255,11 +259,11 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
         the smallest subhalo."""
         self.load_all()
-        id_per_particle = self._index_lists.get_halo_number_per_particle(len(self.base))
+        number_per_particle = self._index_lists.get_halo_number_per_particle(len(self.base), self._number_mapper)
         if family is not None:
-            return id_per_particle[self.base._get_family_slice(family)]
+            return number_per_particle[self.base._get_family_slice(family)]
         else:
-            return id_per_particle
+            return number_per_particle
 
     def load_copy(self, i):
         """Load a fresh SimSnap with only the particles in halo i
@@ -288,11 +292,36 @@ class GrpCatalogue(HaloCatalogue):
         sim[array] # noqa - trigger lazy-loading and/or kick up a fuss if unavailable
         self._array = array
         self._ignore = ignore
-        number_mapper = MonotonicHaloNumberMapper(np.unique(sim[array]))
+        self._halo_numbers = np.unique(sim[array])
+        number_mapper = create_halo_number_mapper(self._trim_array_for_ignore(self._halo_numbers))
         HaloCatalogue.__init__(self, sim, number_mapper=number_mapper)
 
+    def _trim_array_for_ignore(self, array):
+        assert len(array) == len(self._halo_numbers)
+        if self._ignore is None:
+            return array
+        if self._ignore == self._halo_numbers[0]:
+            return array[1:]
+        elif self._ignore == self._halo_numbers[-1]:
+            return array[:-1]
+        else:
+            raise ValueError(
+                "ignore must be either the smallest or largest value in the array")
+
+
     def _get_all_particle_indices(self):
-        return HaloParticleIndices(halo_number_per_particle=self.base[self._array], ignore_halo_number=self._ignore)
+
+        halo_number_per_particle = self.base[self._array]
+        
+        particle_index_list = np.argsort(halo_number_per_particle, kind='mergesort')
+        start = np.searchsorted(halo_number_per_particle[particle_index_list], self._halo_numbers)
+        stop = np.concatenate((start[1:], [len(particle_index_list)]))
+
+        particle_index_list_boundaries = self._trim_array_for_ignore(
+            np.hstack((start[:, np.newaxis], stop[:, np.newaxis]))
+        )
+
+        return HaloParticleIndices(particle_ids = particle_index_list, boundaries = particle_index_list_boundaries)
 
     def _get_index_list_one_halo(self, i):
         if i == self._ignore:

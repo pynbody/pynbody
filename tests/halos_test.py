@@ -30,8 +30,7 @@ class SimpleHaloCatalogue(halo.HaloCatalogue):
 
         boundaries = np.vstack((start,stop)).T
 
-        return pynbody.halo.details.particle_indices.HaloParticleIndices(particle_ids=indexes, boundaries=boundaries,
-                                                                         halo_number_mapper=self._number_mapper)
+        return pynbody.halo.details.particle_indices.HaloParticleIndices(particle_ids=indexes, boundaries=boundaries)
 
     def _get_properties_one_halo(self, i):
         return {'testproperty': 1.5*i, 'testproperty_with_units': 2.0*i*pynbody.units.Mpc}
@@ -50,8 +49,7 @@ class SimpleHaloCatalogueWithMultiMembership(halo.HaloCatalogue):
         boundaries = np.vstack((ptrs[:-1], ptrs[1:])).T
         members = np.concatenate([np.sort(np.random.choice(len(self.base), length)) for length in lengths])
 
-        return pynbody.halo.details.particle_indices.HaloParticleIndices(particle_ids = members, boundaries = boundaries,
-                                                                         halo_number_mapper=self._number_mapper)
+        return pynbody.halo.details.particle_indices.HaloParticleIndices(particle_ids = members, boundaries = boundaries)
 
 def test_halo_number_mapper():
     halo_numbers = np.array([-5, -3, 0, 10])
@@ -288,6 +286,8 @@ def test_grp_catalogue_with_ignore_value(snap_with_grp, do_load_all, ignore_valu
     h = pynbody.halo.GrpCatalogue(snap_with_grp, ignore=ignore_value)
     if do_load_all:
         h.load_all()
+
+    assert len(h) == 9 # NOT 10!
 
     with pytest.raises(KeyError):
         _ = h[ignore_value]

@@ -8,7 +8,7 @@ import numpy as np
 
 from .. import config_parser, snapshot, util
 from . import DummyHalo, Halo, HaloCatalogue, HaloParticleIndices, logger
-from .details.number_mapper import MonotonicHaloNumberMapper, SimpleHaloNumberMapper
+from .details.number_mapper import create_halo_number_mapper, SimpleHaloNumberMapper
 
 
 class AHFCatalogue(HaloCatalogue):
@@ -129,8 +129,7 @@ class AHFCatalogue(HaloCatalogue):
     def _setup_halo_numbering(self, halo_numbers):
         has_id = 'ID' in self._halo_properties[0]
         if has_id:
-            # TODO - no reason that AHF is monotonically increasing
-            self._ahf_own_number_mapper = MonotonicHaloNumberMapper([properties['ID'] for properties in self._halo_properties])
+            self._ahf_own_number_mapper = create_halo_number_mapper([properties['ID'] for properties in self._halo_properties])
         else:
             # if no explicit IDs, ahf implicitly numbers starting at 0 in file order
             self._ahf_own_number_mapper = SimpleHaloNumberMapper(0, len(self._halo_properties))
@@ -140,7 +139,7 @@ class AHFCatalogue(HaloCatalogue):
         elif halo_numbers == 'length-order':
             npart = np.array([properties['npart'] for properties in self._halo_properties])
             osort = np.argsort(-npart)  # this is better than argsort(npart)[::-1], because it's stable
-            raise NotImplementedError("Need to do a different halo number mapper here")
+            number_mapper = create_halo_number_mapper(osort+1)
         elif halo_numbers == 'ahf':
             number_mapper = self._ahf_own_number_mapper
         else:
@@ -308,9 +307,7 @@ class AHFCatalogue(HaloCatalogue):
                 particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=properties['npart'])
 
 
-        return HaloParticleIndices(particle_ids=particle_ids,
-                                   boundaries=boundaries,
-                                   halo_number_mapper=self._number_mapper)
+        return HaloParticleIndices(particle_ids=particle_ids, boundaries=boundaries)
 
 
     def _get_properties_one_halo(self, i):
