@@ -142,6 +142,27 @@ def test_ramses_ahf_family_mapping_with_new_format():
         npt.assert_allclose(gas_mass / hubble, halo.g['mass'].sum().in_units("Msol"), rtol=rtol)
         npt.assert_allclose(halo.properties['Mhalo'] / hubble, halo['mass'].sum().in_units("Msol"), rtol=rtol)
 
+def test_ahf_corrupt_substructure():
+    """For some reason lost in history, the AHF substructure file for g15784 is corrupt.
+    Use that to test we can see the exception"""
+    f = pynbody.load("testdata/g15784.lr.01024")
+    with pytest.raises(KeyError):
+        _ = pynbody.halo.AHFCatalogue(f, ignore_missing_substructure=False)
+
+
 def test_ahf_substructure():
-    # TODO
-    assert False
+    f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
+    halos = pynbody.halo.AHFCatalogue(f)
+
+    check_parents = [1,2]
+    check_children = [[73, 75, 139, 90], [116, 125,  21,  97]]
+
+    for parent, children in zip(check_parents, check_children):
+        halo = halos[parent]
+        assert len(halo.properties['children']) == len(children)
+        assert (halo.properties['children'] == children).all()
+        assert halo.properties['hostHalo'] == -1
+        assert 'parent' not in halo.properties.keys()
+        for child in children:
+            assert halos[child].properties['parent'] == parent # from substructure file
+            assert halos[child].properties['hostHalo'] == parent # from halos file

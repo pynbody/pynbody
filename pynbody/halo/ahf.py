@@ -18,20 +18,12 @@ class AHFCatalogue(HaloCatalogue):
     """
 
     def __init__(self, sim, make_grp=None, get_all_parts=None, use_iord=None, ahf_basename=None,
-                 dosort=None, only_stat=None, write_fpos=True, **kwargs):
+                 dosort=None, only_stat=None, write_fpos=True, halo_numbers='file-order',
+                 ignore_missing_substructure=True,
+                 **kwargs):
         """Initialize an AHFCatalogue.
 
         **kwargs** :
-
-        *make_grp*: if True a 'grp' array is created in the underlying
-                    snapshot specifying the lowest level halo that any
-                    given particle belongs to. If it is False, no such
-                    array is created; if None, the behaviour is
-                    determined by the configuration system.
-
-        *get_all_parts*: if True, the particle file is loaded for all halos.
-                    Suggested to keep this None, as this is memory intensive.
-                    The default function is to load in this data as needed.
 
         *use_iord*: if True, the particle IDs in the Amiga catalogue
                     are taken to refer to the iord array. If False,
@@ -44,9 +36,31 @@ class AHFCatalogue(HaloCatalogue):
                         'particles', and 'substructure' to this
                         basename to load the catalog data.
 
-        *dosort*: specify if halo catalog should be sorted so that
-                  halo 1 is the most massive halo, halo 2 the
-                  second most massive and so on.
+        *halo_numbers*: specify how to number the halos. Options are:
+                            'file-order': use the order of the halos in the
+                            file, starting at 1 (default, compatible with
+                            older versions of pynbody); 'ahf': use the halo
+                            numbers written in the AHF halos file;
+                            'length-order': sort by the number of particles in each
+                            halo, with the halo with most particles being halo 1
+
+        *ignore_missing_substructure*: if True (default), the code will not
+                            raise an exception if the substructure file is
+                            missing or corrupt. If False, it will raise an exception.
+
+        Deprecated kwargs:
+
+        *make_grp*: if True a 'grp' array is created in the underlying
+                    snapshot specifying the lowest level halo that any
+                    given particle belongs to. If it is False, no such
+                    array is created; if None, the behaviour is
+                    determined by the configuration system.
+
+        *get_all_parts*: if True, the particle file is loaded for all halos.
+                    Suggested to keep this None, as this is memory intensive.
+                    The default function is to load in this data as needed.
+
+        *dosort*: equivalent to halo_numbers='length-order'
 
         *only_stat*: specify that you only wish to collect the halo
                     properties stored in the AHF_halos file and not
@@ -81,20 +95,25 @@ class AHFCatalogue(HaloCatalogue):
 
         # Now we know what halos we have, we can initialise the base class
         # TODO - here is where dosort should be implemented, and also where AHF's own halo numbering could be used
-        if dosort is not None:
-            warnings.warn(DeprecationWarning("dosort keyword is deprecated"))
-            npart = np.array([properties['npart'] for properties in self._halo_properties])
-            osort = np.argsort(-npart)  # this is better than argsort(npart)[::-1], because it's stable
-            raise NotImplementedError("Need to do a different halo number mapper here")
+        if dosort:
+            warnings.warn(DeprecationWarning("dosort keyword is deprecated; instead pass halo_numbers='length-order'"))
+            halo_numbers = 'length-order'
 
-        number_mapper = SimpleHaloNumberMapper(1, len(self._halo_properties))
+        number_mapper = self._setup_halo_numbering(halo_numbers)
+
         super().__init__(sim, number_mapper)
+
+        self._remap_host_halo_property()
 
         if self._use_iord:
             self._init_iord_to_fpos()
 
-        self._load_ahf_substructure(self._ahfBasename + 'substructure')
-
+        try:
+            self._load_ahf_substructure(self._ahfBasename + 'substructure')
+        except (KeyError, ValueError, FileNotFoundError):
+            if not ignore_missing_substructure:
+                raise
+            logger.error("Unable to load AHF substructure file; continuing without. To expose the underlying problem as an exception, pass ignore_missing_substructure=False to the AHFCatalogue constructor")
 
         if make_grp:
             warnings.warn(DeprecationWarning("make_grp keyword is deprecated; instead, use the catalogue's get_group_array method"))
@@ -106,6 +125,39 @@ class AHFCatalogue(HaloCatalogue):
             self.load_all()
 
         logger.info("AHFCatalogue loaded")
+
+    def _setup_halo_numbering(self, halo_numbers):
+        has_id = 'ID' in self._halo_properties[0]
+        if has_id:
+            # TODO - no reason that AHF is monotonically increasing
+            self._ahf_own_number_mapper = HaloNumberMapper([properties['ID'] for properties in self._halo_properties])
+        else:
+            # if no explicit IDs, ahf implicitly numbers starting at 0 in file order
+            self._ahf_own_number_mapper = SimpleHaloNumberMapper(0, len(self._halo_properties))
+
+        if halo_numbers == 'file-order':
+            number_mapper = SimpleHaloNumberMapper(1, len(self._halo_properties))
+        elif halo_numbers == 'length-order':
+            npart = np.array([properties['npart'] for properties in self._halo_properties])
+            osort = np.argsort(-npart)  # this is better than argsort(npart)[::-1], because it's stable
+            raise NotImplementedError("Need to do a different halo number mapper here")
+        elif halo_numbers == 'ahf':
+            number_mapper = self._ahf_own_number_mapper
+        else:
+            raise ValueError(f"halo_numbers keyword {halo_numbers} not recognised")
+
+        return number_mapper
+
+    def _remap_host_halo_property(self):
+        """When loaded from the .halos file, hostHalo is the AHF halo number of the host halo.
+        This maps it onto whatever halo number pynbody is using."""
+
+        if 'hostHalo' in self._halo_properties[0]:
+            for properties in self._halo_properties:
+                if properties['hostHalo'] != -1:
+                    properties['hostHalo'] = self._number_mapper.index_to_number(
+                        self._ahf_own_number_mapper.number_to_index(properties['hostHalo'])
+                    )
 
     def _determine_format_revision_from_filename(self):
         if self._ahfBasename.split("z")[-2][-1] == ".":
@@ -293,49 +345,32 @@ class AHFCatalogue(HaloCatalogue):
             ]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as
             # well
-            for i, key in enumerate(keys):
-                if self._is_new_format:
-                    properties[key] = values[i]
-                else:
-                    properties[key] = values[i - 1]
+            if not self._is_new_format:
+                values = values[1:]
+
+            for key, value in zip(keys, values):
+                properties[key] = value
 
     def _load_ahf_substructure(self, filename):
-        try:
-            with util.open_(filename) as f:
-                lines = f.readlines()
-        except FileNotFoundError:
-            return
+        with util.open_(filename) as f:
+            lines = f.readlines()
         logger.info("AHFCatalogue loading substructure")
 
-        # In the substructure catalog, halos are either referenced by their index
-        # or by their ID (if they have one).
-        ID2index = {self._halo_properties[i].get("ID", i): i for i in range(len(self._halo_properties))}
+        if len(lines[0].split())!=2:
+            # some variants of the format start with a line count, which we ignore
+            lines = lines[1:]
 
-        for line in lines:
-            try:
-                haloid, _nsubhalos = (int(x) for x in line.split())
-                halo_index = ID2index[haloid]
-                children = [
-                    ID2index[int(x)] for x in f.readline().split()
-                ]
-            except ValueError:
-                logger.error(
-                    "An error occurred while reading substructure file. "
-                )
-                break
-            except KeyError:
-                logger.error(
-                    (
-                        "Could not identify some substructure of "
-                        "halo %s. Ignoring"
-                    ),
-                    haloid + 1
-                )
-                break
+        for halo_line, children_line in zip(lines[::2], lines[1::2]):
+            haloid, _nsubhalos = (int(x) for x in halo_line.split())
+            halo_index = self._ahf_own_number_mapper.number_to_index(haloid)
+            halo_number = self._number_mapper.index_to_number(halo_index)
+            children_ahf_numbering = [int(x) for x in children_line.split()]
+            children_index = self._ahf_own_number_mapper.number_to_index(children_ahf_numbering)
+            children_pynbody_numbering = self._number_mapper.index_to_number(children_index)
 
-            self._halo_properties[halo_index]['children'] = children
-            for ichild in children:
-                self._halo_properties[ichild]['parent_id'] = halo_index
+            self._halo_properties[halo_index]['children'] = children_pynbody_numbering
+            for child_index in children_index:
+                self._halo_properties[child_index]['parent'] = halo_number
 
 
     @staticmethod

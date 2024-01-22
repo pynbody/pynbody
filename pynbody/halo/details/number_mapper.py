@@ -10,6 +10,7 @@ class HaloNumberMapper:
 
         The halo_numbers array must be monotonically increasing.
         """
+        halo_numbers = np.asarray(halo_numbers)
         assert np.all(np.diff(halo_numbers) > 0)
         self.halo_numbers = halo_numbers
 
