@@ -144,7 +144,35 @@ def test_simple_halo_number_mapper():
 
     assert (mapper.all_numbers == np.arange(1,11)).all()
 
+def test_create_halo_number_mapper():
+    from pynbody.halo.details.number_mapper import (SimpleHaloNumberMapper, MonotonicHaloNumberMapper,
+                                                    NonMonotonicHaloNumberMapper, create_halo_number_mapper)
 
+    # Test SimpleHaloNumberMapper
+    halo_numbers = np.array([1, 2, 3, 4, 5])
+    mapper = create_halo_number_mapper(halo_numbers)
+    assert isinstance(mapper, SimpleHaloNumberMapper)
+    assert mapper.zero_offset == 1
+    assert len(mapper) == 5
+
+    # Test SimpleHaloNumberMapper with non-zero offset
+    halo_numbers = np.array([2, 3, 4, 5, 6])
+    mapper = create_halo_number_mapper(halo_numbers)
+    assert isinstance(mapper, SimpleHaloNumberMapper)
+    assert mapper.zero_offset == 2
+    assert len(mapper) == 5
+
+    # Test MonotonicHaloNumberMapper
+    halo_numbers = np.array([1, 3, 5, 7, 9])
+    mapper = create_halo_number_mapper(halo_numbers)
+    assert isinstance(mapper, MonotonicHaloNumberMapper)
+    assert len(mapper) == 5
+
+    # Test NonMonotonicHaloNumberMapper
+    halo_numbers = np.array([1, 9, 5, 7, 3])
+    mapper = create_halo_number_mapper(halo_numbers)
+    assert isinstance(mapper, NonMonotonicHaloNumberMapper)
+    assert len(mapper) == 5
 
 def test_get_halo():
     f = pynbody.new(dm=100)
