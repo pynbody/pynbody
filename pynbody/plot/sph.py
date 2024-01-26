@@ -428,7 +428,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=500, units=None, log=True,
             im = im / im2
 
     else:
-        im = sph.render_image(sim, qty, width / 2, resolution, out_units=units,
+        im = (sim.properties['boxsize'].in_units(sim['x'].units))**(3-kernel.h_power)* sph.render_image(sim, qty, width / 2, resolution, out_units=units,
                               kernel=kernel,  z_camera=z_camera, **kwargs)
 
     if fill_nan:
