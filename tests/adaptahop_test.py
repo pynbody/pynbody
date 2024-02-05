@@ -175,6 +175,7 @@ def test_get_group(f, halos):
 
 
 def test_halo_particle_ids(halos):
+    halos.load_all()
     with FF(halos._fname, mode="r") as f:
         for halo_id in range(1, len(halos) + 1):
             # Manually read the particle ids and make sure pynbody is reading them as it should

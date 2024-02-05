@@ -155,6 +155,7 @@ def test_ahf_corrupt_substructure():
 def test_ahf_substructure():
     f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
     halos = pynbody.halo.AHFCatalogue(f)
+    halos.load_all()
 
     check_parents = [1,2]
     check_children = [[73, 75, 139, 90], [116, 125,  21,  97]]

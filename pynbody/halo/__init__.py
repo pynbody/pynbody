@@ -179,6 +179,9 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
                 self._number_mapper.number_to_index(i)
             )
         else:
+            if len(self._cached_halos) == 5:
+                warnings.warn("Accessing multiple halos may be more efficient if you call load_all() on the "
+                              "halo catalogue", RuntimeWarning)
             return self._get_index_list_one_halo(i)
             # NB subclasses may implement loading one halo direct from disk in the above
             # if not, the default implementation will populate _cached_index_lists

@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import warnings
 
 import pynbody
 import pynbody.halo.details.number_mapper
@@ -276,11 +277,17 @@ def test_grp_catalogue_single_halo(snap_with_grp, do_load_all):
     if do_load_all:
         h.load_all()
 
-    for halo_number in range(1,10):
-        assert (h[halo_number]['id'] == f[f['grp'] == halo_number]['id']).all()
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter('always')
+        for halo_number in range(1,10):
+            assert (h[halo_number]['id'] == f[f['grp'] == halo_number]['id']).all()
 
-    with pytest.raises(KeyError):
-        _ = h[10]
+        with pytest.raises(KeyError):
+            _ = h[10]
+
+    if do_load_all:
+        assert len(record) == 0
+
 
 
 @pytest.mark.parametrize("do_load_all", [True, False])
@@ -310,3 +317,20 @@ def test_amiga_grp_catalogue_generated(snap_with_grp):
     h = snap_with_grp.halos()
 
     assert isinstance(h, pynbody.halo.AmigaGrpCatalogue)
+
+@pytest.mark.parametrize("load_all", [True, False])
+def test_warning_when_inefficient(snap_with_grp, load_all):
+    h = snap_with_grp.halos()
+    def load_lots():
+        for i in range(1,8):
+            _ = h[i]
+
+    if load_all:
+        h.load_all()
+
+        with warnings.catch_warnings(record=True) as record:
+            load_lots()
+        assert len(record) == 0, "No warnings should be raised when load_all called"
+    else:
+        with pytest.warns(RuntimeWarning, match="may be more efficient"):
+            load_lots()
