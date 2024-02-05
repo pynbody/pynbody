@@ -14,7 +14,7 @@ def setup_module():
         os.unlink(z)
 
     global f, h
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.snapshot.tipsy.TipsySnap("testdata/g15784.lr.01024")
     h = f.halos()
 
 
@@ -366,6 +366,8 @@ def test_alternative_cmd():
         pynbody.analysis.luminosity.calc_mags(f.s, cmd_path="/nonexistent/path")
 
 def test_issue_313():
+    import pathlib
+    f = pynbody.tipsy.TipsySnap(pathlib.Path("testdata/g15784.lr.01024"))
     f = pynbody.load("testdata/g15784.lr.01024")
     f.physical_units()
     f['vtheta']

@@ -82,6 +82,7 @@ class GadgetHdfMultiFileManager:
     _subgroup_name = None
 
     def __init__(self, filename, mode='r') :
+        filename = str(filename)
         self._mode = mode
         if h5py.is_hdf5(filename):
             self._filenames = [filename]
@@ -624,8 +625,8 @@ class GadgetHDFSnap(SimSnap):
         if hasattr(h5py, "is_hdf5"):
             if h5py.is_hdf5(f):
                 return cls._test_for_hdf5_key(f)
-            elif h5py.is_hdf5(f+".0.hdf5"):
-                return cls._test_for_hdf5_key(f+".0.hdf5")
+            elif h5py.is_hdf5(f.with_suffix(".0.hdf5")):
+                return cls._test_for_hdf5_key(f.with_suffix(".0.hdf5"))
             else:
                 return False
         else:

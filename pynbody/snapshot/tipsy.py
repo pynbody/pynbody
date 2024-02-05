@@ -62,7 +62,7 @@ class TipsySnap(SimSnap):
 
         self.partial_load = take is not None
 
-        self._filename = util.cutgz(filename)
+        self._filename = str(util.cutgz(filename))
 
         if not only_header:
             logger.info("Loading %s", filename)
@@ -941,8 +941,8 @@ class TipsySnap(SimSnap):
         for i, x in enumerate(['vx', 'vy', 'vz']):
             self._arrays[x + 'form'] = self['velform'][:, i]
 
-    @staticmethod
-    def _can_load(f):
+    @classmethod
+    def _can_load(cls, f):
         try:
             check = TipsySnap(f, verbose=False)
             del check

@@ -13,11 +13,13 @@ import gzip
 import logging
 import math
 import os
+import pathlib
 import struct
 import sys
 import threading
 import time
 import warnings
+from typing import Union
 
 import numpy as np
 
@@ -28,16 +30,26 @@ logger = logging.getLogger('pynbody.util')
 from ._util import *
 
 
-def open_(filename, *args):
+def open_(filename: Union[str, pathlib.Path], *args):
     """Open a file, determining from the filename whether to use
     gzip decompression"""
 
-    if (filename[-3:] == '.gz'):
+    is_gzipped = False
+
+    if not isinstance(filename, pathlib.Path):
+        filename = pathlib.Path(filename)
+
+    if not filename.exists():
+        filename_with_gz = filename.parent / (filename.name+".gz")
+        if filename_with_gz.exists():
+            filename = filename_with_gz
+
+    is_gzipped = filename.name.endswith('.gz')
+
+    if is_gzipped:
         return gzip.open(filename, *args)
-    try:
+    else:
         return open(filename, *args)
-    except OSError:
-        return gzip.open(filename + ".gz", *args)
 
 
 def open_with_size(filename, *args):
@@ -491,9 +503,11 @@ def random_rotation_matrix():
                      [vz*sx,vz*sy,1.0-z]])
 
 
-def cutgz(x):
+def cutgz(x: Union[str, pathlib.Path]):
     """Strip the .gz ending off a string"""
-    if x[-3:] == '.gz':
+    if isinstance(x, pathlib.Path):
+        return x.parent / x.name.removesuffix(".gz")
+    elif x[-3:] == '.gz':
         return x[:-3]
     else:
         return x

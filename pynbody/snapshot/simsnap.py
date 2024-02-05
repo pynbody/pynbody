@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import copy
 import gc
 import hashlib
 import logging
+import pathlib
 import re
 import threading
 import traceback
+import typing
 import warnings
 import weakref
 from functools import reduce
@@ -14,6 +18,9 @@ import numpy as np
 from .. import array, dependencytracker, family, filt, simdict, units, util
 from ..units import has_units
 from .util import ContainerWithPhysicalUnitsOption
+
+if typing.TYPE_CHECKING:
+    from .. import halo
 
 logger = logging.getLogger('pynbody.snapshot.simsnap')
 
@@ -133,6 +140,10 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         if len(generic_match) == 1 and generic_match[0] not in self._split_arrays:
             return generic_match[0] in loadable_keys or generic_match[0] in keys
         return False
+
+    @classmethod
+    def _can_load(cls, filepath: pathlib.Path):
+        raise NotImplementedError("This method should be implemented by a subclass")
 
 
 
@@ -635,7 +646,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         its best guess at the units.
         """
         try:
-            with open(self.filename + ".units") as f:
+            with open(str(self.filename) + ".units") as f:
                 lines = f.readlines()
         except OSError:
             return
@@ -748,7 +759,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             u = self.infer_original_units(u)
         return u
 
-    def halos(self, *args, **kwargs):
+    def halos(self, *args, **kwargs) -> halo.HaloCatalogue:
         """Tries to instantiate a halo catalogue object for the given
         snapshot, using the first available method (as defined in the
         configuration files)."""
@@ -757,13 +768,6 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         for c in config['halo-class-priority']:
             try:
                 if c._can_load(self, *args, **kwargs):
-                    return c(self, *args, **kwargs)
-            except TypeError:
-                pass
-
-        for c in config['halo-class-priority']:
-            try:
-                if c._can_run(self, *args, **kwargs):
                     return c(self, *args, **kwargs)
             except TypeError:
                 pass

@@ -53,7 +53,7 @@ _int_type = 'i'
 
 def _timestep_id(basename):
     try:
-        return re.findall("output_([0-9]*)/*$", basename)[0]
+        return re.findall("output_([0-9]*)/*$", str(basename))[0]
     except IndexError:
         return None
 

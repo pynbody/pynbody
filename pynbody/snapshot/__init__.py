@@ -9,6 +9,7 @@ represent different views of an existing :class:`~pynbody.snapshot.SimSnap`.
 """
 
 import logging
+import pathlib
 
 from .. import config, family
 from . import util
@@ -17,9 +18,11 @@ from .simsnap import SimSnap
 logger = logging.getLogger('pynbody.snapshot')
 
 
-def load(filename, *args, **kwargs):
+def load(filename, *args, **kwargs) -> SimSnap:
     """Loads a file using the appropriate class, returning a SimSnap
     instance."""
+
+    filename = pathlib.Path(filename)
 
     for c in config['snap-class-priority']:
         if c._can_load(filename):
