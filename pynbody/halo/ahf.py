@@ -8,7 +8,7 @@ import numpy as np
 
 from .. import config_parser, snapshot, util
 from . import DummyHalo, Halo, HaloCatalogue, HaloParticleIndices, logger
-from .details.number_mapper import create_halo_number_mapper, SimpleHaloNumberMapper
+from .details.number_mapper import SimpleHaloNumberMapper, create_halo_number_mapper
 
 
 class AHFCatalogue(HaloCatalogue):
@@ -199,11 +199,13 @@ class AHFCatalogue(HaloCatalogue):
             else:
                 self._fpos = np.empty(len(self._number_mapper), dtype=int)
                 with util.open_(self._ahfBasename + 'particles') as f:
-                    for hnum in range(len(self._number_mapper)):
-                        if len(f.readline().split()) == 1:
-                            f.readline()
+                    nhalo = int(f.readline().strip())
+                    assert nhalo == len(self._number_mapper)
+                    for hnum in range(nhalo):
+                        npart = int(f.readline().strip())
+                        assert npart == self._halo_properties[hnum]['npart']
                         self._fpos[hnum] = f.tell()
-                        for i in range(self._halo_properties[hnum]['npart']):
+                        for i in range(npart):
                             f.readline()
                 if self._try_writing_fpos:
                     if not os.path.exists(self._ahfBasename + 'fpos'):
@@ -213,7 +215,6 @@ class AHFCatalogue(HaloCatalogue):
 
     def _load_ahf_particle_block(self, f, nparts):
         """Load the particles for the next halo described in particle file f"""
-
         if self._is_new_format:
             if not isinstance(f, gzip.GzipFile):
                 data = np.fromfile(

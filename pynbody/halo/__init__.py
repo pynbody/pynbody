@@ -18,16 +18,15 @@ import copy
 import logging
 import warnings
 import weakref
+from typing import Optional
 
 import numpy as np
 
 import pynbody.snapshot.subsnap
-from .details.number_mapper import MonotonicHaloNumberMapper, create_halo_number_mapper
-from .details.particle_indices import HaloParticleIndices
 
 from .. import snapshot, util
-
-from typing import Optional
+from .details.number_mapper import MonotonicHaloNumberMapper, create_halo_number_mapper
+from .details.particle_indices import HaloParticleIndices
 
 logger = logging.getLogger("pynbody.halo")
 
@@ -312,7 +311,7 @@ class GrpCatalogue(HaloCatalogue):
     def _get_all_particle_indices(self):
 
         halo_number_per_particle = self.base[self._array]
-        
+
         particle_index_list = np.argsort(halo_number_per_particle, kind='mergesort')
         start = np.searchsorted(halo_number_per_particle[particle_index_list], self._halo_numbers)
         stop = np.concatenate((start[1:], [len(particle_index_list)]))

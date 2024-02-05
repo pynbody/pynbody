@@ -3,6 +3,7 @@ from typing import Any
 import numpy as np
 from numpy import typing as npt
 
+
 class HaloParticleIndices:
     def __init__(self, particle_ids: npt.NDArray[int] = None, boundaries: np.ndarray[(Any, 2), int] = None):
         """An IndexList represents abstract information about halo membership

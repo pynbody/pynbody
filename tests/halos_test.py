@@ -143,8 +143,12 @@ def test_simple_halo_number_mapper():
     assert (mapper.all_numbers == np.arange(1,11)).all()
 
 def test_create_halo_number_mapper():
-    from pynbody.halo.details.number_mapper import (SimpleHaloNumberMapper, MonotonicHaloNumberMapper,
-                                                    NonMonotonicHaloNumberMapper, create_halo_number_mapper)
+    from pynbody.halo.details.number_mapper import (
+        MonotonicHaloNumberMapper,
+        NonMonotonicHaloNumberMapper,
+        SimpleHaloNumberMapper,
+        create_halo_number_mapper,
+    )
 
     # Test SimpleHaloNumberMapper
     halo_numbers = np.array([1, 2, 3, 4, 5])
