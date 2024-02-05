@@ -199,3 +199,17 @@ def test_is_sorted():
     assert pynbody.util.is_sorted(np.array([1, 2, 3])) == 1
     assert pynbody.util.is_sorted(np.array([1, 2, 1])) == 0
     assert pynbody.util.is_sorted(np.array([3, 2, 1])) == -1
+
+def test_short_iord_to_pos_map():
+    iord = np.array([0, 5, 4, 2])
+    iord_to_fpos = pynbody.util.make_iord_to_offset_mapper(iord)
+    assert isinstance(iord_to_fpos, np.ndarray)
+    assert (iord_to_fpos[[5, 2, 0, 4]] == [1, 3, 0, 2]).all()
+
+def test_long_iord_to_pos_map():
+    iord = np.array([0, 20, 10, 300])
+    iord_to_fpos = pynbody.util.make_iord_to_offset_mapper(iord)
+    assert not isinstance(iord_to_fpos, np.ndarray)
+
+    assert (iord_to_fpos[[0, 10, 20, 300]] == np.array([0, 2, 1, 3])).all()
+    assert iord_to_fpos[300] == 3

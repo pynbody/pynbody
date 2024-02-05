@@ -119,7 +119,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
     To support a new format, subclass this and implement the following methods:
       __init__, which must pass a HaloNumberMapper into the base constructor, to specify what halos are available
-      _get_index_list_all_halos [essential]
+      _get_all_particle_indices [essential]
       _get_index_list_one_halo [optional, if it's possible to do this more efficiently than _get_index_list_all_halos]
       _get_properties_one_halo [only if you have halo finder-provided properties to expose]
       _get_halo [only if you want to add further customization to halos]
@@ -161,11 +161,11 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         raise NotImplementedError("This halo catalogue does not support loading all halos at once")
 
     def _get_properties_one_halo(self, i):
-        """Returns a dictionary of properties for a single halo"""
+        """Returns a dictionary of properties for a single halo, given a halo number i"""
         return {}
 
     def _get_index_list_one_halo(self, i):
-        """Get the index list for a single halo.
+        """Get the index list for a single halo, given a halo number i.
 
         A generic implementation is provided that fetches index lists for all halos and then extracts the one"""
         self.load_all()
@@ -222,8 +222,8 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         This is a convenience function for subclasses to use."""
         if not hasattr(self, "_iord_to_fpos"):
             if 'iord' in self.base.loadable_keys():
-                self._iord_to_fpos = np.empty(self.base['iord'].max()+1,dtype=np.int64)
-                self._iord_to_fpos[self.base['iord']] = np.arange(len(self.base))
+                self._iord_to_fpos = util.make_iord_to_fpos_mapper(self.base['iord'])
+
             else:
                 warnings.warn("No iord array available; assuming halo catalogue is using sequential particle IDs",
                               RuntimeWarning)
@@ -270,6 +270,38 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         This relies on the underlying SimSnap being capable of partial loading."""
         from .. import load
         return load(self.base.filename, take=self._get_index_list_via_most_efficient_route(i))
+
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):
+        """
+        Converts all array's units to be consistent with the
+        distance, velocity, mass basis units specified.
+
+        Base units can be specified using keywords.
+
+        **Optional Keywords**:
+
+           *distance*: string (default = 'kpc')
+
+           *velocity*: string (default = 'km s^-1')
+
+           *mass*: string (default = 'Msol')
+
+           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
+
+           *convert_parent*: boolean (default = None); ignored for HaloCatalogue objects
+
+        """
+        self.base.physical_units(distance=distance, velocity=velocity, mass=mass, persistent=persistent)
+
+        # Convert all instantiated subhalos
+        for halo in self._cached_halos.values():
+            halo.physical_units(
+                distance,
+                velocity,
+                mass,
+                persistent=persistent,
+                convert_parent=False
+            )
 
     @staticmethod
     def _can_load(self):

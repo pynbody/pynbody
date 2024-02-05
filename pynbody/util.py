@@ -685,3 +685,55 @@ def deprecated(func, message=None):
         warnings.warn(message, category=DeprecationWarning)
         return func(*args, **kwargs)
     return new_func
+
+
+class IordToFposIndex:
+    """Class for efficiently mapping from iords to offsets in the iord array, even if iord values are large.
+
+    WARNING: if a query is made with iords that are not themselves in ascending order, a sort takes place
+    ahead of the query and therefore the set returned is correct but the ordering is not preserved."""
+    def __init__(self, iord):
+        self.iord = iord
+        self.iord_argsort = np.argsort(iord)
+
+    def __getitem__(self, i):
+        if not hasattr(i, "__len__"):
+            i = np.array([i])
+            singleton = True
+        else:
+            i = np.asarray(i)
+            singleton = False
+
+            if is_sorted(i) != 1:
+                i = np.sort(i)
+
+        result = binary_search(np.asarray(i), self.iord, self.iord_argsort)
+
+        if singleton:
+            return result[0]
+        else:
+            return result
+
+def make_iord_to_offset_mapper(iord):
+    """Given an array of unique integers, iord, make an object which maps from an iord value to offset in the array.
+
+    i.e. given an iord array and a subset of values my_iord_values,
+
+     make_iord_to_offset_mapper(iord)[my_iord_values]
+
+    returns the indexes of my_iord_values in the iord array.
+
+    WARNING: the returned values are not guaranteed to be in the same order as the input iord array."""
+
+    max_iord = iord.max()
+    assert iord.min() >= 0, "Can't handle negative iord values"
+
+    if max_iord < 2 * len(iord):
+        # maximum iord is not very big, just do a direct in-memory mapping for speed
+        iord_to_offset = np.empty(max_iord + 1, dtype=np.int64)
+        iord_to_offset.fill(-1)
+        iord_to_offset[iord] = np.arange(len(iord), dtype=np.int64)
+        return iord_to_offset
+    else:
+        # maximum iord is large, so we'll use util.binary_search to save memory at the cost of speed
+        return IordToFposIndex(iord)
