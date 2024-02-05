@@ -172,45 +172,42 @@ def test_ahf_substructure():
 @pytest.fixture
 def snap_with_non_sequential_halos():
     base_folder = pathlib.Path("testdata/ahf_with_non_sequential_ids").absolute()
-    if base_folder.exists():
-        shutil.rmtree(base_folder)
+    if not base_folder.exists():
+        base_folder.mkdir()
+        for fname in base_folder.parent.glob("g15784.lr.01024*"):
+            if "AHF" not in fname.name:
+                (base_folder/fname.name).symlink_to(fname)
 
-    base_folder.mkdir()
+        # copy AHF_halos line by line, incorporating random IDs
+        np.random.seed(0)
+        my_random_ids = np.random.choice(1000000, 1411, replace=False)
+        my_file_order = np.arange(1411)
+        my_file_order[:20] = np.arange(19,-1,-1) # reverse order of first 20
 
-    for fname in base_folder.parent.glob("g15784.lr.01024*"):
-        if "AHF" not in fname.name:
-            (base_folder/fname.name).symlink_to(fname)
+        with open(base_folder/"g15784.lr.01024.z0.000.AHF_halos", "w") as f:
+            with pynbody.util.open_("testdata/g15784.lr.01024.z0.000.AHF_halos", "rt") as f2:
+                header = f2.readline()
+                f.write("#ID(0) "+header)
 
-    # copy AHF_halos line by line, incorporating random IDs
-    np.random.seed(0)
-    my_random_ids = np.random.choice(1000000, 1411, replace=False)
-    my_file_order = np.arange(1411)
-    my_file_order[:20] = np.arange(19,-1,-1) # reverse order of first 20
+                remaining_lines = f2.readlines()
+                remaining_lines = [remaining_lines[i] for i in my_file_order]
+                for line, id_ in zip(remaining_lines, my_random_ids[my_file_order]):
+                    f.write(f"{id_} {line}")
 
-    with open(base_folder/"g15784.lr.01024.z0.000.AHF_halos", "w") as f:
-        with pynbody.util.open_("testdata/g15784.lr.01024.z0.000.AHF_halos", "rt") as f2:
-            header = f2.readline()
-            f.write("#ID(0) "+header)
+        particle_file_per_halo = []
+        with pynbody.util.open_("testdata/g15784.lr.01024.z0.000.AHF_particles", "rt") as f2:
+            assert f2.readline().strip() == "1411"
+            for i in range(1411):
+                lines = [f2.readline()]
+                n_to_read = int(lines[0])
+                for _ in range(n_to_read):
+                    lines.append(f2.readline())
+                particle_file_per_halo.append(lines)
 
-            remaining_lines = f2.readlines()
-            remaining_lines = [remaining_lines[i] for i in my_file_order]
-            for line, id_ in zip(remaining_lines, my_random_ids[my_file_order]):
-                f.write(f"{id_} {line}")
-
-    particle_file_per_halo = []
-    with pynbody.util.open_("testdata/g15784.lr.01024.z0.000.AHF_particles", "rt") as f2:
-        assert f2.readline().strip() == "1411"
-        for i in range(1411):
-            lines = [f2.readline()]
-            n_to_read = int(lines[0])
-            for _ in range(n_to_read):
-                lines.append(f2.readline())
-            particle_file_per_halo.append(lines)
-
-    with open(base_folder/"g15784.lr.01024.z0.000.AHF_particles", "w") as f:
-        f.write("1411\r\n")
-        for o in my_file_order:
-            f.writelines(particle_file_per_halo[o])
+        with open(base_folder/"g15784.lr.01024.z0.000.AHF_particles", "w") as f:
+            f.write("1411\r\n")
+            for o in my_file_order:
+                f.writelines(particle_file_per_halo[o])
 
     return pynbody.load("testdata/ahf_with_non_sequential_ids/g15784.lr.01024")
 
@@ -223,14 +220,10 @@ def test_ahf_non_sequential_ids(snap_with_non_sequential_halos,
                                 halo_ids):
     f = snap_with_non_sequential_halos
     h = pynbody.halo.AHFCatalogue(f, halo_numbers=halo_numbering_mode)
-    #h.load_all()
+
     assert len(h)==1411
     assert len(h[halo_ids[0]])==502300
 
-    # ---> the next assert is problematic for some reason
-    # when the original halo 0 is in file position 0 it includes iord 1767911
-    # when it is in any other file position it instead includes iord 233790
-    # all other iords are consistent (?!)
     assert (h[halo_ids[0]]['iord'][::10000]==np.array([57, 27875, 54094, 82969, 112002, 140143, 173567, 205840, 264606,
            301694, 333383, 358730, 374767, 402300, 430180, 456015, 479885, 496606,
            519824, 539971, 555195, 575204, 596047, 617669, 652724, 1533992, 1544021,
