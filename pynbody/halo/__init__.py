@@ -225,7 +225,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         This is a convenience function for subclasses to use."""
         if not hasattr(self, "_iord_to_fpos"):
             if 'iord' in self.base.loadable_keys():
-                self._iord_to_fpos = util.make_iord_to_fpos_mapper(self.base['iord'])
+                self._iord_to_fpos = util.make_iord_to_offset_mapper(self.base['iord'])
 
             else:
                 warnings.warn("No iord array available; assuming halo catalogue is using sequential particle IDs",
