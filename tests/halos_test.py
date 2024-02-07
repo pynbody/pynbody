@@ -1,8 +1,9 @@
 """Test the generic halo catalogue mechanisms, using a very simple reference implementation"""
 
+import warnings
+
 import numpy as np
 import pytest
-import warnings
 
 import pynbody
 import pynbody.halo.details.number_mapper

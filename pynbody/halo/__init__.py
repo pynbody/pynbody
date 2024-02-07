@@ -186,16 +186,16 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
             # NB subclasses may implement loading one halo direct from disk in the above
             # if not, the default implementation will populate _cached_index_lists
 
-    def _get_halo_cached(self, halo_number):
+    def _get_halo_cached(self, halo_number) -> Halo:
         if halo_number not in self._cached_halos:
             self._cached_halos[halo_number] = self._get_halo(halo_number)
         return self._cached_halos[halo_number]
 
-    def _get_halo(self, halo_number):
+    def _get_halo(self, halo_number) -> Halo:
         return Halo(halo_number, self._get_properties_one_halo(halo_number), self, self.base,
                     self._get_index_list_via_most_efficient_route(halo_number))
 
-    def get_dummy_halo(self, halo_number):
+    def get_dummy_halo(self, halo_number) -> DummyHalo:
         """Return a DummyHalo object containing only the halo properties, no particle information"""
         h = DummyHalo()
         h.properties.update(self._get_properties_one_halo(halo_number))
@@ -406,8 +406,6 @@ from pynbody.halo.subfindhdf import (
 
 
 def _get_halo_classes():
-    # AmigaGrpCatalogue MUST be scanned first, because if it exists we probably
-    # want to use it, but an AHFCatalogue will probably be on-disk too.
     _halo_classes = [
         GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
         RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,

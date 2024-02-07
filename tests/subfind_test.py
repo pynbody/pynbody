@@ -1,8 +1,8 @@
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 
 import pynbody
-import pytest
 
 
 @pytest.fixture(params=[True, False])

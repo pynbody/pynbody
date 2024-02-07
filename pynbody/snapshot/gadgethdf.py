@@ -685,12 +685,6 @@ class SubFindHDFSnap(GadgetHDFSnap) :
     _multifile_manager_class = SubfindHdfMultiFileManager
     _readable_hdf5_test_key = "FOF"
 
-    def __init__(self, filename) :
-        super().__init__(filename)
-
-    def halos(self) :
-        return halo.SubFindHDFHaloCatalogue(self)
-
 
 class EagleLikeHDFSnap(GadgetHDFSnap):
     """Reads Eagle-like HDF snapshots (download at http://data.cosma.dur.ac.uk:8080/eagle-snapshots/)"""

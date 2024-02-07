@@ -222,7 +222,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
     def __repr__(self):
         if self._filename != "":
-            return "<SimSnap \"" + self._filename + "\" len=" + str(len(self)) + ">"
+            return "<SimSnap \"" + str(self._filename) + "\" len=" + str(len(self)) + ">"
         else:
             return "<SimSnap len=" + str(len(self)) + ">"
 
