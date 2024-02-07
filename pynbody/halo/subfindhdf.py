@@ -311,13 +311,13 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             properties['children'], = np.where(self._subfind_halo_parent_groups == i)
         return properties
 
-    def _get_index_list_one_halo(self, halo_number):
+    def _get_index_list_one_halo(self, number):
         if self.base is None :
             raise RuntimeError("Parent SimSnap has been deleted")
 
-        if halo_number > len(self)-1 :
+        if number > len(self)-1 :
             description = "Subhalo" if self._sub_mode else "Group"
-            raise ValueError(f"{description} {halo_number} does not exist")
+            raise ValueError(f"{description} {number} does not exist")
 
         type_map = self.base._family_to_group_map
 
@@ -333,11 +333,11 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         tot_len = 0
         for g_ptypes in list(type_map.values()) :
             for g_ptype in g_ptypes:
-                tot_len += lengths[g_ptype][halo_number]
+                tot_len += lengths[g_ptype][number]
 
         plist = np.empty(tot_len,dtype='int64')
 
-        self._write_pynbody_index_list_into_array(plist, offsets, lengths, i, type_map)
+        self._write_pynbody_index_list_into_array(plist, offsets, lengths, number, type_map)
 
         return plist
 
