@@ -50,13 +50,16 @@ def test_load_rockstar(dummy_file):
 def test_autodetect_rockstar(dummy_file):
     h = dummy_file.halos()
     assert isinstance(h, pynbody.halo.RockstarCatalogue)
-def test_rockstar_properties():
-    global h
-    h_properties = h[4977].properties
+
+def test_rockstar_properties(rockstar_halos):
+    h_properties = rockstar_halos[4977].properties
     assert h_properties['num_p']==40
     npt.assert_allclose(h_properties['pos'], [43.892704, 0.197397, 40.751919], rtol=1e-6)
 
-def test_rockstar_particles(rockstar_halos):
+@pytest.mark.parametrize('load_all', [True, False])
+def test_rockstar_particles(rockstar_halos, load_all):
+    if load_all:
+        rockstar_halos.load_all()
     assert (np.sort(rockstar_halos[4977]['iord'])==[1801964, 1802346, 1818475, 1818729, 1818730, 1818857, 1818858, 1818859, 1818986,
                              1834860, 1834986, 1834987, 1835113, 1835114, 1835115, 1835116, 1835242, 1835243,
                              1835244, 1835369, 1835370, 1835371, 1835498, 1835499, 1851372, 1851625, 1851626,

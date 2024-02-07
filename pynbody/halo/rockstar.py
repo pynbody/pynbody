@@ -87,6 +87,11 @@ class RockstarCatalogue(HaloCatalogue):
         self._init_iord_to_fpos()
         return self._iord_to_fpos[iords]
 
+    def _get_properties_one_halo(self, halo_number):
+        halo_index = self._number_mapper.number_to_index(halo_number)
+        cpu = self._cpu_per_halo[halo_index]
+        return self._cpus[cpu].read_properties_for_halo(halo_number)
+
     @staticmethod
     def _can_load(sim, **kwargs):
         return len(
@@ -322,3 +327,6 @@ class _RockstarCatalogueOneCpu:
             f.seek(self._halo_offsets[num - self._halo_min_inclusive])
             return np.fromfile(f, dtype=np.int64, count=self._halo_lens[num - self._halo_min_inclusive])
 
+    def read_iords_for_all_halos(self):
+        # TODO
+        pass
