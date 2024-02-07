@@ -478,8 +478,8 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
     _sub_offset_name = 'SubhaloOffsetType'
     _sub_len_name = 'SubhaloLenType'
 
-    def __init__(self, sim, subs=False, grp_array=False):
-        super().__init__(sim, subs, grp_array)
+    def __init__(self, sim, **kwargs):
+        super().__init__(sim, **kwargs)
         i = 0
         for prog_or_desc in "prog", "desc":
             try:

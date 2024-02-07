@@ -93,14 +93,6 @@ def test_hi_derivation():
 
     assert np.allclose(subfind.halos()[0].gas['HI'][::100],HI_answer)
 
-
-def test_fof_vs_sub_assignment():
-    h = subfind.halos()
-    npt.assert_allclose(h.get_halo_properties(0, with_unit=False)['Mass'],28.604694074339932)
-    npt.assert_allclose(h.get_halo_properties(0, with_unit=False)['Halo_M_Crit200'], 29.796955896599684)
-    npt.assert_allclose(h.get_halo_properties(1, with_unit=False)['Mass'], 8.880245794949587)
-    npt.assert_allclose(h.get_halo_properties(1, with_unit=False)['Halo_M_Crit200'],8.116568749712314)
-
 def test_hdf_ordering():
     # HDF files do not intrinsically specify the order in which the particle types occur
     # Because some operations may require stability, pynbody now imposes order by the particle type

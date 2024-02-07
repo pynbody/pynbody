@@ -83,13 +83,25 @@ def test_grp_array(snap):
         assert len(snap['iord'][grp==i]) == len(h[i])
         assert (h[i]['iord'] == snap['iord'][grp==i]).all()
 
+def test_fof_vs_sub_assignment(snap):
+    h = snap.halos()
+    file_mass_unit = snap.infer_original_units("g")
+    npt.assert_allclose(h.get_dummy_halo(0).properties['Mass'].in_units(file_mass_unit),
+                        28.604694074339932)
+    npt.assert_allclose(h.get_dummy_halo(0).properties['Halo_M_Crit200'].in_units(file_mass_unit),
+                        29.796955896599684)
+    npt.assert_allclose(h.get_dummy_halo(1).properties['Mass'].in_units(file_mass_unit),
+                        8.880245794949587)
+    npt.assert_allclose(h.get_dummy_halo(1).properties['Halo_M_Crit200'].in_units(file_mass_unit),
+                        8.116568749712314)
+
 def test_halo_values(snap) :
     """ Check that halo values (and sizes) agree with pyread_gadget_hdf5 """
 
     filesub = 'testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103'
 
     # load Alan Duffy's module from https://bitbucket.org/astroduff/pyreadgadget
-    from pyread_gadget_hdf5 import pyread_gadget_hdf5
+    from pynbody.test_utils.pyread_gadget_hdf5 import pyread_gadget_hdf5
 
     FoF_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='fof', nopanda=True, silent=None)
     FoF_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='fof', nopanda=True, silent=True)
