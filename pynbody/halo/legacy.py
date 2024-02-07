@@ -54,23 +54,23 @@ class RockstarIntermediateCatalogue(HaloCatalogue):
                     onep = load(self.base.filename, take = one_ptcl)
                 halo.properties['rockstar_halo_id'] = onep['grpid'][0]
 
-    def _get_halo(self, i):
+    def _get_halo(self, halo_number):
         if self.base is None:
             raise RuntimeError("Parent SimSnap has been deleted")
 
-        halo_ptcls = self._get_particles_for_halo(i)
-        h = Halo(i, self, self.base, halo_ptcls)
-        self._add_halo_id(h,i)
+        halo_ptcls = self._get_particles_for_halo(halo_number)
+        h = Halo(halo_number, self, self.base, halo_ptcls)
+        self._add_halo_id(h, halo_number)
         return h
 
-    def load_copy(self, i):
+    def load_copy(self, halo_number):
         """Load a fresh SimSnap with only the particles in halo i"""
-        if i>=len(self):
+        if halo_number>=len(self):
             raise KeyError("No such halo")
 
         from . import load
-        halo = load(self.base.filename, take=self._get_particles_for_halo(i))
-        self._add_halo_id(halo, i)
+        halo = load(self.base.filename, take=self._get_particles_for_halo(halo_number))
+        self._add_halo_id(halo, halo_number)
         return halo
 
     @staticmethod

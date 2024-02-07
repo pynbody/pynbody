@@ -289,9 +289,9 @@ class AHFCatalogue(HaloCatalogue):
             data[np.where(g_mask)] -= ns
         return data
 
-    def _get_index_list_one_halo(self, i):
+    def _get_index_list_one_halo(self, halo_number):
         fpos = self._get_file_positions()
-        file_index = self._number_mapper.number_to_index(i)
+        file_index = self._number_mapper.number_to_index(halo_number)
         with util.open_(self._ahfBasename + 'particles') as f:
             f.seek(fpos[file_index],0)
             ids = self._load_ahf_particle_block(f, nparts=self._halo_properties[file_index]['npart'])

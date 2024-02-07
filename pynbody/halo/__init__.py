@@ -160,45 +160,45 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         """
         raise NotImplementedError("This halo catalogue does not support loading all halos at once")
 
-    def _get_properties_one_halo(self, i):
-        """Returns a dictionary of properties for a single halo, given a halo number i"""
+    def _get_properties_one_halo(self, halo_number):
+        """Returns a dictionary of properties for a single halo, given a halo_number """
         return {}
 
-    def _get_index_list_one_halo(self, i):
-        """Get the index list for a single halo, given a halo number i.
+    def _get_index_list_one_halo(self, halo_number):
+        """Get the index list for a single halo, given a halo_number.
 
         A generic implementation is provided that fetches index lists for all halos and then extracts the one"""
         self.load_all()
         return self._index_lists.get_particle_index_list_for_halo(
-            self._number_mapper.number_to_index(i)
+            self._number_mapper.number_to_index(halo_number)
         )
 
-    def _get_index_list_via_most_efficient_route(self, i):
+    def _get_index_list_via_most_efficient_route(self, halo_number):
         if self._index_lists:
             return self._index_lists.get_particle_index_list_for_halo(
-                self._number_mapper.number_to_index(i)
+                self._number_mapper.number_to_index(halo_number)
             )
         else:
             if len(self._cached_halos) == 5:
                 warnings.warn("Accessing multiple halos may be more efficient if you call load_all() on the "
                               "halo catalogue", RuntimeWarning)
-            return self._get_index_list_one_halo(i)
+            return self._get_index_list_one_halo(halo_number)
             # NB subclasses may implement loading one halo direct from disk in the above
             # if not, the default implementation will populate _cached_index_lists
 
-    def _get_halo_cached(self, i):
-        if i not in self._cached_halos:
-            self._cached_halos[i] = self._get_halo(i)
-        return self._cached_halos[i]
+    def _get_halo_cached(self, halo_number):
+        if halo_number not in self._cached_halos:
+            self._cached_halos[halo_number] = self._get_halo(halo_number)
+        return self._cached_halos[halo_number]
 
-    def _get_halo(self, i):
-        return Halo(i, self._get_properties_one_halo(i), self, self.base,
-                 self._get_index_list_via_most_efficient_route(i))
+    def _get_halo(self, halo_number):
+        return Halo(halo_number, self._get_properties_one_halo(halo_number), self, self.base,
+                    self._get_index_list_via_most_efficient_route(halo_number))
 
-    def get_dummy_halo(self, i):
+    def get_dummy_halo(self, halo_number):
         """Return a DummyHalo object containing only the halo properties, no particle information"""
         h = DummyHalo()
-        h.properties.update(self._get_properties_one_halo(i))
+        h.properties.update(self._get_properties_one_halo(halo_number))
         return h
 
     def __len__(self):
@@ -246,8 +246,8 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         else:
             return False
 
-    def contains(self, haloid):
-        if (haloid in self._halos):
+    def contains(self, halo_number):
+        if halo_number in self._halos:
             return True
         else:
             return False
@@ -267,12 +267,12 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         else:
             return number_per_particle
 
-    def load_copy(self, i):
-        """Load a fresh SimSnap with only the particles in halo i
+    def load_copy(self, halo_number):
+        """Load a fresh SimSnap with only the particles in specified halo
 
         This relies on the underlying SimSnap being capable of partial loading."""
         from .. import load
-        return load(self.base.filename, take=self._get_index_list_via_most_efficient_route(i))
+        return load(self.base.filename, take=self._get_index_list_via_most_efficient_route(halo_number))
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):
         """
@@ -357,12 +357,12 @@ class GrpCatalogue(HaloCatalogue):
 
         return HaloParticleIndices(particle_ids = particle_index_list, boundaries = particle_index_list_boundaries)
 
-    def _get_index_list_one_halo(self, i):
-        if i == self._ignore:
-            self._no_such_halo(i)
-        array = np.where(self.base[self._array] == i)[0]
+    def _get_index_list_one_halo(self, halo_number):
+        if halo_number == self._ignore:
+            self._no_such_halo(halo_number)
+        array = np.where(self.base[self._array] == halo_number)[0]
         if len(array) == 0:
-            self._no_such_halo(i)
+            self._no_such_halo(halo_number)
         return array
 
     def _no_such_halo(self, i):

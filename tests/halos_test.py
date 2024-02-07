@@ -303,9 +303,11 @@ def test_grp_catalogue_with_ignore_value(snap_with_grp, do_load_all, ignore_valu
     with pytest.raises(KeyError):
         _ = h[ignore_value]
 
-    for halo_number in range(1,10):
-        if halo_number != ignore_value:
-            assert (h[halo_number]['id'] == f[f['grp'] == halo_number]['id']).all()
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        for halo_number in range(1,10):
+            if halo_number != ignore_value:
+                assert (h[halo_number]['id'] == f[f['grp'] == halo_number]['id']).all()
 
 def test_grp_catalogue_generated(snap_with_grp):
     h = snap_with_grp.halos()

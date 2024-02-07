@@ -38,15 +38,15 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
     def __len__(self):
         return self._len
 
-    def _get_halo(self, i):
+    def _get_halo(self, halo_number):
         if self.base is None :
             raise RuntimeError("Parent SimSnap has been deleted")
 
-        if i > len(self)-1 :
-            raise ValueError("FOF group %d does not have subhalo %d"%(self._group_id, i))
+        if halo_number > len(self)-1 :
+            raise ValueError("FOF group %d does not have subhalo %d" % (self._group_id, halo_number))
 
         # need this to index the global offset and length arrays
-        absolute_id = self._group_catalogue._fof_group_first_subhalo[self._group_id] + i
+        absolute_id = self._group_catalogue._fof_group_first_subhalo[self._group_id] + halo_number
 
         # now form the particle IDs needed for this subhalo
         type_map = self.base._family_to_group_map
@@ -75,7 +75,7 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
                 plist[npart:npart+length] = ind
                 npart += length
 
-        return SubFindHDFSubHalo(i, self._group_id, self._group_catalogue, self, self.base, plist)
+        return SubFindHDFSubHalo(halo_number, self._group_id, self._group_catalogue, self, self.base, plist)
 
 
     @property
@@ -319,13 +319,13 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         return grp
 
 
-    def _get_halo(self, i) :
+    def _get_halo(self, halo_number) :
         if self.base is None :
             raise RuntimeError("Parent SimSnap has been deleted")
 
-        if i > len(self)-1 :
+        if halo_number > len(self)-1 :
             description = "Subhalo" if self._sub_mode else "Group"
-            raise ValueError(f"{description} {i} does not exist")
+            raise ValueError(f"{description} {halo_number} does not exist")
 
         type_map = self.base._family_to_group_map
 
@@ -341,7 +341,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         tot_len = 0
         for g_ptypes in list(type_map.values()) :
             for g_ptype in g_ptypes:
-                tot_len += lengths[g_ptype][i]
+                tot_len += lengths[g_ptype][halo_number]
 
         plist = np.zeros(tot_len,dtype='int64')
 
@@ -352,18 +352,18 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
             for g_ptype in type_map[ptype]:
                 # add the particle indices to the particle list
-                offset = offsets[g_ptype][i]
-                length = lengths[g_ptype][i]
+                offset = offsets[g_ptype][halo_number]
+                length = lengths[g_ptype][halo_number]
                 ind = np.arange(sl.start + offset, sl.start + offset + length)
                 plist[npart:npart+length] = ind
                 npart += length
 
         if self._sub_mode:
             # SubFindHDFSubHalo wants to know our parent group
-            group, halo = self._group_and_halo_from_halo_index(i)
+            group, halo = self._group_and_halo_from_halo_index(halo_number)
             return SubFindHDFSubHalo(halo, group, self, self, self.base, plist)
         else:
-            return SubFindFOFGroup(i, self, self.base, plist)
+            return SubFindFOFGroup(halo_number, self, self.base, plist)
 
 
     def _group_and_halo_from_halo_index(self, i):
