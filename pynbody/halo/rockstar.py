@@ -80,65 +80,12 @@ class RockstarCatalogue(HaloCatalogue):
         self._cpus = new_cpus
         self._files = new_files
 
-    def _pass_on(self, function, *args, **kwargs):
-        if self._index_ar is not None:
-            cpui, hi = self._cpus[self._index_ar[args[0],0]], self._index_ar[args[0],1]
-            return function(cpui,hi,*args[1:],**kwargs)
-        for i in self._cpus:
-            try:
-                return function(i,*args,**kwargs)
-            except KeyError:
-                pass
-
-    def __getitem__(self, k):
-        return self._pass_on(_RockstarCatalogueOneCpu.__getitem__, k)
-
-    def load_copy(self, k):
-        return self._pass_on(_RockstarCatalogueOneCpu.load_copy, k)
-
-    def get_group_array(self):
-        ar = np.zeros(len(self.base), dtype=int)-1
-        for cpu_i in self._cpus:
-            cpu_i._update_grp_array(ar)
-        return ar
-
-    def make_grp(self, name='grp'):
-        """
-        Creates a 'grp' array which labels each particle according to
-        its parent halo.
-        """
-        self.base[name]= self.get_group_array()
-
-    def __len__(self):
-        return sum(len(x) for x in self._cpus)
-
-    def _init_index_ar(self):
-        index_ar = np.empty((len(self),2),dtype=np.int32)
-
-        for cpu_id, cpu in enumerate(self._cpus):
-            i0 = cpu._halo_min_inclusive
-            i1 = cpu._halo_max_exclusive
-            index_ar[i0:i1,0]=cpu_id
-            index_ar[i0:i1,1]=np.arange(i0,i1,dtype=np.int32)
-
-        self._index_ar = index_ar
-
-
-    def _sort_index_ar(self):
-        num_ar = np.empty(len(self))
-
-        for cpu_id, cpu in enumerate(self._cpus):
-            i0 = cpu._halo_min_inclusive
-            i1 = cpu._halo_max_exclusive
-            num_ar[i0:i1]=self._cpus[cpu_id]._halo_lens
-
-        num_ar = np.argsort(num_ar)[::-1]
-        self._index_ar = self._index_ar[num_ar]
-
-
-    @staticmethod
-    def _can_run(sim):
-        return False
+    def _get_index_list_one_halo(self, halo_number):
+        halo_index = self._number_mapper.number_to_index(halo_number)
+        cpu = self._cpu_per_halo[halo_index]
+        iords = self._cpus[cpu].read_iords_for_halo(halo_number)
+        self._init_iord_to_fpos()
+        return self._iord_to_fpos[iords]
 
     @staticmethod
     def _can_load(sim, **kwargs):

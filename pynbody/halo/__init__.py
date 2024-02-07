@@ -224,7 +224,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
         This is a convenience function for subclasses to use."""
         if not hasattr(self, "_iord_to_fpos"):
-            if 'iord' in self.base.loadable_keys():
+            if 'iord' in self.base.loadable_keys() or 'iord' in self.base.keys():
                 self._iord_to_fpos = util.make_iord_to_offset_mapper(self.base['iord'])
 
             else:
