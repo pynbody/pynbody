@@ -90,8 +90,8 @@ def test_bridging_with_more_families():
     # Test that we can create a group array for snapshots that have a complex family structure,
     # and bridge only with one family (DM). This is necessary for e.g. Tangos linking
     f1 = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
-    g1 = pynbody.halo.AHFCatalogue(f1, get_all_parts="testdata/output_00110/output_00110_fullbox.tipsy.z0.031.AHF_particles")       # Force loading of all particles
-
+    g1 = pynbody.halo.AHFCatalogue(f1)
+    g1.load_all()
     # Work only on one family and create a useless bridge which is enough to break the code
     f1 = f1.dm
     b = pynbody.bridge.OrderBridge(f1, f1)
