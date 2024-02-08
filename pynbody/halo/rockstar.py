@@ -8,6 +8,7 @@ from .. import util
 from . import DummyHalo, Halo, HaloCatalogue
 from .details import number_mapper
 
+
 class RockstarFormatRevisionError(RuntimeError):
     pass
 
@@ -57,7 +58,7 @@ class RockstarCatalogue(HaloCatalogue):
         self._cpus = [_RockstarCatalogueOneCpu(file_i, format_revision=format_revision) for file_i in self._files]
         self._prune_files_from_wrong_scalefactor(sim)
 
-        halo_numbers = np.empty(sum((len(x) for x in self._cpus)), dtype=int)
+        halo_numbers = np.empty(sum(len(x) for x in self._cpus), dtype=int)
         self._cpu_per_halo = np.empty(len(halo_numbers), dtype=int)
         i = 0
         for j, cat in enumerate(self._cpus):
@@ -86,6 +87,21 @@ class RockstarCatalogue(HaloCatalogue):
         iords = self._cpus[cpu].read_iords_for_halo(halo_number)
         self._init_iord_to_fpos()
         return self._iord_to_fpos[iords]
+
+    def _get_all_particle_indices(self):
+        iords = np.empty(0, dtype=int)
+        boundaries = np.empty((0, 2), dtype=int)
+        for cpu in self._cpus:
+            iords_this_cpu, boundaries_this_cpu = cpu.read_iords_for_all_halos()
+            boundaries = np.append(boundaries, boundaries_this_cpu + len(iords), axis=0)
+            iords = np.append(iords, iords_this_cpu)
+
+        self._init_iord_to_fpos()
+        fpos = iords # nb this doesn't copy! but we won't use the iords again after this, so it's ok
+        for a, b in boundaries:
+            # iord_to_fpos may not retain ordering, so have to do this per halo
+            fpos[a:b] = self._iord_to_fpos[iords[a:b]]
+        return fpos, boundaries
 
     def _get_properties_one_halo(self, halo_number):
         halo_index = self._number_mapper.number_to_index(halo_number)
@@ -286,8 +302,6 @@ class _RockstarCatalogueOneCpu:
         # TODO: properties are in Msun / h, Mpc / h
         return dict(list(zip(halo_data.dtype.names,halo_data[0])))
 
-
-
     def _load_rs_halos(self, f):
         self._haloprops_offset = f.tell()
         self._halo_offsets = np.empty(self._head['num_halos'][0],dtype=np.int64)
@@ -328,5 +342,16 @@ class _RockstarCatalogueOneCpu:
             return np.fromfile(f, dtype=np.int64, count=self._halo_lens[num - self._halo_min_inclusive])
 
     def read_iords_for_all_halos(self):
-        # TODO
-        pass
+        """Returns an array with all halo iords, and the boundaries of each halo in the array."""
+        # check the halo ids are contiguous as expected
+        assert (np.diff(self._halo_offsets) == 8 * self._halo_lens[:-1]).all()
+        with util.open_(self._rsFilename, 'rb') as f:
+            f.seek(self._halo_offsets[0])
+            iords = np.fromfile(f, dtype=np.int64, count=self._halo_lens.sum())
+
+        boundaries = np.empty((len(self._halo_lens), 2), dtype=np.int64)
+        boundaries[:,1] = np.cumsum(self._halo_lens)
+        boundaries[0,0] = 0
+        boundaries[1:,0] = boundaries[:-1,1]
+
+        return iords, boundaries

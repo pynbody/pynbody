@@ -18,9 +18,10 @@ import copy
 import logging
 import warnings
 import weakref
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
+from numpy.typing import NDArray
 
 import pynbody.snapshot.subsnap
 
@@ -137,7 +138,10 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
     def load_all(self):
         """Loads all halos, which is normally more efficient if a large fraction of them will be accessed."""
         if not self._index_lists:
-            self._index_lists = self._get_all_particle_indices()
+            index_lists = self._get_all_particle_indices()
+            if isinstance(index_lists, tuple):
+                index_lists = HaloParticleIndices(*index_lists)
+            self._index_lists = index_lists
 
     @util.deprecated("precalculate has been renamed to load_all")
     def precalculate(self):
@@ -151,7 +155,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         self.load_all()
         return self._index_lists
 
-    def _get_all_particle_indices(self):
+    def _get_all_particle_indices(self) -> Union[HaloParticleIndices, tuple[np.ndarray, np.ndarray]]:
         """Returns information about the index list for all halos.
 
         Returns an HaloParticleIndices object, which is a container for the following information:
@@ -160,11 +164,11 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         """
         raise NotImplementedError("This halo catalogue does not support loading all halos at once")
 
-    def _get_properties_one_halo(self, halo_number):
+    def _get_properties_one_halo(self, halo_number) -> dict:
         """Returns a dictionary of properties for a single halo, given a halo_number """
         return {}
 
-    def _get_index_list_one_halo(self, halo_number):
+    def _get_index_list_one_halo(self, halo_number) -> NDArray[int]:
         """Get the index list for a single halo, given a halo_number.
 
         A generic implementation is provided that fetches index lists for all halos and then extracts the one"""
@@ -173,7 +177,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
             self._number_mapper.number_to_index(halo_number)
         )
 
-    def _get_index_list_via_most_efficient_route(self, halo_number):
+    def _get_index_list_via_most_efficient_route(self, halo_number) -> NDArray[int]:
         if self._index_lists:
             return self._index_lists.get_particle_index_list_for_halo(
                 self._number_mapper.number_to_index(halo_number)
@@ -201,7 +205,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         h.properties.update(self._get_properties_one_halo(halo_number))
         return h
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._get_num_halos()
 
     def __iter__(self):
@@ -209,7 +213,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         for i in self._number_mapper:
             yield self[i]
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> Halo:
         if isinstance(item, slice):
             return (self._get_halo_cached(i) for i in range(*item.indices(len(self))))
         else:

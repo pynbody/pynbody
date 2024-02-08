@@ -5,7 +5,6 @@ import pytest
 import pynbody
 
 
-
 @pytest.fixture
 def dummy_file():
     # create a dummy gadget file
