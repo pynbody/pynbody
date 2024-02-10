@@ -459,7 +459,7 @@ class AHFCatalogue(HaloCatalogue):
             self._setup_children()
             return
         logger.info("AHFCatalogue loading substructure")
-
+        nHalos = int(len(lines)/2) 
         # In the substructure catalog, halos are either referenced by their index
         # or by their ID (if they have one).
         ID2index = {}
@@ -467,13 +467,13 @@ class AHFCatalogue(HaloCatalogue):
             # If the "ID" property doesn't exist, use pynbody's internal index
             id = halo.properties.get("ID", i)
             ID2index[id] = i
-
-        for line in lines:
+  
+        for i in range(nHalos):
             try:
-                haloid, _nsubhalos = (int(x) for x in line.split())
+                haloid, _nsubhalos = (int(x) for x in lines[2*i].split())
                 halo_index = ID2index[haloid]
                 children = [
-                    ID2index[int(x)] for x in f.readline().split()
+                    ID2index[int(x)] for x in lines[(2*i)+1].split()
                 ]
             except ValueError:
                 logger.error(
@@ -491,11 +491,11 @@ class AHFCatalogue(HaloCatalogue):
                     haloid + 1
                 )
                 children = []
-
             self._halos[halo_index].properties['children'] = children
             for ichild in children:
                 self._halos[ichild].properties['parent_id'] = halo_index
 
+    
     def writegrp(self, grpoutfile=False):
         """
         simply write a skid style .grp file from ahf_particles
