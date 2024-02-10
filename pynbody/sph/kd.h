@@ -2,6 +2,8 @@
 #define KD_HINCLUDED
 
 #include <Python.h>
+
+#define PY_ARRAY_UNIQUE_SYMBOL PYNBODY_ARRAY_API
 #include <numpy/arrayobject.h>
 
 #ifdef KDT_THREADING

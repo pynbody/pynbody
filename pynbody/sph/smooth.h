@@ -1,6 +1,7 @@
 #ifndef SMOOTH_HINCLUDED
 #define SMOOTH_HINCLUDED
 
+#include <functional>
 #include <stdbool.h>
 #include "kd.h"
 
@@ -47,6 +48,7 @@ typedef struct smContext {
     int pin,pi,pNext;
     float ax,ay,az;
     bool warnings; //  keep track of whether a memory-overrun  warning has been issued
+    std::unique_ptr<std::vector<size_t>> result;
 	} * SMX;
 
 
@@ -116,8 +118,88 @@ void smFinish(SMX);
 template<typename T>
 void smBallSearch(SMX,float,float *);
 
-template<typename T>
-int  smBallGather(SMX,float,float *);
+inline int smBallGatherStoreResultInList(SMX smx, float fDist2, int particleIndex, int foundIndex) {
+    // append particleIndex to particleList
+    // PyObject *particleIndexPy = PyLong_FromLong(smx->kd->p[particleIndex].iOrder);
+    // PyList_Append(smx->result, particleIndexPy);
+    // tempar->push_back(smx->kd->p[particleIndex].iOrder);
+    smx->result->push_back(smx->kd->p[particleIndex].iOrder);
+    return particleIndex+1;
+}
+
+inline int smBallGatherStoreResultInSmx(SMX smx, float fDist2, int particleIndex, int foundIndex) {
+    if(foundIndex>=smx->nListSize) {
+        if(!smx->warnings) fprintf(stderr, "Smooth - particle cache too small for local density - results will be incorrect\n");
+        smx->warnings=true;
+        return foundIndex;
+      }
+    smx->fList[foundIndex] = fDist2;
+    smx->pList[foundIndex] = particleIndex;
+    return foundIndex+1;
+}
+
+
+template<typename T, int (*storeResultFunction)(SMX, float, int, int) >
+int smBallGather(SMX smx, float fBall2, float *ri)
+{
+	KDN *c;
+	PARTICLE *p;
+	KD kd=smx->kd;
+	int pj,nCnt,cp,nSplit;
+	float dx,dy,dz,x,y,z,lx,ly,lz,sx,sy,sz,fDist2;
+
+	c = smx->kd->kdNodes;
+	p = smx->kd->p;
+	nSplit = smx->kd->nSplit;
+	lx = smx->fPeriod[0];
+	ly = smx->fPeriod[1];
+	lz = smx->fPeriod[2];
+	x = ri[0];
+	y = ri[1];
+	z = ri[2];
+
+	nCnt = 0;
+	cp = ROOT;
+	while (1) {
+		INTERSECT(c,cp,fBall2,lx,ly,lz,x,y,z,sx,sy,sz);
+		/*
+		 ** We have an intersection to test.
+		 */
+		if (cp < nSplit) {
+			cp = LOWER(cp);
+			continue;
+			}
+		else {
+			for (pj=c[cp].pLower;pj<=c[cp].pUpper;++pj) {
+				dx = sx - GET2<T>(kd->pNumpyPos,p[pj].iOrder,0);
+				dy = sy - GET2<T>(kd->pNumpyPos,p[pj].iOrder,1);
+				dz = sz - GET2<T>(kd->pNumpyPos,p[pj].iOrder,2);
+				fDist2 = dx*dx + dy*dy + dz*dz;
+				if (fDist2 <= fBall2) {
+				    nCnt = storeResultFunction(smx, fDist2, pj, nCnt);
+				}
+			}
+
+        }
+	GetNextCell:
+	    // called by INTERSECT when a cell can be ignored, and finds the next cell to inspect
+		SETNEXT(cp,ROOT);
+		if (cp == ROOT) break;
+	}
+	assert(nCnt <= smx->nListSize);
+	return(nCnt);
+	}
+
+
+
+int smBallGatherStoreResultInSmx(SMX smx, float, int, int);
+
+int smBallGatherStoreResultInList(SMX smx, float, int, int);
+
+void initParticleList(SMX smx);
+
+PyObject *getReturnParticleList(SMX smx);
+
 
 template<typename T>
 int smSmoothStep(SMX smx, int procid);

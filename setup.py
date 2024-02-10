@@ -82,18 +82,19 @@ extra_compile_args = ['-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
-                      '-g']
+                      '-g', '-std=c++14']
 
 if have_pthread:
     extra_compile_args.append('-DKDT_THREADING')
 
-extra_link_args = []
+extra_link_args = ['-std=c++14']
 
 incdir = [np.get_include()]
 
 kdmain = Extension('pynbody.sph.kdmain',
                    sources = ['pynbody/sph/kdmain.cpp', 'pynbody/sph/kd.cpp',
                               'pynbody/sph/smooth.cpp'],
+                   headers = ['pynbody/sph/kd.h', 'pynbody/sph/smooth.h'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
 

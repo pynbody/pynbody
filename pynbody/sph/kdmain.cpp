@@ -1,5 +1,4 @@
-#include <Python.h>
-#include <numpy/arrayobject.h>
+#include "kd.h"
 
 #ifdef NDEBUG
 #undef NDEBUG
@@ -9,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <functional>
+#include <iostream>
 
 #include "kd.h"
 #include "smooth.h"
@@ -55,6 +56,8 @@ PyObject *set_arrayref(PyObject *self, PyObject *args);
 PyObject *get_arrayref(PyObject *self, PyObject *args);
 PyObject *has_threading(PyObject *self, PyObject *args);
 
+PyObject *particles_in_sphere(PyObject *self, PyObject *args);
+
 template<typename T>
 int checkArray(PyObject *check, const char *name);
 
@@ -80,6 +83,8 @@ static PyMethodDef kdmain_methods[] =
     {"nn_next",   nn_next,   METH_VARARGS, "nn_next"},
     {"nn_stop",   nn_stop,   METH_VARARGS, "nn_stop"},
     {"nn_rewind", nn_rewind, METH_VARARGS, "nn_rewind"},
+
+    {"particles_in_sphere", particles_in_sphere, METH_VARARGS, "particles_in_sphere"},
 
     {"set_arrayref", set_arrayref, METH_VARARGS, "set_arrayref"},
     {"get_arrayref", get_arrayref, METH_VARARGS, "get_arrayref"},
@@ -109,6 +114,7 @@ PyInit_kdmain(void)
 initkdmain(void)
 #endif
 {
+  import_array();
   #if PY_MAJOR_VERSION>=3
     return PyModule_Create(&ourdef);
   #else
@@ -547,10 +553,34 @@ PyObject *domain_decomposition(PyObject *self, PyObject *args) {
 }
 
 template<typename Tf, typename Tq>
-PyObject *typed_populate(PyObject *self, PyObject *args)
-{
+struct typed_particles_in_sphere {
+    static PyObject *call(PyObject *self, PyObject *args) {
+         SMX smx;
+    KD kd;
+    float r;
+    float ri[3];
 
-    long i,nCnt;
+
+    PyObject *kdobj=nullptr, *smxobj=nullptr;
+
+    PyArg_ParseTuple(args, "OOffff", &kdobj, &smxobj, &ri[0], &ri[1], &ri[2], &r);
+
+    kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
+    smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
+
+    initParticleList(smx);
+    smBallGather<Tf, smBallGatherStoreResultInList>(smx,r*r,ri);
+
+    return getReturnParticleList(smx);
+    }
+};
+
+
+
+template<typename Tf, typename Tq>
+struct typed_populate {
+    static PyObject *call(PyObject *self, PyObject *args) {
+        long i,nCnt;
     long procid;
     KD kd;
     SMX smx_global, smx_local;
@@ -648,7 +678,7 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
             hsm = GETSMOOTH(Tf,i);
 
             // use it to get nearest neighbours
-            nCnt = smBallGather<Tf>(smx_local,4*hsm*hsm,ri);
+            nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local,4*hsm*hsm,ri);
 
             // calculate the density
             (*pSmFn)(smx_local, i, nCnt, smx_local->pList,smx_local->fList, Wendland);
@@ -675,40 +705,45 @@ PyObject *typed_populate(PyObject *self, PyObject *args)
 #endif
     return Py_None;
   }
-
-}
-
-PyObject *populate(PyObject *self, PyObject *args)
-{
-    // this is really a shell function that works out what
-    // template parameters to adopt
-
-    KD kd;
-    PyObject *kdobj, *smxobj;
-    int propid, procid, nF, nQ;
-    int Wendland;
-
-    PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid, &Wendland);
-    kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
+    }
+};
 
 
-    nF = kd->nBitDepth;
-    nQ = 32;
+template<template <typename, typename> class func>
+PyObject *type_dispatcher(PyObject *self, PyObject *args) {
+    PyObject *kdobj = PyTuple_GetItem(args, 0);
+    if(kdobj == nullptr) {
+        PyErr_SetString(PyExc_ValueError, "First argument must be a kdtree object");
+        return nullptr;
+    }
+    KD kd = (KD)PyCapsule_GetPointer(kdobj, nullptr);
+    int nF = kd->nBitDepth;
+    int nQ = 32;
 
     if(kd->pNumpyQty!=NULL) {
         nQ=getBitDepth(kd->pNumpyQty);
     }
 
     if(nF==64 && nQ==64)
-        return typed_populate<double,double>(self,args);
+        return func<double,double>::call(self,args);
     else if(nF==64 && nQ==32)
-        return typed_populate<double,float>(self,args);
+        return func<double,float>::call(self,args);
     else if(nF==32 && nQ==32)
-        return typed_populate<float,float>(self,args);
+        return func<float,float>::call(self,args);
     else if(nF==32 && nQ==64)
-        return typed_populate<float,double>(self,args);
+        return func<float,double>::call(self,args);
     else {
-        PyErr_SetString(PyExc_ValueError, "Unsupported array dtypes for kdtree");
-        return NULL;
+        PyErr_SetString(PyExc_ValueError, "Unsupported dtype combination");
+        return nullptr;
     }
+}
+
+PyObject *populate(PyObject *self, PyObject *args)
+{
+    return type_dispatcher<typed_populate>(self, args);
+}
+
+PyObject *particles_in_sphere(PyObject *self, PyObject *args)
+{
+    return type_dispatcher<typed_particles_in_sphere>(self, args);
 }

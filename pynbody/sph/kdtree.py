@@ -50,6 +50,28 @@ class KDTree:
         self.s_len = len(pos)
         self.flags = {"WRITEABLE": False}
 
+    def particles_in_sphere(self, center, radius):
+        """Find particles within a sphere.
+
+        Parameters
+        ----------
+        center : array_like
+            Center of the sphere.
+        radius : float
+            Radius of the sphere.
+
+        Returns
+        -------
+        indices : array_like
+            Indices of the particles within the sphere.
+        """
+        smx = kdmain.nn_start(self.kdtree, 1, 1, self.boxsize)
+
+        particle_ids = kdmain.particles_in_sphere(self.kdtree, smx, center[0], center[1], center[2], radius)
+
+        kdmain.nn_stop(self.kdtree, smx)
+        return particle_ids
+
     def nn(self, nn=None):
         """Generator of neighbour list.
 

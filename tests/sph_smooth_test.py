@@ -216,5 +216,33 @@ def test_div_curl_smoothing(div_curl):
     npt.assert_equal(f.g['vorticity'], f.g['v_curl'])
     assert f.g['vorticity'].units == f.g['vel'].units/f.g['pos'].units
 
+@pytest.mark.parametrize("npart", [1, 10, 100, 1000, 100000])
+@pytest.mark.parametrize("offset", [0.0, 0.2, 0.5]) # checks wrapping
+@pytest.mark.parametrize("radius", [0.01, 0.1, 1.0])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_particles_in_sphere(npart, offset, radius, dtype):
+    f = pynbody.new(dm=npart)
+
+    f._create_array('pos', 3, dtype)
+    f._create_array('mass', 1, dtype)
+
+    np.random.seed(1337)
+    f['pos'] = np.random.uniform(low=-0.5, high=0.5, size=(npart,3))
+    f['mass'] = np.random.uniform(size=npart)
+    assert np.issubdtype(f['pos'].dtype, dtype)
+    assert np.issubdtype(f['mass'].dtype, dtype)
+    f.properties['boxsize'] = 1.0
+
+    pynbody.sph.build_tree(f)
+    particles = f.kdtree.particles_in_sphere([offset, 0.0, 0.0], radius)
+
+    f['x'] -= offset
+    f.wrap()
+    particles_compare = np.where(f['r']<radius)[0]
+    print(len(particles_compare), len(particles))
+
+    assert (np.sort(particles) == np.sort(particles_compare)).all()
+
+
 if __name__=="__main__":
     test_float_kd()

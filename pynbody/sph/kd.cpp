@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+
+#define NO_IMPORT_ARRAY
 #include "kd.h"
 
 

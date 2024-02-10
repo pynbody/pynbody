@@ -1,3 +1,5 @@
+#define NO_IMPORT_ARRAY
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,6 +8,7 @@
 #include "smooth.h"
 #include "kd.h"
 #include <iostream>
+#include <functional>
 
 bool smCheckFits(KD kd, float *fPeriod) {
 	KDN *root;
@@ -55,7 +58,6 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	smx->nListSize = smx->nSmooth+RESMOOTH_SAFE;
 	smx->fList = (float *)malloc(smx->nListSize*sizeof(float));     assert(smx->fList != NULL);
 	smx->pList = (int *)malloc(smx->nListSize*sizeof(int));         assert(smx->pList != NULL);
-
 	for (j=0;j<3;++j) smx->fPeriod[j] = fPeriod[j];
 
 
@@ -303,66 +305,23 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 
 
 
+void initParticleList(SMX smx) {
+    smx->result = std::make_unique<std::vector<size_t>>();
+    smx->result->reserve(100000);
+    // not so large that it's expensive to reserve.
+    // Not so small that we constantly need to get more space.
+}
 
-template<typename T>
-int smBallGather(SMX smx,float fBall2,float *ri)
-{
-	KDN *c;
-	PARTICLE *p;
-	KD kd=smx->kd;
-	int pj,nCnt,cp,nSplit;
-	float dx,dy,dz,x,y,z,lx,ly,lz,sx,sy,sz,fDist2;
+PyObject *getReturnParticleList(SMX smx) {
+    // make a numpy array from smx->result
+    npy_intp dims[1] = {static_cast<npy_intp>(smx->result->size())};
+    PyObject *numpy_result = PyArray_SimpleNew(1, dims, NPY_LONG);
 
-	c = smx->kd->kdNodes;
-	p = smx->kd->p;
-	nSplit = smx->kd->nSplit;
-	lx = smx->fPeriod[0];
-	ly = smx->fPeriod[1];
-	lz = smx->fPeriod[2];
-	x = ri[0];
-	y = ri[1];
-	z = ri[2];
-	nCnt = 0;
-	cp = ROOT;
-	while (1) {
-		INTERSECT(c,cp,fBall2,lx,ly,lz,x,y,z,sx,sy,sz);
-		/*
-		 ** We have an intersection to test.
-		 */
-		if (cp < nSplit) {
-			cp = LOWER(cp);
-			continue;
-			}
-		else {
-			for (pj=c[cp].pLower;pj<=c[cp].pUpper;++pj) {
-				dx = sx - GET2<T>(kd->pNumpyPos,p[pj].iOrder,0);
-				dy = sy - GET2<T>(kd->pNumpyPos,p[pj].iOrder,1);
-				dz = sz - GET2<T>(kd->pNumpyPos,p[pj].iOrder,2);
-				fDist2 = dx*dx + dy*dy + dz*dz;
-				if (fDist2 <= fBall2) {
-				  if(nCnt>=smx->nListSize) {
-				    if(!smx->warnings) fprintf(stderr, "Smooth - particle cache too small for local density - results will be incorrect\n");
-				    smx->warnings=true;
-				    break;
-				  }
-				  smx->fList[nCnt] = fDist2;
-				  smx->pList[nCnt++] = pj;
+    std::copy(smx->result->begin(), smx->result->end(),
+              static_cast<long *>(PyArray_DATA(reinterpret_cast<PyArrayObject *>(numpy_result))));
 
-				}
-
-			}
-
-			}
-	GetNextCell:
-		SETNEXT(cp,ROOT);
-		if (cp == ROOT) break;
-		}
-	assert(nCnt <= smx->nListSize);
-	return(nCnt);
-	}
-
-
-
+    return numpy_result;
+}
 
 
 void smSmoothInitStep(SMX smx, int nProcs_for_smooth)
@@ -1045,9 +1004,6 @@ template
 void smBallSearch<double>(SMX smx,float fBall2,float *ri);
 
 template
-int smBallGather<double>(SMX smx,float fBall2,float *ri);
-
-template
 void smDomainDecomposition<double>(KD kd, int nprocs);
 
 template
@@ -1063,9 +1019,6 @@ void smDensity<double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool 
 
 template
 void smBallSearch<float>(SMX smx,float fBall2,float *ri);
-
-template
-int smBallGather<float>(SMX smx,float fBall2,float *ri);
 
 template
 void smDomainDecomposition<float>(KD kd, int nprocs);

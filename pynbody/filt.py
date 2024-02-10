@@ -146,15 +146,12 @@ class Sphere(Filter):
         self.radius = radius
 
     def __call__(self, sim):
-        radius = self.radius
         wrap = -1.0
 
         with sim.immediate_mode:
             pos = sim['pos']
 
-        if units.is_unit_like(radius):
-            radius = float(radius.in_units(pos.units,
-                                           **pos.conversion_context()))
+        cen, radius = self._get_cen_and_radius_as_float(pos)
 
         if 'boxsize' in sim.properties:
             wrap = sim.properties['boxsize']
@@ -162,11 +159,24 @@ class Sphere(Filter):
         if units.is_unit_like(wrap):
             wrap = float(wrap.in_units(pos.units,**pos.conversion_context()))
 
+        return _util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius,wrap)
+
+    def _get_cen_and_radius_as_float(self, pos):
+        radius = self.radius
         cen = self.cen
         if units.has_units(cen):
             cen = cen.in_units(pos.units)
-        return _util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius,wrap)
+        if units.is_unit_like(radius):
+            radius = float(radius.in_units(pos.units,
+                                           **pos.conversion_context()))
+        return cen, radius
 
+    def where(self, sim):
+        if hasattr(sim, "kdtree"):
+            cen, radius = self._get_cen_and_radius_as_float(sim["pos"])
+            return (sim.kdtree.particles_in_sphere(cen, radius),)
+        else:
+            return super().where(sim)
 
     def __repr__(self):
         if units.is_unit(self.radius):
