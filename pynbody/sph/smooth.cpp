@@ -243,8 +243,6 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 	/*
 	 ** Now start the search from the bucket given by cell!
 	 */
-	pj = c[cell].pLower;
-	std::cerr << "cell start pj: " << pj << " pos:" << GET2<T>(kd->pNumpyPos,p[pj].iOrder,0) << " " << GET2<T>(kd->pNumpyPos,p[pj].iOrder,1) << " " << GET2<T>(kd->pNumpyPos,p[pj].iOrder,2) << std::endl;
 	for (pj=c[cell].pLower;pj<=c[cell].pUpper;++pj) {
 		dx = x - GET2<T>(kd->pNumpyPos,p[pj].iOrder,0);
 		dy = y - GET2<T>(kd->pNumpyPos,p[pj].iOrder,1);
