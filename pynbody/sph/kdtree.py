@@ -55,7 +55,7 @@ class KDTree:
                 "Pynbody is configured to use threading for the KDTree, but pthread support was not available during compilation. Reverting to single thread.",
                 RuntimeWarning,
             )
-        
+
         self.num_threads = num_threads
 
         # get a power of 2 for num_threads to pass to the constructor, because
@@ -213,7 +213,7 @@ class KDTree:
         """
         from . import _thread_map
 
-        
+
 
         if nn is None:
             nn = 64

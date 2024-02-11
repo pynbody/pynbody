@@ -2,10 +2,10 @@
 
 import fnmatch
 import os
+import warnings
 
 import h5py
 import numpy
-import warnings
 
 with warnings.catch_warnings():
     # pandas raises really annoying warning about its own dependencies
