@@ -88,7 +88,7 @@ def _auto_denoise(sim, kernel):
     else:
         return False
 
-def build_tree(sim):
+def build_tree(sim, num_threads=None):
     if hasattr(sim, 'kdtree') is False:
         # n.b. getting the following arrays through the full framework is
         # not possible because it can cause a deadlock if the build_tree
@@ -101,7 +101,7 @@ def build_tree(sim):
             boxsize = -1.0 # represents infinite box
         sim.kdtree = kdtree.KDTree(sim['pos'], sim['mass'],
                         leafsize=config['sph']['tree-leafsize'],
-                        boxsize=boxsize)
+                        boxsize=boxsize, num_threads=num_threads)
 
 
 def _tree_decomposition(obj):

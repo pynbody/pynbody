@@ -30,7 +30,7 @@ class KDTree:
     PROPID_QTYDIV  = 7
     PROPID_QTYCURL = 8
 
-    def __init__(self, pos, mass, leafsize=32, boxsize=None):
+    def __init__(self, pos, mass, leafsize=32, boxsize=None, num_threads=None):
         """
         Parameters
         ----------
@@ -41,9 +41,29 @@ class KDTree:
         leafsize : int, optional
             The number of particles in leaf nodes (default 32).
         boxsize : float, optional
-            Boxsize (default None).
+            Boxsize (default None)
+        num_threads : int, optional
+            Number of threads to use when building tree (if None, use configured/detected number of processors).
         """
-        self.kdtree = kdmain.init(pos, mass, int(leafsize))
+
+        if num_threads is None:
+            num_threads = int(config["number_of_threads"])
+
+        if num_threads > 1 and not kdmain.has_threading():
+            num_threads = 1
+            warnings.warn(
+                "Pynbody is configured to use threading for the KDTree, but pthread support was not available during compilation. Reverting to single thread.",
+                RuntimeWarning,
+            )
+        
+        self.num_threads = num_threads
+
+        # get a power of 2 for num_threads to pass to the constructor, because
+        # otherwise the workload will not be balanced across threads and they
+        # will be wasted
+        num_threads_init = 2 ** int(np.log2(num_threads))
+
+        self.kdtree = kdmain.init(pos, mass, int(leafsize), num_threads_init)
         self.derived = True
         self.boxsize = boxsize
         self._pos = pos
@@ -193,24 +213,17 @@ class KDTree:
         """
         from . import _thread_map
 
-        n_proc = config["number_of_threads"]
-
-        if kdmain.has_threading() is False and n_proc > 1:
-            n_proc = 1
-            warnings.warn(
-                "Pynbody is configured to use threading for the KDTree, but pthread support was not available during compilation. Reverting to single thread.",
-                RuntimeWarning,
-            )
+        
 
         if nn is None:
             nn = 64
 
-        smx = kdmain.nn_start(self.kdtree, int(nn), n_proc, self.boxsize)
+        smx = kdmain.nn_start(self.kdtree, int(nn), self.num_threads, self.boxsize)
 
         propid = self.smooth_operation_to_id(mode)
 
         if propid == self.PROPID_HSM:
-            kdmain.domain_decomposition(self.kdtree, n_proc)
+            kdmain.domain_decomposition(self.kdtree, self.num_threads)
 
         if kernel == 'CubicSpline':
             kernel = 0
@@ -221,16 +234,16 @@ class KDTree:
                 "Kernel keyword %s not recognised. Please choose either 'CubicSpline' or 'WendlandC2'." % kernel
             )
 
-        if n_proc == 1:
+        if self.num_threads == 1:
             kdmain.populate(self.kdtree, smx, propid, 0, kernel)
         else:
             _thread_map(
                 kdmain.populate,
-                [self.kdtree] * n_proc,
-                [smx] * n_proc,
-                [propid] * n_proc,
-                list(range(0, n_proc)),
-                [kernel] * n_proc
+                [self.kdtree] * self.num_threads,
+                [smx] * self.num_threads,
+                [propid] * self.num_threads,
+                list(range(0, self.num_threads)),
+                [kernel] * self.num_threads
             )
 
         # Free C-structures memory

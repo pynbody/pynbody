@@ -165,12 +165,12 @@ typedef struct kdContext {
 int kdInit(KD *,npy_intp);
 
 template<typename T>
-void kdBuildTree(KD);
+void kdBuildTree(KD, int num_threads);
 void kdOrder(KD);
 void kdFinish(KD);
 
 template<typename T>
-void kdBuildNode(KD, npy_intp);
+void kdBuildNode(KD, npy_intp, int);
 void kdCombine(KDN *p1,KDN *p2,KDN *pOut);
 
 

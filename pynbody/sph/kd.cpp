@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include <thread>
 
 #define NO_IMPORT_ARRAY
 #include "kd.h"
@@ -135,7 +136,7 @@ void kdUpPass(KD kd,npy_intp iCell)
 	}
 
 template <typename T>
-void kdBuildTree(KD kd)
+void kdBuildTree(KD kd, int num_threads)
 {
 	npy_intp l,n,i,j;
 	T rj;
@@ -180,7 +181,7 @@ void kdBuildTree(KD kd)
 	kd->kdNodes[ROOT].bnd = bnd;
 
 	// Recursively build tree
-	kdBuildNode<T>(kd, ROOT);
+	kdBuildNode<T>(kd, ROOT, num_threads);
 
 	// Calculate and store bounds information by passing it up the tree
 	kdUpPass<T>(kd,ROOT);
@@ -192,22 +193,12 @@ struct KDargs {
 };
 
 template <typename T>
-void kdBuildNodeRemote(struct KDargs *a) {
-	kdBuildNode<T>(a->kd, a->local_root);
-}
-
-template <typename T>
-void kdBuildNode(KD kd, npy_intp local_root) {
+void kdBuildNode(KD kd, npy_intp local_root, int num_threads) {
 
 	npy_intp i=local_root;
 	npy_intp d,j,m,diff;
 	KDN *nodes;
 	nodes = kd->kdNodes;
-
-#ifdef KDT_THREADING
-	pthread_t remote_thread;
-	struct KDargs remote_args;
-#endif
 
 	while (1) {
 		assert(nodes[i].pUpper - nodes[i].pLower + 1 > 0);
@@ -247,41 +238,24 @@ void kdBuildNode(KD kd, npy_intp local_root) {
 			diff = (m-nodes[i].pLower+1)-(nodes[i].pUpper-m);
 			assert(diff == 0 || diff == 1);
 
-#if 0
-			// Threaded KDT build is disabled at the moment.
-			//
-			// It does work, but it turns out to be slower than working on a single
-			// thread. This is presumably because the threads are writing to widely
-			// different bits of memory and the CPU cache doesn't like it?
+#if KDT_THREADING
 
-			if(i<=2) {
+			if(i<num_threads) {
 				// Launch a thread to handle the lower part of the tree,
 				// handle the upper part on the current thread.
-				printf("launch thread for id=%d...\n",LOWER(i));
-
-				remote_args.kd = kd;
-				remote_args.local_root = LOWER(i);
-
-
-				// do lower part on another thread
-				if(pthread_create(&remote_thread, NULL, kdBuildNodeRemote, &remote_args)) {
-					fprintf(stderr,"Threading error");
-					return;
-				}
+				std::thread t1(kdBuildNode<T>,kd, LOWER(i), num_threads);
 
 				// do upper part locally
-				kdBuildNode(kd,UPPER(i));
+				kdBuildNode<T>(kd,UPPER(i),num_threads);
 
-
-				printf("join...");
-				if(pthread_join(remote_thread,NULL)) {
-					fprintf(stderr,"Threading error");
-					return;
-				}
+				t1.join();
+				// NB if we have a non-power-of-two num_threads, we are basically wasting
+				// threads because we will end up waiting at this join point. This could be
+				// optimised by using a different threading model, but this symmetric
+				// branching model is simple and works well for power-of-two num_threads.
 
 				// at this point, we've finished processing this node and all subnodes,
 				// so continue back up the tree
-
 				SETNEXT(i,local_root);
 
 			} else{
@@ -292,8 +266,8 @@ void kdBuildNode(KD kd, npy_intp local_root) {
 			}
 
 #else
-	// On single thread, always switch attention to the lower branch
-			// (and upper branch gets processed on way up).
+		// On single thread, always switch attention to the lower branch
+		// (and upper branch gets processed on way up).
 		i = LOWER(i);
 #endif
 
@@ -319,13 +293,10 @@ template
 void kdUpPass<double>(KD kd,npy_intp iCell);
 
 template
-void kdBuildTree<double>(KD kd);
+void kdBuildTree<double>(KD kd, int num_threads);
 
 template
-void kdBuildNodeRemote<double>(struct KDargs *a);
-
-template
-void kdBuildNode<double>(KD kd, npy_intp local_root);
+void kdBuildNode<double>(KD kd, npy_intp local_root, int num_threads);
 
 
 
@@ -336,10 +307,7 @@ template
 void kdUpPass<float>(KD kd,npy_intp iCell);
 
 template
-void kdBuildTree<float>(KD kd);
+void kdBuildTree<float>(KD kd, int num_threads);
 
 template
-void kdBuildNodeRemote<float>(struct KDargs *a);
-
-template
-void kdBuildNode<float>(KD kd, npy_intp local_root);
+void kdBuildNode<float>(KD kd, npy_intp local_root, int num_threads);

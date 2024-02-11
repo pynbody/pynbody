@@ -26,9 +26,14 @@ for cen, rad in zip(centres, radii):
 
 end = time.time()
 
-print("no tree time:", end - start)
+print(f"spheres without tree time: {end-start:.2f}s")
 
+
+start = time.time()
 pynbody.sph.build_tree(f)
+end = time.time()
+
+print(f"tree build time: {end-start:.2f}s")
 
 start = time.time()
 for cen,rad in zip(centres,radii):
@@ -39,4 +44,4 @@ for cen,rad in zip(centres,radii):
 
 end = time.time()
 
-print("with tree time:",end - start)
+print(f"spheres from tree time: {end-start:.2f}s")

@@ -139,11 +139,12 @@ PyObject *kdinit(PyObject *self, PyObject *args)
 {
     npy_intp nBucket;
     npy_intp i;
+    int num_threads;
 
     PyObject *pos;  // Nx3 Numpy array of positions
     PyObject *mass; // Nx1 Numpy array of masses
 
-    if (!PyArg_ParseTuple(args, "OOl", &pos, &mass, &nBucket))
+    if (!PyArg_ParseTuple(args, "OOli", &pos, &mass, &nBucket, &num_threads))
         return NULL;
 
     int bitdepth = getBitDepth(pos);
@@ -197,9 +198,9 @@ PyObject *kdinit(PyObject *self, PyObject *args)
     }
 
     if(bitdepth==64)
-        kdBuildTree<double>(kd);
+        kdBuildTree<double>(kd, num_threads);
     else
-        kdBuildTree<float>(kd);
+        kdBuildTree<float>(kd, num_threads);
 
     Py_END_ALLOW_THREADS
 
