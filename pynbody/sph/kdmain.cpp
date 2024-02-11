@@ -137,13 +137,13 @@ PyObject *has_threading(PyObject *self, PyObject *args)
 /*==========================================================================*/
 PyObject *kdinit(PyObject *self, PyObject *args)
 {
-    int nBucket;
-    int i;
+    npy_intp nBucket;
+    npy_intp i;
 
     PyObject *pos;  // Nx3 Numpy array of positions
     PyObject *mass; // Nx1 Numpy array of masses
 
-    if (!PyArg_ParseTuple(args, "OOi", &pos, &mass, &nBucket))
+    if (!PyArg_ParseTuple(args, "OOl", &pos, &mass, &nBucket))
         return NULL;
 
     int bitdepth = getBitDepth(pos);
@@ -167,7 +167,7 @@ PyObject *kdinit(PyObject *self, PyObject *args)
     KD kd = (KD)malloc(sizeof(*kd));
     kdInit(&kd, nBucket);
 
-    int nbodies = PyArray_DIM(pos, 0);
+    npy_intp nbodies = PyArray_DIM(pos, 0);
 
     kd->nParticles = nbodies;
     kd->nActive = nbodies;
@@ -403,7 +403,7 @@ template<typename T>
 int checkArray(PyObject *check, const char* name) {
 
   if(check==NULL) {
-    PyErr_SetString(PyExc_ValueError, "Unspecified array in kdtree");
+    PyErr_Format(PyExc_ValueError, "Unspecified array '%s' in kdtree", name);
     return 1;
   }
 
@@ -580,8 +580,9 @@ struct typed_particles_in_sphere {
 template<typename Tf, typename Tq>
 struct typed_populate {
     static PyObject *call(PyObject *self, PyObject *args) {
-        long i,nCnt;
-    long procid;
+
+    long i,nCnt;
+    int procid;
     KD kd;
     SMX smx_global, smx_local;
     int propid;
@@ -589,17 +590,15 @@ struct typed_populate {
     float hsm;
     int Wendland;
 
-    void (*pSmFn)(SMX ,int ,int ,int *,float *, bool)=NULL;
+    void (*pSmFn)(SMX ,npy_intp ,int ,npy_intp *,float *, bool)=NULL;
 
     PyObject *kdobj, *smxobj;
 
     PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid, &Wendland);
     kd  = (KD)PyCapsule_GetPointer(kdobj, NULL);
     smx_global = (SMX)PyCapsule_GetPointer(smxobj, NULL);
-    #define BIGFLOAT ((float)1.0e37)
 
     long nbodies = PyArray_DIM(kd->pNumpyPos, 0);
-
 
     if (checkArray<Tf>(kd->pNumpySmooth,"smooth")) return NULL;
     if(propid>PROPID_HSM) {
@@ -616,12 +615,12 @@ struct typed_populate {
     smx_local->warnings=false;
     smx_local->pi = 0;
 #else
-    smx_global = smx_local;
+    smx_local = smx_global;
 #endif
 
     smx_global->warnings=false;
 
-    int total_particles=0;
+    npy_intp total_particles=0;
 
 
     switch(propid)

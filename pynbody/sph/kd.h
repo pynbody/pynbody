@@ -29,9 +29,8 @@
 #define STAR	4
 
 typedef struct Particle {
-	int iOrder;
-	int iMark;
-	// float r[3];
+	npy_intp iOrder;
+	char iMark;
 } PARTICLE;
 
 typedef struct bndBound {
@@ -43,24 +42,22 @@ typedef struct kdNode {
 	float fSplit;
 	BND bnd;
 	int iDim;
-	int pLower;
-	int pUpper;
+	npy_intp pLower;
+	npy_intp pUpper;
 	} KDN;
 
 typedef struct kdContext {
-	int nBucket;
-	int nParticles;
-	int nActive;
+	npy_intp nBucket;
+	npy_intp nParticles;
+	npy_intp nActive;
 	float fTime;
 	int nLevels;
-	int nNodes;
-	int nSplit;
+	npy_intp nNodes;
+	npy_intp nSplit;
 	PARTICLE *p;
 	KDN *kdNodes;
-	int uSecond;
-	int uMicro;
 
-	int nBitDepth;
+	int nBitDepth; // bit depth of arrays other than pNumpyQty which can be different
 	PyObject *pNumpyPos;  // Nx3 Numpy array of positions
 	PyObject *pNumpyMass; // Nx1 Numpy array of masses
 	PyObject *pNumpySmooth;
@@ -165,10 +162,7 @@ typedef struct kdContext {
 	}
 
 
-void kdTime(KD,int *,int *);
-int kdInit(KD *,int);
-int kdReadTipsy(KD,FILE *,int,int,int,int);
-void kdInMark(KD,char *);
+int kdInit(KD *,npy_intp);
 
 template<typename T>
 void kdBuildTree(KD);
@@ -176,37 +170,37 @@ void kdOrder(KD);
 void kdFinish(KD);
 
 template<typename T>
-void kdBuildNode(KD, int);
+void kdBuildNode(KD, npy_intp);
 void kdCombine(KDN *p1,KDN *p2,KDN *pOut);
 
 
 template<typename T>
-T GET(PyObject *ar, int i) {
+T GET(PyObject *ar, npy_intp i) {
 	return *((T*)PyArray_GETPTR1(ar, i));
 }
 
 template<typename T>
-T GET2(PyObject *ar, int i, int j) {
+T GET2(PyObject *ar, npy_intp i, npy_intp j) {
 	return *((T*)PyArray_GETPTR2(ar, i, j));
 }
 
 template<typename T>
-void SET(PyObject *ar, int i, T val) {
+void SET(PyObject *ar, npy_intp i, T val) {
 	*((T*)PyArray_GETPTR1(ar, i)) = val;
 }
 
 template<typename T>
-void SET2(PyObject *ar, int i, int j, T val) {
+void SET2(PyObject *ar, npy_intp i, npy_intp j, T val) {
 	*((T*)PyArray_GETPTR2(ar, i,j)) = val;
 }
 
 template<typename T>
-void ACCUM(PyObject *ar, int i, T val) {
+void ACCUM(PyObject *ar, npy_intp i, T val) {
 	(*((T*)PyArray_GETPTR1(ar, i))) += val;
 }
 
 template<typename T>
-void ACCUM2(PyObject *ar, int i, int j, T val) {
+void ACCUM2(PyObject *ar, npy_intp i, npy_intp j, T val) {
 	(*((T*)PyArray_GETPTR2(ar, i, j))) += val;
 }
 

@@ -11,7 +11,7 @@
 
 
 
-int kdInit(KD *pkd,int nBucket)
+int kdInit(KD *pkd,npy_intp nBucket)
 {
 	KD kd;
 
@@ -70,11 +70,11 @@ void kdFinish(KD kd)
 
 
 template<typename T>
-void kdSelect(KD kd,int d,int k,int l,int r)
+void kdSelect(KD kd,npy_intp d,npy_intp k,npy_intp l,npy_intp r)
 {
 	PARTICLE *p,t;
 	T v;
-	int i,j;
+	npy_intp i,j;
 
 	p = kd->p;
 	while (r > l) {
@@ -102,10 +102,10 @@ void kdSelect(KD kd,int d,int k,int l,int r)
 
 
 template<typename T>
-void kdUpPass(KD kd,int iCell)
+void kdUpPass(KD kd,npy_intp iCell)
 {
 	KDN *c;
-	int l,u,pj,j;
+	npy_intp l,u,pj,j;
 	double rj;
 	c = kd->kdNodes;
 	if (c[iCell].iDim != -1) {
@@ -137,7 +137,7 @@ void kdUpPass(KD kd,int iCell)
 template <typename T>
 void kdBuildTree(KD kd)
 {
-	int l,n,i,j;
+	npy_intp l,n,i,j;
 	T rj;
 	BND bnd;
 
@@ -188,7 +188,7 @@ void kdBuildTree(KD kd)
 
 struct KDargs {
 	KD kd;
-	int local_root;
+	npy_intp local_root;
 };
 
 template <typename T>
@@ -197,10 +197,10 @@ void kdBuildNodeRemote(struct KDargs *a) {
 }
 
 template <typename T>
-void kdBuildNode(KD kd, int local_root) {
+void kdBuildNode(KD kd, npy_intp local_root) {
 
-	int i=local_root;
-	int d,j,m,diff;
+	npy_intp i=local_root;
+	npy_intp d,j,m,diff;
 	KDN *nodes;
 	nodes = kd->kdNodes;
 
@@ -313,10 +313,10 @@ void kdBuildNode(KD kd, int local_root) {
 // instantiate the actual functions that are available:
 
 template
-void kdSelect<double>(KD kd,int d,int k,int l,int r);
+void kdSelect<double>(KD kd,npy_intp d,npy_intp k,npy_intp l,npy_intp r);
 
 template
-void kdUpPass<double>(KD kd,int iCell);
+void kdUpPass<double>(KD kd,npy_intp iCell);
 
 template
 void kdBuildTree<double>(KD kd);
@@ -325,15 +325,15 @@ template
 void kdBuildNodeRemote<double>(struct KDargs *a);
 
 template
-void kdBuildNode<double>(KD kd, int local_root);
+void kdBuildNode<double>(KD kd, npy_intp local_root);
 
 
 
 template
-void kdSelect<float>(KD kd,int d,int k,int l,int r);
+void kdSelect<float>(KD kd,npy_intp d,npy_intp k,npy_intp l,npy_intp r);
 
 template
-void kdUpPass<float>(KD kd,int iCell);
+void kdUpPass<float>(KD kd,npy_intp iCell);
 
 template
 void kdBuildTree<float>(KD kd);
@@ -342,4 +342,4 @@ template
 void kdBuildNodeRemote<float>(struct KDargs *a);
 
 template
-void kdBuildNode<float>(KD kd, int local_root);
+void kdBuildNode<float>(KD kd, npy_intp local_root);

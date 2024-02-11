@@ -12,7 +12,7 @@
 
 bool smCheckFits(KD kd, float *fPeriod) {
 	KDN *root;
-	int j;
+	npy_intp j;
 
 	root = &kd->kdNodes[ROOT];
 	assert(root != NULL);
@@ -57,7 +57,7 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	smx->iMark = (char *)malloc(kd->nActive*sizeof(char));          assert(smx->iMark != NULL);
 	smx->nListSize = smx->nSmooth+RESMOOTH_SAFE;
 	smx->fList = (float *)malloc(smx->nListSize*sizeof(float));     assert(smx->fList != NULL);
-	smx->pList = (int *)malloc(smx->nListSize*sizeof(int));         assert(smx->pList != NULL);
+	smx->pList = (npy_intp *)malloc(smx->nListSize*sizeof(npy_intp));         assert(smx->pList != NULL);
 	for (j=0;j<3;++j) smx->fPeriod[j] = fPeriod[j];
 
 
@@ -98,8 +98,8 @@ SMX smInitThreadLocalCopy(SMX from) {
 
 	SMX smx;
 	KDN *root;
-	int pi,j;
-	int bError=0;
+	npy_intp pi;
+	int j;
 
 	root = &from->kd->kdNodes[ROOT];
 
@@ -111,7 +111,7 @@ SMX smInitThreadLocalCopy(SMX from) {
 	smx->iMark = (char *)malloc(from->kd->nActive*sizeof(char));          assert(smx->iMark != NULL);
 	smx->nListSize = from->nListSize;
 	smx->fList = (float *)malloc(smx->nListSize*sizeof(float));     assert(smx->fList != NULL);
-	smx->pList = (int *)malloc(smx->nListSize*sizeof(int));         assert(smx->pList != NULL);
+	smx->pList = (npy_intp *)malloc(smx->nListSize*sizeof(npy_intp));         assert(smx->pList != NULL);
 	for (j=0;j<3;++j) smx->fPeriod[j] = from->fPeriod[j];
 	for (pi=0;pi<smx->kd->nActive;++pi) {
 		smx->iMark[pi] = 0;
@@ -156,13 +156,13 @@ void smReset(SMX smx_local) {
 
 #define WORKUNIT 1000
 
-int smGetNext(SMX smx_local) {
+npy_intp smGetNext(SMX smx_local) {
 
 	// synchronize warning state
 	if(smx_local->warnings)
 		smx_local->smx_global->warnings=true;
 
-	int i = smx_local->nCurrent;
+	npy_intp i = smx_local->nCurrent;
 
 	if(smx_local->nCurrent%WORKUNIT==0) {
 		// we have reached the end of a work unit. Get and increment the global
@@ -184,7 +184,7 @@ int smGetNext(SMX smx_local) {
 
 #else
 
-int smGetNext(SMX smx_local) {
+npy_intp smGetNext(SMX smx_local) {
 	return (smx_local->nCurrent++);
 }
 
@@ -217,7 +217,7 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 	KDN *c;
 	PARTICLE *p;
 	KD kd;
-	int cell,cp,ct,pj;
+	npy_intp cell,cp,ct,pj;
 	T fDist2,dx,dy,dz,lx,ly,lz,sx,sy,sz,x,y,z;
 	PQ *pq;
 
@@ -243,6 +243,8 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 	/*
 	 ** Now start the search from the bucket given by cell!
 	 */
+	pj = c[cell].pLower;
+	std::cerr << "cell start pj: " << pj << " pos:" << GET2<T>(kd->pNumpyPos,p[pj].iOrder,0) << " " << GET2<T>(kd->pNumpyPos,p[pj].iOrder,1) << " " << GET2<T>(kd->pNumpyPos,p[pj].iOrder,2) << std::endl;
 	for (pj=c[cell].pLower;pj<=c[cell].pUpper;++pj) {
 		dx = x - GET2<T>(kd->pNumpyPos,p[pj].iOrder,0);
 		dy = y - GET2<T>(kd->pNumpyPos,p[pj].iOrder,1);
@@ -306,7 +308,7 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 
 
 void initParticleList(SMX smx) {
-    smx->result = std::make_unique<std::vector<size_t>>();
+    smx->result = std::make_unique<std::vector<npy_intp>>();
     smx->result->reserve(100000);
     // not so large that it's expensive to reserve.
     // Not so small that we constantly need to get more space.
@@ -315,7 +317,7 @@ void initParticleList(SMX smx) {
 PyObject *getReturnParticleList(SMX smx) {
     // make a numpy array from smx->result
     npy_intp dims[1] = {static_cast<npy_intp>(smx->result->size())};
-    PyObject *numpy_result = PyArray_SimpleNew(1, dims, NPY_LONG);
+    PyObject *numpy_result = PyArray_SimpleNew(1, dims, NPY_INTP);
 
     std::copy(smx->result->begin(), smx->result->end(),
               static_cast<long *>(PyArray_DATA(reinterpret_cast<PyArrayObject *>(numpy_result))));
@@ -329,7 +331,7 @@ void smSmoothInitStep(SMX smx, int nProcs_for_smooth)
 {
 
 	PARTICLE *p;
-	int pi;
+	npy_intp pi;
 	KD kd=smx->kd;
 
 	for (pi=0;pi<kd->nActive;++pi) {
@@ -350,7 +352,7 @@ void smDomainDecomposition(KD kd, int nprocs) {
 	// pretty linear anyway so I'm leaving that for future.
 
 	PARTICLE *p;
-	int pi;
+	npy_intp pi;
 
 	if(nprocs>0) {
 		for (pi=0;pi<kd->nActive;++pi) {
@@ -366,7 +368,7 @@ void smInitPriorityQueue(SMX smx) {
 
 	PARTICLE *p;
 	PQ *pq,*pqLast;
-	int pin,pj,pNext;
+	npy_intp pin,pj,pNext;
 	float ax,ay,az;
 
 	pqLast = &smx->pq[smx->nSmooth-1];
@@ -392,15 +394,15 @@ void smInitPriorityQueue(SMX smx) {
 
 
 template<typename T>
-int smSmoothStep(SMX smx, int procid)
+npy_intp smSmoothStep(SMX smx, int procid)
 {
 	KDN *c;
 	PARTICLE *p;
 	PQ *pq,*pqLast;
 	KD kd=smx->kd;
-	int cell;
-	int pi,pin,pj,pNext,nCnt,nSmooth;
-	int nScanned=0;
+	npy_intp cell;
+	npy_intp pi,pin,pj,pNext,nCnt,nSmooth;
+	npy_intp nScanned=0;
 
 	float dx,dy,dz,x,y,z,h2,ax,ay,az;
 	float proc_signal = -(float)(procid)-1.0;
@@ -608,10 +610,10 @@ T Wendland_kernel(SMX smx, T r2, int nSmooth)
 
 
 template<typename T>
-void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
+void smDensitySym(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland)
 {
 	T fNorm,ih2,r2,rs,ih;
-	int i,pj;
+	npy_intp i,pj;
 	KD kd = smx->kd;
 
 	ih = 1.0/GETSMOOTH(T,pi);
@@ -635,10 +637,10 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendl
 }
 
 template<typename T>
-void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
+void smDensity(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland)
 {
 	T fNorm,ih2,r2,rs,ih;
-	int j,pj,pi_iord ;
+	npy_intp j,pj,pi_iord ;
 	KD kd = smx->kd;
 
 	pi_iord = kd->p[pi].iOrder;
@@ -662,10 +664,10 @@ void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland
 }
 
 template<typename Tf, typename Tq>
-void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
+void smMeanQty1D(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,rs,ih,mass,rho;
-	int j,pj,pi_iord ;
+	npy_intp j,pj,pi_iord ;
 	KD kd = smx->kd;
 
 	pi_iord = kd->p[pi].iOrder;
@@ -694,10 +696,10 @@ void smMeanQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendla
 }
 
 template<typename Tf, typename Tq>
-void smMeanQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
+void smMeanQtyND(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,rs,ih,mass,rho;
-	int j,k,pj,pi_iord ;
+	npy_intp j,k,pj,pi_iord ;
 	KD kd = smx->kd;
 
 	pi_iord = kd->p[pi].iOrder;
@@ -753,10 +755,10 @@ Tf Wendland_gradient(Tf q, Tf r)
 
 
 template<typename Tf, typename Tq>
-void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList, bool Wendland)
+void smCurlQty(SMX smx,npy_intp pi, int nSmooth,npy_intp *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,r,rs,q2,q,ih,mass,rho, dqty[3], qty_i[3];
-	int j,k,pj,pi_iord, pj_iord;
+	npy_intp j,k,pj,pi_iord, pj_iord;
 	KD kd = smx->kd;
 	Tf curl[3], x,y,z,dx,dy,dz;
 
@@ -813,10 +815,10 @@ void smCurlQty(SMX smx,int pi, int nSmooth,int *pList,float *fList, bool Wendlan
 }
 
 template<typename Tf, typename Tq>
-void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList, bool Wendland)
+void smDivQty(SMX smx,npy_intp pi, int nSmooth,npy_intp *pList,float *fList, bool Wendland)
 {
 	Tf fNorm,ih2,r2,r,rs,q2,q,ih,mass,rho, div, dqty[3], qty_i[3];
-	int j,k,pj,pi_iord, pj_iord;
+	npy_intp j,k,pj,pi_iord, pj_iord;
 	KD kd = smx->kd;
 	Tf x,y,z,dx,dy,dz;
 
@@ -868,10 +870,10 @@ void smDivQty(SMX smx,int pi, int nSmooth,int *pList,float *fList, bool Wendland
 }
 
 template<typename Tf, typename Tq>
-void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
+void smDispQtyND(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland)
 {
 	float fNorm,ih2,r2,rs,ih,mass,rho;
-	int j,k,pj,pi_iord ;
+	npy_intp j,k,pj,pi_iord ;
 	KD kd = smx->kd;
 	float mean[3], tdiff;
 
@@ -937,10 +939,10 @@ void smDispQtyND(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendla
 
 
 template<typename Tf, typename Tq>
-void smDispQty1D(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland)
+void smDispQty1D(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland)
 {
 	float fNorm,ih2,r2,rs,ih,mass,rho;
-	int j,pj,pi_iord ;
+	npy_intp j,pj,pi_iord ;
 	KD kd = smx->kd;
 	Tq mean, tdiff;
 
@@ -1008,13 +1010,13 @@ template
 void smDomainDecomposition<double>(KD kd, int nprocs);
 
 template
-int smSmoothStep<double>(SMX smx, int procid);
+npy_intp smSmoothStep<double>(SMX smx, int procid);
 
 template
-void smDensitySym<double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smDensitySym<double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smDensity<double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smDensity<double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 
 
@@ -1025,268 +1027,88 @@ template
 void smDomainDecomposition<float>(KD kd, int nprocs);
 
 template
-int smSmoothStep<float>(SMX smx, int procid);
+npy_intp smSmoothStep<float>(SMX smx, int procid);
 
 template
-void smDensitySym<float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smDensitySym<float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smDensity<float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smDensity<float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 
-
-
-template
-void smMeanQty1D<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-template
-void smMeanQtyND<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-template
-void smDispQty1D<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-template
-void smDispQtyND<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-template
-void smCurlQty<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-template
-void smDivQty<double, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
 
 
 template
-void smMeanQty1D<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smMeanQty1D<double, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smMeanQtyND<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smMeanQtyND<double, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smDispQty1D<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smDispQty1D<double, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smDispQtyND<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smDispQtyND<double, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smCurlQty<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smCurlQty<double, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smDivQty<double, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-
-template
-void smMeanQty1D<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-template
-void smMeanQtyND<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-template
-void smDispQty1D<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-template
-void smDispQtyND<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-template
-void smCurlQty<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
-
-template
-void smDivQty<float, double>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smDivQty<double, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 
 template
-void smMeanQty1D<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smMeanQty1D<double, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smMeanQtyND<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smMeanQtyND<double, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smDispQty1D<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smDispQty1D<double, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smDispQtyND<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smDispQtyND<double, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smCurlQty<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smCurlQty<double, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 template
-void smDivQty<float, float>(SMX smx,int pi,int nSmooth,int *pList,float *fList, bool Wendland);
+void smDivQty<double, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 
+template
+void smMeanQty1D<float, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
-/*
+template
+void smMeanQtyND<float, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
-void smMeanVelSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
-{
-	float fNorm,ih2,r2,rs;
-	int i,j,pj;
+template
+void smDispQty1D<float, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
-	ih2 = 4.0/smx->pfBall2[pi];
-	fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
-	for (i=0;i<nSmooth;++i) {
-		pj = pList[i];
-		r2 = fList[i]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		rs *= fNorm;
-		for (j=0;j<3;++j) {
-			smx->kd->p[pi].vMean[j] += rs*smx->kd->p[pj].fMass/
-				smx->kd->p[pj].fDensity*smx->kd->p[pj].v[j];
-			smx->kd->p[pj].vMean[j] += rs*smx->kd->p[pi].fMass/
-				smx->kd->p[pi].fDensity*smx->kd->p[pi].v[j];
-			}
-		}
-	}
+template
+void smDispQtyND<float, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
+
+template
+void smCurlQty<float, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
+
+template
+void smDivQty<float, double>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
 
-void smDivvSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
-{
-	float fNorm,ih2,r2,rs;
-	float r, rs1, dvdotdr, fNorm1;
-	int i,j,pj;
+template
+void smMeanQty1D<float, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
-	ih2 = 4.0/smx->pfBall2[pi];
-	fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
-	fNorm1 = fNorm*ih2;
-	for (i=0;i<nSmooth;++i) {
-		pj = pList[i];
-		r2 = fList[i]*ih2;
-		r = sqrt(r2);
-		rs = 2.0 - r;
-		if (r2 < 1.0) {
-			rs1 = -3 + 2.25*r;
-			}
-		else {
-			rs1 = -0.75*rs*rs/r;
-			}
-		rs1 *= fNorm1;
-		dvdotdr = 0.0;
-		for (j=0;j<3;++j) {
-			dvdotdr += (smx->kd->p[pj].v[j] - smx->kd->p[pi].v[j])*
-				(smx->kd->p[pj].r[j] - smx->kd->p[pi].r[j]);
-			}
-		smx->kd->p[pi].fDivv -= rs1*smx->kd->p[pj].fMass/
-			smx->kd->p[pj].fDensity*dvdotdr;
-		smx->kd->p[pj].fDivv -= rs1*smx->kd->p[pi].fMass/
-			smx->kd->p[pi].fDensity*dvdotdr;
-		}
-	}
+template
+void smMeanQtyND<float, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
+template
+void smDispQty1D<float, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
-void smDivv(SMX smx,int pi,int nSmooth,int *pList,float *fList)
-{
-	float fNorm,ih2,r2,rs;
-	float r, rs1, dvdotdr, fNorm1;
-	int i,j,pj;
+template
+void smDispQtyND<float, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
-	ih2 = 4.0/smx->pfBall2[pi];
-	fNorm = M_1_PI*sqrt(ih2)*ih2;
-	fNorm1 = fNorm*ih2;
-	for (i=0;i<nSmooth;++i) {
-		pj = pList[i];
-		r2 = fList[i]*ih2;
-		r = sqrt(r2);
-		rs = 2.0 - r;
-		if (r2 < 1.0) {
-			rs1 = -3 + 2.25*r;
-			}
-		else {
-			rs1 = -0.75*rs*rs/r;
-			}
-		rs1 *= fNorm1;
-		dvdotdr = 0.0;
-		for (j=0;j<3;++j) {
-			dvdotdr += (smx->kd->p[pj].v[j] - smx->kd->p[pi].v[j])*
-				(smx->kd->p[pj].r[j] - smx->kd->p[pi].r[j]);
-			}
-		smx->kd->p[pi].fDivv -= rs1*smx->kd->p[pj].fMass/
-			smx->kd->p[pj].fDensity*dvdotdr;
-		}
-	}
+template
+void smCurlQty<float, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);
 
-void smVelDisp(SMX smx,int pi,int nSmooth,int *pList,float *fList)
-{
-	float fNorm,ih2,r2,rs,tv2;
-	int i,j,pj;
-
-	ih2 = 4.0/smx->pfBall2[pi];
-	fNorm = M_1_PI*sqrt(ih2)*ih2;
-	for (i=0;i<nSmooth;++i) {
-		pj = pList[i];
-		r2 = fList[i]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		rs *= fNorm;
-		tv2 = 0.0;
-		for (j=0;j<3;++j) {
-                  tv2 += (smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j])*
-                    (smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j]);
-                }
-		smx->kd->p[pi].fVel2 += rs*smx->kd->p[pj].fMass/smx->kd->p[pj].fDensity*tv2;
-        }
-}
-
-
-
-void smVelDispSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
-{
-	float fNorm,ih2,r2,rs,tv2;
-	int i,j,pj;
-
-	ih2 = 4.0/smx->pfBall2[pi];
-	fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
-	for (i=0;i<nSmooth;++i) {
-		pj = pList[i];
-		r2 = fList[i]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		rs *= fNorm;
-		tv2 = 0.0;
-		for (j=0;j<3;++j) {
-			tv2 += (smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j])*
-				(smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j]);
-			}
-		smx->kd->p[pi].fVel2 += rs*smx->kd->p[pj].fMass/
-			smx->kd->p[pj].fDensity*tv2;
-		tv2 = 0.0;
-		for (j=0;j<3;++j) {
-			tv2 += (smx->kd->p[pi].v[j] - smx->kd->p[pj].vMean[j])*
-				(smx->kd->p[pi].v[j] - smx->kd->p[pj].vMean[j]);
-			}
-		smx->kd->p[pj].fVel2 += rs*smx->kd->p[pi].fMass/
-			smx->kd->p[pi].fDensity*tv2;
-		}
-	}
-
-void smVelDispNBSym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
-{
-	float fNorm,ih2,r2,rs,tv2;
-	float dr;
-	int i,j,pj;
-
-	ih2 = 4.0/smx->pfBall2[pi];
-	fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
-	for (i=0;i<nSmooth;++i) {
-		pj = pList[i];
-		r2 = fList[i]*ih2;
-		rs = 2.0 - sqrt(r2);
-		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
-		else rs = 0.25*rs*rs*rs;
-		rs *= fNorm;
-		tv2 = 0.0;
-		for (j=0;j<3;++j) {
-			dr = smx->kd->p[pj].r[j] - smx->kd->p[pi].r[j];
-			tv2 += (smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j] -
-					smx->kd->p[pi].fDivv*dr)*
-				(smx->kd->p[pj].v[j] - smx->kd->p[pi].vMean[j] -
-				 smx->kd->p[pi].fDivv*dr);
-			}
-		smx->kd->p[pi].fVel2 += rs*smx->kd->p[pj].fMass/
-			smx->kd->p[pj].fDensity*tv2;
-		smx->kd->p[pj].fVel2 += rs*smx->kd->p[pi].fMass/
-			smx->kd->p[pi].fDensity*tv2;
-		}
-	}
-*/
+template
+void smDivQty<float, float>(SMX smx,npy_intp pi,int nSmooth,npy_intp *pList,float *fList, bool Wendland);

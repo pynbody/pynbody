@@ -18,7 +18,7 @@ typedef struct pqNode {
 	struct pqNode *pqFromInt;
 	struct pqNode *pqFromExt;
 	struct pqNode *pqWinner;	/* Only used when building initial tree */
-	int p;
+	npy_intp p;
 	float ax;
 	float ay;
 	float az;
@@ -27,15 +27,15 @@ typedef struct pqNode {
 
 typedef struct smContext {
 	KD kd;
-	int nSmooth;
+	npy_intp nSmooth;
 	float fPeriod[3];
 	PQ *pq;
 	PQ *pqHead;
 	char *iMark;
-	int nListSize;
+	npy_intp nListSize;
 	float *fList;
-	int *pList;
-	int nCurrent; // current particle index for distributed loops
+	npy_intp *pList;
+	npy_intp nCurrent; // current particle index for distributed loops
 
 #ifdef KDT_THREADING
 	pthread_mutex_t *pMutex;
@@ -47,10 +47,10 @@ typedef struct smContext {
 	struct smContext *smx_global;
 #endif
 
-int pin,pi,pNext;
-float ax,ay,az;
-bool warnings; //  keep track of whether a memory-overrun  warning has been issued
-std::unique_ptr<std::vector<size_t>> result = nullptr;
+    npy_intp pin,pi,pNext;
+    float ax,ay,az;
+    bool warnings; //  keep track of whether a memory-overrun  warning has been issued
+    std::unique_ptr<std::vector<npy_intp>> result;
 	} * SMX;
 
 
@@ -120,7 +120,7 @@ void smFinish(SMX);
 template<typename T>
 void smBallSearch(SMX,float,float *);
 
-inline int smBallGatherStoreResultInList(SMX smx, float fDist2, int particleIndex, int foundIndex) {
+inline npy_intp smBallGatherStoreResultInList(SMX smx, float fDist2, npy_intp particleIndex, npy_intp foundIndex) {
     // append particleIndex to particleList
     // PyObject *particleIndexPy = PyLong_FromLong(smx->kd->p[particleIndex].iOrder);
     // PyList_Append(smx->result, particleIndexPy);
@@ -129,7 +129,7 @@ inline int smBallGatherStoreResultInList(SMX smx, float fDist2, int particleInde
     return particleIndex+1;
 }
 
-inline int smBallGatherStoreResultInSmx(SMX smx, float fDist2, int particleIndex, int foundIndex) {
+inline npy_intp smBallGatherStoreResultInSmx(SMX smx, float fDist2, npy_intp particleIndex, npy_intp foundIndex) {
     if(foundIndex>=smx->nListSize) {
         if(!smx->warnings) fprintf(stderr, "Smooth - particle cache too small for local density - results will be incorrect\n");
         smx->warnings=true;
@@ -141,13 +141,13 @@ inline int smBallGatherStoreResultInSmx(SMX smx, float fDist2, int particleIndex
 }
 
 
-template<typename T, int (*storeResultFunction)(SMX, float, int, int) >
-int smBallGather(SMX smx, float fBall2, float *ri)
+template<typename T, npy_intp (*storeResultFunction)(SMX, float, npy_intp, npy_intp) >
+npy_intp smBallGather(SMX smx, float fBall2, float *ri)
 {
 	KDN *c;
 	PARTICLE *p;
 	KD kd=smx->kd;
-	int pj,nCnt,cp,nSplit;
+	npy_intp pj,nCnt,cp,nSplit;
 	float dx,dy,dz,x,y,z,lx,ly,lz,sx,sy,sz,fDist2;
 
 	c = smx->kd->kdNodes;
@@ -194,38 +194,34 @@ int smBallGather(SMX smx, float fBall2, float *ri)
 
 
 
-int smBallGatherStoreResultInSmx(SMX smx, float, int, int);
-
-int smBallGatherStoreResultInList(SMX smx, float, int, int);
-
 void initParticleList(SMX smx);
 
 PyObject *getReturnParticleList(SMX smx);
 
 
 template<typename T>
-int smSmoothStep(SMX smx, int procid);
+npy_intp smSmoothStep(SMX smx, int procid);
 
 void smSmoothInitStep(SMX smx, int nProcs);
 
 template<typename T>
-void smDensitySym(SMX,int,int,int *,float *, bool);
+void smDensitySym(SMX,npy_intp,int,npy_intp *,float *, bool);
 
 template<typename T>
-void smDensity(SMX,int,int,int *,float *, bool);
+void smDensity(SMX,npy_intp,int,npy_intp *,float *, bool);
 
 template<typename Tf, typename Tq>
-void smMeanQtyND(SMX,int,int,int *,float *, bool);
+void smMeanQtyND(SMX,npy_intp,int,npy_intp *,float *, bool);
 template<typename Tf, typename Tq>
-void smDispQtyND(SMX,int,int,int *,float *, bool);
+void smDispQtyND(SMX,npy_intp,int,npy_intp *,float *, bool);
 template<typename Tf, typename Tq>
-void smMeanQty1D(SMX,int,int,int *,float *, bool);
+void smMeanQty1D(SMX,npy_intp,int,npy_intp *,float *, bool);
 template<typename Tf, typename Tq>
-void smDispQty1D(SMX,int,int,int *,float *, bool);
+void smDispQty1D(SMX,npy_intp,int,npy_intp *,float *, bool);
 template<typename Tf, typename Tq>
-void smDivQty(SMX,int,int,int *,float *, bool);
+void smDivQty(SMX,npy_intp,int,npy_intp *,float *, bool);
 template<typename Tf, typename Tq>
-void smCurlQty(SMX,int,int,int *,float *, bool);
+void smCurlQty(SMX,npy_intp,int,npy_intp *,float *, bool);
 
 bool smCheckFits(KD kd, float *fPeriod);
 
@@ -241,19 +237,10 @@ Tf cubicSpline_gradient(Tf, Tf, Tf, Tf);
 template<typename Tf>
 Tf Wendland_gradient(Tf, Tf);
 
-/*
-void smMeanVel(SMX,int,int,int *,float *);
-void smVelDisp(SMX,int,int,int *,float *);
-void smMeanVelSym(SMX,int,int,int *,float *);
-void smDivvSym(SMX,int,int,int *,float *);
-void smVelDispSym(SMX,int,int,int *,float *);
-void smVelDispNBSym(SMX,int,int,int *,float *);
-*/
-
 template<typename T>
 void smDomainDecomposition(KD kd, int nprocs);
 
-int smGetNext(SMX smx_local);
+npy_intp smGetNext(SMX smx_local);
 
 #ifdef KDT_THREADING
 void smReset(SMX smx_local);
