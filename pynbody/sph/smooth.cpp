@@ -49,7 +49,7 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 		}
 
 	assert(nSmooth <= kd->nActive);
-	smx = (SMX)malloc(sizeof(struct smContext)); assert(smx != NULL);
+	smx = new smContext;
 	smx->kd = kd;
 	smx->nSmooth = nSmooth;
 	smx->pq = (PQ *)malloc(nSmooth*sizeof(PQ));                     assert(smx->pq != NULL);
@@ -69,7 +69,7 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	if (pthread_mutex_init(smx->pMutex, NULL) != 0)
 	{
 		free(smx->pMutex);
-    	free(smx);
+    	delete smx;
     	return(0);
   	}
 
@@ -78,7 +78,7 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	if (pthread_cond_init(smx->pReady,NULL)!=0) {
 		free(smx->pMutex);
 		free(smx->pReady);
-		free(smx);
+		delete smx;
 		return(0);
 	}
 
@@ -103,7 +103,7 @@ SMX smInitThreadLocalCopy(SMX from) {
 
 	root = &from->kd->kdNodes[ROOT];
 
-	smx = (SMX)malloc(sizeof(struct smContext)); assert(smx != NULL);
+	smx = new smContext;
 	smx->kd = from->kd;
 	smx->nSmooth = from->nSmooth;
 	smx->pq = (PQ *)malloc(from->nSmooth*sizeof(PQ));                     assert(smx->pq != NULL);
@@ -135,7 +135,7 @@ void smFinishThreadLocalCopy(SMX smx)
 	free(smx->fList);
 	free(smx->pList);
 	free(smx->iMark);
-	free(smx);
+	delete smx;
 }
 
 void smReset(SMX smx_local) {
@@ -205,7 +205,7 @@ void smFinish(SMX smx)
 	free(smx->pReady);
 #endif
 
-	free(smx);
+	delete smx;
 
 }
 
@@ -319,6 +319,7 @@ PyObject *getReturnParticleList(SMX smx) {
 
     std::copy(smx->result->begin(), smx->result->end(),
               static_cast<long *>(PyArray_DATA(reinterpret_cast<PyArrayObject *>(numpy_result))));
+	smx->result.reset(nullptr);
 
     return numpy_result;
 }

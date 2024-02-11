@@ -47,10 +47,10 @@ typedef struct smContext {
 	struct smContext *smx_global;
 #endif
 
-    int pin,pi,pNext;
-    float ax,ay,az;
-    bool warnings; //  keep track of whether a memory-overrun  warning has been issued
-    std::unique_ptr<std::vector<size_t>> result;
+int pin,pi,pNext;
+float ax,ay,az;
+bool warnings; //  keep track of whether a memory-overrun  warning has been issued
+std::unique_ptr<std::vector<size_t>> result = nullptr;
 	} * SMX;
 
 
