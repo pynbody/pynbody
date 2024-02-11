@@ -16,9 +16,7 @@ filterwarnings = [
     'ignore:invalid value encountered in multiply:RuntimeWarning',
     # ignore deprecation warnings triggered by h5py with python 3.12
     'ignore:datetime.datetime.utcfromtimestamp\(\) is deprecated:DeprecationWarning',
-    # ignore deprecation warnings from pandas regarding its own dependencies
-    'ignore:Pyarrow will become a required dependency:DeprecationWarning',
-]
+  ]
 
 [tool.isort]
 profile = "black"
