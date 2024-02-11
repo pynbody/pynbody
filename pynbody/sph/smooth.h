@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
 #include <stdbool.h>
 #include "kd.h"
 
