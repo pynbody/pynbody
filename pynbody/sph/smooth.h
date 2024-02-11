@@ -2,6 +2,7 @@
 #define SMOOTH_HINCLUDED
 
 #include <functional>
+#include <memory>
 #include <stdbool.h>
 #include "kd.h"
 
