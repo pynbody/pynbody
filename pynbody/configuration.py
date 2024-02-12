@@ -91,6 +91,8 @@ def _setup_logger(config):
     else:
         logger.setLevel(logging.WARNING)
 
+    logger.setLevel(logging.DEBUG)
+
 
 def configure_snapshot_and_halo_loading_priority():
     from . import halo, snapshot

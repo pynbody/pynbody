@@ -154,7 +154,6 @@ from .. import units as units
 _units = units
 
 logger = logging.getLogger('pynbody.array')
-logger.setLevel(logging.DEBUG)
 
 
 
