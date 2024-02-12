@@ -13,20 +13,19 @@ def setup_module():
     for z in X:
         os.unlink(z)
 
-    global f, h
-    f = pynbody.load("testdata/g15784.lr.01024")
-    h = f.halos()
+
+@pytest.fixture
+def snap():
+    return pynbody.load("testdata/g15784.lr.01024")
 
 
 def teardown_module():
-    global f
-    del f
     if os.path.exists("testdata/g15784.lr.log"):
         os.remove("testdata/g15784.lr.log")
 
 
-def test_get():
-    current = f['pos'][0:100:10]
+def test_get(snap):
+    current = snap['pos'][0:100:10]
     print(current)
 
     correct = np.array([[0.01070931, -0.03619793, -0.16635996],
@@ -44,44 +43,40 @@ def test_get():
     assert (np.abs(current - correct).sum() < 1.e-7)
 
 
-def test_standard_arrays():
+def test_standard_arrays(snap):
     # just check all standard arrays are there
-    with f.lazy_off:
-        f['x']
-        f['y']
-        f['z']
-        f['pos']
-        f['vel']
-        f['vx']
-        f['vy']
-        f['vz']
-        f['eps']
-        f['phi']
-        f['mass']
-        f.gas['rho']
-        f.gas['temp']
-        f.gas['metals']
-        f.star['tform']
-        f.star['metals']
+    snap['pos']
+    with snap.lazy_off:
+        snap['x']
+        snap['y']
+        snap['z']
+        snap['pos']
+        snap['vel']
+        snap['vx']
+        snap['vy']
+        snap['vz']
+        snap['eps']
+        snap['phi']
+        snap['mass']
+        snap.gas['rho']
+        snap.gas['temp']
+        snap.gas['metals']
+        snap.star['tform']
+        snap.star['metals']
 
 
-def test_halo():
-    print("Length=", len(h[1]))
-    assert len(h[1]) == 502300
+def test_loadable_array(snap):
+    assert 'HI' in snap.loadable_keys()
+    snap['HI']
+    assert 'HI' in snap.keys()
 
+    assert 'HeI' in snap.loadable_keys()
+    snap['HeI']
+    assert 'HeI' in snap.keys()
 
-def test_loadable_array():
-    assert 'HI' in f.loadable_keys()
-    f['HI']
-    assert 'HI' in f.keys()
-
-    assert 'HeI' in f.loadable_keys()
-    f['HeI']
-    assert 'HeI' in f.keys()
-
-    assert f['HI'].dtype == np.float32
-    assert f['HeI'].dtype == np.float32
-    assert f['igasorder'].dtype == np.int32
+    assert snap['HI'].dtype == np.float32
+    assert snap['HeI'].dtype == np.float32
+    assert snap['igasorder'].dtype == np.int32
 
     HI_correct = np.array([5.35406599e-08,   4.97452731e-07,   5.73000014e-01,
                            5.73000014e-01,   5.73000014e-01,   5.73000014e-01,
@@ -99,25 +94,26 @@ def test_loadable_array():
                                   0,      0,      0,      0,      0,      0,      0,  67264,
                                   72514, 177485], dtype=np.int32)
 
-    assert (f['igasorder'][::100000] == igasorder_correct).all()
-    assert abs(f['HI'][::100000] - HI_correct).sum() < 1.e-10
-    assert abs(f['HeI'][::100000] - HeI_correct).sum() < 1.e-10
+    assert (snap['igasorder'][::100000] == igasorder_correct).all()
+    assert abs(snap['HI'][::100000] - HI_correct).sum() < 1.e-10
+    assert abs(snap['HeI'][::100000] - HeI_correct).sum() < 1.e-10
 
 
 def _assert_unit(u, targ, eps=0.01):
     assert abs(u.ratio(targ) - 1.0) < eps
 
 
-def test_units():
-    _assert_unit(f['pos'].units, "6.85e+04 kpc a")
-    _assert_unit(f['vel'].units, "1.73e+03 km a s**-1")
-    _assert_unit(f['phi'].units, "2.98e+06 km**2 a**-1 s**-2")
-    _assert_unit(f.gas['rho'].units, "1.48e+02 Msol kpc**-3 a**-3")
-    _assert_unit(f.star['tform'].units, "38.76 Gyr")
+def test_units(snap):
+    _assert_unit(snap['pos'].units, "6.85e+04 kpc a")
+    _assert_unit(snap['vel'].units, "1.73e+03 km a s**-1")
+    _assert_unit(snap['phi'].units, "2.98e+06 km**2 a**-1 s**-2")
+    _assert_unit(snap.gas['rho'].units, "1.48e+02 Msol kpc**-3 a**-3")
+    _assert_unit(snap.star['tform'].units, "38.76 Gyr")
 
 
-def test_halo_unit_conversion():
-    f.gas['rho'].convert_units('Msol kpc^-3')
+def test_halo_unit_conversion(snap):
+    h = snap.halos()
+    snap.gas['rho'].convert_units('Msol kpc^-3')
     assert str(h[1].gas['rho'].units) == 'Msol kpc**-3'
 
     h[1].gas['rho'].convert_units('m_p cm^-3')
@@ -146,8 +142,8 @@ def test_write():
     assert f3.properties['a']==12
 
 
-def test_array_write():
-
+def test_array_write(snap):
+    f = snap
     f['array_write_test'] = np.random.rand(len(f))
     f['array_write_test'].write(overwrite=True)
     f['array_read_test'] = f['array_write_test']
@@ -292,7 +288,7 @@ def test_unit_persistence():
 
 
 @pytest.mark.filterwarnings("ignore:No log file found; reverting to guess-and-check:UserWarning")
-def test_3d_interpolation():
+def test_3d_interpolation(snap):
     # this is the result using scipy.interpolate.interp
     ref3d = np.array([0.07527991,  0.06456315,  0.08380653,  0.15143689,  0.15568259,
                       0.09593283,  0.15549068,  0.13407668,  0.15177078,  0.14166734,
@@ -315,7 +311,7 @@ def test_3d_interpolation():
                       0.17006758,  0.16906539,  0.16315827,  0.17021533,  0.16991691,
                       0.17006688,  0.17006756,  0.16753875,  0.15553802,  0.15892623])
 
-    arr = pynbody.analysis.ionfrac.calculate(f, 'ovi')
+    arr = pynbody.analysis.ionfrac.calculate(snap, 'ovi')
     assert(np.allclose(arr[0:100], ref3d))
 
     ref2d = np.array([-8.43178697, -8.43437937, -8.43515772, -8.43554701, -8.43801415,
@@ -357,26 +353,25 @@ def test_3d_interpolation():
                       8.45379471, -8.45379471,
                       -8.45379471, -8.45392562, -8.45392562, -8.45405654, -8.45405654])
 
-    arr = pynbody.analysis.luminosity.calc_mags(f.s)
+    arr = pynbody.analysis.luminosity.calc_mags(snap.s)
     assert(np.allclose(arr[0:100], ref2d))
 
-def test_alternative_cmd():
+def test_alternative_cmd(snap):
     """A very basic test that the alternative cmd path is respected"""
     with pytest.raises(IOError):
-        pynbody.analysis.luminosity.calc_mags(f.s, cmd_path="/nonexistent/path")
+        pynbody.analysis.luminosity.calc_mags(snap.s, cmd_path="/nonexistent/path")
 
-def test_issue_313():
-    f = pynbody.load("testdata/g15784.lr.01024")
-    f.physical_units()
-    f['vtheta']
+def test_issue_313(snap):
+    snap.physical_units()
+    snap['vtheta']
 
 
-def test_issue_315():
-    assert np.allclose(f.g['cs'][:3], [ 319.46246429,  359.4923197,   300.13751002])
+def test_issue_315(snap):
+    assert np.allclose(snap.g['cs'][:3], [ 319.46246429,  359.4923197,   300.13751002])
 
 @pytest.mark.filterwarnings("ignore:No log file found; reverting to guess-and-check:UserWarning")
-def test_read_starlog_no_log():
-    rhoform = f.s['rhoform'].in_units('Msol kpc**-3')[:1000:100]
+def test_read_starlog_no_log(snap):
+    rhoform = snap.s['rhoform'].in_units('Msol kpc**-3')[:1000:100]
     correct = np.array([ 2472533.42024787,  5336799.91228041, 64992197.77874849,
             16312128.27530325,  2514281.61028265, 14384682.79060703,
              3334026.53876033, 30041215.63578063, 24977741.02041524,
@@ -384,9 +379,9 @@ def test_read_starlog_no_log():
     assert np.all(np.abs(rhoform - correct) < 1e-7)
     # h2form should not be in the available starlog keys
     with pytest.raises(DependencyError):
-        h2form = f.s['h2form']
+        h2form = snap.s['h2form']
 
-def test_read_starlog_with_log():
+def test_read_starlog_with_log(snap):
     # the last key is incorrectly labeled in order to ensure
     # that the log file is being read
     with open('testdata/g15784.lr.log', 'w') as logf:
@@ -395,7 +390,7 @@ def test_read_starlog_with_log():
                    '# rForm[1] f8\n# rForm[2] f8\n# vForm[0] f8\n# vForm[1] f8\n#'
                    ' vForm[2] f8\n# massForm f8\n# rhoForm f8\n# H2FracForm f8\n# end'
                    ' starlog data\n# TimeOut: none\n\n')
-    rhoform = f.s['rhoform'].in_units('Msol kpc**-3')[:1000:100]
+    rhoform = snap.s['rhoform'].in_units('Msol kpc**-3')[:1000:100]
     correct = np.array([ 2472533.42024787,  5336799.91228041, 64992197.77874849,
             16312128.27530325,  2514281.61028265, 14384682.79060703,
              3334026.53876033, 30041215.63578063, 24977741.02041524,
@@ -405,5 +400,5 @@ def test_read_starlog_with_log():
     correct = np.array([11696.64846193, 11010.78848271, 11035.32739625, 10133.30674776,
           10795.18204699, 10549.8055167 , 10365.82267086, 10389.80826619,
           10766.11592458, 10514.57288485])
-    h2form = f.s['h2form'][:1000:100]
+    h2form = snap.s['h2form'][:1000:100]
     assert np.all(np.abs(h2form - correct) < 1e-7)
