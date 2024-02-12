@@ -4,6 +4,8 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 
+from pathlib import Path
+
 import pynbody
 
 
@@ -251,7 +253,6 @@ def test_tform_and_tform_raw(ramses_file):
 
 
 def test_rt_conformal_time_detection(ramses_file):
-    from pathlib import Path
     path = Path("testdata/output_00080")
     f = pynbody.load(str(path), cpus=[1, 2, 3])
 
@@ -480,26 +481,28 @@ def test_tipsy_conversion_for_dmo():
 
 
 @pytest.mark.filterwarnings(r"ignore:No ionization fractions found.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 def test_tipsy_conversion_for_cosmo_gas():
     path = "testdata/output_00080"
-    # The namelist file is not included in the test data
-    # Write a quick one-liner to ensure that we identify cosmo correctly
-    # and get the correct time units
-    with open(path + os.sep + "namelist.txt", "w") as namelist:
-        namelist.write("cosmo=.true.")
-
-    f = pynbody.load(path)
-    with pytest.warns(UserWarning, match=r"This routine currently makes the assumption that "
-                                         r"the ramses snapshot is cosmological.*"):
-        pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
-
-
-    tipsy_path = path + "_fullbox.tipsy"
     try:
+        # The namelist file is not included in the test data
+        # Write a quick one-liner to ensure that we identify cosmo correctly
+        # and get the correct time units
+        with open(path + os.sep + "namelist.txt", "w") as namelist:
+            namelist.write("cosmo=.true.")
+
+        f = pynbody.load(path)
+        with pytest.warns(UserWarning, match=r"This routine currently makes the assumption that "
+                                             r"the ramses snapshot is cosmological.*"):
+            pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
+
+
+        tipsy_path = path + "_fullbox.tipsy"
+
         tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
 
         array_by_array_test_tipsy_converter(f, tipsy)
     finally:
         # Clean up our namelist to avoid any other issues with other tests
-        os.remove(path + os.sep + "namelist.txt")
-        os.remove(tipsy_path + ".param")
+        Path(path + os.sep + "namelist.txt").unlink(missing_ok=True)
+        Path(tipsy_path + ".param").unlink(missing_ok=True)
