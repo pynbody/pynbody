@@ -22,9 +22,9 @@ def setup_module():
     # not testing the kdtree (which is tested elsewhere)
 
     f.gas['smooth']=(f.gas['mass']/f.gas['rho'])**(1,3)
-    np.save("test_im_x_pre_phys.npy", f.gas['x'])
+    np.save("result_im_x_pre_phys.npy", f.gas['x'])
     f.physical_units()
-    np.save("test_im_x_post_phys.npy", f.gas['x'])
+    np.save("result_im_x_post_phys.npy", f.gas['x'])
 
 @pytest.fixture
 def compare2d():
