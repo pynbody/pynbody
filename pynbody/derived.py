@@ -245,7 +245,7 @@ def mu(sim, t0=None, Y=0.245):
 
 
 def _mu_from_temperature_threshold(sim, Y, t0):
-    warnings.warn("No ionization fractions found, assuming fully ionised gas above 10^4 and neutral below 10^4K"
+    warnings.warn("No ionization fractions found, assuming fully ionised gas above 10^4 and neutral below 10^4K. "
                   "This is a very crude approximation.")
     x = np.empty(len(sim)).view(array.SimArray)
     if t0 is None:

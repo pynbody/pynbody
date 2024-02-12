@@ -300,6 +300,7 @@ def use_part2birth_by_default():
     pynbody.config_parser.set("ramses", "use_part2birth_by_default", use_part2birth_by_default)
     pynbody.config_parser.set("ramses", "ramses_utils", ramses_utils)
 
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 def test_tform_and_tform_raw_without_sidecar_files(use_part2birth_by_default):
     fcosmo = pynbody.load("testdata/output_00080")
 
@@ -469,13 +470,16 @@ def test_tipsy_conversion_for_dmo():
     # There are many tipsy parameter files that are automatically detected by the loader
     # in the testdata folder, make sure we point the right one
     tipsy_path = path + "_fullbox.tipsy"
-    tipsy_dmo = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
+    try:
+        tipsy_dmo = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
 
-    array_by_array_test_tipsy_converter(f_dmo, tipsy_dmo)
-    # Clean up our created param file to avoid it being detected and picked up by other tipsy tests
-    os.remove(tipsy_path + ".param")
+        array_by_array_test_tipsy_converter(f_dmo, tipsy_dmo)
+    finally:
+        # Clean up our created param file to avoid it being detected and picked up by other tipsy tests
+        os.remove(tipsy_path + ".param")
 
 
+@pytest.mark.filterwarnings(r"ignore:No ionization fractions found.*:UserWarning")
 def test_tipsy_conversion_for_cosmo_gas():
     path = "testdata/output_00080"
     # The namelist file is not included in the test data
@@ -485,13 +489,17 @@ def test_tipsy_conversion_for_cosmo_gas():
         namelist.write("cosmo=.true.")
 
     f = pynbody.load(path)
-    with pytest.warns(UserWarning, match=r"This routine currently makes the assumption that the ramses snapshot is cosmological.*"):
+    with pytest.warns(UserWarning, match=r"This routine currently makes the assumption that "
+                                         r"the ramses snapshot is cosmological.*"):
         pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
 
-    tipsy_path = path + "_fullbox.tipsy"
-    tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
 
-    array_by_array_test_tipsy_converter(f, tipsy)
-    # Clean up our namelist to avoid any other issues with other tests
-    os.remove(path + os.sep + "namelist.txt")
-    os.remove(tipsy_path + ".param")
+    tipsy_path = path + "_fullbox.tipsy"
+    try:
+        tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
+
+        array_by_array_test_tipsy_converter(f, tipsy)
+    finally:
+        # Clean up our namelist to avoid any other issues with other tests
+        os.remove(path + os.sep + "namelist.txt")
+        os.remove(tipsy_path + ".param")
