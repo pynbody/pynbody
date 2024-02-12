@@ -141,6 +141,7 @@ handler:
 
 import fractions
 import functools
+import logging
 import os
 import random
 import time
@@ -151,6 +152,12 @@ import numpy as np
 from .. import units as units
 
 _units = units
+
+logger = logging.getLogger('pynbody.array')
+logger.setLevel(logging.DEBUG)
+
+
+
 
 
 class SimArray(np.ndarray):
@@ -637,8 +644,11 @@ class SimArray(np.ndarray):
         if self.base is not None and hasattr(self.base, 'units'):
             self.base.convert_units(new_unit)
         else:
-            self *= self.units.ratio(new_unit,
+            ratio = self.units.ratio(new_unit,
                                      **(self.conversion_context()))
+            logger.debug("Converting %s units from %s to %s; ratio = %.3e" %
+                         (self.name, self.units, new_unit, ratio))
+            self *= ratio
             self.units = new_unit
 
     def write(self, **kwargs):
