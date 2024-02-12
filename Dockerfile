@@ -7,4 +7,3 @@ COPY . .
 RUN pip install .[tests]
 
 CMD [ "bash" ]
-
