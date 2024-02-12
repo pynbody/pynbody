@@ -524,6 +524,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
       configuration files).
     """
 
+    print(f"render_image: x2={x2}, nx={nx}, y2={y2}, ny={ny}, x1={x1}, y1={y1}, z_plane={z_plane}, out_units={out_units}, xy_units={xy_units}, kernel={kernel}, z_camera={z_camera}, smooth={smooth}, smooth_in_pixels={smooth_in_pixels}, force_quiet={force_quiet}, approximate_fast={approximate_fast}, threaded={threaded}, denoise={denoise}")
+
     if denoise is None:
         denoise = _auto_denoise(snap, kernel)
 
@@ -662,6 +664,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     if z_camera is None:
         z_camera = 0.0
 
+    print(f"about to call with nx={nx}, ny={ny}, x={x}, sm={sm}, x1={x1}, x2={x2}, y1={y1}, y2={y2}, z_camera={z_camera}, 0.0, smooth_lo={smooth_lo}, smooth_hi={smooth_hi}, kernel={kernel}")
     result = _render.render_image(nx, ny, x, y, z, sm, x1, x2, y1, y2, z_camera, 0.0, qty, mass, rho,
                                   smooth_lo, smooth_hi, kernel,
                                   _calculate_wrapping_repeat_array(snap, x1, x2, xy_units),
