@@ -238,8 +238,6 @@ void kdBuildNode(KD kd, npy_intp local_root, int num_threads) {
 			diff = (m-nodes[i].pLower+1)-(nodes[i].pUpper-m);
 			assert(diff == 0 || diff == 1);
 
-#if KDT_THREADING
-
 			if(i<num_threads) {
 				// Launch a thread to handle the lower part of the tree,
 				// handle the upper part on the current thread.
@@ -265,11 +263,6 @@ void kdBuildNode(KD kd, npy_intp local_root, int num_threads) {
 				i = LOWER(i);
 			}
 
-#else
-		// On single thread, always switch attention to the lower branch
-		// (and upper branch gets processed on way up).
-		i = LOWER(i);
-#endif
 
 		} else {
 			// Cell does not need to be split. Mark as leaf

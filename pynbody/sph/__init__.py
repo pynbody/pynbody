@@ -133,8 +133,7 @@ def smooth(self):
     logger.info('Smoothing with %d nearest neighbours' %
                 config['sph']['smooth-particles'])
 
-    sm = array.SimArray(np.empty(len(self['pos'])), self['pos'].units,
-                       dtype=self['pos'].dtype)
+    sm = array.SimArray(np.empty(len(self['pos']), dtype=self['pos'].dtype), self['pos'].units)
 
     start = time.time()
     self.kdtree.set_array_ref('smooth',sm)

@@ -6,12 +6,6 @@
 #define PY_ARRAY_UNIQUE_SYMBOL PYNBODY_ARRAY_API
 #include <numpy/arrayobject.h>
 
-#ifdef KDT_THREADING
-#pragma message("KDT_THREADING is ON")
-#define _POSIX_C_SOURCE 200112L
-#include <pthread.h>
-#endif
-
 #define ROOT		1
 #define LOWER(i)	(i<<1)
 #define UPPER(i)	((i<<1)+1)

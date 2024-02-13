@@ -14,43 +14,6 @@ from setuptools import Extension, setup
 
 get_directive_defaults()['language_level'] = 3
 
-
-def check_for_pthread():
-    # Create a temporary directory
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
-
-    # Get compiler invocation
-    compiler = os.environ.get('CC',
-                              distutils.sysconfig.get_config_var('CC'))
-
-    # make sure to use just the compiler name without flags
-    compiler = compiler.split()[0]
-
-    filename = r'test.c'
-    with open(filename,'w') as f :
-        f.write(
-        "#include <pthread.h>\n"
-        "#include <stdio.h>\n"
-        "int main() {\n"
-        "}"
-        )
-
-    try:
-        with open(os.devnull, 'w') as fnull:
-            exit_code = subprocess.call([compiler, filename],
-                                        stdout=fnull, stderr=fnull)
-    except OSError :
-        exit_code = 1
-
-
-    # Clean up
-    os.chdir(curdir)
-    shutil.rmtree(tmpdir)
-
-    return (exit_code==0)
-
 def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
     with codecs.open(os.path.join(here, rel_path), 'r') as fp:
@@ -64,8 +27,6 @@ def get_version(rel_path):
     else:
         raise RuntimeError("Unable to find version string.")
 
-
-have_pthread = check_for_pthread()
 
 
 # Support for compiling without OpenMP has been removed, for now, due to the spiralling
@@ -83,9 +44,6 @@ extra_compile_args = ['-ftree-vectorize',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
                       '-g', '-std=c++14']
-
-if have_pthread:
-    extra_compile_args.append('-DKDT_THREADING')
 
 extra_link_args = ['-std=c++14']
 

@@ -54,7 +54,6 @@ PyObject *populate(PyObject *self, PyObject *args);
 PyObject *domain_decomposition(PyObject *self, PyObject *args);
 PyObject *set_arrayref(PyObject *self, PyObject *args);
 PyObject *get_arrayref(PyObject *self, PyObject *args);
-PyObject *has_threading(PyObject *self, PyObject *args);
 
 PyObject *particles_in_sphere(PyObject *self, PyObject *args);
 
@@ -92,8 +91,6 @@ static PyMethodDef kdmain_methods[] =
 
     {"populate",  populate,  METH_VARARGS, "populate"},
 
-    {"has_threading",  has_threading,  METH_VARARGS, "populate"},
-
     {NULL, NULL, 0, NULL}
 };
 
@@ -122,14 +119,6 @@ initkdmain(void)
   #endif
 }
 
-PyObject *has_threading(PyObject *self, PyObject *args)
-{
-#ifdef KDT_THREADING
-    return Py_True;
-#else
-    return Py_False;
-#endif
-}
 
 
 /*==========================================================================*/
@@ -331,6 +320,7 @@ PyObject *nn_next(PyObject *self, PyObject *args)
         return retList;
     }
 
+    Py_INCREF(Py_None);
     return Py_None;
 }
 
@@ -350,6 +340,7 @@ PyObject *nn_stop(PyObject *self, PyObject *args)
 
     smFinish(smx);
 
+    Py_INCREF(Py_None);
     return Py_None;
 }
 
@@ -482,6 +473,8 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
     Py_XDECREF(*existing);
     (*existing) = arobj;
     Py_INCREF(arobj);
+
+    Py_INCREF(Py_None);
     return Py_None;
 }
 
@@ -517,9 +510,10 @@ PyObject *get_arrayref(PyObject *self, PyObject *args) {
 
     Py_INCREF(*existing);
 
-    if(*existing==NULL)
+    if(*existing==NULL) {
+        Py_INCREF(Py_None);
         return Py_None;
-    else
+    } else
         return (*existing);
 
 }
@@ -550,6 +544,7 @@ PyObject *domain_decomposition(PyObject *self, PyObject *args) {
     else
         smDomainDecomposition<double>(kd,nproc);
 
+    Py_INCREF(Py_None);
     return Py_None;
 }
 
@@ -611,13 +606,9 @@ struct typed_populate {
         if (checkArray<Tq>(kd->pNumpyQtySmoothed,"qty_sm")) return NULL;
     }
 
-#ifdef KDT_THREADING
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings=false;
     smx_local->pi = 0;
-#else
-    smx_local = smx_global;
-#endif
 
     smx_global->warnings=false;
 
@@ -693,16 +684,12 @@ struct typed_populate {
   }
 
 
+  smFinishThreadLocalCopy(smx_local);
   if(smx_local->warnings) {
-#ifdef KDT_THREADING
-    smFinishThreadLocalCopy(smx_local);
-#endif
     PyErr_SetString(PyExc_RuntimeError,"Buffer overflow in smoothing operation. This probably means that your smoothing lengths are too large compared to the number of neighbours you specified.");
     return NULL;
   } else {
-#ifdef KDT_THREADING
-    smFinishThreadLocalCopy(smx_local);
-#endif
+    Py_INCREF(Py_None);
     return Py_None;
   }
     }

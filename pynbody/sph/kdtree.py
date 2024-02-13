@@ -49,13 +49,6 @@ class KDTree:
         if num_threads is None:
             num_threads = int(config["number_of_threads"])
 
-        if num_threads > 1 and not kdmain.has_threading():
-            num_threads = 1
-            warnings.warn(
-                "Pynbody is configured to use threading for the KDTree, but pthread support was not available during compilation. Reverting to single thread.",
-                RuntimeWarning,
-            )
-
         self.num_threads = num_threads
 
         # get a power of 2 for num_threads to pass to the constructor, because
@@ -220,34 +213,35 @@ class KDTree:
 
         smx = kdmain.nn_start(self.kdtree, int(nn), self.num_threads, self.boxsize)
 
-        propid = self.smooth_operation_to_id(mode)
+        try:
+            propid = self.smooth_operation_to_id(mode)
 
-        if propid == self.PROPID_HSM:
-            kdmain.domain_decomposition(self.kdtree, self.num_threads)
+            if propid == self.PROPID_HSM:
+                kdmain.domain_decomposition(self.kdtree, self.num_threads)
 
-        if kernel == 'CubicSpline':
-            kernel = 0
-        elif kernel == 'WendlandC2':
-            kernel = 1
-        else:
-            raise ValueError(
-                "Kernel keyword %s not recognised. Please choose either 'CubicSpline' or 'WendlandC2'." % kernel
-            )
+            if kernel == 'CubicSpline':
+                kernel = 0
+            elif kernel == 'WendlandC2':
+                kernel = 1
+            else:
+                raise ValueError(
+                    "Kernel keyword %s not recognised. Please choose either 'CubicSpline' or 'WendlandC2'." % kernel
+                )
 
-        if self.num_threads == 1:
-            kdmain.populate(self.kdtree, smx, propid, 0, kernel)
-        else:
-            _thread_map(
-                kdmain.populate,
-                [self.kdtree] * self.num_threads,
-                [smx] * self.num_threads,
-                [propid] * self.num_threads,
-                list(range(0, self.num_threads)),
-                [kernel] * self.num_threads
-            )
-
-        # Free C-structures memory
-        kdmain.nn_stop(self.kdtree, smx)
+            if self.num_threads == 1:
+                kdmain.populate(self.kdtree, smx, propid, 0, kernel)
+            else:
+                _thread_map(
+                    kdmain.populate,
+                    [self.kdtree] * self.num_threads,
+                    [smx] * self.num_threads,
+                    [propid] * self.num_threads,
+                    list(range(0, self.num_threads)),
+                    [kernel] * self.num_threads
+                )
+        finally:
+            # Free C-structures memory
+            kdmain.nn_stop(self.kdtree, smx)
 
     def sph_mean(self, array, nsmooth=64, kernel = 'CubicSpline'):
         r"""Calculate the SPH mean of a simulation array.

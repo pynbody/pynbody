@@ -60,39 +60,16 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	smx->pList = (npy_intp *)malloc(smx->nListSize*sizeof(npy_intp));         assert(smx->pList != NULL);
 	for (j=0;j<3;++j) smx->fPeriod[j] = fPeriod[j];
 
-
-#ifdef KDT_THREADING
 	smx->nCurrent=0;
-
-	smx->pMutex = (pthread_mutex_t*)(malloc(sizeof(pthread_mutex_t)));
-
-	if (pthread_mutex_init(smx->pMutex, NULL) != 0)
-	{
-		free(smx->pMutex);
-    	delete smx;
-    	return(0);
-  	}
-
-	smx->pReady = (pthread_cond_t*)(malloc(sizeof(pthread_cond_t)));
-
-	if (pthread_cond_init(smx->pReady,NULL)!=0) {
-		free(smx->pMutex);
-		free(smx->pReady);
-		delete smx;
-		return(0);
-	}
-
-	smx->nLocals=0;
-	smx->nReady=0;
-
+    smx->pMutex = std::make_shared<std::mutex>();
 	smx->smx_global=NULL;
 
-#endif
+
 	*psmx = smx;
 	return(1);
 	}
 
-#ifdef KDT_THREADING
+
 
 SMX smInitThreadLocalCopy(SMX from) {
 
@@ -117,41 +94,21 @@ SMX smInitThreadLocalCopy(SMX from) {
 		smx->iMark[pi] = 0;
 	}
 	smx->pMutex = from->pMutex;
-	smx->pReady = from->pReady;
-	from->nLocals++;
 
 	smx->smx_global = from;
 	smx->nCurrent = 0;
-	smx->nLocals=0;
+
 	smInitPriorityQueue(smx);
 	return smx;
 }
 
 void smFinishThreadLocalCopy(SMX smx)
 {
-	smx->smx_global->nLocals--;
-
 	free(smx->pq);
 	free(smx->fList);
 	free(smx->pList);
 	free(smx->iMark);
 	delete smx;
-}
-
-void smReset(SMX smx_local) {
-	SMX smxg = smx_local->smx_global;
-
-	pthread_mutex_lock(smxg->pMutex);
-	smxg->nReady++;
-	if(smxg->nReady==smxg->nLocals) {
-		smxg->nReady=0;
-		smxg->nCurrent=0;
-		pthread_cond_broadcast(smxg->pReady);
-	} else {
-		pthread_cond_wait(smxg->pReady,smxg->pMutex);
-	}
-	pthread_mutex_unlock(smxg->pMutex);
-	smx_local->nCurrent=0;
 }
 
 #define WORKUNIT 1000
@@ -167,11 +124,11 @@ npy_intp smGetNext(SMX smx_local) {
 	if(smx_local->nCurrent%WORKUNIT==0) {
 		// we have reached the end of a work unit. Get and increment the global
 		// counter.
-		pthread_mutex_lock(smx_local->pMutex);
+		smx_local->pMutex->lock();
 		smx_local->nCurrent=smx_local->smx_global->nCurrent;
 		i = smx_local->nCurrent;
 		smx_local->smx_global->nCurrent+=WORKUNIT;
-		pthread_mutex_unlock(smx_local->pMutex);
+		smx_local->pMutex->unlock();
 	}
 
 	// i now has the next thing to be processed
@@ -182,14 +139,6 @@ npy_intp smGetNext(SMX smx_local) {
 	return i;
 }
 
-#else
-
-npy_intp smGetNext(SMX smx_local) {
-	return (smx_local->nCurrent++);
-}
-
-#endif
-
 
 void smFinish(SMX smx)
 {
@@ -197,13 +146,6 @@ void smFinish(SMX smx)
 	free(smx->pq);
 	free(smx->fList);
 	free(smx->pList);
-
-#ifdef KDT_THREADING
-	pthread_mutex_destroy(smx->pMutex);
-	pthread_cond_destroy(smx->pReady);
-	free(smx->pMutex);
-	free(smx->pReady);
-#endif
 
 	delete smx;
 
@@ -433,7 +375,6 @@ npy_intp smSmoothStep(SMX smx, int procid)
 					pNext=0;
 				if(nScanned==smx->kd->nActive) {
 					// Nothing remains to be done.
-					// pthread_mutex_unlock(smx->pMutex);
 					return -1;
 				}
 		}

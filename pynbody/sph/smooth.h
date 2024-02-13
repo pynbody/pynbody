@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <stdbool.h>
+#include <mutex>
 #include "kd.h"
 
 
@@ -37,15 +38,8 @@ typedef struct smContext {
 	npy_intp *pList;
 	npy_intp nCurrent; // current particle index for distributed loops
 
-#ifdef KDT_THREADING
-	pthread_mutex_t *pMutex;
-
-	int nLocals; // number of local copies if this is a global smooth context
-	int nReady; // number of local copies that are "ready" for the next stage
-	pthread_cond_t *pReady; // synchronizing condition
-
+    std::shared_ptr<std::mutex> pMutex;
 	struct smContext *smx_global;
-#endif
 
     npy_intp pin,pi,pNext;
     float ax,ay,az;
@@ -242,10 +236,7 @@ void smDomainDecomposition(KD kd, int nprocs);
 
 npy_intp smGetNext(SMX smx_local);
 
-#ifdef KDT_THREADING
-void smReset(SMX smx_local);
 SMX smInitThreadLocalCopy(SMX smx_global);
 void smFinishThreadLocalCopy(SMX smx_local);
-#endif
 
 #endif
