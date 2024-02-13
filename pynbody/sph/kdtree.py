@@ -17,6 +17,20 @@ from . import kdmain
 
 logger = logging.getLogger("pynbody.sph.kdtree")
 
+# Boundary type definition must exactly match the C++ definition (see kd.h)
+Boundary = np.dtype([
+    ('fMin', np.float32, (3,)),
+    ('fMax', np.float32, (3,))
+])
+
+# KDNode type definition must exactly match the C++ definition (see kd.h)
+KDNode = np.dtype([
+    ('fSplit', np.float32),
+    ('bnd', Boundary),
+    ('iDim', np.int32),
+    ('pLower', np.intp),
+    ('pUpper', np.intp)
+])
 
 class KDTree:
     """KDTree used for smoothing."""
