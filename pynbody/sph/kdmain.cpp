@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,18 +106,10 @@ static struct PyModuleDef ourdef = {PyModuleDef_HEAD_INIT,
 #endif
 
 PyMODINIT_FUNC
-#if PY_MAJOR_VERSION >= 3
 PyInit_kdmain(void)
-#else
-initkdmain(void)
-#endif
 {
   import_array();
-#if PY_MAJOR_VERSION >= 3
   return PyModule_Create(&ourdef);
-#else
-  (void)Py_InitModule("kdmain", kdmain_methods);
-#endif
 }
 
 /*==========================================================================*/
@@ -174,10 +167,10 @@ PyObject *kdinit(PyObject *self, PyObject *args) {
   Py_INCREF(pos);
   Py_INCREF(mass);
 
-  Py_BEGIN_ALLOW_THREADS
+  Py_BEGIN_ALLOW_THREADS;
 
-      // Allocate particles
-      kd->p = (PARTICLE *)malloc(kd->nActive * sizeof(PARTICLE));
+  // Allocate particles
+  kd->p = (PARTICLE *)malloc(kd->nActive * sizeof(PARTICLE));
   assert(kd->p != NULL);
 
   for (i = 0; i < nbodies; i++) {
@@ -190,9 +183,9 @@ PyObject *kdinit(PyObject *self, PyObject *args) {
   else
     kdBuildTree<float>(kd, num_threads);
 
-  Py_END_ALLOW_THREADS
+  Py_END_ALLOW_THREADS;
 
-      return PyCapsule_New((void *)kd, NULL, NULL);
+  return PyCapsule_New((void *)kd, NULL, NULL);
 }
 
 /*==========================================================================*/
@@ -213,8 +206,6 @@ PyObject *kdfree(PyObject *self, PyObject *args) {
   return Py_None;
 }
 
-#define BIGFLOAT ((float)1.0e37)
-
 /*==========================================================================*/
 /* nn_start                                                                 */
 /*==========================================================================*/
@@ -228,13 +219,15 @@ PyObject *nn_start(PyObject *self, PyObject *args) {
   */
 
   int nSmooth, nProcs;
-  float period = BIGFLOAT;
+  float period = std::numeric_limits<float>::max();
 
   PyArg_ParseTuple(args, "Oii|f", &kdobj, &nSmooth, &nProcs, &period);
   kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
 
   if (period <= 0)
-    period = BIGFLOAT;
+    period = std::numeric_limits<float>::max();
+
+
 
   float fPeriod[3] = {period, period, period};
 
@@ -285,14 +278,14 @@ PyObject *nn_next(PyObject *self, PyObject *args) {
   kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
   smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
 
-  Py_BEGIN_ALLOW_THREADS
+  Py_BEGIN_ALLOW_THREADS;
 
-      if (kd->nBitDepth == 32) nCnt = smSmoothStep<float>(smx, 0);
+  if (kd->nBitDepth == 32) nCnt = smSmoothStep<float>(smx, 0);
   else nCnt = smSmoothStep<double>(smx, 0);
 
-  Py_END_ALLOW_THREADS
+  Py_END_ALLOW_THREADS;
 
-      if (nCnt > 0) {
+  if (nCnt > 0) {
     nnList = PyList_New(nCnt); // Py_INCREF(nnList);
     nnDist = PyList_New(nCnt); // Py_INCREF(nnDist);
     retList = PyList_New(4);
@@ -628,19 +621,21 @@ template <typename Tf, typename Tq> struct typed_populate {
     }
 
     if (propid == PROPID_HSM) {
-      Py_BEGIN_ALLOW_THREADS for (i = 0; i < nbodies; i++) {
+      Py_BEGIN_ALLOW_THREADS;
+      for (i = 0; i < nbodies; i++) {
         nCnt = smSmoothStep<Tf>(smx_local, procid);
         if (nCnt == -1)
           break; // nothing more to do
         total_particles += 1;
       }
-      Py_END_ALLOW_THREADS
+      Py_END_ALLOW_THREADS;
 
     } else {
 
       i = smGetNext(smx_local);
 
-      Py_BEGIN_ALLOW_THREADS while (i < nbodies) {
+      Py_BEGIN_ALLOW_THREADS;
+      while (i < nbodies) {
         // make a copy of the position of this particle
         for (int j = 0; j < 3; ++j) {
           ri[j] = GET2<Tf>(kd->pNumpyPos, kd->p[i].iOrder, j);
@@ -663,7 +658,7 @@ template <typename Tf, typename Tq> struct typed_populate {
         if (smx_global->warnings)
           break;
       }
-      Py_END_ALLOW_THREADS
+      Py_END_ALLOW_THREADS;
     }
 
     smFinishThreadLocalCopy(smx_local);
