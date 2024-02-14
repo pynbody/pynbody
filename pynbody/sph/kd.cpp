@@ -28,26 +28,15 @@ void kdCombine(KDNode *p1, KDNode *p2, KDNode *pOut) {
   }
 }
 
-int cmpParticles(const void *v1, const void *v2) {
-  PARTICLE *p1 = (PARTICLE *)v1, *p2 = (PARTICLE *)v2;
-
-  return (p1->iOrder - p2->iOrder);
-}
-
-void kdOrder(KDContext* kd) {
-  qsort(kd->p, kd->nActive, sizeof(PARTICLE), cmpParticles);
-}
-
-
 template <typename T>
 void kdSelect(KDContext* kd, npy_intp d, npy_intp k, npy_intp l, npy_intp r) {
-  PARTICLE *p, t;
+  npy_intp *p, t;
   T v;
   npy_intp i, j;
 
-  p = kd->p;
+  p = kd->particleOffsets;
   while (r > l) {
-    v = GET2<T>(kd->pNumpyPos, p[k].iOrder, d);
+    v = GET2<T>(kd->pNumpyPos, p[k], d);
     t = p[r];
     p[r] = p[k];
     p[k] = t;
@@ -55,10 +44,10 @@ void kdSelect(KDContext* kd, npy_intp d, npy_intp k, npy_intp l, npy_intp r) {
     j = r;
     while (1) {
       while (i < j)
-        if (GET2<T>(kd->pNumpyPos, p[++i].iOrder, d) >= v)
+        if (GET2<T>(kd->pNumpyPos, p[++i], d) >= v)
           break;
       while (i < j)
-        if (GET2<T>(kd->pNumpyPos, p[--j].iOrder, d) <= v)
+        if (GET2<T>(kd->pNumpyPos, p[--j], d) <= v)
           break;
       t = p[i];
       p[i] = p[j];
@@ -91,12 +80,12 @@ template <typename T> void kdUpPass(KDContext* kd, npy_intp iCell) {
     l = c[iCell].pLower;
     u = c[iCell].pUpper;
     for (j = 0; j < 3; ++j) {
-      c[iCell].bnd.fMin[j] = GET2<T>(kd->pNumpyPos, kd->p[u].iOrder, j);
+      c[iCell].bnd.fMin[j] = GET2<T>(kd->pNumpyPos, kd->particleOffsets[u], j);
       c[iCell].bnd.fMax[j] = c[iCell].bnd.fMin[j];
     }
     for (pj = l; pj < u; ++pj) {
       for (j = 0; j < 3; ++j) {
-        rj = GET2<T>(kd->pNumpyPos, kd->p[pj].iOrder, j);
+        rj = GET2<T>(kd->pNumpyPos, kd->particleOffsets[pj], j);
         if (rj < c[iCell].bnd.fMin[j])
           c[iCell].bnd.fMin[j] = rj;
         if (rj > c[iCell].bnd.fMax[j])
@@ -134,7 +123,7 @@ template <typename T> void kdBuildTree(KDContext* kd, int num_threads) {
   // Calculate bounds
   // Initialize with any particle:
   for (j = 0; j < 3; ++j) {
-    rj = GET2<T>(kd->pNumpyPos, kd->p[0].iOrder, j);
+    rj = GET2<T>(kd->pNumpyPos, kd->particleOffsets[0], j);
     bnd.fMin[j] = rj;
     bnd.fMax[j] = rj;
   }
@@ -142,7 +131,7 @@ template <typename T> void kdBuildTree(KDContext* kd, int num_threads) {
   // Expand to enclose all particles:
   for (i = 1; i < kd->nActive; ++i) {
     for (j = 0; j < 3; ++j) {
-      rj = GET2<T>(kd->pNumpyPos, kd->p[i].iOrder, j);
+      rj = GET2<T>(kd->pNumpyPos, kd->particleOffsets[i], j);
       if (bnd.fMin[j] > rj)
         bnd.fMin[j] = rj;
       else if (bnd.fMax[j] < rj)
@@ -193,7 +182,7 @@ void kdBuildNode(KDContext* kd, npy_intp local_root, int num_threads) {
       kdSelect<T>(kd, d, m, nodes[i].pLower, nodes[i].pUpper);
 
       // Note split point based on median particle
-      nodes[i].fSplit = GET2<T>(kd->pNumpyPos, kd->p[m].iOrder, d);
+      nodes[i].fSplit = GET2<T>(kd->pNumpyPos, kd->particleOffsets[m], d);
 
       // Set up lower cell
       nodes[LOWER(i)].bnd = nodes[i].bnd;

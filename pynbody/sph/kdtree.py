@@ -70,12 +70,13 @@ class KDTree:
         # will be wasted
         num_threads_init = 2 ** int(np.log2(num_threads))
 
-        
+
         self.kdtree = kdmain.init(pos, mass, int(leafsize))
         nodes = kdmain.get_node_count(self.kdtree)
         self.kdnodes = np.empty(nodes, dtype=KDNode)
-        kdmain.build(self.kdtree, self.kdnodes, num_threads_init)
-    
+        self.particle_offsets = np.empty(len(pos), dtype=np.intp)
+        kdmain.build(self.kdtree, self.kdnodes, self.particle_offsets, num_threads_init)
+
         self.boxsize = boxsize
         self._pos = pos
         self.s_len = len(pos)

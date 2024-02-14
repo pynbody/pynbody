@@ -1,6 +1,6 @@
 services:
   python:
-    build: 
+    build:
       context: .
     volumes:
       - ./:/app

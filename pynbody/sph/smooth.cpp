@@ -158,7 +158,7 @@ void smFinish(SMX smx) {
 
 template <typename T> void smBallSearch(SMX smx, float fBall2, float *ri) {
   KDNode *c;
-  PARTICLE *p;
+  npy_intp *p;
   KDContext* kd;
   npy_intp cell, cp, ct, pj;
   T fDist2, dx, dy, dz, lx, ly, lz, sx, sy, sz, x, y, z;
@@ -166,7 +166,7 @@ template <typename T> void smBallSearch(SMX smx, float fBall2, float *ri) {
 
   kd = smx->kd;
   c = smx->kd->kdNodes;
-  p = smx->kd->p;
+  p = smx->kd->particleOffsets;
   pq = smx->pqHead;
   x = ri[0];
   y = ri[1];
@@ -189,9 +189,9 @@ template <typename T> void smBallSearch(SMX smx, float fBall2, float *ri) {
    ** Now start the search from the bucket given by cell!
    */
   for (pj = c[cell].pLower; pj <= c[cell].pUpper; ++pj) {
-    dx = x - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 0);
-    dy = y - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 1);
-    dz = z - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 2);
+    dx = x - GET2<T>(kd->pNumpyPos, p[pj], 0);
+    dy = y - GET2<T>(kd->pNumpyPos, p[pj], 1);
+    dz = z - GET2<T>(kd->pNumpyPos, p[pj], 2);
     fDist2 = dx * dx + dy * dy + dz * dz;
     if (fDist2 < fBall2) {
       if (smx->iMark[pj])
@@ -221,9 +221,9 @@ template <typename T> void smBallSearch(SMX smx, float fBall2, float *ri) {
         continue;
       } else {
         for (pj = c[cp].pLower; pj <= c[cp].pUpper; ++pj) {
-          dx = sx - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 0);
-          dy = sy - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 1);
-          dz = sz - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 2);
+          dx = sx - GET2<T>(kd->pNumpyPos, p[pj], 0);
+          dy = sy - GET2<T>(kd->pNumpyPos, p[pj], 1);
+          dz = sz - GET2<T>(kd->pNumpyPos, p[pj], 2);
           fDist2 = dx * dx + dy * dy + dz * dz;
           if (fDist2 < fBall2) {
             if (smx->iMark[pj])
@@ -272,7 +272,6 @@ PyObject *getReturnParticleList(SMX smx) {
 
 void smSmoothInitStep(SMX smx, int nProcs_for_smooth) {
 
-  PARTICLE *p;
   npy_intp pi;
   KDContext* kd = smx->kd;
 
@@ -292,7 +291,6 @@ template <typename T> void smDomainDecomposition(KDContext* kd, int nprocs) {
   // However in practice, up to nCpu = 8, the scaling is looking
   // pretty linear anyway so I'm leaving that for future.
 
-  PARTICLE *p;
   npy_intp pi;
 
   if (nprocs > 0) {
@@ -307,7 +305,6 @@ void smInitPriorityQueue(SMX smx) {
    ** Initialize Priority Queue.
    */
 
-  PARTICLE *p;
   PQ *pq, *pqLast;
   npy_intp pin, pj, pNext;
   float ax, ay, az;
@@ -335,7 +332,7 @@ void smInitPriorityQueue(SMX smx) {
 
 template <typename T> npy_intp smSmoothStep(SMX smx, int procid) {
   KDNode *c;
-  PARTICLE *p;
+  npy_intp *p;
   PQ *pq, *pqLast;
   KDContext* kd = smx->kd;
   npy_intp cell;
@@ -347,7 +344,7 @@ template <typename T> npy_intp smSmoothStep(SMX smx, int procid) {
   float ri[3];
 
   c = smx->kd->kdNodes;
-  p = smx->kd->p;
+  p = smx->kd->particleOffsets;
   pqLast = &smx->pq[smx->nSmooth - 1];
   nSmooth = smx->nSmooth;
   pin = smx->pin;
@@ -383,16 +380,16 @@ template <typename T> npy_intp smSmoothStep(SMX smx, int procid) {
 
     pi = pNext;
     ++pNext;
-    x = GET2<T>(kd->pNumpyPos, p[pi].iOrder, 0);
-    y = GET2<T>(kd->pNumpyPos, p[pi].iOrder, 1);
-    z = GET2<T>(kd->pNumpyPos, p[pi].iOrder, 2);
+    x = GET2<T>(kd->pNumpyPos, p[pi], 0);
+    y = GET2<T>(kd->pNumpyPos, p[pi], 1);
+    z = GET2<T>(kd->pNumpyPos, p[pi], 2);
     /*
     ** First find the "local" Bucket.
     ** This could merely be the closest bucket to ri[3].
     */
     cell = ROOT;
     while (cell < smx->kd->nSplit) {
-      if (GET2<T>(kd->pNumpyPos, p[pi].iOrder, c[cell].iDim) < c[cell].fSplit)
+      if (GET2<T>(kd->pNumpyPos, p[pi], c[cell].iDim) < c[cell].fSplit)
         cell = LOWER(cell);
       else
         cell = UPPER(cell);
@@ -411,9 +408,9 @@ template <typename T> npy_intp smSmoothStep(SMX smx, int procid) {
       pj = smx->kd->nActive - nSmooth;
     for (pq = smx->pq; pq <= pqLast; ++pq) {
       smx->iMark[pj] = 1;
-      dx = x - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 0);
-      dy = y - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 1);
-      dz = z - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 2);
+      dx = x - GET2<T>(kd->pNumpyPos, p[pj], 0);
+      dy = y - GET2<T>(kd->pNumpyPos, p[pj], 1);
+      dz = z - GET2<T>(kd->pNumpyPos, p[pj], 2);
       pq->fKey = dx * dx + dy * dy + dz * dz;
       pq->p = pj++;
       pq->ax = 0.0;
@@ -428,18 +425,18 @@ template <typename T> npy_intp smSmoothStep(SMX smx, int procid) {
     // Mark - see comment above
     SETSMOOTH(T, pi, 10);
 
-    x = GET2<T>(kd->pNumpyPos, p[pi].iOrder, 0);
-    y = GET2<T>(kd->pNumpyPos, p[pi].iOrder, 1);
-    z = GET2<T>(kd->pNumpyPos, p[pi].iOrder, 2);
+    x = GET2<T>(kd->pNumpyPos, p[pi], 0);
+    y = GET2<T>(kd->pNumpyPos, p[pi], 1);
+    z = GET2<T>(kd->pNumpyPos, p[pi], 2);
 
     smx->pqHead = NULL;
     for (pq = smx->pq; pq <= pqLast; ++pq) {
       pq->ax -= ax;
       pq->ay -= ay;
       pq->az -= az;
-      dx = x + pq->ax - GET2<T>(kd->pNumpyPos, p[pq->p].iOrder, 0);
-      dy = y + pq->ay - GET2<T>(kd->pNumpyPos, p[pq->p].iOrder, 1);
-      dz = z + pq->az - GET2<T>(kd->pNumpyPos, p[pq->p].iOrder, 2);
+      dx = x + pq->ax - GET2<T>(kd->pNumpyPos, p[pq->p], 0);
+      dy = y + pq->ay - GET2<T>(kd->pNumpyPos, p[pq->p], 1);
+      dz = z + pq->az - GET2<T>(kd->pNumpyPos, p[pq->p], 2);
       pq->fKey = dx * dx + dy * dy + dz * dz;
     }
     PQ_BUILD(smx->pq, nSmooth, smx->pqHead);
@@ -449,7 +446,7 @@ template <typename T> npy_intp smSmoothStep(SMX smx, int procid) {
   }
 
   for (int j = 0; j < 3; ++j) {
-    ri[j] = GET2<T>(kd->pNumpyPos, p[pi].iOrder, j);
+    ri[j] = GET2<T>(kd->pNumpyPos, p[pi], j);
   }
 
   smBallSearch<T>(smx, smx->pqHead->fKey, ri);
@@ -559,10 +556,10 @@ void smDensitySym(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
       rs = cubicSpline(smx, r2);
     }
     rs *= fNorm;
-    ACCUM<T>(kd->pNumpyDen, kd->p[pi].iOrder,
-             rs * GET<T>(kd->pNumpyMass, kd->p[pj].iOrder));
-    ACCUM<T>(kd->pNumpyDen, kd->p[pj].iOrder,
-             rs * GET<T>(kd->pNumpyMass, kd->p[pi].iOrder));
+    ACCUM<T>(kd->pNumpyDen, kd->particleOffsets[pi],
+             rs * GET<T>(kd->pNumpyMass, kd->particleOffsets[pj]));
+    ACCUM<T>(kd->pNumpyDen, kd->particleOffsets[pj],
+             rs * GET<T>(kd->pNumpyMass, kd->particleOffsets[pi]));
   }
 }
 
@@ -573,7 +570,7 @@ void smDensity(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList, float *fList,
   npy_intp j, pj, pi_iord;
   KDContext* kd = smx->kd;
 
-  pi_iord = kd->p[pi].iOrder;
+  pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<T>(kd->pNumpySmooth, pi_iord);
   ih2 = ih * ih;
   fNorm = M_1_PI * ih * ih2;
@@ -588,7 +585,7 @@ void smDensity(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList, float *fList,
     }
     rs *= fNorm;
     ACCUM<T>(kd->pNumpyDen, pi_iord,
-             rs * GET<T>(kd->pNumpyMass, kd->p[pj].iOrder));
+             rs * GET<T>(kd->pNumpyMass, kd->particleOffsets[pj]));
   }
 }
 
@@ -599,7 +596,7 @@ void smMeanQty1D(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
   npy_intp j, pj, pi_iord;
   KDContext* kd = smx->kd;
 
-  pi_iord = kd->p[pi].iOrder;
+  pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
   ih2 = ih * ih;
   fNorm = M_1_PI * ih * ih2;
@@ -615,10 +612,10 @@ void smMeanQty1D(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
       rs = cubicSpline(smx, r2);
     }
     rs *= fNorm;
-    mass = GET<Tf>(kd->pNumpyMass, kd->p[pj].iOrder);
-    rho = GET<Tf>(kd->pNumpyDen, kd->p[pj].iOrder);
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
     ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord,
-              rs * mass * GET<Tq>(kd->pNumpyQty, kd->p[pj].iOrder) / rho);
+              rs * mass * GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]) / rho);
   }
 }
 
@@ -629,7 +626,7 @@ void smMeanQtyND(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
   npy_intp j, k, pj, pi_iord;
   KDContext* kd = smx->kd;
 
-  pi_iord = kd->p[pi].iOrder;
+  pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
   ih2 = ih * ih;
   fNorm = M_1_PI * ih * ih2;
@@ -646,11 +643,11 @@ void smMeanQtyND(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
       rs = cubicSpline(smx, r2);
     }
     rs *= fNorm;
-    mass = GET<Tf>(kd->pNumpyMass, kd->p[pj].iOrder);
-    rho = GET<Tf>(kd->pNumpyDen, kd->p[pj].iOrder);
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
     for (k = 0; k < 3; ++k) {
       ACCUM2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k,
-                 rs * mass * GET2<Tq>(kd->pNumpyQty, kd->p[pj].iOrder, k) /
+                 rs * mass * GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k) /
                      rho);
     }
   }
@@ -688,7 +685,7 @@ void smCurlQty(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList, float *fList,
   KDContext* kd = smx->kd;
   Tf curl[3], x, y, z, dx, dy, dz;
 
-  pi_iord = kd->p[pi].iOrder;
+  pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
   ih2 = ih * ih;
   fNorm = M_1_PI * ih2 * ih2;
@@ -704,7 +701,7 @@ void smCurlQty(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList, float *fList,
 
   for (j = 0; j < nSmooth; ++j) {
     pj = pList[j];
-    pj_iord = kd->p[pj].iOrder;
+    pj_iord = kd->particleOffsets[pj];
     dx = x - GET2<Tf>(kd->pNumpyPos, pj_iord, 0);
     dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
     dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
@@ -747,7 +744,7 @@ void smDivQty(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList, float *fList,
   KDContext* kd = smx->kd;
   Tf x, y, z, dx, dy, dz;
 
-  pi_iord = kd->p[pi].iOrder;
+  pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
   ih2 = ih * ih;
   fNorm = M_1_PI * ih2 * ih2;
@@ -763,7 +760,7 @@ void smDivQty(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList, float *fList,
 
   for (j = 0; j < nSmooth; ++j) {
     pj = pList[j];
-    pj_iord = kd->p[pj].iOrder;
+    pj_iord = kd->particleOffsets[pj];
     dx = x - GET2<Tf>(kd->pNumpyPos, pj_iord, 0);
     dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
     dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
@@ -801,7 +798,7 @@ void smDispQtyND(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
   KDContext* kd = smx->kd;
   float mean[3], tdiff;
 
-  pi_iord = kd->p[pi].iOrder;
+  pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
   ih2 = ih * ih;
   fNorm = M_1_PI * ih * ih2;
@@ -824,10 +821,10 @@ void smDispQtyND(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
       rs = cubicSpline(smx, r2);
     }
     rs *= fNorm;
-    mass = GET<Tf>(kd->pNumpyMass, kd->p[pj].iOrder);
-    rho = GET<Tf>(kd->pNumpyDen, kd->p[pj].iOrder);
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
     for (k = 0; k < 3; ++k)
-      mean[k] += rs * mass * GET2<Tq>(kd->pNumpyQty, kd->p[pj].iOrder, k) / rho;
+      mean[k] += rs * mass * GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k) / rho;
   }
 
   // pass 2: get variance
@@ -841,10 +838,10 @@ void smDispQtyND(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
       rs = cubicSpline(smx, r2);
     }
     rs *= fNorm;
-    mass = GET<Tf>(kd->pNumpyMass, kd->p[pj].iOrder);
-    rho = GET<Tf>(kd->pNumpyDen, kd->p[pj].iOrder);
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
     for (k = 0; k < 3; ++k) {
-      tdiff = mean[k] - GET2<Tq>(kd->pNumpyQty, kd->p[pj].iOrder, k);
+      tdiff = mean[k] - GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k);
       ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord,
                 rs * mass * tdiff * tdiff / rho);
     }
@@ -864,7 +861,7 @@ void smDispQty1D(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
   KDContext* kd = smx->kd;
   Tq mean, tdiff;
 
-  pi_iord = kd->p[pi].iOrder;
+  pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
   ih2 = ih * ih;
   fNorm = M_1_PI * ih * ih2;
@@ -885,9 +882,9 @@ void smDispQty1D(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
     }
 
     rs *= fNorm;
-    mass = GET<Tf>(kd->pNumpyMass, kd->p[pj].iOrder);
-    rho = GET<Tf>(kd->pNumpyDen, kd->p[pj].iOrder);
-    mean += rs * mass * GET<Tq>(kd->pNumpyQty, kd->p[pj].iOrder) / rho;
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    mean += rs * mass * GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]) / rho;
   }
 
   // pass 2: get variance
@@ -901,9 +898,9 @@ void smDispQty1D(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
       rs = cubicSpline(smx, r2);
     }
     rs *= fNorm;
-    mass = GET<Tf>(kd->pNumpyMass, kd->p[pj].iOrder);
-    rho = GET<Tf>(kd->pNumpyDen, kd->p[pj].iOrder);
-    tdiff = mean - GET<Tq>(kd->pNumpyQty, kd->p[pj].iOrder);
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    tdiff = mean - GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]);
     ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord, rs * mass * tdiff * tdiff / rho);
   }
 

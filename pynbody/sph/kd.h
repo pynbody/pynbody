@@ -23,11 +23,6 @@
 #define GAS 2
 #define STAR 4
 
-typedef struct Particle {
-  npy_intp iOrder;
-  char iMark;
-} PARTICLE;
-
 typedef struct bndBound {
   float fMin[3];
   float fMax[3];
@@ -49,9 +44,13 @@ typedef struct KDContext {
   int nLevels;
   npy_intp nNodes;
   npy_intp nSplit;
-  PARTICLE *p;
-  KDNode *kdNodes;
-  PyObject *kdNodesPyObject;
+
+  npy_intp *particleOffsets; // length N array mapping from KDTree order to pynbody/file order
+  PyObject *pNumpyParticleOffsets; // Numpy array from which the pointer stored in particleOffsets has been derived
+
+  KDNode *kdNodes;           // length-N_nodes array of KDNode
+  PyObject *kdNodesPyObject; // Numpy array from which the pointer stored in kdNodes has been derived
+
 
   int nBitDepth;        // bit depth of arrays other than pNumpyQty which can be
                         // different
@@ -61,6 +60,7 @@ typedef struct KDContext {
   PyObject *pNumpyDen;         // Nx1 Numpy array of density
   PyObject *pNumpyQty;         // Nx1 Numpy array of density
   PyObject *pNumpyQtySmoothed; // Nx1 Numpy array of density
+
 };
 
 #define INTERSECT(c, cp, fBall2, lx, ly, lz, x, y, z, sx, sy, sz)              \
@@ -154,9 +154,8 @@ typedef struct KDContext {
 void kdCountNodes(KDContext *kd);
 
 template <typename T> void kdBuildTree(KDContext*, int num_threads);
-void kdOrder(KDContext*);
-
 template <typename T> void kdBuildNode(KDContext*, npy_intp, int);
+
 void kdCombine(KDNode *p1, KDNode *p2, KDNode *pOut);
 
 template <typename T> T GET(PyObject *ar, npy_intp i) {
@@ -183,7 +182,7 @@ template <typename T> void ACCUM2(PyObject *ar, npy_intp i, npy_intp j, T val) {
   (*((T *)PyArray_GETPTR2(ar, i, j))) += val;
 }
 
-#define GETSMOOTH(T, pid) GET<T>(kd->pNumpySmooth, kd->p[pid].iOrder)
-#define SETSMOOTH(T, pid, val) SET<T>(kd->pNumpySmooth, kd->p[pid].iOrder, val)
+#define GETSMOOTH(T, pid) GET<T>(kd->pNumpySmooth, kd->particleOffsets[pid])
+#define SETSMOOTH(T, pid, val) SET<T>(kd->pNumpySmooth, kd->particleOffsets[pid], val)
 
 #endif

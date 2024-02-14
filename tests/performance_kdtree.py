@@ -5,6 +5,12 @@ import numpy as np
 
 import pynbody
 
+try:
+    num_threads = int(sys.argv[1])
+    print("Using", num_threads, "threads for KDTree operations")
+except Exception:
+    num_threads = None
+
 np.random.seed(1337)
 
 Npart = 10000000
@@ -30,7 +36,7 @@ print(f"spheres without tree time: {end-start:.2f}s")
 
 
 start = time.time()
-pynbody.sph.build_tree(f)
+pynbody.sph.build_tree(f, num_threads=num_threads)
 end = time.time()
 
 print(f"tree build time: {end-start:.2f}s")

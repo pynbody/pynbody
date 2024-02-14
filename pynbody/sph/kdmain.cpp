@@ -16,28 +16,6 @@
 #include "smooth.h"
 
 /*==========================================================================*/
-/* Debugging tools                                                          */
-/*==========================================================================*/
-#define DBG_LEVEL 0
-#define DBG(lvl) if (DBG_LEVEL >= lvl)
-
-/*==========================================================================*/
-/* Memory allocation wrappers.                                              */
-/*==========================================================================*/
-
-#if DBG_LEVEL >= 10000
-long total_alloc = 0;
-#define CALLOC(type, num)                                                                                   \
-    (total_alloc += sizeof(type) * (num), \
-    fprintf(stderr, "c"allocating %ld bytes [already alloc"d: %ld].\n", sizeof(type) * (num), total_alloc), \
-    ((type *)calloc((num), sizeof(type))))
-#else
-#define CALLOC(type, num) ((type *)calloc((num), sizeof(type)))
-#endif
-
-#define MALLOC(type, num) ((type *)malloc((num) * sizeof(type)))
-
-/*==========================================================================*/
 /* Prototypes.                                                              */
 /*==========================================================================*/
 
@@ -58,8 +36,6 @@ PyObject *get_arrayref(PyObject *self, PyObject *args);
 PyObject *get_node_count(PyObject *self, PyObject *args);
 
 PyObject *particles_in_sphere(PyObject *self, PyObject *args);
-
-template <typename T> int checkArray(PyObject *check, const char *name);
 
 int getBitDepth(PyObject *check);
 
@@ -116,6 +92,69 @@ PyInit_kdmain(void)
   return PyModule_Create(&ourdef);
 }
 
+/* Array checking utility function */
+
+template <typename T> const char *c_name() { return "unknown"; }
+
+template <> const char *c_name<double>() { return "double"; }
+
+template <> const char *c_name<float>() { return "float"; }
+
+template <> const char *c_name<KDNode>() { return "KDNode"; }
+
+template <> const char *c_name<npy_intp>() { return "npy_intp"; }
+
+
+template <typename T> const char np_kind() { return '?'; }
+
+template <> const char np_kind<double>() { return 'f'; }
+
+template <> const char np_kind<float>() { return 'f'; }
+
+template <> const char np_kind<KDNode>() { return 'V'; }
+
+template <> const char np_kind<npy_intp>() { return 'i'; }
+
+template <typename T> int checkArray(PyObject *check, const char *name, npy_intp size=0, bool require_c_contiguous=false) {
+  /* Checks that the passed object is a numpy array of the correct type, with the correct size (if specified), and is C-contiguous (if required)
+  Returns 0 if the check passes, 1 if it fails (in which case an exception will have been set).
+  */
+
+  if (check == nullptr) {
+    PyErr_Format(PyExc_ValueError, "An array must be passed for the '%s' argument", name);
+    return 1;
+  }
+
+  if(!PyArray_Check(check)) {
+    PyErr_Format(PyExc_ValueError, "An array must be passed for the '%s' argument", name);
+    return 1;
+  }
+
+  PyArray_Descr *descr = PyArray_DESCR(check);
+
+  if (descr == NULL || descr->kind != np_kind<T>() || descr->elsize != sizeof(T)) {
+    PyErr_Format(
+        PyExc_TypeError,
+        "Incorrect numpy data type for %s passed to kdtree - must match C %s",
+        name, c_name<T>());
+    return 1;
+  }
+
+  if(size > 0 && PyArray_DIM(check, 0) != size) {
+    PyErr_Format(PyExc_ValueError, "Array '%s' has the wrong size", name);
+    return 1;
+  }
+
+  if(require_c_contiguous && (PyArray_FLAGS(check) & NPY_ARRAY_C_CONTIGUOUS) == 0) {
+    PyErr_Format(PyExc_ValueError, "Array '%s' must be C-contiguous", name);
+    return 1;
+  }
+
+  return 0;
+}
+
+
+
 /*==========================================================================*/
 /* kdinit                                                                   */
 /*==========================================================================*/
@@ -128,7 +167,7 @@ PyObject *kdinit(PyObject *self, PyObject *args) {
 
   if (!PyArg_ParseTuple(args, "OOl", &pos, &mass, &nBucket))
     return NULL;
-  
+
   int bitdepth = getBitDepth(pos);
   if (bitdepth == 0) {
     PyErr_SetString(PyExc_ValueError, "Unsupported array dtype for kdtree");
@@ -181,63 +220,50 @@ PyObject * get_node_count(PyObject *self, PyObject *args) {
 }
 
 PyObject * kdbuild(PyObject *self, PyObject *args) {
-  PyObject *kdNodeArray; // Length-N Numpy array (uninitialized) for KDNodes
+  PyObject *kdNodeArray; // Length-N_node Numpy array (uninitialized) for KDNodes
+  PyObject *orderArray;  // Length-N Numpy array (uninitialized) for particle ordering map
   PyObject *kdobj;
   int num_threads;
 
 
-  if (!PyArg_ParseTuple(args, "OOi", &kdobj, &kdNodeArray, &num_threads))
-    return NULL;
+  if (!PyArg_ParseTuple(args, "OOOi", &kdobj, &kdNodeArray, &orderArray, &num_threads))
+    return nullptr;
 
 
   KDContext *kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
-
-
-  if(!PyArray_Check(kdNodeArray)) {
-    PyErr_SetString(PyExc_ValueError, "First argument needs to be a numpy array of KDNodes");
+  if (kd == nullptr) {
+    PyErr_SetString(PyExc_ValueError, "Invalid KDContext object");
     return nullptr;
   }
 
-  PyArray_Descr *kdnDescr = PyArray_DESCR(kdNodeArray);
-
-
-  if(kdnDescr->elsize != sizeof(KDNode)) {
-    PyErr_SetString(PyExc_ValueError, "Wrong data type passed for KDNode array");
+  if (checkArray<KDNode>(kdNodeArray, "kdNodes", kd->nNodes, true)) {
     return nullptr;
   }
 
-  if(PyArray_SIZE(kdNodeArray) != kd->nNodes) {
-    PyErr_SetString(PyExc_ValueError, "KDNode array must have the right number of nodes in it");
-    return nullptr;
-  }
-
-  if((PyArray_FLAGS(kdNodeArray) & NPY_ARRAY_C_CONTIGUOUS) == 0) {
-    PyErr_SetString(PyExc_ValueError, "KDNode array must be C-contiguous");
+  if (checkArray<npy_intp>(orderArray, "orderArray", kd->nParticles, true)) {
     return nullptr;
   }
 
   kd->kdNodes = static_cast<KDNode*>(PyArray_DATA(kdNodeArray));
   kd->kdNodesPyObject = kdNodeArray;
 
+  kd->particleOffsets = static_cast<npy_intp*>(PyArray_DATA(orderArray));
+  kd->pNumpyParticleOffsets = orderArray;
+
   Py_INCREF(kd->kdNodesPyObject);
+  Py_INCREF(kd->pNumpyParticleOffsets);
 
   Py_BEGIN_ALLOW_THREADS;
 
-  // Allocate particles - TODO: This must be a numpy array too!
-  kd->p = (PARTICLE *)malloc(kd->nActive * sizeof(PARTICLE));
-  assert(kd->p != nullptr);
-
   for (npy_intp i = 0; i < kd->nParticles; i++) {
-    kd->p[i].iOrder = i;
-    kd->p[i].iMark = 1;
+    kd->particleOffsets[i] = i;
   }
-
 
   if (kd->nBitDepth == 64)
     kdBuildTree<double>(kd, num_threads);
   else
     kdBuildTree<float>(kd, num_threads);
-    
+
 
   Py_END_ALLOW_THREADS;
 
@@ -256,14 +282,17 @@ PyObject *kdfree(PyObject *self, PyObject *args) {
   PyArg_ParseTuple(args, "O", &kdobj);
   kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
 
-  if(kd->p!=nullptr)
-    free(kd->p);
+  if (kd == nullptr) {
+    PyErr_SetString(PyExc_ValueError, "Invalid KDContext object");
+    return nullptr;
+  }
 
   Py_XDECREF(kd->pNumpyPos);
   Py_XDECREF(kd->pNumpyMass);
   Py_XDECREF(kd->pNumpySmooth);
   Py_XDECREF(kd->pNumpyDen);
   Py_XDECREF(kd->kdNodesPyObject);
+  Py_XDECREF(kd->pNumpyParticleOffsets);
 
   delete kd;
 
@@ -358,11 +387,11 @@ PyObject *nn_next(PyObject *self, PyObject *args) {
 
     for (i = 0; i < nCnt; i++) {
       pj = smx->pList[i];
-      PyList_SetItem(nnList, i, PyLong_FromLong(smx->kd->p[pj].iOrder));
+      PyList_SetItem(nnList, i, PyLong_FromLong(smx->kd->particleOffsets[pj]));
       PyList_SetItem(nnDist, i, PyFloat_FromDouble(smx->fList[i]));
     }
 
-    PyList_SetItem(retList, 0, PyLong_FromLong(smx->kd->p[smx->pi].iOrder));
+    PyList_SetItem(retList, 0, PyLong_FromLong(smx->kd->particleOffsets[smx->pi]));
     if (kd->nBitDepth == 32)
       PyList_SetItem(retList, 1, PyFloat_FromDouble(GETSMOOTH(float, smx->pi)));
     else
@@ -427,29 +456,6 @@ int getBitDepth(PyObject *check) {
     return 0;
 }
 
-template <typename T> const char *c_name() { return "unknown"; }
-
-template <> const char *c_name<double>() { return "double"; }
-
-template <> const char *c_name<float>() { return "float"; }
-
-template <typename T> int checkArray(PyObject *check, const char *name) {
-
-  if (check == NULL) {
-    PyErr_Format(PyExc_ValueError, "Unspecified array '%s' in kdtree", name);
-    return 1;
-  }
-
-  PyArray_Descr *descr = PyArray_DESCR(check);
-  if (descr == NULL || descr->kind != 'f' || descr->elsize != sizeof(T)) {
-    PyErr_Format(
-        PyExc_TypeError,
-        "Incorrect numpy data type for %s passed to kdtree - must match C %s",
-        name, c_name<T>());
-    return 1;
-  }
-  return 0;
-}
 
 PyObject *set_arrayref(PyObject *self, PyObject *args) {
   int arid;
@@ -703,7 +709,7 @@ template <typename Tf, typename Tq> struct typed_populate {
       while (i < nbodies) {
         // make a copy of the position of this particle
         for (int j = 0; j < 3; ++j) {
-          ri[j] = GET2<Tf>(kd->pNumpyPos, kd->p[i].iOrder, j);
+          ri[j] = GET2<Tf>(kd->pNumpyPos, kd->particleOffsets[i], j);
         }
 
         // retrieve the existing smoothing length

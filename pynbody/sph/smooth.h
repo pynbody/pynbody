@@ -121,12 +121,7 @@ template <typename T> void smBallSearch(SMX, float, float *);
 inline npy_intp smBallGatherStoreResultInList(SMX smx, float fDist2,
                                               npy_intp particleIndex,
                                               npy_intp foundIndex) {
-  // append particleIndex to particleList
-  // PyObject *particleIndexPy =
-  // PyLong_FromLong(smx->kd->p[particleIndex].iOrder);
-  // PyList_Append(smx->result, particleIndexPy);
-  // tempar->push_back(smx->kd->p[particleIndex].iOrder);
-  smx->result->push_back(smx->kd->p[particleIndex].iOrder);
+  smx->result->push_back(smx->kd->particleOffsets[particleIndex]);
   return particleIndex + 1;
 }
 
@@ -149,13 +144,13 @@ template <typename T,
           npy_intp (*storeResultFunction)(SMX, float, npy_intp, npy_intp)>
 npy_intp smBallGather(SMX smx, float fBall2, float *ri) {
   KDNode *c;
-  PARTICLE *p;
+  npy_intp *p;
   KDContext* kd = smx->kd;
   npy_intp pj, nCnt, cp, nSplit;
   float dx, dy, dz, x, y, z, lx, ly, lz, sx, sy, sz, fDist2;
 
   c = smx->kd->kdNodes;
-  p = smx->kd->p;
+  p = smx->kd->particleOffsets;
   nSplit = smx->kd->nSplit;
   lx = smx->fPeriod[0];
   ly = smx->fPeriod[1];
@@ -176,9 +171,9 @@ npy_intp smBallGather(SMX smx, float fBall2, float *ri) {
       continue;
     } else {
       for (pj = c[cp].pLower; pj <= c[cp].pUpper; ++pj) {
-        dx = sx - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 0);
-        dy = sy - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 1);
-        dz = sz - GET2<T>(kd->pNumpyPos, p[pj].iOrder, 2);
+        dx = sx - GET2<T>(kd->pNumpyPos, p[pj], 0);
+        dy = sy - GET2<T>(kd->pNumpyPos, p[pj], 1);
+        dz = sz - GET2<T>(kd->pNumpyPos, p[pj], 2);
         fDist2 = dx * dx + dy * dy + dz * dz;
         if (fDist2 <= fBall2) {
           nCnt = storeResultFunction(smx, fDist2, pj, nCnt);
