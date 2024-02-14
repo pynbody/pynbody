@@ -73,10 +73,7 @@ class KDTree:
             Number of threads to use when building tree (if None, use configured/detected number of processors).
         """
 
-        if num_threads is None:
-            num_threads = int(config["number_of_threads"])
-
-        self.num_threads = num_threads
+        num_threads = self._set_num_threads(num_threads)
 
         # get a power of 2 for num_threads to pass to the constructor, because
         # otherwise the workload will not be balanced across threads and they
@@ -84,15 +81,50 @@ class KDTree:
         num_threads_init = 2 ** int(np.log2(num_threads))
 
 
-        self.kdtree = kdmain.init(pos, mass, int(leafsize))
+        self.leafsize = int(leafsize)
+        self.kdtree = kdmain.init(pos, mass, self.leafsize)
         nodes = kdmain.get_node_count(self.kdtree)
+
         self.kdnodes = np.empty(nodes, dtype=KDNode)
         self.particle_offsets = np.empty(len(pos), dtype=np.intp)
         kdmain.build(self.kdtree, self.kdnodes, self.particle_offsets, num_threads_init)
 
         self.boxsize = boxsize
         self._pos = pos
-        self.s_len = len(pos)
+
+    def _set_num_threads(self, num_threads):
+        if num_threads is None:
+            num_threads = int(config["number_of_threads"])
+        self.num_threads = num_threads
+        return num_threads
+
+    def serialize(self):
+        return self.leafsize, self.boxsize, self.kdnodes, self.particle_offsets
+
+    @classmethod
+    def deserialize(cls, pos, mass, serialized_state, num_threads = None, boxsize=None):
+        self = object.__new__(cls)
+        self._set_num_threads(num_threads)
+        leafsize, boxsize_s, kdnodes, particle_offsets = serialized_state
+        if boxsize is not None and abs(boxsize-boxsize_s) > 1e-6:
+            warnings.warn("Boxsize in serialized state does not match boxsize passed to deserialize")
+        self.kdtree = kdmain.init(pos, mass, leafsize)
+        self.leafsize = leafsize
+        nodes = kdmain.get_node_count(self.kdtree)
+        if len(kdnodes) != nodes:
+            raise ValueError("Number of nodes in serialized state does not match number of nodes in kdtree")
+        self.kdnodes = kdnodes
+        if len(particle_offsets) != len(pos):
+            raise ValueError("Number of particle offsets in serialized state does not match number of particles")
+        self.particle_offsets = particle_offsets
+        self.boxsize = boxsize
+        self._pos = pos
+
+        kdmain.import_prebuilt(self.kdtree, self.kdnodes, self.particle_offsets, 0)
+
+        return self
+
+
 
     def particles_in_sphere(self, center, radius):
         """Find particles within a sphere.

@@ -1562,18 +1562,34 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
     ############################################
 
     def build_tree(self, num_threads=None):
+        """Build a kdtree for SPH operations and for accelerating geometrical filters (Sphere, particularly)"""
         if not hasattr(self, 'kdtree'):
             from .. import kdtree
             from ..configuration import config
-            boxsize = self.properties.get('boxsize', None)
-            if boxsize:
-                if units.is_unit_like(boxsize):
-                    boxsize = float(boxsize.in_units(self['pos'].units))
-            else:
-                boxsize = -1.0  # represents infinite box
+            boxsize = self._get_boxsize_for_kdtree()
             self.kdtree = kdtree.KDTree(self['pos'], self['mass'],
                                         leafsize=config['sph']['tree-leafsize'],
                                         boxsize=boxsize, num_threads=num_threads)
+
+    def import_tree(self, serialized_tree, num_threads=None):
+        """Import a precomputed kdtree from a serialized form.
+
+        Throws ValueError if the tree is not compatible with the snapshot (though
+        does not protect against all possible incompatibilities, so use with care)."""
+        from .. import kdtree
+        self.kdtree = kdtree.KDTree.deserialize(self['pos'], self['mass'],
+                                         serialized_tree,
+                                         boxsize=self._get_boxsize_for_kdtree(),
+                                         num_threads=num_threads)
+    def _get_boxsize_for_kdtree(self):
+        boxsize = self.properties.get('boxsize', None)
+        if boxsize:
+            if units.is_unit_like(boxsize):
+                boxsize = float(boxsize.in_units(self['pos'].units))
+        else:
+            boxsize = -1.0  # represents infinite box
+        return boxsize
+
 
     ############################################
     # HASHING AND EQUALITY TESTING

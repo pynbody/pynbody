@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 
 import numpy as np
@@ -242,6 +243,18 @@ def test_particles_in_sphere(npart, offset, radius, dtype):
 
     assert (np.sort(particles) == np.sort(particles_compare)).all()
 
+def test_kdtree_from_existing_kdtree(npart=1000):
+    f = pynbody.new(dm=npart)
 
-if __name__=="__main__":
-    test_float_kd()
+    np.random.seed(1337)
+    f['pos'] = np.random.normal(1.0, size=(npart, 3))
+    f['mass'] = np.random.uniform(size=npart)
+
+    f_copy = copy.deepcopy(f)
+
+    f.build_tree()
+    f_copy.import_tree(f.kdtree.serialize())
+
+    assert f_copy.kdtree is not f.kdtree
+
+    npt.assert_allclose(f['smooth'], f_copy['smooth'], atol=1e-7)

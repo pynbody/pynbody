@@ -22,6 +22,7 @@
 PyObject *kdinit(PyObject *self, PyObject *args);
 PyObject *kdfree(PyObject *self, PyObject *args);
 PyObject *kdbuild(PyObject *self, PyObject *args);
+PyObject *kdimport_prebuilt(PyObject *self, PyObject *args);
 
 PyObject *nn_start(PyObject *self, PyObject *args);
 PyObject *nn_next(PyObject *self, PyObject *args);
@@ -54,6 +55,7 @@ static PyMethodDef kdmain_methods[] = {
     {"init", kdinit, METH_VARARGS, "init"},
     {"free", kdfree, METH_VARARGS, "free"},
     {"build", kdbuild, METH_VARARGS, "build"},
+    {"import_prebuilt", kdimport_prebuilt, METH_VARARGS, "import_prebuilt"},
 
     {"nn_start", nn_start, METH_VARARGS, "nn_start"},
     {"nn_next", nn_next, METH_VARARGS, "nn_next"},
@@ -219,7 +221,7 @@ PyObject * get_node_count(PyObject *self, PyObject *args) {
   return PyLong_FromLong(kd->nNodes);
 }
 
-PyObject * kdbuild(PyObject *self, PyObject *args) {
+PyObject * build_or_import(PyObject *self, PyObject *args, bool import_mode) {
   PyObject *kdNodeArray; // Length-N_node Numpy array (uninitialized) for KDNodes
   PyObject *orderArray;  // Length-N Numpy array (uninitialized) for particle ordering map
   PyObject *kdobj;
@@ -253,23 +255,32 @@ PyObject * kdbuild(PyObject *self, PyObject *args) {
   Py_INCREF(kd->kdNodesPyObject);
   Py_INCREF(kd->pNumpyParticleOffsets);
 
-  Py_BEGIN_ALLOW_THREADS;
 
-  for (npy_intp i = 0; i < kd->nParticles; i++) {
-    kd->particleOffsets[i] = i;
+  if(!import_mode) {
+    Py_BEGIN_ALLOW_THREADS;
+    for (npy_intp i = 0; i < kd->nParticles; i++) {
+      kd->particleOffsets[i] = i;
+    }
+
+    if (kd->nBitDepth == 64)
+      kdBuildTree<double>(kd, num_threads);
+    else
+      kdBuildTree<float>(kd, num_threads);
+    Py_END_ALLOW_THREADS;
   }
 
-  if (kd->nBitDepth == 64)
-    kdBuildTree<double>(kd, num_threads);
-  else
-    kdBuildTree<float>(kd, num_threads);
-
-
-  Py_END_ALLOW_THREADS;
 
   Py_INCREF(Py_None);
   return Py_None;
 
+}
+
+PyObject * kdimport_prebuilt(PyObject *self, PyObject *args) {
+  return build_or_import(self, args, true);
+}
+
+PyObject * kdbuild(PyObject *self, PyObject *args) {
+  return build_or_import(self, args, false);
 }
 
 /*==========================================================================*/
