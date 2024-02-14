@@ -10,8 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool smCheckFits(KD kd, float *fPeriod) {
-  KDN *root;
+bool smCheckFits(KDContext* kd, float *fPeriod) {
+  KDNode *root;
   npy_intp j;
 
   root = &kd->kdNodes[ROOT];
@@ -28,9 +28,9 @@ bool smCheckFits(KD kd, float *fPeriod) {
   return true;
 }
 
-int smInit(SMX *psmx, KD kd, int nSmooth, float *fPeriod) {
+int smInit(SMX *psmx, KDContext* kd, int nSmooth, float *fPeriod) {
   SMX smx;
-  KDN *root;
+  KDNode *root;
   int j;
   int bError = 0;
 
@@ -77,7 +77,7 @@ int smInit(SMX *psmx, KD kd, int nSmooth, float *fPeriod) {
 SMX smInitThreadLocalCopy(SMX from) {
 
   SMX smx;
-  KDN *root;
+  KDNode *root;
   npy_intp pi;
   int j;
 
@@ -156,9 +156,9 @@ void smFinish(SMX smx) {
 }
 
 template <typename T> void smBallSearch(SMX smx, float fBall2, float *ri) {
-  KDN *c;
+  KDNode *c;
   PARTICLE *p;
-  KD kd;
+  KDContext* kd;
   npy_intp cell, cp, ct, pj;
   T fDist2, dx, dy, dz, lx, ly, lz, sx, sy, sz, x, y, z;
   PQ *pq;
@@ -273,7 +273,7 @@ void smSmoothInitStep(SMX smx, int nProcs_for_smooth) {
 
   PARTICLE *p;
   npy_intp pi;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
 
   for (pi = 0; pi < kd->nActive; ++pi) {
     smx->iMark[pi] = 0;
@@ -282,7 +282,7 @@ void smSmoothInitStep(SMX smx, int nProcs_for_smooth) {
   smInitPriorityQueue(smx);
 }
 
-template <typename T> void smDomainDecomposition(KD kd, int nprocs) {
+template <typename T> void smDomainDecomposition(KDContext* kd, int nprocs) {
 
   // AP 31/8/2014 - Here is the domain decomposition for nProcs>1
   // In principle one should do better by localizing the
@@ -333,10 +333,10 @@ void smInitPriorityQueue(SMX smx) {
 }
 
 template <typename T> npy_intp smSmoothStep(SMX smx, int procid) {
-  KDN *c;
+  KDNode *c;
   PARTICLE *p;
   PQ *pq, *pqLast;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
   npy_intp cell;
   npy_intp pi, pin, pj, pNext, nCnt, nSmooth;
   npy_intp nScanned = 0;
@@ -543,7 +543,7 @@ void smDensitySym(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
                   float *fList, bool Wendland) {
   T fNorm, ih2, r2, rs, ih;
   npy_intp i, pj;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
 
   ih = 1.0 / GETSMOOTH(T, pi);
   ih2 = ih * ih;
@@ -570,7 +570,7 @@ void smDensity(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList, float *fList,
                bool Wendland) {
   T fNorm, ih2, r2, rs, ih;
   npy_intp j, pj, pi_iord;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
 
   pi_iord = kd->p[pi].iOrder;
   ih = 1.0 / GET<T>(kd->pNumpySmooth, pi_iord);
@@ -596,7 +596,7 @@ void smMeanQty1D(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
                  float *fList, bool Wendland) {
   Tf fNorm, ih2, r2, rs, ih, mass, rho;
   npy_intp j, pj, pi_iord;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
 
   pi_iord = kd->p[pi].iOrder;
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
@@ -626,7 +626,7 @@ void smMeanQtyND(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
                  float *fList, bool Wendland) {
   Tf fNorm, ih2, r2, rs, ih, mass, rho;
   npy_intp j, k, pj, pi_iord;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
 
   pi_iord = kd->p[pi].iOrder;
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
@@ -684,7 +684,7 @@ void smCurlQty(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList, float *fList,
                bool Wendland) {
   Tf fNorm, ih2, r2, r, rs, q2, q, ih, mass, rho, dqty[3], qty_i[3];
   npy_intp j, k, pj, pi_iord, pj_iord;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
   Tf curl[3], x, y, z, dx, dy, dz;
 
   pi_iord = kd->p[pi].iOrder;
@@ -743,7 +743,7 @@ void smDivQty(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList, float *fList,
               bool Wendland) {
   Tf fNorm, ih2, r2, r, rs, q2, q, ih, mass, rho, div, dqty[3], qty_i[3];
   npy_intp j, k, pj, pi_iord, pj_iord;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
   Tf x, y, z, dx, dy, dz;
 
   pi_iord = kd->p[pi].iOrder;
@@ -797,7 +797,7 @@ void smDispQtyND(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
                  float *fList, bool Wendland) {
   float fNorm, ih2, r2, rs, ih, mass, rho;
   npy_intp j, k, pj, pi_iord;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
   float mean[3], tdiff;
 
   pi_iord = kd->p[pi].iOrder;
@@ -860,7 +860,7 @@ void smDispQty1D(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
                  float *fList, bool Wendland) {
   float fNorm, ih2, r2, rs, ih, mass, rho;
   npy_intp j, pj, pi_iord;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
   Tq mean, tdiff;
 
   pi_iord = kd->p[pi].iOrder;
@@ -916,7 +916,7 @@ void smDispQty1D(SMX smx, npy_intp pi, int nSmooth, npy_intp *pList,
 
 template void smBallSearch<double>(SMX smx, float fBall2, float *ri);
 
-template void smDomainDecomposition<double>(KD kd, int nprocs);
+template void smDomainDecomposition<double>(KDContext* kd, int nprocs);
 
 template npy_intp smSmoothStep<double>(SMX smx, int procid);
 
@@ -929,7 +929,7 @@ template void smDensity<double>(SMX smx, npy_intp pi, int nSmooth,
 
 template void smBallSearch<float>(SMX smx, float fBall2, float *ri);
 
-template void smDomainDecomposition<float>(KD kd, int nprocs);
+template void smDomainDecomposition<float>(KDContext* kd, int nprocs);
 
 template npy_intp smSmoothStep<float>(SMX smx, int procid);
 

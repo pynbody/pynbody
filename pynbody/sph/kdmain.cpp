@@ -43,6 +43,7 @@ long total_alloc = 0;
 
 PyObject *kdinit(PyObject *self, PyObject *args);
 PyObject *kdfree(PyObject *self, PyObject *args);
+PyObject *kdbuild(PyObject *self, PyObject *args);
 
 PyObject *nn_start(PyObject *self, PyObject *args);
 PyObject *nn_next(PyObject *self, PyObject *args);
@@ -54,6 +55,7 @@ PyObject *populate(PyObject *self, PyObject *args);
 PyObject *domain_decomposition(PyObject *self, PyObject *args);
 PyObject *set_arrayref(PyObject *self, PyObject *args);
 PyObject *get_arrayref(PyObject *self, PyObject *args);
+PyObject *get_node_count(PyObject *self, PyObject *args);
 
 PyObject *particles_in_sphere(PyObject *self, PyObject *args);
 
@@ -75,6 +77,7 @@ int getBitDepth(PyObject *check);
 static PyMethodDef kdmain_methods[] = {
     {"init", kdinit, METH_VARARGS, "init"},
     {"free", kdfree, METH_VARARGS, "free"},
+    {"build", kdbuild, METH_VARARGS, "build"},
 
     {"nn_start", nn_start, METH_VARARGS, "nn_start"},
     {"nn_next", nn_next, METH_VARARGS, "nn_next"},
@@ -86,6 +89,7 @@ static PyMethodDef kdmain_methods[] = {
 
     {"set_arrayref", set_arrayref, METH_VARARGS, "set_arrayref"},
     {"get_arrayref", get_arrayref, METH_VARARGS, "get_arrayref"},
+    {"get_node_count", get_node_count, METH_VARARGS, "get_node_count"},
     {"domain_decomposition", domain_decomposition, METH_VARARGS,
      "domain_decomposition"},
 
@@ -118,13 +122,15 @@ PyInit_kdmain(void)
 PyObject *kdinit(PyObject *self, PyObject *args) {
   npy_intp nBucket;
   npy_intp i;
-  int num_threads;
 
   PyObject *pos;  // Nx3 Numpy array of positions
   PyObject *mass; // Nx1 Numpy array of masses
 
-  if (!PyArg_ParseTuple(args, "OOli", &pos, &mass, &nBucket, &num_threads))
+  std::cerr << "Parsing tuple..." << std::endl;
+  if (!PyArg_ParseTuple(args, "OOl", &pos, &mass, &nBucket))
     return NULL;
+  
+
 
   int bitdepth = getBitDepth(pos);
   if (bitdepth == 0) {
@@ -149,9 +155,10 @@ PyObject *kdinit(PyObject *self, PyObject *args) {
       return NULL;
   }
 
-  KD kd = (KD)malloc(sizeof(*kd));
-  kdInit(&kd, nBucket);
+  KDContext *kd = new KDContext();
+  kd->nBucket = nBucket;
 
+  std::cerr << "Getting nbodies..." << std::endl;
   npy_intp nbodies = PyArray_DIM(pos, 0);
 
   kd->nParticles = nbodies;
@@ -159,50 +166,119 @@ PyObject *kdinit(PyObject *self, PyObject *args) {
   kd->nBitDepth = bitdepth;
   kd->pNumpyPos = pos;
   kd->pNumpyMass = mass;
-  kd->pNumpySmooth = NULL;
-  kd->pNumpyDen = NULL;
-  kd->pNumpyQty = NULL;
-  kd->pNumpyQtySmoothed = NULL;
 
   Py_INCREF(pos);
   Py_INCREF(mass);
 
+  std::cerr << "About to count nodes..." << std::endl;
+  kdCountNodes(kd);
+  std::cerr << "Counted nodes!" << std::endl;
+
+  return PyCapsule_New((void *)kd, NULL, NULL);
+}
+
+PyObject * get_node_count(PyObject *self, PyObject *args) {
+  PyObject *kdobj;
+  if(!PyArg_ParseTuple(args, "O", &kdobj))
+    return NULL;
+  KDContext *kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
+  return PyLong_FromLong(kd->nNodes);
+}
+
+PyObject * kdbuild(PyObject *self, PyObject *args) {
+  PyObject *kdNodeArray; // Length-N Numpy array (uninitialized) for KDNodes
+  PyObject *kdobj;
+  int num_threads;
+
+  std::cerr << "Hello kdbuild!" << std::endl;
+
+  if (!PyArg_ParseTuple(args, "OOi", &kdobj, &kdNodeArray, &num_threads))
+    return NULL;
+
+  std::cerr << "Tuple parsed!" << std::endl;
+
+  KDContext *kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
+
+  std::cerr << "Got the context!" << std::endl;
+
+  if(!PyArray_Check(kdNodeArray)) {
+    PyErr_SetString(PyExc_ValueError, "First argument needs to be a numpy array of KDNodes");
+    return nullptr;
+  }
+
+  PyArray_Descr *kdnDescr = PyArray_DESCR(kdNodeArray);
+
+  std::cerr << "Got the descr!" << std::endl;
+
+  std::cerr << kd->nNodes << " " << PyArray_SIZE(kdNodeArray) << std::endl;
+
+  if(kdnDescr->elsize != sizeof(KDNode)) {
+    PyErr_SetString(PyExc_ValueError, "Wrong data type passed for KDNode array");
+    return nullptr;
+  }
+
+  if(PyArray_SIZE(kdNodeArray) != kd->nNodes) {
+    PyErr_SetString(PyExc_ValueError, "KDNode array must have the right number of nodes in it");
+    return nullptr;
+  }
+
+  if((PyArray_FLAGS(kdNodeArray) & NPY_ARRAY_C_CONTIGUOUS) == 0) {
+    PyErr_SetString(PyExc_ValueError, "KDNode array must be C-contiguous");
+    return nullptr;
+  }
+
+  kd->kdNodes = static_cast<KDNode*>(PyArray_DATA(kdNodeArray));
+  kd->kdNodesPyObject = kdNodeArray;
+
+  std::cerr << "got the nodes!" << std::endl;
+
+  Py_INCREF(kd->kdNodesPyObject);
+
   Py_BEGIN_ALLOW_THREADS;
 
-  // Allocate particles
+  // Allocate particles - TODO: This must be a numpy array too!
+  std::cerr << "Allocating particles..." << kd->nParticles << std::endl;
   kd->p = (PARTICLE *)malloc(kd->nActive * sizeof(PARTICLE));
-  assert(kd->p != NULL);
+  std::cerr << "Allocated particles!" << std::endl;
+  assert(kd->p != nullptr);
 
-  for (i = 0; i < nbodies; i++) {
+  for (npy_intp i = 0; i < kd->nParticles; i++) {
     kd->p[i].iOrder = i;
     kd->p[i].iMark = 1;
   }
 
-  if (bitdepth == 64)
+
+  if (kd->nBitDepth == 64)
     kdBuildTree<double>(kd, num_threads);
   else
     kdBuildTree<float>(kd, num_threads);
 
   Py_END_ALLOW_THREADS;
 
-  return PyCapsule_New((void *)kd, NULL, NULL);
 }
 
 /*==========================================================================*/
 /* kdfree                                                                   */
 /*==========================================================================*/
 PyObject *kdfree(PyObject *self, PyObject *args) {
-  KD kd;
+  KDContext *kd;
   PyObject *kdobj;
 
   PyArg_ParseTuple(args, "O", &kdobj);
-  kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
+  kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
 
-  kdFinish(kd);
+  if(kd->p!=nullptr)
+    free(kd->p);
+
   Py_XDECREF(kd->pNumpyPos);
   Py_XDECREF(kd->pNumpyMass);
   Py_XDECREF(kd->pNumpySmooth);
   Py_XDECREF(kd->pNumpyDen);
+  Py_XDECREF(kd->kdNodesPyObject);
+
+  delete kd;
+
+  Py_INCREF(Py_None);
   return Py_None;
 }
 
@@ -210,7 +286,7 @@ PyObject *kdfree(PyObject *self, PyObject *args) {
 /* nn_start                                                                 */
 /*==========================================================================*/
 PyObject *nn_start(PyObject *self, PyObject *args) {
-  KD kd;
+  KDContext* kd;
   SMX smx;
 
   PyObject *kdobj;
@@ -222,7 +298,7 @@ PyObject *nn_start(PyObject *self, PyObject *args) {
   float period = std::numeric_limits<float>::max();
 
   PyArg_ParseTuple(args, "Oii|f", &kdobj, &nSmooth, &nProcs, &period);
-  kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
+  kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
 
   if (period <= 0)
     period = std::numeric_limits<float>::max();
@@ -266,7 +342,7 @@ PyObject *nn_start(PyObject *self, PyObject *args) {
 PyObject *nn_next(PyObject *self, PyObject *args) {
   long nCnt, i, pj;
 
-  KD kd;
+  KDContext* kd;
   SMX smx;
 
   PyObject *kdobj, *smxobj;
@@ -275,7 +351,7 @@ PyObject *nn_next(PyObject *self, PyObject *args) {
   PyObject *retList;
 
   PyArg_ParseTuple(args, "OO", &kdobj, &smxobj);
-  kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
+  kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
   smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
 
   Py_BEGIN_ALLOW_THREADS;
@@ -317,13 +393,13 @@ PyObject *nn_next(PyObject *self, PyObject *args) {
 /* nn_stop                                                                 */
 /*==========================================================================*/
 PyObject *nn_stop(PyObject *self, PyObject *args) {
-  KD kd;
+  KDContext* kd;
   SMX smx;
 
   PyObject *kdobj, *smxobj;
 
   PyArg_ParseTuple(args, "OO", &kdobj, &smxobj);
-  kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
+  kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
   smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
 
   smFinish(smx);
@@ -389,7 +465,7 @@ template <typename T> int checkArray(PyObject *check, const char *name) {
 PyObject *set_arrayref(PyObject *self, PyObject *args) {
   int arid;
   PyObject *kdobj, *arobj, **existing;
-  KD kd;
+  KDContext* kd;
 
   const char *name0 = "smooth";
   const char *name1 = "rho";
@@ -400,7 +476,7 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
   const char *name;
 
   PyArg_ParseTuple(args, "OiO", &kdobj, &arid, &arobj);
-  kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
+  kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
   if (!kd)
     return NULL;
 
@@ -458,10 +534,10 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
 PyObject *get_arrayref(PyObject *self, PyObject *args) {
   int arid;
   PyObject *kdobj, *arobj, **existing;
-  KD kd;
+  KDContext* kd;
 
   PyArg_ParseTuple(args, "Oi", &kdobj, &arid);
-  kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
+  kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
   if (!kd)
     return NULL;
 
@@ -498,11 +574,11 @@ PyObject *get_arrayref(PyObject *self, PyObject *args) {
 PyObject *domain_decomposition(PyObject *self, PyObject *args) {
   int nproc;
   PyObject *smxobj;
-  KD kd;
+  KDContext* kd;
 
   PyArg_ParseTuple(args, "Oi", &smxobj, &nproc);
 
-  kd = (KD)PyCapsule_GetPointer(smxobj, NULL);
+  kd = static_cast<KDContext*>(PyCapsule_GetPointer(smxobj, NULL));
   if (!kd)
     return NULL;
 
@@ -531,7 +607,7 @@ PyObject *domain_decomposition(PyObject *self, PyObject *args) {
 template <typename Tf, typename Tq> struct typed_particles_in_sphere {
   static PyObject *call(PyObject *self, PyObject *args) {
     SMX smx;
-    KD kd;
+    KDContext* kd;
     float r;
     float ri[3];
 
@@ -540,7 +616,7 @@ template <typename Tf, typename Tq> struct typed_particles_in_sphere {
     PyArg_ParseTuple(args, "OOffff", &kdobj, &smxobj, &ri[0], &ri[1], &ri[2],
                      &r);
 
-    kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
+    kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
     smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
 
     initParticleList(smx);
@@ -555,7 +631,7 @@ template <typename Tf, typename Tq> struct typed_populate {
 
     long i, nCnt;
     int procid;
-    KD kd;
+    KDContext* kd;
     SMX smx_global, smx_local;
     int propid;
     float ri[3];
@@ -568,7 +644,7 @@ template <typename Tf, typename Tq> struct typed_populate {
 
     PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid,
                      &Wendland);
-    kd = (KD)PyCapsule_GetPointer(kdobj, NULL);
+    kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
     smx_global = (SMX)PyCapsule_GetPointer(smxobj, NULL);
 
     long nbodies = PyArray_DIM(kd->pNumpyPos, 0);
@@ -682,7 +758,7 @@ PyObject *type_dispatcher(PyObject *self, PyObject *args) {
     PyErr_SetString(PyExc_ValueError, "First argument must be a kdtree object");
     return nullptr;
   }
-  KD kd = (KD)PyCapsule_GetPointer(kdobj, nullptr);
+  KDContext* kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, nullptr));
   int nF = kd->nBitDepth;
   int nQ = 32;
 

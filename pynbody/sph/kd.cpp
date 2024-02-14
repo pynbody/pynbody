@@ -9,19 +9,8 @@
 
 #define MAX_ROOT_ITTR 32
 
-int kdInit(KD *pkd, npy_intp nBucket) {
-  KD kd;
 
-  kd = (KD)malloc(sizeof(struct kdContext));
-  assert(kd != NULL);
-  kd->nBucket = nBucket;
-  kd->p = NULL;
-  kd->kdNodes = NULL;
-  *pkd = kd;
-  return (1);
-}
-
-void kdCombine(KDN *p1, KDN *p2, KDN *pOut) {
+void kdCombine(KDNode *p1, KDNode *p2, KDNode *pOut) {
   int j;
 
   /*
@@ -45,18 +34,13 @@ int cmpParticles(const void *v1, const void *v2) {
   return (p1->iOrder - p2->iOrder);
 }
 
-void kdOrder(KD kd) {
+void kdOrder(KDContext* kd) {
   qsort(kd->p, kd->nActive, sizeof(PARTICLE), cmpParticles);
 }
 
-void kdFinish(KD kd) {
-  free(kd->p);
-  free(kd->kdNodes);
-  free(kd);
-}
 
 template <typename T>
-void kdSelect(KD kd, npy_intp d, npy_intp k, npy_intp l, npy_intp r) {
+void kdSelect(KDContext* kd, npy_intp d, npy_intp k, npy_intp l, npy_intp r) {
   PARTICLE *p, t;
   T v;
   npy_intp i, j;
@@ -92,8 +76,8 @@ void kdSelect(KD kd, npy_intp d, npy_intp k, npy_intp l, npy_intp r) {
   }
 }
 
-template <typename T> void kdUpPass(KD kd, npy_intp iCell) {
-  KDN *c;
+template <typename T> void kdUpPass(KDContext* kd, npy_intp iCell) {
+  KDNode *c;
   npy_intp l, u, pj, j;
   double rj;
   c = kd->kdNodes;
@@ -122,10 +106,8 @@ template <typename T> void kdUpPass(KD kd, npy_intp iCell) {
   }
 }
 
-template <typename T> void kdBuildTree(KD kd, int num_threads) {
-  npy_intp l, n, i, j;
-  T rj;
-  BND bnd;
+void kdCountNodes(KDContext *kd) {
+  npy_intp l, n;
 
   n = kd->nActive;
   kd->nLevels = 1;
@@ -137,9 +119,16 @@ template <typename T> void kdBuildTree(KD kd, int num_threads) {
   }
   kd->nSplit = l;
   kd->nNodes = l << 1;
-  if (kd->kdNodes != NULL)
-    free(kd->kdNodes);
-  kd->kdNodes = (KDN *)malloc(kd->nNodes * sizeof(KDN));
+}
+
+template <typename T> void kdBuildTree(KDContext* kd, int num_threads) {
+  npy_intp i, j;
+  T rj;
+  Boundary bnd;
+
+  // start by assuming kdCountNodes(kd) has been called and kd->kdNodes!=NULL
+
+  assert(kd->nNodes > 0);
   assert(kd->kdNodes != NULL);
 
   // Calculate bounds
@@ -173,17 +162,12 @@ template <typename T> void kdBuildTree(KD kd, int num_threads) {
   kdUpPass<T>(kd, ROOT);
 }
 
-struct KDargs {
-  KD kd;
-  npy_intp local_root;
-};
-
 template <typename T>
-void kdBuildNode(KD kd, npy_intp local_root, int num_threads) {
+void kdBuildNode(KDContext* kd, npy_intp local_root, int num_threads) {
 
   npy_intp i = local_root;
   npy_intp d, j, m, diff;
-  KDN *nodes;
+  KDNode *nodes;
   nodes = kd->kdNodes;
 
   while (1) {
@@ -266,20 +250,20 @@ void kdBuildNode(KD kd, npy_intp local_root, int num_threads) {
 
 // instantiate the actual functions that are available:
 
-template void kdSelect<double>(KD kd, npy_intp d, npy_intp k, npy_intp l,
+template void kdSelect<double>(KDContext* kd, npy_intp d, npy_intp k, npy_intp l,
                                npy_intp r);
 
-template void kdUpPass<double>(KD kd, npy_intp iCell);
+template void kdUpPass<double>(KDContext* kd, npy_intp iCell);
 
-template void kdBuildTree<double>(KD kd, int num_threads);
+template void kdBuildTree<double>(KDContext* kd, int num_threads);
 
-template void kdBuildNode<double>(KD kd, npy_intp local_root, int num_threads);
+template void kdBuildNode<double>(KDContext* kd, npy_intp local_root, int num_threads);
 
-template void kdSelect<float>(KD kd, npy_intp d, npy_intp k, npy_intp l,
+template void kdSelect<float>(KDContext* kd, npy_intp d, npy_intp k, npy_intp l,
                               npy_intp r);
 
-template void kdUpPass<float>(KD kd, npy_intp iCell);
+template void kdUpPass<float>(KDContext* kd, npy_intp iCell);
 
-template void kdBuildTree<float>(KD kd, int num_threads);
+template void kdBuildTree<float>(KDContext* kd, int num_threads);
 
-template void kdBuildNode<float>(KD kd, npy_intp local_root, int num_threads);
+template void kdBuildNode<float>(KDContext* kd, npy_intp local_root, int num_threads);

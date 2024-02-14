@@ -1,9 +1,5 @@
 FROM python:3.11
 
-WORKDIR /code
-
-COPY . .
-
-RUN pip install .[tests]
-
-CMD [ "bash" ]
+RUN apt-get update && apt-get install -y \
+    gcc \
+    gdb

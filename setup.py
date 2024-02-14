@@ -43,7 +43,7 @@ extra_compile_args = ['-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
-                      '-g', '-std=c++14']
+                      '-g', '-std=c++14','-Og']
 
 extra_link_args = ['-std=c++14']
 

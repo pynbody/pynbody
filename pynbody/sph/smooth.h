@@ -25,7 +25,7 @@ typedef struct pqNode {
 } PQ;
 
 typedef struct smContext {
-  KD kd;
+  KDContext* kd;
   npy_intp nSmooth;
   float fPeriod[3];
   PQ *pq;
@@ -112,7 +112,7 @@ double dF3(double);
 double K3(double);
 double dK3(double);
 
-int smInit(SMX *, KD, int, float *);
+int smInit(SMX *, KDContext *, int, float *);
 void smInitPriorityQueue(SMX);
 void smFinish(SMX);
 
@@ -148,9 +148,9 @@ inline npy_intp smBallGatherStoreResultInSmx(SMX smx, float fDist2,
 template <typename T,
           npy_intp (*storeResultFunction)(SMX, float, npy_intp, npy_intp)>
 npy_intp smBallGather(SMX smx, float fBall2, float *ri) {
-  KDN *c;
+  KDNode *c;
   PARTICLE *p;
-  KD kd = smx->kd;
+  KDContext* kd = smx->kd;
   npy_intp pj, nCnt, cp, nSplit;
   float dx, dy, dz, x, y, z, lx, ly, lz, sx, sy, sz, fDist2;
 
@@ -223,7 +223,7 @@ void smDivQty(SMX, npy_intp, int, npy_intp *, float *, bool);
 template <typename Tf, typename Tq>
 void smCurlQty(SMX, npy_intp, int, npy_intp *, float *, bool);
 
-bool smCheckFits(KD kd, float *fPeriod);
+bool smCheckFits(KDContext* kd, float *fPeriod);
 
 template <typename T> T Wendland_kernel(SMX, T, int);
 
@@ -233,7 +233,7 @@ template <typename Tf> Tf cubicSpline_gradient(Tf, Tf, Tf, Tf);
 
 template <typename Tf> Tf Wendland_gradient(Tf, Tf);
 
-template <typename T> void smDomainDecomposition(KD kd, int nprocs);
+template <typename T> void smDomainDecomposition(KDContext* kd, int nprocs);
 
 npy_intp smGetNext(SMX smx_local);
 

@@ -31,17 +31,17 @@ typedef struct Particle {
 typedef struct bndBound {
   float fMin[3];
   float fMax[3];
-} BND;
+} Boundary;
 
 typedef struct kdNode {
   float fSplit;
-  BND bnd;
+  Boundary bnd;
   int iDim;
   npy_intp pLower;
   npy_intp pUpper;
-} KDN;
+} KDNode;
 
-typedef struct kdContext {
+typedef struct KDContext {
   npy_intp nBucket;
   npy_intp nParticles;
   npy_intp nActive;
@@ -50,7 +50,8 @@ typedef struct kdContext {
   npy_intp nNodes;
   npy_intp nSplit;
   PARTICLE *p;
-  KDN *kdNodes;
+  KDNode *kdNodes;
+  PyObject *kdNodesPyObject;
 
   int nBitDepth;        // bit depth of arrays other than pNumpyQty which can be
                         // different
@@ -60,7 +61,7 @@ typedef struct kdContext {
   PyObject *pNumpyDen;         // Nx1 Numpy array of density
   PyObject *pNumpyQty;         // Nx1 Numpy array of density
   PyObject *pNumpyQtySmoothed; // Nx1 Numpy array of density
-} *KD;
+};
 
 #define INTERSECT(c, cp, fBall2, lx, ly, lz, x, y, z, sx, sy, sz)              \
   {                                                                            \
@@ -150,14 +151,13 @@ typedef struct kdContext {
     }                                                                          \
   }
 
-int kdInit(KD *, npy_intp);
+void kdCountNodes(KDContext *kd);
 
-template <typename T> void kdBuildTree(KD, int num_threads);
-void kdOrder(KD);
-void kdFinish(KD);
+template <typename T> void kdBuildTree(KDContext*, int num_threads);
+void kdOrder(KDContext*);
 
-template <typename T> void kdBuildNode(KD, npy_intp, int);
-void kdCombine(KDN *p1, KDN *p2, KDN *pOut);
+template <typename T> void kdBuildNode(KDContext*, npy_intp, int);
+void kdCombine(KDNode *p1, KDNode *p2, KDNode *pOut);
 
 template <typename T> T GET(PyObject *ar, npy_intp i) {
   return *((T *)PyArray_GETPTR1(ar, i));
