@@ -6,6 +6,7 @@ import numpy as np
 
 import pynbody
 
+
 @contextlib.contextmanager
 def timer(name):
     start = time.time()
