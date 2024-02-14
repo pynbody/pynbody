@@ -29,15 +29,8 @@ import pynbody.snapshot.simsnap
 
 logger = logging.getLogger('pynbody.sph')
 
-from .. import array, config, config_parser, snapshot, units, util
+from .. import array, config, config_parser, kdtree, snapshot, units, util
 from . import _render
-
-try:
-    from . import kdtree
-except ImportError:
-    raise ImportError("Pynbody cannot import the kdtree subpackage. This can be caused when you try to import pynbody directly from the installation folder. Try changing to another folder before launching python")
-
-
 
 
 def _get_threaded_image():
@@ -45,30 +38,6 @@ def _get_threaded_image():
 
 _threaded_image = _get_threaded_image()
 _approximate_image = config_parser.getboolean('sph', 'approximate-fast-images')
-
-def _exception_catcher(call_fn, exception_list, *args):
-    try:
-        call_fn(*args)
-    except Exception:
-        exception_list.append(sys.exc_info())
-
-def _thread_map(func, *args):
-    threads = []
-    exceptions = []
-    for arg_this in zip(*args):
-        arg_ec_this = [func,exceptions]+list(arg_this)
-        threads.append(threading.Thread(target=_exception_catcher, args=arg_ec_this))
-        threads[-1].start()
-    for t in threads:
-        while t.is_alive():
-            # just calling t.join() with no timeout can make it harder to
-            # debug deadlocks!
-            t.join(1.0)
-
-    if len(exceptions)>0:
-        # Here we re-raise the exception that was actually generated in a thread
-        t,obj,trace= exceptions[0]
-        raise t(obj).with_traceback(trace)
 
 def _kernel_suitable_for_denoise(kernel):
     if type(kernel) is not Kernel:
@@ -88,47 +57,9 @@ def _auto_denoise(sim, kernel):
     else:
         return False
 
-def build_tree(sim, num_threads=None):
-    if hasattr(sim, 'kdtree') is False:
-        # n.b. getting the following arrays through the full framework is
-        # not possible because it can cause a deadlock if the build_tree
-        # has been triggered by getting an array in the calling thread.
-        boxsize = sim.properties.get('boxsize',None)
-        if boxsize:
-            if units.is_unit_like(boxsize):
-                boxsize = float(boxsize.in_units(sim['pos'].units))
-        else:
-            boxsize = -1.0 # represents infinite box
-        sim.kdtree = kdtree.KDTree(sim['pos'], sim['mass'],
-                        leafsize=config['sph']['tree-leafsize'],
-                        boxsize=boxsize, num_threads=num_threads)
-
-
-def _tree_decomposition(obj):
-    return [obj[i::_get_threaded_smooth()] for i in range(_get_threaded_smooth())]
-
-
-def _get_tree_objects(sim):
-    return list(map(getattr, _tree_decomposition(sim), ['kdtree'] * _get_threaded_smooth()))
-
-
-def build_tree_or_trees(sim):
-
-    if hasattr(sim, 'kdtree'):
-        return
-
-    logger.info('Building tree with leafsize=%d' % config['sph']['tree-leafsize'])
-
-    start = process_time()
-    build_tree(sim)
-    end = process_time()
-
-    logger.info('Tree build done in %5.3g s' % (end - start))
-
-
 @pynbody.snapshot.simsnap.SimSnap.stable_derived_quantity
 def smooth(self):
-    build_tree_or_trees(self)
+    self.build_tree()
 
     logger.info('Smoothing with %d nearest neighbours' %
                 config['sph']['smooth-particles'])
@@ -158,7 +89,7 @@ def _get_smooth_array_ensuring_compatibility(self):
 
 @pynbody.snapshot.simsnap.SimSnap.stable_derived_quantity
 def rho(self):
-    build_tree_or_trees(self)
+    self.build_tree()
 
 
     logger.info('Calculating SPH density')

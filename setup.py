@@ -49,9 +49,9 @@ extra_link_args = ['-std=c++14']
 
 incdir = [np.get_include()]
 
-kdmain = Extension('pynbody.sph.kdmain',
-                   sources = ['pynbody/sph/kdmain.cpp', 'pynbody/sph/kd.cpp',
-                              'pynbody/sph/smooth.cpp'],
+kdmain = Extension('pynbody.kdtree.kdmain',
+                   sources = ['pynbody/kdtree/kdmain.cpp', 'pynbody/kdtree/kd.cpp',
+                              'pynbody/kdtree/smooth.cpp'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
 

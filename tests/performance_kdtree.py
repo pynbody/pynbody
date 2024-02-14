@@ -50,7 +50,7 @@ with timer("sphere queries without tree"):
 
 
 with timer("tree build"):
-    pynbody.sph.build_tree(f, num_threads=num_threads)
+    f.build_tree(num_threads=num_threads)
 
 
 

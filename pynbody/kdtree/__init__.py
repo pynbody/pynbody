@@ -12,10 +12,10 @@ import warnings
 
 import numpy as np
 
-from .. import array as ar, config
+from .. import array as ar, config, util
 from . import kdmain
 
-logger = logging.getLogger("pynbody.sph.kdtree")
+logger = logging.getLogger("pynbody.kdtree")
 
 # Boundary type definition must exactly match the C++ definition (see kd.h)
 Boundary = np.dtype([
@@ -33,7 +33,20 @@ KDNode = np.dtype([
 ])
 
 class KDTree:
-    """KDTree used for smoothing."""
+    """KDTree can be used for smoothing, interpolating and geometrical queries.
+
+    Most users are unlikely to interact with the KDTree directly, instead using the higher-level
+    SPH functionality. To accelerate geometrical queries on a snapshot, try:
+
+    >>> f = pynbody.load('my_snapshot')
+    >>> f.build_kdtree()
+    >>> f[pynbody.filt.Sphere('10 kpc')] # this will automatically be a faster operation once the tree is built
+
+    Performance statistics can be tested using the performance_kdtree.py script in the tests folder
+
+    Most KDTree operations proceed in parallel, using the number of threads specified in the
+    pynbody configuration.
+    """
 
     PROPID_HSM = 1
     PROPID_RHO = 2
@@ -222,8 +235,6 @@ class KDTree:
         kernel : str
             Keyword to specify the smoothing kernel. Options: 'CubicSpline', 'WendlandC2'
         """
-        from . import _thread_map
-
 
 
         if nn is None:
@@ -249,7 +260,7 @@ class KDTree:
             if self.num_threads == 1:
                 kdmain.populate(self.kdtree, smx, propid, 0, kernel)
             else:
-                _thread_map(
+                util.thread_map(
                     kdmain.populate,
                     [self.kdtree] * self.num_threads,
                     [smx] * self.num_threads,

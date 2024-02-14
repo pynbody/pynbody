@@ -1558,6 +1558,24 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
                     fn(self)
 
     ############################################
+    # KD-Tree
+    ############################################
+
+    def build_tree(self, num_threads=None):
+        if not hasattr(self, 'kdtree'):
+            from .. import kdtree
+            from ..configuration import config
+            boxsize = self.properties.get('boxsize', None)
+            if boxsize:
+                if units.is_unit_like(boxsize):
+                    boxsize = float(boxsize.in_units(self['pos'].units))
+            else:
+                boxsize = -1.0  # represents infinite box
+            self.kdtree = kdtree.KDTree(self['pos'], self['mass'],
+                                        leafsize=config['sph']['tree-leafsize'],
+                                        boxsize=boxsize, num_threads=num_threads)
+
+    ############################################
     # HASHING AND EQUALITY TESTING
     ############################################
 

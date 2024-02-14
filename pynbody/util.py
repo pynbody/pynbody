@@ -626,14 +626,19 @@ def threadsafe_inline(*args, **kwargs):
 _head_type = np.dtype('i4')
 
 
-def _thread_map(func, *args):
+def thread_map(func, *args):
+    """Run func in separate threads, mapping over the arguments in the same way as map(..)
+
+    There is no thread pool here: a new thread is created for each
+    function call.
+    """
 
     def r_func(*afunc):
         try:
             this_t = threading.current_thread()
             this_t.ret_value = func(*afunc)
         except Exception as e:
-            this_t.ret_excp = e
+            this_t.ret_excp = sys.exc_info()
 
     threads = []
     for arg_this in zip(*args):
@@ -647,10 +652,11 @@ def _thread_map(func, *args):
             # debug deadlocks!
             t.join(1.0)
         if hasattr(t, 'ret_excp'):
-            excp = t.ret_excp
+            _, excp, trace = t.ret_excp
         else:
             rets.append(t.ret_value)
 
     if excp is None:
         return rets
-    raise excp  # Note this is a re-raised exception from within a thread
+    else:
+        raise excp.with_traceback(trace)  # Note this is a re-raised exception from within a thread

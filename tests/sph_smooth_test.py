@@ -233,7 +233,7 @@ def test_particles_in_sphere(npart, offset, radius, dtype):
     assert np.issubdtype(f['mass'].dtype, dtype)
     f.properties['boxsize'] = 1.0
 
-    pynbody.sph.build_tree(f)
+    f.build_tree()
     particles = f.kdtree.particles_in_sphere([offset, 0.0, 0.0], radius)
 
     f['x'] -= offset

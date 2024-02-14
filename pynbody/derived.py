@@ -122,7 +122,7 @@ def _v_sph_operation(self, op):
     """SPH-smoothed velocity operations"""
     from . import sph
 
-    sph.build_tree(self)
+    self.build_tree()
 
     nsmooth = config['sph']['smooth-particles']
 
