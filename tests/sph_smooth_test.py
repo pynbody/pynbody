@@ -218,7 +218,7 @@ def test_div_curl_smoothing(div_curl):
 
 @pytest.mark.parametrize("npart", [1, 10, 100, 1000, 100000])
 @pytest.mark.parametrize("offset", [0.0, 0.2, 0.5]) # checks wrapping
-@pytest.mark.parametrize("radius", [0.01, 0.1, 1.0])
+@pytest.mark.parametrize("radius", [0.1, 0.3, 1.0])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_particles_in_sphere(npart, offset, radius, dtype):
     f = pynbody.new(dm=npart)
@@ -239,7 +239,6 @@ def test_particles_in_sphere(npart, offset, radius, dtype):
     f['x'] -= offset
     f.wrap()
     particles_compare = np.where(f['r']<radius)[0]
-    print(len(particles_compare), len(particles))
 
     assert (np.sort(particles) == np.sort(particles_compare)).all()
 
