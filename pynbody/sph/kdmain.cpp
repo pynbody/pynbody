@@ -126,12 +126,9 @@ PyObject *kdinit(PyObject *self, PyObject *args) {
   PyObject *pos;  // Nx3 Numpy array of positions
   PyObject *mass; // Nx1 Numpy array of masses
 
-  std::cerr << "Parsing tuple..." << std::endl;
   if (!PyArg_ParseTuple(args, "OOl", &pos, &mass, &nBucket))
     return NULL;
   
-
-
   int bitdepth = getBitDepth(pos);
   if (bitdepth == 0) {
     PyErr_SetString(PyExc_ValueError, "Unsupported array dtype for kdtree");
@@ -158,7 +155,6 @@ PyObject *kdinit(PyObject *self, PyObject *args) {
   KDContext *kd = new KDContext();
   kd->nBucket = nBucket;
 
-  std::cerr << "Getting nbodies..." << std::endl;
   npy_intp nbodies = PyArray_DIM(pos, 0);
 
   kd->nParticles = nbodies;
@@ -170,9 +166,8 @@ PyObject *kdinit(PyObject *self, PyObject *args) {
   Py_INCREF(pos);
   Py_INCREF(mass);
 
-  std::cerr << "About to count nodes..." << std::endl;
+
   kdCountNodes(kd);
-  std::cerr << "Counted nodes!" << std::endl;
 
   return PyCapsule_New((void *)kd, NULL, NULL);
 }
@@ -190,16 +185,13 @@ PyObject * kdbuild(PyObject *self, PyObject *args) {
   PyObject *kdobj;
   int num_threads;
 
-  std::cerr << "Hello kdbuild!" << std::endl;
 
   if (!PyArg_ParseTuple(args, "OOi", &kdobj, &kdNodeArray, &num_threads))
     return NULL;
 
-  std::cerr << "Tuple parsed!" << std::endl;
 
   KDContext *kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
 
-  std::cerr << "Got the context!" << std::endl;
 
   if(!PyArray_Check(kdNodeArray)) {
     PyErr_SetString(PyExc_ValueError, "First argument needs to be a numpy array of KDNodes");
@@ -208,9 +200,6 @@ PyObject * kdbuild(PyObject *self, PyObject *args) {
 
   PyArray_Descr *kdnDescr = PyArray_DESCR(kdNodeArray);
 
-  std::cerr << "Got the descr!" << std::endl;
-
-  std::cerr << kd->nNodes << " " << PyArray_SIZE(kdNodeArray) << std::endl;
 
   if(kdnDescr->elsize != sizeof(KDNode)) {
     PyErr_SetString(PyExc_ValueError, "Wrong data type passed for KDNode array");
@@ -230,16 +219,12 @@ PyObject * kdbuild(PyObject *self, PyObject *args) {
   kd->kdNodes = static_cast<KDNode*>(PyArray_DATA(kdNodeArray));
   kd->kdNodesPyObject = kdNodeArray;
 
-  std::cerr << "got the nodes!" << std::endl;
-
   Py_INCREF(kd->kdNodesPyObject);
 
   Py_BEGIN_ALLOW_THREADS;
 
   // Allocate particles - TODO: This must be a numpy array too!
-  std::cerr << "Allocating particles..." << kd->nParticles << std::endl;
   kd->p = (PARTICLE *)malloc(kd->nActive * sizeof(PARTICLE));
-  std::cerr << "Allocated particles!" << std::endl;
   assert(kd->p != nullptr);
 
   for (npy_intp i = 0; i < kd->nParticles; i++) {
@@ -252,8 +237,12 @@ PyObject * kdbuild(PyObject *self, PyObject *args) {
     kdBuildTree<double>(kd, num_threads);
   else
     kdBuildTree<float>(kd, num_threads);
+    
 
   Py_END_ALLOW_THREADS;
+
+  Py_INCREF(Py_None);
+  return Py_None;
 
 }
 

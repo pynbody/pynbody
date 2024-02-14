@@ -73,17 +73,12 @@ class KDTree:
         
         self.kdtree = kdmain.init(pos, mass, int(leafsize))
         nodes = kdmain.get_node_count(self.kdtree)
-        print("nodes=",nodes)
         self.kdnodes = np.empty(nodes, dtype=KDNode)
-        print("building...")
         kdmain.build(self.kdtree, self.kdnodes, num_threads_init)
-        print("done")
-        self.derived = True
+    
         self.boxsize = boxsize
         self._pos = pos
         self.s_len = len(pos)
-        self.flags = {"WRITEABLE": False}
-        print("finish init")
 
     def particles_in_sphere(self, center, radius):
         """Find particles within a sphere.

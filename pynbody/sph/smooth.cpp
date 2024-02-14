@@ -14,8 +14,9 @@ bool smCheckFits(KDContext* kd, float *fPeriod) {
   KDNode *root;
   npy_intp j;
 
+  assert(kd->kdNodes != nullptr);
   root = &kd->kdNodes[ROOT];
-  assert(root != NULL);
+  assert(root != nullptr);
   /*
    ** Check to make sure that the bounds of the simulation agree
    ** with the period specified, if not cause an error.
