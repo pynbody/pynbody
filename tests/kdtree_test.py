@@ -1,4 +1,5 @@
 import copy
+import gc
 from pathlib import Path
 
 import numpy as np
@@ -6,6 +7,7 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+from pynbody.array import shared
 
 
 def setup_module():
@@ -244,11 +246,7 @@ def test_particles_in_sphere(npart, offset, radius, dtype):
     assert (np.sort(particles) == np.sort(particles_compare)).all()
 
 def test_kdtree_from_existing_kdtree(npart=1000):
-    f = pynbody.new(dm=npart)
-
-    np.random.seed(1337)
-    f['pos'] = np.random.normal(1.0, size=(npart, 3))
-    f['mass'] = np.random.uniform(size=npart)
+    f = _make_test_gaussian(npart)
 
     f_copy = copy.deepcopy(f)
 
@@ -258,3 +256,29 @@ def test_kdtree_from_existing_kdtree(npart=1000):
     assert f_copy.kdtree is not f.kdtree
 
     npt.assert_allclose(f['smooth'], f_copy['smooth'], atol=1e-7)
+
+
+def _make_test_gaussian(npart):
+    f = pynbody.new(dm=npart)
+    np.random.seed(1337)
+    f['pos'] = np.random.normal(1.0, size=(npart, 3))
+    f['mass'] = np.random.uniform(size=npart)
+    return f
+
+
+def test_kdtree_shared_mem(npart=1000):
+    f = _make_test_gaussian(npart)
+    n = shared.get_num_shared_arrays()
+    f.build_tree(shared_mem=False)
+    assert shared.get_num_shared_arrays() == n
+    del f
+
+    f = _make_test_gaussian(npart)
+    f.build_tree(shared_mem=True)
+    assert shared.get_num_shared_arrays() == 2+n
+    assert f.kdtree.kdnodes._shared_fname.startswith('pynbody')
+    assert f.kdtree.particle_offsets._shared_fname.startswith('pynbody')
+    del f
+    gc.collect()
+    shared._ensure_shared_memory_clean()
+    assert shared.get_num_shared_arrays() == n

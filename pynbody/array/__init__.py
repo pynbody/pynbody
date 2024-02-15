@@ -977,14 +977,8 @@ def _array_factory(dims, dtype, zeros, shared):
         dims = (dims,)
 
     if shared:
-        random.seed(os.getpid() * time.time())
-        fname = "pynbody-" + \
-            ("".join([random.choice('abcdefghijklmnopqrstuvwxyz')
-                      for i in range(10)]))
-
-
         from . import shared
-        ret_ar = shared.make_shared_array(dims, dtype, zeros, fname)
+        ret_ar = shared.make_shared_array(dims, dtype, zeros)
 
     else:
         if zeros:

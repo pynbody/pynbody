@@ -57,7 +57,7 @@ class KDTree:
     PROPID_QTYDIV  = 7
     PROPID_QTYCURL = 8
 
-    def __init__(self, pos, mass, leafsize=32, boxsize=None, num_threads=None):
+    def __init__(self, pos, mass, leafsize=32, boxsize=None, num_threads=None, shared_mem=False):
         """
         Parameters
         ----------
@@ -71,6 +71,8 @@ class KDTree:
             Boxsize (default None)
         num_threads : int, optional
             Number of threads to use when building tree (if None, use configured/detected number of processors).
+        shared_mem : bool, optional
+            Whether to keep kdtree in shared memory so that it can be shared between processes (default False).
         """
 
         num_threads = self._set_num_threads(num_threads)
@@ -85,8 +87,13 @@ class KDTree:
         self.kdtree = kdmain.init(pos, mass, self.leafsize)
         nodes = kdmain.get_node_count(self.kdtree)
 
-        self.kdnodes = np.empty(nodes, dtype=KDNode)
-        self.particle_offsets = np.empty(len(pos), dtype=np.intp)
+        if shared_mem:
+            from ..array import shared
+            self.kdnodes = shared.make_shared_array(nodes, KDNode)
+            self.particle_offsets = shared.make_shared_array(len(pos), np.intp)
+        else:
+            self.kdnodes = np.empty(nodes, dtype=KDNode)
+            self.particle_offsets = np.empty(len(pos), dtype=np.intp)
         kdmain.build(self.kdtree, self.kdnodes, self.particle_offsets, num_threads_init)
 
         self.boxsize = boxsize

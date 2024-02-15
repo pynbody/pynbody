@@ -1027,7 +1027,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
           - *derived*: if True, this new array will be flagged as a derived array
             which makes it read-only
           - *shared*: if True, the array will be built on top of a shared-memory array
-            to make it possible to access from another process
+            to make it possible to access from another process. If 'None' (default), shared
+            memory will be used if the snapshot prefers it, otherwise not.
           - *source_array*: if provided, the SimSnap will take ownership of this specified
             array rather than create a new one
         """
@@ -1561,15 +1562,28 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
     # KD-Tree
     ############################################
 
-    def build_tree(self, num_threads=None):
-        """Build a kdtree for SPH operations and for accelerating geometrical filters (Sphere, particularly)"""
+    def build_tree(self, num_threads=None, shared_mem=None):
+        """Build a kdtree for SPH operations and for accelerating geometrical filters
+
+        Parameters
+        ----------
+
+        num_threads : int, optional
+            Number of threads to use for building and most operations on the tree.
+            If None, the default number of threads is used.
+        shared_mem : bool, optional
+            Whether to use shared memory for the tree. This is used by the tangos library to
+            share a kdtree between different processes. It is not recommended for general use,
+            and defaults to False.
+        """
         if not hasattr(self, 'kdtree'):
             from .. import kdtree
             from ..configuration import config
             boxsize = self._get_boxsize_for_kdtree()
             self.kdtree = kdtree.KDTree(self['pos'], self['mass'],
                                         leafsize=config['sph']['tree-leafsize'],
-                                        boxsize=boxsize, num_threads=num_threads)
+                                        boxsize=boxsize, num_threads=num_threads,
+                                        shared_mem=shared_mem)
 
     def import_tree(self, serialized_tree, num_threads=None):
         """Import a precomputed kdtree from a serialized form.
