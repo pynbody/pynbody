@@ -4,6 +4,7 @@ import pytest
 
 import pynbody
 
+
 @pytest.fixture
 def snap():
     f = pynbody.new(1000)
