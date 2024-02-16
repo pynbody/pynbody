@@ -37,6 +37,10 @@ Ntrials = 20
 centres = np.random.uniform(size=(Ntrials,3)) - 0.5
 radii = 10.**np.random.uniform(low=-3.0,high=-1.0,size=Ntrials)
 
+xcs = np.random.uniform(-0.5, 0.5, size=Ntrials)
+ycs = np.random.uniform(-0.5, 0.5, size=Ntrials)
+zcs = np.random.uniform(-0.5, 0.5, size=Ntrials)
+
 f = pynbody.new(dm=Npart)
 
 f['pos'] = np.random.uniform(size=(Npart,3))
@@ -47,6 +51,12 @@ with timer("sphere queries without tree"):
         print(".",end="")
         sys.stdout.flush()
         _ = f[pynbody.filt.Sphere(rad, cen)]
+
+with timer("cube queries without tree"):
+    for xc, yc, zc, s in zip(xcs, ycs, zcs, radii):
+        print(".",end="")
+        sys.stdout.flush()
+        _ = f[pynbody.filt.Cuboid(xc-s, yc-s, zc-s, xc+s, yc+s, zc+s)]
 
 
 with timer("tree build"):
@@ -59,6 +69,12 @@ with timer("sphere queries from tree"):
         print(".", end="")
         sys.stdout.flush()
         _ = f[pynbody.filt.Sphere(rad, cen)]
+
+with timer("cube queries from tree"):
+    for xc, yc, zc, s in zip(xcs, ycs, zcs, radii):
+        print(".", end="")
+        sys.stdout.flush()
+        _ = f[pynbody.filt.Cuboid(xc - s, yc - s, zc - s, xc + s, yc + s, zc + s)]
 
 
 

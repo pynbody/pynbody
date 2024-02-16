@@ -4,9 +4,8 @@ import pytest
 
 import pynbody
 
-
-def setup_module():
-    global f
+@pytest.fixture
+def snap():
     f = pynbody.new(1000)
     f['pos'] = np.random.normal(scale=1.0, size=f['pos'].shape)
     f['vel'] = np.random.normal(scale=1.0, size=f['vel'].shape)
@@ -14,15 +13,11 @@ def setup_module():
     f['pos'].units = 'kpc'
     f['vel'].units = 'km s^-1'
     f['mass'].units = 'Msol'
+    return f
 
 
-def teardown_module():
-    global f
-    del f
-
-
-def test_sphere():
-    global f
+def test_sphere(snap):
+    f = snap
     sp = f[pynbody.filt.Sphere(0.5)]
     assert (sp.get_index_list(f) == np.where(f['r'] < 0.5)[0]).all()
     assert sp['x'].max() < 0.5
@@ -33,8 +28,8 @@ def test_sphere():
     assert len(sp_units.intersect(sp)) == len(sp)
 
 
-def test_passfilters():
-    global f
+def test_passfilters(snap):
+    f = snap
 
     hp = f[pynbody.filt.HighPass('mass', 5)]
     lp = f[pynbody.filt.LowPass('mass', 5)]
@@ -51,9 +46,27 @@ def test_passfilters():
     assert (bp.get_index_list(f) == np.where(
         (f['mass'] > 2) * (f['mass'] < 7))[0]).all()
 
+@pytest.mark.parametrize("with_kdtree", [True, False])
+def test_cuboid(snap, with_kdtree):
+    f = snap
+    x1s = np.random.uniform(-0.5, 0.0, 10)
+    x2s = np.random.uniform(0.0, 0.5, 10)
+    y1s = np.random.uniform(-0.5, 0.0, 10)
+    y2s = np.random.uniform(0.0, 0.5, 10)
+    z1s = np.random.uniform(-0.5, 0.0, 10)
+    z2s = np.random.uniform(0.0, 0.5, 10)
 
-def test_logic():
-    global f
+    if with_kdtree:
+        f.build_tree()
+
+    for x1, x2, y1, y2, z1, z2 in zip(x1s, x2s, y1s, y2s, z1s, z2s):
+        c = f[pynbody.filt.Cuboid(x1, y1, z1, x2, y2, z2)]
+        assert (c.get_index_list(f) == np.where(
+            (f['x'] > x1) * (f['x'] < x2) * (f['y'] > y1) * (f['y'] < y2) * (f['z'] > z1) * (f['z'] < z2))[0]).all()
+
+
+def test_logic(snap):
+    f = snap
 
     comp = f[pynbody.filt.BandPass('mass', 2, 7)]
 
