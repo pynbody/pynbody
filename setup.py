@@ -14,43 +14,6 @@ from setuptools import Extension, setup
 
 get_directive_defaults()['language_level'] = 3
 
-
-def check_for_pthread():
-    # Create a temporary directory
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
-
-    # Get compiler invocation
-    compiler = os.environ.get('CC',
-                              distutils.sysconfig.get_config_var('CC'))
-
-    # make sure to use just the compiler name without flags
-    compiler = compiler.split()[0]
-
-    filename = r'test.c'
-    with open(filename,'w') as f :
-        f.write(
-        "#include <pthread.h>\n"
-        "#include <stdio.h>\n"
-        "int main() {\n"
-        "}"
-        )
-
-    try:
-        with open(os.devnull, 'w') as fnull:
-            exit_code = subprocess.call([compiler, filename],
-                                        stdout=fnull, stderr=fnull)
-    except OSError :
-        exit_code = 1
-
-
-    # Clean up
-    os.chdir(curdir)
-    shutil.rmtree(tmpdir)
-
-    return (exit_code==0)
-
 def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
     with codecs.open(os.path.join(here, rel_path), 'r') as fp:
@@ -64,8 +27,6 @@ def get_version(rel_path):
     else:
         raise RuntimeError("Unable to find version string.")
 
-
-have_pthread = check_for_pthread()
 
 
 # Support for compiling without OpenMP has been removed, for now, due to the spiralling
@@ -82,18 +43,15 @@ extra_compile_args = ['-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
-                      '-g']
+                      '-g', '-std=c++14']
 
-if have_pthread:
-    extra_compile_args.append('-DKDT_THREADING')
-
-extra_link_args = []
+extra_link_args = ['-std=c++14']
 
 incdir = [np.get_include()]
 
-kdmain = Extension('pynbody.sph.kdmain',
-                   sources = ['pynbody/sph/kdmain.cpp', 'pynbody/sph/kd.cpp',
-                              'pynbody/sph/smooth.cpp'],
+kdmain = Extension('pynbody.kdtree.kdmain',
+                   sources = ['pynbody/kdtree/kdmain.cpp', 'pynbody/kdtree/kd.cpp',
+                              'pynbody/kdtree/smooth.cpp'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
 
@@ -196,7 +154,8 @@ setup(name = 'pynbody',
       package_dir = {'pynbody/': ''},
       packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 'pynbody/array',
                   'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
-                  'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/extern'],
+                  'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/extern',
+                  'pynbody/kdtree'],
       package_data={'pynbody': ['default_config.ini'],
                     'pynbody/analysis': ['cmdlum.npz',
                                          'h1.hdf5',

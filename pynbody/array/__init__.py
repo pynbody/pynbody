@@ -141,6 +141,7 @@ handler:
 
 import fractions
 import functools
+import logging
 import os
 import random
 import time
@@ -151,6 +152,11 @@ import numpy as np
 from .. import units as units
 
 _units = units
+
+logger = logging.getLogger('pynbody.array')
+
+
+
 
 
 class SimArray(np.ndarray):
@@ -637,8 +643,11 @@ class SimArray(np.ndarray):
         if self.base is not None and hasattr(self.base, 'units'):
             self.base.convert_units(new_unit)
         else:
-            self *= self.units.ratio(new_unit,
+            ratio = self.units.ratio(new_unit,
                                      **(self.conversion_context()))
+            logger.debug("Converting %s units from %s to %s; ratio = %.3e" %
+                         (self.name, self.units, new_unit, ratio))
+            self *= ratio
             self.units = new_unit
 
     def write(self, **kwargs):
@@ -968,14 +977,8 @@ def _array_factory(dims, dtype, zeros, shared):
         dims = (dims,)
 
     if shared:
-        random.seed(os.getpid() * time.time())
-        fname = "pynbody-" + \
-            ("".join([random.choice('abcdefghijklmnopqrstuvwxyz')
-                      for i in range(10)]))
-
-
         from . import shared
-        ret_ar = shared.make_shared_array(dims, dtype, zeros, fname)
+        ret_ar = shared.make_shared_array(dims, dtype, zeros)
 
     else:
         if zeros:

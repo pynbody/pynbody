@@ -58,3 +58,9 @@ jobs:
     - name: Run all tests
       working-directory: tests
       run: python -m pytest
+    - name: Upload test images
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: images-${{ matrix.python-version }}-${{ matrix.numpy-version }}
+        path: tests/result*.npy

@@ -12,14 +12,41 @@ import warnings
 
 import numpy as np
 
-from .. import array as ar, config
+from .. import array as ar, config, util
 from . import kdmain
 
-logger = logging.getLogger("pynbody.sph.kdtree")
+logger = logging.getLogger("pynbody.kdtree")
 
+# Boundary type definition must exactly match the C++ definition (see kd.h)
+Boundary = np.dtype([
+    ('fMin', np.float32, (3,)),
+    ('fMax', np.float32, (3,))
+])
+
+# KDNode type definition must exactly match the C++ definition (see kd.h)
+KDNode = np.dtype([
+    ('fSplit', np.float32),
+    ('bnd', Boundary),
+    ('iDim', np.int32),
+    ('pLower', np.intp),
+    ('pUpper', np.intp)
+])
 
 class KDTree:
-    """KDTree used for smoothing."""
+    """KDTree can be used for smoothing, interpolating and geometrical queries.
+
+    Most users are unlikely to interact with the KDTree directly, instead using the higher-level
+    SPH functionality. To accelerate geometrical queries on a snapshot, try:
+
+    >>> f = pynbody.load('my_snapshot')
+    >>> f.build_kdtree()
+    >>> f[pynbody.filt.Sphere('10 kpc')] # this will automatically be a faster operation once the tree is built
+
+    Performance statistics can be tested using the performance_kdtree.py script in the tests folder
+
+    Most KDTree operations proceed in parallel, using the number of threads specified in the
+    pynbody configuration.
+    """
 
     PROPID_HSM = 1
     PROPID_RHO = 2
@@ -30,7 +57,7 @@ class KDTree:
     PROPID_QTYDIV  = 7
     PROPID_QTYCURL = 8
 
-    def __init__(self, pos, mass, leafsize=32, boxsize=None):
+    def __init__(self, pos, mass, leafsize=32, boxsize=None, num_threads=None, shared_mem=False):
         """
         Parameters
         ----------
@@ -41,14 +68,92 @@ class KDTree:
         leafsize : int, optional
             The number of particles in leaf nodes (default 32).
         boxsize : float, optional
-            Boxsize (default None).
+            Boxsize (default None)
+        num_threads : int, optional
+            Number of threads to use when building tree (if None, use configured/detected number of processors).
+        shared_mem : bool, optional
+            Whether to keep kdtree in shared memory so that it can be shared between processes (default False).
         """
-        self.kdtree = kdmain.init(pos, mass, int(leafsize))
-        self.derived = True
+
+        num_threads = self._set_num_threads(num_threads)
+
+        # get a power of 2 for num_threads to pass to the constructor, because
+        # otherwise the workload will not be balanced across threads and they
+        # will be wasted
+        num_threads_init = 2 ** int(np.log2(num_threads))
+
+
+        self.leafsize = int(leafsize)
+        self.kdtree = kdmain.init(pos, mass, self.leafsize)
+        nodes = kdmain.get_node_count(self.kdtree)
+
+        if shared_mem:
+            from ..array import shared
+            self.kdnodes = shared.make_shared_array(nodes, KDNode)
+            self.particle_offsets = shared.make_shared_array(len(pos), np.intp)
+        else:
+            self.kdnodes = np.empty(nodes, dtype=KDNode)
+            self.particle_offsets = np.empty(len(pos), dtype=np.intp)
+        kdmain.build(self.kdtree, self.kdnodes, self.particle_offsets, num_threads_init)
+
         self.boxsize = boxsize
         self._pos = pos
-        self.s_len = len(pos)
-        self.flags = {"WRITEABLE": False}
+
+    def _set_num_threads(self, num_threads):
+        if num_threads is None:
+            num_threads = int(config["number_of_threads"])
+        self.num_threads = num_threads
+        return num_threads
+
+    def serialize(self):
+        return self.leafsize, self.boxsize, self.kdnodes, self.particle_offsets
+
+    @classmethod
+    def deserialize(cls, pos, mass, serialized_state, num_threads = None, boxsize=None):
+        self = object.__new__(cls)
+        self._set_num_threads(num_threads)
+        leafsize, boxsize_s, kdnodes, particle_offsets = serialized_state
+        if boxsize is not None and abs(boxsize-boxsize_s) > 1e-6:
+            warnings.warn("Boxsize in serialized state does not match boxsize passed to deserialize")
+        self.kdtree = kdmain.init(pos, mass, leafsize)
+        self.leafsize = leafsize
+        nodes = kdmain.get_node_count(self.kdtree)
+        if len(kdnodes) != nodes:
+            raise ValueError("Number of nodes in serialized state does not match number of nodes in kdtree")
+        self.kdnodes = kdnodes
+        if len(particle_offsets) != len(pos):
+            raise ValueError("Number of particle offsets in serialized state does not match number of particles")
+        self.particle_offsets = particle_offsets
+        self.boxsize = boxsize
+        self._pos = pos
+
+        kdmain.import_prebuilt(self.kdtree, self.kdnodes, self.particle_offsets, 0)
+
+        return self
+
+
+
+    def particles_in_sphere(self, center, radius):
+        """Find particles within a sphere.
+
+        Parameters
+        ----------
+        center : array_like
+            Center of the sphere.
+        radius : float
+            Radius of the sphere.
+
+        Returns
+        -------
+        indices : array_like
+            Indices of the particles within the sphere.
+        """
+        smx = kdmain.nn_start(self.kdtree, 1, 1, self.boxsize)
+
+        particle_ids = kdmain.particles_in_sphere(self.kdtree, smx, center[0], center[1], center[2], radius)
+
+        kdmain.nn_stop(self.kdtree, smx)
+        return particle_ids
 
     def nn(self, nn=None):
         """Generator of neighbour list.
@@ -169,50 +274,42 @@ class KDTree:
         kernel : str
             Keyword to specify the smoothing kernel. Options: 'CubicSpline', 'WendlandC2'
         """
-        from . import _thread_map
 
-        n_proc = config["number_of_threads"]
-
-        if kdmain.has_threading() is False and n_proc > 1:
-            n_proc = 1
-            warnings.warn(
-                "Pynbody is configured to use threading for the KDTree, but pthread support was not available during compilation. Reverting to single thread.",
-                RuntimeWarning,
-            )
 
         if nn is None:
             nn = 64
 
-        smx = kdmain.nn_start(self.kdtree, int(nn), n_proc, self.boxsize)
+        smx = kdmain.nn_start(self.kdtree, int(nn), self.num_threads, self.boxsize)
 
-        propid = self.smooth_operation_to_id(mode)
+        try:
+            propid = self.smooth_operation_to_id(mode)
 
-        if propid == self.PROPID_HSM:
-            kdmain.domain_decomposition(self.kdtree, n_proc)
+            if propid == self.PROPID_HSM:
+                kdmain.domain_decomposition(self.kdtree, self.num_threads)
 
-        if kernel == 'CubicSpline':
-            kernel = 0
-        elif kernel == 'WendlandC2':
-            kernel = 1
-        else:
-            raise ValueError(
-                "Kernel keyword %s not recognised. Please choose either 'CubicSpline' or 'WendlandC2'." % kernel
-            )
+            if kernel == 'CubicSpline':
+                kernel = 0
+            elif kernel == 'WendlandC2':
+                kernel = 1
+            else:
+                raise ValueError(
+                    "Kernel keyword %s not recognised. Please choose either 'CubicSpline' or 'WendlandC2'." % kernel
+                )
 
-        if n_proc == 1:
-            kdmain.populate(self.kdtree, smx, propid, 0, kernel)
-        else:
-            _thread_map(
-                kdmain.populate,
-                [self.kdtree] * n_proc,
-                [smx] * n_proc,
-                [propid] * n_proc,
-                list(range(0, n_proc)),
-                [kernel] * n_proc
-            )
-
-        # Free C-structures memory
-        kdmain.nn_stop(self.kdtree, smx)
+            if self.num_threads == 1:
+                kdmain.populate(self.kdtree, smx, propid, 0, kernel)
+            else:
+                util.thread_map(
+                    kdmain.populate,
+                    [self.kdtree] * self.num_threads,
+                    [smx] * self.num_threads,
+                    [propid] * self.num_threads,
+                    list(range(0, self.num_threads)),
+                    [kernel] * self.num_threads
+                )
+        finally:
+            # Free C-structures memory
+            kdmain.nn_stop(self.kdtree, smx)
 
     def sph_mean(self, array, nsmooth=64, kernel = 'CubicSpline'):
         r"""Calculate the SPH mean of a simulation array.

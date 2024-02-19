@@ -2,6 +2,7 @@ import time
 
 import numpy as np
 import numpy.testing as npt
+import pytest
 
 import pynbody
 
@@ -12,6 +13,21 @@ def random_slice(max_pos=1000, max_step=10):
     b = random.randint(0, max_pos)
     return slice(min(a, b), max(a, b), random.randint(1, max_step))
 
+def test_thread_map():
+    result = pynbody.util.thread_map(lambda x: 2*x, range(5))
+    assert (np.array(result) == [0, 2, 4, 6, 8]).all()
+
+def test_thread_map_exception():
+    def testfn(x):
+        if x==0:
+            raise RuntimeError("Test exception")
+        return 2*x
+
+    with pytest.raises(RuntimeError) as exc:
+        pynbody.util.thread_map(testfn, range(5))
+
+    assert exc.value.args[0] == "Test exception"
+    assert exc.traceback[-1].name == 'testfn'
 
 def test_intersect_slices():
     """Unit test for intersect_slices, relative_slice and chained_slice"""

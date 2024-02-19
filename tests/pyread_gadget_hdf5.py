@@ -2,10 +2,17 @@
 
 import fnmatch
 import os
+import warnings
 
 import h5py
 import numpy
-import pandas as pd
+
+with warnings.catch_warnings():
+    # pandas raises really annoying warning about its own dependencies
+    # that seems to be impossible to disable
+    warnings.simplefilter("ignore", DeprecationWarning)
+    import pandas as pd
+
 
 __author__ = 'Alan Duffy'
 __email__ = 'mail@alanrduffy.com'

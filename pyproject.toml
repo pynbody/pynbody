@@ -15,8 +15,8 @@ filterwarnings = [
     'ignore:Conjoining derived and non-derived arrays.*:RuntimeWarning',
     'ignore:invalid value encountered in multiply:RuntimeWarning',
     # ignore deprecation warnings triggered by h5py with python 3.12
-    'ignore:datetime.datetime.utcfromtimestamp\(\) is deprecated:DeprecationWarning'
-]
+    'ignore:datetime.datetime.utcfromtimestamp\(\) is deprecated:DeprecationWarning',
+  ]
 
 [tool.isort]
 profile = "black"
