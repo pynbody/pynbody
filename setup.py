@@ -1,8 +1,8 @@
 import codecs
 import os
-from os import path
 import platform
 import subprocess
+from os import path
 
 import numpy as np
 from Cython.Build import build_ext
