@@ -249,7 +249,7 @@ class AHFCatalogue(HaloCatalogue):
         ns = len(self.base.star)
         nds = nd + ns
         if self._use_iord:
-            data = self._iord_to_fpos[data]
+            data = self._iord_to_fpos.map_ignoring_order(data)
         elif isinstance(self.base, snapshot.ramses.RamsesSnap):
             # AHF only expects three families, DM, star, gas in this order
             # and generates iords on disc according to this rule

@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 import pynbody
+import pynbody.halo.details.iord_mapping
 import pynbody.halo.details.number_mapper
 import pynbody.halo.details.particle_indices
 from pynbody import halo
@@ -337,3 +338,17 @@ def test_warning_when_inefficient(snap_with_grp, load_all):
     else:
         with pytest.warns(RuntimeWarning, match="may be more efficient"):
             load_lots()
+
+def test_short_iord_to_pos_map():
+    iord = np.array([0, 5, 4, 2])
+    iord_to_fpos = halo.details.iord_mapping.make_iord_to_offset_mapper(iord)
+    assert isinstance(iord_to_fpos, halo.details.iord_mapping.IordToFposDense)
+    assert (iord_to_fpos.map_ignoring_order([5, 2, 0, 4]) == [1, 3, 0, 2]).all()
+
+def test_long_iord_to_pos_map():
+    iord = np.array([0, 20, 10, 300])
+    iord_to_fpos = halo.details.iord_mapping.make_iord_to_offset_mapper(iord)
+    assert isinstance(iord_to_fpos, halo.details.iord_mapping.IordToFposSparse)
+
+    assert (iord_to_fpos.map_ignoring_order([0, 10, 20, 300]) == np.array([0, 2, 1, 3])).all()
+    assert iord_to_fpos.map_ignoring_order(300) == 3

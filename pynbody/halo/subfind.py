@@ -75,7 +75,7 @@ class SubfindCatalogue(HaloCatalogue):
         if not self._ordered:
             self._init_iord_to_fpos()
             for a, b in boundaries:
-                ids[a:b] = self._iord_to_fpos[ids[a:b]]
+                ids[a:b] = self._iord_to_fpos.map_ignoring_order(ids[a:b])
                 # must be done segmented in case iord_to_fpos doesn't preserve input order
 
         return particle_indices.HaloParticleIndices(ids, boundaries)

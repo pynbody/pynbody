@@ -4,10 +4,10 @@ from typing import Sequence
 
 import numpy as np
 
-from .. import array, units, util
+from .. import array, units
 from ..extern.cython_fortran_utils import FortranFile
-from . import DummyHalo, Halo, HaloCatalogue, logger
-from .details import number_mapper
+from . import HaloCatalogue, logger
+from .details import iord_mapping, number_mapper
 from .details.particle_indices import HaloParticleIndices
 
 unit_length = units.Unit("Mpc")
@@ -116,7 +116,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         # Initialize internal data
         self._base_dm = sim.dm
-        self._iord_to_fpos = util.make_iord_to_offset_mapper(self._base_dm["iord"])
+        self._iord_to_fpos = iord_mapping.make_iord_to_offset_mapper(self._base_dm["iord"])
 
         # dm needs to be at start of family map -- technically we will assume all particles are in dm
         # but then the parent class will use the position offsets as though they refer to the whole file
@@ -208,7 +208,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                     npart = fpu.read_int()
 
                 stop = start+npart
-                particle_ids[start:stop] = self._iord_to_fpos[self._read_member_helper(fpu, npart)]
+                particle_ids[start:stop] = self._iord_to_fpos.map_ignoring_order(self._read_member_helper(fpu, npart))
                 particle_slices[i] = [start, stop]
                 start = stop
 
@@ -229,7 +229,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
             assert npart == self._npart[halo_index]
 
-            return self._iord_to_fpos[self._read_member_helper(fpu, npart)]
+            return self._iord_to_fpos.map_ignoring_order(self._read_member_helper(fpu, npart))
 
 
     def _read_member_helper(self, fpu, expected_size):

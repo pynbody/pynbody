@@ -23,9 +23,8 @@ from typing import Optional, Union
 import numpy as np
 from numpy.typing import NDArray
 
-import pynbody.snapshot.subsnap
-
 from .. import snapshot, util
+from .details.iord_mapping import make_iord_to_offset_mapper
 from .details.number_mapper import MonotonicHaloNumberMapper, create_halo_number_mapper
 from .details.particle_indices import HaloParticleIndices
 
@@ -40,7 +39,7 @@ class DummyHalo(snapshot.util.ContainerWithPhysicalUnitsOption):
         pass
 
 
-class Halo(pynbody.snapshot.subsnap.IndexedSubSnap):
+class Halo(snapshot.subsnap.IndexedSubSnap):
 
     """
     Generic class representing a halo.
@@ -220,7 +219,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
             return self._get_halo_cached(item)
 
     @property
-    def base(self) -> pynbody.snapshot.SimSnap:
+    def base(self) -> snapshot.SimSnap:
         return self._base()
 
     def _init_iord_to_fpos(self):
@@ -229,7 +228,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         This is a convenience function for subclasses to use."""
         if not hasattr(self, "_iord_to_fpos"):
             if 'iord' in self.base.loadable_keys() or 'iord' in self.base.keys():
-                self._iord_to_fpos = util.make_iord_to_offset_mapper(self.base['iord'])
+                self._iord_to_fpos = make_iord_to_offset_mapper(self.base['iord'])
 
             else:
                 warnings.warn("No iord array available; assuming halo catalogue is using sequential particle IDs",
