@@ -1,3 +1,5 @@
+import copy
+import gc
 from pathlib import Path
 
 import numpy as np
@@ -5,6 +7,7 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+from pynbody.array import shared
 
 
 def setup_module():
@@ -216,5 +219,66 @@ def test_div_curl_smoothing(div_curl):
     npt.assert_equal(f.g['vorticity'], f.g['v_curl'])
     assert f.g['vorticity'].units == f.g['vel'].units/f.g['pos'].units
 
-if __name__=="__main__":
-    test_float_kd()
+@pytest.mark.parametrize("npart", [1, 10, 100, 1000, 100000])
+@pytest.mark.parametrize("offset", [0.0, 0.2, 0.5]) # checks wrapping
+@pytest.mark.parametrize("radius", [0.1, 0.3, 1.0])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_particles_in_sphere(npart, offset, radius, dtype):
+    f = pynbody.new(dm=npart)
+
+    f._create_array('pos', 3, dtype)
+    f._create_array('mass', 1, dtype)
+
+    np.random.seed(1337)
+    f['pos'] = np.random.uniform(low=-0.5, high=0.5, size=(npart,3))
+    f['mass'] = np.random.uniform(size=npart)
+    assert np.issubdtype(f['pos'].dtype, dtype)
+    assert np.issubdtype(f['mass'].dtype, dtype)
+    f.properties['boxsize'] = 1.0
+
+    f.build_tree()
+    particles = f.kdtree.particles_in_sphere([offset, 0.0, 0.0], radius)
+
+    f['x'] -= offset
+    f.wrap()
+    particles_compare = np.where(f['r']<radius)[0]
+
+    assert (np.sort(particles) == np.sort(particles_compare)).all()
+
+def test_kdtree_from_existing_kdtree(npart=1000):
+    f = _make_test_gaussian(npart)
+
+    f_copy = copy.deepcopy(f)
+
+    f.build_tree()
+    f_copy.import_tree(f.kdtree.serialize())
+
+    assert f_copy.kdtree is not f.kdtree
+
+    npt.assert_allclose(f['smooth'], f_copy['smooth'], atol=1e-7)
+
+
+def _make_test_gaussian(npart):
+    f = pynbody.new(dm=npart)
+    np.random.seed(1337)
+    f['pos'] = np.random.normal(1.0, size=(npart, 3))
+    f['mass'] = np.random.uniform(size=npart)
+    return f
+
+
+def test_kdtree_shared_mem(npart=1000):
+    f = _make_test_gaussian(npart)
+    n = shared.get_num_shared_arrays()
+    f.build_tree(shared_mem=False)
+    assert shared.get_num_shared_arrays() == n
+    del f
+
+    f = _make_test_gaussian(npart)
+    f.build_tree(shared_mem=True)
+    assert shared.get_num_shared_arrays() == 2+n
+    assert f.kdtree.kdnodes._shared_fname.startswith('pynbody')
+    assert f.kdtree.particle_offsets._shared_fname.startswith('pynbody')
+    del f
+    gc.collect()
+    shared._ensure_shared_memory_clean()
+    assert shared.get_num_shared_arrays() == n

@@ -18,6 +18,7 @@ def test_a_to_t():
     direct_tform = pynbody.analysis.cosmology.age(f,z)
     npt.assert_almost_equal(direct_tform, interp_t[::100], decimal=4)
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in log:RuntimeWarning")
 def test_aform_saturation():
     """Test that NaN is returned when tform cannot be calculated from aform"""
     ipoints = pynbody.analysis.cosmology._interp_points

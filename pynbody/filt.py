@@ -146,15 +146,12 @@ class Sphere(Filter):
         self.radius = radius
 
     def __call__(self, sim):
-        radius = self.radius
         wrap = -1.0
 
         with sim.immediate_mode:
             pos = sim['pos']
 
-        if units.is_unit_like(radius):
-            radius = float(radius.in_units(pos.units,
-                                           **pos.conversion_context()))
+        cen, radius = self._get_cen_and_radius_as_float(pos)
 
         if 'boxsize' in sim.properties:
             wrap = sim.properties['boxsize']
@@ -162,11 +159,24 @@ class Sphere(Filter):
         if units.is_unit_like(wrap):
             wrap = float(wrap.in_units(pos.units,**pos.conversion_context()))
 
+        return _util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius,wrap)
+
+    def _get_cen_and_radius_as_float(self, pos):
+        radius = self.radius
         cen = self.cen
         if units.has_units(cen):
             cen = cen.in_units(pos.units)
-        return _util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius,wrap)
+        if units.is_unit_like(radius):
+            radius = float(radius.in_units(pos.units,
+                                           **pos.conversion_context()))
+        return cen, radius
 
+    def where(self, sim):
+        if hasattr(sim, "kdtree"):
+            cen, radius = self._get_cen_and_radius_as_float(sim["pos"])
+            return (np.sort(sim.kdtree.particles_in_sphere(cen, radius)),)
+        else:
+            return super().where(sim)
 
     def __repr__(self):
         if units.is_unit(self.radius):
@@ -203,11 +213,34 @@ class Cuboid(Filter):
         self.x1, self.y1, self.z1, self.x2, self.y2, self.z2 = x1, y1, z1, x2, y2, z2
 
     def __call__(self, sim):
-        x1, y1, z1, x2, y2, z2 = (x.in_units(sim["pos"].units, **sim["pos"].conversion_context())
-                                  if units.is_unit_like(x) else x
-                                  for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2))
+        return self._get_mask(sim['x'], sim['y'], sim['z'], self._get_boundaries(sim))
 
-        return ((sim["x"] > x1) * (sim["x"] < x2) * (sim["y"] > y1) * (sim["y"] < y2) * (sim["z"] > z1) * (sim["z"] < z2))
+    def _get_mask(self, x, y, z, boundaries):
+        x1, y1, z1, x2, y2, z2 = boundaries
+        return ((x > x1) * (x < x2) * (y > y1) * (y < y2) * (z > z1) * (z < z2))
+
+    def _get_boundaries(self, sim):
+        return [x.in_units(sim["pos"].units, **sim["pos"].conversion_context())
+                if units.is_unit_like(x) else x
+                for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2)]
+
+    def _get_bounding_sphere(self, cuboid_boundaries):
+        x1, y1, z1, x2, y2, z2 = cuboid_boundaries
+        return ((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2), np.sqrt(
+            (x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2) / 2
+
+    def where(self, sim):
+        if hasattr(sim, "kdtree"):
+            # KDTree doesn't currently natively find cuboid regions, so we get the bounding sphere
+            # and the search for the cuboid within that
+            cuboid_boundaries = self._get_boundaries(sim)
+            cen, radius = self._get_bounding_sphere(cuboid_boundaries)
+            in_sphere_particles = sim.kdtree.particles_in_sphere(cen, radius)
+            x, y, z = sim["pos"][in_sphere_particles].T
+            mask = self._get_mask(x, y, z, cuboid_boundaries)
+            return np.sort(in_sphere_particles[mask]),
+        else:
+            return super().where(sim)
 
     def __repr__(self):
         x1, y1, z1, x2, y2, z2 = ("'%s'" % str(x)

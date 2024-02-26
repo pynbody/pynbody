@@ -1,6 +1,8 @@
 """Support for numpy arrays in shared memory."""
 import atexit
 import functools
+import os
+import random
 import time
 import weakref
 from functools import reduce
@@ -33,14 +35,34 @@ class QuietSharedMemory(shmem.SharedMemory):
             # at exit handler below.
             pass
 
-def make_shared_array(dims, dtype, zeros, fname, create=True):
+def make_shared_array(dims, dtype, zeros=False, fname=None, create=True):
     """Create an array of dimensions *dims* with the given numpy *dtype*.
 
-    If *create* is True (default), the array is created if it doesn't already exist.
-    Note that if the array does exist, the dimensions and dtype are not checked.
-    If *zeros* is True, the returned array is guaranteed zeroed. If *shared*
-    is True, the returned array uses shared memory so can be efficiently
-    shared across processes."""
+    Parameters
+    ----------
+
+    dims: tuple | int
+       The dimensions of the numpy array to create
+    dtype:
+       The data type to use
+    zeros:
+        If True, zero the array; otherwise leave uninitialised
+    fname: str, optional
+        The shared memory name to use. If None, a random name will be created. This is only
+        valid with create=True.
+    create: bool
+        Whether to create the shared array, or to open existing shared memory. If the latter,
+        the fname must be specified and the caller is responsible for making sure the dtype
+        and dims match the original array.
+    """
+    if fname is None:
+        if not create:
+            raise ValueError("When opening an existing shared array, fname must be specified")
+        random.seed(os.getpid() * time.time())
+        fname = "pynbody-" + \
+                ("".join([random.choice('abcdefghijklmnopqrstuvwxyz')
+                          for _ in range(10)]))
+
     _ensure_shared_memory_clean()
 
     if not hasattr(dims, '__len__'):
