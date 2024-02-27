@@ -800,9 +800,10 @@ def simulation_halo_mass_function(snapshot,
     bins = np.logspace(log_M_min, log_M_max, num=nbins, base=10)
     bin_centers = (bins[:-1] + bins[1:]) / 2
 
-    if subsample_catalogue is None:
-        halo_catalogue = snapshot.halos()
-    else:
+    halo_catalogue = snapshot.halos()
+    halo_catalogue.load_all()
+
+    if subsample_catalogue is not None:
         halo_catalogue = snapshot.halos()[::subsample_catalogue]
 
     if masses is None:
