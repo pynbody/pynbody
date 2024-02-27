@@ -11,9 +11,6 @@ class HOPCatalogue(GrpCatalogue):
     """A HOP Catalogue as used by Ramses. HOP output files must be in simulation directory, in simulation/hop/ directory
     or specified by fname"""
     def __init__(self, sim, fname=None):
-        self._halos = {}
-        self._num_groups = 0.
-
         if fname is None:
             for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
                 if os.path.exists(fname):
@@ -39,11 +36,7 @@ class HOPCatalogue(GrpCatalogue):
                                    " particle fields or partial loading" % (sim.filename, fname))
 
             sim.dm['hop_grp'] = np.fromfile(f, np.int32, len(sim.dm))
-        GrpCatalogue.__init__(self,sim,array="hop_grp")
-        self._num_groups = num_grps
-
-    def __len__(self):
-        return self._num_groups
+        super().__init__(sim, array="hop_grp", ignore=-1)
 
     @staticmethod
     def _can_load(sim, arr_name='grp'):
@@ -70,6 +63,3 @@ class HOPCatalogue(GrpCatalogue):
         return [os.path.join(os.path.dirname(s_filename),name),
                 os.path.join(s_filename,name),
                 os.path.join(s_filename,'hop',name)]
-
-    def _can_run(self):
-        return False
