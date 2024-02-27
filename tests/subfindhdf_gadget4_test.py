@@ -11,12 +11,12 @@ def setup_module():
         snap = pynbody.load('testdata/testL10N64/snapshot_000.hdf5')
         snap_arepo = pynbody.load('testdata/arepo/cosmobox_015.hdf5')
 
-    halos = pynbody.halo.Gadget4SubfindHDFCatalogue(snap)
-    subhalos = pynbody.halo.Gadget4SubfindHDFCatalogue(snap, subs=True)
+    halos = pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap)
+    subhalos = pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap, subs=True)
     htest = Halos('testdata/testL10N64/', 0)
 
-    halos_arepo = pynbody.halo.ArepoSubfindHDFCatalogue(snap_arepo)
-    subhalos_arepo = pynbody.halo.ArepoSubfindHDFCatalogue(snap_arepo, subs=True)
+    halos_arepo = pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo)
+    subhalos_arepo = pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo, subs=True)
     htest_arepo = Halos('testdata/arepo/', 15)
 
 

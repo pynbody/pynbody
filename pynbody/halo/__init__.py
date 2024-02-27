@@ -135,7 +135,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
             yield c
 
     def __init__(self, sim, number_mapper):
-        self._base: weakref[pynbody.snapshot.SimSnap] = weakref.ref(sim)
+        self._base: weakref[snapshot.SimSnap] = weakref.ref(sim)
         self._number_mapper: MonotonicHaloNumberMapper = number_mapper
         self._index_lists: Optional[HaloParticleIndices] = None
         self._cached_halos: dict[Halo] = {}
@@ -400,15 +400,4 @@ class AmigaGrpCatalogue(GrpCatalogue):
         return GrpCatalogue._can_load(sim, arr_name)
 
 
-from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
-from pynbody.halo.ahf import AHFCatalogue
-from pynbody.halo.hop import HOPCatalogue
-from pynbody.halo.legacy import RockstarIntermediateCatalogue
-from pynbody.halo.rockstar import RockstarCatalogue
-from pynbody.halo.subfind import SubfindCatalogue
-from pynbody.halo.subfindhdf import (
-    ArepoSubfindHDFCatalogue,
-    Gadget4SubfindHDFCatalogue,
-    SubFindHDFHaloCatalogue,
-    TNGSubfindHDFCatalogue,
-)
+from . import adaptahop, ahf, hop, rockstar, subfind, subfindhdf

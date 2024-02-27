@@ -14,7 +14,7 @@ def snap():
 @pytest.mark.parametrize('load_all', (True, False))
 def test_halo_loading(snap, load_all) :
     """ Check that halo loading works """
-    h = pynbody.halo.SubFindHDFHaloCatalogue(snap)
+    h = pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue(snap)
 
     if load_all:
         h.load_all()
@@ -63,8 +63,8 @@ def test_halo_loading(snap, load_all) :
 
 def test_subhalos(snap):
     """Test that subhalos can be accessed from each parent FOF group, as well as directly through a subs object"""
-    h = pynbody.halo.SubFindHDFHaloCatalogue(snap)
-    subs = pynbody.halo.SubFindHDFHaloCatalogue(snap, subs=True)
+    h = pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue(snap)
+    subs = pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue(snap, subs=True)
     h.load_all()
 
     assert (h[0].sub[0]['iord'] == subs[0]['iord']).all()

@@ -17,7 +17,7 @@ def dummy_file():
 
 @pytest.fixture
 def rockstar_halos(dummy_file):
-    h = pynbody.halo.RockstarCatalogue(dummy_file)
+    h = pynbody.halo.rockstar.RockstarCatalogue(dummy_file)
     return h
 
 def test_rockstar_single_cpu():
@@ -42,13 +42,13 @@ def test_rockstar_single_cpu():
     assert np.allclose(props['vel'], np.array([  77.035904, -119.406364,  -27.567175]))
 
 def test_load_rockstar(dummy_file):
-    h = pynbody.halo.RockstarCatalogue(dummy_file)
+    h = pynbody.halo.rockstar.RockstarCatalogue(dummy_file)
     assert len(h)==5851
-    assert isinstance(h, pynbody.halo.RockstarCatalogue)
+    assert isinstance(h, pynbody.halo.rockstar.RockstarCatalogue)
 
 def test_autodetect_rockstar(dummy_file):
     h = dummy_file.halos()
-    assert isinstance(h, pynbody.halo.RockstarCatalogue)
+    assert isinstance(h, pynbody.halo.rockstar.RockstarCatalogue)
 
 def test_rockstar_properties(rockstar_halos):
     h_properties = rockstar_halos[4977].properties

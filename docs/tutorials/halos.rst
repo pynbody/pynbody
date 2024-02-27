@@ -24,10 +24,10 @@ object is a compilation of all the halos in a given snapshot.
 
 Some possible halo finders that pynbody recognises include:
 
- - `Amiga Halo Finder (AHF) <http://popia.ft.uam.es/AHF/Download.html>`_ (:class:`~pynbody.halo.AHFCatalogue`);
- -  `Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>`_ (:class:`~pynbody.halo.RockstarCatalogue`);
+ - `Amiga Halo Finder (AHF) <http://popia.ft.uam.es/AHF/Download.html>`_ (:class:`~pynbody.halo.ahf.AHFCatalogue`);
+ -  `Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>`_ (:class:`~pynbody.halo.rockstar.RockstarCatalogue`);
  - SKID (:class:`~pynbody.halo.GrpCatalogue` class);
- - SubFind (:class:`~pynbody.halo.SubfindCatalogue`).
+ - SubFind (:class:`~pynbody.halo.subfind.SubfindCatalogue`).
 
 The :func:`~pynbody.snapshot.SimSnap.halos` function in
 :class:`~pynbody.snapshot.SimSnap`

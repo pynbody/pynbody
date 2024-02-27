@@ -14,11 +14,11 @@ def snap(request):
 
 @pytest.fixture
 def halos(snap):
-    return pynbody.halo.SubfindCatalogue(snap, subs=True)
+    return pynbody.halo.subfind.SubfindCatalogue(snap, subs=True)
 
 @pytest.fixture
 def groups(snap):
-    return pynbody.halo.SubfindCatalogue(snap, subs=False)
+    return pynbody.halo.subfind.SubfindCatalogue(snap, subs=False)
 
 
 def test_lengths(halos, groups):
@@ -26,7 +26,7 @@ def test_lengths(halos, groups):
     assert len(halos)==3290
 
 def test_autodetect_subfind(snap):
-    assert isinstance(snap.halos(), pynbody.halo.SubfindCatalogue)
+    assert isinstance(snap.halos(), pynbody.halo.subfind.SubfindCatalogue)
 
 def test_group_properties(groups):
     assert_allclose(float(groups[3].properties['mmean_200']), 1.22e14, rtol=1.e-2)

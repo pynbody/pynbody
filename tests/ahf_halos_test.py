@@ -22,13 +22,13 @@ def cleanup_fpos_file():
 
 def test_load_ahf_catalogue():
     f = pynbody.load("testdata/g15784.lr.01024")
-    h = pynbody.halo.AHFCatalogue(f)
+    h = pynbody.halo.ahf.AHFCatalogue(f)
     assert len(h)==1411
 
 @pytest.mark.parametrize("do_load_all", [True, False])
 def test_ahf_particles(do_load_all, cleanup_fpos_file):
     f = pynbody.load("testdata/g15784.lr.01024")
-    h = pynbody.halo.AHFCatalogue(f)
+    h = pynbody.halo.ahf.AHFCatalogue(f)
 
     if do_load_all:
         h.load_all()
@@ -50,7 +50,7 @@ def test_load_ahf_catalogue_non_gzipped(do_load_all):
         subprocess.call(["gunzip",f"testdata/g15784.lr.01024.z0.000.AHF_{extension}.gz"])
     try:
         f = pynbody.load("testdata/g15784.lr.01024")
-        h = pynbody.halo.AHFCatalogue(f)
+        h = pynbody.halo.ahf.AHFCatalogue(f)
         if do_load_all:
             h.load_all()
         assert len(h)==1411
@@ -61,7 +61,7 @@ def test_load_ahf_catalogue_non_gzipped(do_load_all):
 
 def test_ahf_properties():
     f = pynbody.load("testdata/g15784.lr.01024")
-    h = pynbody.halo.AHFCatalogue(f)
+    h = pynbody.halo.ahf.AHFCatalogue(f)
     assert np.allclose(h[1].properties['Mvir'], 1.69639e+12)
     assert np.allclose(h[2].properties['Ekin'],6.4911e+17)
     assert np.allclose(h[2].properties['Mvir'], 1.19684e+13)
@@ -107,13 +107,13 @@ def test_detecting_ahf_catalogues_with_without_trailing_slash():
         "testdata/ramses_new_format_cosmo_with_ahf_output_00110/"
     ):
         f = pynbody.load(name)
-        _halos = pynbody.halo.AHFCatalogue(f)
+        _halos = pynbody.halo.ahf.AHFCatalogue(f)
 
 
 def test_ramses_ahf_family_mapping_with_new_format():
     # Test Issue 691 where family mapping of AHF catalogues with Ramses new particle formats would go wrong
     f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
-    halos = pynbody.halo.AHFCatalogue(f)
+    halos = pynbody.halo.ahf.AHFCatalogue(f)
 
     assert len(halos) == 149    # 150 lines in AHF halos file
 
@@ -149,12 +149,12 @@ def test_ahf_corrupt_substructure():
     Use that to test we can see the exception"""
     f = pynbody.load("testdata/g15784.lr.01024")
     with pytest.raises(KeyError):
-        _ = pynbody.halo.AHFCatalogue(f, ignore_missing_substructure=False)
+        _ = pynbody.halo.ahf.AHFCatalogue(f, ignore_missing_substructure=False)
 
 
 def test_ahf_substructure():
     f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
-    halos = pynbody.halo.AHFCatalogue(f)
+    halos = pynbody.halo.ahf.AHFCatalogue(f)
     halos.load_all()
 
     check_parents = [1,2]
@@ -220,7 +220,7 @@ def test_ahf_non_sequential_ids(snap_with_non_sequential_halos,
                                 halo_numbering_mode,
                                 halo_ids):
     f = snap_with_non_sequential_halos
-    h = pynbody.halo.AHFCatalogue(f, halo_numbers=halo_numbering_mode)
+    h = pynbody.halo.ahf.AHFCatalogue(f, halo_numbers=halo_numbering_mode)
 
     assert len(h)==1411
     assert len(h[halo_ids[0]])==502300
