@@ -128,6 +128,12 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
     """
 
+    @classmethod
+    def iter_subclasses(cls):
+        for c in cls.__subclasses__():
+            yield from c.iter_subclasses()
+            yield c
+
     def __init__(self, sim, number_mapper):
         self._base: weakref[pynbody.snapshot.SimSnap] = weakref.ref(sim)
         self._number_mapper: MonotonicHaloNumberMapper = number_mapper
@@ -406,15 +412,3 @@ from pynbody.halo.subfindhdf import (
     SubFindHDFHaloCatalogue,
     TNGSubfindHDFCatalogue,
 )
-
-
-def _get_halo_classes():
-    _halo_classes = [
-        GrpCatalogue, AmigaGrpCatalogue, AHFCatalogue,
-        RockstarCatalogue, SubfindCatalogue, SubFindHDFHaloCatalogue,
-        NewAdaptaHOPCatalogue, AdaptaHOPCatalogue,
-        RockstarIntermediateCatalogue, HOPCatalogue, Gadget4SubfindHDFCatalogue,
-        ArepoSubfindHDFCatalogue, TNGSubfindHDFCatalogue
-    ]
-
-    return _halo_classes
