@@ -804,7 +804,7 @@ def simulation_halo_mass_function(snapshot,
     halo_catalogue.load_all()
 
     if subsample_catalogue is not None:
-        halo_catalogue = snapshot.halos()[::subsample_catalogue]
+        halo_catalogue = halo_catalogue[::subsample_catalogue]
 
     if masses is None:
         warnings.warn("Halo finder masses not provided. Calculating them (might take a while...)")
