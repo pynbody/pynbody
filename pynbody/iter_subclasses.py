@@ -14,7 +14,7 @@ class IterableSubclasses:
             yield c
 
     @classmethod
-    def iter_subclasses_with_priority(cls, priority: Iterable[str | type]):
+    def iter_subclasses_with_priority(cls, priority: Iterable[str | type]) -> Iterable[type]:
         """Iterate over all subclasses, starting with the given priorities
 
         The priorities can be provided either as a string or a class"""
