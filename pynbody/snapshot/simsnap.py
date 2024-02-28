@@ -15,7 +15,16 @@ from functools import reduce
 
 import numpy as np
 
-from .. import array, dependencytracker, family, filt, iter_subclasses, simdict, units, util
+from .. import (
+    array,
+    dependencytracker,
+    family,
+    filt,
+    iter_subclasses,
+    simdict,
+    units,
+    util,
+)
 from ..units import has_units
 from .util import ContainerWithPhysicalUnitsOption
 

@@ -82,6 +82,10 @@ def test_halo_loading() :
     arepo_halos = htest_arepo.load()['halos']
     assert(len(halos_arepo[0]['iord']) == len(halos_arepo[0]) == np.sum(arepo_halos['GroupLenType'][0, :], axis=-1))
 
+def test_subhalos():
+    assert len(halos[1].subhalos) == 8
+    assert len(halos[1].subhalos[2]) == 91
+    assert halos[1].subhalos[2].properties['halo_number'] == 22
 
 @pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes", "ignore:Accessing multiple halos")
 def test_particle_data():

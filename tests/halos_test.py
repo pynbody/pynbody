@@ -203,7 +203,15 @@ def test_get_halocat_slice():
     for halo, expected_halo in zip(h_range, expected_halos):
         assert halo == expected_halo
 
-    assert next(h_range, None) is None
+def test_get_halocat_indexed():
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogue(f)
+
+    h_range = h[[1,2,4,7]]
+    expected_halos = [h[1], h[2], h[4], h[7]]
+
+    for halo, expected_halo in zip(h_range, expected_halos):
+        assert halo == expected_halo
 
 def test_property_access():
     f = pynbody.new(dm=100)

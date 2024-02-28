@@ -35,6 +35,8 @@ def test_group_properties(groups):
 def test_group_children(groups):
     assert np.all(groups[0].properties['children'] == np.arange(0, 39))
     assert np.all(groups[3].properties['children'] == np.arange(89,109))
+    halo_nums_in_subs = [sh.properties['halo_number'] for sh in groups[3].subhalos]
+    assert (halo_nums_in_subs == np.arange(89,109)).all()
 
 def test_halo_properties(halos):
     assert_allclose(halos[3].properties['sub_pos'], [ 0.4759067,  1.862322 , 33.249245 ])

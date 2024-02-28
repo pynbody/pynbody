@@ -20,9 +20,6 @@ pass the filename 'snap'. If you pass snap.0, only that particular file will
 be loaded.
 """
 
-
-  # for py2.5
-
 import configparser
 import functools
 import itertools
@@ -31,7 +28,7 @@ import warnings
 
 import numpy as np
 
-from .. import config_parser, family, halo, units, util
+from .. import config_parser, family, units, util
 from . import SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
@@ -694,6 +691,7 @@ class EagleLikeHDFSnap(GadgetHDFSnap):
         """Load the Eagle FOF halos, or if subs is specified the Subhalos of the given FOF halo number.
 
         *subs* should be an integer specifying the parent FoF number"""
+        from .. import halo
         if subs:
             if not np.issubdtype(type(subs), np.integer):
                 raise ValueError("The subs argument must specify the group number")

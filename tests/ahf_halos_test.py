@@ -170,6 +170,10 @@ def test_ahf_substructure():
             assert halos[child].properties['parent'] == parent # from substructure file
             assert halos[child].properties['hostHalo'] == parent # from halos file
 
+        assert len(halo.subhalos) == len(halo.properties['children'])
+        for child_halo, child_number in zip(halo.subhalos, children):
+            assert (child_halo.dm['iord'] == halos[child_number].dm['iord']).all()
+
 @pytest.fixture
 def snap_with_non_sequential_halos():
     base_folder = pathlib.Path("testdata/ahf_with_non_sequential_ids").absolute()

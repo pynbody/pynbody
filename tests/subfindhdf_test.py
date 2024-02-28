@@ -67,8 +67,11 @@ def test_subhalos(snap):
     subs = pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue(snap, subs=True)
     h.load_all()
 
-    assert (h[0].sub[0]['iord'] == subs[0]['iord']).all()
-    assert (h[1].sub[1]['iord'] == subs[7]['iord']).all()
+    assert (h[0].subhalos[0]['iord'] == subs[0]['iord']).all()
+    assert (h[1].subhalos[1]['iord'] == subs[7]['iord']).all()
+
+    with pytest.warns(DeprecationWarning):
+        assert (h[1].sub[1]['iord'] == subs[7]['iord']).all()
 
 def test_finds_correct_halo(snap):
     h = snap.halos()
@@ -121,7 +124,7 @@ def test_halo_values(snap) :
     for i,halo in enumerate(h[0:10]) :
         assert(np.allclose(halo.properties['CenterOfMass'], FoF_CoM[i], rtol=1e-3))
 
-        for j, s in enumerate(halo.sub) :
+        for j, s in enumerate(halo.subhalos) :
             assert(np.allclose(s.properties['CenterOfMass'], Sub_CoM[OffsetHalo[i]+j], rtol=1e-3))
 
     ###
@@ -137,7 +140,7 @@ def test_halo_values(snap) :
 
     # Mass of each component for Subhalos
     for i,halo in enumerate(h[0:10]) :
-        for j, s in enumerate(halo.sub) :
+        for j, s in enumerate(halo.subhalos) :
             assert(np.allclose(s.g['mass'].sum(), Sub_MassType[OffsetHalo[i]+j,0], rtol=1e-3))
             assert(np.allclose(s.dm['mass'].sum(), Sub_MassType[OffsetHalo[i]+j,1], rtol=1e-3))
             assert(np.allclose(s.s['mass'].sum(), Sub_MassType[OffsetHalo[i]+j,4], rtol=1e-3))

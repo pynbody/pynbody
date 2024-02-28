@@ -804,6 +804,7 @@ def simulation_halo_mass_function(snapshot,
     halo_catalogue.load_all()
 
     if subsample_catalogue is not None:
+        halo_catalogue_underlying = halo_catalogue # keep alive for the lifetime of the function
         halo_catalogue = halo_catalogue[::subsample_catalogue]
 
     if masses is None:

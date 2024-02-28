@@ -90,5 +90,5 @@ def new(n_particles=0, order=None, class_=SimSnap, **families):
     return x
 
 
+from . import ascii, gadget, gadgethdf, grafic, nchilada, ramses, subsnap, tipsy
 from .subsnap import FamilySubSnap, IndexedSubSnap, SubSnap
-from . import ascii, gadget, gadgethdf, grafic, nchilada, ramses, tipsy

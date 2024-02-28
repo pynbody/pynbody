@@ -19,6 +19,7 @@ import copy
 import logging
 import warnings
 import weakref
+from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
@@ -27,6 +28,9 @@ from .. import iter_subclasses, snapshot, util
 from .details.iord_mapping import make_iord_to_offset_mapper
 from .details.number_mapper import MonotonicHaloNumberMapper, create_halo_number_mapper
 from .details.particle_indices import HaloParticleIndices
+
+if TYPE_CHECKING:
+    from .subhalo_catalogue import SubhaloCatalogue
 
 logger = logging.getLogger("pynbody.halo")
 
@@ -64,6 +68,15 @@ class Halo(snapshot.subsnap.IndexedSubSnap):
         """
 
         return self._halo_catalogue.is_subhalo(self._halo_number, otherhalo._halo_number)
+
+    @property
+    @util.deprecated("The sub property has been renamed to subhalos")
+    def sub(self):
+        return self.subhalos
+
+    @property
+    def subhalos(self) -> SubhaloCatalogue:
+        return self._halo_catalogue._get_subhalo_catalogue(self._halo_number)
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=True):
         """
@@ -126,6 +139,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
       _get_halo [only if you want to add further customization to halos]
       _get_num_halos [optional, if it's possible to do this more efficiently than calling _get_index_list_all_halos]
       get_group_array [only if it's possible to do this more efficiently than the default implementation]
+      _get_subhalo_catalogue [optional, if this halo catalogue supports subhalos]; user-accessed via .subhalos on a Halo
 
     """
 
@@ -213,9 +227,12 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         for i in self._number_mapper:
             yield self[i]
 
-    def __getitem__(self, item) -> Halo:
+    def __getitem__(self, item) -> Halo | SubhaloCatalogue:
+        from .subhalo_catalogue import SubhaloCatalogue
         if isinstance(item, slice):
-            return (self._get_halo_cached(i) for i in range(*item.indices(len(self))))
+            return SubhaloCatalogue(self, np.arange(*item.indices(len(self))))
+        elif hasattr(item, "__len__"):
+            return SubhaloCatalogue(self, item)
         else:
             return self._get_halo_cached(item)
 
@@ -249,6 +266,14 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             return True
         else:
             return False
+
+    def _get_subhalo_catalogue(self, parent_halo_number) -> SubhaloCatalogue:
+        from .subhalo_catalogue import SubhaloCatalogue
+        props = self._get_properties_one_halo(parent_halo_number)
+        if 'children' in props:
+            return SubhaloCatalogue(self, props['children'])
+        else:
+            raise ValueError(f"This halo catalogue does not support subhalos")
 
     def contains(self, halo_number):
         if halo_number in self._halos:

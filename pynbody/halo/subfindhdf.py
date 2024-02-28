@@ -111,7 +111,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
         *sim*: The SimSnap
         *subs*: If True, enumerate the subhalos instead of the groups. Otherwise, the jth subhalo of FOF group i
-        is still available, as halo_cat[i].sub[j].
+        is still available, as halo_cat[i].subhalos[j].
         *_inherit_data_from*: for internal use only, allows subhalo catalogue to share data with its parent FOF catalogue
         """
 
@@ -401,11 +401,12 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         halo = i - self._fof_group_first_subhalo[group]
         return group, halo
 
-    def _get_halo(self, i):
-        h = super()._get_halo(i)
+    def _get_subhalo_catalogue(self, parent_halo_number):
         if not self._sub_mode:
-            h.sub = SubhaloCatalogue(self._subhalo_catalogue, h.properties['children'])
-        return h
+            props = self._get_properties_one_halo(parent_halo_number)
+            return SubhaloCatalogue(self._subhalo_catalogue, props['children'])
+        else:
+            return SubhaloCatalogue(self._subhalo_catalogue, [])
 
     @staticmethod
     def _can_load(sim, subs=False):
