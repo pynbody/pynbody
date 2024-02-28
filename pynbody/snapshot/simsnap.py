@@ -760,17 +760,40 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         return u
 
     def halos(self, *args, **kwargs) -> halo.HaloCatalogue:
-        """Tries to instantiate a halo catalogue object for the given
-        snapshot, using the first available method (as defined in the
-        configuration files)."""
-        from .. import config
+        """Tries to instantiate a halo catalogue object for the given snapshot.
 
-        for c in config['halo-class-priority']:
+        Multiple catalogue classes are available in pynbody, and they are tried in turn until the first which
+        accepted the request to load halos for this file.
+
+        The order of catalogue class priority is either defined in the configuration file or can be passed
+        as a 'priority' keyword argument, which should be a list of either class names or classes.
+
+        For example
+
+        >>> h = snap.halos(priority = ["HOPCatalogue", "AHFCatalogue", pynbody.halo.subfind.SubfindCatalogue])
+
+        would try to load HOP halos, then AHF halos, then Subfind halos, before finally trying all other
+        known halo classes in an arbitrary order.
+
+        Aarguments and keyword arguments other than `priority` are passed onto the individual halo loaders.
+        If a given catalogue class does not accept the args/kwargs that you pass in, by definition it cannot
+        be used; this can lead to 'silent' failures. To understand why a given class is not being instantiated
+        by this method, the best option is to try _directly_ instantiating that class to reveal the error
+        explicitly."""
+
+        from .. import config, halo
+
+        priority = kwargs.pop('priority',
+                              config['halo-class-priority'])
+
+        for c in halo.HaloCatalogue.iter_subclasses_with_priority(priority):
             try:
-                if c._can_load(self, *args, **kwargs):
-                    return c(self, *args, **kwargs)
+                can_load = c._can_load(self, *args, **kwargs)
             except TypeError:
-                pass
+                can_load = False
+
+            if can_load:
+                return c(self, *args, **kwargs)
 
         raise RuntimeError("No halo catalogue found for %r" % str(self))
 

@@ -13,17 +13,17 @@ See the `halo tutorial
 examples.
 
 """
+from __future__ import annotations
 
 import copy
 import logging
 import warnings
 import weakref
-from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
 
-from .. import snapshot, util
+from .. import iter_subclasses, snapshot, util
 from .details.iord_mapping import make_iord_to_offset_mapper
 from .details.number_mapper import MonotonicHaloNumberMapper, create_halo_number_mapper
 from .details.particle_indices import HaloParticleIndices
@@ -108,7 +108,8 @@ class Halo(snapshot.subsnap.IndexedSubSnap):
             self._autoconvert_properties()
 
 
-class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
+class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
+                    iter_subclasses.IterableSubclasses):
 
     """Generic halo catalogue object.
 
@@ -128,16 +129,10 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
 
     """
 
-    @classmethod
-    def iter_subclasses(cls):
-        for c in cls.__subclasses__():
-            yield from c.iter_subclasses()
-            yield c
-
     def __init__(self, sim, number_mapper):
         self._base: weakref[snapshot.SimSnap] = weakref.ref(sim)
         self._number_mapper: MonotonicHaloNumberMapper = number_mapper
-        self._index_lists: Optional[HaloParticleIndices] = None
+        self._index_lists: HaloParticleIndices | None = None
         self._cached_halos: dict[Halo] = {}
 
     def load_all(self):
@@ -160,7 +155,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption):
         self.load_all()
         return self._index_lists
 
-    def _get_all_particle_indices(self) -> Union[HaloParticleIndices, tuple[np.ndarray, np.ndarray]]:
+    def _get_all_particle_indices(self) -> HaloParticleIndices | tuple[np.ndarray, np.ndarray]:
         """Returns information about the index list for all halos.
 
         Returns an HaloParticleIndices object, which is a container for the following information:

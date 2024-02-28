@@ -98,12 +98,9 @@ def configure_snapshot_and_halo_loading_priority():
     # Turn the config strings for snapshot/halo classes into lists of
     # actual classes
     _snap_classes_dict = {x.__name__: x for x in snapshot._get_snap_classes()}
-    _halo_classes_dict = {x.__name__: x for x in halo.HaloCatalogue.iter_subclasses()}
+
     config['snap-class-priority'] = [_snap_classes_dict[x]
                                      for x in config['snap-class-priority']]
-    config['halo-class-priority'] = [_halo_classes_dict[x]
-                                     for x in config['halo-class-priority']]
-
 
 config_parser = _get_config_parser_with_defaults()
 _add_overrides_to_config_parser(config_parser)

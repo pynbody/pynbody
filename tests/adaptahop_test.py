@@ -67,7 +67,6 @@ def test_load_halo(path, nhalos, halo1_len, halo2_len, halo1_iord, halo2_iord, l
     assert (halos[1].dm['iord'][::100] == halo1_iord).all()
 
 
-
 def test_properties_are_simarrays(f, halos):
     halo = halos[1]
 

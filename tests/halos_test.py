@@ -352,3 +352,23 @@ def test_long_iord_to_pos_map():
 
     assert (iord_to_fpos.map_ignoring_order([0, 10, 20, 300]) == np.array([0, 2, 1, 3])).all()
     assert iord_to_fpos.map_ignoring_order(300) == 3
+
+def test_load_halo_priority():
+    from pynbody.halo.adaptahop import AdaptaHOPCatalogue
+    from pynbody.halo.hop import HOPCatalogue
+    f = pynbody.load("testdata/output_00080")
+
+    # check that the priority ordering is respected
+    halos = f.halos(priority=['HOPCatalogue'])
+    assert isinstance(halos, HOPCatalogue)
+
+    halos = f.halos(priority=["AdaptaHOPCatalogue", "HOPCatalogue"])
+    assert isinstance(halos, AdaptaHOPCatalogue)
+
+    # check we can pass a class instead of its name
+    halos = f.halos(priority=[AdaptaHOPCatalogue])
+    assert isinstance(halos, AdaptaHOPCatalogue)
+
+    # check that classes not in the priority order are still scanned
+    halos = f.halos(priority=["AHFCatalogue"])
+    assert isinstance(halos, HOPCatalogue) or isinstance(halos, AdaptaHOPCatalogue)
