@@ -123,7 +123,7 @@ def test_write():
 def test_conversion():
     """Check that we can convert a file from tipsy format and load it again"""
     snap4 = pynbody.load("testdata/g15784.lr.01024")
-    snap4.write(fmt=pynbody.gadget.GadgetSnap,
+    snap4.write(fmt=pynbody.snapshot.gadget.GadgetSnap,
                 filename="testdata/test_conversion.gadget")
     snap5 = pynbody.load("testdata/test_conversion.gadget")
 

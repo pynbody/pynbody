@@ -24,7 +24,9 @@ def load(filename, *args, **kwargs) -> SimSnap:
 
     filename = pathlib.Path(filename)
 
-    for c in config['snap-class-priority']:
+    priority = kwargs.pop('priority', config['snap-class-priority'])
+
+    for c in SimSnap.iter_subclasses_with_priority(priority):
         if c._can_load(filename):
             logger.info("Loading using backend %s" % str(c))
             return c(filename, *args, **kwargs)
@@ -87,14 +89,6 @@ def new(n_particles=0, order=None, class_=SimSnap, **families):
     x._decorate()
     return x
 
-def _get_snap_classes():
-    from . import ascii, gadget, gadgethdf, grafic, nchilada, ramses, tipsy
-
-    _snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, gadgethdf.EagleLikeHDFSnap,
-                     nchilada.NchiladaSnap, gadget.GadgetSnap,
-                     tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap,
-                     ascii.AsciiSnap]
-
-    return _snap_classes
 
 from .subsnap import FamilySubSnap, IndexedSubSnap, SubSnap
+from . import ascii, gadget, gadgethdf, grafic, nchilada, ramses, tipsy

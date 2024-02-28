@@ -253,7 +253,7 @@ class GadgetHeader:
 class GadgetFile:
 
     """Gadget file management class. Users should access gadget files through
-    :class:`~pynbody.gadget.GadgetSnap`."""
+    :class:`~pynbody.snapshot.gadget.GadgetSnap`."""
 
     def __init__(self, filename):
         self._filename = filename

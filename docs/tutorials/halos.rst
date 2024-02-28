@@ -307,7 +307,7 @@ halo for this small box simulation will be the largest object.
 Halo IDs begin with 0 for SubFind / FOF unlike AHF.
 
 The "halos" are treated using the
-:class:`~pynbody.gadgethdf.SubFindHDFSnap` class. The syntax for dealing
+:class:`~pynbody.snapshot.gadgethdf.SubFindHDFSnap` class. The syntax for dealing
 with an individual halo is the same as AHF and the snapshot simulation.
 For example, we can get the total mass in the second FOF halo
 and see the position of its first few particles as follows:

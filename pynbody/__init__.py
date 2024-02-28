@@ -32,7 +32,6 @@ from . import (
     transformation,
     util,
 )
-from .snapshot import ascii, gadget, gadgethdf, grafic, nchilada, ramses, tipsy
 
 
 # The PlotModuleProxy serves to delay import of pynbody.plot until it's accessed.
@@ -74,10 +73,8 @@ plot = PlotModuleProxy()
 
 from .snapshot import load, new
 
-configuration.configure_snapshot_and_halo_loading_priority()
-
 derived_array = snapshot.simsnap.SimSnap.derived_quantity
 
-__version__ = '1.6.0'
+__version__ = '2.0.0-beta'
 
 __all__ = ['load', 'new', 'derived_array']

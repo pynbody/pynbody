@@ -167,7 +167,7 @@ def test_write():
     f2['vx'] = np.arange(40, 80)
     f2.properties['a'] = 0.5
     f2.properties['time'] = 12.0
-    f2.write(fmt=pynbody.tipsy.TipsySnap, filename="testdata/test_out.tipsy")
+    f2.write(fmt=pynbody.snapshot.tipsy.TipsySnap, filename="testdata/test_out.tipsy")
 
     f3 = pynbody.load("testdata/test_out.tipsy")
     assert all(f3['x'] == f2['x'])
@@ -177,7 +177,7 @@ def test_write():
 
     # this looks strange, but it's because the .param file in the testdata folder implies a cosmological tipsy snap
     # whereas we have just written the snapshot asserting it is non-cosmological
-    f2.write(fmt=pynbody.tipsy.TipsySnap, filename="testdata/test_out.tipsy", cosmological=False)
+    f2.write(fmt=pynbody.snapshot.tipsy.TipsySnap, filename="testdata/test_out.tipsy", cosmological=False)
     f3 = pynbody.load("testdata/test_out.tipsy")
     assert f3.properties['a']==12
 

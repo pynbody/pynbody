@@ -15,7 +15,7 @@ from functools import reduce
 
 import numpy as np
 
-from .. import array, dependencytracker, family, filt, simdict, units, util
+from .. import array, dependencytracker, family, filt, iter_subclasses, simdict, units, util
 from ..units import has_units
 from .util import ContainerWithPhysicalUnitsOption
 
@@ -24,7 +24,7 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger('pynbody.snapshot.simsnap')
 
-class SimSnap(ContainerWithPhysicalUnitsOption):
+class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclasses):
 
     """The class for managing simulation snapshots.
 
@@ -143,8 +143,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
     @classmethod
     def _can_load(cls, filepath: pathlib.Path):
-        raise NotImplementedError("This method should be implemented by a subclass")
-
+        # this should be implemented by subclasses that can load from disk
+        return False
 
 
     def __init__(self):
@@ -966,7 +966,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         if fmt is None:
             if not hasattr(self, "_write"):
                 raise RuntimeError(
-                    'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.tipsy.TipsySnap)')
+                    'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.snapshot.tipsy.TipsySnap)')
 
             self._write(self, filename, **kwargs)
         else:
