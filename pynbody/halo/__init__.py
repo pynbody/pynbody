@@ -12,6 +12,10 @@ See the `halo tutorial
 <http://pynbody.github.io/pynbody/tutorials/halos.html>`_ for some
 examples.
 
+Halo catalogues act like a dictionary, mapping from a _halo number_ to a
+Halo object. The halo number is typically determined by the halo finder, and
+is often (but not always) the same as the _halo index_ which is the zero-based
+offset within the catalogue.
 """
 from __future__ import annotations
 
@@ -19,14 +23,14 @@ import copy
 import logging
 import warnings
 import weakref
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 import numpy as np
 from numpy.typing import NDArray
 
 from .. import iter_subclasses, snapshot, util
 from .details.iord_mapping import make_iord_to_offset_mapper
-from .details.number_mapper import MonotonicHaloNumberMapper, create_halo_number_mapper
+from .details.number_mapping import MonotonicHaloNumberMapper, create_halo_number_mapper
 from .details.particle_indices import HaloParticleIndices
 
 if TYPE_CHECKING:
@@ -60,14 +64,6 @@ class Halo(snapshot.subsnap.IndexedSubSnap):
 
         # Inherit autoconversion from parent
         self._autoconvert_properties()
-
-    def is_subhalo(self, otherhalo):
-        """
-        Convenience function that calls the corresponding function in
-        a halo catalogue.
-        """
-
-        return self._halo_catalogue.is_subhalo(self._halo_number, otherhalo._halo_number)
 
     @property
     @util.deprecated("The sub property has been renamed to subhalos")
@@ -134,20 +130,24 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     To support a new format, subclass this and implement the following methods:
       __init__, which must pass a HaloNumberMapper into the base constructor, to specify what halos are available
       _get_all_particle_indices [essential]
-      _get_index_list_one_halo [optional, if it's possible to do this more efficiently than _get_index_list_all_halos]
+      _get_particle_indices_one_halo [optional, if it's possible to do this more efficiently than _get_all_particle_indices]
       _get_properties_one_halo [only if you have halo finder-provided properties to expose]
       _get_halo [only if you want to add further customization to halos]
       _get_num_halos [optional, if it's possible to do this more efficiently than calling _get_index_list_all_halos]
       get_group_array [only if it's possible to do this more efficiently than the default implementation]
       _get_subhalo_catalogue [optional, if this halo catalogue supports subhalos]; user-accessed via .subhalos on a Halo
 
+    Note that particle indices are zero-relative offsets within pynbody's representation of the snapshot. They are not
+    the same as particle IDs or 'iord's which are the particle IDs stored in the simulation file. To aid converting
+    between iords/IDs (which are used by many halo finder outputs) and pynbody's particle indices, call
+    _init_iord_to_fpos, which creates a mapper as _iord_to_fpos. See details/iord_mapping.py for more information.
     """
 
     def __init__(self, sim, number_mapper):
         self._base: weakref[snapshot.SimSnap] = weakref.ref(sim)
         self._number_mapper: MonotonicHaloNumberMapper = number_mapper
         self._index_lists: HaloParticleIndices | None = None
-        self._cached_halos: dict[Halo] = {}
+        self._cached_halos: dict[int, Halo] = {}
 
     def load_all(self):
         """Loads all halos, which is normally more efficient if a large fraction of them will be accessed."""
@@ -164,7 +164,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     def _get_num_halos(self):
         return len(self._number_mapper)
 
-    def _get_index_list_all_halos_cached(self):
+    def _get_all_particle_indices_cached(self):
         """Get the index information for all halos, using a cached version if available"""
         self.load_all()
         return self._index_lists
@@ -182,7 +182,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         """Returns a dictionary of properties for a single halo, given a halo_number """
         return {}
 
-    def _get_index_list_one_halo(self, halo_number) -> NDArray[int]:
+    def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
         """Get the index list for a single halo, given a halo_number.
 
         A generic implementation is provided that fetches index lists for all halos and then extracts the one"""
@@ -191,7 +191,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             self._number_mapper.number_to_index(halo_number)
         )
 
-    def _get_index_list_via_most_efficient_route(self, halo_number) -> NDArray[int]:
+    def _get_particle_indices_one_halo_using_list_if_available(self, halo_number) -> NDArray[int]:
         if self._index_lists:
             return self._index_lists.get_particle_index_list_for_halo(
                 self._number_mapper.number_to_index(halo_number)
@@ -200,7 +200,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             if len(self._cached_halos) == 5:
                 warnings.warn("Accessing multiple halos may be more efficient if you call load_all() on the "
                               "halo catalogue", RuntimeWarning)
-            return self._get_index_list_one_halo(halo_number)
+            return self._get_particle_indices_one_halo(halo_number)
             # NB subclasses may implement loading one halo direct from disk in the above
             # if not, the default implementation will populate _cached_index_lists
 
@@ -211,7 +211,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
     def _get_halo(self, halo_number) -> Halo:
         return Halo(halo_number, self._get_properties_one_halo(halo_number), self, self.base,
-                    self._get_index_list_via_most_efficient_route(halo_number))
+                    self._get_particle_indices_one_halo_using_list_if_available(halo_number))
 
     def get_dummy_halo(self, halo_number) -> DummyHalo:
         """Return a DummyHalo object containing only the halo properties, no particle information"""
@@ -222,7 +222,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     def __len__(self) -> int:
         return self._get_num_halos()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Halo]:
         self.load_all()
         for i in self._number_mapper:
             yield self[i]
@@ -258,16 +258,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
                 self._iord_to_fpos = OneToOneIndex()
 
-    def is_subhalo(self, childid, parentid):
-        """Checks whether the specified 'childid' halo is a subhalo
-        of 'parentid' halo.
-        """
-        if (childid in self._halos[parentid].properties['children']):
-            return True
-        else:
-            return False
-
-    def _get_subhalo_catalogue(self, parent_halo_number) -> SubhaloCatalogue:
+    def _get_subhalo_catalogue(self, parent_halo_number: int) -> SubhaloCatalogue:
         from .subhalo_catalogue import SubhaloCatalogue
         props = self._get_properties_one_halo(parent_halo_number)
         if 'children' in props:
@@ -275,11 +266,8 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         else:
             raise ValueError(f"This halo catalogue does not support subhalos")
 
-    def contains(self, halo_number):
-        if halo_number in self._halos:
-            return True
-        else:
-            return False
+    def contains(self, halo_number: int) -> bool:
+        return halo_number in self._number_mapper
 
     def __contains__(self, haloid):
         return self.contains(haloid)
@@ -301,7 +289,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
         This relies on the underlying SimSnap being capable of partial loading."""
         from .. import load
-        return load(self.base.filename, take=self._get_index_list_via_most_efficient_route(halo_number))
+        return load(self.base.filename, take=self._get_particle_indices_one_halo_using_list_if_available(halo_number))
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):
         """
@@ -335,89 +323,9 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
                 convert_parent=False
             )
 
-    @staticmethod
-    def _can_load(self):
+    @classmethod
+    def _can_load(cls):
         return False
 
 
-class GrpCatalogue(HaloCatalogue):
-    """
-    A generic catalogue using a .grp file to specify which particles
-    belong to which group.
-    """
-    def __init__(self, sim, array='grp', ignore=None, **kwargs):
-        """Construct a GrpCatalogue, extracting halos based on a simulation-wide integer array with their IDs
-
-        *sim* - the SimSnap for which the halos will be constructed
-        *array* - the name of the array which should be present, loadable or derivable across the simulation
-        *ignore* - a special value indicating "no halo", or None if no such special value is defined
-        """
-        sim[array] # noqa - trigger lazy-loading and/or kick up a fuss if unavailable
-        self._array = array
-        self._ignore = ignore
-        self._halo_numbers = np.unique(sim[array])
-        number_mapper = create_halo_number_mapper(self._trim_array_for_ignore(self._halo_numbers))
-        HaloCatalogue.__init__(self, sim, number_mapper=number_mapper)
-
-    def _trim_array_for_ignore(self, array):
-        assert len(array) == len(self._halo_numbers)
-        if self._ignore is None:
-            return array
-        if self._ignore == self._halo_numbers[0]:
-            return array[1:]
-        elif self._ignore == self._halo_numbers[-1]:
-            return array[:-1]
-        else:
-            raise ValueError(
-                "ignore must be either the smallest or largest value in the array")
-
-
-    def _get_all_particle_indices(self):
-
-        halo_number_per_particle = self.base[self._array]
-
-        particle_index_list = np.argsort(halo_number_per_particle, kind='mergesort')
-        start = np.searchsorted(halo_number_per_particle[particle_index_list], self._halo_numbers)
-        stop = np.concatenate((start[1:], [len(particle_index_list)]))
-
-        particle_index_list_boundaries = self._trim_array_for_ignore(
-            np.hstack((start[:, np.newaxis], stop[:, np.newaxis]))
-        )
-
-        return HaloParticleIndices(particle_ids = particle_index_list, boundaries = particle_index_list_boundaries)
-
-    def _get_index_list_one_halo(self, halo_number):
-        if halo_number == self._ignore:
-            self._no_such_halo(halo_number)
-        array = np.where(self.base[self._array] == halo_number)[0]
-        if len(array) == 0:
-            self._no_such_halo(halo_number)
-        return array
-
-    def _no_such_halo(self, i):
-        raise KeyError(f"No such halo {i}")
-
-    def get_group_array(self, family=None):
-        if family is not None:
-            return self.base[family][self._array]
-        else:
-            return self.base[self._array]
-
-    @staticmethod
-    def _can_load(sim, arr_name='grp'):
-        if (arr_name in sim.loadable_keys()) or (arr_name in list(sim.keys())) :
-            return True
-        else:
-            return False
-
-
-class AmigaGrpCatalogue(GrpCatalogue):
-    def __init__(self, sim):
-        GrpCatalogue.__init__(self, sim, array='amiga.grp')
-
-    @staticmethod
-    def _can_load(sim,arr_name='amiga.grp'):
-        return GrpCatalogue._can_load(sim, arr_name)
-
-
-from . import adaptahop, ahf, hop, rockstar, subfind, subfindhdf
+from . import adaptahop, ahf, hop, number_array, rockstar, subfind, subfindhdf

@@ -7,7 +7,7 @@ import numpy as np
 from pynbody._util import binary_search, is_sorted
 
 
-class IordToFpos(abc.ABC):
+class IordToOffset(abc.ABC):
     @abc.abstractmethod
     def map_ignoring_order(self, i: np.ndarray | int) -> np.ndarray | int:
         """Given an array of iord values, return the corresponding fpos values.
@@ -16,7 +16,7 @@ class IordToFpos(abc.ABC):
         pass
 
 
-class IordToFposDense(IordToFpos):
+class IordToOffsetDense(IordToOffset):
     def __init__(self, iord_array, max_iord=None):
         if max_iord is None:
             max_iord = iord_array.max()
@@ -28,7 +28,7 @@ class IordToFposDense(IordToFpos):
         return self._iord_to_offset[i]
 
 
-class IordToFposSparse(IordToFpos):
+class IordToOffsetSparse(IordToOffset):
     """Class for efficiently mapping from iords to offsets in the iord array, even if iord values are large.
 
     WARNING: if a query is made with iords that are not themselves in ascending order, a sort takes place
@@ -56,7 +56,7 @@ class IordToFposSparse(IordToFpos):
             return result
 
 
-def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToFpos:
+def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToOffset:
     """Given an array of unique integers, iord, make an object which maps from an iord value to offset in the array.
 
     i.e. given an iord array and a subset of values my_iord_values,
@@ -71,7 +71,7 @@ def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToFpos:
 
     if max_iord < 2 * len(iord):
         # maximum iord is not very big, just do a direct in-memory mapping for speed
-        return IordToFposDense(iord, max_iord)
+        return IordToOffsetDense(iord, max_iord)
     else:
         # maximum iord is large, so we'll use util.binary_search to save memory at the cost of speed
-        return IordToFposSparse(iord)
+        return IordToOffsetSparse(iord)

@@ -3,7 +3,7 @@ import weakref
 from numpy.typing import NDArray
 
 from . import HaloCatalogue
-from .details import number_mapper
+from .details import number_mapping
 
 
 class SubhaloCatalogue(HaloCatalogue):
@@ -12,7 +12,7 @@ class SubhaloCatalogue(HaloCatalogue):
         self._full_halo_catalogue_weakref = weakref.ref(full_halo_catalogue)
         self._subhalo_numbers = subhalo_numbers
         super().__init__(full_halo_catalogue.base,
-                         number_mapper.SimpleHaloNumberMapper(0, len(subhalo_numbers)))
+                         number_mapping.SimpleHaloNumberMapper(0, len(subhalo_numbers)))
 
     @property
     def _full_halo_catalogue(self) -> HaloCatalogue:

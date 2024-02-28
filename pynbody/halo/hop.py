@@ -4,10 +4,10 @@ import struct
 
 import numpy as np
 
-from . import GrpCatalogue
+from .number_array import HaloNumberCatalogue
 
 
-class HOPCatalogue(GrpCatalogue):
+class HOPCatalogue(HaloNumberCatalogue):
     """A HOP Catalogue as used by Ramses. HOP output files must be in simulation directory, in simulation/hop/ directory
     or specified by fname"""
     def __init__(self, sim, fname=None):
@@ -38,8 +38,8 @@ class HOPCatalogue(GrpCatalogue):
             sim.dm['hop_grp'] = np.fromfile(f, np.int32, len(sim.dm))
         super().__init__(sim, array="hop_grp", ignore=-1)
 
-    @staticmethod
-    def _can_load(sim, arr_name='grp'):
+    @classmethod
+    def _can_load(cls, sim, arr_name='grp'):
         # Hop output must be in output directory or in output_*/hop directory
         exists = any([os.path.exists(fname) for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim)])
         return exists

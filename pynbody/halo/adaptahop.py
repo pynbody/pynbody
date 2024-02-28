@@ -7,7 +7,7 @@ import numpy as np
 from .. import array, units
 from ..extern.cython_fortran_utils import FortranFile
 from . import HaloCatalogue, logger
-from .details import iord_mapping, number_mapper
+from .details import iord_mapping, number_mapping
 from .details.particle_indices import HaloParticleIndices
 
 unit_length = units.Unit("Mpc")
@@ -112,7 +112,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         self._get_halo_numbers_and_file_offsets()
 
-        super().__init__(sim, number_mapper=number_mapper.create_halo_number_mapper(self._halo_numbers))
+        super().__init__(sim, number_mapper=number_mapping.create_halo_number_mapper(self._halo_numbers))
 
         # Initialize internal data
         self._base_dm = sim.dm
@@ -217,7 +217,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         return HaloParticleIndices(particle_ids, particle_slices)
 
-    def _get_index_list_one_halo(self, halo_number):
+    def _get_particle_indices_one_halo(self, halo_number):
         halo_index = self._number_mapper.number_to_index(halo_number)
         offset = self._file_offsets[halo_index]
         with FortranFile(self._fname) as fpu:

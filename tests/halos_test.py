@@ -7,7 +7,7 @@ import pytest
 
 import pynbody
 import pynbody.halo.details.iord_mapping
-import pynbody.halo.details.number_mapper
+import pynbody.halo.details.number_mapping
 import pynbody.halo.details.particle_indices
 from pynbody import halo
 
@@ -15,7 +15,7 @@ from pynbody import halo
 class SimpleHaloCatalogue(halo.HaloCatalogue):
 
     def __init__(self, sim):
-        number_mapper = pynbody.halo.details.number_mapper.SimpleHaloNumberMapper(1, 9)
+        number_mapper = pynbody.halo.details.number_mapping.SimpleHaloNumberMapper(1, 9)
         super().__init__(sim, number_mapper)
 
     def _get_all_particle_indices(self):
@@ -41,7 +41,7 @@ class SimpleHaloCatalogue(halo.HaloCatalogue):
 class SimpleHaloCatalogueWithMultiMembership(halo.HaloCatalogue):
 
     def __init__(self, sim):
-        number_mapper = pynbody.halo.details.number_mapper.SimpleHaloNumberMapper(1, 10)
+        number_mapper = pynbody.halo.details.number_mapping.SimpleHaloNumberMapper(1, 10)
         super().__init__(sim, number_mapper)
 
     def _get_all_particle_indices(self):
@@ -56,7 +56,7 @@ class SimpleHaloCatalogueWithMultiMembership(halo.HaloCatalogue):
 
 def test_halo_number_mapper():
     halo_numbers = np.array([-5, -3, 0, 10])
-    mapper = pynbody.halo.details.number_mapper.MonotonicHaloNumberMapper(halo_numbers)
+    mapper = pynbody.halo.details.number_mapping.MonotonicHaloNumberMapper(halo_numbers)
     assert mapper.number_to_index(-5) == 0
     assert mapper.number_to_index(-3) == 1
     assert mapper.number_to_index(0) == 2
@@ -87,7 +87,7 @@ def test_halo_number_mapper():
 
 def test_non_monotonic_halo_number_mapper():
     halo_numbers = np.array([10, -5, 0, -3])
-    mapper = pynbody.halo.details.number_mapper.NonMonotonicHaloNumberMapper(halo_numbers)
+    mapper = pynbody.halo.details.number_mapping.NonMonotonicHaloNumberMapper(halo_numbers)
     assert mapper.number_to_index(-5) == 1
     assert mapper.number_to_index(-3) == 3
     assert mapper.number_to_index(0) == 2
@@ -118,7 +118,7 @@ def test_non_monotonic_halo_number_mapper():
     assert (mapper.all_numbers == [10, -5, 0, -3]).all()
 
 def test_simple_halo_number_mapper():
-    mapper = pynbody.halo.details.number_mapper.SimpleHaloNumberMapper(1, 10)
+    mapper = pynbody.halo.details.number_mapping.SimpleHaloNumberMapper(1, 10)
     assert mapper.number_to_index(1) == 0
     assert mapper.number_to_index(10) == 9
     with pytest.raises(KeyError):
@@ -146,7 +146,7 @@ def test_simple_halo_number_mapper():
     assert (mapper.all_numbers == np.arange(1,11)).all()
 
 def test_create_halo_number_mapper():
-    from pynbody.halo.details.number_mapper import (
+    from pynbody.halo.details.number_mapping import (
         MonotonicHaloNumberMapper,
         NonMonotonicHaloNumberMapper,
         SimpleHaloNumberMapper,
@@ -283,7 +283,7 @@ def snap_with_grp():
 @pytest.mark.parametrize("do_load_all", [True, False])
 def test_grp_catalogue_single_halo(snap_with_grp, do_load_all):
     f = snap_with_grp
-    h = pynbody.halo.GrpCatalogue(f)
+    h = pynbody.halo.number_array.HaloNumberCatalogue(f)
     if do_load_all:
         h.load_all()
 
@@ -304,7 +304,7 @@ def test_grp_catalogue_single_halo(snap_with_grp, do_load_all):
 @pytest.mark.parametrize("ignore_value", [0, 9])
 def test_grp_catalogue_with_ignore_value(snap_with_grp, do_load_all, ignore_value):
     f = snap_with_grp
-    h = pynbody.halo.GrpCatalogue(snap_with_grp, ignore=ignore_value)
+    h = pynbody.halo.number_array.HaloNumberCatalogue(snap_with_grp, ignore=ignore_value)
     if do_load_all:
         h.load_all()
 
@@ -321,14 +321,14 @@ def test_grp_catalogue_with_ignore_value(snap_with_grp, do_load_all, ignore_valu
 
 def test_grp_catalogue_generated(snap_with_grp):
     h = snap_with_grp.halos()
-    assert isinstance(h, pynbody.halo.GrpCatalogue)
+    assert isinstance(h, pynbody.halo.number_array.HaloNumberCatalogue)
 
 def test_amiga_grp_catalogue_generated(snap_with_grp):
     snap_with_grp['amiga.grp'] = snap_with_grp['grp']
     del snap_with_grp['grp']
     h = snap_with_grp.halos()
 
-    assert isinstance(h, pynbody.halo.AmigaGrpCatalogue)
+    assert isinstance(h, pynbody.halo.number_array.AmigaGrpCatalogue)
 
 @pytest.mark.parametrize("load_all", [True, False])
 def test_warning_when_inefficient(snap_with_grp, load_all):
@@ -350,13 +350,13 @@ def test_warning_when_inefficient(snap_with_grp, load_all):
 def test_short_iord_to_pos_map():
     iord = np.array([0, 5, 4, 2])
     iord_to_fpos = halo.details.iord_mapping.make_iord_to_offset_mapper(iord)
-    assert isinstance(iord_to_fpos, halo.details.iord_mapping.IordToFposDense)
+    assert isinstance(iord_to_fpos, halo.details.iord_mapping.IordToOffsetDense)
     assert (iord_to_fpos.map_ignoring_order([5, 2, 0, 4]) == [1, 3, 0, 2]).all()
 
 def test_long_iord_to_pos_map():
     iord = np.array([0, 20, 10, 300])
     iord_to_fpos = halo.details.iord_mapping.make_iord_to_offset_mapper(iord)
-    assert isinstance(iord_to_fpos, halo.details.iord_mapping.IordToFposSparse)
+    assert isinstance(iord_to_fpos, halo.details.iord_mapping.IordToOffsetSparse)
 
     assert (iord_to_fpos.map_ignoring_order([0, 10, 20, 300]) == np.array([0, 2, 1, 3])).all()
     assert iord_to_fpos.map_ignoring_order(300) == 3

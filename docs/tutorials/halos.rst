@@ -26,7 +26,7 @@ Some possible halo finders that pynbody recognises include:
 
  - `Amiga Halo Finder (AHF) <http://popia.ft.uam.es/AHF/Download.html>`_ (:class:`~pynbody.halo.ahf.AHFCatalogue`);
  -  `Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>`_ (:class:`~pynbody.halo.rockstar.RockstarCatalogue`);
- - SKID (:class:`~pynbody.halo.GrpCatalogue` class);
+ - SKID (:class:`~pynbody.halo.number_array.HaloNumberCatalogue` class);
  - SubFind (:class:`~pynbody.halo.subfind.SubfindCatalogue`).
 
 The :func:`~pynbody.snapshot.SimSnap.halos` function in

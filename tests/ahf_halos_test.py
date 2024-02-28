@@ -229,6 +229,8 @@ def test_ahf_non_sequential_ids(snap_with_non_sequential_halos,
     assert len(h)==1411
     assert len(h[halo_ids[0]])==502300
 
+    assert halo_ids[0] in h
+
     assert (h[halo_ids[0]]['iord'][::10000]==np.array([57, 27875, 54094, 82969, 112002, 140143, 173567, 205840, 264606,
            301694, 333383, 358730, 374767, 402300, 430180, 456015, 479885, 496606,
            519824, 539971, 555195, 575204, 596047, 617669, 652724, 1533992, 1544021,

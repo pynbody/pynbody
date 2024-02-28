@@ -81,7 +81,7 @@ class SubFindHDFSubhaloCatalogue(HaloCatalogue) :
     @property
     def base(self) :
         return self._base()
-from .details import number_mapper, particle_indices
+from .details import number_mapping, particle_indices
 from .subhalo_catalogue import SubhaloCatalogue
 
 
@@ -107,7 +107,14 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
     _sub_len_name = 'SUB_Length'
 
     def __init__(self, sim, subs=False, _inherit_data_from=None) :
-        """Initialise the Subfind catalogue
+        """Initialise a Subfind catalogue.
+
+        By default, the FoF groups are imported, and subhalos are available via the 'subhalos' attribute of each
+        halo object, e.g.
+
+        >>> f = pynbody.load('path/to/snapshot.hdf5')
+        >>> h = f.halos()
+        >>> h[1].subhalos[2] # returns the third subhalo of FoF group 1
 
         *sim*: The SimSnap
         *subs*: If True, enumerate the subhalos instead of the groups. Otherwise, the jth subhalo of FOF group i
@@ -118,7 +125,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         self._sub_mode = subs
         self._hdf_files = self._get_catalogue_multifile(sim)
 
-        super().__init__(sim, number_mapper.SimpleHaloNumberMapper(0, self.__get_length()))
+        super().__init__(sim, number_mapping.SimpleHaloNumberMapper(0, self.__get_length()))
 
         if _inherit_data_from:
             self.__inherit_data(_inherit_data_from)
@@ -311,7 +318,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             properties['children'], = np.where(self._subfind_halo_parent_groups == i)
         return properties
 
-    def _get_index_list_one_halo(self, number):
+    def _get_particle_indices_one_halo(self, number):
         if self.base is None :
             raise RuntimeError("Parent SimSnap has been deleted")
 
@@ -408,8 +415,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         else:
             return SubhaloCatalogue(self._subhalo_catalogue, [])
 
-    @staticmethod
-    def _can_load(sim, subs=False):
+    @classmethod
+    def _can_load(cls, sim, subs=False):
         if isinstance(sim, gadgethdf.SubFindHDFSnap):
             return True
         else:

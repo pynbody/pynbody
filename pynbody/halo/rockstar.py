@@ -5,8 +5,8 @@ import sys
 import numpy as np
 
 from .. import util
-from . import DummyHalo, Halo, HaloCatalogue
-from .details import number_mapper
+from . import HaloCatalogue
+from .details import number_mapping
 
 
 class RockstarFormatRevisionError(RuntimeError):
@@ -67,7 +67,7 @@ class RockstarCatalogue(HaloCatalogue):
             i+=len(cat)
         assert i == len(halo_numbers)
 
-        super().__init__(sim, number_mapper.create_halo_number_mapper(halo_numbers))
+        super().__init__(sim, number_mapping.create_halo_number_mapper(halo_numbers))
 
 
 
@@ -81,7 +81,7 @@ class RockstarCatalogue(HaloCatalogue):
         self._cpus = new_cpus
         self._files = new_files
 
-    def _get_index_list_one_halo(self, halo_number):
+    def _get_particle_indices_one_halo(self, halo_number):
         halo_index = self._number_mapper.number_to_index(halo_number)
         cpu = self._cpu_per_halo[halo_index]
         iords = self._cpus[cpu].read_iords_for_halo(halo_number)
@@ -108,8 +108,8 @@ class RockstarCatalogue(HaloCatalogue):
         cpu = self._cpu_per_halo[halo_index]
         return self._cpus[cpu].read_properties_for_halo(halo_number)
 
-    @staticmethod
-    def _can_load(sim, **kwargs):
+    @classmethod
+    def _can_load(cls, sim, **kwargs):
         return len(
             glob.glob(os.path.join(os.path.dirname(sim.filename), 'halos*.bin'))
         ) > 0

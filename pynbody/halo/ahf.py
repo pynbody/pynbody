@@ -6,9 +6,9 @@ import warnings
 
 import numpy as np
 
-from .. import config_parser, snapshot, util
-from . import DummyHalo, Halo, HaloCatalogue, HaloParticleIndices, logger
-from .details.number_mapper import SimpleHaloNumberMapper, create_halo_number_mapper
+from .. import snapshot, util
+from . import HaloCatalogue, HaloParticleIndices, logger
+from .details.number_mapping import SimpleHaloNumberMapper, create_halo_number_mapper
 
 
 class AHFCatalogue(HaloCatalogue):
@@ -289,7 +289,7 @@ class AHFCatalogue(HaloCatalogue):
             data[np.where(g_mask)] -= ns
         return data
 
-    def _get_index_list_one_halo(self, halo_number):
+    def _get_particle_indices_one_halo(self, halo_number):
         fpos = self._get_file_positions()
         file_index = self._number_mapper.number_to_index(halo_number)
         with util.open_(self._ahfBasename + 'particles') as f:

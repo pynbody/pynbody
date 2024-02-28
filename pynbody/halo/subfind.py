@@ -6,22 +6,25 @@ import numpy as np
 
 from .. import units
 from ..array import SimArray
-from . import Halo, HaloCatalogue
-from .details import number_mapper, particle_indices
+from . import HaloCatalogue
+from .details import number_mapping, particle_indices
 
 
 class SubfindCatalogue(HaloCatalogue):
-
-    """Class to handle catalogues produced by the SubFind halo finder.
-
-    By default, the FoF groups are imported, but the subhalos can also be imported by setting subs=True
-    when constructing.
-
-    """
+    """Class to handle catalogues produced by the SubFind halo finder."""
 
 
     def __init__(self, sim, subs=False, ordered=None):
         """Initialise a SubFind catalogue
+
+        By default, the FoF groups are imported, and subhalos are available via the 'subhalos' attribute of each
+        halo object, e.g.
+
+        >>> f = pynbody.load('path/to/snapshot')
+        >>> h = f.halos()
+        >>> h[1].subhalos[2] # returns the third subhalo of FoF group 1
+
+        However by setting subs=True, the FoF groups are ignored and the catalogue is of all subhalos.
 
         **kwargs** :
 
@@ -60,7 +63,7 @@ class SubfindCatalogue(HaloCatalogue):
         else:
             length = len(self._halodat['group_off'])
 
-        super().__init__(sim, number_mapper.SimpleHaloNumberMapper(0, length))
+        super().__init__(sim, number_mapping.SimpleHaloNumberMapper(0, length))
 
     def _get_all_particle_indices(self):
         ids = self._read_ids()

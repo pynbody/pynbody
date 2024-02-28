@@ -699,12 +699,12 @@ class EagleLikeHDFSnap(GadgetHDFSnap):
             if len(parent_group)==0:
                 raise ValueError("No group found with id %d"%subs)
 
-            cat = halo.GrpCatalogue(parent_group,
+            cat = halo.number_array.HaloNumberCatalogue(parent_group,
                                      array="SubGroupNumber", ignore=np.max(self['SubGroupNumber']))
             cat._keep_subsnap_alive = parent_group # by default, HaloCatalogue only keeps a weakref (should this be changed?)
             return cat
         else:
-            return halo.GrpCatalogue(self, array="GroupNumber", ignore=np.max(self['GroupNumber']))
+            return halo.number_array.HaloNumberCatalogue(self, array="GroupNumber", ignore=np.max(self['GroupNumber']))
 
 ## Gadget has internal energy variable
 @GadgetHDFSnap.derived_quantity
