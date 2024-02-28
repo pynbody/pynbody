@@ -1,23 +1,39 @@
+from __future__ import annotations
+
 import copy
 import gc
 import hashlib
 import logging
+import pathlib
 import re
 import threading
 import traceback
+import typing
 import warnings
 import weakref
 from functools import reduce
 
 import numpy as np
 
-from .. import array, dependencytracker, family, filt, simdict, units, util
+from .. import (
+    array,
+    dependencytracker,
+    family,
+    filt,
+    iter_subclasses,
+    simdict,
+    units,
+    util,
+)
 from ..units import has_units
 from .util import ContainerWithPhysicalUnitsOption
 
+if typing.TYPE_CHECKING:
+    from .. import halo
+
 logger = logging.getLogger('pynbody.snapshot.simsnap')
 
-class SimSnap(ContainerWithPhysicalUnitsOption):
+class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclasses):
 
     """The class for managing simulation snapshots.
 
@@ -134,6 +150,10 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             return generic_match[0] in loadable_keys or generic_match[0] in keys
         return False
 
+    @classmethod
+    def _can_load(cls, filepath: pathlib.Path):
+        # this should be implemented by subclasses that can load from disk
+        return False
 
 
     def __init__(self):
@@ -211,7 +231,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
     def __repr__(self):
         if self._filename != "":
-            return "<SimSnap \"" + self._filename + "\" len=" + str(len(self)) + ">"
+            return "<SimSnap \"" + str(self._filename) + "\" len=" + str(len(self)) + ">"
         else:
             return "<SimSnap len=" + str(len(self)) + ">"
 
@@ -635,7 +655,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         its best guess at the units.
         """
         try:
-            with open(self.filename + ".units") as f:
+            with open(str(self.filename) + ".units") as f:
                 lines = f.readlines()
         except OSError:
             return
@@ -748,25 +768,41 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             u = self.infer_original_units(u)
         return u
 
-    def halos(self, *args, **kwargs):
-        """Tries to instantiate a halo catalogue object for the given
-        snapshot, using the first available method (as defined in the
-        configuration files)."""
-        from .. import config
+    def halos(self, *args, **kwargs) -> halo.HaloCatalogue:
+        """Tries to instantiate a halo catalogue object for the given snapshot.
 
-        for c in config['halo-class-priority']:
-            try:
-                if c._can_load(self, *args, **kwargs):
-                    return c(self, *args, **kwargs)
-            except TypeError:
-                pass
+        Multiple catalogue classes are available in pynbody, and they are tried in turn until the first which
+        accepted the request to load halos for this file.
 
-        for c in config['halo-class-priority']:
+        The order of catalogue class priority is either defined in the configuration file or can be passed
+        as a 'priority' keyword argument, which should be a list of either class names or classes.
+
+        For example
+
+        >>> h = snap.halos(priority = ["HOPCatalogue", "AHFCatalogue", pynbody.halo.subfind.SubfindCatalogue])
+
+        would try to load HOP halos, then AHF halos, then Subfind halos, before finally trying all other
+        known halo classes in an arbitrary order.
+
+        Aarguments and keyword arguments other than `priority` are passed onto the individual halo loaders.
+        If a given catalogue class does not accept the args/kwargs that you pass in, by definition it cannot
+        be used; this can lead to 'silent' failures. To understand why a given class is not being instantiated
+        by this method, the best option is to try _directly_ instantiating that class to reveal the error
+        explicitly."""
+
+        from .. import config, halo
+
+        priority = kwargs.pop('priority',
+                              config['halo-class-priority'])
+
+        for c in halo.HaloCatalogue.iter_subclasses_with_priority(priority):
             try:
-                if c._can_run(self, *args, **kwargs):
-                    return c(self, *args, **kwargs)
+                can_load = c._can_load(self, *args, **kwargs)
             except TypeError:
-                pass
+                can_load = False
+
+            if can_load:
+                return c(self, *args, **kwargs)
 
         raise RuntimeError("No halo catalogue found for %r" % str(self))
 
@@ -939,7 +975,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         if fmt is None:
             if not hasattr(self, "_write"):
                 raise RuntimeError(
-                    'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.tipsy.TipsySnap)')
+                    'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.snapshot.tipsy.TipsySnap)')
 
             self._write(self, filename, **kwargs)
         else:

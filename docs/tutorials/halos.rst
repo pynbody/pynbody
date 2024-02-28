@@ -24,10 +24,10 @@ object is a compilation of all the halos in a given snapshot.
 
 Some possible halo finders that pynbody recognises include:
 
- - `Amiga Halo Finder (AHF) <http://popia.ft.uam.es/AHF/Download.html>`_ (:class:`~pynbody.halo.AHFCatalogue`);
- -  `Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>`_ (:class:`~pynbody.halo.RockstarCatalogue`);
- - SKID (:class:`~pynbody.halo.GrpCatalogue` class);
- - SubFind (:class:`~pynbody.halo.SubfindCatalogue`).
+ - `Amiga Halo Finder (AHF) <http://popia.ft.uam.es/AHF/Download.html>`_ (:class:`~pynbody.halo.ahf.AHFCatalogue`);
+ -  `Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>`_ (:class:`~pynbody.halo.rockstar.RockstarCatalogue`);
+ - SKID (:class:`~pynbody.halo.number_array.HaloNumberCatalogue` class);
+ - SubFind (:class:`~pynbody.halo.subfind.SubfindCatalogue`).
 
 The :func:`~pynbody.snapshot.SimSnap.halos` function in
 :class:`~pynbody.snapshot.SimSnap`
@@ -307,7 +307,7 @@ halo for this small box simulation will be the largest object.
 Halo IDs begin with 0 for SubFind / FOF unlike AHF.
 
 The "halos" are treated using the
-:class:`~pynbody.gadgethdf.SubFindHDFSnap` class. The syntax for dealing
+:class:`~pynbody.snapshot.gadgethdf.SubFindHDFSnap` class. The syntax for dealing
 with an individual halo is the same as AHF and the snapshot simulation.
 For example, we can get the total mass in the second FOF halo
 and see the position of its first few particles as follows:

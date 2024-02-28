@@ -140,9 +140,9 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
     s.g['temp']
     s.properties['a'] = pynbody.analysis.cosmology.age(s)
     if filt is not None:
-        s[filt].write(pynbody.tipsy.TipsySnap, '%s.tipsy' % output[-12:])
+        s[filt].write(pynbody.snapshot.tipsy.TipsySnap, '%s.tipsy' % output[-12:])
     else:
-        s.write(pynbody.tipsy.TipsySnap, '%s.tipsy' % output[-12:])
+        s.write(pynbody.snapshot.tipsy.TipsySnap, '%s.tipsy' % output[-12:])
 
 
 def get_tipsy_units(sim):
@@ -229,7 +229,7 @@ def convert_to_tipsy_fullbox(s, write_param=True):
     del(s['smooth'])
 
     s.write(filename='%s' %
-            tipsyfile, fmt=pynbody.tipsy.TipsySnap, binary_aux_arrays=True)
+            tipsyfile, fmt=pynbody.snapshot.tipsy.TipsySnap, binary_aux_arrays=True)
 
     if write_param:
         write_tipsy_param(s, tipsyfile)

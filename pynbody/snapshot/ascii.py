@@ -11,6 +11,7 @@ A simple ascii file reader for pynbody
 
 
 import os
+import pathlib
 
 import numpy as np
 
@@ -94,6 +95,6 @@ class AsciiSnap(SimSnap):
 
 
 
-    @staticmethod
-    def _can_load(f):
-        return os.path.exists(f) and f.endswith('.txt')
+    @classmethod
+    def _can_load(cls, f: pathlib.Path):
+        return f.exists() and f.suffix == '.txt'

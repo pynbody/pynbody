@@ -20,9 +20,6 @@ pass the filename 'snap'. If you pass snap.0, only that particular file will
 be loaded.
 """
 
-
-  # for py2.5
-
 import configparser
 import functools
 import itertools
@@ -31,7 +28,7 @@ import warnings
 
 import numpy as np
 
-from .. import config_parser, family, halo, units, util
+from .. import config_parser, family, units, util
 from . import SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
@@ -82,6 +79,7 @@ class GadgetHdfMultiFileManager:
     _subgroup_name = None
 
     def __init__(self, filename, mode='r') :
+        filename = str(filename)
         self._mode = mode
         if h5py.is_hdf5(filename):
             self._filenames = [filename]
@@ -624,8 +622,8 @@ class GadgetHDFSnap(SimSnap):
         if hasattr(h5py, "is_hdf5"):
             if h5py.is_hdf5(f):
                 return cls._test_for_hdf5_key(f)
-            elif h5py.is_hdf5(f+".0.hdf5"):
-                return cls._test_for_hdf5_key(f+".0.hdf5")
+            elif h5py.is_hdf5(f.with_suffix(".0.hdf5")):
+                return cls._test_for_hdf5_key(f.with_suffix(".0.hdf5"))
             else:
                 return False
         else:
@@ -684,12 +682,6 @@ class SubFindHDFSnap(GadgetHDFSnap) :
     _multifile_manager_class = SubfindHdfMultiFileManager
     _readable_hdf5_test_key = "FOF"
 
-    def __init__(self, filename) :
-        super().__init__(filename)
-
-    def halos(self) :
-        return halo.SubFindHDFHaloCatalogue(self)
-
 
 class EagleLikeHDFSnap(GadgetHDFSnap):
     """Reads Eagle-like HDF snapshots (download at http://data.cosma.dur.ac.uk:8080/eagle-snapshots/)"""
@@ -699,6 +691,7 @@ class EagleLikeHDFSnap(GadgetHDFSnap):
         """Load the Eagle FOF halos, or if subs is specified the Subhalos of the given FOF halo number.
 
         *subs* should be an integer specifying the parent FoF number"""
+        from .. import halo
         if subs:
             if not np.issubdtype(type(subs), np.integer):
                 raise ValueError("The subs argument must specify the group number")
@@ -706,12 +699,12 @@ class EagleLikeHDFSnap(GadgetHDFSnap):
             if len(parent_group)==0:
                 raise ValueError("No group found with id %d"%subs)
 
-            cat = halo.GrpCatalogue(parent_group,
+            cat = halo.number_array.HaloNumberCatalogue(parent_group,
                                      array="SubGroupNumber", ignore=np.max(self['SubGroupNumber']))
             cat._keep_subsnap_alive = parent_group # by default, HaloCatalogue only keeps a weakref (should this be changed?)
             return cat
         else:
-            return halo.GrpCatalogue(self, array="GroupNumber", ignore=np.max(self['GroupNumber']))
+            return halo.number_array.HaloNumberCatalogue(self, array="GroupNumber", ignore=np.max(self['GroupNumber']))
 
 ## Gadget has internal energy variable
 @GadgetHDFSnap.derived_quantity

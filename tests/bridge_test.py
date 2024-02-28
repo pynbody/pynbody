@@ -41,8 +41,8 @@ def test_nonmonotonic_transfer_matrix():
 
     b = pynbody.bridge.OrderBridge(f1,f2,monotonic=False)
 
-    h1 = pynbody.halo.GrpCatalogue(f1)
-    h2 = pynbody.halo.GrpCatalogue(f2)
+    h1 = pynbody.halo.number_array.HaloNumberCatalogue(f1)
+    h2 = pynbody.halo.number_array.HaloNumberCatalogue(f2)
 
     xfer = b.catalog_transfer_matrix(0,1,h1,h2)
 
@@ -90,8 +90,8 @@ def test_bridging_with_more_families():
     # Test that we can create a group array for snapshots that have a complex family structure,
     # and bridge only with one family (DM). This is necessary for e.g. Tangos linking
     f1 = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
-    g1 = pynbody.halo.AHFCatalogue(f1, get_all_parts="testdata/output_00110/output_00110_fullbox.tipsy.z0.031.AHF_particles")       # Force loading of all particles
-
+    g1 = pynbody.halo.ahf.AHFCatalogue(f1)
+    g1.load_all()
     # Work only on one family and create a useless bridge which is enough to break the code
     f1 = f1.dm
     b = pynbody.bridge.OrderBridge(f1, f1)
@@ -114,8 +114,8 @@ def test_fuzzy_match_only_one_family():
     f2['grp'] = f['grp']
     f2.dm['grp'] = np.array([0,0,0,0,0,1,1,1,2,2],dtype=np.int32)
 
-    h = pynbody.halo.GrpCatalogue(f)
-    h2 = pynbody.halo.GrpCatalogue(f2)
+    h = pynbody.halo.number_array.HaloNumberCatalogue(f)
+    h2 = pynbody.halo.number_array.HaloNumberCatalogue(f2)
     b = pynbody.bridge.OrderBridge(f,f2)
     assert b.fuzzy_match_catalog(use_family=pynbody.family.gas,groups_1=h, groups_2=h2)[1]==[(1, 1.0)]
     assert b.fuzzy_match_catalog(use_family=pynbody.family.dm, groups_1=h, groups_2=h2)[1] == [(1, 0.6), (2, 0.4)]

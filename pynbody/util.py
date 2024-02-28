@@ -6,16 +6,21 @@ util
 Various utility routines used internally by pynbody.
 
 """
+from __future__ import annotations
 
 import fractions
+import functools
 import gzip
 import logging
 import math
 import os
+import pathlib
 import struct
 import sys
 import threading
 import time
+import warnings
+from typing import Union
 
 import numpy as np
 
@@ -26,16 +31,26 @@ logger = logging.getLogger('pynbody.util')
 from ._util import *
 
 
-def open_(filename, *args):
+def open_(filename: str | pathlib.Path, *args):
     """Open a file, determining from the filename whether to use
     gzip decompression"""
 
-    if (filename[-3:] == '.gz'):
+    is_gzipped = False
+
+    if not isinstance(filename, pathlib.Path):
+        filename = pathlib.Path(filename)
+
+    if not filename.exists():
+        filename_with_gz = filename.parent / (filename.name+".gz")
+        if filename_with_gz.exists():
+            filename = filename_with_gz
+
+    is_gzipped = filename.name.endswith('.gz')
+
+    if is_gzipped:
         return gzip.open(filename, *args)
-    try:
+    else:
         return open(filename, *args)
-    except OSError:
-        return gzip.open(filename + ".gz", *args)
 
 
 def open_with_size(filename, *args):
@@ -489,9 +504,11 @@ def random_rotation_matrix():
                      [vz*sx,vz*sy,1.0-z]])
 
 
-def cutgz(x):
+def cutgz(x: str | pathlib.Path):
     """Strip the .gz ending off a string"""
-    if x[-3:] == '.gz':
+    if isinstance(x, pathlib.Path):
+        return x.parent / x.name.removesuffix(".gz")
+    elif x[-3:] == '.gz':
         return x[:-3]
     else:
         return x
@@ -574,7 +591,6 @@ def _gcf(a, x, eps=3.e-7, itmax=200):
 def gamma_inc(a, z, eps=3.e-7):
     """Incomplete gamma function accepting complex z, based on algorithm
     given in numerical recipes (3rd ed)"""
-    import scipy
     import scipy.special
 
     if (abs(z) < a + 1.):
@@ -660,3 +676,18 @@ def thread_map(func, *args):
         return rets
     else:
         raise excp.with_traceback(trace)  # Note this is a re-raised exception from within a thread
+
+
+def deprecated(func, message=None):
+    """Mark a method or function as deprecated"""
+    if isinstance(func, str):
+        return functools.partial(deprecated, message=func)
+
+    if message is None:
+        message = f"Call to deprecated function {func.__name__}."
+
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        warnings.warn(message, category=DeprecationWarning)
+        return func(*args, **kwargs)
+    return new_func
