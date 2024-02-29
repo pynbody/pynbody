@@ -21,14 +21,14 @@ def teardown_module():
 
 def test_center():
     global f, h
-    with pynbody.analysis.halo.center(h[1]):
+    with pynbody.analysis.halo.center(h[0]):
         np.testing.assert_allclose(
             f['pos'][0], [-0.0137471,  -0.00208458, -0.04392379], atol=1e-4)
 
 
 def test_align():
     global f, h
-    with pynbody.analysis.angmom.faceon(h[1]):
+    with pynbody.analysis.angmom.faceon(h[0]):
         np.testing.assert_allclose(f['pos'][:2], [[-0.010718, -0.001504, -0.044783],
                                                   [-0.010026,  0.002441, -0.04465 ]], atol=1e-5)
 
@@ -38,7 +38,7 @@ def test_align():
 
 def test_virialradius():
     global f, h
-    with pynbody.analysis.halo.center(h[1]):
+    with pynbody.analysis.halo.center(h[0]):
         start = time.time()
         vrad = pynbody.analysis.halo.virial_radius(f)
         print ("time=",time.time()-start)

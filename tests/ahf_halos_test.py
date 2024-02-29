@@ -33,15 +33,15 @@ def test_ahf_particles(do_load_all, cleanup_fpos_file):
     if do_load_all:
         h.load_all()
 
-    assert len(h[1])==502300
-    assert (h[1]['iord'][::10000]==[57, 27875, 54094, 82969, 112002, 140143, 173567, 205840, 264606,
+    assert len(h[0])==502300
+    assert (h[0]['iord'][::10000]==[57, 27875, 54094, 82969, 112002, 140143, 173567, 205840, 264606,
            301694, 333383, 358730, 374767, 402300, 430180, 456015, 479885, 496606,
            519824, 539971, 555195, 575204, 596047, 617669, 652724, 1533992, 1544021,
            1554045, 1564080, 1574107, 1584130, 1594158, 1604204, 1614257, 1624308, 1634376,
            1644485, 1654580, 1664698, 1674831, 1685054, 1695252, 1705513, 1715722, 1725900,
            1736070, 1746235, 1756400, 1766584, 1776754, 1786886]).all()
-    assert len(h[20])==3272
-    assert(h[20]['iord'][::1000] == [232964, 341019, 752354, 793468]).all()
+    assert len(h[19])==3272
+    assert(h[19]['iord'][::1000] == [232964, 341019, 752354, 793468]).all()
 
 
 @pytest.mark.parametrize("do_load_all", [True, False])
@@ -62,9 +62,9 @@ def test_load_ahf_catalogue_non_gzipped(do_load_all):
 def test_ahf_properties():
     f = pynbody.load("testdata/g15784.lr.01024")
     h = pynbody.halo.ahf.AHFCatalogue(f)
-    assert np.allclose(h[1].properties['Mvir'], 1.69639e+12)
-    assert np.allclose(h[2].properties['Ekin'],6.4911e+17)
-    assert np.allclose(h[2].properties['Mvir'], 1.19684e+13)
+    assert np.allclose(h[0].properties['Mvir'], 1.69639e+12)
+    assert np.allclose(h[1].properties['Ekin'],6.4911e+17)
+    assert np.allclose(h[1].properties['Mvir'], 1.19684e+13)
 
 
 @pytest.fixture
@@ -118,8 +118,8 @@ def test_ramses_ahf_family_mapping_with_new_format():
     assert len(halos) == 149    # 150 lines in AHF halos file
 
     # Load halos and check that stars, DM and gas are correctly mapped by pynbody
-    # Halo 1 is the main halo and has all three families, while other are random picks
-    halo_numbers = [1, 10, 15]
+    # Halo 0 is the main halo and has all three families, while other are random picks
+    halo_numbers = [0, 9, 14]
     for halo_number in halo_numbers:
         halo = halos[halo_number]
 
@@ -157,8 +157,8 @@ def test_ahf_substructure():
     halos = pynbody.halo.ahf.AHFCatalogue(f)
     halos.load_all()
 
-    check_parents = [1,2]
-    check_children = [[73, 75, 139, 90], [116, 125,  21,  97]]
+    check_parents = [0,1]
+    check_children = [[72, 74, 138, 89], [115, 124,  20,  96]]
 
     for parent, children in zip(check_parents, check_children):
         halo = halos[parent]
@@ -218,8 +218,10 @@ def snap_with_non_sequential_halos():
 
 @pytest.mark.parametrize("halo_numbering_mode, halo_ids",
                          [('ahf', (157105, 608171)),
-                          ('file-order', (20, 1)),
-                          ('length-order', (1,20))])
+                          ('v1', (20, 1)),
+                          ('file-order', (19, 0)),
+                          ('length-order-v1', (1,20)),
+                          ('length-order', (0, 19))])
 def test_ahf_non_sequential_ids(snap_with_non_sequential_halos,
                                 halo_numbering_mode,
                                 halo_ids):
@@ -240,3 +242,12 @@ def test_ahf_non_sequential_ids(snap_with_non_sequential_halos,
 
     assert len(h[halo_ids[1]])==3272
     assert(h[halo_ids[1]]['iord'][::1000] == [232964, 341019, 752354, 793468]).all()
+
+def test_ahf_dosort_kwarg(snap_with_non_sequential_halos):
+    # checks for compatibility with v1 behaviour
+    f = snap_with_non_sequential_halos
+    with pytest.warns(DeprecationWarning):
+        h = pynbody.halo.ahf.AHFCatalogue(f, dosort=True)
+    assert len(h)==1411
+    assert len(h[1])==502300
+    assert len(h[20])==3272
