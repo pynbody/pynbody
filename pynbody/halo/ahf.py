@@ -95,11 +95,9 @@ class AHFCatalogue(HaloCatalogue):
         logger.info("AHFCatalogue loading halo properties")
         self._load_ahf_halo_properties(self._ahfBasename + 'halos')
 
-        # Now we know what halos we have, we can initialise the base class
-        # TODO - here is where dosort should be implemented, and also where AHF's own halo numbering could be used
         if dosort:
-            warnings.warn(DeprecationWarning("dosort keyword is deprecated; instead pass halo_numbers='length-order'"))
-            halo_numbers = 'length-order'
+            warnings.warn(DeprecationWarning("dosort keyword is deprecated; instead pass halo_numbers='length-order-v1'"))
+            halo_numbers = 'length-order-v1'
 
         number_mapper = self._setup_halo_numbering(halo_numbers)
 

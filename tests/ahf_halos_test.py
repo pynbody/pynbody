@@ -242,3 +242,12 @@ def test_ahf_non_sequential_ids(snap_with_non_sequential_halos,
 
     assert len(h[halo_ids[1]])==3272
     assert(h[halo_ids[1]]['iord'][::1000] == [232964, 341019, 752354, 793468]).all()
+
+def test_ahf_dosort_kwarg(snap_with_non_sequential_halos):
+    # checks for compatibility with v1 behaviour
+    f = snap_with_non_sequential_halos
+    with pytest.warns(DeprecationWarning):
+        h = pynbody.halo.ahf.AHFCatalogue(f, dosort=True)
+    assert len(h)==1411
+    assert len(h[1])==502300
+    assert len(h[20])==3272
