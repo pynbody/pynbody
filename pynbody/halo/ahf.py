@@ -37,12 +37,14 @@ class AHFCatalogue(HaloCatalogue):
                         basename to load the catalog data.
 
         *halo_numbers*: specify how to number the halos. Options are:
-                            'file-order': use the order of the halos in the
-                            file, starting at 1 (default, compatible with
-                            older versions of pynbody); 'ahf': use the halo
-                            numbers written in the AHF halos file;
-                            'length-order': sort by the number of particles in each
-                            halo, with the halo with most particles being halo 1
+                             'ahf' (default): use the halo numbers written in the AHF halos file,
+                                              or a zero-based indexing if none is present
+                             'file-order': zero-based indexing of the halos
+                             'v1': one-based indexing of the halos, compatible with pynbody v1.x
+                             'length-order': sort by the number of particles in each halo, with the
+                                             halo with most particles being halo 0
+                             'length-order-v1': as length-order, but indexing from halo 1,
+                                                compatible with dosort=True in pynbody v1
 
         *ignore_missing_substructure*: if True (default), the code will not
                             raise an exception if the substructure file is
@@ -134,12 +136,17 @@ class AHFCatalogue(HaloCatalogue):
             # if no explicit IDs, ahf implicitly numbers starting at 0 in file order
             self._ahf_own_number_mapper = SimpleHaloNumberMapper(0, len(self._halo_properties))
 
-        if halo_numbers == 'file-order':
+        if halo_numbers == 'v1':
             number_mapper = SimpleHaloNumberMapper(1, len(self._halo_properties))
-        elif halo_numbers == 'length-order':
+        elif halo_numbers == 'file-order':
+            number_mapper = SimpleHaloNumberMapper(0, len(self._halo_properties))
+        elif halo_numbers == 'length-order' or halo_numbers == 'length-order-v1':
             npart = np.array([properties['npart'] for properties in self._halo_properties])
             osort = np.argsort(-npart)  # this is better than argsort(npart)[::-1], because it's stable
-            number_mapper = create_halo_number_mapper(osort+1)
+            if halo_numbers.endswith('v1'):
+                number_mapper = create_halo_number_mapper(osort+1)
+            else:
+                number_mapper = create_halo_number_mapper(osort)
         elif halo_numbers == 'ahf':
             number_mapper = self._ahf_own_number_mapper
         else:
