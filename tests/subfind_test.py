@@ -42,6 +42,10 @@ def test_halo_properties(halos):
     assert_allclose(halos[3].properties['sub_pos'], [ 0.4759067,  1.862322 , 33.249245 ])
     assert_allclose(float(halos[0].properties['sub_VMax']), 685., rtol=1.e-2)
 
+def test_halo_properties_physical(halos):
+    halos.physical_units()
+    assert_allclose(halos[3].properties['sub_pos'], [  558.2842,  2184.6821, 39004.55  ])
+
 def test_halo_children(halos):
     assert np.all(halos[0].properties['children'] == [ 0,  1,  2,  3,  4,  6,  7, 12, 13, 14, 15, 16, 17, 20, 21, 22, 24,
         26, 32, 33, 35, 36, 37])
