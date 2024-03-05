@@ -226,8 +226,10 @@ class SubfindCatalogue(HaloCatalogue):
         for name, dimension in zip(ar_names, ar_dimensions):
             if name in halodat:
                 halodat[name] = SimArray(halodat[name], sim.infer_original_units(dimension))
+                halodat[name].sim = sim
             if name in subhalodat:
                 subhalodat[name] = SimArray(subhalodat[name], sim.infer_original_units(dimension))
+                subhalodat[name].sim = sim
 
         return halodat, subhalodat
 

@@ -156,3 +156,9 @@ def test_halo_values(snap) :
             halo.g['temp'],
             FoF_Temp[FoF_Offset[i]:FoF_Offset[i]+FoF_Length[i]],
         )
+
+def test_halo_properties_physical_units(snap):
+    h = snap.halos()
+    h.load_all()
+    h.physical_units()
+    npt.assert_allclose(h[0].properties['CenterOfMass'], [1242.67381894, 1571.45917479, 2232.62036159])
