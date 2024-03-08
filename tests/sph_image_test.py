@@ -22,7 +22,9 @@ def setup_module():
     # not testing the kdtree (which is tested elsewhere)
 
     f.gas['smooth']=(f.gas['mass']/f.gas['rho'])**(1,3)
+    np.save("result_im_x_pre_phys.npy", f.gas['x'])
     f.physical_units()
+    np.save("result_im_x_post_phys.npy", f.gas['x'])
 
 @pytest.fixture
 def compare2d():
@@ -60,11 +62,11 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
 
     im_grid = pynbody.sph.to_3d_grid(f.gas,nx=200,x2=20.0)[::50]
 
-    """
-    np.save("test_im_2d.npy",im2d)
-    np.save("test_im_3d.npy",im3d)
-    np.save("test_im_grid.npy",im_grid)
-    """
+
+    np.save("result_im_2d.npy",im2d)
+    np.save("result_im_3d.npy",im3d)
+    np.save("result_im_grid.npy",im_grid)
+
 
     npt.assert_allclose(im2d,compare2d,rtol=1e-4)
     npt.assert_allclose(im3d,compare3d,rtol=1e-4)
@@ -76,10 +78,9 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
     im2d_wendlandC2 = pynbody.plot.sph.image(
         f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, kernel_type='wendlandC2')
 
-    """
-    np.save("test_im_2d_wendlandC2.npy",im2d_wendlandC2)
-    np.save("test_im_3d_wendlandC2.npy",im3d_wendlandC2)
-    """
+
+    np.save("result_im_2d_wendlandC2.npy",im2d_wendlandC2)
+    np.save("result_im_3d_wendlandC2.npy",im3d_wendlandC2)
 
     # Check that using a different kernel produces a different image
     npt.assert_raises(AssertionError,npt.assert_array_equal,im3d_wendlandC2,im3d)
@@ -102,6 +103,9 @@ def test_approximate_images(compare2d, compare3d):
     im2d = pynbody.plot.sph.image(
         f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True )
 
+    np.save("result_approx_im_2d.npy", im2d)
+    np.save("result_approx_im_3d.npy", im3d)
+
     # approximate interpolated images are only close in a mean sense
     assert abs(np.log10(im2d/compare2d)).mean()<0.03
     assert abs(np.log10(im3d/compare3d)).mean()<0.03
@@ -122,7 +126,7 @@ def test_render_stars(stars_2d):
     with pytest.warns(UserWarning, match=r"No log file found; reverting to guess-and-check"):
         im = pynbody.plot.stars.render(f, width=10.0, resolution=100, ret_im=True, plot=False)
 
-    # np.save("test_stars_2d.npy", im[40:60])
+    np.save("result_stars_2d.npy", im[40:60])
 
     npt.assert_allclose(stars_2d,im[40:60],atol=0.01)
 

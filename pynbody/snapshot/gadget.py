@@ -15,6 +15,7 @@ import copy
 import errno
 import itertools
 import os
+import pathlib
 import struct
 import sys
 import warnings
@@ -252,7 +253,7 @@ class GadgetHeader:
 class GadgetFile:
 
     """Gadget file management class. Users should access gadget files through
-    :class:`~pynbody.gadget.GadgetSnap`."""
+    :class:`~pynbody.snapshot.gadget.GadgetSnap`."""
 
     def __init__(self, filename):
         self._filename = filename
@@ -696,14 +697,16 @@ class GadgetSnap(SimSnap):
     """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations
     of the blocks, which are then read by _load_array"""
 
-    def __init__(self, filename, only_header=False, must_have_paramfile=False, ignore_cosmo=False):
+    def __init__(self, filename: pathlib.Path, only_header=False, must_have_paramfile=False, ignore_cosmo=False):
+
+        filename = str(filename)
 
         global config
         super().__init__()
         self._files = []
         self._filename = filename
         self._ignore_cosmo = ignore_cosmo
-        npart = np.empty(N_TYPE)
+
         # Check whether the file exists, and get the ".0" right
         if os.path.exists(filename):
             files = [filename]
@@ -947,15 +950,15 @@ class GadgetSnap(SimSnap):
            ipos += iread
        return data
 
-    @staticmethod
-    def _can_load(f):
+    @classmethod
+    def _can_load(cls, f: pathlib.Path):
         """Check whether we can load the file as Gadget format by reading
         the first 4 bytes"""
         fname = f
-        if not os.path.exists(f):
-            if not os.path.exists(f + ".0"):
+        if not f.exists():
+            if not f.with_suffix(".0").exists():
                 return False
-            fname = f + ".0"
+            fname = f.with_suffix(".0")
 
         with open(fname, "br") as fd:
             r, = struct.unpack('=I', fd.read(4))

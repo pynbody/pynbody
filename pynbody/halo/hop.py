@@ -4,16 +4,13 @@ import struct
 
 import numpy as np
 
-from . import GrpCatalogue
+from .number_array import HaloNumberCatalogue
 
 
-class HOPCatalogue(GrpCatalogue):
+class HOPCatalogue(HaloNumberCatalogue):
     """A HOP Catalogue as used by Ramses. HOP output files must be in simulation directory, in simulation/hop/ directory
     or specified by fname"""
     def __init__(self, sim, fname=None):
-        self._halos = {}
-        self._num_groups = 0.
-
         if fname is None:
             for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
                 if os.path.exists(fname):
@@ -39,14 +36,10 @@ class HOPCatalogue(GrpCatalogue):
                                    " particle fields or partial loading" % (sim.filename, fname))
 
             sim.dm['hop_grp'] = np.fromfile(f, np.int32, len(sim.dm))
-        GrpCatalogue.__init__(self,sim,array="hop_grp")
-        self._num_groups = num_grps
+        super().__init__(sim, array="hop_grp", ignore=-1)
 
-    def __len__(self):
-        return self._num_groups
-
-    @staticmethod
-    def _can_load(sim, arr_name='grp'):
+    @classmethod
+    def _can_load(cls, sim, arr_name='grp'):
         # Hop output must be in output directory or in output_*/hop directory
         exists = any([os.path.exists(fname) for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim)])
         return exists
@@ -70,6 +63,3 @@ class HOPCatalogue(GrpCatalogue):
         return [os.path.join(os.path.dirname(s_filename),name),
                 os.path.join(s_filename,name),
                 os.path.join(s_filename,'hop',name)]
-
-    def _can_run(self):
-        return False

@@ -72,7 +72,7 @@ class SubSnapBase(SimSnap):
 
     @property
     def _filename(self):
-        return self._subsnap_base._filename + ":" + self._descriptor
+        return str(self._subsnap_base._filename) + ":" + self._descriptor
 
     def keys(self):
         return list(self._subsnap_base.keys())

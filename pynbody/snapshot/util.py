@@ -7,12 +7,10 @@ Utility functions for the snapshot module.
 
 """
 
-import logging
 from functools import reduce
 
 from .. import array, units
 
-logger = logging.getLogger('pynbody.snapshot')
 
 class ContainerWithPhysicalUnitsOption:
     """
@@ -45,8 +43,6 @@ class ContainerWithPhysicalUnitsOption:
         cls._units_conversion_cache[key] = new_unit
 
         if new_unit is not None and new_unit != from_unit:
-            logger.info("Converting units from %s to %s" %
-                        (from_unit, new_unit))
             return new_unit
 
     def _get_dims(self, dims=None):
@@ -70,8 +66,6 @@ class ContainerWithPhysicalUnitsOption:
 
         new_unit = self._cached_unit_conversion(ar.units, dims, ucut=ucut)
         if new_unit is not None:
-            logger.info("Converting %s units from %s to %s" %
-                        (ar.name, ar.units, new_unit))
             ar.convert_units(new_unit)
 
 

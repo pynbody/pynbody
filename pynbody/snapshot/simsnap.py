@@ -1,23 +1,39 @@
+from __future__ import annotations
+
 import copy
 import gc
 import hashlib
 import logging
+import pathlib
 import re
 import threading
 import traceback
+import typing
 import warnings
 import weakref
 from functools import reduce
 
 import numpy as np
 
-from .. import array, dependencytracker, family, filt, simdict, units, util
+from .. import (
+    array,
+    dependencytracker,
+    family,
+    filt,
+    iter_subclasses,
+    simdict,
+    units,
+    util,
+)
 from ..units import has_units
 from .util import ContainerWithPhysicalUnitsOption
 
+if typing.TYPE_CHECKING:
+    from .. import halo
+
 logger = logging.getLogger('pynbody.snapshot.simsnap')
 
-class SimSnap(ContainerWithPhysicalUnitsOption):
+class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclasses):
 
     """The class for managing simulation snapshots.
 
@@ -134,6 +150,10 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             return generic_match[0] in loadable_keys or generic_match[0] in keys
         return False
 
+    @classmethod
+    def _can_load(cls, filepath: pathlib.Path):
+        # this should be implemented by subclasses that can load from disk
+        return False
 
 
     def __init__(self):
@@ -211,7 +231,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
 
     def __repr__(self):
         if self._filename != "":
-            return "<SimSnap \"" + self._filename + "\" len=" + str(len(self)) + ">"
+            return "<SimSnap \"" + str(self._filename) + "\" len=" + str(len(self)) + ">"
         else:
             return "<SimSnap len=" + str(len(self)) + ">"
 
@@ -635,7 +655,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         its best guess at the units.
         """
         try:
-            with open(self.filename + ".units") as f:
+            with open(str(self.filename) + ".units") as f:
                 lines = f.readlines()
         except OSError:
             return
@@ -748,27 +768,41 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             u = self.infer_original_units(u)
         return u
 
-    def halos(self, *args, **kwargs):
-        """Tries to instantiate a halo catalogue object for the given
-        snapshot, using the first available method (as defined in the
-        configuration files)."""
-        from .. import config
+    def halos(self, *args, **kwargs) -> halo.HaloCatalogue:
+        """Tries to instantiate a halo catalogue object for the given snapshot.
 
-        try_classes = kwargs.pop('try_classes', config['halo-class-priority'])
+        Multiple catalogue classes are available in pynbody, and they are tried in turn until the first which
+        accepted the request to load halos for this file.
 
-        for c in try_classes:
+        The order of catalogue class priority is either defined in the configuration file or can be passed
+        as a 'priority' keyword argument, which should be a list of either class names or classes.
+
+        For example
+
+        >>> h = snap.halos(priority = ["HOPCatalogue", "AHFCatalogue", pynbody.halo.subfind.SubfindCatalogue])
+
+        would try to load HOP halos, then AHF halos, then Subfind halos, before finally trying all other
+        known halo classes in an arbitrary order.
+
+        Aarguments and keyword arguments other than `priority` are passed onto the individual halo loaders.
+        If a given catalogue class does not accept the args/kwargs that you pass in, by definition it cannot
+        be used; this can lead to 'silent' failures. To understand why a given class is not being instantiated
+        by this method, the best option is to try _directly_ instantiating that class to reveal the error
+        explicitly."""
+
+        from .. import config, halo
+
+        priority = kwargs.pop('priority',
+                              config['halo-class-priority'])
+
+        for c in halo.HaloCatalogue.iter_subclasses_with_priority(priority):
             try:
-                if c._can_load(self, *args, **kwargs):
-                    return c(self, *args, **kwargs)
+                can_load = c._can_load(self, *args, **kwargs)
             except TypeError:
-                pass
+                can_load = False
 
-        for c in try_classes:
-            try:
-                if c._can_run(self, *args, **kwargs):
-                    return c(self, *args, **kwargs)
-            except TypeError:
-                pass
+            if can_load:
+                return c(self, *args, **kwargs)
 
         raise RuntimeError("No halo catalogue found for %r" % str(self))
 
@@ -941,7 +975,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
         if fmt is None:
             if not hasattr(self, "_write"):
                 raise RuntimeError(
-                    'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.tipsy.TipsySnap)')
+                    'Cannot infer a file format; please provide one (e.g. use obj.write(filename="filename", fmt=pynbody.snapshot.tipsy.TipsySnap)')
 
             self._write(self, filename, **kwargs)
         else:
@@ -1029,7 +1063,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
           - *derived*: if True, this new array will be flagged as a derived array
             which makes it read-only
           - *shared*: if True, the array will be built on top of a shared-memory array
-            to make it possible to access from another process
+            to make it possible to access from another process. If 'None' (default), shared
+            memory will be used if the snapshot prefers it, otherwise not.
           - *source_array*: if provided, the SimSnap will take ownership of this specified
             array rather than create a new one
         """
@@ -1558,6 +1593,53 @@ class SimSnap(ContainerWithPhysicalUnitsOption):
             if cl in self._decorator_registry:
                 for fn in self._decorator_registry[cl]:
                     fn(self)
+
+    ############################################
+    # KD-Tree
+    ############################################
+
+    def build_tree(self, num_threads=None, shared_mem=None):
+        """Build a kdtree for SPH operations and for accelerating geometrical filters
+
+        Parameters
+        ----------
+
+        num_threads : int, optional
+            Number of threads to use for building and most operations on the tree.
+            If None, the default number of threads is used.
+        shared_mem : bool, optional
+            Whether to use shared memory for the tree. This is used by the tangos library to
+            share a kdtree between different processes. It is not recommended for general use,
+            and defaults to False.
+        """
+        if not hasattr(self, 'kdtree'):
+            from .. import kdtree
+            from ..configuration import config
+            boxsize = self._get_boxsize_for_kdtree()
+            self.kdtree = kdtree.KDTree(self['pos'], self['mass'],
+                                        leafsize=config['sph']['tree-leafsize'],
+                                        boxsize=boxsize, num_threads=num_threads,
+                                        shared_mem=shared_mem)
+
+    def import_tree(self, serialized_tree, num_threads=None):
+        """Import a precomputed kdtree from a serialized form.
+
+        Throws ValueError if the tree is not compatible with the snapshot (though
+        does not protect against all possible incompatibilities, so use with care)."""
+        from .. import kdtree
+        self.kdtree = kdtree.KDTree.deserialize(self['pos'], self['mass'],
+                                         serialized_tree,
+                                         boxsize=self._get_boxsize_for_kdtree(),
+                                         num_threads=num_threads)
+    def _get_boxsize_for_kdtree(self):
+        boxsize = self.properties.get('boxsize', None)
+        if boxsize:
+            if units.is_unit_like(boxsize):
+                boxsize = float(boxsize.in_units(self['pos'].units))
+        else:
+            boxsize = -1.0  # represents infinite box
+        return boxsize
+
 
     ############################################
     # HASHING AND EQUALITY TESTING

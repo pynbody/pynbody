@@ -1,10 +1,7 @@
 import codecs
-import distutils
 import os
-import shutil
+import platform
 import subprocess
-import sys
-import tempfile
 from os import path
 
 import numpy as np
@@ -14,42 +11,20 @@ from setuptools import Extension, setup
 
 get_directive_defaults()['language_level'] = 3
 
+def is_macos():
+    return platform.system() == 'Darwin'
 
-def check_for_pthread():
-    # Create a temporary directory
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
+def get_xcode_version():
+    result = subprocess.run(['xcodebuild', '-version'], capture_output=True, text=True)
+    version_line = result.stdout.split('\n')[0]
+    version = version_line.split(' ')[1]
+    return version
 
-    # Get compiler invocation
-    compiler = os.environ.get('CC',
-                              distutils.sysconfig.get_config_var('CC'))
-
-    # make sure to use just the compiler name without flags
-    compiler = compiler.split()[0]
-
-    filename = r'test.c'
-    with open(filename,'w') as f :
-        f.write(
-        "#include <pthread.h>\n"
-        "#include <stdio.h>\n"
-        "int main() {\n"
-        "}"
-        )
-
-    try:
-        with open(os.devnull, 'w') as fnull:
-            exit_code = subprocess.call([compiler, filename],
-                                        stdout=fnull, stderr=fnull)
-    except OSError :
-        exit_code = 1
-
-
-    # Clean up
-    os.chdir(curdir)
-    shutil.rmtree(tmpdir)
-
-    return (exit_code==0)
+def xcode_fix_needed():
+    if is_macos() and int(get_xcode_version().split('.')[0]) >= 15:
+        return True
+    else:
+        return False
 
 def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
@@ -64,8 +39,6 @@ def get_version(rel_path):
     else:
         raise RuntimeError("Unable to find version string.")
 
-
-have_pthread = check_for_pthread()
 
 
 # Support for compiling without OpenMP has been removed, for now, due to the spiralling
@@ -82,18 +55,20 @@ extra_compile_args = ['-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
-                      '-g']
+                      '-g', '-std=c++14']
 
-if have_pthread:
-    extra_compile_args.append('-DKDT_THREADING')
+extra_link_args = ['-std=c++14']
 
-extra_link_args = []
+if xcode_fix_needed():
+    # workaround for XCode bug FB13097713
+    # https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
+    extra_link_args += ['-Wl,-ld_classic']
 
 incdir = [np.get_include()]
 
-kdmain = Extension('pynbody.sph.kdmain',
-                   sources = ['pynbody/sph/kdmain.cpp', 'pynbody/sph/kd.cpp',
-                              'pynbody/sph/smooth.cpp'],
+kdmain = Extension('pynbody.kdtree.kdmain',
+                   sources = ['pynbody/kdtree/kdmain.cpp', 'pynbody/kdtree/kd.cpp',
+                              'pynbody/kdtree/smooth.cpp'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
 
@@ -197,7 +172,8 @@ setup(name = 'pynbody',
       package_dir = {'pynbody/': ''},
       packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 'pynbody/array',
                   'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
-                  'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/extern'],
+                  'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/halo/details',
+                  'pynbody/extern', 'pynbody/kdtree', 'pynbody/test_utils'],
       package_data={'pynbody': ['default_config.ini'],
                     'pynbody/analysis': ['cmdlum.npz',
                                          'h1.hdf5',
@@ -206,7 +182,7 @@ setup(name = 'pynbody',
                                          'cambtemplate.ini'],
                     'pynbody/plot': ['tollerud2008mw']},
       ext_modules = ext_modules,
-      classifiers = ["Development Status :: 5 - Production/Stable",
+      classifiers = ["Development Status :: 4 - Beta",
                      "Intended Audience :: Developers",
                      "Intended Audience :: Science/Research",
                      "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",

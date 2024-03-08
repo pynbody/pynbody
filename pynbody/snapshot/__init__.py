@@ -9,6 +9,7 @@ represent different views of an existing :class:`~pynbody.snapshot.SimSnap`.
 """
 
 import logging
+import pathlib
 
 from .. import config, family
 from . import util
@@ -17,11 +18,15 @@ from .simsnap import SimSnap
 logger = logging.getLogger('pynbody.snapshot')
 
 
-def load(filename, *args, **kwargs):
+def load(filename, *args, **kwargs) -> SimSnap:
     """Loads a file using the appropriate class, returning a SimSnap
     instance."""
 
-    for c in config['snap-class-priority']:
+    filename = pathlib.Path(filename)
+
+    priority = kwargs.pop('priority', config['snap-class-priority'])
+
+    for c in SimSnap.iter_subclasses_with_priority(priority):
         if c._can_load(filename):
             logger.info("Loading using backend %s" % str(c))
             return c(filename, *args, **kwargs)
@@ -84,15 +89,6 @@ def new(n_particles=0, order=None, class_=SimSnap, **families):
     x._decorate()
     return x
 
-def _get_snap_classes():
-    from . import ascii, gadget, gadgethdf, grafic, nchilada, ramses, swift, tipsy
 
-    _snap_classes = [gadgethdf.GadgetHDFSnap, gadgethdf.SubFindHDFSnap, gadgethdf.EagleLikeHDFSnap,
-                     nchilada.NchiladaSnap, gadget.GadgetSnap,
-                     swift.SwiftSnap,
-                     tipsy.TipsySnap, ramses.RamsesSnap, grafic.GrafICSnap,
-                     ascii.AsciiSnap]
-
-    return _snap_classes
-
+from . import ascii, gadget, gadgethdf, grafic, nchilada, ramses, subsnap, swift, tipsy
 from .subsnap import FamilySubSnap, IndexedSubSnap, SubSnap

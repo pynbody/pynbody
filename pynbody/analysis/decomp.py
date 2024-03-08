@@ -109,7 +109,7 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
 
         # attempt to load rotation curve off disk
         r, v_c = np.loadtxt(h.ancestor.filename + ".rot." +
-                            str(h.properties["halo_id"]), skiprows=1, unpack=True)
+                            str(h.properties["halo_number"]), skiprows=1, unpack=True)
 
         pro_d = profile.Profile(d, nbins=100, type='log')
         r_me = pro_d["rbins"].in_units("kpc")

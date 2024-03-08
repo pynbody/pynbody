@@ -6,21 +6,25 @@ import numpy as np
 
 from .. import units
 from ..array import SimArray
-from . import Halo, HaloCatalogue
+from . import HaloCatalogue
+from .details import number_mapping, particle_indices
 
 
 class SubfindCatalogue(HaloCatalogue):
-
-    """Class to handle catalogues produced by the SubFind halo finder.
-
-    By default, the FoF groups are imported, but the subhalos can also be imported by setting subs=True
-    when constructing.
-
-    """
+    """Class to handle catalogues produced by the SubFind halo finder."""
 
 
-    def __init__(self, sim, subs=False, ordered=None, make_grp=None, verbose=False, **kwargs):
+    def __init__(self, sim, subs=False, ordered=None):
         """Initialise a SubFind catalogue
+
+        By default, the FoF groups are imported, and subhalos are available via the 'subhalos' attribute of each
+        halo object, e.g.
+
+        >>> f = pynbody.load('path/to/snapshot')
+        >>> h = f.halos()
+        >>> h[1].subhalos[2] # returns the third subhalo of FoF group 1
+
+        However by setting subs=True, the FoF groups are ignored and the catalogue is of all subhalos.
 
         **kwargs** :
 
@@ -29,62 +33,60 @@ class SubfindCatalogue(HaloCatalogue):
                  therefore reordering will take place. If None (default), the iords are examined to check whether
                  re-ordering is required or not. Note that re-ordering can be undesirable because it also destroys
                  subfind's order-by-binding-energy
-        *make_grp*: if True, create a 'grp' array with the halo id to which each particle is assigned
-        *verbose*: if True, produces printed output to track progress while making the 'grp' array
         """
 
-        if 'order' in kwargs:
-            warnings.warn("The keyword 'order' has been renamed to 'ordered'", DeprecationWarning)
-            ordered = kwargs.pop('order')
-
-        self._base = weakref.ref(sim)
         self._subs=subs
 
         if ordered is not None:
             self._ordered = ordered
         else:
-            self._ordered = bool((self.base['iord']==np.arange(len(self.base))).all())
+            self._ordered = bool((sim['iord']==np.arange(len(sim))).all())
 
         self._halos = {}
-        HaloCatalogue.__init__(self,sim)
+
         self.dtype_int = sim['iord'].dtype
-        self.dtype_flt='float32' #SUBFIND data is apparently always single precision???
-        self.halodir = self._name_of_catalogue(sim)
-        self.header = self._readheader()
+        self.dtype_flt = 'float32' #SUBFIND data is apparently always single precision???
+        self._subfind_dir = self._name_of_catalogue(sim)
+        self.header = self._read_header()
+
         if subs is True:
             if self.header[6]==0:
                 raise ValueError("This file does not contain subhalos")
-            if make_grp is True:
-                raise ValueError("subs=True and make_grp=True are not compatible.")
+
         self._tasks = self.header[4]
-        self.ids = self._read_ids()
+
         self._keys={}
-        self._halodat, self._subhalodat=self._read_groups()
-        #self.data_len, self.data_off = self._read_groups()
-        if make_grp:
-            self.make_grp(v=verbose)
+        self._halodat, self._subhalodat=self._read_groups(sim)
 
-    def make_grp(self, name='grp', v=False):
-        """Creates a 'grp' array which labels each particle according to its parent halo.
-
-        This can take quite some time! Option: v=True prints out 'progress' in terms of total number of groups.
-        """
-        self.base[name] = self.get_group_array(v=v)
-
-    def get_group_array(self, v=False):
-        ar = np.zeros(len(self.base), dtype=int)-1
-        for i in range(0, self.header[1]): #total number of groups
-            if v:
-                print("Halo #", i , "of", self.header[1])
-            halo=self[i]
-            ar[halo.get_index_list(self.base)] = halo._halo_id
-        return ar
-
-    def get_halo_properties(self, i, with_unit=True):
-        if with_unit:
-            extract = units.get_item_with_unit
+        if subs:
+            length = len(self._subhalodat['sub_off'])
         else:
-            extract = lambda array, element: array[element]
+            length = len(self._halodat['group_off'])
+
+        super().__init__(sim, number_mapping.SimpleHaloNumberMapper(0, length))
+
+    def _get_all_particle_indices(self):
+        ids = self._read_ids()
+        boundaries = np.empty((len(self), 2), dtype=self.dtype_int)
+        if self._subs:
+            boundaries[:, 0] = self._subhalodat['sub_off']
+            boundaries[:, 1] = self._subhalodat['sub_off'] + self._subhalodat['sub_len']
+        else:
+            boundaries[:, 0] = self._halodat['group_off']
+            boundaries[:, 1] = self._halodat['group_off'] + self._halodat['group_len']
+
+        if not self._ordered:
+            self._init_iord_to_fpos()
+            for a, b in boundaries:
+                ids[a:b] = self._iord_to_fpos.map_ignoring_order(ids[a:b])
+                # must be done segmented in case iord_to_fpos doesn't preserve input order
+
+        return particle_indices.HaloParticleIndices(ids, boundaries)
+
+    def _get_properties_one_halo(self, i):
+
+        extract = units.get_item_with_unit
+
         properties = {}
         halo_number_within_group = (self._subhalodat['sub_groupNr'][:i] == self._subhalodat['sub_groupNr'][i]).sum()
         if self._subs is False:
@@ -103,45 +105,27 @@ class SubfindCatalogue(HaloCatalogue):
             # but not its sub-sub-subhalos (those will be listed in each sub-subhalo)
         return properties
 
-    def _get_halo(self,i):
-        if self._ordered is False:
-            if self._subs is True:
-                #this needs to be tested again on a snapshot that is not ordered!
-                x = Halo(i, self, self.base, np.where(np.in1d(self.base['iord'], self.ids[self._subhalodat['sub_off'][i]:self._subhalodat['sub_off'][i]+self._subhalodat['sub_len'][i]]  )))
-            else:
-                x = Halo(i, self, self.base, np.where(np.in1d(self.base['iord'], self.ids[self._halodat['group_off'][i]:self._halodat['group_off'][i]+self._halodat['group_len'][i]]  )))
-
-        else:
-            if self._subs is False: #to use groups as halos:
-                x = Halo(i, self, self.base, self.ids[self._halodat['group_off'][i]:self._halodat['group_off'][i]+self._halodat['group_len'][i]] )
-            else:
-                x=Halo(i, self, self.base, self.ids[self._subhalodat['sub_off'][i]:self._subhalodat['sub_off'][i]+self._subhalodat['sub_len'][i]] )
-
-        x._descriptor = "halo_"+str(i)
-        x.properties.update(self.get_halo_properties(i))
-        return x
-
-    def _readheader(self):
-        header = np.array([], dtype='int32')
-        iout = self.halodir.split("_")[-1]
+    def _read_header(self):
+        iout = self._subfind_dir.split("_")[-1]
         filename = os.path.join(
-            self.halodir,
+            self._subfind_dir,
             f"subhalo_tab_{iout}.0"
         )
-        fd = open(filename, "rb")
-        # read header: this is strange but it works: there is an extra value in
-        # header which we delete in the next step
-        header1 = np.fromfile(fd, dtype='int32', sep="", count=8)
-        header = np.delete(header1, 4)
-        fd.close()
-        return header  # [4]
+        with open(filename, "rb") as fd:
+            # read header: this is strange but it works: there is an extra value in
+            # header which we delete in the next step
+            header = np.fromfile(fd, dtype='int32', sep="", count=8)
+
+        header = np.delete(header, 4)
+
+        return header
 
     def _read_ids(self):
         data_ids = np.array([], dtype=self.dtype_int)
-        iout = self.halodir.split("_")[-1]
+        iout = self._subfind_dir.split("_")[-1]
         for n in range(0, self._tasks):
             filename = os.path.join(
-                self.halodir,
+                self._subfind_dir,
                 f"subhalo_ids_{iout}.{n}"
             )
             fd = open(filename, "rb")
@@ -155,7 +139,7 @@ class SubfindCatalogue(HaloCatalogue):
             data_ids = np.append(data_ids, ids)
         return data_ids
 
-    def _read_groups(self):
+    def _read_groups(self, sim):
         halodat={}
         keys_flt=['mass', 'pos', 'mmean_200', 'rmean_200', 'mcrit_200', 'rcrit_200', 'mtop_200', 'rtop_200', 'contmass']
         keys_int=['group_len', 'group_off',  'first_sub', 'Nsubs', 'cont_count', 'mostboundID']
@@ -179,9 +163,9 @@ class SubfindCatalogue(HaloCatalogue):
             self._keys=subkeys_flt+subkeys_int
 
         for n in range(0,self._tasks):
-            iout = self.halodir.split("_")[-1]
+            iout = self._subfind_dir.split("_")[-1]
             filename = os.path.join(
-                self.halodir,
+                self._subfind_dir,
                 f"subhalo_tab_{iout}.{n}"
             )
             fd=open(filename, "rb")
@@ -241,17 +225,13 @@ class SubfindCatalogue(HaloCatalogue):
 
         for name, dimension in zip(ar_names, ar_dimensions):
             if name in halodat:
-                halodat[name] = SimArray(halodat[name], self.base.infer_original_units(dimension))
+                halodat[name] = SimArray(halodat[name], sim.infer_original_units(dimension))
+                halodat[name].sim = sim
             if name in subhalodat:
-                subhalodat[name] = SimArray(subhalodat[name], self.base.infer_original_units(dimension))
+                subhalodat[name] = SimArray(subhalodat[name], sim.infer_original_units(dimension))
+                subhalodat[name].sim = sim
 
         return halodat, subhalodat
-
-    def __len__(self):
-        if self._subs:
-            return len(self._subhalodat['sub_pos'])
-        else:
-            return len(self._halodat['pos'])
 
     @staticmethod
     def _name_of_catalogue(sim):
@@ -268,10 +248,6 @@ class SubfindCatalogue(HaloCatalogue):
             snapnum = os.path.basename(sim.filename).split("_")[-1]
             parent_dir = os.path.dirname(sim.filename)
             return os.path.join(parent_dir,"groups_" + snapnum)
-
-    @property
-    def base(self):
-        return self._base()
 
     @staticmethod
     def _can_load(sim, **kwargs):

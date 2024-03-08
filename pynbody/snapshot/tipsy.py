@@ -17,9 +17,6 @@ parent directories.
 
 """
 
-  # for py2.5
-
-
 import copy
 import glob
 import logging
@@ -62,7 +59,7 @@ class TipsySnap(SimSnap):
 
         self.partial_load = take is not None
 
-        self._filename = util.cutgz(filename)
+        self._filename = str(util.cutgz(filename))
 
         if not only_header:
             logger.info("Loading %s", filename)
@@ -941,8 +938,8 @@ class TipsySnap(SimSnap):
         for i, x in enumerate(['vx', 'vy', 'vz']):
             self._arrays[x + 'form'] = self['velform'][:, i]
 
-    @staticmethod
-    def _can_load(f):
+    @classmethod
+    def _can_load(cls, f):
         try:
             check = TipsySnap(f, verbose=False)
             del check
@@ -1468,6 +1465,8 @@ def param2units(sim):
     with sim.lazy_off:
         munit = dunit = hub = None
 
+        logger.debug("paramfile: %s", sim._paramfile)
+
         try:
             hub = float(sim._paramfile["dHubble0"])
             sim.properties['omegaM0'] = float(sim._paramfile["dOmega0"])
@@ -1480,6 +1479,7 @@ def param2units(sim):
             munit = float(sim._paramfile["dMsolUnit"])
             dunit_st = sim._paramfile["dKpcUnit"] + " kpc"
             dunit = float(sim._paramfile["dKpcUnit"])
+            logger.debug("munit: %s, dunit: %s", munit_st, dunit_st)
         except KeyError:
             pass
 
@@ -1579,15 +1579,18 @@ def param2units(sim):
         try:
             sim._file_units_system = [
                 sim["vel"].units, sim.star["mass"].units, sim["pos"].units, units.K]
+            logger.debug("file_units_system set from arrays %s", sim._file_units_system)
         except KeyError:
             try:
                 sim._file_units_system = [
                     sim["vel"].units, sim.star["massform"].units, sim["pos"].units, units.K]
+                logger.debug("file_units_system set from arrays inc star massform %s", sim._file_units_system)
             except KeyError:
                 try:
                     sim._file_units_system = [units.Unit(velunit_st),
                                               units.Unit(munit_st),
                                               units.Unit(dunit_st), units.K]
+                    logger.debug("file_units_system set from paramfile %s", sim._file_units_system)
                 except Exception:
                     pass
 

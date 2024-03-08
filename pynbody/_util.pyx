@@ -8,6 +8,8 @@ from cython.parallel cimport prange
 from libc.math cimport atan, pow
 from libc.stdlib cimport free, malloc
 
+from . import config
+
 ctypedef fused fused_float:
     np.float32_t
     np.float64_t
@@ -136,7 +138,8 @@ def sum(np.ndarray[fused_float, ndim=1] ar):
     cdef fused_float v
     cdef long i
     cdef long N=len(ar)
-    for i in prange(N,nogil=True,schedule='static'):
+    cdef int num_threads = config['number_of_threads']
+    for i in prange(N,nogil=True,schedule='static',num_threads=num_threads):
         v+=ar[i]
     return v
 
@@ -151,7 +154,8 @@ def sum_if_gt(np.ndarray[fused_float, ndim=1] ar,
     cdef long i
     cdef long N=len(ar)
     assert len(cmp_ar)==len(ar)
-    for i in prange(N,nogil=True,schedule='static'):
+    cdef int num_threads = config['number_of_threads']
+    for i in prange(N,nogil=True,schedule='static',num_threads=num_threads):
         if cmp_ar[i]>cmp_ar_val:
            v+=(ar[i])
     return v
@@ -166,8 +170,9 @@ def sum_if_lt(np.ndarray[fused_float, ndim=1] ar,
     cdef fused_float v
     cdef long i
     cdef long N=len(ar)
+    cdef int num_threads = config['number_of_threads']
     assert len(cmp_ar)==len(ar)
-    for i in prange(N,nogil=True,schedule='static'):
+    for i in prange(N,nogil=True,schedule='static',num_threads=num_threads):
         v+=(ar[i])*(cmp_ar[i]<cmp_ar_val)
     return v
 
@@ -188,6 +193,7 @@ def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
     cdef fused_float r_max_2
     cdef np.ndarray[np.uint8_t, ndim=1] output = np.empty(len(pos_ar),dtype=np.uint8)
     cdef double wrap_by_two = wrap/2
+    cdef int num_threads = config['number_of_threads']
 
     r_max_2 = r_max*r_max
 
@@ -199,7 +205,7 @@ def _sphere_selection(np.ndarray[fused_float, ndim=2] pos_ar,
     cz = cen[2]
 
 
-    for i in prange(N,nogil=True,schedule='static'):
+    for i in prange(N,nogil=True,schedule='static',num_threads=num_threads):
         x=pos_ar[i,0]-cx
         y=pos_ar[i,1]-cy
         z=pos_ar[i,2]-cz
@@ -294,7 +300,7 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(
 
     cdef fused_int_3[:] sorter_mview = sorter
 
-    cdef int ichunk, chunk_size, Nchunk = openmp.omp_get_num_threads(), this_chunk
+    cdef int ichunk, chunk_size, Nchunk = config['number_of_threads'], this_chunk
 
     if num_threads > 0:
         Nchunk = num_threads

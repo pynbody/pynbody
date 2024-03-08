@@ -68,8 +68,9 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: artifact-${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           path: ./wheelhouse/*.whl
 
   build_sdist:
@@ -79,7 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         name: Install Python
         with:
           python-version: '3.9'
@@ -90,8 +91,9 @@ jobs:
       - name: Build sdist
         run: python setup.py sdist
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: artifact-source
           path: dist/*.tar.gz
 
   upload_pypi:
@@ -100,12 +102,13 @@ jobs:
     environment: PyPI
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: artifact
+          pattern: artifact-*
+          merge-multiple: true
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.8.11
+      - uses: pypa/gh-action-pypi-publish@v1.8.12
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
