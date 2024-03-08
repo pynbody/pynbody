@@ -54,7 +54,7 @@ GrafIC    Yes        Yes               No         No                [5]_
    `GrafIC <http://web.mit.edu/edbert/>`_ or Prunet et al's `MPGrafIC <ftp://ftp.iap.fr/pub/from_users/prunet>`_.
 
 .. [6] Swift files can be partially loaded by specifying the cell IDs to load,
-   passing `take_swift_cells = [...]` to the load command. This may be extended
+   passing ``take_swift_cells = [...]`` to the load command. This may be extended
    in future to support querying the cell geometry.
 
 The end-user rarely needs to worry about the implementation of
