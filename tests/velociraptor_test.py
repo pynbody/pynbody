@@ -1,10 +1,16 @@
+import numpy as np
+import pytest
+
 import pynbody
 
 
-def test_swift_velociraptor():
+@pytest.mark.parametrize("load_all", [True, False])
+def test_swift_velociraptor(load_all):
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
     assert pynbody.halo.velociraptor.VelociraptorCatalogue._can_load(f)
     h = pynbody.halo.velociraptor.VelociraptorCatalogue(f)
+    if load_all:
+        h.load_all()
     assert len(h) == 209
 
     assert len(h[1]) == 443
@@ -14,6 +20,8 @@ def test_swift_velociraptor():
 
 
     h_unbound = pynbody.halo.velociraptor.VelociraptorCatalogue(f, include_unbound=True)
+    if load_all:
+        h_unbound.load_all()
     assert len(h_unbound[1]) == 444
 
     testvals = [395183, 411313, 394929, 386993, 419631, 402993, 411571, 395313,
@@ -35,12 +43,13 @@ def test_swift_velociraptor():
           386860, 411434, 395188, 403118, 395180, 394798, 419506, 411184,
           403378, 402986]
 
-    assert (h[20]['iord'] == testvals).all()
+    assert (np.sort(h[20]['iord']) == np.sort(testvals)).all()
 
 
 def test_swift_velociraptor_parents_and_children():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
     h = pynbody.halo.velociraptor.VelociraptorCatalogue(f)
+    h.load_all()
 
     assert h[2].properties['parent'] == -1
     assert (h[2].properties['children'] == [208]).all()

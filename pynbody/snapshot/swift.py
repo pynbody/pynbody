@@ -1,4 +1,5 @@
 import os
+import pathlib
 import tempfile
 
 import h5py
@@ -10,7 +11,7 @@ from .gadgethdf import GadgetHdfMultiFileManager, GadgetHDFSnap
 
 class SwiftMultiFileManager(GadgetHdfMultiFileManager):
 
-    def __init__(self, filename, take_cells, take, mode='r'):
+    def __init__(self, filename: pathlib.Path, take_cells, take, mode='r'):
         self._take_cells = take_cells
 
         if take_cells is not None and take is not None:
@@ -21,9 +22,9 @@ class SwiftMultiFileManager(GadgetHdfMultiFileManager):
             # pointers to the right cells
             try:
                 with h5py.File(filename, mode='r') as f:
-                    if f['Header'].attrs['Virtual'][0] == 1 and filename.endswith('.hdf5'):
+                    if f['Header'].attrs['Virtual'][0] == 1 and filename.suffix == '.hdf5':
                         # if we simply strip off .hdf5, GadgetHDFSnap will find the underlying files (hopefully..)
-                        filename = filename[:-5]
+                        filename = filename.with_suffix('')
                     # it's not a virtual file anyway, so we're ok
             except FileNotFoundError:
                 pass # perfect, this is either going to be pieced together by pynbody, or it'll fail anyway
@@ -232,8 +233,8 @@ class SwiftSnap(GadgetHDFSnap):
     def halos(self, **kwargs):
         h = super().halos(**kwargs)
 
-        if isinstance(h, halo.GrpCatalogue):
+        if isinstance(h, halo.number_array.HaloNumberCatalogue):
             ignore = int(self._hdf_files.get_parameter_attrs()['FOF:group_id_default'])
-            return halo.GrpCatalogue(self, ignore=ignore, **kwargs)
+            return halo.number_array.HaloNumberCatalogue(self, ignore=ignore, **kwargs)
 
         return h

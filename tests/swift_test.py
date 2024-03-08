@@ -133,9 +133,9 @@ def test_swift_vds_partial_loading():
 
 def test_swift_fof_groups():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
-    h = f.halos(try_classes = [pynbody.halo.GrpCatalogue])
+    h = f.halos(priority = ['HaloNumberCatalogue'])
 
-    with raises(IndexError):
+    with raises(KeyError):
         _ = h[0]
 
     assert len(h[1]) == 444

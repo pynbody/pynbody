@@ -328,4 +328,13 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         return False
 
 
-from . import adaptahop, ahf, hop, number_array, rockstar, subfind, subfindhdf, velociraptor
+from . import (
+    adaptahop,
+    ahf,
+    hop,
+    number_array,
+    rockstar,
+    subfind,
+    subfindhdf,
+    velociraptor,
+)

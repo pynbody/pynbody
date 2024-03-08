@@ -1,8 +1,11 @@
 """Note that most simsnap tests are in more specific test files."""
 
 import pathlib
-import pynbody
+
 import pytest
+
+import pynbody
+
 
 def test_load_empty_folder():
 
@@ -10,4 +13,4 @@ def test_load_empty_folder():
 
     with pytest.raises(IOError) as excinfo:
         f = pynbody.load("testdata/empty_folder_0001")
-    assert "Unable to load" in str(excinfo.value)
+    assert "Is a directory" in str(excinfo.value)

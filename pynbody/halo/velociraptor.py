@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Optional
 
 import h5py
 import numpy as np
+from numpy._typing import NDArray
 
-from . import Halo, HaloCatalogue
+from . import HaloCatalogue, HaloParticleIndices
+from .details import number_mapping
 
 
 class VelociraptorCatalogue(HaloCatalogue):
@@ -15,7 +19,7 @@ class VelociraptorCatalogue(HaloCatalogue):
     _zero_offset = 1
 
     @classmethod
-    def _catalogue_path(cls, sim) -> Optional[Path]:
+    def _catalogue_path(cls, sim) -> Path | None:
 
 
         simpath = Path(sim.filename)
@@ -57,7 +61,7 @@ class VelociraptorCatalogue(HaloCatalogue):
         return True
 
     def __init__(self, sim, vr_basename=None, include_unbound=False):
-        super().__init__(sim)
+
         self._include_unbound = include_unbound
         if vr_basename is None:
             self._path = self._catalogue_path(sim)
@@ -75,51 +79,76 @@ class VelociraptorCatalogue(HaloCatalogue):
         assert self._grps['Num_of_files'][0] == 1, "Multi-file catalogues not supported at present"
 
         self._num_halos = self._grps['Num_of_groups'][0]
+
+        super().__init__(sim, number_mapping.SimpleHaloNumberMapper(self._zero_offset, self._num_halos))
+
         self._init_iord_to_fpos()
         self._calculate_children()
-
-    def __len__(self):
-        return self._num_halos
 
     def _calculate_children(self):
         self._parents = self._grps['Parent_halo_ID'][:]
         _all_children_zero_based = np.arange(self._num_halos, dtype=np.int32)[self._parents != -1]
-        self._all_children_ordered_by_parent = (
+        self._all_children_ordered_by_parent = self._number_mapper.index_to_number(
                 _all_children_zero_based[np.argsort(self._parents[_all_children_zero_based])]
-                + self._zero_offset
         )
 
-        self._children_start_index = np.searchsorted(self._parents[self._all_children_ordered_by_parent-self._zero_offset],
-                                                     np.arange(self._num_halos+self._zero_offset),
+        self._children_start_index = np.searchsorted(self._parents[
+                                                         self._number_mapper.number_to_index(self._all_children_ordered_by_parent)
+                                                     ],
+                                                     self._number_mapper.all_numbers,
                                                      side='left')
         self._children_stop_index = np.concatenate((self._children_start_index[1:],
                                                     np.array([self._num_halos],
                                                              dtype=self._children_start_index.dtype)))
 
-    def _get_halo_properties(self, i):
-        i_zerobased = i - self._zero_offset
+    def _get_properties_one_halo(self, halo_number) -> dict:
+        i_zerobased = self._number_mapper.number_to_index(halo_number)
         parent = self._parents[i_zerobased]
-        children = self._all_children_ordered_by_parent[self._children_start_index[i]:self._children_stop_index[i]]
+        children = self._all_children_ordered_by_parent[self._children_start_index[i_zerobased]:self._children_stop_index[i_zerobased]]
         return {'parent': parent, 'children': children}
 
-    def _get_halo(self, i):
-        if i >= self._num_halos+self._zero_offset or i < self._zero_offset:
-            raise IndexError(f"Halo index out of range (must be between {self._zero_offset}"
-                             f" and {self._num_halos+self._zero_offset-1})")
+    def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
+        i_zerobased = self._number_mapper.number_to_index(halo_number)
+        ptcl_fpos = self.__get_particle_indices_from_halo_index(i_zerobased, False)
 
-
-        ptcl_fpos = self._get_particle_offsets_for_halo(i)
         if self._include_unbound:
-            ptcl_fpos_unbound = self._get_particle_offsets_for_halo(i, unbound=True)
+            ptcl_fpos_unbound =  self.__get_particle_indices_from_halo_index(i_zerobased, True)
             ptcl_fpos = np.concatenate((ptcl_fpos, ptcl_fpos_unbound))
 
-        h = Halo(i, self, self.base, index_array=ptcl_fpos, allow_family_sort=True)
-        h.properties.update(self._get_halo_properties(i))
+        return np.sort(ptcl_fpos)
 
-        return h
+    def _get_all_particle_indices(self) -> HaloParticleIndices | tuple[np.ndarray, np.ndarray]:
+        particle_ids_hdf_array = self._part_ids['Particle_IDs']
+        offsets = np.concatenate((self._grps['Offset'][:], [particle_ids_hdf_array.shape[0]]),
+                                 dtype=np.intp)
+        boundaries = np.vstack((offsets[:-1], offsets[1:])).T
 
-    def _get_particle_offsets_for_halo(self, i, unbound=False):
-        i_zerobased = i - self._zero_offset
+        if self._include_unbound:
+            num_ids = particle_ids_hdf_array.shape[0] + self._part_ids_unbound['Particle_IDs'].shape[0]
+            offsets_unbound = np.concatenate((self._grps['Offset_unbound'][:],
+                                              [self._part_ids_unbound['Particle_IDs'].shape[0]]),
+                                             dtype=np.intp)
+            boundaries_unbound = np.vstack((offsets_unbound[:-1], offsets_unbound[1:])).T
+            output_boundaries = boundaries + boundaries_unbound
+            particle_ids = np.empty(num_ids, dtype=np.intp)
+
+            for (a,b), (a_unbound, b_unbound), (a_out, b_out) in zip(boundaries, boundaries_unbound, output_boundaries):
+                particle_ids[a_out:b_out] = np.sort(self._iord_to_fpos.map_ignoring_order(
+                    np.concatenate((self._part_ids['Particle_IDs'][a:b],
+                                    self._part_ids_unbound['Particle_IDs'][a_unbound:b_unbound])))
+                )
+        else:
+            output_boundaries = boundaries
+
+            particle_ids = np.empty(particle_ids_hdf_array.shape[0], dtype=np.intp)
+
+            for a,b in boundaries:
+                particle_ids[a:b] = np.sort(self._iord_to_fpos.map_ignoring_order(self._part_ids['Particle_IDs'][a:b]))
+
+        return particle_ids, output_boundaries
+
+
+    def __get_particle_indices_from_halo_index(self, i_zerobased, unbound):
         if unbound:
             grps_hdf_array = self._grps['Offset_unbound']
             particle_ids_hdf_array = self._part_ids_unbound['Particle_IDs']
@@ -135,5 +164,5 @@ class VelociraptorCatalogue(HaloCatalogue):
             ptcl_end = grps_hdf_array[i_zerobased + 1]
 
         ptcl_ids_this_halo = particle_ids_hdf_array[ptcl_start:ptcl_end]
-        ptcl_fpos = self._iord_to_fpos[ptcl_ids_this_halo]
+        ptcl_fpos = self._iord_to_fpos.map_ignoring_order(ptcl_ids_this_halo)
         return ptcl_fpos
