@@ -39,7 +39,7 @@ Let's quickly load a snapshot:
 
   In [1]: import pynbody; from pynbody.analysis import profile; import matplotlib.pylab as plt
 
-  In [1]: s = pynbody.load('testdata/g15784.lr.01024'); s.physical_units()
+  In [1]: s = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024'); s.physical_units()
 
   In [2]: h = s.halos()
 

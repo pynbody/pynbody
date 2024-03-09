@@ -55,7 +55,6 @@ class TipsySnap(SimSnap):
 
         must_have_paramfile = kwargs.get('must_have_paramfile', False)
         take = kwargs.get('take', None)
-        verbose = kwargs.get('verbose', config['verbose'])
 
         self.partial_load = take is not None
 
@@ -941,9 +940,11 @@ class TipsySnap(SimSnap):
     @classmethod
     def _can_load(cls, f):
         try:
-            check = TipsySnap(f, verbose=False)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                check = TipsySnap(f)
             del check
-        except Exception:
+        except Exception as e:
             return False
 
         return True

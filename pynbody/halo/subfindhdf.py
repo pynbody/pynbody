@@ -141,7 +141,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
     def __inherit_data(self, parent):
         attrs_to_share = ["_fof_properties", "_sub_properties", "_fof_group_offsets", "_fof_group_lengths",
-                         "_subfind_halo_offsets", "_subfind_halo_lengths"]
+                         "_subfind_halo_offsets", "_subfind_halo_lengths",
+                          "fof_ignore", "sub_ignore"]
         for attr in attrs_to_share:
             setattr(self, attr, getattr(parent, attr))
 

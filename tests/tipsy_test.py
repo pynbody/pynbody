@@ -1,5 +1,6 @@
 import glob
 import os
+import warnings
 
 import numpy as np
 import numpy.testing as npt
@@ -17,12 +18,12 @@ def setup_module():
 
 @pytest.fixture
 def snap():
-    return pynbody.load("testdata/g15784.lr.01024")
+    return pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
 
 
 def teardown_module():
-    if os.path.exists("testdata/g15784.lr.log"):
-        os.remove("testdata/g15784.lr.log")
+    if os.path.exists("testdata/gasoline_ahf/g15784.lr.log"):
+        os.remove("testdata/gasoline_ahf/g15784.lr.log")
 
 
 def test_get(snap):
@@ -159,26 +160,53 @@ def test_halo_unit_conversion(snap):
     h[1].gas['rho'].convert_units('m_p cm^-3')
     assert str(h[1].gas['rho'].units) == 'm_p cm**-3'
 
-
-def test_write():
+@pytest.fixture
+def test_output():
     f2 = pynbody.new(gas=20, star=11, dm=9, order='gas,dm,star')
     f2.dm['test_array'] = np.ones(9)
     f2['x'] = np.arange(0, 40)
     f2['vx'] = np.arange(40, 80)
     f2.properties['a'] = 0.5
     f2.properties['time'] = 12.0
-    f2.write(fmt=pynbody.snapshot.tipsy.TipsySnap, filename="testdata/test_out.tipsy")
+    f2.write(fmt=pynbody.snapshot.tipsy.TipsySnap, filename="testdata/gasoline_ahf/test_out.tipsy")
+    yield "testdata/gasoline_ahf/test_out.tipsy"
+    # unlink anything matching testdata/gasoline_ahf/test_out.tipsy*
+    for f in glob.glob("testdata/gasoline_ahf/test_out.tipsy*"):
+        os.unlink(f)
 
-    f3 = pynbody.load("testdata/test_out.tipsy")
-    assert all(f3['x'] == f2['x'])
-    assert all(f3['vx'] == f3['vx'])
-    assert all(f3.dm['test_array'] == f2.dm['test_array'])
+def gen_output(cosmological):
+    f2 = pynbody.new(gas=20, star=11, dm=9, order='gas,dm,star')
+    f2.dm['test_array'] = np.ones(9)
+    f2['x'] = np.arange(0, 40)
+    f2['vx'] = np.arange(40, 80)
+    f2.properties['a'] = 0.5
+    f2.properties['time'] = 12.0
+    f2.write(fmt=pynbody.snapshot.tipsy.TipsySnap, filename="testdata/gasoline_ahf/test_out.tipsy",
+             cosmological=cosmological)
+    yield "testdata/gasoline_ahf/test_out.tipsy"
+    # unlink anything matching testdata/gasoline_ahf/test_out.tipsy*
+    for f in glob.glob("testdata/gasoline_ahf/test_out.tipsy*"):
+        os.unlink(f)
+@pytest.fixture
+def test_noncosmo_output():
+    yield from gen_output(False)
+
+@pytest.fixture
+def test_output():
+    yield from gen_output(True)
+
+def test_write(test_output):
+    with warnings.catch_warnings():
+        f3 = pynbody.load(test_output)
+    assert all(f3['x'] == np.arange(0, 40))
+    assert all(f3['vx'] == np.arange(40, 80))
+    assert all(f3.dm['test_array'] == np.ones(9))
     assert f3.properties['a']==0.5
 
+def test_write_noncosmo(test_noncosmo_output):
     # this looks strange, but it's because the .param file in the testdata folder implies a cosmological tipsy snap
     # whereas we have just written the snapshot asserting it is non-cosmological
-    f2.write(fmt=pynbody.snapshot.tipsy.TipsySnap, filename="testdata/test_out.tipsy", cosmological=False)
-    f3 = pynbody.load("testdata/test_out.tipsy")
+    f3 = pynbody.load(test_noncosmo_output)
     assert f3.properties['a']==12
 
 
@@ -194,12 +222,13 @@ def test_array_write(snap):
 
 
 @pytest.mark.filterwarnings("ignore:Paramfile suggests time is cosmological.*:RuntimeWarning")
+@pytest.mark.filterwarnings("ignore:No readable param file.*:RuntimeWarning")
 def test_isolated_read():
     s = pynbody.load('testdata/isolated_ics.std')
 
 
-def test_array_metadata():
-    f1 = pynbody.load("testdata/test_out.tipsy")
+def test_array_metadata(test_output):
+    f1 = pynbody.load(test_output)
 
     f1.gas['zog'] = np.ones(len(f1.gas))
     f1.gas['zog'].units = "Msol kpc^-1"
@@ -211,7 +240,7 @@ def test_array_metadata():
 
     del f1
 
-    f1 = pynbody.load("testdata/test_out.tipsy")
+    f1 = pynbody.load(test_output)
     assert "banana" in f1.loadable_keys()
     assert "zog" not in f1.loadable_keys()
     assert "banana" in f1.gas.loadable_keys()
@@ -230,8 +259,8 @@ def test_array_metadata():
     assert f1['banana'].units == "kpc^3 Myr^-1"
 
 
-def test_array_update():
-    f1 = pynbody.load("testdata/test_out.tipsy")
+def test_array_update(test_output):
+    f1 = pynbody.load(test_output)
 
     f1['bla'] = np.zeros(len(f1))
     f1['bla'].units = 'km'
@@ -271,14 +300,14 @@ def test_array_update():
 
     del(f1)
 
-    f1 = pynbody.load("testdata/test_out.tipsy")
+    f1 = pynbody.load(test_output)
 
     assert all(f1.g['bla2'] == 0)
     assert all(f1.s['bla2'] == 1)
 
 
-def test_snapshot_update():
-    f1 = pynbody.load("testdata/test_out.tipsy")
+def test_snapshot_update(test_output):
+    f1 = pynbody.load(test_output)
     f1['pos']
     f1['pos'] = np.arange(0, len(f1) * 3).reshape(len(f1), 3)
 
@@ -292,7 +321,7 @@ def test_snapshot_update():
     f1.gas['metals'].write(overwrite=True)
     del f1
 
-    f2 = pynbody.load("testdata/test_out.tipsy")
+    f2 = pynbody.load(test_output)
     assert (f2['pos'] == np.arange(0, len(f2) * 3).reshape(len(f2), 3)).all()
     assert (f2.gas['metals'] == 123.).all()  # should have updated gas.metals
     # should not have written out changes to star.metals
@@ -306,12 +335,11 @@ def test_snapshot_update():
 
     del f2['metals']
 
-    f3 = pynbody.load("testdata/test_out.tipsy")
+    f3 = pynbody.load(test_output)
     assert (f3.dm['metals'] == 789.1).all()
 
-
 def test_unit_persistence():
-    f1 = pynbody.load("testdata/g15784.lr.01024")
+    f1 = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     f1['pos']
     f1.physical_units()
     assert f1['pos'].units == 'kpc'
@@ -424,7 +452,7 @@ def test_read_starlog_no_log(snap):
 def test_read_starlog_with_log(snap):
     # the last key is incorrectly labeled in order to ensure
     # that the log file is being read
-    with open('testdata/g15784.lr.log', 'w') as logf:
+    with open('testdata/gasoline_ahf/g15784.lr.log', 'w') as logf:
         logf.write('# ilbDumpIteration: 0\n# bDoSimulateLB: 0\n# starlog data:\n'
                    '# iOrdStar i4\n# iOrdGas i4\n# timeForm f8\n# rForm[0] f8\n'
                    '# rForm[1] f8\n# rForm[2] f8\n# vForm[0] f8\n# vForm[1] f8\n#'
@@ -442,3 +470,30 @@ def test_read_starlog_with_log(snap):
           10766.11592458, 10514.57288485])
     h2form = snap.s['h2form'][:1000:100]
     assert np.all(np.abs(h2form - correct) < 1e-7)
+
+@pytest.fixture
+def no_paramfile_snap():
+    import pathlib
+    import shutil
+
+    # create a folder, gasoline_ahf_noparam
+    gasoline_ahf = pathlib.Path("testdata/gasoline_ahf")
+    gasoline_ahf_noparam = pathlib.Path("testdata/gasoline_ahf_noparam")
+    shutil.rmtree(gasoline_ahf_noparam, ignore_errors=True)
+    gasoline_ahf_noparam.mkdir()
+
+    # symlink all files from gasoline_ahf
+
+    for file in gasoline_ahf.iterdir():
+        if file.is_file() and file.suffix != ".param":
+            (gasoline_ahf_noparam / file.name).symlink_to(file.absolute())
+
+    yield gasoline_ahf_noparam / "g15784.lr.01024"
+
+    shutil.rmtree(gasoline_ahf_noparam, ignore_errors=True)
+
+def test_load_without_paramfile(no_paramfile_snap):
+    with pytest.warns(RuntimeWarning, match="No readable param"):
+        f = pynbody.load(no_paramfile_snap)
+        assert isinstance(f, pynbody.snapshot.tipsy.TipsySnap)
+        assert len(f) == 1717156

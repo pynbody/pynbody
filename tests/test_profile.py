@@ -63,7 +63,7 @@ def test_potential_profile_fp32():
 
 
 def test_unique_hash_generation():
-    f1 = pynbody.load("testdata/g15784.lr.01024")
+    f1 = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     p1 = pynbody.analysis.profile.Profile(f1, nbins=50)
     p2 = pynbody.analysis.profile.Profile(f1[:1000], nbins=50)
 
@@ -76,7 +76,7 @@ def test_unique_hash_generation():
 
 
 def test_write_profile():
-    f1 = pynbody.load("testdata/g15784.lr.01024")
+    f1 = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
 
     p = pynbody.analysis.profile.Profile(f1[:1000], nbins=50)
     p['rbins'], p['density']

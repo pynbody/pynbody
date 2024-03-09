@@ -15,19 +15,19 @@ import pynbody
 
 @pytest.fixture
 def cleanup_fpos_file():
-    if os.path.exists("testdata/g15784.lr.01024.AHF_fpos"):
-        os.remove("testdata/g15784.lr.01024.AHF_fpos")
+    if os.path.exists("testdata/gasoline_ahf/g15784.lr.01024.AHF_fpos"):
+        os.remove("testdata/gasoline_ahf/g15784.lr.01024.AHF_fpos")
     yield
 
 
 def test_load_ahf_catalogue():
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     h = pynbody.halo.ahf.AHFCatalogue(f)
     assert len(h)==1411
 
 @pytest.mark.parametrize("do_load_all", [True, False])
 def test_ahf_particles(do_load_all, cleanup_fpos_file):
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     h = pynbody.halo.ahf.AHFCatalogue(f)
 
     if do_load_all:
@@ -47,20 +47,20 @@ def test_ahf_particles(do_load_all, cleanup_fpos_file):
 @pytest.mark.parametrize("do_load_all", [True, False])
 def test_load_ahf_catalogue_non_gzipped(do_load_all):
     for extension in ["halos", "particles", "substructure"]:
-        subprocess.call(["gunzip",f"testdata/g15784.lr.01024.z0.000.AHF_{extension}.gz"])
+        subprocess.call(["gunzip",f"testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_{extension}.gz"])
     try:
-        f = pynbody.load("testdata/g15784.lr.01024")
+        f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
         h = pynbody.halo.ahf.AHFCatalogue(f)
         if do_load_all:
             h.load_all()
         assert len(h)==1411
     finally:
         for extension in ["halos", "particles", "substructure"]:
-            subprocess.call(["gzip", f"testdata/g15784.lr.01024.z0.000.AHF_{extension}"])
+            subprocess.call(["gzip", f"testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_{extension}"])
 
 
 def test_ahf_properties():
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     h = pynbody.halo.ahf.AHFCatalogue(f)
     assert np.allclose(h[0].properties['Mvir'], 1.69639e+12)
     assert np.allclose(h[1].properties['Ekin'],6.4911e+17)
@@ -68,19 +68,25 @@ def test_ahf_properties():
 
 
 @pytest.fixture
-def setup_unwritable_ahf_situation():
+def snap_in_unwritable_folder():
     if os.path.exists("testdata/test_unwritable"):
         os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR)
         shutil.rmtree("testdata/test_unwritable")
     os.mkdir("testdata/test_unwritable/")
-    for fname in glob.glob("testdata/g15784*"):
+    for fname in glob.glob("testdata/gasoline_ahf/*"):
         if "AHF_fpos" not in fname:
-            os.symlink("../"+fname[9:], "testdata/test_unwritable/"+fname[9:])
+            os.symlink("../"+fname[9:], "testdata/test_unwritable/"+fname[22:])
     os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR)
 
+    yield "testdata/test_unwritable/g15784.lr.01024"
 
-def test_ahf_unwritable(setup_unwritable_ahf_situation):
-    f = pynbody.load("testdata/test_unwritable/g15784.lr.01024")
+    os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR)
+    shutil.rmtree("testdata/test_unwritable")
+
+
+
+def test_ahf_unwritable(snap_in_unwritable_folder):
+    f = pynbody.load(snap_in_unwritable_folder)
 
     # check we can still get a halo even without ability to write fpos file, but a warning is issued
     with pytest.warns(UserWarning, match="Unable to write AHF_fpos file;.*"):
@@ -145,9 +151,9 @@ def test_ramses_ahf_family_mapping_with_new_format():
         npt.assert_allclose(halo.properties['Mhalo'] / hubble, halo['mass'].sum().in_units("Msol"), rtol=rtol)
 
 def test_ahf_corrupt_substructure():
-    """For some reason lost in history, the AHF substructure file for g15784 is corrupt.
+    """For some reason lost in history, the AHF substructure file for gasoline_ahf/g15784 is corrupt.
     Use that to test we can see the exception"""
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     with pytest.raises(KeyError):
         _ = pynbody.halo.ahf.AHFCatalogue(f, ignore_missing_substructure=False)
 
@@ -179,9 +185,9 @@ def snap_with_non_sequential_halos():
     base_folder = pathlib.Path("testdata/ahf_with_non_sequential_ids").absolute()
     if not base_folder.exists():
         base_folder.mkdir()
-        for fname in base_folder.parent.glob("g15784.lr.01024*"):
+        for fname in base_folder.parent.glob("gasoline_ahf/*"):
             if "AHF" not in fname.name:
-                (base_folder/fname.name).symlink_to(fname)
+                (base_folder/fname.name).symlink_to(fname.absolute())
 
         # copy AHF_halos line by line, incorporating random IDs
         np.random.seed(0)
@@ -190,7 +196,7 @@ def snap_with_non_sequential_halos():
         my_file_order[:20] = np.arange(19,-1,-1) # reverse order of first 20
 
         with open(base_folder/"g15784.lr.01024.z0.000.AHF_halos", "w") as f:
-            with pynbody.util.open_("testdata/g15784.lr.01024.z0.000.AHF_halos", "rt") as f2:
+            with pynbody.util.open_("testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_halos", "rt") as f2:
                 header = f2.readline()
                 f.write("#ID(0) "+header)
 
@@ -200,7 +206,7 @@ def snap_with_non_sequential_halos():
                     f.write(f"{id_} {line}")
 
         particle_file_per_halo = []
-        with pynbody.util.open_("testdata/g15784.lr.01024.z0.000.AHF_particles", "rt") as f2:
+        with pynbody.util.open_("testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_particles", "rt") as f2:
             assert f2.readline().strip() == "1411"
             for i in range(1411):
                 lines = [f2.readline()]

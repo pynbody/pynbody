@@ -156,7 +156,7 @@ def test_dimensionful_comparison():
     assert not (y['b'] > y['a']).any()
 
 def test_issue_485_1():
-    s = pynbody.load("testdata/test_g2_snap.1")
+    s = pynbody.load("testdata/gadget2/test_g2_snap.1")
     stars = s.s
     indexed_arr = stars[1,2]
     np.testing.assert_almost_equal(np.sum(indexed_arr['vz'].in_units('km s^-1')), -20.13701057434082031250)
@@ -164,7 +164,7 @@ def test_issue_485_1():
 
 def test_issue_485_2():
     # Adaptation of examples/vdisp.py
-    s = pynbody.load("testdata/test_g2_snap.1")
+    s = pynbody.load("testdata/gadget2/test_g2_snap.1")
 
     stars = s.s
     rxyhist, rxybins = np.histogram(stars['rxy'], bins=20)

@@ -8,12 +8,12 @@ from pynbody.test_utils.gadget4_subfind_reader import Halos
 def setup_module():
     global snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
     with pytest.warns(UserWarning, match="Masses are either stored in the header or have another dataset .*"):
-        snap = pynbody.load('testdata/testL10N64/snapshot_000.hdf5')
+        snap = pynbody.load('testdata/gadget4_subfind/snapshot_000.hdf5')
         snap_arepo = pynbody.load('testdata/arepo/cosmobox_015.hdf5')
 
     halos = pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap)
     subhalos = pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap, subs=True)
-    htest = Halos('testdata/testL10N64/', 0)
+    htest = Halos('testdata/gadget4_subfind/', 0)
 
     halos_arepo = pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo)
     subhalos_arepo = pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo, subs=True)
@@ -92,3 +92,29 @@ def test_particle_data():
     hids = np.random.choice(range(len(halos)), 5)
     for hid in hids:
         assert(np.allclose(halos[hid].dm['iord'], htest[hid]['iord']))
+
+@pytest.mark.filterwarnings("ignore:Masses are either stored")
+def test_progenitors_and_descendants():
+    f = pynbody.load("testdata/gadget4_subfind_with_progdesc/snapshot_033.hdf5")
+    h = f.halos()
+    p = h[0].subhalos[0].properties
+    match = {'FirstProgSubhaloNr': 0,
+             'NextDescSubhaloNr': 50,
+             'ProgSubhaloNr': 0,
+             'SubhaloNr': 0,
+             'DescSubhaloNr': 0,
+             'FirstDescSubhaloNr': 0,
+             'NextProgSubhaloNr': 53}
+    for k, v in match.items():
+        assert p[k] == v
+
+    p = h[3].subhalos[1].properties
+    match = {'FirstProgSubhaloNr': 162,
+             'NextDescSubhaloNr': -1,
+             'ProgSubhaloNr': 162,
+             'SubhaloNr': 153,
+             'DescSubhaloNr': 12,
+             'FirstDescSubhaloNr': 12,
+             'NextProgSubhaloNr': -1}
+    for k, v in match.items():
+        assert p[k] == v

@@ -17,8 +17,8 @@ def test_order_bridge():
 
 
 def test_bridge_factory():
-    f1 = pynbody.load("testdata/g15784.lr.01024")
-    f2 = pynbody.load("testdata/g15784.lr.01024")
+    f1 = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    f2 = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     b = pynbody.bridge.bridge_factory(f1, f2)
 
     assert isinstance(b, pynbody.bridge.OrderBridge)

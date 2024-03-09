@@ -11,8 +11,8 @@ from pynbody import units
 
 def setup_module() :
     global snap,subfind
-    snap = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
-    subfind = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+    snap = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103.hdf5')
+    subfind = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103')
 
 def teardown_module() :
     global snap,subfind
@@ -49,10 +49,10 @@ def _h5py_copy_with_key_rename(src,dest):
 
 
 def test_alt_names():
-    _h5py_copy_with_key_rename('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5',
-                'testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103_altnames.hdf5')
+    _h5py_copy_with_key_rename('testdata/gadget3/data/snapshot_103/snap_103.hdf5',
+                'testdata/gadget3/data/snapshot_103/snap_103_altnames.hdf5')
 
-    snap_alt = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103_altnames.hdf5')
+    snap_alt = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103_altnames.hdf5')
     assert 'mass' in snap_alt.loadable_keys()
     assert all(snap_alt['mass']==snap['mass'])
 
@@ -68,7 +68,7 @@ def test_write():
     ar_name = 'test_array'
     snap[ar_name] = np.random.uniform(0,1,len(snap))
     snap[ar_name].write()
-    snap2 = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
+    snap2 = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103.hdf5')
     v = snap[ar_name]
     with pytest.warns(UserWarning, match="Unable to infer units from HDF attributes"):
         v2 = snap2[ar_name]
@@ -114,7 +114,7 @@ def test_mass_in_header():
     assert np.allclose(f.dm['mass'][0], 3981879.2046075417)
 
 def test_gadgethdf_style_units():
-    f = pynbody.load("testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5")
+    f = pynbody.load("testdata/gadget3/data/snapshot_103/snap_103.hdf5")
     npt.assert_allclose(f.st['InitialMass'].units.in_units("1.989e43 g h^-1"), 1.0,
                         rtol=1e-3)
 

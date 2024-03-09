@@ -41,7 +41,7 @@ functions we'll make use of later.
 
  In [1]: import numpy as np
 
- In [2]: f = pynbody.load("testdata/test_g2_snap")
+ In [2]: f = pynbody.load("testdata/gadget2/test_g2_snap")
 
 Here we've loaded a sample gadget file. Not much seems to have
 happened when you called :func:`pynbody.load`, but the variable ``f``
@@ -59,10 +59,10 @@ framework.
 
 .. note:: If you look inside the ``testdata`` folder, you'll notice that
  our test snapshot is actually an example of a *spanned* gadget
- snapshot. There is not actually a file called ``test_g2_snap``, but
- rather two files from two CPUs, ``test_g2_snap.0`` and
- ``test_g2_snap.1``. ``pynbody`` knows to load both of these if you ask
- for ``test_g2_snap``; if you ask for ``test_g2_snap.1`` (for instance),
+ snapshot. There is not actually a file called ``gadget2/test_g2_snap``, but
+ rather two files from two CPUs, ``gadget2/test_g2_snap.0`` and
+ ``gadget2/test_g2_snap.1``. ``pynbody`` knows to load both of these if you ask
+ for ``gadget2/test_g2_snap``; if you ask for ``gadget2/test_g2_snap.1`` (for instance),
  it'll load only that particular file.
 
 The ``SimSnap`` object that's returned is currently a fairly empty

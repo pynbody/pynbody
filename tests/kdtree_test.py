@@ -12,7 +12,7 @@ from pynbody.array import shared
 
 def setup_module():
     global f
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
 
     # for compatibility with original results, pretend the box
     # is not periodic
@@ -96,7 +96,7 @@ def test_smooth_WendlandC2(rho_W):
     """
     pynbody.config['Kernel'] = 'WendlandC2'
 
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
 
     npt.assert_allclose(f.g['rho'][::100],
                         rho_W,rtol=1e-5)
@@ -122,7 +122,7 @@ def test_kd_issue_88() :
 
 @pytest.mark.filterwarnings(r"ignore:overflow.*:RuntimeWarning")
 def test_float_kd():
-    f = pynbody.load("testdata/test_g2_snap")
+    f = pynbody.load("testdata/gadget2/test_g2_snap")
     del f.properties['boxsize']
 
     assert f.dm['mass'].dtype==f.dm['pos'].dtype==np.float32
@@ -158,7 +158,7 @@ def test_float_kd():
     npt.assert_allclose(double_double,float_float,rtol=1e-4)
 
 def test_periodic_smoothing(rho_periodic, smooth_periodic):
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
 
     """
     np.save('test_rho_periodic.npy', f.dm['rho'][::100])
@@ -172,7 +172,7 @@ def test_periodic_smoothing(rho_periodic, smooth_periodic):
 
 @pytest.mark.filterwarnings("ignore:overflow encountered in cast:RuntimeWarning")
 def test_neighbour_list():
-    f = pynbody.load("testdata/test_g2_snap")
+    f = pynbody.load("testdata/gadget2/test_g2_snap")
     pynbody.sph._get_smooth_array_ensuring_compatibility(f.g)  # actual smoothing
     t = f.g.kdtree
     n_neigh = 32
@@ -206,7 +206,7 @@ def test_neighbour_list():
         assert nl[3][idx_self] == 0.0  # distance to self
 
 def test_div_curl_smoothing(div_curl):
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
 
     """
     np.savez('test_div_curl', curl=f.g['v_curl'][::100], div=f.g['v_div'][::100])
