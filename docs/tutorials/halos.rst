@@ -98,7 +98,7 @@ halo / subhalo structure is handled later.
 
  In [1]: import pynbody, matplotlib.pylab as plt
 
- In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz')
+ In [2]: s = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024.gz')
 
  In [3]: s.physical_units()
 
@@ -190,7 +190,7 @@ Consider the following example.
 
 .. ipython::
 
- In [2]: f = pynbody.load("testdata/g15784.lr.01024")
+ In [2]: f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
 
  In [3]: h = f.halos()
 
@@ -269,7 +269,7 @@ One major change is that the halo catalogue is a separate file to the snapshot.
 
  In [1]: import pynbody, matplotlib.pylab as plt
 
- In [2]: s = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
+ In [2]: s = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103.hdf5')
 
  In [3]: s.physical_units()
 
@@ -279,7 +279,7 @@ to load the halo catalogue we have to access the subfind output directly:
 
 .. ipython::
 
- In [3]: s = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+ In [3]: s = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103')
 
  In [2]: s.physical_units()
 

@@ -253,6 +253,6 @@ def test_nd_array_slicing():
     assert not f._array_name_implies_ND_slice('rho_x')
 
 def test_index_list():
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     h = f.halos()
     index_list = h[1].get_index_list(f)

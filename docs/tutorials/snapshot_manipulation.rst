@@ -57,7 +57,7 @@ halo) to analyze its contents.
 
  In [1]: import pylab
 
- In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz')
+ In [2]: s = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024.gz')
 
 This loads the snapshot ``s`` (make sure you use the correct path to
 the ``testdata`` directory). Now we load the halos and center on the
@@ -173,7 +173,7 @@ to illustrate this:
 
 .. ipython::
 
- In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz'); h1 = s.halos()[1];
+ In [2]: s = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024.gz'); h1 = s.halos()[1];
 
  In [4]: cen_hyb = pynbody.analysis.halo.center(h1,mode='hyb',retcen=True)
 

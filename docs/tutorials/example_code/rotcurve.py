@@ -5,7 +5,7 @@ import matplotlib.pylab as plt
 import pynbody
 
 # load the snapshot and set to physical units
-s = pynbody.load('testdata/g15784.lr.01024.gz')
+s = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024.gz')
 
 # load the halos
 h = s.halos()

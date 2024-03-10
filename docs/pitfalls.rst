@@ -16,7 +16,7 @@ they're trying to be smart about using sensible units but the
 information just isn't available. The simplest way to avoid this
 situation is to make sure ``pynbody`` can work out the units for itself.
 
-In particular, *for gasoline/PKD/tipsy users, make sure you have a
+In particular, *for gasoline_ahf/PKD/tipsy users, make sure you have a
 param file in the directory where you are analyzing a tipsy file, and
 make sure that it defines dKpcUnit and dMsolUnit.*
 

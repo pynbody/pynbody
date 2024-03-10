@@ -9,7 +9,7 @@ import pynbody
 
 @pytest.fixture
 def snap():
-    return pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+    return pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103')
 
 @pytest.mark.parametrize('load_all', (True, False))
 def test_halo_loading(snap, load_all) :
@@ -101,7 +101,7 @@ def test_fof_vs_sub_assignment(snap):
 def test_halo_values(snap) :
     """ Check that halo values (and sizes) agree with pyread_gadget_hdf5 """
 
-    filesub = 'testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103'
+    filesub = 'testdata/gadget3/data/subhalos_103/subhalo_103'
 
     # load Alan Duffy's module from https://bitbucket.org/astroduff/pyreadgadget
     from pynbody.test_utils.pyread_gadget_hdf5 import pyread_gadget_hdf5

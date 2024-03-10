@@ -5,7 +5,7 @@ import pynbody
 
 
 def test_gravity():
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     h = f.halos()
     pynbody.analysis.angmom.faceon(h[0])
     pro = pynbody.analysis.profile.Profile(
@@ -42,7 +42,7 @@ def test_gravity_float():
 
 
 def test_eps_retrieval_str():
-    f = pynbody.load("testdata/test_g2_snap.0")
+    f = pynbody.load("testdata/gadget2/test_g2_snap.0")
     f.properties['eps'] = "0.3 kpc"
     pynbody.gravity.calc.all_direct(f)
     true_phi_10 = np.array([-0.06696571, -0.07087147, -0.07049192,
@@ -52,7 +52,7 @@ def test_eps_retrieval_str():
 
 
 def test_eps_retrieval_unit():
-    f = pynbody.load("testdata/test_g2_snap.0")
+    f = pynbody.load("testdata/gadget2/test_g2_snap.0")
     f.properties['eps'] = 0.3 * pynbody.units.kpc
     pynbody.gravity.calc.all_direct(f)
     true_phi_10 = np.array([-0.06696571, -0.07087147, -0.07049192,
@@ -62,7 +62,7 @@ def test_eps_retrieval_unit():
 
 
 def test_eps_retrieval_number():
-    f = pynbody.load("testdata/test_g2_snap.0")
+    f = pynbody.load("testdata/gadget2/test_g2_snap.0")
     f.properties['eps'] = 0.3
     pynbody.gravity.calc.all_direct(f)
     true_phi_10 = np.array([-0.06696571, -0.07087147, -0.07049192,

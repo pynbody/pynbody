@@ -10,7 +10,7 @@ test_folder = Path(__file__).parent
 
 def setup_module():
     global f
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     h = f.halos()
     # hard-code the centre so we're not implicitly testing the centering routine too:
     cen = [0.024456279579533, -0.034112552174141, -0.122436359962132]

@@ -10,7 +10,7 @@ import pynbody
 
 def setup_module():
     global f, h
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     h = f.halos()
 
 
@@ -46,7 +46,7 @@ def test_virialradius():
 
 
 def test_ssc_bighalo():
-    s = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+    s = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103')
     s.physical_units()
     h = s.halos()
     pynbody.analysis.halo.center(h[1])
@@ -54,7 +54,7 @@ def test_ssc_bighalo():
 
 
 def test_binning_hmf():
-    subfind = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+    subfind = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103')
 
     h = subfind.halos()
     assert len(h) == 4226

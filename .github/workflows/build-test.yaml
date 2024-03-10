@@ -34,7 +34,7 @@ jobs:
       id: cache-testdata
       with:
         path: tests/testdata
-        key: testdata-v2
+        key: testdata-v3
     - name: Install gcc
       run: |
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test

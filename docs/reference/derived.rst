@@ -25,7 +25,7 @@ pynbody will calculate it:
 
    In [3]: import pynbody
 
-   In [4]: s = pynbody.load('testdata/g15784.lr.01024.gz')
+   In [4]: s = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024.gz')
 
    In [5]: s['ke']
 
