@@ -218,7 +218,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         return HaloParticleIndices(particle_ids, particle_slices)
 
     def _get_particle_indices_one_halo(self, halo_number):
-        halo_index = self._number_mapper.number_to_index(halo_number)
+        halo_index = self.number_mapper.number_to_index(halo_number)
         offset = self._file_offsets[halo_index]
         with FortranFile(self._fname) as fpu:
             fpu.seek(offset)
@@ -262,8 +262,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         # Could not read, throw an error
         raise RuntimeError("Could not read iord!")
 
-    def _get_properties_one_halo(self, i):
-        index = self._number_mapper.number_to_index(i)
+    def get_properties_one_halo(self, i):
+        index = self.number_mapper.number_to_index(i)
         offset = self._file_offsets[index]
 
         with FortranFile(self._fname) as fpu:

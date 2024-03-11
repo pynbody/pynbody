@@ -82,7 +82,7 @@ class RockstarCatalogue(HaloCatalogue):
         self._files = new_files
 
     def _get_particle_indices_one_halo(self, halo_number):
-        halo_index = self._number_mapper.number_to_index(halo_number)
+        halo_index = self.number_mapper.number_to_index(halo_number)
         cpu = self._cpu_per_halo[halo_index]
         iords = self._cpus[cpu].read_iords_for_halo(halo_number)
         self._init_iord_to_fpos()
@@ -103,8 +103,8 @@ class RockstarCatalogue(HaloCatalogue):
             fpos[a:b] = self._iord_to_fpos.map_ignoring_order(iords[a:b])
         return fpos, boundaries
 
-    def _get_properties_one_halo(self, halo_number):
-        halo_index = self._number_mapper.number_to_index(halo_number)
+    def get_properties_one_halo(self, halo_number):
+        halo_index = self.number_mapper.number_to_index(halo_number)
         cpu = self._cpu_per_halo[halo_index]
         return self._cpus[cpu].read_properties_for_halo(halo_number)
 

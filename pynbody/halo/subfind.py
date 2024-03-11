@@ -8,13 +8,14 @@ from .. import units
 from ..array import SimArray
 from . import HaloCatalogue
 from .details import number_mapping, particle_indices
+from .subhalo_catalogue import SubhaloCatalogue
 
 
 class SubfindCatalogue(HaloCatalogue):
     """Class to handle catalogues produced by the SubFind halo finder."""
 
 
-    def __init__(self, sim, subs=False, ordered=None):
+    def __init__(self, sim, subs=False, ordered=None, _inherit_data_from=None):
         """Initialise a SubFind catalogue
 
         By default, the FoF groups are imported, and subhalos are available via the 'subhalos' attribute of each
@@ -33,6 +34,7 @@ class SubfindCatalogue(HaloCatalogue):
                  therefore reordering will take place. If None (default), the iords are examined to check whether
                  re-ordering is required or not. Note that re-ordering can be undesirable because it also destroys
                  subfind's order-by-binding-energy
+        *_inherit_data_from*: for internal use only, allows subhalo catalogue to share data with its parent FOF catalogue
         """
 
         self._subs=subs
@@ -47,23 +49,33 @@ class SubfindCatalogue(HaloCatalogue):
         self.dtype_int = sim['iord'].dtype
         self.dtype_flt = 'float32' #SUBFIND data is apparently always single precision???
         self._subfind_dir = self._name_of_catalogue(sim)
+
         self.header = self._read_header()
-
-        if subs is True:
-            if self.header[6]==0:
-                raise ValueError("This file does not contain subhalos")
-
         self._tasks = self.header[4]
 
-        self._keys={}
-        self._halodat, self._subhalodat=self._read_groups(sim)
+        if _inherit_data_from:
+            self._inherit_data(_inherit_data_from)
+        else:
+            self._read_data(sim)
+
+
 
         if subs:
+            if self.header[6]==0:
+                raise ValueError("This file does not contain subhalos")
             length = len(self._subhalodat['sub_off'])
         else:
             length = len(self._halodat['group_off'])
 
         super().__init__(sim, number_mapping.SimpleHaloNumberMapper(0, length))
+
+        if not subs:
+            self._subhalo_catalogue = SubfindCatalogue(sim, subs=True, ordered=self._ordered, _inherit_data_from=self)
+
+    def _inherit_data(self, from_):
+        inherit = ['_halodat', '_subhalodat', '_keys_halo', '_keys_subhalo']
+        for k in inherit:
+            setattr(self, k, getattr(from_, k))
 
     def _get_all_particle_indices(self):
         ids = self._read_ids()
@@ -83,26 +95,60 @@ class SubfindCatalogue(HaloCatalogue):
 
         return particle_indices.HaloParticleIndices(ids, boundaries)
 
-    def _get_properties_one_halo(self, i):
+    def get_properties_one_halo(self, i):
 
         extract = units.get_item_with_unit
 
         properties = {}
-        halo_number_within_group = (self._subhalodat['sub_groupNr'][:i] == self._subhalodat['sub_groupNr'][i]).sum()
+
         if self._subs is False:
-            for key in self._keys:
+            for key in self._keys_halo:
                 properties[key] = extract(self._halodat[key], i)
-            if self.header[6] > 0:
-                properties['children'], = np.where(self._subhalodat['sub_groupNr'] == i)
-                # this is the FIRST level of substructure, sub-subhalos (etc) can be accessed via the
-                # subs=True output (below)
+            properties['children'] = self._get_children_of_group(i)
         else:
-            for key in self._keys:
+            for key in self._keys_subhalo:
                 properties[key] = extract(self._subhalodat[key], i)
-            properties['children'], = np.where((self._subhalodat['sub_parent'] == halo_number_within_group) \
-                                               & (self._subhalodat['sub_groupNr'] == properties['sub_groupNr']))
-            # this goes down one level in the hierarchy, i.e. a subhalo will have all its sub-subhalos listed,
-            # but not its sub-sub-subhalos (those will be listed in each sub-subhalo)
+            properties['children'] = self._get_children_of_sub(i)
+        return properties
+
+    def _get_children_of_group(self, group_nr):
+        if self.header[6] > 0:
+            return np.where(self._subhalodat['sub_groupNr'] == group_nr)[0]
+        else:
+            return []
+
+    def _get_children_of_sub(self, subhalo_nr):
+        # this goes down one level in the hierarchy, i.e. a subhalo will have all its sub-subhalos listed,
+        # but not its sub-sub-subhalos (those will be listed in each sub-subhalo)
+        halo_number_within_group = (self._subhalodat['sub_groupNr'][:subhalo_nr]
+                                    == self._subhalodat['sub_groupNr'][subhalo_nr]).sum()
+        return np.where((self._subhalodat['sub_parent'] == halo_number_within_group) &
+                        (self._subhalodat['sub_groupNr'] == self._subhalodat['sub_groupNr'][subhalo_nr]))[0]
+
+
+    def get_properties_all_halos(self, with_units=True) -> dict:
+        properties = {}
+        if self._subs:
+            data = self._subhalodat
+            properties['children'] = [self._get_children_of_sub(subhalo_nr)
+                                      for subhalo_nr in self.number_mapper.all_numbers]
+        else:
+            data = self._halodat
+            if self.header[6] > 0:
+                properties['children'] = [self._get_children_of_group(group_nr)
+                                          for group_nr in self.number_mapper.all_numbers]
+            else:
+                properties['children'] = []
+
+        keys = self._keys_halo if not self._subs else self._keys_subhalo
+
+        for key in keys:
+            if with_units:
+                properties[key] = data[key]
+            else:
+                properties[key] = data[key].view(np.ndarray)
+
+
         return properties
 
     def _read_header(self):
@@ -120,6 +166,12 @@ class SubfindCatalogue(HaloCatalogue):
 
         return header
 
+    def _get_subhalo_catalogue(self, parent_halo_number):
+        if self._subs:
+            return SubhaloCatalogue(self, self._get_children_of_sub(parent_halo_number))
+        else:
+            return SubhaloCatalogue(self._subhalo_catalogue,
+                                    self._get_children_of_group(parent_halo_number))
     def _read_ids(self):
         data_ids = np.array([], dtype=self.dtype_int)
         iout = self._subfind_dir.split("_")[-1]
@@ -139,7 +191,7 @@ class SubfindCatalogue(HaloCatalogue):
             data_ids = np.append(data_ids, ids)
         return data_ids
 
-    def _read_groups(self, sim):
+    def _read_data(self, sim):
         halodat={}
         keys_flt=['mass', 'pos', 'mmean_200', 'rmean_200', 'mcrit_200', 'rcrit_200', 'mtop_200', 'rtop_200', 'contmass']
         keys_int=['group_len', 'group_off',  'first_sub', 'Nsubs', 'cont_count', 'mostboundID']
@@ -158,9 +210,8 @@ class SubfindCatalogue(HaloCatalogue):
         for key in subkeys_flt:
             subhalodat[key]=np.array([], dtype=self.dtype_flt)
 
-        self._keys=keys_flt+keys_int
-        if self._subs is True:
-            self._keys=subkeys_flt+subkeys_int
+        self._keys_subhalo = subkeys_flt+subkeys_int
+        self._keys_halo = keys_flt + keys_int
 
         for n in range(0,self._tasks):
             iout = self._subfind_dir.split("_")[-1]
@@ -231,7 +282,7 @@ class SubfindCatalogue(HaloCatalogue):
                 subhalodat[name] = SimArray(subhalodat[name], sim.infer_original_units(dimension))
                 subhalodat[name].sim = sim
 
-        return halodat, subhalodat
+        self._halodat, self._subhalodat = halodat, subhalodat
 
     @staticmethod
     def _name_of_catalogue(sim):

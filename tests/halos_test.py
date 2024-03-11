@@ -24,7 +24,7 @@ class SimpleHaloCatalogue(halo.HaloCatalogue):
         indexes = np.random.permutation(np.arange(len(self.base)))[:(len(self.base)*80)//100]
         # above means ~80% of particles should be in a halo
 
-        start = np.sort(np.random.randint(0, len(indexes), len(self._number_mapper)))
+        start = np.sort(np.random.randint(0, len(indexes), len(self.number_mapper)))
         start[0] = 0
         # above makes up some boundaries in the index list to divide up into halos
         # nb the last boundary is always implicitly len(indexes)
@@ -35,7 +35,7 @@ class SimpleHaloCatalogue(halo.HaloCatalogue):
 
         return pynbody.halo.details.particle_indices.HaloParticleIndices(particle_ids=indexes, boundaries=boundaries)
 
-    def _get_properties_one_halo(self, i):
+    def get_properties_one_halo(self, i):
         return {'testproperty': 1.5*i, 'testproperty_with_units': 2.0*i*pynbody.units.Mpc}
 
 class SimpleHaloCatalogueWithMultiMembership(halo.HaloCatalogue):
