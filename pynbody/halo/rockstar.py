@@ -58,6 +58,15 @@ class RockstarCatalogue(HaloCatalogue):
         self._cpus = [_RockstarCatalogueOneCpu(file_i, format_revision=format_revision) for file_i in self._files]
         self._prune_files_from_wrong_scalefactor(sim)
 
+        halomins = [cpu.halo_min_inclusive for cpu in self._cpus]
+        # order self._cpus and self._files by halomins
+        # this isn't technically necessary but it means that the internal halo indexing will be
+        # in the same order as the halo numbering in the files. In fact, it probably means that
+        # the internal halo indexing will be identical to the halo numbering in the files, but we
+        # won't take that for granted anywhere.
+        self._cpus = [x for _, x in sorted(zip(halomins, self._cpus))]
+        self._files = [x for _, x in sorted(zip(halomins, self._files))]
+
         halo_numbers = np.empty(sum(len(x) for x in self._cpus), dtype=int)
         self._cpu_per_halo = np.empty(len(halo_numbers), dtype=int)
         i = 0
@@ -107,6 +116,19 @@ class RockstarCatalogue(HaloCatalogue):
         halo_index = self.number_mapper.number_to_index(halo_number)
         cpu = self._cpu_per_halo[halo_index]
         return self._cpus[cpu].read_properties_for_halo(halo_number)
+
+    def get_properties_all_halos(self, with_units=True) -> dict:
+        props = {}
+        for cpu in self._cpus:
+            props_this_cpu = cpu.read_properties_all_halos()
+            # concatenate all the properties
+            for k, v in props_this_cpu.items():
+                if k in props:
+                    props[k] = np.concatenate((props[k], v))
+                else:
+                    props[k] = v
+
+        return props
 
     @classmethod
     def _can_load(cls, sim, **kwargs):
@@ -292,15 +314,24 @@ class _RockstarCatalogueOneCpu:
 
 
     def read_properties_for_halo(self, n):
-        if n<self._halo_min_inclusive or n>=self._halo_max_exclusive:
+        if n<self.halo_min_inclusive or n>=self.halo_max_exclusive:
             raise KeyError("No such halo")
 
         with util.open_(self._rsFilename, 'rb') as f:
-            f.seek(self._haloprops_offset + (n - self._halo_min_inclusive) * self.halo_type.itemsize)
+            f.seek(self._haloprops_offset + (n - self.halo_min_inclusive) * self.halo_type.itemsize)
             halo_data = np.fromfile(f, dtype=self.halo_type, count=1)
 
         # TODO: properties are in Msun / h, Mpc / h
         return dict(list(zip(halo_data.dtype.names,halo_data[0])))
+
+    def read_properties_all_halos(self):
+        with util.open_(self._rsFilename, 'rb') as f:
+            f.seek(self._haloprops_offset)
+            data = np.fromfile(f, dtype=self.halo_type, count=self.halo_max_exclusive - self.halo_min_inclusive)
+
+        data_dict = {name: data[name] for name in data.dtype.names}
+
+        return data_dict
 
     def _load_rs_halos(self, f):
         self._haloprops_offset = f.tell()
@@ -309,37 +340,37 @@ class _RockstarCatalogueOneCpu:
 
         offset = self._haloprops_offset+self.halo_type.itemsize*self._head['num_halos'][0]
 
-        self._halo_min_inclusive = int(np.fromfile(f, dtype=self.halo_type, count=1)['id'][0])
-        self._halo_max_exclusive = int(self._halo_min_inclusive + self._head['num_halos'][0])
+        self.halo_min_inclusive = int(np.fromfile(f, dtype=self.halo_type, count=1)['id'][0])
+        self.halo_max_exclusive = int(self.halo_min_inclusive + self._head['num_halos'][0])
 
         f.seek(self._haloprops_offset)
 
-        for this_id in range(self._halo_min_inclusive, self._halo_max_exclusive):
+        for this_id in range(self.halo_min_inclusive, self.halo_max_exclusive):
             halo_data = np.fromfile(f, dtype=self.halo_type, count=1)
             if halo_data['id'] != this_id:
                 raise RockstarFormatRevisionError(
                     "Error while reading halo catalogue. Expected "
                     "halo ID %d, but got %d" % (this_id, halo_data['id'])
                 )
-            self._halo_offsets[this_id - self._halo_min_inclusive] = offset
+            self._halo_offsets[this_id - self.halo_min_inclusive] = offset
             if 'num_bound' in self.halo_type.names:
                 num_ptcls = int(halo_data['num_bound'][0])
             else:
                 num_ptcls = int(halo_data['num_p'][0])
-            self._halo_lens[this_id - self._halo_min_inclusive] = num_ptcls
+            self._halo_lens[this_id - self.halo_min_inclusive] = num_ptcls
             offset+=num_ptcls*np.dtype('int64').itemsize
 
 
     def get_halo_numbers(self):
-        return np.arange(self._halo_min_inclusive,self._halo_max_exclusive)
+        return np.arange(self.halo_min_inclusive, self.halo_max_exclusive)
 
     def read_iords_for_halo(self, num):
-        if num<self._halo_min_inclusive or num>=self._halo_max_exclusive:
+        if num<self.halo_min_inclusive or num>=self.halo_max_exclusive:
             raise KeyError("No such halo")
 
         with util.open_(self._rsFilename, 'rb') as f:
-            f.seek(self._halo_offsets[num - self._halo_min_inclusive])
-            return np.fromfile(f, dtype=np.int64, count=self._halo_lens[num - self._halo_min_inclusive])
+            f.seek(self._halo_offsets[num - self.halo_min_inclusive])
+            return np.fromfile(f, dtype=np.int64, count=self._halo_lens[num - self.halo_min_inclusive])
 
     def read_iords_for_all_halos(self):
         """Returns an array with all halo iords, and the boundaries of each halo in the array."""

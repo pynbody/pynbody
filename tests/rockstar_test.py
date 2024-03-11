@@ -22,8 +22,8 @@ def rockstar_halos(dummy_file):
 
 def test_rockstar_single_cpu():
     test = pynbody.halo.rockstar._RockstarCatalogueOneCpu("testdata/rockstar/halos_15.1.bin")
-    assert test._halo_min_inclusive == 668
-    assert test._halo_max_exclusive == 1426
+    assert test.halo_min_inclusive == 668
+    assert test.halo_max_exclusive == 1426
     assert len(test) == 758
     assert (test.read_iords_for_halo(669) ==
         np.array([729699, 746082, 729443, 745954, 745827, 746083, 778725, 778981,
@@ -54,6 +54,16 @@ def test_rockstar_properties(rockstar_halos):
     h_properties = rockstar_halos[4977].properties
     assert h_properties['num_p']==40
     npt.assert_allclose(h_properties['pos'], [43.892704, 0.197397, 40.751919], rtol=1e-6)
+
+def test_rockstar_all_properties(rockstar_halos):
+    # rockstar reader doesn't generate units
+    all_properties = rockstar_halos.get_properties_all_halos(with_units=False)
+    assert len(all_properties['num_p'])==5851
+    halo_index = rockstar_halos.number_mapper.number_to_index(4977)
+    # halo_index will probably be 4977 but we shouldn't/won't take that for granted
+    assert all_properties['num_p'][halo_index]==40
+
+    npt.assert_allclose(all_properties['pos'][halo_index], [43.892704, 0.197397, 40.751919], rtol=1e-6)
 
 @pytest.mark.parametrize('load_all', [True, False])
 def test_rockstar_particles(rockstar_halos, load_all):
