@@ -748,9 +748,9 @@ def takes_arg_in_units(*args, **orig_kwargs):
 
         @takes_arg_in_units((2, "Msol"), (1, "kpc"), ("blob", "erg"))
         def my_function(arg0, arg1, arg2, blob=22) :
-           print "Arg 2 is",arg2,"Msol"
-           print "Arg 1 is",arg1,"kpc"
-           print "blob is",blob,"ergs"
+           print("Arg 2 is",arg2,"Msol")
+           print("Arg 1 is",arg1,"kpc")
+           print("blob is",blob,"ergs")
 
 
 

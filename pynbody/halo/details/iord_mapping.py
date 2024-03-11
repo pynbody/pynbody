@@ -19,7 +19,7 @@ class IordToOffset(abc.ABC):
 class IordToOffsetDense(IordToOffset):
     def __init__(self, iord_array, max_iord=None):
         if max_iord is None:
-            max_iord = iord_array.max()
+            max_iord = int(iord_array.max())
         self._iord_to_offset = np.empty(max_iord + 1, dtype=np.int64)
         self._iord_to_offset.fill(-1)
         self._iord_to_offset[iord_array] = np.arange(len(iord_array), dtype=np.int64)
@@ -66,7 +66,7 @@ def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToOffset:
     returns the indexes of my_iord_values in the iord array.
     """
 
-    max_iord = iord.max()
+    max_iord = int(iord.max())
     assert iord.min() >= 0, "Can't handle negative iord values"
 
     if max_iord < 2 * len(iord):

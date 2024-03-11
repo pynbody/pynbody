@@ -131,7 +131,7 @@ ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
 
 install_requires = [
     'cython>=0.20',
-    'h5py>=2.10.0',
+    'h5py>=3.0.0',
     'matplotlib>=3.0.0',
     'numpy>=1.21.6',
     'scipy>=1.0.0'
@@ -143,8 +143,9 @@ tests_require = [
 
 docs_require = [
     'ipython>=3',
-    'Sphinx==1.6.*',
+    'Sphinx>=7',
     'sphinx-bootstrap-theme',
+    'numpydoc',
 ],
 
 extras_require = {
