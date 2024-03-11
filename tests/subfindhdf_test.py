@@ -6,6 +6,9 @@ import pytest
 
 import pynbody
 
+# load Alan Duffy's module from https://bitbucket.org/astroduff/pyreadgadget
+from pynbody.test_utils.pyread_gadget_hdf5 import pyread_gadget_hdf5
+
 
 @pytest.fixture
 def snap():
@@ -98,15 +101,36 @@ def test_fof_vs_sub_assignment(snap):
     npt.assert_allclose(h.get_dummy_halo(1).properties['Halo_M_Crit200'].in_units(file_mass_unit),
                         8.116568749712314)
 
+@pytest.mark.parametrize('subhalos', (True, False))
+@pytest.mark.parametrize('with_units', (True, False))
+def test_properties_all_halos(snap, subhalos, with_units):
+    h = snap.halos(subs=subhalos)
+    properties = h.get_properties_all_halos(with_units=with_units)
+
+    filesub = 'testdata/gadget3/data/subhalos_103/subhalo_103'
+    dir = 'subfind' if subhalos else 'fof'
+    FoF_Mass = pyread_gadget_hdf5(filesub + '.0.hdf5', 10, 'Mass', sub_dir=dir, nopanda=True, silent=True)
+    FoF_CoM = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'CenterOfMass', sub_dir=dir, nopanda=True, silent=True)
+
+    npt.assert_allclose(FoF_Mass.ravel(), properties['Mass'])
+    npt.assert_allclose(FoF_CoM, properties['CenterOfMass'])
+
+    if with_units:
+        npt.assert_allclose(properties['Mass'].units.ratio(snap.infer_original_units("g")), 1.0)
+        npt.assert_allclose(properties['CenterOfMass'].units.ratio(snap.infer_original_units("cm")), 1.0)
+    else:
+        assert not hasattr(properties['Mass'], 'units')
+
+
+
 def test_halo_values(snap) :
     """ Check that halo values (and sizes) agree with pyread_gadget_hdf5 """
 
     filesub = 'testdata/gadget3/data/subhalos_103/subhalo_103'
 
-    # load Alan Duffy's module from https://bitbucket.org/astroduff/pyreadgadget
-    from pynbody.test_utils.pyread_gadget_hdf5 import pyread_gadget_hdf5
 
-    FoF_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='fof', nopanda=True, silent=None)
+
+    FoF_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='fof', nopanda=True, silent=True)
     FoF_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='fof', nopanda=True, silent=True)
     Sub_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='subfind', nopanda=True, silent=True)
     Sub_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='subfind', nopanda=True, silent=True)

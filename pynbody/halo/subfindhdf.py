@@ -319,6 +319,17 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             properties['children'], = np.where(self._subfind_halo_parent_groups == i)
         return properties
 
+    def get_properties_all_halos(self, with_units=True) -> dict:
+        if self._sub_mode:
+            result = self._sub_properties
+        else:
+            result = self._fof_properties
+
+        if with_units:
+            return result
+        else:
+            return {k: v.view(np.ndarray) for k, v in result.items()}
+
     def _get_particle_indices_one_halo(self, number):
         if self.base is None :
             raise RuntimeError("Parent SimSnap has been deleted")
