@@ -88,27 +88,27 @@ class VelociraptorCatalogue(HaloCatalogue):
     def _calculate_children(self):
         self._parents = self._grps['Parent_halo_ID'][:]
         _all_children_zero_based = np.arange(self._num_halos, dtype=np.int32)[self._parents != -1]
-        self._all_children_ordered_by_parent = self._number_mapper.index_to_number(
+        self._all_children_ordered_by_parent = self.number_mapper.index_to_number(
                 _all_children_zero_based[np.argsort(self._parents[_all_children_zero_based])]
         )
 
         self._children_start_index = np.searchsorted(self._parents[
-                                                         self._number_mapper.number_to_index(self._all_children_ordered_by_parent)
+                                                         self.number_mapper.number_to_index(self._all_children_ordered_by_parent)
                                                      ],
-                                                     self._number_mapper.all_numbers,
+                                                     self.number_mapper.all_numbers,
                                                      side='left')
         self._children_stop_index = np.concatenate((self._children_start_index[1:],
                                                     np.array([self._num_halos],
                                                              dtype=self._children_start_index.dtype)))
 
-    def _get_properties_one_halo(self, halo_number) -> dict:
-        i_zerobased = self._number_mapper.number_to_index(halo_number)
+    def get_properties_one_halo(self, halo_number) -> dict:
+        i_zerobased = self.number_mapper.number_to_index(halo_number)
         parent = self._parents[i_zerobased]
         children = self._all_children_ordered_by_parent[self._children_start_index[i_zerobased]:self._children_stop_index[i_zerobased]]
         return {'parent': parent, 'children': children}
 
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
-        i_zerobased = self._number_mapper.number_to_index(halo_number)
+        i_zerobased = self.number_mapper.number_to_index(halo_number)
         ptcl_fpos = self.__get_particle_indices_from_halo_index(i_zerobased, False)
 
         if self._include_unbound:
