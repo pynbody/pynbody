@@ -107,6 +107,11 @@ class VelociraptorCatalogue(HaloCatalogue):
         children = self._all_children_ordered_by_parent[self._children_start_index[i_zerobased]:self._children_stop_index[i_zerobased]]
         return {'parent': parent, 'children': children}
 
+    def get_properties_all_halos(self, with_units=True) -> dict:
+        return {'parent': self._parents,
+                'children': [self._all_children_ordered_by_parent[start:end]
+                             for start, end in zip(self._children_start_index, self._children_stop_index)]}
+
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
         i_zerobased = self.number_mapper.number_to_index(halo_number)
         ptcl_fpos = self.__get_particle_indices_from_halo_index(i_zerobased, False)
