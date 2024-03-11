@@ -131,20 +131,20 @@ def translate(f, shift):
     simulation is put back to where it started, so
 
     with translate(f, shift) :
-        print f['pos'][0]
+        print(f['pos'][0])
 
     is equivalent to
 
     try:
         f['pos']+=shift
-        print f['pos'][0]
+        print(f['pos'][0])
     finally:
         f['pos']-=shift
 
     On the other hand,
 
     translate(f, shift)
-    print f['pos'][0]
+    print(f['pos'][0])
 
     Performs the translation but does not revert it at any point.
     """

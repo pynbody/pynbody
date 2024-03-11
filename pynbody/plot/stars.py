@@ -899,9 +899,6 @@ def satlf(sim, band='v', filename=None, MWcompare=True, Trentham=True,
 		# set Nd from each equal to combine Trentham + Tully with Koposov
 		coeff = 10.0 ** logNd / (10 ** -0.6 - 10 ** -1.2)
 
-		# print 'Koposov coefficient:'+str(coeff)
-		# Analytic expression for MW from Koposov
-		#import pdb; pdb.set_trace()
 		yn = coeff * 10 ** ((xmag + 5.0) / 10.0)  # Koposov et al (2007)
 		plt.semilogy(xmag, yn, linestyle="dashed",
 					 label='Trentham & Tully (2009)')
