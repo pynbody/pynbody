@@ -70,3 +70,27 @@ def test_swift_velociraptor_parents_and_children(use_all):
     assert (getter('children', 1) == [203, 204, 206]).all()
     assert (getter('children', 4) == [205, 207]).all()
     assert getter('parent', 203) == 1
+
+def test_swift_velociraptor_properties():
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+    h = pynbody.halo.velociraptor.VelociraptorCatalogue(f)
+    h.load_all()
+
+    assert np.allclose(float(h[1].properties['Lx']), -90787.3983020414e13)
+    assert np.allclose(float(h[10].properties['Lx']), -73881.83861892551e13)
+
+    assert np.allclose(h[1].properties['Lx'].ratio("1e13 kpc Msol km s**-1"), -90787.3983020414)
+
+@pytest.mark.parametrize("with_units", [True, False])
+def test_swift_velociraptor_all_properties(with_units):
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+    h = pynbody.halo.velociraptor.VelociraptorCatalogue(f)
+    all_properties = h.get_properties_all_halos(with_units=with_units)
+
+    assert np.allclose(all_properties['Lx'][0], -90787.3983020414)
+    assert np.allclose(all_properties['Lx'][9], -73881.83861892551)
+
+    if with_units:
+        assert all_properties['Lx'].units == '1e13 kpc Msol km s**-1'
+    else:
+        assert not hasattr(all_properties['Lx'], 'units')

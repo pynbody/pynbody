@@ -151,7 +151,9 @@ class NonMonotonicHaloNumberMapper(MonotonicHaloNumberMapper):
 def create_halo_number_mapper(halo_numbers: npt.NDArray[int]) -> HaloNumberMapper:
     """Create the most efficient possible HaloNumberMapper for the given array of halo numbers"""
     halo_numbers = np.asarray(halo_numbers)
-    zero_offset = halo_numbers[0]
+    if not np.issubdtype(halo_numbers.dtype, np.integer):
+        raise ValueError("Halo number array must be integers")
+    zero_offset = int(halo_numbers[0])
 
     # Check if halo_numbers can be represented by SimpleHaloNumberMapper
     if np.array_equal(halo_numbers, np.arange(zero_offset, len(halo_numbers) + zero_offset)):
