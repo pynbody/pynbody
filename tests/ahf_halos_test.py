@@ -202,7 +202,11 @@ def snap_with_non_sequential_halos():
         np.random.seed(0)
         my_random_ids = np.random.choice(1000000, 1411, replace=False)
         my_file_order = np.arange(1411)
-        my_file_order[:20] = np.arange(19,-1,-1) # reverse order of first 20
+
+        # shuffle the file ordering too
+        np.random.shuffle(my_file_order)
+
+        # my_file_order[:20] = np.arange(19,-1,-1) # reverse order of first 20
 
         with open(base_folder/"g15784.lr.01024.z0.000.AHF_halos", "w") as f:
             with pynbody.util.open_("testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_halos", "rt") as f2:
@@ -233,8 +237,8 @@ def snap_with_non_sequential_halos():
 
 @pytest.mark.parametrize("halo_numbering_mode, halo_ids",
                          [('ahf', (157105, 608171)),
-                          ('v1', (20, 1)),
-                          ('file-order', (19, 0)),
+                          ('v1', (761, 944)),
+                          ('file-order', (760, 943)),
                           ('length-order-v1', (1,20)),
                           ('length-order', (0, 19))])
 def test_ahf_non_sequential_ids(snap_with_non_sequential_halos,

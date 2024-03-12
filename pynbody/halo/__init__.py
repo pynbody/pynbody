@@ -343,6 +343,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 from . import (
     adaptahop,
     ahf,
+    hbtplus,
     hop,
     number_array,
     rockstar,

@@ -124,11 +124,39 @@ class SimpleHaloNumberMapper(HaloNumberMapper):
         return np.arange(self.zero_offset, self.zero_offset + self.num_halos)
 
 class NonMonotonicHaloNumberMapper(MonotonicHaloNumberMapper):
-    def __init__(self, halo_numbers: npt.NDArray[int]):
-        self.sorted_to_unsorted_index = np.argsort(halo_numbers)
-        self.unsorted_to_sorted_index = np.argsort(self.sorted_to_unsorted_index)
-        self.original_halo_numbers = halo_numbers
-        sorted_halo_numbers = halo_numbers[self.sorted_to_unsorted_index]
+    def __init__(self, halo_numbers_or_ordering: npt.NDArray[int], ordering=False, start_index=0):
+        """A HaloNumberMapper that allows for arbitrary mappings between halo numbers and indices.
+
+        Can be created either by specifying the halo numbers for each halo, in index order, or by specifying
+        the ordering that the halos should take, starting from start_index and running contiguously.
+
+        Parameters
+        ----------
+
+        halo_numbers_or_ordering : array-like
+            If ordering is False, this should be an array of halo numbers. If ordering is True, this should be an array
+            of the same length as the number of halos, specifying the order in which the halos should be presented.
+        ordering: bool
+            The meaning of halo_numbers_or_ordering. If False, it is an array of halo numbers. If True, it is an array
+            of the same length as the number of halos, specifying the order in which the halos should be presented,
+            starting at start_index.
+        start_index: int
+            The starting index for the ordering. Only used if ordering is True.
+        """
+
+        if not ordering and start_index != 0:
+            raise ValueError("start_index can only be used if ordering is True")
+
+        if ordering:
+            sorted_halo_numbers = np.arange(start_index, start_index + len(halo_numbers_or_ordering))
+            self.original_halo_numbers = sorted_halo_numbers[halo_numbers_or_ordering]
+            self.sorted_to_unsorted_index = halo_numbers_or_ordering
+            self.unsorted_to_sorted_index = np.argsort(halo_numbers_or_ordering)
+        else:
+            self.sorted_to_unsorted_index = np.argsort(halo_numbers_or_ordering)
+            self.unsorted_to_sorted_index = np.argsort(self.sorted_to_unsorted_index)
+            self.original_halo_numbers = halo_numbers_or_ordering
+            sorted_halo_numbers = halo_numbers_or_ordering[self.sorted_to_unsorted_index]
         super().__init__(sorted_halo_numbers)
 
     def number_to_index(self, halo_number: Union[int, npt.NDArray[int]]) -> Union[int, npt.NDArray[int]]:
