@@ -302,7 +302,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         except KeyError:
             return default
 
-    def _get_properties_one_halo(self, i):
+    def get_properties_one_halo(self, i):
         def extract(arr, i):
             if np.issubdtype(arr.dtype, np.integer):
                 return arr[i]
@@ -318,6 +318,17 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                 properties[key] = extract(self._fof_properties[key], i)
             properties['children'], = np.where(self._subfind_halo_parent_groups == i)
         return properties
+
+    def get_properties_all_halos(self, with_units=True) -> dict:
+        if self._sub_mode:
+            result = self._sub_properties
+        else:
+            result = self._fof_properties
+
+        if with_units:
+            return result
+        else:
+            return {k: v.view(np.ndarray) for k, v in result.items()}
 
     def _get_particle_indices_one_halo(self, number):
         if self.base is None :
@@ -411,7 +422,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
     def _get_subhalo_catalogue(self, parent_halo_number):
         if not self._sub_mode:
-            props = self._get_properties_one_halo(parent_halo_number)
+            props = self.get_properties_one_halo(parent_halo_number)
             return SubhaloCatalogue(self._subhalo_catalogue, props['children'])
         else:
             return SubhaloCatalogue(self._subhalo_catalogue, [])

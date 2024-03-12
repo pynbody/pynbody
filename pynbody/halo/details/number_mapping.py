@@ -44,38 +44,38 @@ class MonotonicHaloNumberMapper(HaloNumberMapper):
         """
         halo_numbers = np.asarray(halo_numbers)
         assert np.all(np.diff(halo_numbers) > 0)
-        self.halo_numbers = halo_numbers
+        self._halo_numbers = halo_numbers
 
     def number_to_index(self, halo_number: Union[int, npt.NDArray[int]]) -> Union[int, npt.NDArray[int]]:
         """Convert a halo number to a zero-based index """
         halo_number = np.asarray(halo_number)
-        halo_index = np.searchsorted(self.halo_numbers, halo_number)
+        halo_index = np.searchsorted(self._halo_numbers, halo_number)
         if isinstance(halo_index, np.ndarray):
-            missing_halo_mask = (halo_index >= len(self.halo_numbers)) | (self.halo_numbers[halo_index] != halo_number)
+            missing_halo_mask = (halo_index >= len(self._halo_numbers)) | (self._halo_numbers[halo_index] != halo_number)
             missing_halo_numbers = halo_number[missing_halo_mask]
 
             if missing_halo_numbers.size > 0:
                 raise KeyError(f"No such halos: {missing_halo_numbers}")
         else:
-            if halo_index >= len(self.halo_numbers) or self.halo_numbers[halo_index] != halo_number:
+            if halo_index >= len(self._halo_numbers) or self._halo_numbers[halo_index] != halo_number:
                 raise KeyError(f"No such halo {halo_number}")
         return halo_index
 
     def index_to_number(self, halo_index: Union[int, npt.NDArray[int]]) -> Union[int, npt.NDArray[int]]:
         """Convert a zero-based offset to a halo number"""
-        return self.halo_numbers[halo_index]
+        return self._halo_numbers[halo_index]
 
     def __len__(self):
         """Returns the number of halos in the catalogue"""
-        return len(self.halo_numbers)
+        return len(self._halo_numbers)
 
     def __iter__(self):
         """Iterates over the available halo numbers"""
-        yield from self.halo_numbers
+        yield from self._halo_numbers
 
     @property
     def all_numbers(self):
-        return self.halo_numbers
+        return self._halo_numbers
 
 
 class SimpleHaloNumberMapper(HaloNumberMapper):
@@ -151,7 +151,9 @@ class NonMonotonicHaloNumberMapper(MonotonicHaloNumberMapper):
 def create_halo_number_mapper(halo_numbers: npt.NDArray[int]) -> HaloNumberMapper:
     """Create the most efficient possible HaloNumberMapper for the given array of halo numbers"""
     halo_numbers = np.asarray(halo_numbers)
-    zero_offset = halo_numbers[0]
+    if not np.issubdtype(halo_numbers.dtype, np.integer):
+        raise ValueError("Halo number array must be integers")
+    zero_offset = int(halo_numbers[0])
 
     # Check if halo_numbers can be represented by SimpleHaloNumberMapper
     if np.array_equal(halo_numbers, np.arange(zero_offset, len(halo_numbers) + zero_offset)):

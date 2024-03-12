@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import functools
+import warnings
 from pathlib import Path
 from typing import Optional
 
@@ -7,6 +9,7 @@ import h5py
 import numpy as np
 from numpy.typing import NDArray
 
+from .. import array, units, util
 from . import HaloCatalogue, HaloParticleIndices
 from .details import number_mapping
 
@@ -15,8 +18,6 @@ class VelociraptorCatalogue(HaloCatalogue):
     """
     Velociraptor catalogue -- tested only with swift at present
     """
-
-    _zero_offset = 1
 
     @classmethod
     def _catalogue_path(cls, sim) -> Path | None:
@@ -72,6 +73,8 @@ class VelociraptorCatalogue(HaloCatalogue):
             raise OSError("Could not find velociraptor catalogue. Try specifying vr_basename='path/to/output', where the velociraptor outputs are output.properties.0 etc")
         self._grps = h5py.File(str(self._path.with_suffix('.catalog_groups.0')), 'r')
         self._part_ids = h5py.File(str(self._path.with_suffix('.catalog_particles.0')), 'r')
+        self._properties = h5py.File(str(self._path.with_suffix('.properties.0')), 'r')
+
         if include_unbound:
             self._part_ids_unbound = h5py.File(str(self._path.with_suffix('.catalog_particles.unbound.0')), 'r')
         self._props = h5py.File(str(self._path.with_suffix('.properties.0')), 'r')
@@ -80,35 +83,88 @@ class VelociraptorCatalogue(HaloCatalogue):
 
         self._num_halos = self._grps['Num_of_groups'][0]
 
-        super().__init__(sim, number_mapping.SimpleHaloNumberMapper(self._zero_offset, self._num_halos))
+        super().__init__(sim, number_mapping.create_halo_number_mapper(self._properties['ID']))
 
+        self._setup_property_keys()
+        self._setup_property_units()
         self._init_iord_to_fpos()
         self._calculate_children()
+
+    def _setup_property_keys(self):
+        self._property_keys = []
+        for k in self._properties.keys():
+            if len(self._properties[k]) == self._num_halos:
+                self._property_keys.append(k)
+
+    def _setup_property_units(self):
+        unitinfo = self._props['UnitInfo'].attrs
+        comoving = int(unitinfo['Comoving_or_Physical'])!=0
+        length = units.Unit("kpc")*float(unitinfo['Length_unit_to_kpc'])
+        if comoving:
+            # https://github.com/pelahi/VELOCIraptor-STF/blob/6f4b760ef5043b959a922a8e7ae453fd0a9f988f/src/io.cxx#L1591
+            length *= units.Unit("a h^-1")
+        mass = units.Unit("Msol")*float(unitinfo['Mass_unit_to_solarmass'])
+        vel = units.Unit("km s^-1")*float(unitinfo['Velocity_unit_to_kms'])
+        time = length / vel
+        # the above is actually a guess - but don't think the Dimension_Time is anyway ever used?
+        # if any time dimension is found, a warning will be issued
+
+        self._property_units = []
+        dims_attr_names = ("Dimension_Length", "Dimension_Mass", "Dimension_Time", "Dimension_Velocity")
+        dims_units = (length, mass, time, vel)
+        for k in self._property_keys:
+            powers = [util.fractions.Fraction.from_float(float(self._props[k].attrs[d])).limit_denominator()
+                      for d in dims_attr_names]
+            if powers[2] != 0.0:
+                warnings.warn("Time dimension found in property %s, but no time conversion factor is stored in the velociraptor output. Guessing an appropriate conversion." % k)
+            final_unit = functools.reduce(lambda x, y: x * y,
+                                     [u**p for u, p in zip(dims_units, powers)])
+            self._property_units.append(final_unit)
+
+
 
     def _calculate_children(self):
         self._parents = self._grps['Parent_halo_ID'][:]
         _all_children_zero_based = np.arange(self._num_halos, dtype=np.int32)[self._parents != -1]
-        self._all_children_ordered_by_parent = self._number_mapper.index_to_number(
+        self._all_children_ordered_by_parent = self.number_mapper.index_to_number(
                 _all_children_zero_based[np.argsort(self._parents[_all_children_zero_based])]
         )
 
         self._children_start_index = np.searchsorted(self._parents[
-                                                         self._number_mapper.number_to_index(self._all_children_ordered_by_parent)
+                                                         self.number_mapper.number_to_index(self._all_children_ordered_by_parent)
                                                      ],
-                                                     self._number_mapper.all_numbers,
+                                                     self.number_mapper.all_numbers,
                                                      side='left')
         self._children_stop_index = np.concatenate((self._children_start_index[1:],
                                                     np.array([self._num_halos],
                                                              dtype=self._children_start_index.dtype)))
 
-    def _get_properties_one_halo(self, halo_number) -> dict:
-        i_zerobased = self._number_mapper.number_to_index(halo_number)
+    def get_properties_one_halo(self, halo_number) -> dict:
+        i_zerobased = self.number_mapper.number_to_index(halo_number)
+        properties = {k: self._props[k][i_zerobased] * u
+                      for k, u in zip(self._property_keys, self._property_units)}
         parent = self._parents[i_zerobased]
         children = self._all_children_ordered_by_parent[self._children_start_index[i_zerobased]:self._children_stop_index[i_zerobased]]
-        return {'parent': parent, 'children': children}
+        properties.update({'parent': parent, 'children': children})
+        return properties
+
+    def get_properties_all_halos(self, with_units=True) -> dict:
+        if with_units:
+            all_properties = {k: array.SimArray(self._properties[k][:], u)
+                              for k, u in zip(self._property_keys, self._property_units)}
+        else:
+            all_properties = {k: self._properties[k] for k in self._property_keys}
+
+        all_properties.update(
+               {'parent': self._parents,
+                'children': [self._all_children_ordered_by_parent[start:end]
+                             for start, end in zip(self._children_start_index, self._children_stop_index)]}
+        )
+        return all_properties
+
 
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
-        i_zerobased = self._number_mapper.number_to_index(halo_number)
+        i_zerobased = self.number_mapper.number_to_index(halo_number)
         ptcl_fpos = self.__get_particle_indices_from_halo_index(i_zerobased, False)
 
         if self._include_unbound:

@@ -131,7 +131,8 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
       __init__, which must pass a HaloNumberMapper into the base constructor, to specify what halos are available
       _get_all_particle_indices [essential]
       _get_particle_indices_one_halo [optional, if it's possible to do this more efficiently than _get_all_particle_indices]
-      _get_properties_one_halo [only if you have halo finder-provided properties to expose]
+      get_properties_one_halo [only if you have halo finder-provided properties to expose]
+      get_properties_all_halos [only if you have halo finder-provided properties to expose]
       _get_halo [only if you want to add further customization to halos]
       _get_num_halos [optional, if it's possible to do this more efficiently than calling _get_index_list_all_halos]
       get_group_array [only if it's possible to do this more efficiently than the default implementation]
@@ -145,7 +146,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
     def __init__(self, sim, number_mapper):
         self._base: weakref[snapshot.SimSnap] = weakref.ref(sim)
-        self._number_mapper: MonotonicHaloNumberMapper = number_mapper
+        self.number_mapper: MonotonicHaloNumberMapper = number_mapper
         self._index_lists: HaloParticleIndices | None = None
         self._cached_halos: dict[int, Halo] = {}
 
@@ -162,7 +163,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         self.load_all()
 
     def _get_num_halos(self):
-        return len(self._number_mapper)
+        return len(self.number_mapper)
 
     def _get_all_particle_indices_cached(self):
         """Get the index information for all halos, using a cached version if available"""
@@ -178,8 +179,19 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         """
         raise NotImplementedError("This halo catalogue does not support loading all halos at once")
 
-    def _get_properties_one_halo(self, halo_number) -> dict:
+    def get_properties_one_halo(self, halo_number) -> dict:
         """Returns a dictionary of properties for a single halo, given a halo_number """
+        return {}
+
+    def get_properties_all_halos(self, with_units=True) -> dict:
+        """Returns a dictionary of properties for all halos.
+
+        If with_units is True, the properties are returned as SimArrays with units if possible. Otherwise, numpy arrays
+        are returned.
+
+        Note that the returned properties are in contiguous arrays, and as a result may be in a different order to the
+        halo numbers which are used to access individual halos. To map between halo numbers and properties, use the
+        .number_mapper object; or access individual property dictionaries by halo number using get_properties_one_halo."""
         return {}
 
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
@@ -188,13 +200,13 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         A generic implementation is provided that fetches index lists for all halos and then extracts the one"""
         self.load_all()
         return self._index_lists.get_particle_index_list_for_halo(
-            self._number_mapper.number_to_index(halo_number)
+            self.number_mapper.number_to_index(halo_number)
         )
 
     def _get_particle_indices_one_halo_using_list_if_available(self, halo_number) -> NDArray[int]:
         if self._index_lists:
             return self._index_lists.get_particle_index_list_for_halo(
-                self._number_mapper.number_to_index(halo_number)
+                self.number_mapper.number_to_index(halo_number)
             )
         else:
             if len(self._cached_halos) == 5:
@@ -210,13 +222,13 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         return self._cached_halos[halo_number]
 
     def _get_halo(self, halo_number) -> Halo:
-        return Halo(halo_number, self._get_properties_one_halo(halo_number), self, self.base,
+        return Halo(halo_number, self.get_properties_one_halo(halo_number), self, self.base,
                     self._get_particle_indices_one_halo_using_list_if_available(halo_number))
 
     def get_dummy_halo(self, halo_number) -> DummyHalo:
         """Return a DummyHalo object containing only the halo properties, no particle information"""
         h = DummyHalo()
-        h.properties.update(self._get_properties_one_halo(halo_number))
+        h.properties.update(self.get_properties_one_halo(halo_number))
         return h
 
     def __len__(self) -> int:
@@ -224,7 +236,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
     def __iter__(self) -> Iterable[Halo]:
         self.load_all()
-        for i in self._number_mapper:
+        for i in self.number_mapper:
             yield self[i]
 
     def __getitem__(self, item) -> Halo | SubhaloCatalogue:
@@ -260,14 +272,14 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
     def _get_subhalo_catalogue(self, parent_halo_number: int) -> SubhaloCatalogue:
         from .subhalo_catalogue import SubhaloCatalogue
-        props = self._get_properties_one_halo(parent_halo_number)
+        props = self.get_properties_one_halo(parent_halo_number)
         if 'children' in props:
             return SubhaloCatalogue(self, props['children'])
         else:
             raise ValueError(f"This halo catalogue does not support subhalos")
 
     def contains(self, halo_number: int) -> bool:
-        return halo_number in self._number_mapper
+        return halo_number in self.number_mapper
 
     def __contains__(self, haloid):
         return self.contains(haloid)
@@ -278,7 +290,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
         the smallest subhalo."""
         self.load_all()
-        number_per_particle = self._index_lists.get_halo_number_per_particle(len(self.base), self._number_mapper)
+        number_per_particle = self._index_lists.get_halo_number_per_particle(len(self.base), self.number_mapper)
         if family is not None:
             return number_per_particle[self.base._get_family_slice(family)]
         else:

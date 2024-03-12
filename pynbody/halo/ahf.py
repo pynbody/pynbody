@@ -127,19 +127,19 @@ class AHFCatalogue(HaloCatalogue):
         logger.info("AHFCatalogue loaded")
 
     def _setup_halo_numbering(self, halo_numbers):
-        has_id = 'ID' in self._halo_properties[0]
+        has_id = 'ID' in self._halo_properties
         if has_id:
-            self._ahf_own_number_mapper = create_halo_number_mapper([properties['ID'] for properties in self._halo_properties])
+            self._ahf_own_number_mapper = create_halo_number_mapper(self._halo_properties['ID'])
         else:
             # if no explicit IDs, ahf implicitly numbers starting at 0 in file order
-            self._ahf_own_number_mapper = SimpleHaloNumberMapper(0, len(self._halo_properties))
+            self._ahf_own_number_mapper = SimpleHaloNumberMapper(0, self._num_halos)
 
         if halo_numbers == 'v1':
-            number_mapper = SimpleHaloNumberMapper(1, len(self._halo_properties))
+            number_mapper = SimpleHaloNumberMapper(1, self._num_halos)
         elif halo_numbers == 'file-order':
-            number_mapper = SimpleHaloNumberMapper(0, len(self._halo_properties))
+            number_mapper = SimpleHaloNumberMapper(0, self._num_halos)
         elif halo_numbers == 'length-order' or halo_numbers == 'length-order-v1':
-            npart = np.array([properties['npart'] for properties in self._halo_properties])
+            npart = self._halo_properties['npart']
             osort = np.argsort(-npart)  # this is better than argsort(npart)[::-1], because it's stable
             if halo_numbers.endswith('v1'):
                 number_mapper = create_halo_number_mapper(osort+1)
@@ -156,12 +156,12 @@ class AHFCatalogue(HaloCatalogue):
         """When loaded from the .halos file, hostHalo is the AHF halo number of the host halo.
         This maps it onto whatever halo number pynbody is using."""
 
-        if 'hostHalo' in self._halo_properties[0]:
-            for properties in self._halo_properties:
-                if properties['hostHalo'] != -1:
-                    properties['hostHalo'] = self._number_mapper.index_to_number(
-                        self._ahf_own_number_mapper.number_to_index(properties['hostHalo'])
-                    )
+        if 'hostHalo' in self._halo_properties:
+            host_halo = self._halo_properties['hostHalo']
+            mask = host_halo != -1
+            host_halo[mask] = self.number_mapper.index_to_number(
+                self._ahf_own_number_mapper.number_to_index(host_halo[mask])
+            )
 
     def _determine_format_revision_from_filename(self):
         if self._ahfBasename.split("z")[-2][-1] == ".":
@@ -202,13 +202,13 @@ class AHFCatalogue(HaloCatalogue):
             if os.path.exists(self._ahfBasename + 'fpos'):
                 self._fpos = np.loadtxt(self._ahfBasename+'fpos', dtype=int)
             else:
-                self._fpos = np.empty(len(self._number_mapper), dtype=int)
+                self._fpos = np.empty(len(self.number_mapper), dtype=int)
                 with util.open_(self._ahfBasename + 'particles') as f:
                     nhalo = int(f.readline().strip())
-                    assert nhalo == len(self._number_mapper)
+                    assert nhalo == len(self.number_mapper)
                     for hnum in range(nhalo):
                         npart = int(f.readline().strip())
-                        assert npart == self._halo_properties[hnum]['npart']
+                        assert npart == self._halo_properties['npart'][hnum]
                         self._fpos[hnum] = f.tell()
                         for i in range(npart):
                             f.readline()
@@ -296,28 +296,32 @@ class AHFCatalogue(HaloCatalogue):
 
     def _get_particle_indices_one_halo(self, halo_number):
         fpos = self._get_file_positions()
-        file_index = self._number_mapper.number_to_index(halo_number)
+        file_index = self.number_mapper.number_to_index(halo_number)
         with util.open_(self._ahfBasename + 'particles') as f:
             f.seek(fpos[file_index],0)
-            ids = self._load_ahf_particle_block(f, nparts=self._halo_properties[file_index]['npart'])
+            ids = self._load_ahf_particle_block(f, nparts=self._halo_properties['npart'][file_index])
         return ids
 
     def _get_all_particle_indices(self):
-        boundaries = np.cumsum([0] + [properties['npart'] for properties in self._halo_properties])
+        boundaries = np.cumsum(np.concatenate(([0], self._halo_properties['npart'])))
         boundaries = np.vstack((boundaries[:-1], boundaries[1:])).T
         particle_ids = np.empty(boundaries[-1,1], dtype=int)
         with util.open_(self._ahfBasename + 'particles') as f:
             f.readline()
-            for properties, (start, end) in zip(self._halo_properties, boundaries):
+            for nparts, (start, end) in zip(self._halo_properties['npart'], boundaries):
                 f.readline()
-                particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=properties['npart'])
+                particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=nparts)
 
 
         return HaloParticleIndices(particle_ids=particle_ids, boundaries=boundaries)
 
 
-    def _get_properties_one_halo(self, i):
-        return self._halo_properties[self._number_mapper.number_to_index(i)]
+    def get_properties_one_halo(self, i):
+        index = self.number_mapper.number_to_index(i)
+        return {key: self._halo_properties[key][index] for key in self._halo_properties}
+
+    def get_properties_all_halos(self, with_units=True) -> dict:
+        return self._halo_properties
 
     def _load_ahf_halo_properties(self, filename):
         # Note: we need to open in 'rt' mode in case the AHF catalogue
@@ -325,8 +329,6 @@ class AHFCatalogue(HaloCatalogue):
         with util.open_(filename, "rt") as f:
             first_line = f.readline()
             lines = f.readlines()
-
-        self._halo_properties = [{} for h in range(len(lines))]
 
         # get all the property names from the first, commented line
         # remove (#)
@@ -340,7 +342,11 @@ class AHFCatalogue(HaloCatalogue):
             if keys[0] == '':
                 keys = keys[1:]
 
-        for properties, line in zip(self._halo_properties, lines):
+        self._halo_properties = {k: [] for k in keys}
+
+        self._num_halos = len(lines)
+
+        for line in lines:
             values = [
                 float(x) if any(_ in x for _ in (".", "e", "nan", "inf"))
                 else int(x)
@@ -352,7 +358,10 @@ class AHFCatalogue(HaloCatalogue):
                 values = values[1:]
 
             for key, value in zip(keys, values):
-                properties[key] = value
+                self._halo_properties[key].append(value)
+
+        for key in keys:
+            self._halo_properties[key] = np.array(self._halo_properties[key])
 
     def _load_ahf_substructure(self, filename):
         with util.open_(filename) as f:
@@ -363,17 +372,21 @@ class AHFCatalogue(HaloCatalogue):
             # some variants of the format start with a line count, which we ignore
             lines = lines[1:]
 
+        self._halo_properties['children'] = children = [[] for _ in range(self._num_halos)]
+        self._halo_properties['parent'] = parent = np.empty(self._num_halos, dtype=int)
+        parent.fill(-1)
+
         for halo_line, children_line in zip(lines[::2], lines[1::2]):
             haloid, _nsubhalos = (int(x) for x in halo_line.split())
             halo_index = self._ahf_own_number_mapper.number_to_index(haloid)
-            halo_number = self._number_mapper.index_to_number(halo_index)
+            halo_number = self.number_mapper.index_to_number(halo_index)
             children_ahf_numbering = [int(x) for x in children_line.split()]
             children_index = self._ahf_own_number_mapper.number_to_index(children_ahf_numbering)
-            children_pynbody_numbering = self._number_mapper.index_to_number(children_index)
+            children_pynbody_numbering = self.number_mapper.index_to_number(children_index)
 
-            self._halo_properties[halo_index]['children'] = children_pynbody_numbering
+            children[halo_index] = children_pynbody_numbering
             for child_index in children_index:
-                self._halo_properties[child_index]['parent'] = halo_number
+                parent[child_index] = halo_number
 
 
     @staticmethod

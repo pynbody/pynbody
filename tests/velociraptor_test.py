@@ -46,20 +46,51 @@ def test_swift_velociraptor(load_all):
     assert (np.sort(h[20]['iord']) == np.sort(testvals)).all()
 
 
-def test_swift_velociraptor_parents_and_children():
+@pytest.mark.parametrize("use_all", [True, False])
+def test_swift_velociraptor_parents_and_children(use_all):
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
     h = pynbody.halo.velociraptor.VelociraptorCatalogue(f)
     h.load_all()
 
-    assert h[2].properties['parent'] == -1
-    assert (h[2].properties['children'] == [208]).all()
-    assert h[208].properties['parent'] == 2
-    assert (h[3].properties['children'] == [209]).all()
-    assert h[209].properties['parent'] == 3
+    if use_all:
+        properties = h.get_properties_all_halos()
+        getter = lambda k, i: properties[k][h.number_mapper.number_to_index(i)]
+    else:
+        getter = lambda k, i: h[i].properties[k]
+
+    assert getter('parent', 2) == -1
+    assert (getter('children', 2) == [208]).all()
+    assert getter('parent', 208) == 2
+    assert (getter('children', 3) == [209]).all()
+    assert getter('parent', 209) == 3
 
     # the above were from the genuine velociraptor output. But since these were the only subhalos, the test was
     # a bit too trivial. The following are some faked subhalos to test a more complex scenario
 
-    assert (h[1].properties['children'] == [203, 204, 206]).all()
-    assert (h[4].properties['children'] == [205, 207]).all()
-    assert (h[203].properties['parent'] == 1)
+    assert (getter('children', 1) == [203, 204, 206]).all()
+    assert (getter('children', 4) == [205, 207]).all()
+    assert getter('parent', 203) == 1
+
+def test_swift_velociraptor_properties():
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+    h = pynbody.halo.velociraptor.VelociraptorCatalogue(f)
+    h.load_all()
+
+    assert np.allclose(float(h[1].properties['Lx']), -90787.3983020414e13)
+    assert np.allclose(float(h[10].properties['Lx']), -73881.83861892551e13)
+
+    assert np.allclose(h[1].properties['Lx'].ratio("1e13 kpc Msol km s**-1"), -90787.3983020414)
+
+@pytest.mark.parametrize("with_units", [True, False])
+def test_swift_velociraptor_all_properties(with_units):
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+    h = pynbody.halo.velociraptor.VelociraptorCatalogue(f)
+    all_properties = h.get_properties_all_halos(with_units=with_units)
+
+    assert np.allclose(all_properties['Lx'][0], -90787.3983020414)
+    assert np.allclose(all_properties['Lx'][9], -73881.83861892551)
+
+    if with_units:
+        assert all_properties['Lx'].units == '1e13 kpc Msol km s**-1'
+    else:
+        assert not hasattr(all_properties['Lx'], 'units')
