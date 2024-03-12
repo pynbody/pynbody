@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 import pathlib
 import re
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 
 from . import HaloCatalogue, HaloParticleIndices
 from .details import number_mapping
