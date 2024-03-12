@@ -1,6 +1,7 @@
-import pytest
 import warnings
+
 import numpy.testing as npt
+import pytest
 
 import pynbody
 

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-import h5py
-import numpy as np
 import pathlib
 import re
+
+import h5py
+import numpy as np
 from numpy.typing import NDArray
 
 from . import HaloCatalogue, HaloParticleIndices
 from .details import number_mapping
+
 
 class HBTPlusCatalogue(HaloCatalogue):
     def __init__(self, sim, halo_numbers=None, hbt_filename=None):
@@ -189,5 +191,3 @@ class HBTPlusCatalogueWithGroups(HaloCatalogue):
     def _get_subhalo_catalogue(self, halo_number):
         index = self._group_cat.number_mapper.number_to_index(halo_number)
         return self._hbt_cat[self._children[index]]
-
-

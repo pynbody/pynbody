@@ -8,7 +8,11 @@ import numpy as np
 
 from .. import snapshot, util
 from . import HaloCatalogue, HaloParticleIndices, logger
-from .details.number_mapping import SimpleHaloNumberMapper, create_halo_number_mapper, NonMonotonicHaloNumberMapper
+from .details.number_mapping import (
+    NonMonotonicHaloNumberMapper,
+    SimpleHaloNumberMapper,
+    create_halo_number_mapper,
+)
 
 
 class AHFCatalogue(HaloCatalogue):
