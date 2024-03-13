@@ -8,7 +8,11 @@ import numpy as np
 
 from .. import snapshot, util
 from . import HaloCatalogue, HaloParticleIndices, logger
-from .details.number_mapping import SimpleHaloNumberMapper, create_halo_number_mapper
+from .details.number_mapping import (
+    NonMonotonicHaloNumberMapper,
+    SimpleHaloNumberMapper,
+    create_halo_number_mapper,
+)
 
 
 class AHFCatalogue(HaloCatalogue):
@@ -142,9 +146,9 @@ class AHFCatalogue(HaloCatalogue):
             npart = self._halo_properties['npart']
             osort = np.argsort(-npart)  # this is better than argsort(npart)[::-1], because it's stable
             if halo_numbers.endswith('v1'):
-                number_mapper = create_halo_number_mapper(osort+1)
+                number_mapper = NonMonotonicHaloNumberMapper(osort, ordering=True, start_index=1)
             else:
-                number_mapper = create_halo_number_mapper(osort)
+                number_mapper = NonMonotonicHaloNumberMapper(osort, ordering=True, start_index=0)
         elif halo_numbers == 'ahf':
             number_mapper = self._ahf_own_number_mapper
         else:

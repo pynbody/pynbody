@@ -336,13 +336,14 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             )
 
     @classmethod
-    def _can_load(cls):
+    def _can_load(cls, sim):
         return False
 
 
 from . import (
     adaptahop,
     ahf,
+    hbtplus,
     hop,
     number_array,
     rockstar,

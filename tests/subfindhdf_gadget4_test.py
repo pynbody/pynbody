@@ -100,26 +100,17 @@ def test_particle_data():
 
 @pytest.mark.filterwarnings("ignore:Masses are either stored")
 def test_progenitors_and_descendants():
-    f = pynbody.load("testdata/gadget4_subfind_with_progdesc/snapshot_033.hdf5")
+    f = pynbody.load("testdata/gadget4_subfind_HBT/snapshot_034.hdf5")
     h = f.halos()
     p = h[0].subhalos[0].properties
-    match = {'FirstProgSubhaloNr': 0,
-             'NextDescSubhaloNr': 50,
-             'ProgSubhaloNr': 0,
-             'SubhaloNr': 0,
-             'DescSubhaloNr': 0,
-             'FirstDescSubhaloNr': 0,
-             'NextProgSubhaloNr': 53}
+    match = {'FirstProgSubhaloNr': 0, 'NextDescSubhaloNr': 127, 'ProgSubhaloNr': 0,
+             'SubhaloNr': 0, 'DescSubhaloNr': 0, 'FirstDescSubhaloNr': 0, 'NextProgSubhaloNr': 74}
     for k, v in match.items():
         assert p[k] == v
 
     p = h[3].subhalos[1].properties
-    match = {'FirstProgSubhaloNr': 162,
-             'NextDescSubhaloNr': -1,
-             'ProgSubhaloNr': 162,
-             'SubhaloNr': 153,
-             'DescSubhaloNr': 12,
-             'FirstDescSubhaloNr': 12,
-             'NextProgSubhaloNr': -1}
+
+    match = {'FirstProgSubhaloNr': 167, 'NextDescSubhaloNr': -1, 'ProgSubhaloNr': 167, 'SubhaloNr': 205,
+             'DescSubhaloNr': 221, 'FirstDescSubhaloNr': 221, 'NextProgSubhaloNr': -1}
     for k, v in match.items():
         assert p[k] == v
