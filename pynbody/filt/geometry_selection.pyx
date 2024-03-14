@@ -9,46 +9,78 @@ from libc.stdlib cimport free, malloc
 
 from .. import config
 
+
 cdef extern from "geometry_selection.hpp" nogil:
     void wrapfn[T](T & x, T & y, T & z, const T & wrap, const T & wrap_by_two)
+    void sphere_selection[T](T* position_array, char* output_array,
+                              T x0, T y0, T z0, T max_radius,
+                              T wrap,
+                              Py_ssize_t num_particles)
+    void cube_selection[T](T* position_array, char* output_array,
+                            T x0, T y0, T z0, T x1, T y1, T z1,
+                            T wrap,
+                            Py_ssize_t num_particles)
 
 ctypedef fused fused_float:
     np.float32_t
     np.float64_t
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def sphere(np.ndarray[fused_float, ndim=2] pos_ar,
-           np.ndarray[fused_float, ndim=1] cen,
-           double r_max, fused_float wrap):
-    """OpenMP sphere selection algorithm.
 
-    Returns an array of booleans, True where the distance from
-    pos_ar to cen is less than r_max."""
+def selection(np.ndarray[fused_float, ndim=2] pos_ar, region, parameters, fused_float wrap):
+    """OpenMP selection algorithm for spheres and cubes, optionally wrapped around the box.
+
+    Parameters
+    ----------
+    pos_ar : array_like
+        The positions of the particles, with shape (N,3). Must be C-contiguous.
+        The datatype can either be float32 or float64, represented by fused_float.
+    region : str
+        The region to select particles from. Can be 'sphere' or 'cube'.
+    parameters : array_like
+        The parameters of the region. For a sphere, it is (x0, y0, z0, r_max), and for a cube,
+        it is (x0, y0, z0, x1, y1, z1). Each parameter must be a float (will be cast to fused_float).
+    wrap : fused_float
+        The size of the box to wrap around. If <0, no wrapping is done.
+    """
 
     cdef long i
     cdef long N=len(pos_ar)
     cdef fused_float cx,cy,cz,x,y,z,r2
     cdef fused_float r_max_2
     cdef np.ndarray[np.uint8_t, ndim=1] output = np.empty(len(pos_ar),dtype=np.uint8)
+
+    cdef char* output_data = <char*> np.PyArray_DATA(output)
+
+    if (np.PyArray_NDIM(pos_ar)!=2 or np.PyArray_DIMS(pos_ar)[1]!=3 or
+            np.PyArray_STRIDES(pos_ar)[0] != sizeof(fused_float)*3 or
+            np.PyArray_STRIDES(pos_ar)[1] != sizeof(fused_float)):
+        raise ValueError("Input array must be C-contiguous and have 3 columns")
+
+    cdef fused_float* pos_ar_data = <fused_float*> np.PyArray_DATA(pos_ar)
+
     cdef fused_float wrap_by_two = wrap/2
     cdef int num_threads = config['number_of_threads']
 
-    r_max_2 = r_max*r_max
-
-    assert pos_ar.shape[1]==3
-    assert len(cen)==3
-
-    cx = cen[0]
-    cy = cen[1]
-    cz = cen[2]
-
-    for i in prange(N,nogil=True,schedule='static',num_threads=num_threads):
-        x=pos_ar[i,0]-cx
-        y=pos_ar[i,1]-cy
-        z=pos_ar[i,2]-cz
-        if wrap>0:
-            wrapfn(x,y,z,wrap, wrap_by_two)
-        output[i]=(x*x+y*y+z*z)<r_max_2
+    if region == 'sphere':
+        if len(parameters) != 4:
+            raise ValueError("Sphere selection requires 4 parameters: (x0, y0, z0, r_max)")
+        # (ugly syntax below is because starred parameters not allowed)
+        sphere_selection(pos_ar_data, output_data,
+                         <fused_float> parameters[0],
+                         <fused_float> parameters[1],
+                         <fused_float> parameters[2],
+                         <fused_float> parameters[3], wrap,
+                         len(pos_ar))
+    elif region == 'cube':
+        if len(parameters) != 6:
+            raise ValueError("Cube selection requires 6 parameters: (x0, y0, z0, x1, y1, z1)")
+        cube_selection(pos_ar_data, output_data,
+                       <fused_float> parameters[0],
+                       <fused_float> parameters[1],
+                       <fused_float> parameters[2],
+                       <fused_float> parameters[3],
+                       <fused_float> parameters[4],
+                       <fused_float> parameters[5], wrap, len(pos_ar))
+    else:
+        raise ValueError("Region must be either 'sphere' or 'cube'")
 
     return output

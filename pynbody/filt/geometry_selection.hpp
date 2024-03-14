@@ -1,29 +1,104 @@
+#include <tuple>
+
 template<typename T>
-inline void wrapfn(T & x, T & y, T & z, const T & wrap, const T & wrap_by_two) {
-    if (x > wrap_by_two) x -= wrap;
-    if (y > wrap_by_two) y -= wrap;
-    if (z > wrap_by_two) z -= wrap;
-    if (x < -wrap_by_two) x += wrap;
-    if (y < -wrap_by_two) y += wrap;
-    if (z < -wrap_by_two) z += wrap;
+class DifferenceWithWrap {
+    private:
+    T wrap, wrap_by_two;
+
+    public:
+    DifferenceWithWrap(T wrap) : wrap(wrap), wrap_by_two(wrap/2) { }
+
+    std::tuple<T, T, T> calculate_offset(T x1, T y1, T z1, T x2, T y2, T z2) const {
+        T dx = x2 - x1;
+        T dy = y2 - y1;
+        T dz = z2 - z1;
+        if (dx> wrap_by_two) dx -= wrap;
+        if (dy> wrap_by_two) dy -= wrap;
+        if (dz> wrap_by_two) dz -= wrap;
+        if (dx<-wrap_by_two) dx += wrap;
+        if (dy<-wrap_by_two) dy += wrap;
+        if (dz<-wrap_by_two) dz += wrap;
+
+        return std::make_tuple(dx, dy, dz);
+    }
+};
+
+template<typename T>
+class DifferenceWithoutWrap {
+    public:
+    DifferenceWithoutWrap(T wrap) {  } // we still take wrap in the constructor, for uniformity
+
+    std::tuple<T, T, T> calculate_offset(T x1, T y1, T z1, T x2, T y2, T z2) const {
+        T dx = x2 - x1;
+        T dy = y2 - y1;
+        T dz = z2 - z1;
+
+        return std::make_tuple(dx, dy, dz);
+    }
+};
+
+template<typename T, typename WrapPolicy>
+class SphereSelector: public WrapPolicy {
+    T x0, y0, z0, max_radius2;
+
+    public:
+    SphereSelector(T x0, T y0, T z0, T max_radius, T wrap) :
+        x0(x0), y0(y0), z0(z0), max_radius2(max_radius * max_radius),
+        WrapPolicy(wrap) {}
+
+    inline bool operator()(T x, T y, T z) const {
+        T dx, dy, dz;
+        std::tie(dx, dy, dz) = this->calculate_offset(x0, y0, z0, x, y, z);
+
+        T r2 = dx*dx + dy*dy + dz*dz;
+        return r2 < max_radius2;
+    }
+};
+
+template<typename T, typename WrapPolicy>
+class CubeSelector: public WrapPolicy {
+    T xc, yc, zc, xsize, ysize, zsize;
+    public:
+    CubeSelector(T x0, T y0, T z0, T x1, T y1, T z1, T wrap): xc((x0+x1)/2), yc((y0+y1)/2), zc((z0+z1)/2),
+        xsize((x1-x0)/2), ysize((y1-y0)/2), zsize((z1-z0)/2), WrapPolicy(wrap) {}
+
+    inline bool operator()(T x, T y, T z) const {
+        T dx, dy, dz;
+        std::tie(dx, dy, dz) = this->calculate_offset(xc, yc, zc, x, y, z);
+        return (abs(dx) < xsize && abs(dy) < ysize && abs(dz) < zsize);
+    }
+};
+
+template<typename T, typename Selector>
+void perform_selection(T* position_array, char* output_array, Py_ssize_t num_particles, const Selector & selector) {
+    #pragma omp parallel for
+    for(Py_ssize_t i = 0; i < num_particles; i++) {
+        output_array[i] = selector(position_array[i*3], position_array[i*3+1], position_array[i*3+2]);
+    }
 }
 
 template<typename T>
-inline void perform_selection(T* position_array, char* output_array,
+inline void sphere_selection(T* position_array, char* output_array,
                               T x0, T y0, T z0, T max_radius,
+                              T wrap,
                               Py_ssize_t num_particles) {
-    T max_radius_by_2 = max_radius/2;
-    for(Py_ssize_t i = 0; i < num_particles; i++) {
-        T x = position_array[i*3];
-        T y = position_array[i*3+1];
-        T z = position_array[i*3+2];
-        T dx = x - x0;
-        T dy = y - y0;
-        T dz = z - z0;
-        wrapfn(dx, dy, dz, max_radius, max_radius_by_2);
-        T r2 = dx*dx + dy*dy + dz*dz;
-        if (r2 < max_radius*max_radius) {
-            output_array[i] = 1;
-        }
-    }
+    if(wrap>0)
+        perform_selection(position_array, output_array, num_particles,
+                          SphereSelector<T, DifferenceWithWrap<T>>(x0, y0, z0, max_radius, wrap));
+    else
+        perform_selection(position_array, output_array, num_particles,
+                          SphereSelector<T, DifferenceWithoutWrap<T>>(x0, y0, z0, max_radius, 0));
+}
+
+template<typename T>
+inline void cube_selection(T* position_array, char* output_array,
+                              T x0, T y0, T z0, T x1, T y1, T z1,
+                              T wrap,
+                              Py_ssize_t num_particles) {
+    if(wrap>0)
+        perform_selection(position_array, output_array, num_particles,
+                          CubeSelector<T, DifferenceWithWrap<T>>(x0, y0, z0, x1, y1, z1, wrap));
+    else
+        perform_selection(position_array, output_array, num_particles,
+                          CubeSelector<T, DifferenceWithoutWrap<T>>(x0, y0, z0, x1, y1, z1, 0));
 }
