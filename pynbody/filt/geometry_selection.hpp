@@ -12,6 +12,11 @@ class DifferenceWithWrap {
         T dx = x2 - x1;
         T dy = y2 - y1;
         T dz = z2 - z1;
+        /* While the wrapping below might seem a bit convoluted, it is actually
+         * the fastest way to do it. The modulo operator is slow. However, this does mean
+         * that offsets more than a single wrap away are not handled correctly.
+         * See also the note in filter_test.py where this is tested.
+         */
         if (dx> wrap_by_two) dx -= wrap;
         if (dy> wrap_by_two) dy -= wrap;
         if (dz> wrap_by_two) dz -= wrap;
