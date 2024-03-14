@@ -114,7 +114,7 @@ util_pyx = Extension('pynbody._util',
                      extra_compile_args=openmp_args,
                      extra_link_args=openmp_args)
 
-util_pyx = Extension('pynbody.filt.geometry_selection',
+filt_geom_pyx = Extension('pynbody.filt.geometry_selection',
                      sources=['pynbody/filt/geometry_selection.pyx'],
                      include_dirs=incdir,
                      extra_compile_args=openmp_args,
@@ -133,7 +133,7 @@ interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               extra_link_args=openmp_args)
 
 
-ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
+ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx, filt_geom_pyx,
                 cython_fortran_file, interpolate3d_pyx, omp_commands]
 
 install_requires = [
