@@ -70,8 +70,9 @@ class CubeSelector: public WrapPolicy {
 };
 
 template<typename T, typename Selector>
-void perform_selection(T* position_array, char* output_array, Py_ssize_t num_particles, const Selector & selector) {
-    #pragma omp parallel for
+void perform_selection(T* position_array, char* output_array, Py_ssize_t num_particles,
+                       const Selector & selector, int num_threads) {
+    #pragma omp parallel for num_threads(num_threads)
     for(Py_ssize_t i = 0; i < num_particles; i++) {
         output_array[i] = selector(position_array[i*3], position_array[i*3+1], position_array[i*3+2]);
     }
@@ -81,24 +82,24 @@ template<typename T>
 inline void sphere_selection(T* position_array, char* output_array,
                               T x0, T y0, T z0, T max_radius,
                               T wrap,
-                              Py_ssize_t num_particles) {
+                              Py_ssize_t num_particles, int num_threads) {
     if(wrap>0)
         perform_selection(position_array, output_array, num_particles,
-                          SphereSelector<T, DifferenceWithWrap<T>>(x0, y0, z0, max_radius, wrap));
+                          SphereSelector<T, DifferenceWithWrap<T>>(x0, y0, z0, max_radius, wrap), num_threads);
     else
         perform_selection(position_array, output_array, num_particles,
-                          SphereSelector<T, DifferenceWithoutWrap<T>>(x0, y0, z0, max_radius, 0));
+                          SphereSelector<T, DifferenceWithoutWrap<T>>(x0, y0, z0, max_radius, 0), num_threads);
 }
 
 template<typename T>
 inline void cube_selection(T* position_array, char* output_array,
                               T x0, T y0, T z0, T x1, T y1, T z1,
                               T wrap,
-                              Py_ssize_t num_particles) {
+                              Py_ssize_t num_particles, int num_threads) {
     if(wrap>0)
         perform_selection(position_array, output_array, num_particles,
-                          CubeSelector<T, DifferenceWithWrap<T>>(x0, y0, z0, x1, y1, z1, wrap));
+                          CubeSelector<T, DifferenceWithWrap<T>>(x0, y0, z0, x1, y1, z1, wrap), num_threads);
     else
         perform_selection(position_array, output_array, num_particles,
-                          CubeSelector<T, DifferenceWithoutWrap<T>>(x0, y0, z0, x1, y1, z1, 0));
+                          CubeSelector<T, DifferenceWithoutWrap<T>>(x0, y0, z0, x1, y1, z1, 0), num_threads);
 }

@@ -15,11 +15,11 @@ cdef extern from "geometry_selection.hpp" nogil:
     void sphere_selection[T](T* position_array, char* output_array,
                               T x0, T y0, T z0, T max_radius,
                               T wrap,
-                              Py_ssize_t num_particles)
+                              Py_ssize_t num_particles, int num_threads)
     void cube_selection[T](T* position_array, char* output_array,
                             T x0, T y0, T z0, T x1, T y1, T z1,
                             T wrap,
-                            Py_ssize_t num_particles)
+                            Py_ssize_t num_particles, int num_threads)
 
 ctypedef fused fused_float:
     np.float32_t
@@ -69,7 +69,7 @@ def selection(np.ndarray[fused_float, ndim=2] pos_ar, region, parameters, fused_
                          <fused_float> parameters[1],
                          <fused_float> parameters[2],
                          <fused_float> parameters[3], wrap,
-                         len(pos_ar))
+                         len(pos_ar), num_threads)
     elif region == 'cube':
         if len(parameters) != 6:
             raise ValueError("Cube selection requires 6 parameters: (x0, y0, z0, x1, y1, z1)")
@@ -79,7 +79,7 @@ def selection(np.ndarray[fused_float, ndim=2] pos_ar, region, parameters, fused_
                        <fused_float> parameters[2],
                        <fused_float> parameters[3],
                        <fused_float> parameters[4],
-                       <fused_float> parameters[5], wrap, len(pos_ar))
+                       <fused_float> parameters[5], wrap, len(pos_ar), num_threads)
     else:
         raise ValueError("Region must be either 'sphere' or 'cube'")
 
