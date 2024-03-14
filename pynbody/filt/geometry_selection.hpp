@@ -8,7 +8,7 @@ class DifferenceWithWrap {
     public:
     DifferenceWithWrap(T wrap) : wrap(wrap), wrap_by_two(wrap/2) { }
 
-    std::tuple<T, T, T> calculate_offset(T x1, T y1, T z1, T x2, T y2, T z2) const {
+    inline std::tuple<T, T, T> calculate_offset(T x1, T y1, T z1, T x2, T y2, T z2) const {
         T dx = x2 - x1;
         T dy = y2 - y1;
         T dz = z2 - z1;
@@ -33,7 +33,7 @@ class DifferenceWithoutWrap {
     public:
     DifferenceWithoutWrap(T wrap) {  } // we still take wrap in the constructor, for uniformity
 
-    std::tuple<T, T, T> calculate_offset(T x1, T y1, T z1, T x2, T y2, T z2) const {
+    inline std::tuple<T, T, T> calculate_offset(T x1, T y1, T z1, T x2, T y2, T z2) const {
         T dx = x2 - x1;
         T dy = y2 - y1;
         T dz = z2 - z1;
