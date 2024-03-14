@@ -112,6 +112,12 @@ util_pyx = Extension('pynbody._util',
                      sources=['pynbody/_util.pyx'],
                      include_dirs=incdir,
                      extra_compile_args=openmp_args,
+                     extra_link_args=openmp_args)
+
+util_pyx = Extension('pynbody.filt.geometry_selection',
+                     sources=['pynbody/filt/geometry_selection.pyx'],
+                     include_dirs=incdir,
+                     extra_compile_args=openmp_args,
                      extra_link_args=openmp_args,
                      language='c++')
 

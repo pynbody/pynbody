@@ -17,7 +17,8 @@ import pickle
 
 import numpy as np
 
-from . import _util, family, units
+from . import geometry_selection
+from .. import family, units
 
 
 class Filter:
@@ -188,7 +189,7 @@ class Sphere(Filter):
         if units.is_unit_like(wrap):
             wrap = float(wrap.in_units(pos.units,**pos.conversion_context()))
 
-        return _util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius,wrap)
+        return geometry_selection.sphere(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius,wrap)
 
     def _get_cen_and_radius_as_float(self, pos):
         radius = self.radius
@@ -213,7 +214,7 @@ class Sphere(Filter):
         # the maximum offset from the cell centre to any corner:
         expand_distance = (deltax/2) * np.sqrt(3)
 
-        return _util._sphere_selection(np.asarray(centroids),
+        return geometry_selection.sphere(np.asarray(centroids),
                                        np.asarray(self.cen,dtype=centroids.dtype),
                                        self.radius + expand_distance,
                                        boxsize)
