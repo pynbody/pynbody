@@ -8,6 +8,7 @@ import pynbody
 @pytest.fixture
 def snap():
     f = pynbody.new(1000)
+    np.random.seed(1337)
     f['pos'] = np.random.normal(scale=1.0, size=f['pos'].shape)
     f['vel'] = np.random.normal(scale=1.0, size=f['vel'].shape)
     f['mass'] = np.random.uniform(1.0, 10.0, size=f['mass'].shape)
@@ -15,6 +16,22 @@ def snap():
     f['vel'].units = 'km s^-1'
     f['mass'].units = 'Msol'
     return f
+
+@pytest.fixture(params=[-0.5, 0.0], ids=["centred", "zero-origin"])
+def wrapping_snap(request):
+    f = pynbody.new(1000)
+    min = request.param
+    np.random.seed(1337)
+    f['pos'] = np.random.uniform(0, 1.0, size=f['pos'].shape) + min
+    f['vel'] = np.random.normal(scale=1.0, size=f['vel'].shape)
+    f['mass'] = np.random.uniform(1.0, 10.0, size=f['mass'].shape)
+    f['pos'].units = 'kpc'
+    f['vel'].units = 'km s^-1'
+    f['mass'].units = 'Msol'
+    f.properties['boxsize'] = 1.0
+    return f, min
+
+
 
 
 def test_sphere(snap):
@@ -27,6 +44,25 @@ def test_sphere(snap):
 
     sp_units = f[pynbody.filt.Sphere('500 pc')]
     assert len(sp_units.intersect(sp)) == len(sp)
+
+def test_wrapping_sphere(wrapping_snap):
+    f, min = wrapping_snap
+    # put a sphere at the lower left corner of the box
+    sp = f[pynbody.filt.Sphere(0.5, (min, min, min))]
+
+    # auto-wrapping should pick out a fractional volume (4/3 pi) (1/2)^3 ~= 0.52
+    # of the unit cube. With the particular random seed here, we get 513 particles
+    # of the 1000 in the box, which makes sense
+
+    assert len(sp) == 513
+
+    # now let's switch the wrapping off
+    del f.properties['boxsize']
+    sp = f[pynbody.filt.Sphere(0.5, (min, min, min))]
+
+    # should be around 1/8th of the particles we had previously, and we actually
+    # get 58 which again seems fine
+    assert len(sp) == 58
 
 
 def test_passfilters(snap):
@@ -65,6 +101,20 @@ def test_cuboid(snap, with_kdtree):
         assert (c.get_index_list(f) == np.where(
             (f['x'] > x1) * (f['x'] < x2) * (f['y'] > y1) * (f['y'] < y2) * (f['z'] > z1) * (f['z'] < z2))[0]).all()
 
+def test_wrapping_cuboid(wrapping_snap):
+    snap, origin = wrapping_snap
+    import warnings
+
+    import pylab as p
+
+    subbox = snap[pynbody.filt.Cuboid(origin+0.5, origin+0.5, origin+0.5, origin+1.0, origin+1.0, origin+1.0)]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        p.clf()
+        p.plot(snap['x'], snap['y'], 'k.', alpha=0.1)
+        p.plot(subbox['x'], subbox['y'], 'r.')
+
+        p.savefig("snap.pdf")
 
 def test_logic(snap):
     f = snap

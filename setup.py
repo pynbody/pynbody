@@ -112,7 +112,8 @@ util_pyx = Extension('pynbody._util',
                      sources=['pynbody/_util.pyx'],
                      include_dirs=incdir,
                      extra_compile_args=openmp_args,
-                     extra_link_args=openmp_args)
+                     extra_link_args=openmp_args,
+                     language='c++')
 
 cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
                                 sources=['pynbody/extern/_cython_fortran_utils.pyx'],

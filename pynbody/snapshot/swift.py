@@ -11,13 +11,13 @@ from .gadgethdf import GadgetHdfMultiFileManager, GadgetHDFSnap
 
 class SwiftMultiFileManager(GadgetHdfMultiFileManager):
 
-    def __init__(self, filename: pathlib.Path, take_cells, take, mode='r'):
+    def __init__(self, filename: pathlib.Path, take_cells, take_region, mode='r'):
         self._take_cells = take_cells
 
-        if take_cells is not None and take is not None:
-            raise ValueError("Either take_cells or take must be specified, not both")
+        if take_cells is not None and take_region is not None:
+            raise ValueError("Either take_cells or take_region must be specified, not both")
 
-        if take_cells is not None or take is not None:
+        if take_cells is not None or take_region is not None:
             # we need to avoid loading a VDS file, as it won't have the info needed to make our own VDS
             # pointers to the right cells
             try:
@@ -30,19 +30,19 @@ class SwiftMultiFileManager(GadgetHdfMultiFileManager):
                 pass # perfect, this is either going to be pieced together by pynbody, or it'll fail anyway
         super().__init__(filename, mode)
 
-        if take is not None:
+        if take_region is not None:
             # convert take to take_cells
-            take_cells = self._identify_cells_to_take(take)
+            take_cells = self._identify_cells_to_take(take_region)
 
         # hopefully the shenanigans above mean we don't end up with a VDS, but just in case we do, check again:
         if self.is_virtual() and take_cells is not None:
             raise ValueError("Can't take a subset of cells from a VDS-based HDF5 file pointing to multiple underlying files")
 
         self._make_hdf_vfile(take_cells)
-        pass
 
     def _identify_cells_to_take(self, take):
-        pass
+        centres = self[0]['Cells/Centres'][:]
+        return np.where(take.cubic_cell_intersection(centres))[0]
 
     def get_unit_attrs(self):
         return self[0].parent['InternalCodeUnits'].attrs
@@ -157,14 +157,14 @@ class SwiftSnap(GadgetHDFSnap):
 
     _namemapper_config_section = 'swift-name-mapping'
 
-    def __init__(self, filename, take_swift_cells=None, take=None):
+    def __init__(self, filename, take_swift_cells=None, take_region=None):
         self._take_swift_cells = take_swift_cells
-        self._take = take
+        self._take_region = take_region
         super().__init__(filename)
 
 
     def _init_hdf_filemanager(self, filename):
-        self._hdf_files = self._multifile_manager_class(filename, self._take_swift_cells, self._take)
+        self._hdf_files = self._multifile_manager_class(filename, self._take_swift_cells, self._take_region)
 
     def _is_cosmological(self):
         cosmo = ExtractScalarWrapper(self._hdf_files[0]['Cosmology'].attrs)

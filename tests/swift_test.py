@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from pytest import raises
 
 import pynbody
@@ -149,7 +150,15 @@ def test_swift_dtypes():
     assert np.issubdtype(f['iord'].dtype, np.integer)
     assert np.issubdtype(f['pos'].dtype, np.floating)
 
+@pytest.mark.parametrize('test_region',
+                         [pynbody.filt.Sphere(50., (50., 50., 50.)),
+                         pynbody.filt.Cuboid(-20.0)])
+def test_swift_take_geometric_region(test_region):
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
+                     take_region = test_region)
 
-# TODO: test loading a region (currently unimplemented)
-# TODO: test loading a region that wraps around the box (currently unimplemented)
-# TODO: test loading a halo (currently unimplemented)
+    f_full = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+
+    assert len(f) < len(f_full)
+
+    assert np.all(f[test_region]['iord'] == f_full[test_region]['iord'])

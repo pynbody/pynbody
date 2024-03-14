@@ -63,6 +63,25 @@ class Filter:
 
         return True
 
+    def cubic_cell_intersection(self, centroids):
+        """Compute the intersection with cubic cells with the specified centroids.
+
+        This is currently used by the swift loader to figure out which cells to load"""
+        raise NotImplementedError("Cell intersections are not implemented for this filter")
+
+    @classmethod
+    def _get_boxsize_and_delta_from_centroids(self, centroids):
+        """Helper for calculating cubic cell intersections"""
+        deltax = (centroids[1] - centroids[0]).max()
+        # check we are interpreting this right: the ((deltax+max-min)/deltax)^3
+        # should be the number of cells
+        ncells = len(centroids)
+        maxpos = centroids.max()
+        minpos = centroids.min()
+        boxsize = (deltax + maxpos - minpos)
+        ncells_from_geometry = np.round(boxsize / deltax) ** 3
+        assert ncells == ncells_from_geometry, "Geometry of cells doesn't match expectations"
+        return boxsize, deltax
 
 class FamilyFilter(Filter):
     def __init__(self, family_):
@@ -92,6 +111,9 @@ class And(Filter):
     def __repr__(self):
         return "(" + repr(self.f1) + " & " + repr(self.f2) + ")"
 
+    def cubic_cell_intersection(self, centroids):
+        return self.f1.cubic_cell_intersection(centroids) & \
+               self.f2.cubic_cell_intersection(centroids)
 
 class Or(Filter):
 
@@ -106,6 +128,10 @@ class Or(Filter):
     def __repr__(self):
         return "(" + repr(self.f1) + " | " + repr(self.f2) + ")"
 
+    def cubic_cell_intersection(self, centroids):
+        return self.f1.cubic_cell_intersection(centroids) | \
+            self.f2.cubic_cell_intersection(centroids)
+
 
 class Not(Filter):
 
@@ -119,6 +145,9 @@ class Not(Filter):
 
     def __repr__(self):
         return "~" + repr(self.f)
+
+    def cubic_cell_intersection(self, centroids):
+        return ~self.f1.cubic_cell_intersection(centroids)
 
 
 class Sphere(Filter):
@@ -178,9 +207,19 @@ class Sphere(Filter):
         else:
             return super().where(sim)
 
+    def cubic_cell_intersection(self, centroids):
+        boxsize, deltax = self._get_boxsize_and_delta_from_centroids(centroids)
+
+        # the maximum offset from the cell centre to any corner:
+        expand_distance = (deltax/2) * np.sqrt(3)
+
+        return _util._sphere_selection(np.asarray(centroids),
+                                       np.asarray(self.cen,dtype=centroids.dtype),
+                                       self.radius + expand_distance,
+                                       boxsize)
+
     def __repr__(self):
         if units.is_unit(self.radius):
-
             return f"Sphere('{str(self.radius)}', {repr(self.cen)})"
         else:
             return f"Sphere({self.radius:.2e}, {repr(self.cen)})"
@@ -220,6 +259,7 @@ class Cuboid(Filter):
         return ((x > x1) * (x < x2) * (y > y1) * (y < y2) * (z > z1) * (z < z2))
 
     def _get_boundaries(self, sim):
+
         return [x.in_units(sim["pos"].units, **sim["pos"].conversion_context())
                 if units.is_unit_like(x) else x
                 for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2)]
@@ -241,6 +281,15 @@ class Cuboid(Filter):
             return np.sort(in_sphere_particles[mask]),
         else:
             return super().where(sim)
+
+    def cubic_cell_intersection(self, centroids):
+        boxsize, deltax = self._get_boxsize_and_delta_from_centroids(centroids)
+        shift = deltax/2
+        boundaries = (self.x1 - shift, self.y1 - shift, self.z1 - shift,
+                      self.x2 + shift, self.y2 + shift, self.z2 + shift)
+        return self._get_mask(*centroids.T, boundaries)
+
+
 
     def __repr__(self):
         x1, y1, z1, x2, y2, z2 = ("'%s'" % str(x)
