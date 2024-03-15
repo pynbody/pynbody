@@ -403,6 +403,10 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal', ndim=3, max_iterat
   assert rmin >= 0
   assert rmax > rmin
   assert nbins > 0
+  if ndim==3:
+    assert np.sum((sim['rxy'] >= rmin) & (sim['rxy'] < rmax)) > nbins*2
+  elif ndim==2:
+    assert np.sum((sim['r'] >= rmin) & (sim['r'] < rmax)) > nbins*2
   if bins not in ['equal', 'log', 'lin']: bins = 'equal'
 
   # Handy 90 degree rotation matrices:
@@ -411,6 +415,9 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal', ndim=3, max_iterat
   Rz = np.array([[0,-1,0], [1,0,0], [0,0,1]])
 
   #-----------------------------FUNCTIONS-----------------------------
+  sn = lambda r,N: np.append([r[i*int(len(r)/N):(1+i)*int(len(r)/N)][0]\
+                              for i in range(N)],r[-1])
+
   # General equation for an ellipse/ellipsoid:
   def Ellipsoid(pos, a, R):
       x = np.dot(R.T, pos.T)
@@ -434,7 +441,7 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal', ndim=3, max_iterat
 
     # End if there is no data in range:
     if not len(ellipse_mass):
-      return a, R
+      return a, R, np.sum(in_ellipse)
 
     # Calculate shape tensor & diagonalise:
     D = list(np.linalg.eigh(MoI(ellipse_pos,ellipse_mass,ndim) / np.sum(ellipse_mass)))
@@ -479,11 +486,9 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal', ndim=3, max_iterat
   mass = np.array(sim['mass'])
 
   if (bins == 'equal'): # Bins contain equal number of particles
-      r_sorted = np.sort(r[(r>=rmin) & (r<rmax)])
-      bin_length = max(2, len(r_sorted)//nbins)
-      bin_edges = r_sorted[::bin_length-1]
-      rbins = r_sorted[bin_length//2::bin_length]
-      nbins = len(rbins)
+      full_bins = sn(np.sort(r[(r>=rmin) & (r<=rmax)]), nbins*2)
+      bin_edges = full_bins[0:nbins*2+1:2]
+      rbins = full_bins[1:nbins*2+1:2]
   elif (bins == 'log'): # Bins are logarithmically spaced
       bin_edges = np.logspace(np.log10(rmin), np.log10(max), nbins+1)
       rbins = np.sqrt(bin_edges[:-1] * bin_edges[1:])
