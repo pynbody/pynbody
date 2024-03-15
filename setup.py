@@ -57,7 +57,7 @@ extra_compile_args = ['-ftree-vectorize',
                       '-fstrict-aliasing',
                       '-g', '-std=c++14']
 
-extra_link_args = ['-std=c++14']
+extra_link_args = openmp_args + ['-std=c++14']
 
 if xcode_fix_needed():
     # workaround for XCode bug FB13097713
@@ -82,13 +82,13 @@ gravity = Extension('pynbody.gravity._gravity',
                         sources = ["pynbody/gravity/_gravity.pyx"],
                         include_dirs=incdir,
                         extra_compile_args=openmp_args,
-                        extra_link_args=openmp_args)
+                        extra_link_args=extra_link_args)
 
 omp_commands = Extension('pynbody.openmp',
                         sources = ["pynbody/"+openmp_module_source+".pyx"],
                         include_dirs=incdir,
                         extra_compile_args=openmp_args,
-                        extra_link_args=openmp_args)
+                        extra_link_args=extra_link_args)
 
 chunkscan = Extension('pynbody.chunk.scan',
                   sources=['pynbody/chunk/scan.pyx'],
@@ -102,7 +102,7 @@ halo_pyx = Extension('pynbody.analysis._com',
                      sources=['pynbody/analysis/_com.pyx'],
                      include_dirs=incdir,
                      extra_compile_args=openmp_args,
-                     extra_link_args=openmp_args)
+                     extra_link_args=extra_link_args)
 
 bridge_pyx = Extension('pynbody.bridge._bridge',
                      sources=['pynbody/bridge/_bridge.pyx'],
@@ -112,13 +112,13 @@ util_pyx = Extension('pynbody._util',
                      sources=['pynbody/_util.pyx'],
                      include_dirs=incdir,
                      extra_compile_args=openmp_args,
-                     extra_link_args=openmp_args)
+                     extra_link_args=extra_link_args)
 
 filt_geom_pyx = Extension('pynbody.filt.geometry_selection',
                      sources=['pynbody/filt/geometry_selection.pyx'],
                      include_dirs=incdir,
                      extra_compile_args=openmp_args,
-                     extra_link_args=openmp_args,
+                     extra_link_args=extra_link_args,
                      language='c++')
 
 cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
