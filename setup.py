@@ -114,6 +114,13 @@ util_pyx = Extension('pynbody._util',
                      extra_compile_args=openmp_args,
                      extra_link_args=openmp_args)
 
+filt_geom_pyx = Extension('pynbody.filt.geometry_selection',
+                     sources=['pynbody/filt/geometry_selection.pyx'],
+                     include_dirs=incdir,
+                     extra_compile_args=openmp_args,
+                     extra_link_args=openmp_args,
+                     language='c++')
+
 cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
                                 sources=['pynbody/extern/_cython_fortran_utils.pyx'],
                                 include_dirs=incdir)
@@ -126,7 +133,7 @@ interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               extra_link_args=openmp_args)
 
 
-ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
+ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx, filt_geom_pyx,
                 cython_fortran_file, interpolate3d_pyx, omp_commands]
 
 install_requires = [
@@ -171,7 +178,7 @@ setup(name = 'pynbody',
       url = 'https://github.com/pynbody/pynbody/releases',
       package_dir = {'pynbody/': ''},
       packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 'pynbody/array',
-                  'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
+                  'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/filt', 'pynbody/sph',
                   'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/halo/details',
                   'pynbody/extern', 'pynbody/kdtree', 'pynbody/test_utils'],
       package_data={'pynbody': ['default_config.ini'],

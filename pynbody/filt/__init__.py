@@ -17,7 +17,8 @@ import pickle
 
 import numpy as np
 
-from . import _util, family, units
+from .. import family, units
+from . import geometry_selection
 
 
 class Filter:
@@ -63,6 +64,40 @@ class Filter:
 
         return True
 
+    def _get_wrap_in_position_units(self, sim):
+        """Helper method to get the simulation box wrap in units of the position array.
+
+        If the boxsize is undefined, returns -1.0"""
+        sim_ancestor = sim.ancestor
+        if 'boxsize' in sim.properties:
+            wrap = sim_ancestor.properties['boxsize']
+            if units.is_unit_like(wrap):
+                wrap = float(wrap.in_units(sim_ancestor['pos'].units,
+                                           **sim_ancestor.conversion_context()))
+        else:
+            wrap = -1.0
+
+        return wrap
+
+    def cubic_cell_intersection(self, centroids):
+        """Compute the intersection with cubic cells with the specified centroids.
+
+        This is currently used by the swift loader to figure out which cells to load"""
+        raise NotImplementedError("Cell intersections are not implemented for this filter")
+
+    @classmethod
+    def _get_boxsize_and_delta_from_centroids(self, centroids):
+        """Helper for calculating cubic cell intersections"""
+        deltax = (centroids[1] - centroids[0]).max()
+        # check we are interpreting this right: the ((deltax+max-min)/deltax)^3
+        # should be the number of cells
+        ncells = len(centroids)
+        maxpos = centroids.max()
+        minpos = centroids.min()
+        boxsize = (deltax + maxpos - minpos)
+        ncells_from_geometry = np.round(boxsize / deltax) ** 3
+        assert ncells == ncells_from_geometry, "Geometry of cells doesn't match expectations"
+        return boxsize, deltax
 
 class FamilyFilter(Filter):
     def __init__(self, family_):
@@ -92,6 +127,9 @@ class And(Filter):
     def __repr__(self):
         return "(" + repr(self.f1) + " & " + repr(self.f2) + ")"
 
+    def cubic_cell_intersection(self, centroids):
+        return self.f1.cubic_cell_intersection(centroids) & \
+               self.f2.cubic_cell_intersection(centroids)
 
 class Or(Filter):
 
@@ -106,6 +144,10 @@ class Or(Filter):
     def __repr__(self):
         return "(" + repr(self.f1) + " | " + repr(self.f2) + ")"
 
+    def cubic_cell_intersection(self, centroids):
+        return self.f1.cubic_cell_intersection(centroids) | \
+            self.f2.cubic_cell_intersection(centroids)
+
 
 class Not(Filter):
 
@@ -119,6 +161,9 @@ class Not(Filter):
 
     def __repr__(self):
         return "~" + repr(self.f)
+
+    def cubic_cell_intersection(self, centroids):
+        return ~self.f1.cubic_cell_intersection(centroids)
 
 
 class Sphere(Filter):
@@ -146,20 +191,14 @@ class Sphere(Filter):
         self.radius = radius
 
     def __call__(self, sim):
-        wrap = -1.0
-
         with sim.immediate_mode:
             pos = sim['pos']
 
         cen, radius = self._get_cen_and_radius_as_float(pos)
 
-        if 'boxsize' in sim.properties:
-            wrap = sim.properties['boxsize']
+        wrap = self._get_wrap_in_position_units(sim)
 
-        if units.is_unit_like(wrap):
-            wrap = float(wrap.in_units(pos.units,**pos.conversion_context()))
-
-        return _util._sphere_selection(np.asarray(pos),np.asarray(cen,dtype=pos.dtype),radius,wrap)
+        return geometry_selection.selection(np.asarray(pos),'sphere',(cen[0], cen[1], cen[2], radius), wrap)
 
     def _get_cen_and_radius_as_float(self, pos):
         radius = self.radius
@@ -178,9 +217,18 @@ class Sphere(Filter):
         else:
             return super().where(sim)
 
+    def cubic_cell_intersection(self, centroids):
+        boxsize, deltax = self._get_boxsize_and_delta_from_centroids(centroids)
+
+        # the maximum offset from the cell centre to any corner:
+        expand_distance = (deltax/2) * np.sqrt(3)
+
+        return geometry_selection.selection(np.asarray(centroids), 'sphere',
+                                           (self.cen[0], self.cen[1], self.cen[2], self.radius+expand_distance),
+                                            boxsize)
+
     def __repr__(self):
         if units.is_unit(self.radius):
-
             return f"Sphere('{str(self.radius)}', {repr(self.cen)})"
         else:
             return f"Sphere({self.radius:.2e}, {repr(self.cen)})"
@@ -213,16 +261,30 @@ class Cuboid(Filter):
         self.x1, self.y1, self.z1, self.x2, self.y2, self.z2 = x1, y1, z1, x2, y2, z2
 
     def __call__(self, sim):
-        return self._get_mask(sim['x'], sim['y'], sim['z'], self._get_boundaries(sim))
+        wrap = self._get_wrap_in_position_units(sim)
+        return self._get_mask(sim['pos'], self._get_boundaries(sim, wrap), wrap)
 
-    def _get_mask(self, x, y, z, boundaries):
+    def _get_mask(self, pos, boundaries, wrap):
         x1, y1, z1, x2, y2, z2 = boundaries
-        return ((x > x1) * (x < x2) * (y > y1) * (y < y2) * (z > z1) * (z < z2))
+        return geometry_selection.selection(pos, 'cube', (x1, y1, z1, x2, y2, z2), wrap).view(dtype=bool)
 
-    def _get_boundaries(self, sim):
-        return [x.in_units(sim["pos"].units, **sim["pos"].conversion_context())
-                if units.is_unit_like(x) else x
-                for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2)]
+    def _get_boundaries(self, sim, wrap=None):
+        if wrap is None:
+            wrap = self._get_wrap_in_position_units(sim)
+        x1,y1,z1,x2,y2,z2 = (x.in_units(sim["pos"].units, **sim["pos"].conversion_context())
+                            if units.is_unit_like(x) else x
+                            for x in (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2))
+        if x2 < x1:
+            x2 += wrap
+        if y2 < y1:
+            y2 += wrap
+        if z2 < z1:
+            z2 += wrap
+
+        if x2 < x1 or y2 < y1 or z2 < z1:
+            raise ValueError("Cuboid boundaries are not well defined")
+
+        return x1, y1, z1, x2, y2, z2
 
     def _get_bounding_sphere(self, cuboid_boundaries):
         x1, y1, z1, x2, y2, z2 = cuboid_boundaries
@@ -230,17 +292,28 @@ class Cuboid(Filter):
             (x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2) / 2
 
     def where(self, sim):
+
         if hasattr(sim, "kdtree"):
             # KDTree doesn't currently natively find cuboid regions, so we get the bounding sphere
             # and the search for the cuboid within that
             cuboid_boundaries = self._get_boundaries(sim)
             cen, radius = self._get_bounding_sphere(cuboid_boundaries)
             in_sphere_particles = sim.kdtree.particles_in_sphere(cen, radius)
-            x, y, z = sim["pos"][in_sphere_particles].T
-            mask = self._get_mask(x, y, z, cuboid_boundaries)
+            pos = sim["pos"][in_sphere_particles]
+            wrap = self._get_wrap_in_position_units(sim)
+            mask = self._get_mask(pos, cuboid_boundaries, wrap)
             return np.sort(in_sphere_particles[mask]),
         else:
             return super().where(sim)
+
+    def cubic_cell_intersection(self, centroids):
+        boxsize, deltax = self._get_boxsize_and_delta_from_centroids(centroids)
+        shift = deltax/2
+        boundaries = (self.x1 - shift, self.y1 - shift, self.z1 - shift,
+                      self.x2 + shift, self.y2 + shift, self.z2 + shift)
+        return self._get_mask(centroids, boundaries, boxsize)
+
+
 
     def __repr__(self):
         x1, y1, z1, x2, y2, z2 = ("'%s'" % str(x)

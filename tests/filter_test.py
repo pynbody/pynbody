@@ -8,6 +8,7 @@ import pynbody
 @pytest.fixture
 def snap():
     f = pynbody.new(1000)
+    np.random.seed(1337)
     f['pos'] = np.random.normal(scale=1.0, size=f['pos'].shape)
     f['vel'] = np.random.normal(scale=1.0, size=f['vel'].shape)
     f['mass'] = np.random.uniform(1.0, 10.0, size=f['mass'].shape)
@@ -15,6 +16,22 @@ def snap():
     f['vel'].units = 'km s^-1'
     f['mass'].units = 'Msol'
     return f
+
+@pytest.fixture(params=[-0.5, 0.0], ids=["centred", "zero-origin"])
+def wrapping_snap(request):
+    f = pynbody.new(5000)
+    min = request.param
+    np.random.seed(1337)
+    f['pos'] = np.random.uniform(0, 1.0, size=f['pos'].shape) + min
+    f['vel'] = np.random.normal(scale=1.0, size=f['vel'].shape)
+    f['mass'] = np.random.uniform(1.0, 10.0, size=f['mass'].shape)
+    f['pos'].units = 'kpc'
+    f['vel'].units = 'km s^-1'
+    f['mass'].units = 'Msol'
+    f.properties['boxsize'] = 1.0
+    return f, min
+
+
 
 
 def test_sphere(snap):
@@ -27,6 +44,19 @@ def test_sphere(snap):
 
     sp_units = f[pynbody.filt.Sphere('500 pc')]
     assert len(sp_units.intersect(sp)) == len(sp)
+
+def test_wrapping_sphere(wrapping_snap):
+    f, min = wrapping_snap
+    # put a sphere at the lower left corner of the box
+    sp = f[pynbody.filt.Sphere(0.5, (min, min, min))]
+
+    f['pos']-=np.array([min, min, min]) # put our sphere at the origin and re-wrap
+    f.wrap()
+    f.wrap()
+
+    sphere_unwrapped = f[pynbody.filt.Sphere(0.5)]
+    assert (sphere_unwrapped.get_index_list(f) == sp.get_index_list(f)).all()
+
 
 
 def test_passfilters(snap):
@@ -64,6 +94,31 @@ def test_cuboid(snap, with_kdtree):
         c = f[pynbody.filt.Cuboid(x1, y1, z1, x2, y2, z2)]
         assert (c.get_index_list(f) == np.where(
             (f['x'] > x1) * (f['x'] < x2) * (f['y'] > y1) * (f['y'] < y2) * (f['z'] > z1) * (f['z'] < z2))[0]).all()
+
+def test_wrapping_cuboid(wrapping_snap):
+    snap, origin = wrapping_snap
+
+    # NB because 'wrapping' in pynbody only takes place once, if any boundaries get more than one wrap distance
+    # away from the origin, they will not be included in the wrapped box. This is a limitation of the current
+    # implementation that has been chosen for efficiency. It is likely to be completely fine for all realistic
+    # use cases. But it also means that choosing any combination of box_corner and box_size can result in a failure. The test avoids such cases.
+    for box_corner in ((0.5,0.5,0.5), (0.3, 0.5, 0.5), (0.2,-0.2,0.0)):
+        for box_size in ((0.7, 0.7, 0.5), (0.9, 0.3, 0.1), (0.2, 0.8, 0.2), (0.2, -0.2, 0.2)):
+            # nb the last box_size being 'negative' (-0.2) should be equivalent to +0.8, tested via the %1.0 in the
+            # 'unwrapped' box
+            subbox = snap[pynbody.filt.Cuboid(origin+box_corner[0], origin+box_corner[1], origin+box_corner[2],
+                                              *(origin+c+s for c,s in zip(box_corner, box_size)))]
+
+            snap['pos']-=origin+np.array(box_corner)+0.5 # put our cuboid at the bottom left
+            snap.wrap()
+            snap.wrap() # wrap twice in case any particles have ended up more than one wrap distance away
+            # (the limitation mentioned above in not being aable to move particles more than one wrap distance
+            # within the filter evaluation is a separate issue from this)
+
+            subbox_unwrapped = snap[pynbody.filt.Cuboid(-0.5, -0.5, -0.5,
+                                                        box_size[0]%1.0-0.5, box_size[1]%1.0-0.5, box_size[2]%1.0-0.5)]
+
+            assert (subbox_unwrapped.get_index_list(snap) == subbox.get_index_list(snap)).all()
 
 
 def test_logic(snap):
