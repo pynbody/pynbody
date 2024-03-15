@@ -403,9 +403,9 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal', ndim=3, max_iterat
   assert rmin >= 0
   assert rmax > rmin
   assert nbins > 0
-  if ndim==3:
+  if ndim==2:
     assert np.sum((sim['rxy'] >= rmin) & (sim['rxy'] < rmax)) > nbins*2
-  elif ndim==2:
+  elif ndim==3:
     assert np.sum((sim['r'] >= rmin) & (sim['r'] < rmax)) > nbins*2
   if bins not in ['equal', 'log', 'lin']: bins = 'equal'
 
