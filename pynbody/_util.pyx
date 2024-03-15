@@ -339,4 +339,4 @@ cpdef int is_sorted(int_or_float[:] A):
         return -1
 
 __all__ = ['grid_gen','find_boundaries', 'sum', 'sum_if_gt', 'sum_if_lt',
-           '_sphere_selection', 'binary_search', 'is_sorted']
+           'binary_search', 'is_sorted']
