@@ -115,6 +115,10 @@ def test_properties_all_halos(snap, subhalos, with_units):
     npt.assert_allclose(FoF_Mass.ravel(), properties['Mass'])
     npt.assert_allclose(FoF_CoM, properties['CenterOfMass'])
 
+    if not subhalos:
+        for i in range(5):
+            assert (h[i].properties['children'] == properties['children'][i]).all()
+
     if with_units:
         npt.assert_allclose(properties['Mass'].units.ratio(snap.infer_original_units("g")), 1.0)
         npt.assert_allclose(properties['CenterOfMass'].units.ratio(snap.infer_original_units("cm")), 1.0)
