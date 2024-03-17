@@ -55,6 +55,20 @@ class IordToOffsetSparse(IordToOffset):
         else:
             return result
 
+class IordOffsetModifier(IordToOffset):
+    """A wrapper around an IordToOffset which adds a constant offset to the result of the underlying mapping.
+
+    Useful if the iord values e.g. are only available for a single family; then the fpos_offset will correspond
+    to the first index of that family in the pynbody snapshot.
+    """
+    def __init__(self, iord_to_offset: IordToOffset, fpos_offset: int):
+        self._underlying = iord_to_offset
+        self._fpos_offset = fpos_offset
+
+    def map_ignoring_order(self, i: np.ndarray | int) -> np.ndarray | int:
+        result = self._underlying.map_ignoring_order(i)
+        result += self._fpos_offset
+        return result
 
 def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToOffset:
     """Given an array of unique integers, iord, make an object which maps from an iord value to offset in the array.

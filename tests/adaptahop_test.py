@@ -232,3 +232,20 @@ def test_halo_iteration(halos):
     assert len(h) == len(halos)
     assert h[0] is halos[1]
     assert h[-1] is halos[len(halos)]
+
+def test_dm_not_first_family(f):
+    # AdaptaHOP files only refer to DM particles, but we can't assume that DM is the first family
+    # e.g. tracer particles come first
+
+    f = pynbody.load("testdata/new_adaptahop_output_00080")
+    f_with_tracers = pynbody.new(gas_tracer=100, dm=len(f.dm), star=len(f.star), gas=len(f.gas))
+    f_with_tracers.dm['iord'] = f.dm['iord']
+    f_with_tracers.properties.update(f.properties)
+
+    halos = f.halos()
+
+    halos2 = pynbody.halo.adaptahop.NewAdaptaHOPCatalogue(f_with_tracers,
+                                 fname = "testdata/new_adaptahop_output_00080/Halos/tree_bricks080")
+
+    assert (halos2[1].dm['iord'] == halos[1].dm['iord']).all()
+    assert (halos2[2].dm['iord'] == halos[2].dm['iord']).all()
