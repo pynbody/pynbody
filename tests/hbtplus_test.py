@@ -1,5 +1,6 @@
 import warnings
 
+import numpy as np
 import numpy.testing as npt
 import pytest
 
@@ -78,11 +79,10 @@ def test_number_by_length(halos_length_ordered):
 
 def test_subsub_halos(halos, halos_length_ordered):
     h = halos_length_ordered
-    assert (h[0].properties['children'] == [  75,   79,  106,  111,  147,  148,  174,  240,
-                                              460,  216,  179,  496,  481, 2301,
-                                              783,  516,  552,  865,  233,  341,  291,  980,
-                                              949,  856,  889,  420, 1121, 1001, 1801, 1513, 1195,
-                                              39, 2084, 862]).all()
+    assert (h[0].properties['children'] == np.array([  75,   79,  106,  111,  147,  148,  174,  241,  460,  216,  179,
+        498,  480, 2298,  784,  519,  550,  869,  233,  343,  291,  974,
+        944,  860,  896,  420, 1121,  997, 1805, 1519, 1211,   39, 2045,
+        861])).all()
     assert h[0].properties['parent'] == -1
     assert h[75].properties['parent'] == 0
 

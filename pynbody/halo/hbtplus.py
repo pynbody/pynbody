@@ -41,7 +41,7 @@ class HBTPlusCatalogue(HaloCatalogue):
         elif halo_numbers == 'track':
             number_mapper = number_mapping.create_halo_number_mapper(self._file["Subhalos"]["TrackId"])
         elif halo_numbers == 'length-order':
-            osort = np.argsort(-self._file["Subhalos"]["Nbound"][:])
+            osort = np.argsort(-self._file["Subhalos"]["Nbound"][:], kind='stable')
             number_mapper = number_mapping.NonMonotonicHaloNumberMapper(osort, ordering=True, start_index=0)
         else:
             raise ValueError(f"Invalid value for halo_numbers: {halo_numbers}")

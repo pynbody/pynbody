@@ -144,7 +144,7 @@ class AHFCatalogue(HaloCatalogue):
             number_mapper = SimpleHaloNumberMapper(0, self._num_halos)
         elif halo_numbers == 'length-order' or halo_numbers == 'length-order-v1':
             npart = self._halo_properties['npart']
-            osort = np.argsort(-npart)  # this is better than argsort(npart)[::-1], because it's stable
+            osort = np.argsort(-npart, kind='stable')  # this is better than argsort(npart)[::-1], because it's stable
             if halo_numbers.endswith('v1'):
                 number_mapper = NonMonotonicHaloNumberMapper(osort, ordering=True, start_index=1)
             else:
