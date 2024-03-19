@@ -39,18 +39,16 @@ extensions = ['sphinx.ext.autodoc',
               'matplotlib.sphinxext.mathmpl',
               'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.inheritance_diagram',
+              'sphinx_copybutton',
               'numpydoc']
 
 
 
 ipython_warning_is_error = False
 
-try:
-    import IPython.sphinxext.ipython_console_highlighting
-    extensions+=['IPython.sphinxext.ipython_console_highlighting',
-                 'IPython.sphinxext.ipython_directive']
-except ImportError:
-    extensions+=['ipython_console_highlighting','ipython_directive']
+extensions+=['IPython.sphinxext.ipython_console_highlighting',
+             'IPython.sphinxext.ipython_directive']
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -66,7 +64,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pynbody'
-copyright = '2011-20, pynbody team'
+copyright = '2011-24, pynbody team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -256,3 +254,8 @@ man_pages = [
 ]
 
 autodoc_member_order = 'bysource'
+
+copybutton_copy_empty_lines = False
+copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
+copybutton_prompt_is_regexp = True
+copybutton_only_copy_prompt_lines = True
