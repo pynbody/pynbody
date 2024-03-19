@@ -120,7 +120,9 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         # dm needs to be at start of family map -- technically we will assume all particles are in dm
         # but then the parent class will use the position offsets as though they refer to the whole file
-        assert self.base._get_family_slice('dm') == slice(0, len(self._base_dm))
+        dm_offset = self.base._get_family_slice('dm').start
+        if dm_offset>0:
+            self._iord_to_fpos = iord_mapping.IordOffsetModifier(self._iord_to_fpos, dm_offset)
 
         self._halos = {}
 
