@@ -282,3 +282,18 @@ def test_kdtree_shared_mem(npart=1000):
     gc.collect()
     shared._ensure_shared_memory_clean()
     assert shared.get_num_shared_arrays() == n
+
+def test_kdtree_mixed_dtypes(npart=1000):
+    f = _make_test_gaussian(npart)
+    f.set_array_dtype('pos', np.float32)
+    f.set_array_dtype('mass', np.float64)
+    assert f['mass'].dtype == np.float64
+
+    with pytest.warns(RuntimeWarning, match="Converting mass array to float32"):
+        f.build_tree()
+
+    npt.assert_allclose(f['smooth'], f['smooth'], atol=1e-7)
+
+    # kdtree should have auto-converted the dtype
+    assert f['pos'].dtype == np.float32
+    assert f['mass'].dtype == np.float32
