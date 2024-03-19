@@ -7,11 +7,16 @@ import pytest
 import pynbody
 
 pytestmark = pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
-@pytest.fixture
-def snap():
+
+@pytest.fixture(params=[True, False], ids=['multifile', 'single-file'])
+def snap(request):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        return pynbody.load("testdata/gadget4_subfind_HBT/snapshot_034.hdf5")
+        if request.param:
+            # multifile
+            return pynbody.load("testdata/gadget4_subfind_HBT_multifile/snapshot_034.hdf5")
+        else:
+            return pynbody.load("testdata/gadget4_subfind_HBT/snapshot_034.hdf5")
 
 @pytest.fixture
 def halos(snap):
@@ -25,7 +30,7 @@ def halos_length_ordered(snap):
 def subfind_groups(snap):
     return pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap)
 
-@pytest.mark.parametrize('load_all', [True, False])
+@pytest.mark.parametrize('load_all', [True, False], ids=['load_all', 'no_load_all'])
 def test_membership(halos, load_all):
     if load_all:
         halos.load_all()

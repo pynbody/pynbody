@@ -33,8 +33,8 @@ class HBTPlusCatalogue(HaloCatalogue):
         self._file = h5py.File(hbt_filename, 'r')
 
         num_halos = int(self._file["NumberOfSubhalosInAllFiles"][0])
-        if int(self._file["NumberOfFiles"][0])>1:
-            raise ValueError("HBTPlusCatalogue does not support multi-file catalogues")
+        #if int(self._file["NumberOfFiles"][0])>1:
+        #    raise ValueError("HBTPlusCatalogue does not support multi-file catalogues")
 
         if halo_numbers is None:
             number_mapper = number_mapping.SimpleHaloNumberMapper(0, num_halos)
