@@ -3,6 +3,7 @@ import numpy.testing as npt
 
 import pynbody
 
+
 def test_2D_shape():
   f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024.gz")
   h = f.halos()
