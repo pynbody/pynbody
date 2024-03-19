@@ -536,4 +536,4 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal', ndim=3, max_iterat
     _, _, _, R_global = shape(sim, nbins=1, rmin=rmin, rmax=rmax, ndim=ndim)
     rotations = np.array([flip_axes(R_global, i) for i in rotations])
 
-  return rbins, np.squeeze(axial_ratios), N_in_bin, np.squeeze(rotations)
+  return rbins, np.squeeze(axial_ratios.T).T, N_in_bin, np.squeeze(rotations)
