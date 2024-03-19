@@ -1034,6 +1034,36 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     ############################################
     # LOW-LEVEL ARRAY MANIPULATION
     ############################################
+    def set_array_dtype(self, array_name, dtype):
+        """Change the datatype of the named array to the specified numpy dtype"""
+        if hasattr(self, 'base'):
+            self.base.set_array_dtype(array_name, dtype)
+            return
+
+        if array_name in self.keys():
+            if self[array_name].dtype == dtype:
+                return
+
+            old_array = self[array_name]
+            new_array = old_array.astype(dtype)
+            del self[array_name]
+            ndim = 1 if len(new_array.shape) < 2 else new_array.shape[1]
+            self._create_array(array_name, ndim=ndim, source_array = new_array)
+        elif array_name in self.family_keys():
+            for f in self.families():
+                if array_name in self[f].keys():
+                    if self[f][array_name].dtype == dtype:
+                        continue
+
+                    old_array = self[f][array_name]
+                    new_array = old_array.astype(dtype)
+                    ndim = 1 if len(new_array.shape) < 2 else new_array.shape[1]
+                    del self[f][array_name]
+                    self._create_family_array(array_name, f, ndim = ndim, source_array = new_array)
+        else:
+            raise KeyError(f"No such array '{array_name}'")
+
+
     def _get_preferred_dtype(self, array_name):
         """Return the 'preferred' numpy datatype for a named array.
 
@@ -1616,6 +1646,11 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             from .. import kdtree
             from ..configuration import config
             boxsize = self._get_boxsize_for_kdtree()
+            if self['pos'].dtype != self['mass'].dtype:
+                warnings.warn(f"Mass array has different dtype ({self['mass'].dtype}) from pos array ({self['pos'].dtype}). "
+                              f"Converting mass array to {self['pos'].dtype}.", RuntimeWarning)
+                self.set_array_dtype('mass', self['pos'].dtype)
+
             self.kdtree = kdtree.KDTree(self['pos'], self['mass'],
                                         leafsize=config['sph']['tree-leafsize'],
                                         boxsize=boxsize, num_threads=num_threads,
