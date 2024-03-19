@@ -1,3 +1,5 @@
+.. Last checked by AP: 18 Mar 2024
+
 .. pynbody tutorials main index
 
 .. _tutorials:
@@ -10,8 +12,8 @@ Here you will find tutorials that illustrate the use of pynbody. The
 interactive session in the ipython shell that you can follow along
 using either one of the outputs from the bundled test-data or one of
 your own simulations. To complement the walkthroughs, we also provide
-a few `IPython notebooks
-<https://github.com/pynbody/pynbody/tree/master/examples/notebooks>`_. The
+a quick-start `Jupyter notebook
+<https://github.com/pynbody/pynbody/blob/master/examples/pynbody_demo.ipynb>`_. The
 :ref:`cookbook` tutorials are more goal-oriented: they provide a
 script that can be used with only minor modifications to immediately
 produce a result (i.e. make an image). They also include, however, a

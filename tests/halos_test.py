@@ -224,6 +224,11 @@ def test_property_from_dummy():
     h = SimpleHaloCatalogue(f)
     assert h.get_dummy_halo(1).properties['testproperty'] == 1.5
 
+def test_halocat_keys():
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogue(f)
+    assert (h.keys() == np.arange(1,10)).all()
+
 def test_property_units():
     f = pynbody.new(dm=100)
     h = SimpleHaloCatalogue(f)

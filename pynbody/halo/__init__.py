@@ -251,6 +251,9 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         for i in self.number_mapper:
             yield self[i]
 
+    def keys(self):
+        return self.number_mapper.all_numbers
+
     def __getitem__(self, item) -> Halo | SubhaloCatalogue:
         from .subhalo_catalogue import SubhaloCatalogue
         if isinstance(item, slice):

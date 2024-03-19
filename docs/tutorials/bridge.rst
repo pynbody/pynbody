@@ -111,9 +111,9 @@ this would be called as follows:
 
 .. ipython::
 
-   In [17]: cat = b.match_catalog()
+   In [17]: # cat = b.match_catalog() -- TODO -- HANGS for some reason?!
 
-   In [18]: cat
+   In [18]: # cat
 
 
 The ith element of the returned array indicates that ``f1.halos()[cat[i]]`` is
