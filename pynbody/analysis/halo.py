@@ -525,7 +525,7 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal', ndim=3, max_iterat
 
     # Ensure consistent coordinate system:
     if np.sign(np.linalg.det(R)) == -1:
-      R *= -1
+      R[:,1] *= -1
 
     # Update profile arrays:
     a = np.flip(np.sort(a))
