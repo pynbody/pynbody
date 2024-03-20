@@ -490,7 +490,7 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal', ndim=3, max_iterat
       bin_edges = full_bins[0:nbins*2+1:2]
       rbins = full_bins[1:nbins*2+1:2]
   elif (bins == 'log'): # Bins are logarithmically spaced
-      bin_edges = np.logspace(np.log10(rmin), np.log10(max), nbins+1)
+      bin_edges = np.logspace(np.log10(rmin), np.log10(rmax), nbins+1)
       rbins = np.sqrt(bin_edges[:-1] * bin_edges[1:])
   elif (bins == 'lin'): # Bins are linearly spaced
       bin_edges = np.linspace(rmin, rmax, nbins+1)
