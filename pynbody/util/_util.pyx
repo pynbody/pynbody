@@ -10,7 +10,7 @@ from cython.parallel cimport prange
 from libc.math cimport atan, pow
 from libc.stdlib cimport free, malloc
 
-from . import config
+from pynbody import config
 
 ctypedef fused fused_float:
     np.float32_t

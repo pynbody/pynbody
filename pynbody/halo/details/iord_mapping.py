@@ -4,7 +4,7 @@ import abc
 
 import numpy as np
 
-from pynbody._util import binary_search, is_sorted
+from pynbody.util import binary_search, is_sorted
 
 
 class IordToOffset(abc.ABC):
