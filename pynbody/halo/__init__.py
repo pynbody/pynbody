@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Iterable
 import numpy as np
 from numpy.typing import NDArray
 
-from .. import iter_subclasses, snapshot, util
+from .. import iter_subclasses, snapshot, util, units
 from .details.iord_mapping import make_iord_to_offset_mapper
 from .details.number_mapping import MonotonicHaloNumberMapper, create_halo_number_mapper
 from .details.particle_indices import HaloParticleIndices
@@ -227,7 +227,8 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         if self._properties is None:
             return self.get_properties_one_halo(halo_number)
         else:
-            return {k: self._properties[k][halo_index] for k in self._properties}
+            return {k: units.get_item_with_unit(self._properties[k],halo_index)
+                    for k in self._properties}
 
     def _get_halo(self, halo_number) -> Halo:
         halo_index = self.number_mapper.number_to_index(halo_number)
