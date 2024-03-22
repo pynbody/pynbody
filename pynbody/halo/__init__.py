@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Iterable
 import numpy as np
 from numpy.typing import NDArray
 
-from .. import iter_subclasses, snapshot, util, units
+from .. import iter_subclasses, snapshot, units, util
 from .details.iord_mapping import make_iord_to_offset_mapper
 from .details.number_mapping import MonotonicHaloNumberMapper, create_halo_number_mapper
 from .details.particle_indices import HaloParticleIndices
