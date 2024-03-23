@@ -29,8 +29,8 @@ class SharedMemorySimArray(SimArray):
         global _owned_shared_memory_names
         if hasattr(self, '_shared_fname'):
             if self._shared_fname in _owned_shared_memory_names:
-                posix_ipc.unlink_shared_memory(self._shared_fname)
                 _owned_shared_memory_names.remove(self._shared_fname)
+                posix_ipc.unlink_shared_memory(self._shared_fname)
 
 def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
                       offset = None, strides = None) -> SharedMemorySimArray:

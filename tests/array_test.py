@@ -213,7 +213,8 @@ def test_shared_arrays():
     # now let's see if we can transfer it to another process:
 
     import multiprocessing as mp
-    p = mp.Process(target=_test_and_alter_shared_value, args=(pyn_array.shared._shared_array_deconstruct(ar),))
+    context = mp.get_context('spawn')
+    p = context.Process(target=_test_and_alter_shared_value, args=(pyn_array.shared._shared_array_deconstruct(ar),))
     p.start()
     p.join()
 
