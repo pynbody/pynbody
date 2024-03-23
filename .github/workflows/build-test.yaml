@@ -30,7 +30,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - uses: actions/checkout@v4
     - name: Cache testdata
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: cache-testdata
       with:
         path: tests/testdata
