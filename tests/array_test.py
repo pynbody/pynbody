@@ -264,7 +264,7 @@ def test_shared_arrays_cleaned_on_kill():
 
 
 def _assert_shared_memory_cleaned_up():
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(pynbody.array.shared.SharedArrayNotFound):
         _ = shared.make_shared_array((10,), dtype=np.int32, zeros=False,
                                      fname="pynbody-test-cleanup", create=False)
 

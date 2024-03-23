@@ -1,12 +1,14 @@
 """Support for numpy arrays in shared memory."""
 import atexit
 import functools
+import mmap
 import os
 import random
+import posix_ipc
+import sys
 import time
 import weakref
 from functools import reduce
-from multiprocessing import shared_memory as shmem
 from threading import Timer
 
 import numpy as np
@@ -16,26 +18,23 @@ from . import SimArray
 
 DELAY_BEFORE_CLOSING_SHARED_MEM = float(config_parser.get('shared-array', 'cleanup-delay'))
 
-# weakrefs to all buffers created from the shared memory, so we can close the shared memory when they are garbage collected:
-_buf_weakrefs: list[weakref.ref[memoryview]] = []
-_mem_weakrefs_to_unlink: list[weakref.ref[shmem.SharedMemory]] = []
-_pending_cleanups: list[Timer] = [] # a list of timers that are waiting to clean up shared memory
+_owned_shared_memory_names = []
 
+class SharedArrayNotFound(OSError):
+    pass
 
-class QuietSharedMemory(shmem.SharedMemory):
-    """A wrapper around SharedMemory that doesn't print an error message if __del__ is called and mem is still mapped"""
+class SharedMemorySimArray(SimArray):
+    __slots__ = ['_shared_fname']
+    _shared_fname: str
+
     def __del__(self):
-        try:
-            shmem.SharedMemory.__del__(self)
-        except BufferError:
-            # When python exits, there is simply no way to avoid __del__ being called, but the numpy arrays
-            # are still alive and so __del__ generates this exception. We can't do anything about it.
-            # This isn't really such a problem. When python exits, it will eventually close the memory anyway.
-            # The more important thing is that the shared memory gets unlinked, which is handled by our
-            # at exit handler below.
-            pass
+        if hasattr(self, '_shared_fname'):
+            if self._shared_fname in _owned_shared_memory_names:
+                posix_ipc.unlink_shared_memory(self._shared_fname)
+                _owned_shared_memory_names.remove(self._shared_fname)
 
-def make_shared_array(dims, dtype, zeros=False, fname=None, create=True):
+def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
+                      offset = None, strides = None) -> SharedMemorySimArray:
     """Create an array of dimensions *dims* with the given numpy *dtype*.
 
     Parameters
@@ -54,6 +53,10 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True):
         Whether to create the shared array, or to open existing shared memory. If the latter,
         the fname must be specified and the caller is responsible for making sure the dtype
         and dims match the original array.
+    offset: int, optional
+        The offset into the shared memory to use. This is only valid with create=False
+    strides: tuple, optional
+        The strides to use. This is only valid with create=False
     """
     if fname is None:
         if not create:
@@ -77,14 +80,33 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True):
     else:
         size = dims
 
-    mem = QuietSharedMemory(fname, create=create, size=int(np.dtype(dtype).itemsize*size))
-    _mem_weakrefs_to_unlink.append(weakref.ref(mem))
+    if create:
+        if offset is not None:
+            raise ValueError("Offset only valid when opening an existing shared array")
+        if strides is not None:
+            raise ValueError("Strides only valid when opening an existing shared array")
+        mem = posix_ipc.SharedMemory(fname, posix_ipc.O_CREX, size=int(np.dtype(dtype).itemsize*size))
+    else:
+        try:
+            mem = posix_ipc.SharedMemory(fname)
+        except posix_ipc.ExistentialError:
+            raise SharedArrayNotFound(f"No shared memory found with name {fname}") from None
 
-    buffer = _get_auto_closing_shared_memory_buffer(mem, unlink=create, dtype=dtype, size=size)
+    mapped_mem = mmap.mmap(mem.fd, mem.size)
+    mem.close_fd()
 
-    ret_ar = buffer.reshape(dims).view(SimArray)
 
+    if create:
+        _owned_shared_memory_names.append(fname)
+
+    if offset is None:
+        offset = 0
+
+    ret_ar = np.frombuffer(mapped_mem, dtype=dtype, count=size, offset=offset).reshape(dims).view(SharedMemorySimArray)
     ret_ar._shared_fname = fname
+
+    if strides:
+        ret_ar.strides = strides
 
     if zero_size:
         ret_ar = ret_ar[1:]
@@ -95,94 +117,29 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True):
     return ret_ar
 
 @atexit.register
-def atex():
-    import gc
-    gc.collect()
-
-    memory_to_unlink = [m() for m in _mem_weakrefs_to_unlink if m() is not None]
-
-    _ensure_shared_memory_clean(stop_tracking=True)
-
-    # if numpy arrays are still alive, the above fails to clean them up.
-    # here is the last line of defence against leaving shared memory in place.
-    # we don't try to close() because that throws an error when the memory is still
-    # 'claimed' by a numpy object
-    for m in memory_to_unlink:
+def delete_dangling_shared_memory():
+    """Ensures that all shared memory has been cleaned up."""
+    for fname in _owned_shared_memory_names:
         try:
-            m.unlink()
-        except FileNotFoundError:
+            posix_ipc.unlink_shared_memory(fname)
+        except posix_ipc.ExistentialError:
             pass
 
 
-def _ensure_shared_memory_clean(stop_tracking=False):
-    """Ensures that all shared memory has been cleaned up. This is called
-    automatically by the shared array code, but can be called manually if
-    required
+def _ensure_shared_memory_clean():
+    """TO BE REMOVED"""
+    pass
 
-    If stop_tracking is True, then we stop tracking the shared memory
-    (used when the shared memory is about to be forcibly cleaned up at exit)"""
-    global _pending_cleanups
-
-    for t in _pending_cleanups:
-        if t.is_alive():
-            t.join()
-    _pending_cleanups = []
-
-    global _buf_weakrefs
-    if stop_tracking:
-        _buf_weakrefs = []
-    else:
-        _buf_weakrefs = [w for w in _buf_weakrefs if w() is not None]
 
 
 def get_num_shared_arrays():
     """Returns the number of shared arrays currently in use."""
     _ensure_shared_memory_clean()
     global _buf_weakrefs
-    return len(_buf_weakrefs)
+    return len(_owned_shared_memory_names)
 
 
-def _get_auto_closing_shared_memory_buffer(mem: shmem.SharedMemory, unlink=False, dtype=np.float32, size=0, offset=0) -> memoryview:
-    """Returns a buffer object for the shared memory, and sets up a callback so that the shared memory will be closed
-    when the buffer is garbage collected.
 
-    If *unlink* is True, the shared memory will also be unlinked at the same time."""
-    global _buf_weakrefs
-
-    # mem.buf is stored internally to mem, so we won't be able to detect when it's no longer referenced while also
-    # keeping the mem alive. So we create our own buffer that we can keep a weakref to, and then we can close the
-    # shared memory when our own buffer is garbage collected.
-    buf = np.frombuffer(mem.buf, dtype=dtype, count=size, offset=offset)
-
-    def clearup_callback(_):
-        def clearup_after_delay():
-            try:
-                mem.close()
-            except BufferError:
-                # this shouldn't happen, but might do if DELAY_BEFORE_CLOSING_SHARED_MEM is too short.
-                # sleep a while and try again. If it fails again, something is really wrong.
-                time.sleep(DELAY_BEFORE_CLOSING_SHARED_MEM)
-                mem.close()
-            if unlink:
-                mem.unlink()
-
-        # the following "callback" approach is necessitated because at the time when clearup is called, the numpy
-        # reference to the buffer is still alive, and mem.close() will fail with an exception. It is
-        # really ugly, and could in principle fail if the deletion of the numpy object proceeds too slowly.
-        # But have tried very hard to find an alternative approach, and this is the only one that works
-        # reliably. The other alternative would be a C extension that manually detaches the buffer from
-        # the underlying memory, but that would risk segmentation faults if actually the buffer is still in
-        # use.
-        t = Timer(DELAY_BEFORE_CLOSING_SHARED_MEM, clearup_after_delay)
-        t.start()
-        _pending_cleanups.append(t) # a record of the timer is kept just in case we want to verify that it has been called
-
-    _buf_weakrefs.append(weakref.ref(buf, clearup_callback))
-    # nb the closure of clearup_callback keeps the mem alive, so we don't need to keep a reference to it explicitly
-    # (we don't want mem to be garbage collected until the buffer is garbage collected, otherwise
-    # its __del__ method spews an error, for similar reasons to those discussed above)
-
-    return buf
 
 
 class _deconstructed_shared_array(tuple):
@@ -200,7 +157,7 @@ def _shared_array_deconstruct(ar, transfer_ownership=False):
     while isinstance(ar_base.base, SimArray):
         ar_base = ar_base.base
 
-    assert hasattr(ar_base,'_shared_fname'), "Cannot prepare an array for shared use unless it was created in shared memory"
+    assert isinstance(ar_base, SharedMemorySimArray), "Cannot prepare an array for shared use unless it was created in shared memory"
 
     ownership_out = transfer_ownership and ar_base._shared_del
     if transfer_ownership:
@@ -219,15 +176,7 @@ def _shared_array_reconstruct(X):
 
     assert not ownership # transferring ownership not actually supported in current implementation
 
-    mem = QuietSharedMemory(fname)
-
-    size = reduce(np.multiply, dims)
-    buf = _get_auto_closing_shared_memory_buffer(mem, unlink=False, dtype=dtype, size=size, offset=offset)
-
-    new_ar = buf.reshape(dims).view(SimArray)
-
-    new_ar.strides = strides
-    new_ar._shared_fname = fname
+    new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides)
 
     return new_ar
 
