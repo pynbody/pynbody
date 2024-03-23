@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Iterable
 import numpy as np
 from numpy.typing import NDArray
 
-from .. import iter_subclasses, snapshot, util
+from .. import iter_subclasses, snapshot, units, util
 from .details.iord_mapping import make_iord_to_offset_mapper
 from .details.number_mapping import MonotonicHaloNumberMapper, create_halo_number_mapper
 from .details.particle_indices import HaloParticleIndices
@@ -148,15 +148,19 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         self._base: weakref[snapshot.SimSnap] = weakref.ref(sim)
         self.number_mapper: MonotonicHaloNumberMapper = number_mapper
         self._index_lists: HaloParticleIndices | None = None
+        self._properties: dict | None = None
         self._cached_halos: dict[int, Halo] = {}
 
     def load_all(self):
         """Loads all halos, which is normally more efficient if a large fraction of them will be accessed."""
         if not self._index_lists:
             index_lists = self._get_all_particle_indices()
+            properties = self.get_properties_all_halos(with_units=True)
             if isinstance(index_lists, tuple):
                 index_lists = HaloParticleIndices(*index_lists)
             self._index_lists = index_lists
+            if len(properties)>0:
+                self._properties = properties
 
     @util.deprecated("precalculate has been renamed to load_all")
     def precalculate(self):
@@ -203,11 +207,9 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             self.number_mapper.number_to_index(halo_number)
         )
 
-    def _get_particle_indices_one_halo_using_list_if_available(self, halo_number) -> NDArray[int]:
+    def _get_particle_indices_one_halo_using_list_if_available(self, halo_number, halo_index) -> NDArray[int]:
         if self._index_lists:
-            return self._index_lists.get_particle_index_list_for_halo(
-                self.number_mapper.number_to_index(halo_number)
-            )
+            return self._index_lists.get_particle_index_list_for_halo(halo_index)
         else:
             if len(self._cached_halos) == 5:
                 warnings.warn("Accessing multiple halos may be more efficient if you call load_all() on the "
@@ -221,9 +223,19 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             self._cached_halos[halo_number] = self._get_halo(halo_number)
         return self._cached_halos[halo_number]
 
+    def _get_properties_one_halo_using_cache_if_available(self, halo_number, halo_index):
+        if self._properties is None:
+            return self.get_properties_one_halo(halo_number)
+        else:
+            return {k: units.get_item_with_unit(self._properties[k],halo_index)
+                    for k in self._properties}
+
     def _get_halo(self, halo_number) -> Halo:
-        return Halo(halo_number, self.get_properties_one_halo(halo_number), self, self.base,
-                    self._get_particle_indices_one_halo_using_list_if_available(halo_number))
+        halo_index = self.number_mapper.number_to_index(halo_number)
+        return Halo(halo_number,
+                    self._get_properties_one_halo_using_cache_if_available(halo_number, halo_index),
+                    self, self.base,
+                    self._get_particle_indices_one_halo_using_list_if_available(halo_number, halo_index))
 
     def get_dummy_halo(self, halo_number) -> DummyHalo:
         """Return a DummyHalo object containing only the halo properties, no particle information"""

@@ -54,7 +54,7 @@ def test_halo_loading(snap, load_all) :
           2913929, 2881289, 2896517, 2995969,  832898,  865671,  832639]).all()
 
     assert h[0].properties['NsubPerHalo'] == 6
-    assert (h[0].properties['children'] == [0, 1, 2, 3, 4, 5]).all()
+    assert np.all(h[0].properties['children'] == [0, 1, 2, 3, 4, 5])
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=RuntimeWarning, message="Accessing multiple halos")
@@ -125,9 +125,9 @@ def test_properties_all_halos(snap, subhalos, with_units):
     else:
         assert not hasattr(properties['Mass'], 'units')
 
-
-
-def test_halo_values(snap) :
+@pytest.mark.filterwarnings("ignore:Accessing multiple halos")
+@pytest.mark.parametrize('load_all', (True, False))
+def test_halo_values(snap, load_all) :
     """ Check that halo values (and sizes) agree with pyread_gadget_hdf5 """
 
     filesub = 'testdata/gadget3/data/subhalos_103/subhalo_103'
@@ -143,7 +143,8 @@ def test_halo_values(snap) :
     OffsetHalo[0]=0 ## To start counter
 
     h = snap.halos()
-    h.load_all()
+    if load_all:
+        h.load_all()
 
     FoF_CoM = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'CenterOfMass', sub_dir='fof', nopanda=True, silent=True)
     Sub_CoM = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'CenterOfMass', sub_dir='subfind', nopanda=True, silent=True)
@@ -185,8 +186,10 @@ def test_halo_values(snap) :
             FoF_Temp[FoF_Offset[i]:FoF_Offset[i]+FoF_Length[i]],
         )
 
-def test_halo_properties_physical_units(snap):
+@pytest.mark.parametrize('load_all', (True, False))
+def test_halo_properties_physical_units(snap, load_all):
     h = snap.halos()
-    h.load_all()
+    if load_all:
+        h.load_all()
     h.physical_units()
     npt.assert_allclose(h[0].properties['CenterOfMass'], [1242.67381894, 1571.45917479, 2232.62036159])

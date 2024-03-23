@@ -10,7 +10,7 @@ from cython.parallel cimport prange
 from libc.math cimport atan, pow
 from libc.stdlib cimport free, malloc
 
-from . import config
+from pynbody import config
 
 ctypedef fused fused_float:
     np.float32_t
@@ -120,10 +120,10 @@ def grid_gen(indices_or_slice,  nx,  ny,  nz, pos=None):
     values). If *pos* is not None, copy the results into the array; otherwise
     create a new array for the results and return it."""
 
-    from . import util
+    from . import indexing_length
 
     if pos is None:
-        pos = np.empty((util.indexing_length(indices_or_slice), 3),dtype=float)
+        pos = np.empty((indexing_length(indices_or_slice), 3),dtype=float)
 
     if isinstance(indices_or_slice, slice):
         _grid_gen_from_slice(indices_or_slice,nx,ny,nz,pos)

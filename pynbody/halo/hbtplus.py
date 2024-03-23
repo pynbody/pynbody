@@ -34,14 +34,20 @@ class HBTPlusCatalogue(HaloCatalogue):
 
         num_halos = int(self._file["NumberOfSubhalosInAllFiles"][0])
         if int(self._file["NumberOfFiles"][0])>1:
-            raise ValueError("HBTPlusCatalogue does not support multi-file catalogues")
+            from ..util import hdf_vds
+            hbt_filename = str(hbt_filename)[:-7]
+            all_files = [f"{hbt_filename}.{num}.hdf5" for num in range(int(self._file["NumberOfFiles"][0]))]
+            maker = hdf_vds.HdfVdsMaker(all_files)
+            self._file = maker.get_temporary_hdf_vfile()
+
+        self._trackid_number_mapper = number_mapping.create_halo_number_mapper(self._file["Subhalos"]["TrackId"])
 
         if halo_numbers is None:
             number_mapper = number_mapping.SimpleHaloNumberMapper(0, num_halos)
         elif halo_numbers == 'track':
-            number_mapper = number_mapping.create_halo_number_mapper(self._file["Subhalos"]["TrackId"])
+            number_mapper = self._trackid_number_mapper
         elif halo_numbers == 'length-order':
-            osort = np.argsort(-self._file["Subhalos"]["Nbound"][:])
+            osort = np.argsort(-self._file["Subhalos"]["Nbound"][:], kind='stable')
             number_mapper = number_mapping.NonMonotonicHaloNumberMapper(osort, ordering=True, start_index=0)
         else:
             raise ValueError(f"Invalid value for halo_numbers: {halo_numbers}")
@@ -76,10 +82,20 @@ class HBTPlusCatalogue(HaloCatalogue):
         parents = np.empty(len(self), dtype=np.intp)
         parents.fill(-1)
         for i in range(len(self)):
-            for child in self._file["NestedSubhalos"][i]:
+            for child in self._trackid_number_mapper.number_to_index(self._file["NestedSubhalos"][i]):
                 parents[child] = self.number_mapper.index_to_number(i)
 
         self._parents = parents
+
+    def _map_trackid_to_pynbody_number(self, trackid: NDArray[int]) -> NDArray[int]:
+        if self.number_mapper is self._trackid_number_mapper:
+            return trackid
+        else:
+            return self.number_mapper.index_to_number(
+                self._trackid_number_mapper.number_to_index(
+                  trackid
+                )
+            )
 
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
         self._init_iord_to_fpos()
@@ -133,7 +149,7 @@ class HBTPlusCatalogue(HaloCatalogue):
         return result
 
     def _get_children_one_halo(self, index) -> NDArray[int]:
-        return self.number_mapper.index_to_number(self._file["NestedSubhalos"][index])
+        return self._map_trackid_to_pynbody_number(self._file["NestedSubhalos"][index])
 
 
 
@@ -165,8 +181,8 @@ class HBTPlusCatalogueWithGroups(HaloCatalogue):
         if self._hbt_host_groups.max() >= len(group_cat):
             raise ValueError("The HBT+ catalogue contains host groups that are not in the group catalogue")
         self._children = [[] for _ in range(len(group_cat))]
-        for p in range(len(hbt_cat)):
-            self._children[self._hbt_host_groups[p]].append(p)
+        for hbt_index, hbt_number in enumerate(hbt_cat.number_mapper):
+            self._children[self._hbt_host_groups[hbt_index]].append(hbt_number)
         self._children = [np.array(c) for c in self._children]
 
         super().__init__(group_cat.base, group_cat.number_mapper)

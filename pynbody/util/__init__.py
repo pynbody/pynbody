@@ -24,8 +24,8 @@ from typing import Union
 
 import numpy as np
 
-from . import units
-from .array import SimArray
+from .. import units
+from ..array import SimArray
 
 logger = logging.getLogger('pynbody.util')
 from ._util import *

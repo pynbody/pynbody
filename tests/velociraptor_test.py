@@ -46,11 +46,11 @@ def test_swift_velociraptor(load_all):
     assert (np.sort(h[20]['iord']) == np.sort(testvals)).all()
 
 
+@pytest.mark.filterwarnings("ignore:Accessing multiple halos")
 @pytest.mark.parametrize("use_all", [True, False])
 def test_swift_velociraptor_parents_and_children(use_all):
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
     h = pynbody.halo.velociraptor.VelociraptorCatalogue(f)
-    h.load_all()
 
     if use_all:
         properties = h.get_properties_all_halos()
@@ -71,10 +71,13 @@ def test_swift_velociraptor_parents_and_children(use_all):
     assert (getter('children', 4) == [205, 207]).all()
     assert getter('parent', 203) == 1
 
-def test_swift_velociraptor_properties():
+@pytest.mark.filterwarnings("ignore:Accessing multiple halos")
+@pytest.mark.parametrize("load_all", [True, False])
+def test_swift_velociraptor_properties(load_all):
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
     h = pynbody.halo.velociraptor.VelociraptorCatalogue(f)
-    h.load_all()
+    if load_all:
+        h.load_all()
 
     assert np.allclose(float(h[1].properties['Lx']), -90787.3983020414e13)
     assert np.allclose(float(h[10].properties['Lx']), -73881.83861892551e13)
