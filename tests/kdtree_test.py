@@ -268,17 +268,16 @@ def _make_test_gaussian(npart):
 
 def test_kdtree_shared_mem(npart=1000):
     f = _make_test_gaussian(npart)
-    n = shared.get_num_shared_arrays()
+    n = shared.get_num_shared_arrays_owned()
     f.build_tree(shared_mem=False)
-    assert shared.get_num_shared_arrays() == n
+    assert shared.get_num_shared_arrays_owned() == n
     del f
 
     f = _make_test_gaussian(npart)
     f.build_tree(shared_mem=True)
-    assert shared.get_num_shared_arrays() == 2+n
+    assert shared.get_num_shared_arrays_owned() == 2 + n
     assert f.kdtree.kdnodes._shared_fname.startswith('pynbody')
     assert f.kdtree.particle_offsets._shared_fname.startswith('pynbody')
     del f
     gc.collect()
-    shared._ensure_shared_memory_clean()
-    assert shared.get_num_shared_arrays() == n
+    assert shared.get_num_shared_arrays_owned() == n

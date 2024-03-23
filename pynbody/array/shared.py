@@ -4,14 +4,12 @@ import functools
 import mmap
 import os
 import random
-import posix_ipc
-import sys
+import signal
 import time
-import weakref
 from functools import reduce
-from threading import Timer
 
 import numpy as np
+import posix_ipc
 
 from ..configuration import config_parser
 from . import SimArray
@@ -28,6 +26,7 @@ class SharedMemorySimArray(SimArray):
     _shared_fname: str
 
     def __del__(self):
+        global _owned_shared_memory_names
         if hasattr(self, '_shared_fname'):
             if self._shared_fname in _owned_shared_memory_names:
                 posix_ipc.unlink_shared_memory(self._shared_fname)
@@ -66,8 +65,6 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
                 ("".join([random.choice('abcdefghijklmnopqrstuvwxyz')
                           for _ in range(10)]))
 
-    _ensure_shared_memory_clean()
-
     if not hasattr(dims, '__len__'):
         dims = (dims,)
 
@@ -81,11 +78,14 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
         size = dims
 
     if create:
+        _register_sigterm_handler()
         if offset is not None:
             raise ValueError("Offset only valid when opening an existing shared array")
         if strides is not None:
             raise ValueError("Strides only valid when opening an existing shared array")
         mem = posix_ipc.SharedMemory(fname, posix_ipc.O_CREX, size=int(np.dtype(dtype).itemsize*size))
+        _owned_shared_memory_names.append(fname)
+
     else:
         try:
             mem = posix_ipc.SharedMemory(fname)
@@ -94,10 +94,6 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
 
     mapped_mem = mmap.mmap(mem.fd, mem.size)
     mem.close_fd()
-
-
-    if create:
-        _owned_shared_memory_names.append(fname)
 
     if offset is None:
         offset = 0
@@ -119,32 +115,36 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
 @atexit.register
 def delete_dangling_shared_memory():
     """Ensures that all shared memory has been cleaned up."""
+    global _owned_shared_memory_names
+
     for fname in _owned_shared_memory_names:
         try:
             posix_ipc.unlink_shared_memory(fname)
         except posix_ipc.ExistentialError:
             pass
+    _owned_shared_memory_names = []
 
+_sigterm_handler_is_registered = False
 
-def _ensure_shared_memory_clean():
-    """TO BE REMOVED"""
-    pass
+def _sigterm_handler(signum, frame):
+    delete_dangling_shared_memory()
 
+def _register_sigterm_handler():
+    """Registers a handler to clean up shared memory in the event of a SIGTERM signal."""
+    global _sigterm_handler_is_registered
+    if not _sigterm_handler_is_registered:
+        signal.signal(signal.SIGTERM, _sigterm_handler)
+        _sigterm_handler_is_registered = True
 
+def get_num_shared_arrays_owned():
+    """Returns the number of shared arrays currently owned by this process.
 
-def get_num_shared_arrays():
-    """Returns the number of shared arrays currently in use."""
-    _ensure_shared_memory_clean()
-    global _buf_weakrefs
+    A shared array is only considered owned if this process is reponsible for unlinking it on exit.
+    """
     return len(_owned_shared_memory_names)
-
-
-
-
 
 class _deconstructed_shared_array(tuple):
     pass
-
 
 def _shared_array_deconstruct(ar, transfer_ownership=False):
     """Deconstruct an array backed onto shared memory into something that can be
@@ -171,7 +171,6 @@ def _shared_array_deconstruct(ar, transfer_ownership=False):
 
 
 def _shared_array_reconstruct(X):
-    _ensure_shared_memory_clean()
     dtype, dims, fname, ownership, offset, strides = X
 
     assert not ownership # transferring ownership not actually supported in current implementation
@@ -212,11 +211,10 @@ class RemoteKeyboardInterrupt(Exception):
 
 
 def shared_array_remote(fn):
-    """A decorator for functions returning a new function that is
-    suitable for use remotely. Inputs to and outputs from the function
-    can be transferred efficiently if they are backed onto shared
-    memory. Ownership of any shared memory returned by the function
-    is transferred."""
+    """A decorator for functions that are expected to run on a 'remote' process, accepting shared memory inputs.
+
+    The decorator reconstructs any shared memory arrays that have been 'deconstructed' into a reference by remote_map
+    """
 
     @functools.wraps(fn)
     def new_fn(args, **kwargs):
@@ -239,10 +237,9 @@ def shared_array_remote(fn):
 
 
 def remote_map(pool, fn, *iterables):
-    """A replacement for python's in-built map function, sending out tasks
-    to the pool and performing the magic required to transport shared memory arrays
-    correctly. The function *fn* must be wrapped with the *shared_array_remote*
-    decorator to interface correctly with this magic."""
+    """Equivalent to pool.map, but turns any shared memory arrays into a reference that can be passed between processes.
+
+    The function *fn* must be wrapped with the *shared_array_remote* decorator for this to work correctly."""
 
     assert getattr(fn, '__pynbody_remote_array__',
                    False), "Function must be wrapped with shared_array_remote to use shared arrays"
