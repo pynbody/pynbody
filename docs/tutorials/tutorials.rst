@@ -29,10 +29,10 @@ Walkthroughs
 .. toctree::
    :maxdepth: 1
 
-   A first look at your data with pynbody <snapshot_manipulation>
-   Basic data access <data_access>
-   Subviews and Filters <filters>
-   Tracing particles across different snapshots <bridge>
+   Quick-start <snapshot_manipulation>
+   Reading data <data_access>
+   Filtering data <filters>
+   Linking snapshots <bridge>
 
 .. _cookbook:
 
@@ -44,9 +44,9 @@ Cookbook/Recipes
 
    Profiles <profile>
    Rotation curves <rotation_curve>
-   Making Pictures <pictures>
-   Group finding <halos>
-   Halo mass Function <hmf>
+   Images <pictures>
+   Halos <halos>
+   Halo mass function <hmf>
 
 
 .. _advanced_topics:
@@ -59,6 +59,6 @@ These tutorials are likely to be of interest only in special cases.
 .. toctree::
    :maxdepth: 1
 
-   Performance issues <performance>
-   Configuring Pynbody <configuration>
-   Understanding threading <threads>
+   Performance <performance>
+   Configuration <configuration>
+   Threading/multiprocessing <threads>
