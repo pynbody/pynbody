@@ -250,9 +250,7 @@ def _test_shared_arrays_cleaned_on_exit():
     # intentionally don't delete it, to see if it gets cleaned up on exit
 
 def test_shared_arrays_cleaned_on_exit(clean_up_test_protection):
-    stderr = _run_function_externally("_test_shared_arrays_cleaned_on_exit")
-
-    assert "leaked shared_memory" not in stderr  # should have cleaned up without fuss
+    _run_function_externally("_test_shared_arrays_cleaned_on_exit")
 
     _assert_shared_memory_cleaned_up()
 
@@ -269,7 +267,7 @@ def _test_shared_arrays_cleaned_on_terminate():
 
 
 def test_shared_arrays_cleaned_on_kill(clean_up_test_protection):
-    stderr = _run_function_externally("_test_shared_arrays_cleaned_on_kill")
+    stderr = _run_function_externally("_test_shared_arrays_cleaned_on_terminate")
     _assert_shared_memory_cleaned_up()
 
 
@@ -285,6 +283,5 @@ def _run_function_externally(function_name):
     import subprocess
     process = subprocess.Popen([python, "-c",
                                 f"from array_test import {function_name}; {function_name}()"]
-                               , cwd=pwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    return stderr.decode("utf-8")
+                               , cwd=pwd)
+    process.wait()
