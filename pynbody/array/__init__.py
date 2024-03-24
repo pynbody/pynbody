@@ -693,10 +693,10 @@ for f in np.ndarray.__lt__, np.ndarray.__le__, np.ndarray.__eq__, \
     # N.B. cannot use functools.partial because it doesn't implement the descriptor
     # protocol
     @functools.wraps(f, assigned=("__name__", "__doc__"))
-    def wrapper_function(self, other, comparison_op=f):
+    def _wrapper_function(self, other, comparison_op=f):
         return _unit_aware_comparison(self, other, comparison_op=comparison_op)
 
-    setattr(SimArray, f.__name__, wrapper_function)
+    setattr(SimArray, f.__name__, _wrapper_function)
 
 
 # Now add dirty bit setters to all the operations which are known
@@ -963,9 +963,9 @@ def _wrap_fn(w):
 _override = "__eq__", "__ne__", "__gt__", "__ge__", "__lt__", "__le__"
 
 for x in set(np.ndarray.__dict__).union(SimArray.__dict__):
-    w = getattr(SimArray, x)
-    if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and hasattr(w, '__call__') and x!="__buffer__":
-        setattr(IndexedSimArray, x, _wrap_fn(w))
+    _w = getattr(SimArray, x)
+    if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and hasattr(_w, '__call__') and x!="__buffer__":
+        setattr(IndexedSimArray, x, _wrap_fn(_w))
 
 
 def _array_factory(dims, dtype, zeros, shared):

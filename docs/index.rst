@@ -44,40 +44,6 @@ your own back to the project using a `pull request
 <https://help.github.com/articles/using-pull-requests>`_.
 
 
-Where next?
------------
-
-Consult the :doc:`installation` documentation for instructions on how
-to get going. Then you might like to download some `test data
-<https://github.com/pynbody/pynbody/releases>`_ and try out the
-:ref:`first steps tutorial <snapshot_manipulation>` which gets straight
-to some of pynbody's analysis features. Or, if you prefer to learn
-a little more of how your data is organized, we also provide a :ref:`data
-access walkthrough <data-access>`.
-
-Our full documentation is organized into three sections:
-
-.. toctree::
-   :maxdepth: 1
-
-   Installation <installation>
-   Tutorials & walkthroughs <tutorials/tutorials>
-   Reference <reference/index>
-
-
-All of the information in the reference guide is also available
-through the interactive python help system. In ipython or Jupyter, this is as
-easy as putting a ``?`` at the end of a command:
-
-.. ipython::
-
-   In [1]: import pynbody
-
-   In [2]: pynbody.load?
-
-
-
-.. _getting-help:
 
 .. _acknowledging-pynbody:
 
@@ -96,3 +62,26 @@ using the following BibTex::
      note = {Astrophysics Source Code Library, ascl:1305.002},
      year = 2013
    }
+
+
+
+Where next?
+-----------
+
+Consult the :doc:`installation` documentation for instructions on how
+to get going. Then you might like to download some `test data
+<https://github.com/pynbody/pynbody/releases>`_ and try out the
+:ref:`first steps tutorial <snapshot_manipulation>` which gets straight
+to some of pynbody's analysis features. Or, if you prefer to learn
+a little more of how your data is organized, we also provide a :ref:`data
+access walkthrough <data-access>`.
+
+Our full documentation is organized into three sections:
+
+.. toctree::
+   :maxdepth: 3
+
+   Tutorials & walkthroughs <tutorials/tutorials>
+   Reference <reference/index>
+   Installation <installation>
+
