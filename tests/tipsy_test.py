@@ -446,7 +446,7 @@ def test_read_starlog_no_log(snap):
             10758492.68887316])
     assert np.all(np.abs(rhoform - correct) < 1e-7)
     # h2form should not be in the available starlog keys
-    with pytest.raises(DependencyError):
+    with pytest.raises(KeyError):
         h2form = snap.s['h2form']
 
 def test_read_starlog_with_log(snap):

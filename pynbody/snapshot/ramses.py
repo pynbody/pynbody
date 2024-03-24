@@ -431,6 +431,8 @@ class RamsesSnap(SimSnap):
             self._dirname = dirname
         else:
             self._dirname = os.path.split(dirname)[0]
+        self._translate_array_name = namemapper.AdaptiveNameMapper('ramses-name-mapping')
+
         self._load_sink_data_to_temporary_store()
         self._load_infofile()
         self._load_namelistfile()
@@ -589,7 +591,6 @@ class RamsesSnap(SimSnap):
         with open(os.path.join(self._filename, "part_file_descriptor.txt")) as f:
             self._particle_blocks = []
             self._particle_types = []
-            self._translate_array_name = namemapper.AdaptiveNameMapper('ramses-name-mapping')
             for line in f:
                 if not line.startswith("#"):
                     ivar, name, dtype = list(map(str.strip,line.split(",")))
@@ -750,7 +751,8 @@ class RamsesSnap(SimSnap):
         column_names[0] = column_names[0][1:].strip()
         dimensions[0] = dimensions[0][1:].strip()
 
-        self._sink_column_names = column_names
+        self._sink_column_names = [self._translate_array_name(c, reverse=True)
+                                   for c in column_names]
         self._sink_dimensions = dimensions
         self._sink_data = data
 
@@ -1160,6 +1162,14 @@ class RamsesSnap(SimSnap):
                 self._load_gas_vars(_gv_load_rt)
                 for u_block in self._rt_blocks_3d:
                     self[fam][u_block].units = self._rt_unit
+            elif array_name == 'mass':
+                # Very special case. If 'mass' has been created already for particle blocks (or sink blocks), and the
+                # user requests it across the whole simulation, the SimSnap framework will issue this request rather
+                # than a request to load across all families (handled below). If we raise an exception, the user
+                # will see a confusing message about mass being unavailable for gas. So instead we redirect this to
+                # a derived array, which will result in a full mass array being returned (good) and a warning about
+                # conjoining derived and non-derived arrays (logical, at least).
+                self._derive_array('mass', fam)
             else:
                 raise OSError("No such array on disk")
         elif fam is None and array_name in ['pos', 'vel']:
@@ -1180,9 +1190,15 @@ class RamsesSnap(SimSnap):
                 self._load_particle_block(name)
 
         elif fam is None and array_name == 'mass':
+            # mass has to be handled separately because it is present as a particle block
+            # but not as a gas block -- there it will be derived. It is also present as a sink block,
+            # which is again handled differently. So somehow we need to bring all of this together in
+            # a way which doesn't baffle users.
+
             self._create_array('mass')
             self._load_particle_block('mass')
             self['mass'].set_default_units()
+
             if len(self.gas) > 0:
                 gasmass = mass(self.gas)
                 gasmass.convert_units(self['mass'].units)

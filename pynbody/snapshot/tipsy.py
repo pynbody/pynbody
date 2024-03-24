@@ -783,13 +783,13 @@ class TipsySnap(SimSnap):
             starlog_keys += ['massform']
 
         if filename is None and array_name in starlog_keys:
-
             try:
                 self.read_starlog()
-                if fam is not None:
-                    return self[fam][array_name]
-                else:
-                    return self[array_name]
+                with self.lazy_off:
+                    if fam is not None:
+                        return self[fam][array_name]
+                    else:
+                        return self[array_name]
             except OSError:
                 pass
 
@@ -907,31 +907,32 @@ class TipsySnap(SimSnap):
         l = glob.glob(os.path.join(x, "*.starlog"))
         if (len(l)):
             for filename in l:
-                sl = StarLog(filename)
+                starlog = StarLog(filename)
         else:
             l = glob.glob(os.path.join(x, "../*.starlog"))
             if (len(l) == 0):
                 raise OSError("Couldn't find starlog file")
             for filename in l:
-                sl = StarLog(filename)
+                starlog = StarLog(filename)
 
         logger.info("Bridging starlog into SimSnap")
-        b = pynbody.bridge.OrderBridge(self, sl)
-        b(b(b(sl))).star['iorderGas'] = b(b(sl)).star['iorderGas']
-        b(b(b(sl))).star['massform'] = b(b(sl)).star['massform']
-        b(b(b(sl))).star['rhoform'] = b(b(sl)).star['rhoform']
-        b(b(b(sl))).star['tempform'] = b(b(sl)).star['tempform']
-        b(b(b(sl)))['posform'] = b(b(sl))['pos']
-        b(b(b(sl)))['velform'] = b(b(sl))['vel']
-        #b(sl).star['iorderGas'] = sl.star['iorderGas'][:len(self.star)]
-        #b(sl).star['massform'] = sl.star['massform'][:len(self.star)]
-        #b(sl).star['rhoform'] = sl.star['rhoform'][:len(self.star)]
-        #b(sl).star['tempform'] = sl.star['tempform'][:len(self.star)]
-        #b(sl)['posform'] = sl['pos'][:len(self.star), :]
-        #b(sl)['velform'] = sl['vel'][:len(self.star), :]
-        if 'h2form' in list(sl.star.keys()):
-            b(b(b(sl))).star['h2form'] = b(b(sl)).star['h2form']
-        else: print("No H2 data found in StarLog file")
+        b = pynbody.bridge.OrderBridge(self, starlog)
+
+        source = b(b(starlog))
+        dest = b(source)
+
+        dest.star['iorderGas'] = source.star['iorderGas']
+        dest.star['massform'] = source.star['massform']
+        dest.star['rhoform'] = source.star['rhoform']
+        dest.star['tempform'] = source.star['tempform']
+        dest['posform'] = source['pos']
+        dest['velform'] = source['vel']
+
+        if 'h2form' in list(starlog.star.keys()):
+            dest.star['h2form'] = source.star['h2form']
+        else:
+            logger.info("No H2 data found in StarLog file")
+
         for i, x in enumerate(['x', 'y', 'z']):
             self._arrays[x + 'form'] = self['posform'][:, i]
         for i, x in enumerate(['vx', 'vy', 'vz']):

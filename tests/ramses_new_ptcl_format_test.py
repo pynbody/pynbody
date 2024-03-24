@@ -1,5 +1,6 @@
 import glob
 import os
+import pathlib
 
 import numpy as np
 import pytest
@@ -128,3 +129,71 @@ def test_loaded_namelist():
     assert f._namelist['hydro'] is True
     assert f._namelist['z_ave'] == 0.1
     assert f._namelist.get("non_existent_key") is None
+
+@pytest.fixture(params=[True, False], ids=['mass-column-present', 'no-mass-column-present'])
+def snap_for_issue_771(request):
+    """Aids test for issue #771. In that example, an output has a 'mass' column in the sink csv file. In our test data
+    we instead have an 'msink' column. So we create a virtual version where we rename the column to 'mass'"""
+    src_dir = pathlib.Path('testdata/ramses_new_format_partial_output_00001')
+
+    if request.param:
+        # Make the virtual version of the output with 'mass' in place of 'msink' column
+        tgt_dir = pathlib.Path('testdata/ramses_new_format_partial_with_sink_mass_output_00001')
+
+        if not tgt_dir.exists():
+            # Create target directory if it doesn't exist
+            tgt_dir.mkdir()
+
+            # Iterate over all files in the source directory
+            for src_file in src_dir.iterdir():
+                tgt_file = tgt_dir / src_file.name
+
+                # If the file is 'sink_00001.csv', copy and modify its contents
+                if src_file.name == 'sink_00001.csv':
+                    with src_file.open() as f_in, tgt_file.open('w') as f_out:
+                        for line in f_in:
+                            f_out.write(line.replace('msink', 'mass'))
+                else:
+                    # Create a symbolic link for all other files
+                    tgt_file.symlink_to(src_file.absolute())
+
+        yield pynbody.load(tgt_dir)
+
+        # Clean up
+        #for tgt_file in tgt_dir.iterdir():
+        #    tgt_file.unlink()
+        #tgt_dir.rmdir()
+    else:
+        yield pynbody.load(src_dir)
+
+@pytest.mark.parametrize("in_physical_units", [True, False],
+                         ids=['physical', 'code'])
+def test_sink_file_mass_all_particles(snap_for_issue_771, in_physical_units):
+    # it should be OK if there isn't a mass column in the sinks
+    #f2 = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+    #f2['mass']
+
+    if in_physical_units:
+        snap_for_issue_771.physical_units()
+
+    snap_for_issue_771['mass']
+
+    reference_array = snap_for_issue_771['mass']
+    reference_array_gas = snap_for_issue_771.gas['mass']
+
+    # now let's try reloading that and accessing things in another order
+    f = pynbody.load(snap_for_issue_771.filename)
+    f.gas['mass']
+    if in_physical_units:
+        f.physical_units()
+
+    # this should be fine:
+    np.testing.assert_allclose(reference_array_gas, f.gas['mass'])
+
+    # now the gas mass derived array is already present, the code path via which the final mass array
+    # is assembled is different (no need to re-derive the gas mass). But this can seem to result
+    # in wrong results with physical_units.
+
+    test_array = f['mass'] # completes by loading the particle masses from disk. Should leave gas mass untouched.
+
+    np.testing.assert_allclose(reference_array, test_array)

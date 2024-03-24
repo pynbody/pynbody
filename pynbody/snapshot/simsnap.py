@@ -339,7 +339,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             return self[np.where(mask_array)]
 
     def _get_array_with_lazy_actions(self, name):
-
+        """Get an array by the given name; if it's not available, attempt to load or derive it first"""
         if name in list(self.keys()):
             self._dependency_tracker.touching(name)
 
@@ -349,18 +349,32 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             if nd_name is not None:
                 self._dependency_tracker.touching(nd_name)
 
-            return self._get_array(name)
-
-        with self._dependency_tracker.calculating(name):
+        elif not self.lazy_off:
+            # The array is not currently in memory at the level we need it, and there is a possibility
+            # of getting it into memory using lazy derivation or loading. First, if there is a family level
+            # array by the same name, dispose of it. (Note if this is being called on a FamilySubSnap, the below
+            # has no effect, and anyway we wouldn't reach this point in the code if the family array were available.)
             self.__resolve_obscuring_family_array(name)
 
-            if not self.lazy_off:
-                if not self.lazy_load_off:
-                    self.__load_if_required(name)
-                if not self.lazy_derive_off:
+            # Now, we'll try to load the array...
+            did_load = False
+            if not self.lazy_load_off:
+                # Note that we don't want this to be inside _dependency_tracker.calculating(name), because there is a
+                # small possibility the load will be mapped into a derivation by the loader class. Specifically this
+                # happens in ramses snapshots for the mass array (which is derived from the density array for gas cells).
+                self.__load_if_required(name)
+
+            if name in self:
+                # We managed to load it. Note the dependency.
+                self._dependency_tracker.touching(name)
+            elif not self.lazy_derive_off:
+                # Try deriving instead
+                with self._dependency_tracker.calculating(name):
                     self.__derive_if_required(name)
 
-            return self._get_array(name)
+        # At this point we've done everything we can to get the array into memory. If it's still not there, we'll
+        # get a KeyError from the below.
+        return self._get_array(name)
 
 
 
@@ -376,6 +390,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             self._derive_array(name)
 
     def __resolve_obscuring_family_array(self, name):
+        """When a lazy derive or lazy load is about to happen for array given by name, deal with family arrays by the same name
+
+        Note that if this is being called from a family subview, family_keys() returns an empty set by definition, so
+        nothing bad happens. It is when a derivation/lazy-load is attempted across the snapshot that having family arrays
+        of the same name might get in the way.
+        """
         if name in self.family_keys():
             self.__remove_family_array_if_derived(name)
 
@@ -407,7 +427,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         in_fam, out_fam = self.__get_included_and_excluded_families_for_array(name)
         try:
             for fam in out_fam:
-                self.__load_array_and_perform_postprocessing(name, fam=fam)
+                if name not in self[fam]: # (check again, in case it was created in the meantime)
+                    self.__load_array_and_perform_postprocessing(name, fam=fam)
         except OSError:
             pass
 
@@ -485,7 +506,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
     def has_key(self, name):
         """Returns True if the array name is accessible (in memory)"""
-        return name in list(self.keys())
+        return name in self.keys()
 
     def values(self):
         """Returns a list of the actual arrays in memory"""
@@ -877,17 +898,18 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             for fami in new_fam_keys:
                 new_fam_keys[fami] = new_fam_keys[fami] - pre_fam_keys[fami]
 
-            # If the loader hasn't given units already, try to determine the defaults
-            # Then, attempt to convert what was loaded into friendly units
-            for v in new_keys:
-                if not units.has_units(anc[v]):
-                    anc[v].units = anc._default_units_for(v)
-                anc._autoconvert_array_unit(anc[v])
-            for f, vals in new_fam_keys.items():
-                for v in vals:
-                    if not units.has_units(anc[f][v]):
-                        anc[f][v].units = anc._default_units_for(v)
-                    anc._autoconvert_array_unit(anc[f][v])
+            with self.lazy_off:
+                # If the loader hasn't given units already, try to determine the defaults
+                # Then, attempt to convert what was loaded into friendly units
+                for v in new_keys:
+                    if not units.has_units(anc[v]):
+                        anc[v].units = anc._default_units_for(v)
+                    anc._autoconvert_array_unit(anc[v])
+                for f, vals in new_fam_keys.items():
+                    for v in vals:
+                        if not units.has_units(anc[f][v]):
+                            anc[f][v].units = anc._default_units_for(v)
+                        anc._autoconvert_array_unit(anc[f][v])
 
 
 
@@ -1234,12 +1256,14 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         return cache[hx]
 
     def _get_array(self, name, index=None, always_writable=False):
-        """Get the array of the specified *name*, optionally
-        for only the particles specified by *index*.
+        """Get the array of the specified *name*, optionally for only the particles specified by *index*.
 
-        If *always_writable* is True, the returned array is
-        writable. Otherwise, it is still normally writable, but
-        not if the array is flagged as derived by the framework."""
+        If *always_writable* is True, the returned array is writable. Otherwise, it is still normally writable, but
+        not if the array is flagged as derived by the framework.
+
+        Note that this routine never calls any lazy loading/derivation routines, for which one needs to call
+        _get_array_with_lazy_actions.
+        """
 
         x = self._arrays[name]
         if x.derived and not always_writable:
@@ -1266,6 +1290,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         If *always_writable* is True, the returned array is writable. Otherwise
         it is still normally writable, but not if the array is flagged as derived
         by the framework.
+
+        Note that this routine never calls any lazy loading/derivation routines, for which one needs to call
+        _get_array_with_lazy_actions on the FamilySubSnap returned by self[fam].
         """
 
         try:
