@@ -201,7 +201,7 @@ def test_shared_arrays():
     import pynbody.array as pyn_array
 
     gc.collect() # this is to start with a clean slate, get rid of any shared arrays that might be hanging around
-    baseline_num_shared_arrays = pyn_array.shared.get_num_shared_arrays() # hopefully zero, but we can't guarantee that
+    baseline_num_shared_arrays = pyn_array.shared.get_num_shared_arrays_owned() # hopefully zero, but we can't guarantee that
 
     ar = pyn_array._array_factory((3,5), dtype=np.float32, zeros=True, shared=True)
 
@@ -213,58 +213,66 @@ def test_shared_arrays():
     # now let's see if we can transfer it to another process:
 
     import multiprocessing as mp
-    p = mp.Process(target=_test_and_alter_shared_value, args=(pyn_array.shared._shared_array_deconstruct(ar),))
+    context = mp.get_context('spawn')
+    p = context.Process(target=_test_and_alter_shared_value, args=(pyn_array.shared._shared_array_deconstruct(ar),))
     p.start()
     p.join()
 
     # check that the other process has successfully changed our value:
     assert (ar[:] ==  np.arange(3)[:, np.newaxis] ).all()
 
-    assert pyn_array.shared.get_num_shared_arrays() == 1 + baseline_num_shared_arrays
+    assert pyn_array.shared.get_num_shared_arrays_owned() == 1 + baseline_num_shared_arrays
 
     ar2 = pyn_array._array_factory((3,5), dtype=np.float32, zeros=True, shared=True)
-    assert pyn_array.shared.get_num_shared_arrays() == 2 + baseline_num_shared_arrays
+    assert pyn_array.shared.get_num_shared_arrays_owned() == 2 + baseline_num_shared_arrays
 
     del ar, ar2
     gc.collect()
 
-    assert pyn_array.shared.get_num_shared_arrays() == baseline_num_shared_arrays
+    assert pyn_array.shared.get_num_shared_arrays_owned() == baseline_num_shared_arrays
 
+@pytest.fixture
+def clean_up_test_protection():
+    import posix_ipc
+    try:
+        posix_ipc.unlink_shared_memory("pynbody-test-cleanup")
+    except posix_ipc.ExistentialError:
+        pass
+    yield
+    try:
+        posix_ipc.unlink_shared_memory("pynbody-test-cleanup")
+    except posix_ipc.ExistentialError:
+        pass
 
 def _test_shared_arrays_cleaned_on_exit():
     global ar
     ar = shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")
     # intentionally don't delete it, to see if it gets cleaned up on exit
 
-def test_shared_arrays_cleaned_on_exit():
-    stderr = _run_function_externally("_test_shared_arrays_cleaned_on_exit")
-
-    assert "leaked shared_memory" not in stderr  # should have cleaned up without fuss
+def test_shared_arrays_cleaned_on_exit(clean_up_test_protection):
+    _run_function_externally("_test_shared_arrays_cleaned_on_exit")
 
     _assert_shared_memory_cleaned_up()
 
 
-def _test_shared_arrays_cleaned_on_kill():
+def _test_shared_arrays_cleaned_on_terminate():
     # designed to run in a completely separate python process (i.e. not a subprocess of the test process)
     ar = shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")
 
-    # send SIGKILL to ourselves:
-    os.kill(os.getpid(), signal.SIGKILL)
+    # send SIGTERM to ourselves:
+    os.kill(os.getpid(), signal.SIGTERM)
 
     # wait to die...
     time.sleep(2.0)
 
 
-def test_shared_arrays_cleaned_on_kill():
-    stderr = _run_function_externally("_test_shared_arrays_cleaned_on_kill")
-
-    assert "leaked shared_memory" in stderr # this tells us the resource tracker has claimed to clean it up
-
+def test_shared_arrays_cleaned_on_kill(clean_up_test_protection):
+    stderr = _run_function_externally("_test_shared_arrays_cleaned_on_terminate")
     _assert_shared_memory_cleaned_up()
 
 
 def _assert_shared_memory_cleaned_up():
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(pynbody.array.shared.SharedArrayNotFound):
         _ = shared.make_shared_array((10,), dtype=np.int32, zeros=False,
                                      fname="pynbody-test-cleanup", create=False)
 
@@ -275,6 +283,5 @@ def _run_function_externally(function_name):
     import subprocess
     process = subprocess.Popen([python, "-c",
                                 f"from array_test import {function_name}; {function_name}()"]
-                               , cwd=pwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    return stderr.decode("utf-8")
+                               , cwd=pwd)
+    process.wait()

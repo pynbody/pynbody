@@ -141,7 +141,8 @@ install_requires = [
     'h5py>=3.0.0',
     'matplotlib>=3.0.0',
     'numpy>=1.21.6',
-    'scipy>=1.0.0'
+    'scipy>=1.0.0',
+    'posix-ipc>=1.1.0'
 ]
 
 tests_require = [
