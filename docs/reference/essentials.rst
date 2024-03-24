@@ -2,21 +2,15 @@
 
 Essential Framework Modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
 
-.. automodule:: pynbody.array
-   :members:
+   pynbody.array
+   pynbody.family
+   pynbody.halo
+   pynbody.snapshot
+   pynbody.simdict
+   pynbody.units
 
-.. automodule:: pynbody.simdict
-   :members:
 
-.. automodule:: pynbody.family
-   :members:
-
-.. automodule:: pynbody.snapshot
-   :members:
-
-.. automodule:: pynbody.units
-   :members:
-
-.. automodule:: pynbody.util
-   :members:

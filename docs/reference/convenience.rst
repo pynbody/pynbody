@@ -1,17 +1,14 @@
 .. generic convenience modules
 
 
-Generic Convenience Modules
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Convenience Modules
+^^^^^^^^^^^^^^^^^^
 
-.. automodule:: pynbody.bridge
-   :members:
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
 
-.. automodule:: pynbody.filt
-   :members:
+   pynbody.filt
+   pynbody.sph
 
-.. automodule:: pynbody.halo
-   :members:
 
-.. automodule:: pynbody.sph
-   :members:

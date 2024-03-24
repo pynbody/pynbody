@@ -4,6 +4,12 @@
 Common Pitfalls
 ===============
 
+I can't compile from source because of an error to do with OpenMP
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you're on a mac, you need to use a non-default compiler. See
+:ref:`macos-compilers` for more details.
+
 .. _paramfiles_are_good:
 
 I get errors like "Unknown units" or "Not convertible" from analysis or plotting routines

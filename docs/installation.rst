@@ -13,9 +13,12 @@ In brief
 
 Pynbody provides binary distributions for Mac and Linux. Windows is not supported currently,
 except via `WSL (Windows Subsystem for Linux) <https://learn.microsoft.com/en-us/windows/wsl/install>`_
-which provides a Linux compatibility layer.
+which provides a Linux compatibility layer. To use the latest release of
+_pynbody_, you must be using a recent version of Python 3, as supported by
+`numpy <http://www.numpy.org>`_ and `scipy <http://www.scipy.org>`_. The standardized
+`SPEC0 <https://scientific-python.org/specs/spec-0000/>`_ policy describes the versions of numpy, scipy and Python we aim to support.
 
-To install the latest release version (which depends only on numpy and scipy), use:
+To install the latest release version of `pynbody`, use:
 
 .. code-block :: bash
 
@@ -34,27 +37,32 @@ That's all there is to it, really. But if you have problems or need more help, r
 Getting python
 --------------
 
-1) If you administer your own machine, start by downloading and installing the latest version of Python. We generally recommend
+**Option 1:** If you administer your own machine, start by downloading and installing the latest version of Python. We generally recommend
 downloading directly from the `Python website <http://www.python.org>`_.
 
-2) If your don't administer your own machine, but there is a centrally-installed recent version of Python, your best
-option is to make your own virtual environment. This is a way of creating a self-contained Python
+You can `pip` install directly into your central installation, although it's generally better to use a virtual environment (see below).
+
+**Option 2:** If your don't administer your own machine, but there is a centrally-installed recent version of Python, you can still make your own virtual environment. This is a way of creating a self-contained Python
 installation pointing back to the central one. This is done by typing
 
-``python -m venv mypython``
+.. code-block :: bash
+
+  $ python -m venv mypython
+
 
 where ``mypython`` is the name of the directory you want to create. Then you can activate the environment by typing
 
-``source mypython/bin/activate``
+.. code-block :: bash
 
-You need to activate the environment every time you want to use it.
+  $ source mypython/bin/activate
 
-3) If you do not have administrative access to your machine, and the centrally-installed python is unsuitable (e.g. is
+You need to activate the environment every time you want to use it. For more information about virtual environments, see the `Python packaging documentation <https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/#create-and-use-virtual-environments>`_.
+
+**Option 3:** If you do not have administrative access to your machine, and the centrally-installed python is unsuitable (e.g. is
 too old), you may want to use a third-party installer such as `Anaconda
 <https://www.anaconda.com/download/>`_ which can install to a user folder.
+Note that we do not ship binary distributions for the `conda` utility, but you can still install pynbody using `pip` into your conda environment.
 
-
-Once these steps are complete you can `pip install` pynbody as described above.
 
 
 
@@ -114,6 +122,8 @@ check the `MacOS compilers` section below.
    <https://help.github.com/articles/fork-a-repo>`_ if you already
    have a `github <http://github.com>`_ account.
 
+
+.. _macos-compilers:
 
 MacOS compilers
 ^^^^^^^^^^^^^^^

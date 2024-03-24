@@ -40,9 +40,10 @@ extensions = ['sphinx.ext.autodoc',
               'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.inheritance_diagram',
               'sphinx_copybutton',
-              'numpydoc']
+              'numpydoc',
+              'sphinx_immaterial']
 
-
+autosummary_generate = True
 
 ipython_warning_is_error = False
 
@@ -61,6 +62,8 @@ source_suffix = '.rst'
 
 # The master toctree document.
 master_doc = 'index'
+
+globaltoc_collapse = True
 
 # General information about the project.
 project = 'pynbody'
@@ -116,10 +119,16 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'alabaster'
+html_theme = 'sphinx_immaterial'
 
 # set up bootstrap
-html_theme_options = { 'logo': 'logo.svg', 'logo_name': False, 'sidebar_collapse': False}
+html_theme_options = { 'logo': 'logo.svg',
+                       'logo_name': False,
+                       'sidebar_collapse': True,
+                       'github_button': True,
+                       'github_user': 'pynbody',
+                        'github_repo': 'pynbody'
+                       }
 
 """html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
@@ -169,7 +178,15 @@ html_static_path = ['_static']
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+# html_sidebars = {'**': ['logo.html', 'fulltoc.html', 'relations.html', 'searchbox.html']}
+html_sidebars = {
+    '**': [
+        'about.html',
+        'navigation.html',
+        'relations.html',
+        'searchbox.html',
+    ]
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -240,7 +257,6 @@ latex_documents = [
 # Documents to append as an appendix to all manuals.
 #latex_appendices = []
 
-# If false, no module index is generated.
 #latex_domain_indices = True
 
 
@@ -253,9 +269,10 @@ man_pages = [
      ['pynbody team'], 1)
 ]
 
-autodoc_member_order = 'bysource'
+autodoc_member_order = 'alphabetical'
 
 copybutton_copy_empty_lines = False
+copybutton_selector =  "div.highlight > pre"
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
 copybutton_prompt_is_regexp = True
 copybutton_only_copy_prompt_lines = True
