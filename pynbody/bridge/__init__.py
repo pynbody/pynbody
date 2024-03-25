@@ -14,12 +14,14 @@ enabling observing a change in their properties, such as position,
 temperature, etc.
 
 For a tutorial on how to use the bridge module to trace the particles
-in your simulation, see the `bridge tutorial
-<http://pynbody.github.io/pynbody/tutorials/bridge.html>`_.
+in your simulation, see the :doc:`tutorial </tutorials/bridge>`.
 
 """
 
+from __future__ import annotations
 
+import abc
+import typing
 import weakref
 
 import numpy as np
@@ -27,31 +29,25 @@ import numpy as np
 from . import _bridge
 
 
-class Bridge:
+if typing.TYPE_CHECKING:
+    from .. import snapshot
 
-    """Generic Bridge class"""
+class AbstractBridge(abc.ABC):
+    """The abstract base class for bridges between two snapshots.
 
-    def __init__(self, start, end):
+    For more information see the module documentation for :mod:`pynbody.bridge`, or the
+    :doc:`bridge tutorial </tutorials/bridge>`.
+    """
+
+    def __init__(self, start: snapshot.SimSnap, end: snapshot.SimSnap):
         self._start = weakref.ref(start)
         self._end = weakref.ref(end)
         assert len(start) == len(end)
 
-    def is_same(i1, i2):
-        """Returns true if the particle i1 in the start point is the same
-        as the particle i2 in the end point."""
-        return i1 == i2
+    @abc.abstractmethod
+    def __call__(self, s: snapshot.SubSnap) -> snapshot.SubSnap:
+        """Map from a ``SubSnap`` at one end of the bridge, to the corresponding ``SubSnap`` at the other end"""
 
-    def __call__(self, s):
-        """Given a subview of either the start or end point of the bridge,
-        generate the corresponding subview of the connected snapshot"""
-        start, end = self._get_ends()
-
-        if s.is_descendant(start):
-            return end[s.get_index_list(start)]
-        elif s.is_descendant(end):
-            return start[s.get_index_list(end)]
-        else:
-            raise RuntimeError("Not a subview of either end of the bridge")
 
     def _get_ends(self):
         start = self._start()
@@ -60,39 +56,41 @@ class Bridge:
             raise RuntimeError("Stale reference to start or endpoint")
         return start, end
 
-    def match_catalog(self, min_index=1, max_index=30, threshold=0.5,
-                      groups_1 = None, groups_2 = None,
+    def match_catalog(self, min_index=1, max_index=30, threshold=0.5, groups_1 = None, groups_2 = None,
                       use_family = None):
-        """Given a Halos object groups_1, a Halos object groups_2 and a
-        Bridge object connecting the two parent simulations, this identifies
-        the most likely ID's in groups_2 of the objects specified in groups_1.
+        """Given HaloCatalogues, identify the likely halo number in the second catalogue for each halo in the first.
 
-        If groups_1 and groups_2 are not specified, they are automatically obtained
-        using the SimSnap.halos method.
+        For example, if a bridge ``b`` links snapshot ``f1`` (high redshift) to ``f2`` (low redshift) and we set
 
-        Parameters min_index and max_index are the minimum and maximum halo
-        numbers to be matched (in both ends of the bridge). If max_index is
-        too large, the catalogue matching can take prohibitively long (it
-        scales as max_index^2).
+        >>> cat = b.match_catalog()
 
-        This routine currently uses particle number as a proxy for mass, so that the
-        main simulation data does not need to be loaded.
+        then ``cat`` is now a numpy index array such that f1.halos()[i] is the major progenitor for
+        ``f2.halos()[cat[i]]``, assuming ``cat[i]`` is positive.
 
-        If b links snapshot f1 (high redshift) to f2 (low redshift) and we set
-
-          cat = b.match_catalog()
-
-        then cat is now a numpy index array such that f1.halos()[i] is the
-        major progenitor for f2.halos()[cat[i]], assuming cat[i] is positive.
-
-        cat[0:min_index+1] is set to -2. Halos which cannot be matched because
-        they have too few particles in common give the result -1. This is determined
+        ``cat[0:min_index+1]`` is set to ``-2``. Halos which cannot be matched because
+        they have too few particles in common give the result ``-1``. This is determined
         by the given threshold fraction of particles in common (by default, 50%).
 
-        If use_family is specified, only particles from that family are cross-matched.
-        This can be useful e.g. if matching between two different simulations where
-        the relationship between DM particles is known, but perhaps the relationship
-        between star particles is random.
+        Parameters
+        ----------
+
+        min_index : int
+            The minimum halo number to be matched. Default is 1.
+        max_index: int
+            The maximum halo number to be matched. Default is 30.
+        threshold : float
+            The minimum fraction of particles in common for a match to be considered. Default is 0.5.
+        groups_1 : pynbody.halo.HaloCatalogue
+            The HaloCatalogue for the first snapshot. Default is None, in which case it is obtained from the start
+            point of the bridge via ``SimSnap.halos()``.
+        groups_2 : pynbody.halo.HaloCatalogue
+            The HaloCatalogue for the second snapshot. Default is None, in which case it is obtained from the end
+            point of the bridge via ``SimSnap.halos()``.
+        use_family : str
+            Only match particles of this family. Default is None, in which case all particles are matched.
+            Setting this to a family name can be useful if matching between two different simulations where the
+            relationship between DM particles is known, but perhaps the relationship between gas particles is not
+            (e.g. a Ramses simulation where actually the gas 'particles' are cells).
 
         """
         fuzzy_matches = self.fuzzy_match_catalog(min_index, max_index, threshold, groups_1, groups_2, use_family)
@@ -111,24 +109,16 @@ class Bridge:
 
     def fuzzy_match_catalog(self, min_index=1, max_index=30, threshold=0.01,
                             groups_1 = None, groups_2 = None, use_family=None, only_family=None):
-        """Match catalogs, returning multiple possible matches for each source halo.
+        """Given HaloCatalogues, return multiple possible matches within the second catalogue for each halo in the first.
 
-        fuzzy_match_catalog returns, for each halo in groups_1, a list of possible
-        identifications in groups_2, along with the fraction of particles in common
-        between the two. If no possible matches in groups_2 is found, the entry for
-        that halo is the empty list [].
+        For details about the parameters to this function, see the documentation for :func:`match_catalog`.
 
-        Normally, match_catalog is simpler to use, but this routine offers greater
-        flexibility for advanced users. The first entry for each halo corresponds
-        to the output from match_catalog.
-
-        Arguments:
-            threshold -- minimum fraction of particles in common for a match to be considered
-
-        Other arguments are passed to match_catalog; see its documentation for details.
-
-        Returns:
-            A list of lists, where the first index corresponds to the halo number in groups_1. See above for details.
+        Returns
+        -------
+        list
+            A list of lists, where the i-th element of the list is a list of tuples. Each tuple contains the
+            index of a halo in the second catalogue and the fraction of particles in the first halo that are
+            in the second halo. The list is sorted in descending order of the fraction of particles in common.
         """
 
         transfer_matrix = self.catalog_transfer_matrix(min_index,max_index,groups_1,groups_2,use_family,only_family)
@@ -148,20 +138,18 @@ class Bridge:
         return output
 
     def catalog_transfer_matrix(self, min_index=1, max_index=30, groups_1=None, groups_2=None,use_family=None,only_family=None):
-        """Return a max_index x max_index matrix with the number of particles transferred from
-        the row group in groups_1 to the column group in groups_2.
+        """Return a matrix with the number of particles transferred from ``groups_1`` to groups_2.
 
-        Normally, match_catalog (or fuzzy_match_catalog) are easier to use, but this routine
+        For more information on the arguments to this function, see the documentation for :func:`match_catalog`.
+
+        Normally, :func:`match_catalog` (or :func:`fuzzy_match_catalog`) are easier to use, but this routine
         provides the maximal information.
 
-        Arguments:
-            min_index -- minimum halo number to be matched
-            max_index -- maximum halo number to be matched
-            groups_1 -- Halos object for the first catalogue (default: None, in which case it is obtained from the start point of the bridge)
-            groups_2 -- Halos object for the second catalogue (default: None, in which case it is obtained from the end point of the bridge)
-            use_family -- only match particles of this family (default: None, in which case all particles are matched)
-            only_family -- only match particles of this family, like use_family, but try not even to load data about
-                           other particles (thus saving memory). Don't specify use_family if you specify only_family.
+        Returns
+        -------
+        numpy.ndarray
+            A matrix with the number of particles transferred from each halo in the first catalogue to each halo in the
+            second.
         """
 
         if only_family is not None:
@@ -217,31 +205,57 @@ class Bridge:
 
         return transfer_matrix
 
+class OneToOneBridge(AbstractBridge):
+    """Connects two snapshots with identical particle numbers and file layout.
 
-class OrderBridge(Bridge):
+    Particle i in the start point is the same as particle i in the end point. As such, bridging is essential trivial.
+    """
 
-    """An OrderBridge uses integer arrays in two simulations
-    (start,end) where particles i_start and i_end are
-    defined to be the same if and only if
-    start[order_array][i_start] == start[order_array][i_end].
+    def __call__(self, s):
+        start, end = self._get_ends()
 
-    If monotonic is True, order_array must be monotonically increasing
-    in both ends of the bridge (and this is not checked for you). If
-    monotonic is False, the bridging is slower but this is the
-    failsafe option.
+        if s.is_descendant(start):
+            return end[s.get_index_list(start)]
+        elif s.is_descendant(end):
+            return start[s.get_index_list(end)]
+        else:
+            raise RuntimeError("Not a subview of either end of the bridge")
+
+class OrderBridge(AbstractBridge):
+    """Connects to snapshots that both have ``iord`` arrays (or similar) to identify particles.
+
+    Particles ``i_start`` and ``i_end`` are defined to be the same if and only if
+    ``start[order_array][i_start] == start[order_array][i_end]``.
     """
 
     def __init__(self, start, end, order_array="iord", monotonic=True, allow_family_change=False):
-        self._start = weakref.ref(start)
-        self._end = weakref.ref(end)
+        """Initialise the ``OrderBridge``
+
+        Parameters
+        ----------
+
+        start : snapshot.SimSnap
+            The start point of the bridge
+
+        end : snapshot.SimSnap
+            The end point of the bridge
+
+        order_array : str
+            The name of the array that is used to identify particles. Default is ``iord``.
+
+        monotonic : bool
+            If ``True``, the order_array must be monotonically increasing in both ends of the bridge.
+            Note that this is not checked for you. If ``False``, the bridging is slower but this is the failsafe option.
+
+        allow_family_change : bool
+            If ``True``, the bridge will allow particles to change family going from one end to the other of the
+            bridge. Otherwise, it is assumed that the family of a particle is conserved.
+
+        """
+        super().__init__(start, end)
         self._order_array = order_array
         self.monotonic = monotonic
         self.allow_family_change = allow_family_change
-
-    def is_same(self, i1, i2):
-
-        start, end = self._get_ends()
-        return start[order_array][i1] == end[order_array][i2]
 
     def __call__(self, s):
 
@@ -283,16 +297,24 @@ class OrderBridge(Bridge):
         return to_[output_index]
 
 
-def bridge_factory(a, b):
-    """Create a bridge connecting the two specified snapshots. For
-    more information see :ref:`bridge-tutorial`."""
+def bridge_factory(a: snapshot.SimSnap, b: snapshot.SimSnap) -> AbstractBridge:
+    """Create a bridge connecting the two specified snapshots.
+
+    This function will determine the best type of :ref:`Bridge` to construct between the two snapshots, and return it.
+    It is called by :func:`pynbody.snapshot.simsnap.SimSnap.bridge`.
+
+    For more information see :doc:`the bridge tutorial </tutorials/bridge>`."""
+
+    not_sure_error = "Don't know how to automatically bridge between two simulations of different formats. "\
+                     "You will need to create your bridge manually by instantiating either the OneToOneBridge or "\
+                     "OrderBridge class appropriately."
 
     from ..snapshot import gadget, gadgethdf, nchilada, ramses, tipsy
     a_top = a.ancestor
     b_top = b.ancestor
 
     if type(a_top) is not type(b_top):
-        raise RuntimeError("Don't know how to automatically bridge between two simulations of different formats. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately.")
+        raise RuntimeError(not_sure_error)
 
     if (isinstance(a_top, tipsy.TipsySnap) or isinstance(a_top, nchilada.NchiladaSnap)):
         if "iord" in a_top.loadable_keys():
@@ -306,4 +328,4 @@ def bridge_factory(a, b):
             raise RuntimeError("Cannot bridge AMR gas cells")
         return OrderBridge(a_top, b_top, monotonic=False)
     else:
-        raise RuntimeError("Don't know how to automatically bridge between these simulations. You will need to create your bridge manually by instantiating either the Bridge or OrderBridge class appropriately.")
+        raise RuntimeError(not_sure_error)
