@@ -20,11 +20,11 @@ from .. import (
     dependencytracker,
     family,
     filt,
-    iter_subclasses,
     simdict,
     units,
     util,
 )
+from ..util import iter_subclasses
 from ..units import has_units
 from .util import ContainerWithPhysicalUnitsOption
 
@@ -1107,7 +1107,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             shared = self._shared_arrays
 
         if source_array is None:
-            source_array = array._array_factory(dims, dtype, zeros, shared)
+            source_array = array.array_factory(dims, dtype, zeros, shared)
         else:
             assert isinstance(source_array, array.SimArray)
             assert source_array.shape == dims
@@ -1204,7 +1204,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             shared = self._shared_arrays
 
         if source_array is None:
-            source_array = array._array_factory(dims, dtype, False, shared)
+            source_array = array.array_factory(dims, dtype, False, shared)
         else:
             assert isinstance(source_array, array.SimArray)
             assert source_array.shape == dims

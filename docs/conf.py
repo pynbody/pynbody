@@ -10,6 +10,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import numpy as np
 import os
 import sys
 
@@ -115,6 +116,7 @@ pygments_style = 'sphinx'
 #modindex_common_prefix = []
 
 
+
 # -- Options for HTML output ---------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -127,7 +129,8 @@ html_theme_options = { 'logo': 'logo.svg',
                        'sidebar_collapse': True,
                        'github_button': True,
                        'github_user': 'pynbody',
-                        'github_repo': 'pynbody'
+                        'github_repo': 'pynbody',
+                       'font': False
                        }
 
 """html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
@@ -276,3 +279,13 @@ copybutton_selector =  "div.highlight > pre"
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
 copybutton_prompt_is_regexp = True
 copybutton_only_copy_prompt_lines = True
+
+def hide_numpy_methods(app, what, name, obj, skip, options):
+    if hasattr(obj, "__qualname__"):
+        qname = obj.__qualname__
+        if "SimArray" in qname:
+            method_name = qname.split(".")[-1]
+            if method_name in np.ndarray.__dict__:
+                return True
+def setup(app):
+    app.connect('autodoc-skip-member', hide_numpy_methods)
