@@ -33,6 +33,7 @@ sys.path.append(os.path.abspath('sphinxext'))
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.todo',
+              'sphinx.ext.napoleon',
               'sphinx.ext.coverage',
               'sphinx.ext.imgmath',
               'sphinx.ext.ifconfig',
@@ -42,7 +43,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.inheritance_diagram',
               'sphinx_copybutton',
               'numpydoc',
-              'sphinx_immaterial']
+              'sphinx_immaterial',]
 
 autosummary_generate = True
 
@@ -127,10 +128,19 @@ html_theme = 'sphinx_immaterial'
 html_theme_options = { 'logo': 'logo.svg',
                        'logo_name': False,
                        'sidebar_collapse': True,
-                       'github_button': True,
-                       'github_user': 'pynbody',
-                        'github_repo': 'pynbody',
-                       'font': False
+                       'font': False,
+                       'features': ['toc.follow'],
+                        "social": [
+                                {
+                                    "icon": "fontawesome/brands/github",
+                                    "link": "https://github.com/pynbody/pynbody",
+                                    "name": "Source on github.com",
+                                },
+                                {
+                                    "icon": "fontawesome/brands/python",
+                                    "link": "https://pypi.org/project/pynbody/",
+                                },
+                            ],
                        }
 
 """html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
@@ -182,14 +192,15 @@ html_static_path = ['_static']
 
 # Custom sidebar templates, maps document names to template names.
 # html_sidebars = {'**': ['logo.html', 'fulltoc.html', 'relations.html', 'searchbox.html']}
-html_sidebars = {
-    '**': [
-        'about.html',
-        'navigation.html',
-        'relations.html',
-        'searchbox.html',
-    ]
-}
+
+# html_sidebars = {
+#     '**': [
+#         'about.html',
+#         'navigation.html',
+#         'relations.html',
+#         'searchbox.html',
+#     ]
+# }
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -272,7 +283,8 @@ man_pages = [
      ['pynbody team'], 1)
 ]
 
-autodoc_member_order = 'alphabetical'
+#autodoc_member_order = 'alphabetical'
+#autoclass_content = 'both'
 
 copybutton_copy_empty_lines = False
 copybutton_selector =  "div.highlight > pre"
