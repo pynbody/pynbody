@@ -160,7 +160,7 @@ tests_require = [
 docs_require = [
     'ipython>=3',
     'Sphinx>=7',
-    'sphinx-bootstrap-theme',
+    'sphinx-immaterial',
     'sphinx-copybutton',
     'numpydoc',
 ],
