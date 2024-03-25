@@ -154,7 +154,7 @@ from .. import units
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .. import snapshot
+    from .. import family, snapshot
 
 _units = units
 
@@ -205,7 +205,7 @@ class SimArray(np.ndarray):
         self._name = None
         np.ndarray.__setstate__(self, args[1:])
 
-    def __init__(self, data, units: units.UnitBase | str = None, sim : snapshot.SimSnap = None, **kwargs):
+    def __init__(self, data, units = None, sim = None, **kwargs):
         """Initialise a SimArray with the specified units and simulation context.
 
         Other arguments are as for numpy.ndarray. If the data argument is a SimArray, the units and sim arguments are ignored."""
@@ -214,8 +214,8 @@ class SimArray(np.ndarray):
         # but it's been like this for a long time and so changing it would need to be handled with care.)
         pass
 
-    def __new__(subtype, data, units=None, sim=None, **kwargs):
-        new = np.array(data, **kwargs).view(subtype)
+    def __new__(cls, data, units=None, sim=None, **kwargs):
+        new = np.array(data, **kwargs).view(cls)
         if hasattr(data, 'units') and hasattr(data, 'sim') and units is None and sim is None:
             units = data.units
             sim = data.sim
@@ -286,7 +286,8 @@ class SimArray(np.ndarray):
         return x
 
     @property
-    def units(self):
+    def units(self) -> units.UnitBase:
+        """The units of the array, if known; otherwise :ref:`units.NoUnit`."""
         if hasattr(self.base, 'units'):
             return self.base.units
         else:
@@ -309,14 +310,15 @@ class SimArray(np.ndarray):
                 self._units = u
 
     @property
-    def name(self):
+    def name(self) -> str | None:
+        """The name of the array in the simulation snapshot, if known."""
         if hasattr(self.base, 'name'):
             return self.base.name
         return self._name
 
     @property
-    def sim(self):
-
+    def sim(self) -> snapshot.SimSnap | None:
+        """The simulation snapshot that the array belongs to, if known."""
         if hasattr(self.base, 'sim'):
             base_sim = self.base.sim
         else:
@@ -339,7 +341,14 @@ class SimArray(np.ndarray):
                 self._sim = lambda: None
 
     @property
-    def family(self):
+    def family(self) -> family.Family | None:
+        """Returns the pynbody family that the array belongs to, if any.
+
+        If ``family`` isn't None, an array ``a`` belongs to ``a.sim[family]`` rather than ``a.sim``.
+
+        This doesn't necessarily mean that it is a family-level array, however, since it could be a slice into
+        a simulation array.
+        """
         try:
             return self._family
         except AttributeError:
