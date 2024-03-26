@@ -84,4 +84,3 @@ Our full documentation is organized into three sections:
    Tutorials & walkthroughs <tutorials/tutorials>
    Reference <reference/index>
    Installation <installation>
-
