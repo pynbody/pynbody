@@ -28,7 +28,6 @@ import numpy as np
 
 from . import _bridge
 
-
 if typing.TYPE_CHECKING:
     from .. import snapshot
 
@@ -42,7 +41,6 @@ class AbstractBridge(abc.ABC):
     def __init__(self, start: snapshot.SimSnap, end: snapshot.SimSnap):
         self._start = weakref.ref(start)
         self._end = weakref.ref(end)
-        assert len(start) == len(end)
 
     @abc.abstractmethod
     def __call__(self, s: snapshot.SubSnap) -> snapshot.SubSnap:
@@ -210,6 +208,11 @@ class OneToOneBridge(AbstractBridge):
 
     Particle i in the start point is the same as particle i in the end point. As such, bridging is essential trivial.
     """
+
+    def __init__(self, start: snapshot.SimSnap, end: snapshot.SimSnap):
+        if len(start) != len(end):
+            raise ValueError("OneToOneBridge requires snapshots of the same length")
+        super().__init__(start, end)
 
     def __call__(self, s):
         start, end = self._get_ends()
