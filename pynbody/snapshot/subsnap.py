@@ -203,7 +203,7 @@ class IndexingViewMixin:
             index_array = self._iord_to_index(iord_array)
 
         if isinstance(index_array, filt.Filter):
-            self._descriptor = index_array._descriptor
+            self._descriptor = "filtered"
             index_array = index_array.where(self._subsnap_base)[0]
 
         elif isinstance(index_array, tuple):
