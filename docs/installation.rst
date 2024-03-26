@@ -14,11 +14,11 @@ In brief
 Pynbody provides binary distributions for Mac and Linux. Windows is not supported currently,
 except via `WSL (Windows Subsystem for Linux) <https://learn.microsoft.com/en-us/windows/wsl/install>`_
 which provides a Linux compatibility layer. To use the latest release of
-_pynbody_, you must be using a recent version of Python 3, as supported by
+*pynbody*, you must be using a recent version of Python 3, as supported by
 `numpy <http://www.numpy.org>`_ and `scipy <http://www.scipy.org>`_. The standardized
 `SPEC0 <https://scientific-python.org/specs/spec-0000/>`_ policy describes the versions of numpy, scipy and Python we aim to support.
 
-To install the latest release version of `pynbody`, use:
+To install the latest release version of *pynbody*, use:
 
 .. code-block :: bash
 
@@ -40,7 +40,7 @@ Getting python
 **Option 1:** If you administer your own machine, start by downloading and installing the latest version of Python. We generally recommend
 downloading directly from the `Python website <http://www.python.org>`_.
 
-You can `pip` install directly into your central installation, although it's generally better to use a virtual environment (see below).
+You can ``pip install`` directly into your central installation, although it's generally better to use a virtual environment (see below).
 
 **Option 2:** If your don't administer your own machine, but there is a centrally-installed recent version of Python, you can still make your own virtual environment. This is a way of creating a self-contained Python
 installation pointing back to the central one. This is done by typing
@@ -61,7 +61,7 @@ You need to activate the environment every time you want to use it. For more inf
 **Option 3:** If you do not have administrative access to your machine, and the centrally-installed python is unsuitable (e.g. is
 too old), you may want to use a third-party installer such as `Anaconda
 <https://www.anaconda.com/download/>`_ which can install to a user folder.
-Note that we do not ship binary distributions for the `conda` utility, but you can still install pynbody using `pip` into your conda environment.
+Note that we do not ship binary distributions for the ``conda`` utility, but you can still install pynbody using ``pip`` into your conda environment.
 
 
 
@@ -111,7 +111,7 @@ First, clone the `git repository from Github
      $ pytest
 
 If this yields no errors, you are ready to use pynbody in the usual way. If you encounter problems, especially on MacOS,
-check the `MacOS compilers` section below.
+check the :ref:`macos-compilers` section below.
 
 .. note::
    If you plan on joining the development efforts and you are
@@ -128,11 +128,11 @@ check the `MacOS compilers` section below.
 MacOS compilers
 ^^^^^^^^^^^^^^^
 
-If you are using MacOS, be aware that Apple's default `clang` compiler does not support OpenMP.
+If you are using MacOS, be aware that Apple's default ``clang`` compiler does not support OpenMP.
 Your attempt to install pynbody from source may therefore be unsuccessful, in which case
 you need to isntall a different compiler.
-We recommend using `gcc` from the `MacPorts <https://www.macports.org/>`_ package.
-Once you have installed MacPorts, you can install `gcc` and then use it to install pynbody as
+We recommend using *gcc* from the `MacPorts <https://www.macports.org/>`_ package.
+Once you have installed MacPorts, you can install *gcc* and then use it to install pynbody as
 follows:
 
 .. code-block :: bash
