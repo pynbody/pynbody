@@ -51,4 +51,3 @@ Low-level detail
    pynbody.sph
    pynbody.test_utils
    pynbody.util
-
