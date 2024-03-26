@@ -146,12 +146,11 @@ import fractions
 import functools
 import logging
 import weakref
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from .. import units
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .. import family, snapshot

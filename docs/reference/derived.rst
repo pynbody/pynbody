@@ -93,4 +93,3 @@ given in the :ref:`data access tutorial <create_arrays>`.
 When your function is called, the framework monitors any arrays it
 retrieves from the simulation. It automatically marks the accessed
 arrays as dependencies for your function.
-
