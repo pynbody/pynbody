@@ -10,9 +10,10 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import numpy as np
 import os
 import sys
+
+import numpy as np
 
 #import sphinx_bootstrap_theme
 
@@ -298,6 +299,7 @@ def hide_numpy_methods(app, what, name, obj, skip, options):
         if "SimArray" in qname:
             method_name = qname.split(".")[-1]
             if method_name in np.ndarray.__dict__:
+                print("Skipping ", qname)
                 return True
 def setup(app):
     app.connect('autodoc-skip-member', hide_numpy_methods)
