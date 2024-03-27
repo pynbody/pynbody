@@ -1,21 +1,67 @@
 """
+Support for halo and group catalogues.
 
-halo
-====
-
-Implements halo catalogue functions. If you have a supported halo
-catalogue on disk or a halo finder installed and correctly configured,
-you can access a halo catalogue through f.halos() where f is a
-SimSnap.
-
-See the `halo tutorial
-<http://pynbody.github.io/pynbody/tutorials/halos.html>`_ for some
-examples.
-
-Halo catalogues act like a dictionary, mapping from a _halo number_ to a
-Halo object. The halo number is typically determined by the halo finder, and
-is often (but not always) the same as the _halo index_ which is the zero-based
+Halo catalogues act like a dictionary, mapping from halo numbers to a Halo objects. The halo *number* is typically
+determined by the halo finder, and is often (but not always) the same as the halo *index* which is the zero-based
 offset within the catalogue.
+
+If you have a supported halo catalogue on disk or a halo finder installed and correctly configured, you can access a
+halo catalogue through ``f.halos()`` where ``f`` is a SimSnap.
+
+See the :ref:`halo catalogue tutorial <halo_tutorial>` for introductory information and guidance.
+
+
+.. _v2_0_halo_changes:
+
+.. versionchanged:: 2.0
+
+  Backwards-incompatible changes to the halo catalogue system
+
+  For version 2.0, the halo catalogue loading system was substantially rewritten. The new system is more robust and
+  more consistent across different halo finders. However, this means that some defaults have changed, most significantly
+  in the AHF halo numbering. Backward-compatibility can be achieved by passing ``halo_numbers='v1'`` to the
+  :class:`~pynbody.halo.ahf.AHFCatalogue` constructor. For more information, read the documentation for that class.
+
+  Furthermore, older versions of pynbody (i.e. v1.x) could be configured to create a halo catalogue if one was not
+  found, using AHF. This is no longer the case, as creating a halo catalogue requires choosing a halo finder and its
+  parameters carefully for the task in hand and it was not possible to provide a one-size-fits-all solution.
+
+  Finally, options to write ``.stat`` files and ``.grp`` files have been removed. However it is still possible to
+  generate a ``.grp`` file by  calling :meth:`~HaloCatalogue.get_group_array` and writing out the resulting
+  array of integers using a tool like ``numpy.savetxt``.
+
+  By paring back the less-used functionality of the halo catalogue system, the remaining functionality is more
+  consistent, robust, and extensible to new halo finders.
+
+
+.. _supported_halo_finders:
+
+Supported halo-finder formats
+-----------------------------
+
+The currently-supported formats are:
+
+- Adaptahop (:class:`~pynbody.halo.adaptahop.AdaptaHOPCatalogue`);
+- AHF (:class:`~pynbody.halo.ahf.AHFCatalogue`);
+- HBT+ (:class:`~pynbody.halo.hbtplus.HBTPlusCatalogue`);
+- HOP (:class:`~pynbody.halo.hop.HOPCatalogue`);
+- Rockstar (:class:`~pynbody.halo.rockstar.RockstarCatalogue`);
+- Subfind (old format :class:`~pynbody.halo.subfind.SubfindCatalogue`, or various HDF5 variants
+  as :class:`~pynbody.halo.subfindhdf.SubfindHDFCatalogue`);
+- VELOCIraptor (:class:`~pynbody.halo.velociraptor.VelociraptorCatalogue`).
+
+In addition, generic halo finders which output a list of halo numbers for each particle are supported via
+:class:`~pynbody.halo.number_array.HaloNumberCatalogue`.
+
+
+
+.. note::
+
+    The principal development of ``pynbody`` took place in the UK, and the spelling of "catalogue" is British English.
+    However, since much code is written in American English, v2.0.0 introduced aliases such that all
+    classes can be accessed with the American spelling ``HaloCatalog``, ``AdaptaHOPCatalog`` etc.
+
+
 """
 from __future__ import annotations
 
@@ -28,7 +74,7 @@ from typing import TYPE_CHECKING, Iterable
 import numpy as np
 from numpy.typing import NDArray
 
-from .. import snapshot, units, util
+from .. import array, snapshot, units, util
 from ..util import iter_subclasses
 from .details.iord_mapping import make_iord_to_offset_mapper
 from .details.number_mapping import MonotonicHaloNumberMapper, create_halo_number_mapper
@@ -51,7 +97,10 @@ class DummyHalo(snapshot.util.ContainerWithPhysicalUnitsOption):
 class Halo(snapshot.subsnap.IndexedSubSnap):
 
     """
-    Generic class representing a halo.
+    Represents a single halo from a halo catalogue.
+
+    Note that pynbody refers to groups, halos and subhalos interchangably, with the term "halo" being used to cover
+    all of these.
     """
 
     def __init__(self, halo_number, properties, halo_catalogue, *args, **kwa):
@@ -69,43 +118,16 @@ class Halo(snapshot.subsnap.IndexedSubSnap):
     @property
     @util.deprecated("The sub property has been renamed to subhalos")
     def sub(self):
+        """Deprecated alias for :property:`subhalos`."""
         return self.subhalos
 
     @property
     def subhalos(self) -> SubhaloCatalogue:
+        """A HaloCatalogue object containing only the subhalos of this halo."""
         return self._halo_catalogue._get_subhalo_catalogue(self._halo_number)
 
+
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=True):
-        """
-        Converts all array's units to be consistent with the
-        distance, velocity, mass basis units specified.
-
-        Base units can be specified using keywords.
-
-        **Optional Keywords**:
-
-           *distance*: string (default = 'kpc')
-
-           *velocity*: string (default = 'km s^-1')
-
-           *mass*: string (default = 'Msol')
-
-           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
-
-           *convert_parent*: boolean (default = None); if True, propagate units change to parent snapshot. See note below.
-
-        **Note**:
-
-            When convert_parent is True, the unit conversion is propagated to
-            the parent halo catalogue and the halo properties *are not
-            converted*. The halo catalogue is in charge of calling
-            physical_units with convert_parent=False for all halo objects
-            (including this one).
-
-            When convert_parent is False, the properties are converted
-            immediately.
-
-        """
         if convert_parent:
             self._halo_catalogue.physical_units(
                 distance=distance,
@@ -123,34 +145,50 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
     """Generic halo catalogue object.
 
-    To the user, this presents a simple interface where calling h[i] returns halo i.
+    To the user, this presents a simple interface where calling ``h[i]`` returns halo ``i``. Properties of halos
+    can be retrieved without loading the halo via :meth:`get_properties_one_halo` or :meth:`get_properties_all_halos`.
 
-    By convention, i should use the halo finder's own indexing scheme, e.g. if the halo-finder is one-based then
-    h[1] should return the first halo.
+    More information for users can be found in the :ref:`halo catalogue tutorial <halo_tutorial>`; see also the
+    :ref:`supported halo finders <supported_halo_finders>`.
 
-    To support a new format, subclass this and implement the following methods:
-      __init__, which must pass a HaloNumberMapper into the base constructor, to specify what halos are available
-      _get_all_particle_indices [essential]
-      _get_particle_indices_one_halo [optional, if it's possible to do this more efficiently than _get_all_particle_indices]
-      get_properties_one_halo [only if you have halo finder-provided properties to expose]
-      get_properties_all_halos [only if you have halo finder-provided properties to expose]
-      _get_halo [only if you want to add further customization to halos]
-      _get_num_halos [optional, if it's possible to do this more efficiently than calling _get_index_list_all_halos]
-      get_group_array [only if it's possible to do this more efficiently than the default implementation]
-      _get_subhalo_catalogue [optional, if this halo catalogue supports subhalos]; user-accessed via .subhalos on a Halo
+    Implementing a new format
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    Note that particle indices are zero-relative offsets within pynbody's representation of the snapshot. They are not
-    the same as particle IDs or 'iord's which are the particle IDs stored in the simulation file. To aid converting
-    between iords/IDs (which are used by many halo finder outputs) and pynbody's particle indices, call
-    _init_iord_to_fpos, which creates a mapper as _iord_to_fpos. See details/iord_mapping.py for more information.
+    To support a new format, subclass :class:`HaloCatalogue` and implement the following methods:
+
+    * :meth:`__init__`
+    * :meth:`_can_load`
+    * :meth:`_get_all_particle_indices`
+    * :meth:`_get_particle_indices_one_halo` [only if it's possible to do this more efficiently than
+      :meth:`_get_all_particle_indices` for users accessing only a few halos]
+    * :meth:`get_properties_all_halos` [only if you have halo finder-provided properties to expose]
+    * :meth:`get_properties_one_halo` [only if you have halo finder-provided properties to expose, and it's efficient
+      to expose them one halo at a time; the default implementation will call get_properties_all_halos and extract]
+    * :meth:`get_group_array` [only if it's possible to do this more efficiently than the default implementation]
+
+    Nomenclature/conventions are worth being aware of if you are implementing a new format:
+
+    * The halo number is the user-exposed identifier for a halo. It is typically assigned by the halo finder, although
+      subclasses are free to assign their own (e.g. some have a `halo_number` option that can be passed to the
+      constructor to override the halo finder's numbering). The halo numbers are used to access individual halos via
+      the [] operator.
+    * The halo *index* is the zero-based offset within the catalogue, which may be different from the halo number.
+      Internally, *pynbody* converts between these using a :class:`details.number_mapping.HaloNumberMapper` object,
+      which is set up in the :meth:`__init__` method.
+    * Particle indices should be returned from methods like :meth:`_get_particle_indices_one_halo` as zero-relative
+      offsets within the snapshot, not particle IDs or 'iord's. Many halo finders output particle IDs which must
+      therefore be mapped. To aid this, call :meth:`_init_iord_to_fpos` in your :meth:`__init__` method, which creates
+      a mapper as :attr:`_iord_to_fpos`. See :mod:`details.iord_mapping` for more information.
+
     """
 
     def __init__(self, sim, number_mapper):
         self._base: weakref[snapshot.SimSnap] = weakref.ref(sim)
-        self.number_mapper: MonotonicHaloNumberMapper = number_mapper
+        self.number_mapper: HaloNumberMapper = number_mapper
         self._index_lists: HaloParticleIndices | None = None
         self._properties: dict | None = None
         self._cached_halos: dict[int, Halo] = {}
+        self._persistent_units = None
 
     def load_all(self):
         """Loads all halos, which is normally more efficient if a large fraction of them will be accessed."""
@@ -163,8 +201,12 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             if len(properties)>0:
                 self._properties = properties
 
+            if self._persistent_units is not None:
+                self._cached_properties_to_physical_units(self._persistent_units)
+
     @util.deprecated("precalculate has been renamed to load_all")
     def precalculate(self):
+        """Deprecated alias for :meth:`load_all`"""
         self.load_all()
 
     def _get_num_halos(self):
@@ -186,7 +228,12 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
     def get_properties_one_halo(self, halo_number) -> dict:
         """Returns a dictionary of properties for a single halo, given a halo_number """
-        return {}
+
+        # Default implementation: extract from all halos. Subclasses may override this if they can load properties
+        # for a single halo more efficiently.
+        self._properties = self.get_properties_all_halos(with_units=True)
+        return self._get_properties_one_halo_using_cache_if_available(halo_number,
+                                                                      self.number_mapper.number_to_index(halo_number))
 
     def get_properties_all_halos(self, with_units=True) -> dict:
         """Returns a dictionary of properties for all halos.
@@ -198,6 +245,13 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         halo numbers which are used to access individual halos. To map between halo numbers and properties, use the
         .number_mapper object; or access individual property dictionaries by halo number using get_properties_one_halo."""
         return {}
+
+    def _get_properties_one_halo_using_cache_if_available(self, halo_number, halo_index):
+        if self._properties is None:
+            return self.get_properties_one_halo(halo_number)
+        else:
+            return {k: units.get_item_with_unit(self._properties[k],halo_index)
+                    for k in self._properties}
 
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
         """Get the index list for a single halo, given a halo_number.
@@ -224,13 +278,6 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             self._cached_halos[halo_number] = self._get_halo(halo_number)
         return self._cached_halos[halo_number]
 
-    def _get_properties_one_halo_using_cache_if_available(self, halo_number, halo_index):
-        if self._properties is None:
-            return self.get_properties_one_halo(halo_number)
-        else:
-            return {k: units.get_item_with_unit(self._properties[k],halo_index)
-                    for k in self._properties}
-
     def _get_halo(self, halo_number) -> Halo:
         halo_index = self.number_mapper.number_to_index(halo_number)
         return Halo(halo_number,
@@ -252,7 +299,11 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         for i in self.number_mapper:
             yield self[i]
 
+    def __repr__(self):
+        return f"<{type(self).__name__}, length {len(self)}>"
+
     def keys(self):
+        """Return an iterable of all halo numbers in the catalogue."""
         return self.number_mapper.all_numbers
 
     def __getitem__(self, item) -> Halo | SubhaloCatalogue:
@@ -266,6 +317,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
     @property
     def base(self) -> snapshot.SimSnap:
+        """The snapshot object that this halo catalogue is based on."""
         return self._base()
 
     def _init_iord_to_fpos(self):
@@ -294,11 +346,14 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         else:
             raise ValueError(f"This halo catalogue does not support subhalos")
 
+    @util.deprecated("This method is deprecated and will be removed in a future release. Use python `in` syntax instead.")
     def contains(self, halo_number: int) -> bool:
-        return halo_number in self.number_mapper
+        """Deprecated alias; instead of ``h.contains(number)`` use ``number in h``."""
+        return halo_number in self
 
-    def __contains__(self, haloid):
-        return self.contains(haloid)
+    def __contains__(self, halo_number) -> bool:
+        """Returns True if the halo catalogue contains the specified halo number."""
+        return halo_number in self.number_mapper
 
     def get_group_array(self, family=None):
         """Return an array with an integer for each particle in the simulation
@@ -322,25 +377,6 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
                     take=self._get_particle_indices_one_halo_using_list_if_available(halo_number, halo_index))
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):
-        """
-        Converts all array's units to be consistent with the
-        distance, velocity, mass basis units specified.
-
-        Base units can be specified using keywords.
-
-        **Optional Keywords**:
-
-           *distance*: string (default = 'kpc')
-
-           *velocity*: string (default = 'km s^-1')
-
-           *mass*: string (default = 'Msol')
-
-           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
-
-           *convert_parent*: boolean (default = None); ignored for HaloCatalogue objects
-
-        """
         self.base.physical_units(distance=distance, velocity=velocity, mass=mass, persistent=persistent)
 
         # Convert all instantiated subhalos
@@ -353,10 +389,23 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
                 convert_parent=False
             )
 
+        all_units = [units.Unit(x) for x in (distance, velocity, mass, 'a', 'h', 'K')]
+
+        if persistent:
+            self._persistent_units = all_units
+
+        self._cached_properties_to_physical_units(all_units)
+
+    def _cached_properties_to_physical_units(self, all_units):
+        if self._properties is not None:
+            for k in self._properties:
+                if isinstance(self._properties[k], array.SimArray) and units.has_unit(self._properties[k]):
+                    self.base._autoconvert_array_unit(self._properties[k], all_units)
+
+
     @classmethod
     def _can_load(cls, sim):
         return False
-
 
 from . import (
     adaptahop,
@@ -369,3 +418,25 @@ from . import (
     subfindhdf,
     velociraptor,
 )
+
+
+def _fix_american_spelling(p):
+    """Map American to British spelling (used by SimSnap.halos to allow flexible spelling)"""
+    if isinstance(p, str) and p.endswith('Catalog'):
+        return p.replace('Catalog', 'Catalogue')
+    else:
+        return p
+def _alias_american_spelling():
+    """Create American spelling aliases for all HaloCatalogue subclasses."""
+    for c in HaloCatalogue.iter_subclasses():
+        american_name = c.__name__.replace("Catalogue", "Catalog")
+        # put american_name into the same module as c (not this module)
+
+        if c.__module__.startswith('pynbody.halo.'):
+            module = eval(c.__module__.replace('pynbody.halo.', ''))
+
+        setattr(module, american_name, c)
+
+    globals()['HaloCatalog'] = HaloCatalogue
+
+_alias_american_spelling()
