@@ -1,3 +1,54 @@
+"""HBT+ halo catalogue support.
+
+.. _hbt_plus_parent_groups:
+
+HBT+ and parent groups
+----------------------
+
+HBT+ identifies halos, not the parent groups (using the SubFind terminology). As a result, it may be used alongside a
+parent group catalogue. The *pynbody* reader can present a unified interface to the combined hierarchy, presenting
+groups from the parent catalogue as the top-level objects, with the HBT+ halos as children of these groups, and
+HBT+ subhalos as children of the HBT+ halos.
+
+For example:
+
+.. ipython::
+
+  In [1]: import pynbody
+
+  In [2]: s = pynbody.load('testdata/gadget4_subfind_HBT/snapshot_034.hdf5')
+
+  In [3]: hbtplus_halos = s.halos(priority=["HBTPlusCatalogue"])
+
+  In [4]: subfind_groups = s.halos(priority=["Gadget4SubfindHDFCatalogue"])
+
+  In [5]: combined_catalogue = hbtplus_halos.with_groups_from(subfind_groups)
+
+  In [6]: combined_catalogue[0]
+  Out[6]: <SimSnap "testdata/gadget4_subfind_HBT/snapshot_034.hdf5:halo_0" len=307386>
+
+We can tell that this is actually a SubFind group by inspecting its properties:
+
+.. ipython::
+
+  In [7]: combined_catalogue[0].properties['GroupMass'] # <-- a SubFind property
+  Out[7]: Unit("7.80e+44 g h**-1")
+
+  In [8]: subfind_groups[0].properties['GroupMass'] # <-- the same property accessed directly from SubFind
+  Out[8]: Unit("7.80e+44 g h**-1")
+
+The ``subhalos`` attribute of each halo in the ``combined_catalogue`` will return the HBT+ subhalos that are children of
+the corresponding SubFind group:
+
+.. ipython::
+
+  In [14]: combined_catalogue[0].subhalos[0].properties['TrackId'] # <-- an HBT+ property
+  Out[14]: 54
+
+Naturally, not only the properties but the particle information is available in the combined catalogue.
+
+
+"""
 from __future__ import annotations
 
 import pathlib
@@ -12,31 +63,38 @@ from .details import number_mapping
 
 
 class HBTPlusCatalogue(HaloCatalogue):
-    def __init__(self, sim, halo_numbers=None, hbt_filename=None):
+    """A class to represent a HBT+ halo catalogue."""
+    def __init__(self, sim, halo_numbers=None, filename=None):
         """Initialize a HBTPlusCatalogue object.
 
         Parameters
         ----------
         sim : SimSnap
             The simulation snapshot to which this catalogue applies.
+
         halo_numbers : str, optional
             How to number the halos. If None (default), use a zero-based indexing.
-            If 'track', use the TrackId from the catalogue.
-            If 'length-order', order by Nbound (descending), similar to the AHF option of the same name
-        hbt_filename : str, optional
-            The filename of the HBTPlus catalogue. If None (default), attempt to find
-            the file automatically.
-        """
-        if hbt_filename is None:
-            hbt_filename = self._infer_hbt_filename(sim)
 
-        self._file = h5py.File(hbt_filename, 'r')
+            * If ``track``, use the TrackId from the catalogue.
+            * If ``length-order``, order by Nbound (descending), similar to the AHF option of the same name.
+
+        filename : str, optional
+            The filename of the HBTPlus catalogue. If the file is spanned across multiple outputs (e.g.
+            ``path/to/SubSnap_034.0.hdf5``, ``SubSnap_034.1.hdf5``, etc.), pass the filename of the first file or
+            the common prefix (``path/to/SubSnap_034``). If None (default), attempt to find the file automatically.
+        """
+        if filename is None:
+            filename = self._infer_hbt_filename(sim)
+        else:
+            filename = self._map_user_filename_to_file_0(filename)
+
+        self._file = h5py.File(filename, 'r')
 
         num_halos = int(self._file["NumberOfSubhalosInAllFiles"][0])
         if int(self._file["NumberOfFiles"][0])>1:
             from ..util import hdf_vds
-            hbt_filename = str(hbt_filename)[:-7]
-            all_files = [f"{hbt_filename}.{num}.hdf5" for num in range(int(self._file["NumberOfFiles"][0]))]
+            filename = str(filename)[:-7]
+            all_files = [f"{filename}.{num}.hdf5" for num in range(int(self._file["NumberOfFiles"][0]))]
             maker = hdf_vds.HdfVdsMaker(all_files)
             self._file = maker.get_temporary_hdf_vfile()
 
@@ -77,6 +135,15 @@ class HBTPlusCatalogue(HaloCatalogue):
 
         raise FileNotFoundError(f'Could not find HBTPlus catalogue for {sim_filename}. Try passing hbt_filename explicitly.')
 
+    @classmethod
+    def _map_user_filename_to_file_0(cls, filename):
+        filename = pathlib.Path(filename)
+        if not filename.exists():
+            if filename.with_suffix('.hdf5').exists():
+                filename = filename.with_suffix('.hdf5')
+            elif filename.with_suffix('.0.hdf5').exists():
+                filename = filename.with_suffix('.0.hdf5')
+        return filename
 
     def _setup_parents(self):
         parents = np.empty(len(self), dtype=np.intp)
@@ -118,16 +185,16 @@ class HBTPlusCatalogue(HaloCatalogue):
         return indices, boundaries
 
     def with_groups_from(self, other: HaloCatalogue) -> HaloCatalogue:
-        """HBT+ identifies halos, not the parent groups (using the SubFind terminology).
-
-        If you can load the original group catalogue from which HBT+ was run, this comines the two catalogues into one
-        single expression of the hierarchy, with the original group catalogue as the parent groups.
+        """Return a new catalogue that combines an HBT+ halo catalogue with a parent group catalogue.
 
         For example:
+
         >>> grps = hbt_cat.with_groups_from(subfind_cat)
         >>> grps[0] # -> returns subfind_cat[0]
         >>> grps[0].properties['children'] # -> returns relevant halo numbers in hbt_cat
         >>> grps[0].subhalos # -> returns HBT+ subhalos that are children of subfind_cat[0]
+
+        See also :ref:`hbt_plus_parent_groups`.
         """
         return HBTPlusCatalogueWithGroups(self, other)
 
@@ -154,9 +221,11 @@ class HBTPlusCatalogue(HaloCatalogue):
 
 
     @classmethod
-    def _can_load(cls, sim, halo_numbers=None, hbt_filename=None):
+    def _can_load(cls, sim, halo_numbers=None, filename=None):
+        if filename is not None:
+            filename = cls._map_user_filename_to_file_0(filename)
         try:
-            hbt_filename = hbt_filename or cls._infer_hbt_filename(sim)
+            hbt_filename = filename or cls._infer_hbt_filename(sim)
             if h5py.is_hdf5(hbt_filename):
                 with h5py.File(hbt_filename, 'r') as f:
                     if "NumberOfFiles" in f:
@@ -169,6 +238,11 @@ class HBTPlusCatalogue(HaloCatalogue):
 
 
 class HBTPlusCatalogueWithGroups(HaloCatalogue):
+    """A class to represent a HBT+ halo catalogue with parent groups from another finder.
+
+    For more information about parent groups, see :ref:`hbt_plus_parent_groups`.
+    """
+
     def __init__(self, hbt_cat: HBTPlusCatalogue, group_cat: HaloCatalogue):
         if hbt_cat.base is not group_cat.base:
             raise ValueError("The two catalogues must have the same base simulation snapshot")

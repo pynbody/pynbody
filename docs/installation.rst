@@ -68,8 +68,8 @@ Note that we do not ship binary distributions for the ``conda`` utility, but you
 
 .. _install-pynbody:
 
-Installing for development
---------------------------
+Installing and testing for development
+--------------------------------------
 
 First, clone the `git repository from Github
 <https://github.com/pynbody/pynbody>`_. Pynbody uses `git
@@ -82,36 +82,57 @@ First, clone the `git repository from Github
 
 2. Clone the git repository:
 
-.. code-block :: bash
+   .. code-block :: bash
 
- $ git clone https://github.com/pynbody/pynbody.git
+     $ git clone https://github.com/pynbody/pynbody.git
 
 
 3. Whenever you need the newest version of the repository, run
 
-.. code-block :: bash
+   .. code-block :: bash
 
- $ git pull
+    $ git pull
 
 4. To compile and install, type:
 
-.. code-block :: bash
+   .. code-block :: bash
 
- $ cd pynbody
- $ pip install -e .[all]
+      $ cd pynbody
+      $ pip install -e .[all]
+
+
+   If you encounter problems on MacOS, check the :ref:`macos-compilers` section below.
 
 5. Now the package is installed wherever your python packages reside and should be importable from within python.
    The first thing to try is probably running the tests to make sure everything is working:
 
-.. code-block :: bash
+   .. code-block :: bash
 
      $ cd tests
      $ wget http://star.ucl.ac.uk/~app/testdata.tar.gz
      $ tar -xzf testdata.tar.gz
      $ pytest
 
-If this yields no errors, you are ready to use pynbody in the usual way. If you encounter problems, especially on MacOS,
-check the :ref:`macos-compilers` section below.
+   If this yields no errors, you are ready to use pynbody in the usual way. If ``pytest`` generates errors and you
+   haven't edited the code, please report the error on the `issue tracker <https://github.com/pynbody/pynbody/issues>`_,
+   giving as much information as possible. If the ``pytest`` command isn't found, you probably didn't install
+   ``pynbody`` with the ``[all]`` option above; you can install ``pytest`` separately with ``pip install pytest``.
+
+6. If you are planning to contribute to the development of pynbody, you should run the tests again before submitting a
+   pull request, and ideally find a way to add a test that demonstrates the bug you are fixing. This is not always
+   possible, but it is always appreciated. For more information on the testing framework, see the
+   `pytest documentation <https://docs.pytest.org/en/latest/>`_.
+
+7. If you are planning to contribute to the development of pynbody, you should also install the pre-commit hooks by
+   running the following command:
+
+   .. code-block :: bash
+
+     $ pip install pre-commit
+     $ pre-commit install
+
+   The pre-commit hooks will run every time you commit changes to the repository and will check for common formatting
+   issues. For more information on the pre-commit hooks, see the `pre-commit documentation <https://pre-commit.com/>`_.
 
 .. note::
    If you plan on joining the development efforts and you are
@@ -120,7 +141,9 @@ check the :ref:`macos-compilers` section below.
    is quite good and it's worth a read through Chapter 3 on
    branching. You may also choose to `fork the repo
    <https://help.github.com/articles/fork-a-repo>`_ if you already
-   have a `github <http://github.com>`_ account.
+   have a `github <http://github.com>`_ account. And finally, please
+   read our `code of conduct <https://github.com/pynbody/pynbody/blob/master/CODE_OF_CONDUCT.md>`_
+   for contributors.
 
 
 .. _macos-compilers:

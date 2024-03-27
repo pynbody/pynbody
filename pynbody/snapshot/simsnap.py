@@ -784,6 +784,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     def halos(self, *args, **kwargs) -> halo.HaloCatalogue:
         """Tries to instantiate a halo catalogue object for the given snapshot.
 
+        For introductory information about halo catalogues, see :ref:`halo_tutorial`, and the documentation for
+        :py:mod:`pynbody.halo`.
+
         Multiple catalogue classes are available in pynbody, and they are tried in turn until the first which
         accepted the request to load halos for this file.
 
@@ -797,16 +800,19 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         would try to load HOP halos, then AHF halos, then Subfind halos, before finally trying all other
         known halo classes in an arbitrary order.
 
-        Aarguments and keyword arguments other than `priority` are passed onto the individual halo loaders.
+        Arguments and keyword arguments other than `priority` are passed onto the individual halo loaders.
         If a given catalogue class does not accept the args/kwargs that you pass in, by definition it cannot
         be used; this can lead to 'silent' failures. To understand why a given class is not being instantiated
         by this method, the best option is to try _directly_ instantiating that class to reveal the error
-        explicitly."""
+        explicitly.
+        """
 
         from .. import config, halo
 
         priority = kwargs.pop('priority',
                               config['halo-class-priority'])
+
+        priority = [halo._fix_american_spelling(p) for p in priority]
 
         for c in halo.HaloCatalogue.iter_subclasses_with_priority(priority):
             try:

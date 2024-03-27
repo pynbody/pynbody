@@ -4,6 +4,9 @@ import pytest
 import pynbody
 from pynbody.test_utils.gadget4_subfind_reader import Halos
 
+# tell pytest not to raise warnings across this module
+pytestmark = pytest.mark.filterwarnings("ignore:Masses are either stored")
+
 
 def setup_module():
     global snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
@@ -12,11 +15,11 @@ def setup_module():
         snap_arepo = pynbody.load('testdata/arepo/cosmobox_015.hdf5')
 
     halos = pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap)
-    subhalos = pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap, subs=True)
+    subhalos = pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap, subhalos=True)
     htest = Halos('testdata/gadget4_subfind/', 0)
 
     halos_arepo = pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo)
-    subhalos_arepo = pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo, subs=True)
+    subhalos_arepo = pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo, subhalos=True)
     htest_arepo = Halos('testdata/arepo/', 15)
 
 
@@ -27,9 +30,9 @@ def teardown_module():
 
 def test_catalogue():
     _h_nogrp = snap.halos()
-    _subh_nogrp = snap.halos(subs=True)
+    _subh_nogrp = snap.halos(subhalos=True)
     _harepo_nogrp = snap_arepo.halos()
-    _subharepo_nogrp = snap_arepo.halos(subs=True)
+    _subharepo_nogrp = snap_arepo.halos(subhalos=True)
     for h in [halos, subhalos, _h_nogrp, _subh_nogrp, halos_arepo, subhalos_arepo, _harepo_nogrp, _subharepo_nogrp]:
         assert(isinstance(h, pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue)), \
             "Should be a Gadget4SubfindHDFCatalogue catalogue but instead it is a " + str(type(h))
@@ -40,6 +43,19 @@ def test_lengths():
     assert len(halos_arepo)==447
     assert len(subhalos_arepo)==475
 
+def test_catalogue_from_filename_gadget4():
+    snap = pynbody.load('testdata/gadget4_subfind/snapshot_000.hdf5')
+    snap._filename = ""
+
+    halos = snap.halos(filename='testdata/gadget4_subfind/fof_subhalo_tab_000.hdf5')
+    assert isinstance(halos, pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue)
+
+def test_catalogue_from_filename_arepo():
+    snap = pynbody.load('testdata/arepo/cosmobox_015.hdf5')
+    snap._filename = ""
+
+    halos = snap.halos(filename='testdata/arepo/fof_subhalo_tab_015.hdf5')
+    assert isinstance(halos, pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue)
 
 @pytest.mark.parametrize('mode', ('gadget4', 'arepo'))
 @pytest.mark.parametrize('subhalos', (True, False))
@@ -47,9 +63,9 @@ def test_halo_or_subhalo_properties(mode, subhalos):
 
     halos_str = 'subhalos' if subhalos else 'halos'
     if mode == 'gadget4':
-        comparison_catalogue, pynbody_catalogue = htest.load()[halos_str], snap.halos(subs=subhalos)
+        comparison_catalogue, pynbody_catalogue = htest.load()[halos_str], snap.halos(subhalos=subhalos)
     elif mode=='arepo':
-        comparison_catalogue, pynbody_catalogue = htest_arepo.load()[halos_str], snap_arepo.halos(subs=subhalos)
+        comparison_catalogue, pynbody_catalogue = htest_arepo.load()[halos_str], snap_arepo.halos(subhalos=subhalos)
     else:
         raise ValueError("Invalid mode")
 

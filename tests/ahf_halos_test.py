@@ -25,6 +25,14 @@ def test_load_ahf_catalogue():
     h = pynbody.halo.ahf.AHFCatalogue(f)
     assert len(h)==1411
 
+def test_load_ahf_catalogue_via_filename():
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    f._filename = '' # obfuscate the filename, so we can check loading via user-specified filename
+
+    h = f.halos(filename="testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF")
+    assert isinstance(h, pynbody.halo.ahf.AHFCatalogue)
+    assert len(h)==1411
+
 @pytest.mark.parametrize("do_load_all", [True, False])
 def test_ahf_particles(do_load_all, cleanup_fpos_file):
     f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")

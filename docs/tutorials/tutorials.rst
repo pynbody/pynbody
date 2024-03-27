@@ -32,6 +32,7 @@ Walkthroughs
    Quick-start <snapshot_manipulation>
    Reading data <data_access>
    Filtering data <filters>
+   Halos & groups <halos>
    Linking snapshots <bridge>
 
 .. _cookbook:
@@ -45,7 +46,6 @@ Cookbook/Recipes
    Profiles <profile>
    Rotation curves <rotation_curve>
    Images <pictures>
-   Halos <halos>
    Halo mass function <hmf>
 
 

@@ -1,6 +1,5 @@
 import os.path
 import warnings
-import weakref
 
 import numpy as np
 
@@ -12,10 +11,9 @@ from .subhalo_catalogue import SubhaloCatalogue
 
 
 class SubfindCatalogue(HaloCatalogue):
-    """Class to handle catalogues produced by the SubFind halo finder."""
+    """Handles catalogues produced by the SubFind halo finder (old versions that do not use HDF5 outputs)."""
 
-
-    def __init__(self, sim, subs=False, ordered=None, _inherit_data_from=None):
+    def __init__(self, sim, filename=None, subs=None, subhalos=False,  ordered=None, _inherit_data_from=None):
         """Initialise a SubFind catalogue
 
         By default, the FoF groups are imported, and subhalos are available via the 'subhalos' attribute of each
@@ -25,19 +23,43 @@ class SubfindCatalogue(HaloCatalogue):
         >>> h = f.halos()
         >>> h[1].subhalos[2] # returns the third subhalo of FoF group 1
 
-        However by setting subs=True, the FoF groups are ignored and the catalogue is of all subhalos.
+        However by setting ``subs=True``, the FoF groups are ignored and the catalogue is of all subhalos.
 
-        **kwargs** :
+        Parameters
+        ----------
 
-        *subs*: if True, load the subhalos; otherwise, load FoF groups (default)
-        *ordered*: if True, the snapshot must have sequential iords. If False, the iords might be out-of-sequence, and
-                 therefore reordering will take place. If None (default), the iords are examined to check whether
-                 re-ordering is required or not. Note that re-ordering can be undesirable because it also destroys
-                 subfind's order-by-binding-energy
-        *_inherit_data_from*: for internal use only, allows subhalo catalogue to share data with its parent FOF catalogue
+        sim : ~pynbody.snapshot.simsnap.SimSnap
+            The simulation snapshot to which this catalogue applies.
+
+        filename : str, optional
+            The path to the SubFind output(s). This is expected to be a folder named ``groups_XXX`` where XXX is the
+            snapshot number. The code extracts the snapshot number from the folder name and uses it to construct
+            the filename of the catalogue files, for example ``groups_XXX/subhalo_tab_XXX.0``. If no filename is
+            provided, the code will attempt to find a suitable catalogue starting from the simulation's directory.
+
+        subhalos : bool, optional
+            If False (default), catalogue represents the FoF groups and subhalos are available through the
+            :meth:`~pynbody.halo.Halo.subhalos` attribute of each group (see note above). If True, the catalogue
+            represents the subhalos directly and FoF groups are not available.
+
+        ordered : bool, optional
+            If True, the snapshot must have sequential iords. If False, the iords might be out-of-sequence, and
+            therefore reordering will take place. If None (default), the iords are examined to check whether
+            re-ordering is required or not. Note that re-ordering can be undesirable because it also destroys
+            subfind's order-by-binding-energy
+
+        _inherit_data_from : SubfindCatalogue, optional
+            For internal use only; allows subhalo catalogue to share data with its parent FOF catalogue
+
+
         """
 
-        self._subs=subs
+        if subs is not None:
+            warnings.warn("The 'subs' argument to SubfindCatalogue is deprecated; use 'subhalos' instead",
+                          DeprecationWarning)
+            subhalos = subs
+
+        self._subs=subhalos
 
         if ordered is not None:
             self._ordered = ordered
@@ -48,7 +70,7 @@ class SubfindCatalogue(HaloCatalogue):
 
         self.dtype_int = sim['iord'].dtype
         self.dtype_flt = 'float32' #SUBFIND data is apparently always single precision???
-        self._subfind_dir = self._name_of_catalogue(sim)
+        self._subfind_dir = filename or self._name_of_catalogue(sim)
 
         self.header = self._read_header()
         self._tasks = self.header[4]
@@ -60,7 +82,7 @@ class SubfindCatalogue(HaloCatalogue):
 
 
 
-        if subs:
+        if subhalos:
             if self.header[6]==0:
                 raise ValueError("This file does not contain subhalos")
             length = len(self._subhalodat['sub_off'])
@@ -69,8 +91,9 @@ class SubfindCatalogue(HaloCatalogue):
 
         super().__init__(sim, number_mapping.SimpleHaloNumberMapper(0, length))
 
-        if not subs:
-            self._subhalo_catalogue = SubfindCatalogue(sim, subs=True, ordered=self._ordered, _inherit_data_from=self)
+        if not subhalos:
+            self._subhalo_catalogue = SubfindCatalogue(sim, subhalos=True, filename=filename,
+                                                       ordered=self._ordered, _inherit_data_from=self)
 
     def _inherit_data(self, from_):
         inherit = ['_halodat', '_subhalodat', '_keys_halo', '_keys_subhalo']
@@ -301,13 +324,16 @@ class SubfindCatalogue(HaloCatalogue):
             return os.path.join(parent_dir,"groups_" + snapnum)
 
     @staticmethod
-    def _can_load(sim, **kwargs):
+    def _can_load(sim, filename=None, **kwargs):
+        if filename is not None:
+            if str(filename)[:-3].endswith("groups_"):
+                return True
         file = SubfindCatalogue._name_of_catalogue(sim)
         if os.path.exists(file):
             if os.path.exists(file):
                 if file.endswith(".hdf5"):
                     return False
-                elif os.listdir(file)[0].endswith(".hdf5"):
+                elif os.path.isdir(file) and os.listdir(file)[0].endswith(".hdf5"):
                     return False
                 else:
                     return True

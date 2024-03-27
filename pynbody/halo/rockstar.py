@@ -14,40 +14,35 @@ class RockstarFormatRevisionError(RuntimeError):
 
 
 class RockstarCatalogue(HaloCatalogue):
-    def __init__(self, sim, dummy=False, pathname=None, format_revision=None,
-                 filenames=None, sort=False, **kwargs):
+    def __init__(self, sim, filename=None, format_revision=None):
         """Initialize a RockstarCatalogue.
 
-        **kwargs** :
+        Parameters
+        ----------
 
+        sim : :class:`pynbody.snapshot.simsnap.SimSnap`
+            The simulation snapshot to which this catalogue applies.
 
-        *dummy*: if True, the particle file is not loaded, and all
-                 halos returned are just dummies (with the correct
-                 properties dictionary loaded). Use load_copy to get
-                 the actual data in this case.
+        filename : str, optional
+            The path to the Rockstar outputs. This can either be the first binary file in the series (e.g.
+            ``path/to/halos_15.0.bin``) or the stem for the series (e.g. ``path/to/halos_15``). If not specified,
+            the code will attempt to find the Rockstar outputs in the same directory as the simulation snapshot.
 
-        *sort*: if True, resort the halos into descending order of
-                particle number. Otherwise, leave in RockStar output order.
-
-        *filenames*: a list of filenames of each of the RockStar outputs.
-                     You probably want to use pathname instead, which specifies
-                     the path to the output folder.
-
-        *pathname*: the path of the output folder with the individual RockStar outputs
-
-        *format_revision*: Override the header's format revision information. Specify
-                    1, 2, 'caterpillar', 'galaxies' for Rockstar prior to 2014, post 2014,
-                    customized for the caterpillar project and for rockstar
-                    galaxies respectively
+        format_revision : int, str, optional
+            Override the header's format revision information. Specify 1, 2, 'caterpillar', 'galaxies' for Rockstar
+            prior to 2014, post 2014, customized for the caterpillar project and for rockstar galaxies respectively.
+            If not specified, the code will attempt to detect the format revision automatically.
 
         """
 
-        if filenames is not None:
-            self._files = filenames
+        if filename is not None:
+            filestem = str(filename)
+            if filestem.endswith(".0.bin"):
+                filestem = filestem[:-6]
+            self._files = glob.glob(filestem + "*.bin") + glob.glob(filestem + "*.boundbin")
         else:
-            if pathname is None:
-                pathname = os.path.dirname(sim.filename)
-            self._files = glob.glob(os.path.join(pathname,'halos*.bin'))
+            pathname = os.path.dirname(sim.filename)
+            self._files = glob.glob(os.path.join(pathname, 'halos*.bin'))
             if len(self._files)==0 :
                 self._files = glob.glob(os.path.join(pathname, 'halos*.boundbin'))
             self._files.sort()
@@ -131,10 +126,18 @@ class RockstarCatalogue(HaloCatalogue):
         return props
 
     @classmethod
-    def _can_load(cls, sim, **kwargs):
-        return len(
-            glob.glob(os.path.join(os.path.dirname(sim.filename), 'halos*.bin'))
-        ) > 0
+    def _can_load(cls, sim, filename=None, format_revision=None):
+        if filename is None:
+            return len(
+                glob.glob(os.path.join(os.path.dirname(sim.filename), 'halos*.bin'))
+            ) > 0
+        else:
+            if str(filename).endswith(".0.bin") and os.path.exists(filename):
+                return True
+            if os.path.exists(str(filename)+".0.bin"):
+                return True
+            return False
+
 
 
 class _RockstarCatalogueOneCpu:
