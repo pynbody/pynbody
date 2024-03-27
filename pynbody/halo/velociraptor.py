@@ -15,8 +15,7 @@ from .details import number_mapping
 
 
 class VelociraptorCatalogue(HaloCatalogue):
-    """
-    Velociraptor catalogue -- tested only with swift at present
+    """Handles catalogues produced by the velociraptor halo finder.
     """
 
     @classmethod
@@ -61,13 +60,27 @@ class VelociraptorCatalogue(HaloCatalogue):
 
         return True
 
-    def __init__(self, sim, vr_basename=None, include_unbound=False):
+    def __init__(self, sim, filename=None, include_unbound=False):
+        """Create a new velociraptor catalogue object
+
+        Parameters
+        ----------
+        sim : pynbody.SimSnap
+            The simulation snapshot
+        filename : str, optional
+            The filename of the velociraptor catalogue. If not specified, the code will try to guess the filename.
+            Here, the filename is considered to be the stem; e.g. if your velociraptor files are called
+            ``folder/output.properties.0`, ``folder/output.catalog_groups.0``, etc., you should specify
+            ``filename='folder/output'``.
+        include_unbound : bool, optional
+            Whether to include unbound particles in the particle list. Default is False.
+        """
 
         self._include_unbound = include_unbound
-        if vr_basename is None:
+        if filename is None:
             self._path = self._catalogue_path(sim)
         else:
-            self._path = Path(vr_basename)
+            self._path = Path(filename)
 
         if self._path is None:
             raise OSError("Could not find velociraptor catalogue. Try specifying vr_basename='path/to/output', where the velociraptor outputs are output.properties.0 etc")

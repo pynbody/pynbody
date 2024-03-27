@@ -25,6 +25,14 @@ def test_load_ahf_catalogue():
     h = pynbody.halo.ahf.AHFCatalogue(f)
     assert len(h)==1411
 
+def test_load_ahf_catalogue_via_filename():
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    f._filename = '' # obfuscate the filename, so we can check loading via user-specified filename
+
+    h = f.halos(filename="testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF")
+    assert isinstance(h, pynbody.halo.ahf.AHFCatalogue)
+    assert len(h)==1411
+
 h0_sample_iords = [57, 27875, 54094, 82969, 112002, 140143, 173567, 205840, 264606,
            301694, 333383, 358730, 374767, 402300, 430180, 456015, 479885, 496606,
            519824, 539971, 555195, 575204, 596047, 617669, 652724, 1533992, 1544021,
