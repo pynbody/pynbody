@@ -1,3 +1,5 @@
+"""Support for the Velociraptor halo finder."""
+
 from __future__ import annotations
 
 import functools
