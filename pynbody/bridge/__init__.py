@@ -20,8 +20,8 @@ import weakref
 
 import numpy as np
 
-from . import _bridge
 from .. import util
+from . import _bridge
 
 if typing.TYPE_CHECKING:
     from .. import snapshot

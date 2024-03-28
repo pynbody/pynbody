@@ -1,5 +1,4 @@
 import numpy as np
-
 import pytest
 
 import pynbody
@@ -212,5 +211,3 @@ def test_fuzzy_match_halos(snapshot_pair):
     assert fuzzy_match_rev.keys() == set(f2['grp'])
 
     assert fuzzy_match_rev[1] == [(0, 2./3), (1, 1./3)]
-
-
