@@ -1,3 +1,7 @@
+"""Support for the SubFind halo finder, in the HDF5 format used by Gadget3, 4 and Arepo."""
+
+from __future__ import annotations
+
 import os.path
 import warnings
 

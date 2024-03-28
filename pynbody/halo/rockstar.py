@@ -1,3 +1,7 @@
+"""Support for the Rockstar halo finder"""
+
+from __future__ import annotations
+
 import glob
 import os.path
 import sys

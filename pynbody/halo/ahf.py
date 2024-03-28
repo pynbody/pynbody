@@ -1,3 +1,7 @@
+"""AHF (Amiga Halo Finder) support"""
+
+from __future__ import annotations
+
 import glob
 import gzip
 import os.path

@@ -1,3 +1,5 @@
+"""Support for subhalo catalogues, which are effectively views on a parent halo catalogue"""
+
 import weakref
 
 from numpy.typing import NDArray

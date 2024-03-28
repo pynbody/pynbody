@@ -1,3 +1,5 @@
+"""Support for generic halo catalogues based on an array of halo numbers for each particle."""
+
 import numpy as np
 
 from . import HaloCatalogue
