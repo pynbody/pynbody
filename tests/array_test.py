@@ -9,6 +9,7 @@ import sys
 import time
 
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 
@@ -121,6 +122,11 @@ def test_unit_array_interaction():
     assert all(y + x == SA([1.001] * 10, 'Mpc'))
     assert all(y - x == SA([-999.] * 10, 'kpc'))
 
+def test_norm_units():
+    x = SA(np.ones((10, 3) ), "kpc")
+    result = np.linalg.norm(x, axis=1)
+    npt.assert_allclose(result, np.ones(10) * np.sqrt(3), rtol=1.e-5)
+    assert result.units == "kpc"
 
 def test_dimensionful_comparison():
     # check that dimensionful units compare correctly
