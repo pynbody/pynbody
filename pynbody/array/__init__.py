@@ -272,7 +272,14 @@ class SimArray(np.ndarray):
             else:
                 args_processed.append(arg)
 
-        result = func(*args_processed, **kwargs)
+        kwargs_processed= {}
+        for k, v in kwargs.items():
+            if isinstance(v, SimArray):
+                kwargs_processed[k] = v.view(np.ndarray)
+            else:
+                kwargs_processed[k] = v
+
+        result = func(*args_processed, **kwargs_processed)
 
         if func in SimArray._ufunc_registry:
             result = result.view(SimArray)
