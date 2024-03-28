@@ -260,6 +260,34 @@ class SimArray(np.ndarray):
             self._sim = lambda: None
             self._name = None
 
+    def __array_function__(self, func, types, args, kwargs):
+        ok_types = (SimArray, np.ndarray)
+        if not all(issubclass(t, ok_types) for t in types):
+            return NotImplemented
+
+        args_processed = []
+        for arg in args:
+            if isinstance(arg, SimArray):
+                args_processed.append(arg.view(np.ndarray))
+            else:
+                args_processed.append(arg)
+
+        result = func(*args_processed, **kwargs)
+
+        if func in SimArray._ufunc_registry:
+            result = result.view(SimArray)
+            if isinstance(result, SimArray): # may not be true if the result is a scalar
+                sim = None
+                for arg in args:
+                    if isinstance(arg, SimArray):
+                        sim = arg.sim
+                        break
+                result.units = SimArray._ufunc_registry[func](*args, **kwargs)
+                result.sim = sim
+
+        return result
+
+
     def __array_wrap__(self, array, context=None):
         if context is None:
             n_array = array.view(SimArray)
@@ -905,6 +933,10 @@ def _trig_units(*a):
 @_u(np.not_equal)
 def _comparison_units(*a):
     return None
+
+@_u(np.linalg.norm)
+def _norm_units(a, *args, **kwargs):
+    return a.units
 
 
 class IndexedSimArray:
