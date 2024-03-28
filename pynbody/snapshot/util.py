@@ -95,26 +95,48 @@ class ContainerWithPhysicalUnitsOption:
         for ar in all:
             self._autoconvert_array_unit(ar.ancestor, dims)
 
-    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):
+    def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=True):
         """
-        Converts all array's units to be consistent with the
-        distance, velocity, mass basis units specified.
+        Converts all arrays' units to be consistent with the distance, velocity, mass basis units specified.
 
-        Base units can be specified using keywords.
+        Parameters
+        ----------
 
-        **Optional Keywords**:
+        distance: string (default = 'kpc')
+            The distance unit to convert to.
 
-           *distance*: string (default = 'kpc')
+        velocity: string (default = 'km s^-1')
+            The velocity unit to convert to.
 
-           *velocity*: string (default = 'km s^-1')
+        mass: string (default = 'Msol')
+            The mass unit to convert to.
 
-           *mass*: string (default = 'Msol')
+        persistent: boolean (default = True)
+            Apply units change to future lazy-loaded arrays if True.
 
-           *persistent*: boolean (default = True); apply units change to future lazy-loaded arrays if True
+        convert_parent: boolean (default = True)
+            Propagate units change from a halo catalogue to a parent snapshot. See note below.
 
-           *convert_parent*: boolean (default = None); ignored for SimSnap objects
+
+        .. note::
+
+            The option `convert_parent` is only applicable to :class:`Halo` objects. It is ignored by all other objects,
+            including :class:`pynbody.snapshot.simsnap.SimSnap`, :class:`pynbody.snapshot.subsnap.SubSnap`,
+            and :class:`pynbody.halo.HaloCatalogue` objects.
+
+            When ``physical_units`` is called on a :class:`pynbody.halo.Halo` and `convert_parent` is True, no immediate
+            action is taken on the :class:`pynbody.halo.Halo` itself; rather the request is passed upwards to the
+            :class:`pynbody.halo.HaloCatalogue`.
+
+            The catalogue object then calls ``physical_units`` on the parent snapshot and on all cached
+            halos, setting ``convert_parent=False`` so that the units change is then applied to the
+            :class:`pynbody.halo.Halo` object itself.
+
+            This ensures that unit changes propagate through to properties of all halos. Most users will not need to
+            worry about this subtlety; things should 'just work' if you ignore the `convert_parent` option.
 
         """
+
         dims = [units.Unit(x) for x in (distance, velocity, mass, 'a', 'h')]
 
         self._autoconvert_arrays(dims)

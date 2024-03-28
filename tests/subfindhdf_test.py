@@ -67,7 +67,7 @@ def test_halo_loading(snap, load_all) :
 def test_subhalos(snap):
     """Test that subhalos can be accessed from each parent FOF group, as well as directly through a subs object"""
     h = pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue(snap)
-    subs = pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue(snap, subs=True)
+    subs = pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue(snap, subhalos=True)
     h.load_all()
 
     assert (h[0].subhalos[0]['iord'] == subs[0]['iord']).all()
@@ -76,11 +76,18 @@ def test_subhalos(snap):
     with pytest.warns(DeprecationWarning):
         assert (h[1].sub[1]['iord'] == subs[7]['iord']).all()
 
+def test_deprecated_subs_keyword(snap):
+    with pytest.warns(DeprecationWarning):
+        new_halos = snap.halos(subs=True)
+        assert isinstance(new_halos, pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue)
+        assert len(new_halos) == 3294
+
 def test_finds_correct_halo(snap):
     h = snap.halos()
     assert isinstance(h, pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue)
-    h = snap.halos(subs=True)
+    h = snap.halos(subhalos=True)
     assert isinstance(h, pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue)
+
 
 def test_grp_array(snap):
     h = snap.halos()
@@ -104,7 +111,7 @@ def test_fof_vs_sub_assignment(snap):
 @pytest.mark.parametrize('subhalos', (True, False))
 @pytest.mark.parametrize('with_units', (True, False))
 def test_properties_all_halos(snap, subhalos, with_units):
-    h = snap.halos(subs=subhalos)
+    h = snap.halos(subhalos=subhalos)
     properties = h.get_properties_all_halos(with_units=with_units)
 
     filesub = 'testdata/gadget3/data/subhalos_103/subhalo_103'

@@ -9,6 +9,7 @@ import sys
 import time
 
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 
@@ -121,6 +122,11 @@ def test_unit_array_interaction():
     assert all(y + x == SA([1.001] * 10, 'Mpc'))
     assert all(y - x == SA([-999.] * 10, 'kpc'))
 
+def test_norm_units():
+    x = SA(np.ones((10, 3) ), "kpc")
+    result = np.linalg.norm(x, axis=1)
+    npt.assert_allclose(result, np.ones(10) * np.sqrt(3), rtol=1.e-5)
+    assert result.units == "kpc"
 
 def test_dimensionful_comparison():
     # check that dimensionful units compare correctly
@@ -203,7 +209,7 @@ def test_shared_arrays():
     gc.collect() # this is to start with a clean slate, get rid of any shared arrays that might be hanging around
     baseline_num_shared_arrays = pyn_array.shared.get_num_shared_arrays_owned() # hopefully zero, but we can't guarantee that
 
-    ar = pyn_array._array_factory((3,5), dtype=np.float32, zeros=True, shared=True)
+    ar = pyn_array.array_factory((3, 5), dtype=np.float32, zeros=True, shared=True)
 
     assert ar.shape == (3,5)
     assert (ar == 0.0).all()
@@ -223,7 +229,7 @@ def test_shared_arrays():
 
     assert pyn_array.shared.get_num_shared_arrays_owned() == 1 + baseline_num_shared_arrays
 
-    ar2 = pyn_array._array_factory((3,5), dtype=np.float32, zeros=True, shared=True)
+    ar2 = pyn_array.array_factory((3, 5), dtype=np.float32, zeros=True, shared=True)
     assert pyn_array.shared.get_num_shared_arrays_owned() == 2 + baseline_num_shared_arrays
 
     del ar, ar2

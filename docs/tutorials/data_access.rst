@@ -1,3 +1,5 @@
+.. Last checked by AP: 18 Mar 2024
+
 .. data_access tutorial
 
 .. _data-access:
@@ -78,9 +80,7 @@ of particles in the file:
 
 .. ipython::
 
- @doctest
  In [3]: len(f)
- Out[3]: 8192
 
 We can also find out about particles of a particular type or ``family``
 as it is known within pynbody. To find out which families are present
@@ -89,7 +89,6 @@ in the file, use :func:`~pynbody.snapshot.SimSnap.families`:
 .. ipython::
 
  In [3]: f.families()
- Out[3]: [<Family gas>, <Family dm>, <Family star>]
 
 You can pick out just the particles belonging to a family by using the
 syntax ``f.family``. So, for example, we can see how many particles of
@@ -98,17 +97,17 @@ each type are present:
 
 .. ipython::
 
- @doctest
- In [4]: len(f.dm)
- Out[4]: 4096
+     @doctest
+     In [4]: len(f.dm)
+     Out[4]: 4096
 
- @doctest
- In [5]: len(f.gas)
- Out[5]: 4039
+     @doctest
+     In [5]: len(f.gas)
+     Out[5]: 4039
 
- @doctest
- In [6]: len(f.star)
- Out[6]: 57
+     @doctest
+     In [6]: len(f.star)
+     Out[6]: 57
 
 Useful information about the file is stored in a python dictionary
 called ``properties``:
@@ -534,8 +533,8 @@ centered on the origin, you can use:
 
  In [72]: f_sphere = f[Sphere('10 kpc')]
 
-
-For a list of filters, see  :py:mod:`pynbody.filt`.
+This
+For more information and a list of filters, see  :py:mod:`pynbody.filt`.
 
 
 Where next?

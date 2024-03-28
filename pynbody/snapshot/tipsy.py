@@ -212,7 +212,7 @@ class TipsySnap(SimSnap):
     def _update_loadable_keys(self):
         def is_readable_array(x):
             try:
-                with util.open_(x, 'r') as f:
+                with util.open_(x, 'rt') as f:
                     return int(f.readline()) == len(self)
             except ValueError:
                 # could be a binary file

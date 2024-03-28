@@ -15,17 +15,9 @@ from functools import reduce
 
 import numpy as np
 
-from .. import (
-    array,
-    dependencytracker,
-    family,
-    filt,
-    iter_subclasses,
-    simdict,
-    units,
-    util,
-)
+from .. import array, dependencytracker, family, filt, simdict, units, util
 from ..units import has_units
+from ..util import iter_subclasses
 from .util import ContainerWithPhysicalUnitsOption
 
 if typing.TYPE_CHECKING:
@@ -792,6 +784,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     def halos(self, *args, **kwargs) -> halo.HaloCatalogue:
         """Tries to instantiate a halo catalogue object for the given snapshot.
 
+        For introductory information about halo catalogues, see :ref:`halo_tutorial`, and the documentation for
+        :py:mod:`pynbody.halo`.
+
         Multiple catalogue classes are available in pynbody, and they are tried in turn until the first which
         accepted the request to load halos for this file.
 
@@ -805,16 +800,19 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         would try to load HOP halos, then AHF halos, then Subfind halos, before finally trying all other
         known halo classes in an arbitrary order.
 
-        Aarguments and keyword arguments other than `priority` are passed onto the individual halo loaders.
+        Arguments and keyword arguments other than `priority` are passed onto the individual halo loaders.
         If a given catalogue class does not accept the args/kwargs that you pass in, by definition it cannot
         be used; this can lead to 'silent' failures. To understand why a given class is not being instantiated
         by this method, the best option is to try _directly_ instantiating that class to reveal the error
-        explicitly."""
+        explicitly.
+        """
 
         from .. import config, halo
 
         priority = kwargs.pop('priority',
                               config['halo-class-priority'])
+
+        priority = [halo._fix_american_spelling(p) for p in priority]
 
         for c in halo.HaloCatalogue.iter_subclasses_with_priority(priority):
             try:
@@ -1107,7 +1105,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             shared = self._shared_arrays
 
         if source_array is None:
-            source_array = array._array_factory(dims, dtype, zeros, shared)
+            source_array = array.array_factory(dims, dtype, zeros, shared)
         else:
             assert isinstance(source_array, array.SimArray)
             assert source_array.shape == dims
@@ -1204,7 +1202,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             shared = self._shared_arrays
 
         if source_array is None:
-            source_array = array._array_factory(dims, dtype, False, shared)
+            source_array = array.array_factory(dims, dtype, False, shared)
         else:
             assert isinstance(source_array, array.SimArray)
             assert source_array.shape == dims

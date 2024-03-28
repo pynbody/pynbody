@@ -1,3 +1,4 @@
+import pathlib
 import warnings
 
 import numpy as np
@@ -146,6 +147,17 @@ def test_membership(halos, load_all, snap_type):
 def test_load(snap):
     h = snap.halos(priority=["HBTPlusCatalogue", "Gadget4SubfindHDFCatalogue"])
     assert isinstance(h, pynbody.halo.hbtplus.HBTPlusCatalogue)
+
+def test_load_from_filename(snap):
+    filename: pathlib.Path = snap.filename
+    snap._filename = "" # clear filename so we can test loading from catalogue filename
+
+    for name in ['SubSnap_034', 'SubSnap_034.0']:
+        # work out the HBT+ catalogue filename
+        hbt_filename = filename.parent / "034" / name
+
+        h = snap.halos(filename=hbt_filename)
+        assert isinstance(h, pynbody.halo.hbtplus.HBTPlusCatalogue)
 
 @pytest.fixture
 def expected_properties(snap_type):

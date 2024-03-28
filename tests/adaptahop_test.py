@@ -222,7 +222,7 @@ def test_longint_contamination_autodetection(f, fname, Halo_T, ans):
     # we just want to make sure the longint/contamination
     # flags are properly detected.
 
-    halos = Halo_T(f, fname=fname)
+    halos = Halo_T(f, filename=fname)
     assert halos._longint == ans["_longint"]
     assert halos._read_contamination == ans["_read_contamination"]
 
@@ -245,7 +245,7 @@ def test_dm_not_first_family(f):
     halos = f.halos()
 
     halos2 = pynbody.halo.adaptahop.NewAdaptaHOPCatalogue(f_with_tracers,
-                                 fname = "testdata/new_adaptahop_output_00080/Halos/tree_bricks080")
+                                                          filename="testdata/new_adaptahop_output_00080/Halos/tree_bricks080")
 
     assert (halos2[1].dm['iord'] == halos[1].dm['iord']).all()
     assert (halos2[2].dm['iord'] == halos[2].dm['iord']).all()

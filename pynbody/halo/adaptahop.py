@@ -58,8 +58,7 @@ UNITS = {
 
 
 class BaseAdaptaHOPCatalogue(HaloCatalogue):
-    """A AdaptaHOP Catalogue. AdaptaHOP output files must be in
-    Halos/<simulation_number>/ directory or specified by fname"""
+    """Handles catalogues produced by AdaptaHOP."""
 
     _AdaptaHOP_fname = None
     _halos = None
@@ -71,26 +70,49 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _halo_attributes_contam = tuple()
     _header_attributes = tuple()
 
-    def __init__(self, sim, fname=None, read_contamination=None, longint=None):
+    def __init__(self, sim, filename=None, read_contamination=None, longint=None):
+        """Initialise a AdaptaHOP catalogue.
+
+        Parameters
+        ----------
+
+        sim : ~pynbody.snapshot.simsnap.SimSnap
+            The snapshot to which this catalogue is attached.
+
+        filename : str, optional
+            The filename of the AdaptaHOP catalogue (``path/to/tree_bricksXXX``). If not specified, the
+            code will attempt to find the catalogue in the simulation directory.
+
+        read_contamination : bool, optional
+            Whether to read information about contamination of each halo. If not specified, the code will attempt to
+            detect the format. Note that if specifying read_contamination, longint must also be specified.
+
+        longint : bool, optional
+            Whether to read 64-bit integers. If not specified, the code will attempt to detect the format. Note that if
+            specifying longint, read_contamination must also be specified.
+        """
         if FortranFile is None:
             raise RuntimeError(
                 "Support for AdaptaHOP requires the package `cython-fortran-file` to be installed."
             )
 
-        if fname is None:
-            for fname in AdaptaHOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
-                if os.path.exists(fname):
+        if filename is None:
+            for filename in AdaptaHOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
+                if os.path.exists(filename):
                     break
 
-            if not os.path.exists(fname):
+            if not os.path.exists(filename):
                 raise RuntimeError(
                     "Unable to find AdaptaHOP brick file in simulation directory"
                 )
 
-        self._fname = fname
+        self._fname = filename
+
+        if (read_contamination or longint) is not None and (read_contamination is None or longint is None):
+            raise ValueError("If specifying read_contamination or longint, both must be specified")
 
         if read_contamination is None or longint is None:
-            read_contamination, longint = self._detect_file_format(fname)
+            read_contamination, longint = self._detect_file_format(filename)
         self._read_contamination = read_contamination
         self._longint = longint
 
@@ -126,20 +148,21 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         self._halos = {}
 
-        self._AdaptaHOP_fname = fname
+        self._AdaptaHOP_fname = filename
 
 
         logger.debug("AdaptaHOPCatalogue loaded")
 
-    def _detect_file_format(self, fname):
+    @classmethod
+    def _detect_file_format(cls, fname):
         """
         Detect if the file is in the old format or the new format.
         """
         with FortranFile(fname) as fpu:
-            longint_flag = self._detect_longint(fpu, (False, True))
+            longint_flag = cls._detect_longint(fpu, (False, True))
 
             # Now attempts reading the first halo data
-            attrs, attrs_contam = (self.convert_i8b(_, longint_flag) for _ in (self._halo_attributes, self._halo_attributes_contam))
+            attrs, attrs_contam = (cls.convert_i8b(_, longint_flag) for _ in (cls._halo_attributes, cls._halo_attributes_contam))
 
             if len(attrs_contam) == 0:
                 read_contamination = False
@@ -338,30 +361,27 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         raise ValueError("Could not detect longint")
 
     @classmethod
-    def _can_load(cls, sim, arr_name="grp", *args, **kwa):
-        candidates = [
-            fname
-            for fname in cls._enumerate_hop_tag_locations_from_sim(sim)
-        ]
+    def _can_load(cls, sim, filename=None, arr_name="grp", *args, **kwa):
+        if cls is BaseAdaptaHOPCatalogue:
+            return False # Must load a specialisation
+
+        if filename is None:
+            candidates = [
+                fname
+                for fname in cls._enumerate_hop_tag_locations_from_sim(sim)
+            ]
+        else:
+            candidates = [filename]
         valid_candidates = [fname for fname in candidates if os.path.exists(fname)]
         if len(valid_candidates) == 0:
             return False
 
-        # Logic is as follows:
-        # - If `longint` is provided, try loading with it.
-        # - Otherwise, try loading with and without it
-        use_longint = kwa.pop("longint", None)
-        if use_longint is None:
-            longint_flags = [True, False]
-        else:
-            longint_flags = use_longint
         for fname in valid_candidates:
-            with FortranFile(fname) as fpu:
-                try:
-                    cls._detect_longint(fpu, longint_flags)
-                    return True
-                except ValueError:
-                    pass
+            try:
+                cls._detect_file_format(fname)
+                return True
+            except ValueError:
+                pass
         return False
 
     @staticmethod
