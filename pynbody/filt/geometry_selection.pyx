@@ -50,6 +50,10 @@ def selection(np.ndarray[fused_float, ndim=2] pos_ar, region, parameters, fused_
 
     cdef char* output_data = <char*> np.PyArray_DATA(output)
 
+    if len(pos_ar) == 0:
+        # The check for C-contiguous 3-col fails when len is zero, but there is nothing to do anyway, so just return
+        return output
+
     if (np.PyArray_NDIM(pos_ar)!=2 or np.PyArray_DIMS(pos_ar)[1]!=3 or
             np.PyArray_STRIDES(pos_ar)[0] != sizeof(fused_float)*3 or
             np.PyArray_STRIDES(pos_ar)[1] != sizeof(fused_float)):
