@@ -611,7 +611,8 @@ class SimArray(np.ndarray):
         return x
 
     def mean_by_mass(self, *args, **kwargs):
-        return self.sim.mean_by_mass(self.name)
+        """Removed in pynbody 2.0. Use :func:`pynbody.snapshot.simsnap.SimSnap.mean_by_mass` instead."""
+        raise RuntimeError("SimArray.mean_by_mass has been removed. Use SimSnap.mean_by_mass instead.")
 
     def max(self, *args, **kwargs):
         x = np.ndarray.max(self, *args, **kwargs)
