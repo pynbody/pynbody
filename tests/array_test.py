@@ -195,7 +195,6 @@ def test_issue_485_2():
     np.testing.assert_allclose(sigvt, np.array([28.49997711, 18.84262276,  0.]), rtol=1e-6)
     np.testing.assert_allclose(rxy, np.array([1136892.125, 1606893.625, 1610494.75]), rtol=1e-6)
 
-
 def _test_and_alter_shared_value(array_info):
     array = pynbody.array.shared._shared_array_reconstruct(array_info)
     assert (array[:] == np.arange(3)[: , np.newaxis] * np.arange(5)[np.newaxis, :]).all()

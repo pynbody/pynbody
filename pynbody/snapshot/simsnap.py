@@ -1596,11 +1596,11 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     ############################################
     def mean_by_mass(self, name):
         """Calculate the mean by mass of the specified array."""
-        m = np.asanyarray(self["mass"])
-        ret = array.SimArray(
-            (self[name].transpose() * m).transpose().mean(axis=0) / m.mean(), self[name].units)
-
-        return ret
+        with self.immediate_mode:
+            mass = self['mass']
+            array = self[name]
+            mass_indexing = (slice(None), ) + (np.newaxis, ) * (len(array.shape) - 1)
+            return (mass[mass_indexing] * array).sum(axis=0) / mass.sum(axis=0)
 
     ############################################
     # SNAPSHOT DECORATION
