@@ -21,9 +21,8 @@ away, you may wish to read the :ref:`basic facilities tutorial
  Before you start make sure ``pynbody`` is properly
  installed. See :ref:`pynbody-installation`
  for more information. You will also need the standard ``pynbody`` test
- files if you want to follow the tutorial.
- These files are available separately here:
- `testdata.tar.gz <https://github.com/pynbody/pynbody/releases>`_.
+ files if you want to follow the tutorial. See :ref:`obtaining_testdata`
+ for more information.
 
 After you have extracted the testdata folder (e.g. with ``tar -xzf
 testdata.tar.gz``), launch ``ipython`` or ``Jupyter``. At the prompt or in
@@ -533,15 +532,4 @@ centered on the origin, you can use:
 
  In [72]: f_sphere = f[Sphere('10 kpc')]
 
-This
-For more information and a list of filters, see  :py:mod:`pynbody.filt`.
-
-
-Where next?
------------
-
-This concludes the tutorial for basic use of ``pynbody``. Further
-:ref:`tutorials <tutorials>` for specific tasks are available. We are
-happy to provide further assistance via our
-`user group email list
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
+For more information see :ref:`filters_tutorial`, and for a list of filters, see :py:mod:`pynbody.filt`.
