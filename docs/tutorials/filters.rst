@@ -165,6 +165,8 @@ For example, to select all stars with age between 1 Gyr and 10 Gyr inside 25kpc:
     In [25]: f"Stellar mass in range: {age_sphere_view['mass'].sum():.1e} Msol."
 
 
+.. _filters_tutorial_performance_implications:
+
 Performance implications
 ------------------------
 
