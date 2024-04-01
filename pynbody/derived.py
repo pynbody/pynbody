@@ -143,7 +143,7 @@ def _v_sph_operation(self, op):
     self.kdtree.set_array_ref('qty_sm', sm)
 
     start = time.time()
-    self.kdtree.populate('qty_%s' % op, nsmooth, config['sph']['Kernel'])
+    self.kdtree.populate('qty_%s' % op, nsmooth)
     end = time.time()
 
     logger.info(f'{_op_dict[op]} done in {end - start:5.3g} s')

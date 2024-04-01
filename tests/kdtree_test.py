@@ -90,16 +90,13 @@ def test_smooth(v_mean, v_disp, rho, smooth):
 
 
 def test_smooth_WendlandC2(rho_W):
+    pynbody.config['sph']['Kernel'] = 'WendlandC2'
 
-    """
-        np.save('test_rho_W.npy', f.g['rho'][::100])
-    """
-    pynbody.config['Kernel'] = 'WendlandC2'
-
-    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
-
-    npt.assert_allclose(f.g['rho'][::100],
-                        rho_W,rtol=1e-5)
+    try:
+        f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+        npt.assert_allclose(f.d['rho'][::100], rho_W, rtol=1e-8)
+    finally:
+        pynbody.config['sph']['Kernel'] = 'CubicSpline'
 
 def test_kd_delete():
     global f
@@ -218,6 +215,36 @@ def test_div_curl_smoothing(div_curl):
     npt.assert_allclose(f.g['v_div'][::100],  div,  rtol=2e-4)
     npt.assert_equal(f.g['vorticity'], f.g['v_curl'])
     assert f.g['vorticity'].units == f.g['vel'].units/f.g['pos'].units
+
+def test_kdtree_parallel_build():
+    """Check that parallel tree build results in identical tree to serial build."""
+    f = pynbody.new(dm=5000)
+    f['pos'] = np.random.uniform(size=(5000,3))
+    f['mass'] = np.random.uniform(size=5000)
+
+    f.build_tree(1)
+    result_one_thread = f.kdtree.serialize()
+
+    _, _, kdn1, poff1, _ = result_one_thread
+
+    del f.kdtree
+
+    f.build_tree(4)
+    result_four_threads = f.kdtree.serialize()
+    _, _, kdn4, poff4, _ = result_four_threads
+
+    assert (kdn1['pLower'] == kdn4['pLower']).all()
+    assert (kdn1['pUpper'] == kdn4['pUpper']).all()
+    assert (kdn1['iDim'] == kdn4['iDim']).all()
+    npt.assert_allclose(kdn1['bnd']['fMin'], kdn4['bnd']['fMin'])
+    npt.assert_allclose(kdn1['bnd']['fMax'], kdn4['bnd']['fMax'])
+    npt.assert_allclose(kdn1['fSplit'], kdn4['fSplit'])
+    assert (poff1 == poff4).all()
+
+
+
+
+
 
 @pytest.mark.parametrize("npart", [1, 10, 100, 1000, 100000])
 @pytest.mark.parametrize("offset", [0.0, 0.2, 0.5]) # checks wrapping

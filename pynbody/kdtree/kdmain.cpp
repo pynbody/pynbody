@@ -162,7 +162,7 @@ template <typename T> int checkArray(PyObject *check, const char *name, npy_intp
 /*==========================================================================*/
 PyObject *kdinit(PyObject *self, PyObject *args) {
   npy_intp nBucket;
-  npy_intp i;
+  npy_intp i; 
 
   PyObject *pos;  // Nx3 Numpy array of positions
   PyObject *mass; // Nx1 Numpy array of masses
@@ -323,18 +323,18 @@ PyObject *nn_start(PyObject *self, PyObject *args) {
      in those values from existing arrays
   */
 
-  int nSmooth, nProcs;
-  float period = std::numeric_limits<float>::max();
+  int nSmooth;
+  double period;
 
-  PyArg_ParseTuple(args, "Oii|f", &kdobj, &nSmooth, &nProcs, &period);
+  PyArg_ParseTuple(args, "Oi|d", &kdobj, &nSmooth, &period);
   kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
 
   if (period <= 0)
-    period = std::numeric_limits<float>::max();
+    period = std::numeric_limits<double>::max();
 
 
 
-  float fPeriod[3] = {period, period, period};
+  double fPeriod[3] = {period, period, period};
 
   if (nSmooth > PyArray_DIM(kd->pNumpyPos, 0)) {
     PyErr_SetString(
@@ -355,12 +355,11 @@ PyObject *nn_start(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  if (!smInit(&smx, kd, nSmooth, fPeriod)) {
-    PyErr_SetString(PyExc_RuntimeError, "Unable to create smoothing context");
-    return NULL;
-  }
+  smx = smInit<double>(kd, nSmooth, fPeriod);
+  if (smx == nullptr) return nullptr; // smInit sets the error message
 
-  smSmoothInitStep(smx, nProcs);
+
+  smSmoothInitStep(smx);
 
   return PyCapsule_New(smx, NULL, NULL);
 }
@@ -446,7 +445,7 @@ PyObject *nn_rewind(PyObject *self, PyObject *args) {
 
   PyArg_ParseTuple(args, "O", &smxobj);
   smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
-  smSmoothInitStep(smx, 1);
+  smSmoothInitStep(smx);
 
   return PyCapsule_New(smx, NULL, NULL);
 }
@@ -626,7 +625,7 @@ template <typename Tf, typename Tq> struct typed_particles_in_sphere {
     smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
 
     initParticleList(smx);
-    smBallGather<Tf, smBallGatherStoreResultInList>(smx, r * r, ri);
+    smBallGather<double, smBallGatherStoreResultInList>(smx, r * r, ri);
 
     return getReturnParticleList(smx);
   }
@@ -644,7 +643,7 @@ template <typename Tf, typename Tq> struct typed_populate {
     float hsm;
     int Wendland;
 
-    void (*pSmFn)(SMX, npy_intp, int, npy_intp *, float *, bool) = NULL;
+    void (*pSmFn)(SMX, npy_intp, int, bool) = NULL;
 
     PyObject *kdobj, *smxobj;
 
@@ -657,6 +656,7 @@ template <typename Tf, typename Tq> struct typed_populate {
 
     if (checkArray<Tf>(kd->pNumpySmooth, "smooth"))
       return NULL;
+
     if (propid > PROPID_HSM) {
       if (checkArray<Tf>(kd->pNumpyDen, "rho"))
         return NULL;
@@ -669,7 +669,7 @@ template <typename Tf, typename Tq> struct typed_populate {
       if (checkArray<Tq>(kd->pNumpyQtySmoothed, "qty_sm"))
         return NULL;
     }
-
+ 
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings = false;
     smx_local->pi = 0;
@@ -698,10 +698,10 @@ template <typename Tf, typename Tq> struct typed_populate {
       pSmFn = &smDivQty<Tf, Tq>;
       break;
     case PROPID_QTYCURL:
-      pSmFn = &smCurlQty<Tf, Tq>;
+      pSmFn = &smCurlQty<Tf, Tq>; 
       break;
     }
-
+ 
     if (propid == PROPID_HSM) {
       Py_BEGIN_ALLOW_THREADS;
       for (i = 0; i < nbodies; i++) {
@@ -726,13 +726,12 @@ template <typename Tf, typename Tq> struct typed_populate {
         // retrieve the existing smoothing length
         hsm = GETSMOOTH(Tf, i);
 
-        // use it to get nearest neighbours
-        nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(
+        // use it to get nearest neighbours - NB following should be Tf not double 
+        nCnt = smBallGather<double, smBallGatherStoreResultInSmx>(
             smx_local, 4 * hsm * hsm, ri);
 
         // calculate the density
-        (*pSmFn)(smx_local, i, nCnt, smx_local->pList, smx_local->fList,
-                 Wendland);
+        (*pSmFn)(smx_local, i, nCnt, Wendland);
 
         // select next particle in coordination with other threads
         i = smGetNext(smx_local);
@@ -741,6 +740,7 @@ template <typename Tf, typename Tq> struct typed_populate {
           break;
       }
       Py_END_ALLOW_THREADS;
+
     }
 
     smFinishThreadLocalCopy(smx_local);

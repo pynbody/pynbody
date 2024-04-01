@@ -55,7 +55,7 @@ extra_compile_args = ['-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
-                      '-g', '-std=c++14']
+                      '-g', '-O0', '-std=c++14']
 
 extra_link_args = openmp_args + ['-std=c++14']
 
