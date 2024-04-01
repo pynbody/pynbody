@@ -45,6 +45,13 @@ def test_sphere(snap):
     sp_units = f[pynbody.filt.Sphere('500 pc')]
     assert len(sp_units.intersect(sp)) == len(sp)
 
+
+def test_empty_sphere():
+    snap = pynbody.new(0)
+    # This would fail due to the C code seeing an array it couldn't handle (due to zero length)
+    sp_empty = snap[pynbody.filt.Sphere(1.0)]
+    assert len(sp_empty) == 0
+
 def test_wrapping_sphere(wrapping_snap):
     f, min = wrapping_snap
     # put a sphere at the lower left corner of the box
