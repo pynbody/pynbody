@@ -62,15 +62,13 @@ class PriorityQueue {
 
 
     inline void push(T distanceSquared, npy_intp particleIndex, T ax, T ay, T az) {
-      assert(!contains(particleIndex));
+      if (contains(particleIndex)) return;
       if NPY_UNLIKELY(!full()) {
         heap.push_back(PQEntry<T>(distanceSquared, particleIndex, ax, ay, az));
         std::push_heap(heap.begin(), heap.end());
         particleIsInQueue[particleIndex] = true;
       } else if (distanceSquared < topDistanceSquared()) {
-        std::pop_heap(heap.begin(), heap.end());
-        particleIsInQueue[heap.back().getParticleIndex()] = false;
-        heap.pop_back();
+        pop();
 
         heap.push_back(PQEntry<T>(distanceSquared, particleIndex, ax, ay, az));
         particleIsInQueue[particleIndex] = true;
@@ -90,7 +88,7 @@ class PriorityQueue {
       std::make_heap(heap.begin(), heap.end());
     }
 
-    void iterateHeapEntries(std::function<void(const PQEntry<T> &)> func) {
+    void iterateHeapEntries(std::function<void(const PQEntry<T> &)> func) const {
       for(auto &entry : heap) {
         func(entry);
       }
@@ -101,8 +99,8 @@ class PriorityQueue {
     }
 
     void pop() {
+      particleIsInQueue[heap.front().getParticleIndex()] = false;
       std::pop_heap(heap.begin(), heap.end());
-      particleIsInQueue[heap.back().getParticleIndex()] = false;
       heap.pop_back();
     }
 
@@ -308,7 +306,6 @@ void smBallSearch(SmoothingContext<T> *smx, T *ri) {
 
   cell = kdFindLocalBucket(kd, ri);
 
-
   T fBall2 = priorityQueue->topDistanceSquaredOrMax();
 
 
@@ -493,38 +490,12 @@ npy_intp smSmoothStep(SMX smx, int procid) {
 
     pi = pNext;
     ++pNext;
-    x = GET2<T>(kd->pNumpyPos, p[pi], 0);
-    y = GET2<T>(kd->pNumpyPos, p[pi], 1);
-    z = GET2<T>(kd->pNumpyPos, p[pi], 2);
 
-    // Remove everything else from the queue
+    // Remove everything from the queue. Since the next particle may be
+    // far away from the one we previously processed, a better set of candidates
+    // is likely to be found by starting from the local cell, as smBallSearch will do
+    // when the priority queue is empty.
     smx->priorityQueue->clear();
-
-
-    // Everything from here should be unnecessary in the new codebase, but has been temporarily reinstated to see
-    // if it helps track down what the problem with the smoothing is
-
-    npy_intp cell = ROOT;
-    while (cell < smx->kd->nSplit) {
-      if (GET2<T>(kd->pNumpyPos, p[pi], c[cell].iDim) < c[cell].fSplit)
-        cell = LOWER(cell);
-      else
-        cell = UPPER(cell);
-    }
-    
-
-    pj = c[cell].pLower;
-    
-    if (pj > smx->kd->nActive - nSmooth)
-      pj = smx->kd->nActive - nSmooth;
-      
-    for (int i=0; i<nSmooth; ++i) {
-      dx = x - GET2<T>(kd->pNumpyPos, p[pj], 0);
-      dy = y - GET2<T>(kd->pNumpyPos, p[pj], 1);
-      dz = z - GET2<T>(kd->pNumpyPos, p[pj], 2);
-      smx->priorityQueue->push(dx * dx + dy * dy + dz * dz, pj++);
-    }
-    
 
 
   } else   {
