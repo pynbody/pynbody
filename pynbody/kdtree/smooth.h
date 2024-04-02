@@ -1,7 +1,7 @@
-#ifndef SMOOTH_HINCLUDED
-#define SMOOTH_HINCLUDED
+#pragma once
 
 #include "kd.h"
+#include "pq.h"
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -17,130 +17,6 @@
 #define M_1_PI 0.31830988618379067154
 
 
-template<typename T>
-class PQEntry {
-  protected:
-    npy_intp particleIndex;
-
-  public:
-    T distanceSquared;
-    T ax, ay, az;
-
-    PQEntry(T distanceSquared, npy_intp particleIndex, T ax, T ay, T az) :
-      distanceSquared(distanceSquared), particleIndex(particleIndex), ax(ax), ay(ay), az(az)  { } 
-
-    npy_intp getParticleIndex() const { return particleIndex; }
-
-    inline bool operator<(const PQEntry& other) const {
-      return distanceSquared < other.distanceSquared;
-    }
-
-};
-
-// output stream operator for PQEntry, for debugging:
-template<typename T>
-inline std::ostream& operator<<(std::ostream& os, const PQEntry<T>& pqEntry) {
-  os << "PQEntry(" << pqEntry.distanceSquared << ", " << pqEntry.getParticleIndex() << ")";
-  return os;
-}
-
-template<typename T>
-class PriorityQueue {
-  protected:
-    std::vector<bool> particleIsInQueue;
-    size_t maxSize;
-    std::vector<PQEntry<T>> heap {};
-
-  public:
-    PriorityQueue(size_t maxSize, size_t numParticles) : maxSize(maxSize), particleIsInQueue(numParticles) {
-
-    }
-
-    // no copying allowed
-    PriorityQueue(const PriorityQueue&) = delete;
-    PriorityQueue& operator=(const PriorityQueue&) = delete;
-
-
-    inline void push(T distanceSquared, npy_intp particleIndex, T ax, T ay, T az) {
-      if (contains(particleIndex)) return;
-      if NPY_UNLIKELY(!full()) {
-        heap.push_back(PQEntry<T>(distanceSquared, particleIndex, ax, ay, az));
-        std::push_heap(heap.begin(), heap.end());
-        particleIsInQueue[particleIndex] = true;
-      } else if (distanceSquared < topDistanceSquared()) {
-        pop();
-
-        heap.push_back(PQEntry<T>(distanceSquared, particleIndex, ax, ay, az));
-        particleIsInQueue[particleIndex] = true;
-
-        std::push_heap(heap.begin(), heap.end());
-      }
-    }
-
-    bool contains(npy_intp particleIndex) const {
-      return particleIsInQueue[particleIndex];
-    }
-
-    void updateDistances(std::function<void(PQEntry<T> &)> update_distance) {
-      for(auto &entry : heap) {
-        update_distance(entry);
-      }
-      std::make_heap(heap.begin(), heap.end());
-    }
-
-    void iterateHeapEntries(std::function<void(const PQEntry<T> &)> func) const {
-      for(auto &entry : heap) {
-        func(entry);
-      }
-    }
-
-    void push(T distanceSquared, npy_intp particleIndex) {
-      push(distanceSquared, particleIndex, 0.0, 0.0, 0.0);
-    }
-
-    void pop() {
-      particleIsInQueue[heap.front().getParticleIndex()] = false;
-      std::pop_heap(heap.begin(), heap.end());
-      heap.pop_back();
-    }
-
-    const PQEntry<T>& top() const {
-      return heap.front();
-    }
-
-    inline T topDistanceSquared() const {
-      return heap.front().distanceSquared;
-    }
-
-    inline T topDistanceSquaredOrMax() const {
-      // Return the distance squared of the top element if the queue is full, otherwise return
-      // the maximum value of the type (so that all attempts to push will succeed)
-      if(NPY_LIKELY(full()))
-        return topDistanceSquared();
-      else
-        return std::numeric_limits<T>::max();
-    }
-
-    size_t size() const {
-      return heap.size();
-    }
-
-    void clear() {
-      iterateHeapEntries([this](const PQEntry<T> & entry) {
-        this->particleIsInQueue[entry.getParticleIndex()] = 0;
-      });
-      heap.clear();
-    }
-
-    bool empty() const {
-      return heap.empty();
-    }
-
-    inline bool full() const {
-      return heap.size() == maxSize;
-    }
-
-};
 
 template<typename T>
 class SmoothingContext {
@@ -162,7 +38,7 @@ public:
   SmoothingContext<T> * smx_global;
 
   
-  double ax = 0.0, ay = 0.0, az = 0.0;
+  T ax = 0.0, ay = 0.0, az = 0.0;
   bool warnings; //  keep track of whether a warning has been issued
 
   std::unique_ptr<std::vector<npy_intp>> result;
@@ -205,7 +81,8 @@ bool smCheckFits(KDContext* kd, T *fPeriod) {
 }
 
 template<typename T>
-SmoothingContext<T> * smInit(KDContext* kd, int nSmooth, T *fPeriod) {
+SmoothingContext<T> * smInit(KDContext* kd, int nSmooth, T fPeriod) {
+  T fPeriodArray[3] = {fPeriod, fPeriod, fPeriod};
 
   if(&(kd->kdNodes[ROOT]) == nullptr) {
     PyErr_SetString(PyExc_ValueError, "Invalid KDTree");
@@ -217,20 +94,18 @@ SmoothingContext<T> * smInit(KDContext* kd, int nSmooth, T *fPeriod) {
     return nullptr;
   }
 
-  if(!smCheckFits<T>(kd, fPeriod)) {
+  if(!smCheckFits<T>(kd, fPeriodArray)) {
     PyErr_SetString(
         PyExc_ValueError,
         "The particles span a region larger than the specified boxsize");
     return nullptr;
   }
 
-  auto smx = new SmoothingContext<T>(kd, nSmooth, fPeriod); // not shared_ptr because python will memory manage it
+  auto smx = new SmoothingContext<T>(kd, nSmooth, fPeriodArray); // not shared_ptr because python will memory manage it
 
   return smx;
 
 }
-
-using SMX = SmoothingContext<double> *;
 
 template<typename T>
 SmoothingContext<T> * smInitThreadLocalCopy(SmoothingContext<T> * from) {
@@ -267,11 +142,6 @@ npy_intp smGetNext(SmoothingContext<T> * smx_local) {
   smx_local->nCurrent += 1; // increment the local counter, ready for next time we are called
 
   return i;
-}
-
-template<typename T>
-void smFinish(SmoothingContext<T> * smx) {
-  delete smx;
 }
 
 
@@ -382,14 +252,14 @@ inline npy_intp smBallGatherStoreResultInSmx(SmoothingContext<T>* smx, T fDist2,
 
 template <typename T,
           npy_intp (*storeResultFunction)(SmoothingContext<T> *, T, npy_intp, npy_intp)>
-npy_intp smBallGather(SmoothingContext<T> * smx, float fBall2, float *ri) {
+npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
   /* Gather all particles within the specified radius, using the storeResultFunction callback
    * to store the results. */
   KDNode *c;
   npy_intp *p;
   KDContext* kd = smx->kd;
   npy_intp pj, nCnt, cp, nSplit;
-  float dx, dy, dz, x, y, z, lx, ly, lz, sx, sy, sz, fDist2;
+  T dx, dy, dz, x, y, z, lx, ly, lz, sx, sy, sz, fDist2;
 
   c = smx->kd->kdNodes;
   p = smx->kd->particleOffsets;
@@ -433,13 +303,12 @@ npy_intp smBallGather(SmoothingContext<T> * smx, float fBall2, float *ri) {
   return (nCnt);
 }
 
-void initParticleList(SMX smx);
-
-PyObject *getReturnParticleList(SMX smx);
+template <typename T>
+PyObject *getReturnParticleList(SmoothingContext<T> * smx);
 
 
 template <typename T> 
-npy_intp smSmoothStep(SMX smx, int procid) {
+npy_intp smSmoothStep(SmoothingContext<T> * smx, int procid) {
   KDNode *c;
   npy_intp *p;
 
@@ -447,9 +316,9 @@ npy_intp smSmoothStep(SMX smx, int procid) {
   npy_intp pi, pin, pj, pNext, nCnt, nSmooth;
   npy_intp nScanned = 0;
 
-  double dx, dy, dz, x, y, z, h2, ax, ay, az;
-  float proc_signal = -(float)(procid)-1.0;
-  double ri[3];
+  T dx, dy, dz, x, y, z, h2, ax, ay, az;
+  T proc_signal = -static_cast<T>(procid)-1.0;
+  T ri[3];
 
   c = smx->kd->kdNodes;
   p = smx->kd->particleOffsets;
@@ -511,7 +380,7 @@ npy_intp smSmoothStep(SMX smx, int procid) {
 
     auto priorityQueue = smx->priorityQueue.get();
 
-    priorityQueue->updateDistances([&](PQEntry<double> &entry) {
+    priorityQueue->updateDistances([&](PQEntry<T> &entry) {
       entry.ax -= ax;
       entry.ay -= ay;
       entry.az -= az;
@@ -535,7 +404,7 @@ npy_intp smSmoothStep(SMX smx, int procid) {
     ri[j] = GET2<T>(kd->pNumpyPos, p[pi], j);
   }
 
-  smBallSearch<double>(smx, ri);
+  smBallSearch<T>(smx, ri);
   SETSMOOTH(T, pi, 0.5 * sqrt(smx->priorityQueue->topDistanceSquared()));
 
   // p[pi].fSmooth = 0.5*sqrt(smx->pfBall2[pi]);
@@ -548,7 +417,7 @@ npy_intp smSmoothStep(SMX smx, int procid) {
   nCnt = 0;
   h2 = smx->priorityQueue->topDistanceSquared();
 
-  smx->priorityQueue->iterateHeapEntries([&pin, &h2, &ax, &ay, &az, &nCnt, smx, kd](const PQEntry<double> &entry) {
+  smx->priorityQueue->iterateHeapEntries([&pin, &h2, &ax, &ay, &az, &nCnt, smx, kd](const PQEntry<T> &entry) {
     if (nCnt >= smx->nListSize) {
       // no room left
       if (!smx->warnings)
@@ -590,32 +459,32 @@ npy_intp smSmoothStep(SMX smx, int procid) {
 }
 
 
-void smSmoothInitStep(SMX smx);
+template <typename T>
+void smSmoothInitStep(SmoothingContext<T> * smx);
 
 template <typename T>
-void smDensitySym(SMX, npy_intp, int, bool);
+void smDensitySym(SmoothingContext<T> *, npy_intp, int, bool);
 
 template <typename T>
-void smDensity(SMX, npy_intp, int, bool);
+void smDensity(SmoothingContext<T> *, npy_intp, int, bool);
 
 template <typename Tf, typename Tq>
-void smMeanQtyND(SMX, npy_intp, int, bool);
+void smMeanQtyND(SmoothingContext<Tf> *, npy_intp, int, bool);
 template <typename Tf, typename Tq>
-void smDispQtyND(SMX, npy_intp, int, bool);
+void smDispQtyND(SmoothingContext<Tf> *, npy_intp, int, bool);
 template <typename Tf, typename Tq>
-void smMeanQty1D(SMX, npy_intp, int, bool);
+void smMeanQty1D(SmoothingContext<Tf> *, npy_intp, int, bool);
 template <typename Tf, typename Tq>
-void smDispQty1D(SMX, npy_intp, int, bool);
+void smDispQty1D(SmoothingContext<Tf> *, npy_intp, int, bool);
 template <typename Tf, typename Tq>
-void smDivQty(SMX, npy_intp, int, bool);
+void smDivQty(SmoothingContext<Tf> *, npy_intp, int, bool);
 template <typename Tf, typename Tq>
-void smCurlQty(SMX, npy_intp, int, bool);
+void smCurlQty(SmoothingContext<Tf> *, npy_intp, int, bool);
 
-bool smCheckFits(KDContext* kd, float *fPeriod);
 
-template <typename T> T Wendland_kernel(SMX, T, int);
+template <typename T> T Wendland_kernel(SmoothingContext<T> *, T, int);
 
-template <typename T> T cubicSpline(SMX, T);
+template <typename T> T cubicSpline(SmoothingContext<T> *, T);
 
 template <typename Tf> Tf cubicSpline_gradient(Tf, Tf, Tf, Tf);
 
@@ -625,4 +494,485 @@ template <typename T> void smDomainDecomposition(KDContext* kd, int nprocs);
 
 
 
-#endif
+
+template<typename T>
+void initParticleList(SmoothingContext<T> * smx) {
+  smx->result = std::make_unique<std::vector<npy_intp>>();
+  smx->result->reserve(100000);
+  // not so large that it's expensive to reserve.
+  // Not so small that we constantly need to get more space.
+}
+
+template<typename T>
+PyObject *getReturnParticleList(SmoothingContext<T> * smx) {
+  // make a numpy array from smx->result
+  npy_intp dims[1] = {static_cast<npy_intp>(smx->result->size())};
+  PyObject *numpy_result = PyArray_SimpleNew(1, dims, NPY_INTP);
+
+  std::copy(smx->result->begin(), smx->result->end(),
+            static_cast<long *>(
+                PyArray_DATA(reinterpret_cast<PyArrayObject *>(numpy_result))));
+  smx->result.reset(nullptr);
+
+  return numpy_result;
+}
+ 
+template<typename T>
+void smSmoothInitStep(SmoothingContext<T>* smx) {
+}
+
+template <typename T> void smDomainDecomposition(KDContext* kd, int nprocs) {
+
+  // AP 31/8/2014 - Here is the domain decomposition for nProcs>1
+  // In principle one should do better by localizing the
+  // domains -- the current approach is a seriously naive decomposition.
+  // This will result in more snake collisions than necessary.
+  // However in practice, up to nCpu = 8, the scaling is looking
+  // pretty linear anyway so I'm leaving that for future.
+
+  npy_intp pi;
+
+  if (nprocs > 0) {
+    for (pi = 0; pi < kd->nActive; ++pi) {
+      SETSMOOTH(T, pi, -static_cast<T>(pi % nprocs) - 1.0);
+    }
+  }
+}
+
+template<typename T>
+void smInitPriorityQueue(SmoothingContext<T> * smx) {
+  /*
+   ** Initialize Priority Queue.
+   */
+
+  
+  std::cerr << "TEST of STL-based PQ" << std::endl;
+  PriorityQueue<double> myq(5, 20);
+  std::vector<int> particle_number_test =     {5,   0,   1,   10,  2,   3,    4,    6,   7,    8,   11};
+  std::vector<double> particle_distance_test = {0.1, 0.7, 0.3, 2.2, 0.5, 0.6,  0.05, 0.9, 10.2, 1.0, 1.1};
+
+  // iterate over the two lists simultaneously
+  for (auto i = 0; i < particle_number_test.size(); ++i) {
+    myq.push(particle_distance_test[i],particle_number_test[i]);
+    std::cerr << myq.top() << "; " << myq.size() << std::endl;
+    for(auto j = 0; j < 10; ++ j) {
+      std::cerr << (myq.contains(j) ?"*":"o");
+    }
+    std::cerr << std::endl;
+  }
+
+  while(!myq.empty()) {
+    myq.pop();
+    std::cerr << myq.top() << "; " << myq.size() << std::endl;
+    for(auto j = 0; j < 10; ++ j) {
+      std::cerr << (myq.contains(j) ?"*":"o");
+    }
+    std::cerr << std::endl;
+  }
+
+
+}
+
+template <typename T> T cubicSpline(SmoothingContext<T> * smx, T r2) {
+  // Cubic Spline Kernel
+  T rs;
+  rs = 2.0 - sqrt(r2);
+  if NPY_UNLIKELY(rs < 0)
+    rs = 0;
+  else if (r2 < 1.0)
+    rs = (1.0 - 0.75 * rs * r2);
+  else
+    rs = 0.25 * rs * rs * rs;
+  return rs;
+}
+
+template <typename T> T Wendland_kernel(SmoothingContext<T> * smx, T r2, int nSmooth) {
+  // Wendland Kernel
+  T rs;
+  // Dehnen & Aly 2012 correction (1-0.0454684 at Ns=64) /
+  T Wzero = (21 / 16.) * (1 - 0.0294 * pow(nSmooth * 0.01, -0.977));
+  if NPY_UNLIKELY(r2 > 4.0)
+    rs = 0;
+  else if NPY_UNLIKELY(r2 <= 0)
+    rs = Wzero;
+  else {
+    T au = sqrt(r2 * 0.25);
+    rs = 1 - au;
+    rs = rs * rs;
+    rs = rs * rs;
+    rs = (21 / 16.) * rs * (1 + 4 * au);
+  }
+  if NPY_UNLIKELY(rs < 0 && !smx->warnings) {
+    fprintf(stderr, "Internal consistency error\n");
+    smx->warnings = true;
+  }
+  return rs;
+}
+
+template <typename T>
+void smDensitySym(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+  T fNorm, ih2, r2, rs, ih;
+  npy_intp i, pj;
+  KDContext* kd = smx->kd;
+
+  ih = 1.0 / GETSMOOTH(T, pi);
+  ih2 = ih * ih;
+  fNorm = 0.5 * M_1_PI * ih * ih2;
+
+  for (i = 0; i < nSmooth; ++i) {
+    pj = smx->pList[i];
+    r2 = smx->fList[i] * ih2;
+    if (Wendland) {
+      rs = Wendland_kernel(smx, r2, nSmooth);
+    } else {
+      rs = cubicSpline(smx, r2);
+    }
+    rs *= fNorm;
+    ACCUM<T>(kd->pNumpyDen, kd->particleOffsets[pi],
+             rs * GET<T>(kd->pNumpyMass, kd->particleOffsets[pj]));
+    ACCUM<T>(kd->pNumpyDen, kd->particleOffsets[pj],
+             rs * GET<T>(kd->pNumpyMass, kd->particleOffsets[pi]));
+  }
+}
+
+template <typename T>
+void smDensity(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+  T fNorm, ih2, r2, rs, ih;
+  npy_intp j, pj, pi_iord;
+  KDContext* kd = smx->kd;
+
+  pi_iord = kd->particleOffsets[pi];
+  ih = 1.0 / GET<T>(kd->pNumpySmooth, pi_iord);
+  ih2 = ih * ih;
+  fNorm = M_1_PI * ih * ih2;
+  SET<T>(kd->pNumpyDen, pi_iord, 0.0);
+  for (j = 0; j < nSmooth; ++j) {
+    pj = smx->pList[j];
+    r2 = smx->fList[j] * ih2;
+    if (Wendland) {
+      rs = Wendland_kernel(smx, r2, nSmooth);
+    } else {
+      rs = cubicSpline(smx, r2);
+    }
+    rs *= fNorm;
+    ACCUM<T>(kd->pNumpyDen, pi_iord,
+             rs * GET<T>(kd->pNumpyMass, kd->particleOffsets[pj]));
+  }
+}
+
+template <typename Tf, typename Tq>
+void smMeanQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+  Tf fNorm, ih2, r2, rs, ih, mass, rho;
+  npy_intp j, pj, pi_iord;
+  KDContext* kd = smx->kd;
+
+  pi_iord = kd->particleOffsets[pi];
+  ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
+  ih2 = ih * ih;
+  fNorm = M_1_PI * ih * ih2;
+
+  SET<Tq>(kd->pNumpyQtySmoothed, pi_iord, 0.0);
+
+  for (j = 0; j < nSmooth; ++j) {
+    pj = smx->pList[j];
+    r2 = smx->fList[j] * ih2;
+    if (Wendland) {
+      rs = Wendland_kernel(smx, r2, nSmooth);
+    } else {
+      rs = cubicSpline(smx, r2);
+    }
+    rs *= fNorm;
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord,
+              rs * mass * GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]) / rho);
+  }
+}
+
+template <typename Tf, typename Tq>
+void smMeanQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+  Tf fNorm, ih2, r2, rs, ih, mass, rho;
+  npy_intp j, k, pj, pi_iord;
+  KDContext* kd = smx->kd;
+
+  pi_iord = kd->particleOffsets[pi];
+  ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
+  ih2 = ih * ih;
+  fNorm = M_1_PI * ih * ih2;
+
+  for (k = 0; k < 3; ++k)
+    SET2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, 0.0);
+
+  for (j = 0; j < nSmooth; ++j) {
+    pj = smx->pList[j];
+    r2 = smx->fList[j] * ih2;
+    if (Wendland) {
+      rs = Wendland_kernel(smx, r2, nSmooth);
+    } else {
+      rs = cubicSpline(smx, r2);
+    }
+    rs *= fNorm;
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    for (k = 0; k < 3; ++k) {
+      ACCUM2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k,
+                 rs * mass * GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k) /
+                     rho);
+    }
+  }
+}
+
+template <typename Tf> Tf cubicSpline_gradient(Tf q, Tf ih, Tf r, Tf ih2) {
+  // Kernel gradient
+  Tf rs;
+  if (q < 1.0)
+    rs = -3.0 * ih + 2.25 * r * ih2;
+  else
+    rs = -0.75 * (2 - q) * (2 - q) / r;
+
+  return rs;
+}
+
+template <typename Tf> Tf Wendland_gradient(Tf q, Tf r) {
+  // Kernel gradient
+  Tf rs;
+  if (r < 1e-24)
+    r = 1e-24; // Fix to avoid dividing by zero in case r = 0.
+  // For this case q = 0 and rs = 0 in any case, so we can savely set r to a
+  // tiny value.
+  if (q < 2.0)
+    rs = -5.0 * q * (1.0 - 0.5 * q) * (1.0 - 0.5 * q) * (1.0 - 0.5 * q) / r;
+
+  return rs;
+}
+
+template <typename Tf, typename Tq>
+void smCurlQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+  Tf fNorm, ih2, r2, r, rs, q2, q, ih, mass, rho, dqty[3], qty_i[3];
+  npy_intp j, k, pj, pi_iord, pj_iord;
+  KDContext* kd = smx->kd;
+  Tf curl[3], x, y, z, dx, dy, dz;
+
+  pi_iord = kd->particleOffsets[pi];
+  ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
+  ih2 = ih * ih;
+  fNorm = M_1_PI * ih2 * ih2;
+
+  for (k = 0; k < 3; ++k) {
+    SET2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, 0.0);
+    qty_i[k] = GET2<Tq>(kd->pNumpyQty, pi_iord, k);
+  }
+
+  x = GET2<Tf>(kd->pNumpyPos, pi_iord, 0);
+  y = GET2<Tf>(kd->pNumpyPos, pi_iord, 1);
+  z = GET2<Tf>(kd->pNumpyPos, pi_iord, 2);
+
+  for (j = 0; j < nSmooth; ++j) {
+    pj = smx->pList[j];
+    pj_iord = kd->particleOffsets[pj];
+    dx = x - GET2<Tf>(kd->pNumpyPos, pj_iord, 0);
+    dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
+    dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
+
+    r2 = smx->fList[j];
+    q2 = r2 * ih2;
+    r = sqrt(r2);
+    q = sqrt(q2);
+
+    // Kernel gradient
+    if (Wendland) {
+      rs = Wendland_gradient(q, r);
+    } else {
+      rs = cubicSpline_gradient(q, ih, r, ih2);
+    }
+
+    rs *= fNorm;
+
+    mass = GET<Tf>(kd->pNumpyMass, pj_iord);
+    rho = GET<Tf>(kd->pNumpyDen, pj_iord);
+
+    for (k = 0; k < 3; ++k)
+      dqty[k] = GET2<Tq>(kd->pNumpyQty, pj_iord, k) - qty_i[k];
+
+    curl[0] = dy * dqty[2] - dz * dqty[1];
+    curl[1] = dz * dqty[0] - dx * dqty[2];
+    curl[2] = dx * dqty[1] - dy * dqty[0];
+
+    for (k = 0; k < 3; ++k) {
+      ACCUM2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k, rs * curl[k] * mass / rho);
+    }
+  }
+}
+
+template <typename Tf, typename Tq>
+void smDivQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+  Tf fNorm, ih2, r2, r, rs, q2, q, ih, mass, rho, div, dqty[3], qty_i[3];
+  npy_intp j, k, pj, pi_iord, pj_iord;
+  KDContext* kd = smx->kd;
+  Tf x, y, z, dx, dy, dz;
+
+  pi_iord = kd->particleOffsets[pi];
+  ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
+  ih2 = ih * ih;
+  fNorm = M_1_PI * ih2 * ih2;
+
+  SET<Tq>(kd->pNumpyQtySmoothed, pi_iord, 0.0);
+
+  x = GET2<Tf>(kd->pNumpyPos, pi_iord, 0);
+  y = GET2<Tf>(kd->pNumpyPos, pi_iord, 1);
+  z = GET2<Tf>(kd->pNumpyPos, pi_iord, 2);
+
+  for (k = 0; k < 3; ++k)
+    qty_i[k] = GET2<Tq>(kd->pNumpyQty, pi_iord, k);
+
+  for (j = 0; j < nSmooth; ++j) {
+    pj = smx->pList[j];
+    pj_iord = kd->particleOffsets[pj];
+    dx = x - GET2<Tf>(kd->pNumpyPos, pj_iord, 0);
+    dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
+    dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
+
+    r2 = smx->fList[j];
+    q2 = r2 * ih2;
+    r = sqrt(r2);
+    q = sqrt(q2);
+    // Kernel gradient
+    if (Wendland) {
+      rs = Wendland_gradient(q, r);
+    } else {
+      rs = cubicSpline_gradient(q, ih, r, ih2);
+    }
+
+    rs *= fNorm;
+
+    mass = GET<Tf>(kd->pNumpyMass, pj_iord);
+    rho = GET<Tf>(kd->pNumpyDen, pj_iord);
+
+    for (k = 0; k < 3; ++k)
+      dqty[k] = GET2<Tq>(kd->pNumpyQty, pj_iord, k) - qty_i[k];
+
+    div = dx * dqty[0] + dy * dqty[1] + dz * dqty[2];
+
+    ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord, rs * div * mass / rho);
+  }
+}
+
+template <typename Tf, typename Tq>
+void smDispQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+  Tf fNorm, ih2, r2, rs, ih, mass, rho;
+  npy_intp j, k, pj, pi_iord;
+  KDContext* kd = smx->kd;
+  Tq mean[3], tdiff;
+
+  pi_iord = kd->particleOffsets[pi];
+  ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
+  ih2 = ih * ih;
+  fNorm = M_1_PI * ih * ih2;
+
+  SET<Tq>(kd->pNumpyQtySmoothed, pi_iord, 0.0);
+
+  for (k = 0; k < 3; ++k) {
+
+    mean[k] = 0;
+  }
+
+  // pass 1: find mean
+
+  for (j = 0; j < nSmooth; ++j) {
+    pj = smx->pList[j];
+    r2 = smx->fList[j] * ih2;
+    if (Wendland) {
+      rs = Wendland_kernel(smx, r2, nSmooth);
+    } else {
+      rs = cubicSpline(smx, r2);
+    }
+    rs *= fNorm;
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    for (k = 0; k < 3; ++k)
+      mean[k] += rs * mass * GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k) / rho;
+  }
+
+  // pass 2: get variance
+
+  for (j = 0; j < nSmooth; ++j) {
+    pj = smx->pList[j];
+    r2 = smx->fList[j] * ih2;
+    if (Wendland) {
+      rs = Wendland_kernel(smx, r2, nSmooth);
+    } else {
+      rs = cubicSpline(smx, r2);
+    }
+    rs *= fNorm;
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    for (k = 0; k < 3; ++k) {
+      tdiff = mean[k] - GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k);
+      ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord,
+                rs * mass * tdiff * tdiff / rho);
+    }
+  }
+
+  // finally: take square root to get dispersion
+
+  SET<Tq>(kd->pNumpyQtySmoothed, pi_iord,
+          sqrt(GET<Tq>(kd->pNumpyQtySmoothed, pi_iord)));
+}
+
+template <typename Tf, typename Tq>
+void smDispQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+  Tf fNorm, ih2, r2, rs, ih, mass, rho;
+  npy_intp j, pj, pi_iord;
+  KDContext* kd = smx->kd;
+  Tq mean, tdiff;
+
+  pi_iord = kd->particleOffsets[pi];
+  ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
+  ih2 = ih * ih;
+  fNorm = M_1_PI * ih * ih2;
+
+  SET<Tq>(kd->pNumpyQtySmoothed, pi_iord, 0.0);
+
+  mean = 0;
+
+  // pass 1: find mean
+
+  for (j = 0; j < nSmooth; ++j) {
+    pj = smx->pList[j];
+    r2 = smx->fList[j] * ih2;
+    if (Wendland) {
+      rs = Wendland_kernel(smx, r2, nSmooth);
+    } else {
+      rs = cubicSpline(smx, r2);
+    }
+
+    rs *= fNorm;
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    mean += rs * mass * GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]) / rho;
+  }
+
+  // pass 2: get variance
+
+  for (j = 0; j < nSmooth; ++j) {
+    pj = smx->pList[j];
+    r2 = smx->fList[j] * ih2;
+    if (Wendland) {
+      rs = Wendland_kernel(smx, r2, nSmooth);
+    } else {
+      rs = cubicSpline(smx, r2);
+    }
+    rs *= fNorm;
+    mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    tdiff = mean - GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]);
+    ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord, rs * mass * tdiff * tdiff / rho);
+  }
+
+  // finally: take square root to get dispersion
+
+  SET<Tq>(kd->pNumpyQtySmoothed, pi_iord,
+          sqrt(GET<Tq>(kd->pNumpyQtySmoothed, pi_iord)));
+}
+
+
