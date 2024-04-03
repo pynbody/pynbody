@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <functional>
 #include <limits>
+#include <memory>
 
 template<typename T>
 class PQEntry {
@@ -26,6 +27,13 @@ class PQEntry {
 
 };
 
+bool operator<(const std::unique_ptr<PQEntry<float>>& lhs, const std::unique_ptr<PQEntry<float>>& rhs) {
+  // It's unclear to me why this should be necessary, since std::unique_ptr comparisons should map
+  // onto underlying comparisons according to https://en.cppreference.com/w/cpp/memory/unique_ptr/operator_cmp
+  // But wihtout it, the comparisons seem to be wrong.
+  return lhs->distanceSquared < rhs->distanceSquared;
+}
+
 // output stream operator for PQEntry, for debugging:
 template<typename T>
 inline std::ostream& operator<<(std::ostream& os, const PQEntry<T>& pqEntry) {
@@ -38,7 +46,7 @@ class PriorityQueue {
   protected:
     std::vector<bool> particleIsInQueue;
     size_t maxSize;
-    std::vector<PQEntry<T>> heap {};
+    std::vector<std::unique_ptr<PQEntry<T>>> heap {};
 
   public:
     PriorityQueue(size_t maxSize, size_t numParticles) : maxSize(maxSize), particleIsInQueue(numParticles) {
@@ -56,7 +64,7 @@ class PriorityQueue {
       if (distanceSquared < topDistanceSquaredOrMax()) {
         if(full()) pop();
 
-        heap.push_back(PQEntry<T>(distanceSquared, particleIndex, ax, ay, az));
+        heap.push_back(std::make_unique<PQEntry<T>>(distanceSquared, particleIndex, ax, ay, az));
         std::push_heap(heap.begin(), heap.end());
         particleIsInQueue[particleIndex] = true;
 
@@ -89,14 +97,14 @@ class PriorityQueue {
 
     void updateDistances(std::function<void(PQEntry<T> &)> update_distance) {
       for(auto &entry : heap) {
-        update_distance(entry);
+        update_distance(*entry);
       }
       std::make_heap(heap.begin(), heap.end());
     }
 
     void iterateHeapEntries(std::function<void(const PQEntry<T> &)> func) const {
       for(auto &entry : heap) {
-        func(entry);
+        func(*entry);
       }
     }
 
@@ -105,17 +113,17 @@ class PriorityQueue {
     }
 
     void pop() {
-      particleIsInQueue[heap.front().getParticleIndex()] = false;
+      particleIsInQueue[heap.front()->getParticleIndex()] = false;
       std::pop_heap(heap.begin(), heap.end());
       heap.pop_back();
     }
 
     const PQEntry<T>& top() const {
-      return heap.front();
+      return *(heap.front());
     }
 
     inline T topDistanceSquared() const {
-      return heap.front().distanceSquared;
+      return heap.front()->distanceSquared;
     }
 
     inline T topDistanceSquaredOrMax() const {

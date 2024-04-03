@@ -135,6 +135,11 @@ def test_float_kd():
     # check smoothing lengths agree (they have been calculated differently
     # using floating/double routines)
 
+    with pytest.warns(DeprecationWarning):
+        import pylab as p
+        p.plot(f.dm['smooth'],g.dm['smooth'],'.')
+        p.savefig('test_float_kd.png')
+
     npt.assert_allclose(f.dm['smooth'],g.dm['smooth'],rtol=1e-4)
     npt.assert_allclose(f.dm['rho'],g.dm['rho'],rtol=1e-4)
 
