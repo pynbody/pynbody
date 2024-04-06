@@ -91,7 +91,6 @@ class PriorityQueue {
 
     }
 
-    // no copying allowed
     PriorityQueue(const PriorityQueue&) = delete;
     PriorityQueue& operator=(const PriorityQueue&) = delete;
 
@@ -109,17 +108,20 @@ class PriorityQueue {
         particleIsInQueue[particleIndex] = true;
         return true;
       } else if (distanceSquared < topDistanceSquared()) {
-        /*
-        pop();
-        heap.push_back(new PQEntry<T>(distanceSquared, particleIndex, ax, ay, az));
-        std::push_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{});
-        particleIsInQueue[particleIndex] = true;
-        is_full = true; */
         
         particleIsInQueue[heap.front()->getParticleIndex()] = false;
         heap.front() = std::make_unique<PQEntry<T>>(distanceSquared, particleIndex, ax, ay, az);
+
+        // using a custom replace_heap function is more efficient - in tests, around 5% faster for finding smoothing
+        // than an STL-implemented pop-then-push approach.
+        //
+        // There is a minor danger that replace_heap uses a different sort of heap than std::make_heap, but in practice
+        // this seems to work fine.
+
         replace_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{}); 
+        
         particleIsInQueue[particleIndex] = true;
+        
         return true;
         
       } else {
@@ -137,6 +139,7 @@ class PriorityQueue {
     }
 
     void checkConsistency(std::string context) const {
+      // For debug
       bool errors_found = false;
       std::cerr << context;
       iterateHeapEntries([&](const PQEntry<T> & entry) {
@@ -167,8 +170,6 @@ class PriorityQueue {
         func(*entry);
       }
     }
-
-    
 
     void pop() {
       particleIsInQueue[heap.front()->getParticleIndex()] = false;

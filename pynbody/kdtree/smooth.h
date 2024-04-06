@@ -436,10 +436,10 @@ npy_intp smSmoothStep(SmoothingContext<T> * smx, int procid) {
      // Here we are setting up the next particle to be processed. For best efficiency, choose one which is as close as possible 
     // to the one we just processed. 
     //
-    // BUT NB: mightn't this just lead to trying to go back to the one we just processed before?
-    // Well, that's to sort out later...
-    // 
-    if (entry.distanceSquared < h2){
+    // One might imagine this would lead to attempting to proces a particle that we very recently processed already.
+    // However in practice checking here that the particle is not already processed seems more expensive than just
+    // processing it again. (It's not clear to me why this should be, it's just empirical.)
+    if (entry.distanceSquared < h2) {
       pin = entry.getParticleIndex();
       h2 = entry.distanceSquared;
       ax = entry.ax;
