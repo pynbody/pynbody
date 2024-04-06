@@ -169,7 +169,7 @@ template <typename T> int checkArray(PyObject *check, const char *name, npy_intp
 /*==========================================================================*/
 PyObject *kdinit(PyObject *self, PyObject *args) {
   npy_intp nBucket;
-  npy_intp i; 
+  npy_intp i;
 
   PyObject *pos;  // Nx3 Numpy array of positions
   PyObject *mass; // Nx1 Numpy array of masses
@@ -703,7 +703,7 @@ template <typename Tf, typename Tq> struct typed_populate {
       if (checkArray<Tq>(kd->pNumpyQtySmoothed, "qty_sm"))
         return NULL;
     }
- 
+
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings = false;
     smx_local->pi = 0;
@@ -732,10 +732,10 @@ template <typename Tf, typename Tq> struct typed_populate {
       pSmFn = &smDivQty<Tf, Tq>;
       break;
     case PROPID_QTYCURL:
-      pSmFn = &smCurlQty<Tf, Tq>; 
+      pSmFn = &smCurlQty<Tf, Tq>;
       break;
     }
- 
+
     if (propid == PROPID_HSM) {
       Py_BEGIN_ALLOW_THREADS;
       for (i = 0; i < nbodies; i++) {
@@ -760,7 +760,7 @@ template <typename Tf, typename Tq> struct typed_populate {
         // retrieve the existing smoothing length
         hsm = GETSMOOTH(Tf, i);
 
-        // use it to get nearest neighbours - NB following should be Tf not double 
+        // use it to get nearest neighbours - NB following should be Tf not double
         nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
 
         // calculate the density

@@ -30,7 +30,7 @@ class PQEntry {
     T ax, ay, az;
 
     PQEntry(T distanceSquared, npy_intp particleIndex, T ax, T ay, T az) :
-      distanceSquared(distanceSquared), particleIndex(particleIndex), ax(ax), ay(ay), az(az)  { } 
+      distanceSquared(distanceSquared), particleIndex(particleIndex), ax(ax), ay(ay), az(az)  { }
 
     npy_intp getParticleIndex() const { return particleIndex; }
 
@@ -108,7 +108,7 @@ class PriorityQueue {
         particleIsInQueue[particleIndex] = true;
         return true;
       } else if (distanceSquared < topDistanceSquared()) {
-        
+
         particleIsInQueue[heap.front()->getParticleIndex()] = false;
         heap.front() = std::make_unique<PQEntry<T>>(distanceSquared, particleIndex, ax, ay, az);
 
@@ -118,16 +118,16 @@ class PriorityQueue {
         // There is a minor danger that replace_heap uses a different sort of heap than std::make_heap, but in practice
         // this seems to work fine.
 
-        replace_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{}); 
-        
+        replace_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{});
+
         particleIsInQueue[particleIndex] = true;
-        
+
         return true;
-        
+
       } else {
         return false;
       }
-      
+
     }
 
     bool push(T distanceSquared, npy_intp particleIndex) {

@@ -22,7 +22,7 @@ template<typename T>
 class SmoothingContext {
 public:
   KDContext* kd;
-  
+
   npy_intp nSmooth;
   T fPeriod[3];
 
@@ -37,7 +37,7 @@ public:
 
   SmoothingContext<T> * smx_global;
 
-  
+
   T ax = 0.0, ay = 0.0, az = 0.0;
   bool warnings; //  keep track of whether a warning has been issued
 
@@ -45,19 +45,19 @@ public:
   std::unique_ptr<PriorityQueue<T>> priorityQueue;
 
   SmoothingContext(KDContext* kd, npy_intp nSmooth, T fPeriod[3]) : kd(kd), nSmooth(nSmooth), fPeriod{fPeriod[0], fPeriod[1], fPeriod[2]},
-      nListSize(nSmooth + RESMOOTH_SAFE), fList(nListSize), pList(nListSize), 
+      nListSize(nSmooth + RESMOOTH_SAFE), fList(nListSize), pList(nListSize),
       pMutex(std::make_shared<std::mutex>()),
       priorityQueue(std::make_unique<PriorityQueue<T>>(nSmooth, kd->nActive)) {
 
   }
 
-  SmoothingContext(const SmoothingContext<T> &copy) : kd(copy.kd), nSmooth(copy.nSmooth), 
-      fPeriod{copy.fPeriod[0], copy.fPeriod[1], copy.fPeriod[2]}, 
-      nListSize(copy.nListSize), fList(nListSize), pList(nListSize), pMutex(copy.pMutex), 
+  SmoothingContext(const SmoothingContext<T> &copy) : kd(copy.kd), nSmooth(copy.nSmooth),
+      fPeriod{copy.fPeriod[0], copy.fPeriod[1], copy.fPeriod[2]},
+      nListSize(copy.nListSize), fList(nListSize), pList(nListSize), pMutex(copy.pMutex),
       smx_global(const_cast<SmoothingContext<T>*>(&copy)),
-      priorityQueue(std::make_unique<PriorityQueue<T>>(nSmooth, kd->nActive)) { } 
+      priorityQueue(std::make_unique<PriorityQueue<T>>(nSmooth, kd->nActive)) { }
       // copy constructor takes a pointer to the global context
-}; 
+};
 
 
 template<typename T>
@@ -77,7 +77,7 @@ bool smCheckFits(KDContext* kd, T *fPeriod) {
       return false;
     }
   }
-  return true; 
+  return true;
 }
 
 template<typename T>
@@ -110,7 +110,7 @@ SmoothingContext<T> * smInit(KDContext* kd, int nSmooth, T fPeriod) {
 template<typename T>
 SmoothingContext<T> * smInitThreadLocalCopy(SmoothingContext<T> * from) {
   auto smx = new SmoothingContext<T>(*from);
-  
+
   return smx;
 }
 
@@ -148,15 +148,15 @@ npy_intp smGetNext(SmoothingContext<T> * smx_local) {
 
 
 
-template <typename T> 
+template <typename T>
 void smBallSearch(SmoothingContext<T> *smx, T *ri) {
   // Search for the nearest neighbors to the particle at ri[3].
-  // The priority queue must already be fully populated with some candidate particles. The better candidates the 
+  // The priority queue must already be fully populated with some candidate particles. The better candidates the
   // faster the search will perform.
   KDNode *c;
   npy_intp *p;
   KDContext* kd;
-  
+
   PriorityQueue<T> *priorityQueue = smx->priorityQueue.get();
 
   npy_intp cell, cp, ct, pj;
@@ -180,15 +180,15 @@ void smBallSearch(SmoothingContext<T> *smx, T *ri) {
 
   npy_intp start_particle = c[cell].pLower;
   npy_intp end_particle = c[cell].pUpper;
-  
+
   for (pj = start_particle; pj <= end_particle; ++pj) {
     std::tie(dx, dy, dz) = GET2<T>(kd->pNumpyPos, p[pj]);
     dx = x-dx;
     dy = y-dy;
     dz = z-dz;
-    
+
     fDist2 = dx * dx + dy * dy + dz * dz;
-    priorityQueue->push(fDist2, pj); 
+    priorityQueue->push(fDist2, pj);
   }
   while (cell != ROOT) {
     cp = SIBLING(cell);
@@ -307,7 +307,7 @@ template <typename T>
 PyObject *getReturnParticleList(SmoothingContext<T> * smx);
 
 
-template <typename T> 
+template <typename T>
 npy_intp smSmoothStep(SmoothingContext<T> * smx, int procid) {
   KDNode *c;
   npy_intp *p;
@@ -432,9 +432,9 @@ npy_intp smSmoothStep(SmoothingContext<T> * smx, int procid) {
 
     if (GETSMOOTH(T, entry.getParticleIndex()) >= 0)
       return; // already done, don't re-do
-    
-     // Here we are setting up the next particle to be processed. For best efficiency, choose one which is as close as possible 
-    // to the one we just processed. 
+
+     // Here we are setting up the next particle to be processed. For best efficiency, choose one which is as close as possible
+    // to the one we just processed.
     //
     // One might imagine this would lead to attempting to proces a particle that we very recently processed already.
     // However in practice checking here that the particle is not already processed seems more expensive than just
@@ -516,7 +516,7 @@ PyObject *getReturnParticleList(SmoothingContext<T> * smx) {
 
   return numpy_result;
 }
- 
+
 template<typename T>
 void smSmoothInitStep(SmoothingContext<T>* smx) {
 }
@@ -555,7 +555,7 @@ void smInitPriorityQueue(SmoothingContext<T> * smx) {
    ** Initialize Priority Queue.
    */
 
-  
+
   std::cerr << "TEST of STL-based PQ" << std::endl;
   PriorityQueue<double> myq(5, 20);
   std::vector<int> particle_number_test =     {5,   0,   1,   10,  2,   3,    4,    6,   7,    8,   11};
@@ -986,5 +986,3 @@ void smDispQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wend
   SET<Tq>(kd->pNumpyQtySmoothed, pi_iord,
           sqrt(GET<Tq>(kd->pNumpyQtySmoothed, pi_iord)));
 }
-
-
