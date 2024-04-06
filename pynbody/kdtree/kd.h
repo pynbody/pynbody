@@ -1,6 +1,8 @@
 #ifndef KD_HINCLUDED
 #define KD_HINCLUDED
 
+#include <tuple>
+
 #include <Python.h>
 
 #define PY_ARRAY_UNIQUE_SYMBOL PYNBODY_ARRAY_API
@@ -163,6 +165,11 @@ template <typename T> T GET(PyObject *ar, npy_intp i) {
 
 template <typename T> T GET2(PyObject *ar, npy_intp i, npy_intp j) {
   return *((T *)PyArray_GETPTR2(ar, i, j));
+}
+
+template <typename T> std::tuple<T, T, T> GET2(PyObject *ar, npy_intp i) {
+  T* ptr = (T *)PyArray_GETPTR1(ar, i);
+  return std::make_tuple(ptr[0], ptr[1], ptr[2]);
 }
 
 template <typename T> void SET(PyObject *ar, npy_intp i, T val) {

@@ -65,19 +65,19 @@ def test_smooth(v_mean, v_disp, rho, smooth):
     """
 
     npt.assert_allclose(f.dm['smooth'][::100],
-                        smooth,rtol=1e-5)
+                        smooth,rtol=1e-8)
 
     npt.assert_allclose(f.dm['rho'][::100],
-                        rho,rtol=1e-5)
+                        rho,rtol=1e-8)
 
 
 
-    npt.assert_allclose(v_mean,f.dm['v_mean'][::100],rtol=1e-3)
-    npt.assert_allclose(v_disp,f.dm['v_disp'][::100],rtol=1e-3)
+    npt.assert_allclose(v_mean,f.dm['v_mean'][::100],rtol=1e-8)
+    npt.assert_allclose(v_disp,f.dm['v_disp'][::100],rtol=1e-8)
 
     # check 1D smooth works too
     vz_mean = f.dm.kdtree.sph_mean(f.dm['vz'],32)
-    npt.assert_allclose(v_mean[:,2],vz_mean[::100],rtol=1e-3)
+    npt.assert_allclose(v_mean[:,2],vz_mean[::100],rtol=1e-8)
 
     # check 1D dispersions
     v_disp_squared = (
@@ -86,7 +86,7 @@ def test_smooth(v_mean, v_disp, rho, smooth):
         f.dm.kdtree.sph_dispersion(f.dm['vz'], 32)**2
     )
 
-    npt.assert_allclose(v_disp**2, v_disp_squared[::100], rtol=1e-3)
+    npt.assert_allclose(v_disp**2, v_disp_squared[::100], rtol=1e-8)
 
 
 def test_smooth_WendlandC2(rho_W):
@@ -94,6 +94,7 @@ def test_smooth_WendlandC2(rho_W):
 
     try:
         f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+        del f.properties['boxsize']
         npt.assert_allclose(f.d['rho'][::100], rho_W, rtol=1e-8)
     finally:
         pynbody.config['sph']['Kernel'] = 'CubicSpline'
@@ -185,19 +186,25 @@ def test_neighbour_list():
 
     p_idx = n[0]       # particle index in snapshot arrays
     hsml = n[1]        # smoothing length
-    neigh_list = n[2]  # neighbours list
-    dist2 = n[3]       # squared distances from neighbours
+    neigh_list = np.array(n[2])  # neighbours list
+    dist2 = np.array(n[3])       # squared distances from neighbours
     assert p_idx == 9
     assert hsml == f.g['smooth'][p_idx]
     npt.assert_allclose(hsml,np.sqrt(np.max(dist2))/2, rtol=1e-6)
-    assert hsml == 128.19053649902344
-    assert neigh_list == [9, 11, 35, 1998, 7, 12, 22, 36, 5, 20, 34, 31, 8, 19, 37, 10, 2018,
-                          2017, 38, 52, 39, 41, 42, 33, 23, 1997, 43, 1996, 24, 40, 25, 21]
-    npt.assert_allclose(dist2, [0.0, 39369.51953125, 24460.677734375, 31658.59375, 58536.9765625, 57026.3984375, 51718.3515625,
-                         47861.25390625, 59311.27734375, 34860.97265625, 36082.15234375, 65731.2578125, 16879.42578125,
-                         52811.79296875, 16521.751953125, 17574.501953125, 24489.19140625, 29066.84765625, 36883.796875,
-                         41815.23046875, 60706.04296875, 31192.068359375, 58157.92578125, 60277.04296875, 61944.99609375,
-                         45676.2578125, 54654.58984375, 59870.70703125, 20319.2890625, 35900.76953125, 30422.66796875, 56239.8828125],
+    assert np.allclose(hsml, 128.19053649902344)
+
+    ordering = np.argsort(dist2)
+    assert (neigh_list[ordering] == [   9,   37,    8,   10,   24,   35, 2018, 2017,   25,   41, 1998,
+         20,   40,   34,   38,   11,   52, 1997,   36,   22,   19,   43,
+         21,   12,   42,    7,    5, 1996,   33,   39,   23,   31]).all()
+    npt.assert_allclose(dist2[ordering], [    0.        , 16521.75195312, 16879.42578125, 17574.50195312,
+       20319.2890625 , 24460.67773438, 24489.19140625, 29066.84765625,
+       30422.66796875, 31192.06835938, 31658.59375   , 34860.97265625,
+       35900.76953125, 36082.15234375, 36883.796875  , 39369.51953125,
+       41815.23046875, 45676.2578125 , 47861.25390625, 51718.3515625 ,
+       52811.79296875, 54654.58984375, 56239.8828125 , 57026.3984375 ,
+       58157.92578125, 58536.9765625 , 59311.27734375, 59870.70703125,
+       60277.04296875, 60706.04296875, 61944.99609375, 65731.2578125 ],
                         rtol=1e-6)
 
     neighbour_list_all = t.all_nn(n_neigh)

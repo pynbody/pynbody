@@ -178,19 +178,17 @@ void smBallSearch(SmoothingContext<T> *smx, T *ri) {
 
   T fBall2 = priorityQueue->topDistanceSquaredOrMax();
 
-
-  /*
-   ** Now start the search from the bucket given by cell!
-   */
-  for (pj = c[cell].pLower; pj <= c[cell].pUpper; ++pj) {
-    dx = x - GET2<T>(kd->pNumpyPos, p[pj], 0);
-    dy = y - GET2<T>(kd->pNumpyPos, p[pj], 1);
-    dz = z - GET2<T>(kd->pNumpyPos, p[pj], 2);
+  npy_intp start_particle = c[cell].pLower;
+  npy_intp end_particle = c[cell].pUpper;
+  
+  for (pj = start_particle; pj <= end_particle; ++pj) {
+    std::tie(dx, dy, dz) = GET2<T>(kd->pNumpyPos, p[pj]);
+    dx = x-dx;
+    dy = y-dy;
+    dz = z-dz;
+    
     fDist2 = dx * dx + dy * dy + dz * dz;
-    if (fDist2 < fBall2) {
-      priorityQueue->push(fDist2, pj);
-      fBall2 = priorityQueue->topDistanceSquaredOrMax();
-    }
+    priorityQueue->push(fDist2, pj); 
   }
   while (cell != ROOT) {
     cp = SIBLING(cell);
@@ -205,10 +203,12 @@ void smBallSearch(SmoothingContext<T> *smx, T *ri) {
         cp = LOWER(cp);
         continue;
       } else {
-        for (pj = c[cp].pLower; pj <= c[cp].pUpper; ++pj) {
-          dx = sx - GET2<T>(kd->pNumpyPos, p[pj], 0);
-          dy = sy - GET2<T>(kd->pNumpyPos, p[pj], 1);
-          dz = sz - GET2<T>(kd->pNumpyPos, p[pj], 2);
+        start_particle = c[cp].pLower;
+        end_particle = c[cp].pUpper;
+
+        for (pj = start_particle; pj <= end_particle; ++pj) {
+          std::tie(dx, dy, dz) = GET2<T>(kd->pNumpyPos, p[pj]);
+          dx = sx-dx; dy = sy-dy; dz = sz-dz;
           fDist2 = dx * dx + dy * dy + dz * dz;
           if (fDist2 < fBall2) {
             priorityQueue->push(fDist2, pj);
@@ -530,11 +530,21 @@ template <typename T> void smDomainDecomposition(KDContext* kd, int nprocs) {
   // However in practice, up to nCpu = 8, the scaling is looking
   // pretty linear anyway so I'm leaving that for future.
 
+  // AP 6/4/2024 - revisited this while working on the improved KDTree/smoothing
+  // implementation. It would seem to be more efficient to assign particles to
+  // processors in 'blocks' given that the blocks are roughly spatially coherent.
+  // I have made this change but in practice (as per my comment in 2014!) it seems
+  // to make little difference to the performance. I also wondered whether having
+  // a simpler way for the individual processors to 'scan' for their next particle
+  // might be more efficient than using the smooth array in the way below. But
+  // in practice so little time is spent scanning that this doesn't seem to be
+  // an issue.
+
   npy_intp pi;
 
   if (nprocs > 0) {
     for (pi = 0; pi < kd->nActive; ++pi) {
-      SETSMOOTH(T, pi, -static_cast<T>(pi % nprocs) - 1.0);
+      SETSMOOTH(T, pi, -static_cast<T>((pi * nprocs) / kd->nActive) - 1.0);
     }
   }
 }
@@ -742,6 +752,8 @@ template <typename Tf> Tf Wendland_gradient(Tf q, Tf r) {
   // tiny value.
   if (q < 2.0)
     rs = -5.0 * q * (1.0 - 0.5 * q) * (1.0 - 0.5 * q) * (1.0 - 0.5 * q) / r;
+  else
+    rs = 0.0;
 
   return rs;
 }

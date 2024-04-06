@@ -51,7 +51,7 @@ f['pos'] -= 0.5
 f['mass'] = np.ones(Npart, dtype=dtype)
 f.properties['boxsize'] = 1.0
 
-print(f['pos'].dtype)
+print("Using data type = ",f['pos'].dtype)
 
 with timer("sphere queries without tree"):
     for cen, rad in zip(centres, radii):
@@ -87,12 +87,6 @@ with timer("sphere queries from tree"):
 
 with timer("get smooth"):
     _ = f['smooth']
-
-print(f['smooth'].dtype)
-
-import pylab as p
-p.hist(f['smooth'], bins=100, histtype='step')
-p.savefig("smooth_histogram.pdf")
 
 with timer("get rho"):
     _ = f['rho']

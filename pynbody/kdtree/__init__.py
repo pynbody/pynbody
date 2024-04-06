@@ -315,7 +315,6 @@ class KDTree:
         kernel : str
             Keyword to specify the smoothing kernel. Options: 'CubicSpline', 'WendlandC2'
         """
-        print("Setting kernel to %s" % kernel)
         if kernel == 'CubicSpline':
             self._kernel_id = 0
         elif kernel == 'WendlandC2':
@@ -340,8 +339,6 @@ class KDTree:
             nn = 64
 
         smx = kdmain.nn_start(self.kdtree, int(nn), self.boxsize)
-
-        print("populate", mode, self.num_threads)
 
         try:
             propid = self.smooth_operation_to_id(mode)

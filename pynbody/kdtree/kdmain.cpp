@@ -646,7 +646,8 @@ template <typename Tf, typename Tq> struct typed_particles_in_sphere {
     Tf r;
     Tf ri[3];
 
-    const char* pytype = ("OO" + std::string(4, py_kind<Tf>())).c_str();
+    std::string pytype_s = "OO" + std::string(4, py_kind<Tf>());
+    const char* pytype = pytype_s.c_str();
 
     PyObject *kdobj = nullptr, *smxobj = nullptr;
 

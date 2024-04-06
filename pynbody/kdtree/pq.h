@@ -7,6 +7,19 @@
 #include <limits>
 #include <memory>
 
+template <typename DifferenceT>
+DifferenceT heap_parent(DifferenceT k)
+{
+    return (k - 1) / 2;
+}
+
+template <typename DifferenceT>
+DifferenceT heap_left(DifferenceT k)
+{
+    return 2 * k + 1;
+}
+
+
 template<typename T>
 class PQEntry {
   protected:
@@ -27,12 +40,12 @@ class PQEntry {
 
 };
 
-bool operator<(const std::unique_ptr<PQEntry<float>>& lhs, const std::unique_ptr<PQEntry<float>>& rhs) {
-  // It's unclear to me why this should be necessary, since std::unique_ptr comparisons should map
-  // onto underlying comparisons according to https://en.cppreference.com/w/cpp/memory/unique_ptr/operator_cmp
-  // But wihtout it, the comparisons seem to be wrong.
-  return lhs->distanceSquared < rhs->distanceSquared;
-}
+template<typename T>
+struct PQEntryPtrComparator {
+  bool operator()(PQEntry<T>* lhs, PQEntry<T>* rhs) {
+    return lhs->distanceSquared < rhs->distanceSquared;
+  }
+};
 
 // output stream operator for PQEntry, for debugging:
 template<typename T>
@@ -41,12 +54,37 @@ inline std::ostream& operator<<(std::ostream& os, const PQEntry<T>& pqEntry) {
   return os;
 }
 
+template<typename RandomIt, typename Compare = std::less<>>
+void replace_heap(RandomIt first, RandomIt last, Compare comp = Compare())
+{
+  // From https://stackoverflow.com/questions/32672474/how-to-replace-top-element-of-heap-efficiently-withouth-re-establishing-heap-inv
+  auto const size = last - first;
+  if (size <= 1)
+      return;
+  typename std::iterator_traits<RandomIt>::difference_type k = 0;
+  auto e = std::move(first[k]);
+  auto const max_k = heap_parent(size - 1);
+  while (k <= max_k) {
+      auto max_child = heap_left(k);
+      if (max_child < size - 1 && comp(first[max_child], first[max_child + 1]))
+          ++max_child; // Go to right sibling.
+      if (!comp(e, first[max_child]))
+          break;
+      first[k] = std::move(first[max_child]);
+      k = max_child;
+  }
+
+  first[k] = std::move(e);
+}
+
+
 template<typename T>
 class PriorityQueue {
   protected:
     std::vector<bool> particleIsInQueue;
     size_t maxSize;
-    std::vector<std::unique_ptr<PQEntry<T>>> heap {};
+    std::vector<PQEntry<T>*> heap {};
+    bool is_full = false;
 
   public:
     PriorityQueue(size_t maxSize, size_t numParticles) : maxSize(maxSize), particleIsInQueue(numParticles) {
@@ -58,18 +96,42 @@ class PriorityQueue {
     PriorityQueue& operator=(const PriorityQueue&) = delete;
 
 
-    inline void push(T distanceSquared, npy_intp particleIndex, T ax, T ay, T az) {
-      if (contains(particleIndex)) return;
+    bool push(T distanceSquared, npy_intp particleIndex, T ax, T ay, T az) {
+      // Returns true if the particle was added to the queue, false if it was not
+      if (contains(particleIndex)) return false;
 
-      if (distanceSquared < topDistanceSquaredOrMax()) {
-        if(full()) pop();
-
-        heap.push_back(std::make_unique<PQEntry<T>>(distanceSquared, particleIndex, ax, ay, az));
-        std::push_heap(heap.begin(), heap.end());
+      if(NPY_UNLIKELY(!is_full)) {
+        heap.push_back(new PQEntry<T>(distanceSquared, particleIndex, ax, ay, az));
+        if (heap.size() == maxSize) {
+          std::make_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{});
+          is_full = true;
+        }
         particleIsInQueue[particleIndex] = true;
-
-      } 
+        return true;
+      } else if (distanceSquared < topDistanceSquared()) {
+        /*
+        pop();
+        heap.push_back(new PQEntry<T>(distanceSquared, particleIndex, ax, ay, az));
+        std::push_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{});
+        particleIsInQueue[particleIndex] = true;
+        is_full = true; */
+        
+        auto heap_front = heap.front();
+        particleIsInQueue[heap_front->getParticleIndex()] = false;
+        delete heap_front;
+        heap.front() = new PQEntry<T>(distanceSquared, particleIndex, ax, ay, az);
+        replace_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{}); 
+        particleIsInQueue[particleIndex] = true;
+        return true;
+        
+      } else {
+        return false;
+      }
       
+    }
+
+    bool push(T distanceSquared, npy_intp particleIndex) {
+      return push(distanceSquared, particleIndex, 0.0, 0.0, 0.0);
     }
 
     bool contains(npy_intp particleIndex) const {
@@ -99,7 +161,7 @@ class PriorityQueue {
       for(auto &entry : heap) {
         update_distance(*entry);
       }
-      std::make_heap(heap.begin(), heap.end());
+      std::make_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{});
     }
 
     void iterateHeapEntries(std::function<void(const PQEntry<T> &)> func) const {
@@ -108,14 +170,14 @@ class PriorityQueue {
       }
     }
 
-    void push(T distanceSquared, npy_intp particleIndex) {
-      push(distanceSquared, particleIndex, 0.0, 0.0, 0.0);
-    }
+    
 
     void pop() {
       particleIsInQueue[heap.front()->getParticleIndex()] = false;
-      std::pop_heap(heap.begin(), heap.end());
+      std::pop_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{});
+      delete heap.back();
       heap.pop_back();
+      is_full = false;
     }
 
     const PQEntry<T>& top() const {
@@ -140,10 +202,12 @@ class PriorityQueue {
     }
 
     void clear() {
-      iterateHeapEntries([this](const PQEntry<T> & entry) {
-        this->particleIsInQueue[entry.getParticleIndex()] = 0;
-      });
+      for(auto &entry : heap) {
+        this->particleIsInQueue[entry->getParticleIndex()] = 0;
+        delete entry;
+      }
       heap.clear();
+      is_full = false;
     }
 
     bool empty() const {
@@ -151,7 +215,11 @@ class PriorityQueue {
     }
 
     inline bool full() const {
-      return heap.size() == maxSize;
+      return is_full;
+    }
+
+    size_t getMaxSize() const {
+      return maxSize;
     }
 
 };
