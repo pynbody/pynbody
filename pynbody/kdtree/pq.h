@@ -107,7 +107,7 @@ class PriorityQueue {
         }
         particleIsInQueue[particleIndex] = true;
         return true;
-      } else if (distanceSquared < topDistanceSquared()) {
+      } else if (distanceSquared < topDistanceSquaredOrMax()) {
 
         particleIsInQueue[heap.front()->getParticleIndex()] = false;
         heap.front() = std::make_unique<PQEntry<T>>(distanceSquared, particleIndex, ax, ay, az);
@@ -182,15 +182,11 @@ class PriorityQueue {
       return *(heap.front());
     }
 
-    inline T topDistanceSquared() const {
-      return heap.front()->distanceSquared;
-    }
-
     inline T topDistanceSquaredOrMax() const {
       // Return the distance squared of the top element if the queue is full, otherwise return
       // the maximum value of the type (so that all attempts to push will succeed)
-      if(NPY_LIKELY(full()))
-        return topDistanceSquared();
+      if(NPY_LIKELY(is_full))
+        return heap.front()->distanceSquared;
       else
         return std::numeric_limits<T>::max();
     }

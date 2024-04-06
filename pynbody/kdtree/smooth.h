@@ -405,7 +405,7 @@ npy_intp smSmoothStep(SmoothingContext<T> * smx, int procid) {
   }
 
   smBallSearch<T>(smx, ri);
-  SETSMOOTH(T, pi, 0.5 * sqrt(smx->priorityQueue->topDistanceSquared()));
+  SETSMOOTH(T, pi, 0.5 * sqrt(smx->priorityQueue->topDistanceSquaredOrMax()));
 
   // p[pi].fSmooth = 0.5*sqrt(smx->pfBall2[pi]);
   /*
@@ -415,7 +415,7 @@ npy_intp smSmoothStep(SmoothingContext<T> * smx, int procid) {
   */
   pin = pi;
   nCnt = 0;
-  h2 = smx->priorityQueue->topDistanceSquared();
+  h2 = smx->priorityQueue->topDistanceSquaredOrMax();
 
   smx->priorityQueue->iterateHeapEntries([&pin, &h2, &ax, &ay, &az, &nCnt, smx, kd](const PQEntry<T> &entry) {
     if (nCnt >= smx->nListSize) {
