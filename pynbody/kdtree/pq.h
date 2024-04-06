@@ -42,7 +42,7 @@ class PQEntry {
 
 template<typename T>
 struct PQEntryPtrComparator {
-  bool operator()(PQEntry<T>* lhs, PQEntry<T>* rhs) {
+  bool operator()(const std::unique_ptr<PQEntry<T>> & lhs, const std::unique_ptr<PQEntry<T>> & rhs) {
     return lhs->distanceSquared < rhs->distanceSquared;
   }
 };
@@ -83,7 +83,7 @@ class PriorityQueue {
   protected:
     std::vector<bool> particleIsInQueue;
     size_t maxSize;
-    std::vector<PQEntry<T>*> heap {};
+    std::vector<std::unique_ptr<PQEntry<T>>> heap {};
     bool is_full = false;
 
   public:
@@ -101,7 +101,7 @@ class PriorityQueue {
       if (contains(particleIndex)) return false;
 
       if(NPY_UNLIKELY(!is_full)) {
-        heap.push_back(new PQEntry<T>(distanceSquared, particleIndex, ax, ay, az));
+        heap.push_back(std::make_unique<PQEntry<T>>(distanceSquared, particleIndex, ax, ay, az));
         if (heap.size() == maxSize) {
           std::make_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{});
           is_full = true;
@@ -116,10 +116,8 @@ class PriorityQueue {
         particleIsInQueue[particleIndex] = true;
         is_full = true; */
         
-        auto heap_front = heap.front();
-        particleIsInQueue[heap_front->getParticleIndex()] = false;
-        delete heap_front;
-        heap.front() = new PQEntry<T>(distanceSquared, particleIndex, ax, ay, az);
+        particleIsInQueue[heap.front()->getParticleIndex()] = false;
+        heap.front() = std::make_unique<PQEntry<T>>(distanceSquared, particleIndex, ax, ay, az);
         replace_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{}); 
         particleIsInQueue[particleIndex] = true;
         return true;
@@ -175,7 +173,6 @@ class PriorityQueue {
     void pop() {
       particleIsInQueue[heap.front()->getParticleIndex()] = false;
       std::pop_heap(heap.begin(), heap.end(), PQEntryPtrComparator<T>{});
-      delete heap.back();
       heap.pop_back();
       is_full = false;
     }
@@ -204,7 +201,6 @@ class PriorityQueue {
     void clear() {
       for(auto &entry : heap) {
         this->particleIsInQueue[entry->getParticleIndex()] = 0;
-        delete entry;
       }
       heap.clear();
       is_full = false;
