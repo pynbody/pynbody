@@ -313,7 +313,9 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
         This relies on the underlying SimSnap being capable of partial loading."""
         from .. import load
-        return load(self.base.filename, take=self._get_particle_indices_one_halo_using_list_if_available(halo_number))
+        halo_index = self.number_mapper.number_to_index(halo_number)
+        return load(self.base.filename,
+                    take=self._get_particle_indices_one_halo_using_list_if_available(halo_number, halo_index))
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):
         """
