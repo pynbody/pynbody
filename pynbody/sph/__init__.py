@@ -68,7 +68,7 @@ def smooth(self):
 
     start = time.time()
     self.kdtree.set_array_ref('smooth',sm)
-    self.kdtree.populate('hsm', config['sph']['smooth-particles'], config['sph']['Kernel'])
+    self.kdtree.populate('hsm', config['sph']['smooth-particles'])
     end = time.time()
 
     logger.info('Smoothing done in %5.3gs' % (end - start))
@@ -105,7 +105,7 @@ def rho(self):
     self.kdtree.set_array_ref('mass',self['mass'])
     self.kdtree.set_array_ref('rho',rho)
 
-    self.kdtree.populate('rho', config['sph']['smooth-particles'], config['sph']['Kernel'])
+    self.kdtree.populate('rho', config['sph']['smooth-particles'])
 
     end = time.time()
     logger.info('Density calculation done in %5.3g s' % (end - start))

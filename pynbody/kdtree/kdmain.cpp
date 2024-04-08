@@ -117,6 +117,13 @@ template <> const char np_kind<KDNode>() { return 'V'; }
 
 template <> const char np_kind<npy_intp>() { return 'i'; }
 
+template <typename T> const char py_kind() { return '?'; }
+
+template <> const char py_kind<double>() { return 'd'; }
+
+template <> const char py_kind<float>() { return 'f'; }
+
+
 template <typename T> int checkArray(PyObject *check, const char *name, npy_intp size=0, bool require_c_contiguous=false) {
   /* Checks that the passed object is a numpy array of the correct type, with the correct size (if specified), and is C-contiguous (if required)
   Returns 0 if the check passes, 1 if it fails (in which case an exception will have been set).
@@ -314,142 +321,164 @@ PyObject *kdfree(PyObject *self, PyObject *args) {
 /*==========================================================================*/
 /* nn_start                                                                 */
 /*==========================================================================*/
-PyObject *nn_start(PyObject *self, PyObject *args) {
-  KDContext* kd;
-  SMX smx;
+template<typename T> struct typed_nn_start {
+  static PyObject *call(PyObject *self, PyObject *args) {
+    KDContext* kd;
+    SmoothingContext<T> * smx;
 
-  PyObject *kdobj;
-  /* Nx1 Numpy arrays for smoothing length and density for calls that pass
-     in those values from existing arrays
-  */
+    PyObject *kdobj;
+    /* Nx1 Numpy arrays for smoothing length and density for calls that pass
+      in those values from existing arrays
+    */
 
-  int nSmooth, nProcs;
-  float period = std::numeric_limits<float>::max();
+    int nSmooth;
+    double period;
 
-  PyArg_ParseTuple(args, "Oii|f", &kdobj, &nSmooth, &nProcs, &period);
-  kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
+    PyArg_ParseTuple(args, "Oi|d", &kdobj, &nSmooth, &period);
+    kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
 
-  if (period <= 0)
-    period = std::numeric_limits<float>::max();
+    if (period <= 0)
+      period = std::numeric_limits<double>::max();
 
 
 
-  float fPeriod[3] = {period, period, period};
+    double fPeriod[3] = {period, period, period};
 
-  if (nSmooth > PyArray_DIM(kd->pNumpyPos, 0)) {
-    PyErr_SetString(
-        PyExc_ValueError,
-        "Number of smoothing particles exceeds number of particles in tree");
-    return NULL;
+    if (nSmooth > PyArray_DIM(kd->pNumpyPos, 0)) {
+      PyErr_SetString(
+          PyExc_ValueError,
+          "Number of smoothing particles exceeds number of particles in tree");
+      return NULL;
+    }
+
+    /*
+    ** Check to make sure that the bounds of the simulation agree
+    ** with the period specified, if not cause an error.
+    */
+
+    if (!smCheckFits(kd, fPeriod)) {
+      PyErr_SetString(
+          PyExc_ValueError,
+          "The particles span a region larger than the specified boxsize");
+      return NULL;
+    }
+
+    smx = smInit<T>(kd, nSmooth, period);
+    if (smx == nullptr) return nullptr; // smInit sets the error message
+    smSmoothInitStep(smx);
+    return PyCapsule_New(smx, NULL, NULL);
+
   }
+};
 
-  /*
-   ** Check to make sure that the bounds of the simulation agree
-   ** with the period specified, if not cause an error.
-   */
 
-  if (!smCheckFits(kd, fPeriod)) {
-    PyErr_SetString(
-        PyExc_ValueError,
-        "The particles span a region larger than the specified boxsize");
-    return NULL;
-  }
-
-  if (!smInit(&smx, kd, nSmooth, fPeriod)) {
-    PyErr_SetString(PyExc_RuntimeError, "Unable to create smoothing context");
-    return NULL;
-  }
-
-  smSmoothInitStep(smx, nProcs);
-
-  return PyCapsule_New(smx, NULL, NULL);
-}
 
 /*==========================================================================*/
 /* nn_next                                                                 */
 /*==========================================================================*/
-PyObject *nn_next(PyObject *self, PyObject *args) {
-  long nCnt, i, pj;
+template<typename T> struct typed_nn_next {
+  static PyObject *call(PyObject *self, PyObject *args) {
+    long nCnt, i, pj;
 
-  KDContext* kd;
-  SMX smx;
+    KDContext* kd;
+    SmoothingContext<T> * smx;
 
-  PyObject *kdobj, *smxobj;
-  PyObject *nnList;
-  PyObject *nnDist;
-  PyObject *retList;
+    PyObject *kdobj, *smxobj;
+    PyObject *nnList;
+    PyObject *nnDist;
+    PyObject *retList;
 
-  PyArg_ParseTuple(args, "OO", &kdobj, &smxobj);
-  kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
-  smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
+    PyArg_ParseTuple(args, "OO", &kdobj, &smxobj);
+    kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
+    smx = static_cast<SmoothingContext<T>*>(PyCapsule_GetPointer(smxobj, NULL));
 
-  Py_BEGIN_ALLOW_THREADS;
-
-  if (kd->nBitDepth == 32) nCnt = smSmoothStep<float>(smx, 0);
-  else nCnt = smSmoothStep<double>(smx, 0);
-
-  Py_END_ALLOW_THREADS;
-
-  if (nCnt > 0) {
-    nnList = PyList_New(nCnt); // Py_INCREF(nnList);
-    nnDist = PyList_New(nCnt); // Py_INCREF(nnDist);
-    retList = PyList_New(4);
-    Py_INCREF(retList);
-
-    for (i = 0; i < nCnt; i++) {
-      pj = smx->pList[i];
-      PyList_SetItem(nnList, i, PyLong_FromLong(smx->kd->particleOffsets[pj]));
-      PyList_SetItem(nnDist, i, PyFloat_FromDouble(smx->fList[i]));
+    if(smx==nullptr) {
+      PyErr_SetString(PyExc_ValueError, "Invalid smoothing context object");
+      return nullptr;
     }
 
-    PyList_SetItem(retList, 0, PyLong_FromLong(smx->kd->particleOffsets[smx->pi]));
-    if (kd->nBitDepth == 32)
-      PyList_SetItem(retList, 1, PyFloat_FromDouble(GETSMOOTH(float, smx->pi)));
-    else
-      PyList_SetItem(retList, 1,
-                     PyFloat_FromDouble(GETSMOOTH(double, smx->pi)));
-    PyList_SetItem(retList, 2, nnList);
-    PyList_SetItem(retList, 3, nnDist);
+    Py_BEGIN_ALLOW_THREADS;
 
-    return retList;
+    nCnt = smSmoothStep<T>(smx, 0);
+
+    Py_END_ALLOW_THREADS;
+
+    if (nCnt > 0) {
+      nnList = PyList_New(nCnt); // Py_INCREF(nnList);
+      nnDist = PyList_New(nCnt); // Py_INCREF(nnDist);
+      retList = PyList_New(4);
+      Py_INCREF(retList);
+
+      for (i = 0; i < nCnt; i++) {
+        pj = smx->pList[i];
+        PyList_SetItem(nnList, i, PyLong_FromLong(smx->kd->particleOffsets[pj]));
+        PyList_SetItem(nnDist, i, PyFloat_FromDouble(smx->fList[i]));
+      }
+
+      PyList_SetItem(retList, 0, PyLong_FromLong(smx->kd->particleOffsets[smx->pi]));
+      PyList_SetItem(retList, 1, PyFloat_FromDouble(GETSMOOTH(T, smx->pi)));
+      PyList_SetItem(retList, 2, nnList);
+      PyList_SetItem(retList, 3, nnDist);
+
+      return retList;
+    }
+
+    Py_INCREF(Py_None);
+    return Py_None;
   }
+};
 
-  Py_INCREF(Py_None);
-  return Py_None;
-}
+
+
 
 /*==========================================================================*/
 /* nn_stop                                                                 */
 /*==========================================================================*/
-PyObject *nn_stop(PyObject *self, PyObject *args) {
-  KDContext* kd;
-  SMX smx;
+template<typename T> struct typed_nn_stop {
+  static PyObject *call(PyObject *self, PyObject *args) {
+    KDContext* kd;
+    SmoothingContext<T> * smx;
 
-  PyObject *kdobj, *smxobj;
+    PyObject *kdobj, *smxobj;
 
-  PyArg_ParseTuple(args, "OO", &kdobj, &smxobj);
-  kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
-  smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
+    PyArg_ParseTuple(args, "OO", &kdobj, &smxobj);
+    kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
+    smx = static_cast<SmoothingContext<T>*>(PyCapsule_GetPointer(smxobj, NULL));
+    if(smx==nullptr) {
+      PyErr_SetString(PyExc_ValueError, "Invalid smoothing context object");
+      return nullptr;
+    }
+    delete smx;
 
-  smFinish(smx);
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+};
 
-  Py_INCREF(Py_None);
-  return Py_None;
-}
+
+
 
 /*==========================================================================*/
 /* nn_rewind                                                                */
 /*==========================================================================*/
-PyObject *nn_rewind(PyObject *self, PyObject *args) {
-  SMX smx;
-  PyObject *smxobj;
+template<typename T> struct typed_nn_rewind {
+  static PyObject *call(PyObject *self, PyObject *args) {
+    SmoothingContext<T> * smx;
+    PyObject *smxobj;
 
-  PyArg_ParseTuple(args, "O", &smxobj);
-  smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
-  smSmoothInitStep(smx, 1);
+    PyArg_ParseTuple(args, "O", &smxobj);
+    smx = static_cast<SmoothingContext<T> * >(PyCapsule_GetPointer(smxobj, nullptr));
+    if(smx==nullptr) {
+      PyErr_SetString(PyExc_ValueError, "Invalid smoothing context object");
+      return nullptr;
+    }
+    smSmoothInitStep(smx);
 
-  return PyCapsule_New(smx, NULL, NULL);
-}
+    return PyCapsule_New(smx, NULL, NULL);
+  }
+};
+
+
 
 int getBitDepth(PyObject *check) {
 
@@ -612,18 +641,22 @@ PyObject *domain_decomposition(PyObject *self, PyObject *args) {
 
 template <typename Tf, typename Tq> struct typed_particles_in_sphere {
   static PyObject *call(PyObject *self, PyObject *args) {
-    SMX smx;
+    SmoothingContext<Tf> * smx;
     KDContext* kd;
-    float r;
-    float ri[3];
+    Tf r;
+    Tf ri[3];
+
+    std::string pytype_s = "OO" + std::string(4, py_kind<Tf>());
+    const char* pytype = pytype_s.c_str();
 
     PyObject *kdobj = nullptr, *smxobj = nullptr;
 
-    PyArg_ParseTuple(args, "OOffff", &kdobj, &smxobj, &ri[0], &ri[1], &ri[2],
+
+    PyArg_ParseTuple(args, pytype, &kdobj, &smxobj, &ri[0], &ri[1], &ri[2],
                      &r);
 
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
-    smx = (SMX)PyCapsule_GetPointer(smxobj, NULL);
+    smx = (SmoothingContext<Tf> *)PyCapsule_GetPointer(smxobj, NULL);
 
     initParticleList(smx);
     smBallGather<Tf, smBallGatherStoreResultInList>(smx, r * r, ri);
@@ -638,25 +671,26 @@ template <typename Tf, typename Tq> struct typed_populate {
     long i, nCnt;
     int procid;
     KDContext* kd;
-    SMX smx_global, smx_local;
+    SmoothingContext<Tf> *smx_global, *smx_local;
     int propid;
-    float ri[3];
-    float hsm;
+    Tf ri[3];
+    Tf hsm;
     int Wendland;
 
-    void (*pSmFn)(SMX, npy_intp, int, npy_intp *, float *, bool) = NULL;
+    void (*pSmFn)(SmoothingContext<Tf> *, npy_intp, int, bool) = NULL;
 
     PyObject *kdobj, *smxobj;
 
     PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid,
                      &Wendland);
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
-    smx_global = (SMX)PyCapsule_GetPointer(smxobj, NULL);
+    smx_global = (SmoothingContext<Tf> *)PyCapsule_GetPointer(smxobj, NULL);
 
     long nbodies = PyArray_DIM(kd->pNumpyPos, 0);
 
     if (checkArray<Tf>(kd->pNumpySmooth, "smooth"))
       return NULL;
+
     if (propid > PROPID_HSM) {
       if (checkArray<Tf>(kd->pNumpyDen, "rho"))
         return NULL;
@@ -726,13 +760,11 @@ template <typename Tf, typename Tq> struct typed_populate {
         // retrieve the existing smoothing length
         hsm = GETSMOOTH(Tf, i);
 
-        // use it to get nearest neighbours
-        nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(
-            smx_local, 4 * hsm * hsm, ri);
+        // use it to get nearest neighbours - NB following should be Tf not double
+        nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
 
         // calculate the density
-        (*pSmFn)(smx_local, i, nCnt, smx_local->pList, smx_local->fList,
-                 Wendland);
+        (*pSmFn)(smx_local, i, nCnt, Wendland);
 
         // select next particle in coordination with other threads
         i = smGetNext(smx_local);
@@ -741,6 +773,7 @@ template <typename Tf, typename Tq> struct typed_populate {
           break;
       }
       Py_END_ALLOW_THREADS;
+
     }
 
     smFinishThreadLocalCopy(smx_local);
@@ -758,7 +791,7 @@ template <typename Tf, typename Tq> struct typed_populate {
 };
 
 template <template <typename, typename> class func>
-PyObject *type_dispatcher(PyObject *self, PyObject *args) {
+PyObject *type_dispatcher_2(PyObject *self, PyObject *args) {
   PyObject *kdobj = PyTuple_GetItem(args, 0);
   if (kdobj == nullptr) {
     PyErr_SetString(PyExc_ValueError, "First argument must be a kdtree object");
@@ -786,10 +819,49 @@ PyObject *type_dispatcher(PyObject *self, PyObject *args) {
   }
 }
 
+template <template <typename> class func>
+PyObject *type_dispatcher_1(PyObject *self, PyObject *args) {
+  PyObject *kdobj = PyTuple_GetItem(args, 0);
+  if (kdobj == nullptr) {
+    PyErr_SetString(PyExc_ValueError, "First argument must be a kdtree object");
+    return nullptr;
+  }
+  KDContext* kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, nullptr));
+  int nF = kd->nBitDepth;
+
+  if (nF == 64)
+    return func<double>::call(self, args);
+  else if (nF == 32)
+    return func<float>::call(self, args);
+  else {
+    PyErr_SetString(PyExc_ValueError, "Unsupported dtype combination");
+    return nullptr;
+  }
+}
+
+PyObject *nn_start(PyObject *self, PyObject *args) {
+  return type_dispatcher_1<typed_nn_start>(self, args);
+}
+
+PyObject *nn_next(PyObject *self, PyObject *args) {
+  return type_dispatcher_1<typed_nn_next>(self, args);
+}
+
+PyObject *nn_stop(PyObject *self, PyObject *args) {
+  return type_dispatcher_1<typed_nn_stop>(self, args);
+}
+
+
+PyObject *nn_rewind(PyObject *self, PyObject *args) {
+  return type_dispatcher_1<typed_nn_rewind>(self, args);
+}
+
+
+
 PyObject *populate(PyObject *self, PyObject *args) {
-  return type_dispatcher<typed_populate>(self, args);
+  return type_dispatcher_2<typed_populate>(self, args);
 }
 
 PyObject *particles_in_sphere(PyObject *self, PyObject *args) {
-  return type_dispatcher<typed_particles_in_sphere>(self, args);
+  return type_dispatcher_2<typed_particles_in_sphere>(self, args);
 }

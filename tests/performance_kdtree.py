@@ -33,18 +33,25 @@ np.random.seed(1337)
 
 Npart = 10000000
 Ntrials = 20
+dtype = np.float32
 
-centres = np.random.uniform(size=(Ntrials,3)) - 0.5
-radii = 10.**np.random.uniform(low=-3.0,high=-1.0,size=Ntrials)
+centres = (np.random.uniform(size=(Ntrials,3)) - 0.5).astype(dtype)
+radii = 10.**np.random.uniform(low=-3.0,high=-1.0,size=Ntrials).astype(dtype)
 
-xcs = np.random.uniform(-0.5, 0.5, size=Ntrials)
-ycs = np.random.uniform(-0.5, 0.5, size=Ntrials)
-zcs = np.random.uniform(-0.5, 0.5, size=Ntrials)
+xcs = np.random.uniform(-0.5, 0.5, size=Ntrials).astype(dtype)
+ycs = np.random.uniform(-0.5, 0.5, size=Ntrials).astype(dtype)
+zcs = np.random.uniform(-0.5, 0.5, size=Ntrials).astype(dtype)
 
 f = pynbody.new(dm=Npart)
+f._create_array('pos', 3, dtype=dtype)
+f._create_array('mass', 1, dtype=dtype)
 
-f['pos'] = np.random.uniform(size=(Npart,3))
+f['pos'] = np.random.uniform(size=(Npart,3)).astype(dtype)
 f['pos'] -= 0.5
+f['mass'] = np.ones(Npart, dtype=dtype)
+f.properties['boxsize'] = 1.0
+
+print("Using data type = ",f['pos'].dtype)
 
 with timer("sphere queries without tree"):
     for cen, rad in zip(centres, radii):
@@ -70,11 +77,11 @@ with timer("sphere queries from tree"):
         sys.stdout.flush()
         _ = f[pynbody.filt.Sphere(rad, cen)]
 
-with timer("cube queries from tree"):
-    for xc, yc, zc, s in zip(xcs, ycs, zcs, radii):
-        print(".", end="")
-        sys.stdout.flush()
-        _ = f[pynbody.filt.Cuboid(xc - s, yc - s, zc - s, xc + s, yc + s, zc + s)]
+# with timer("cube queries from tree"):
+#     for xc, yc, zc, s in zip(xcs, ycs, zcs, radii):
+#         print(".", end="")
+#         sys.stdout.flush()
+#         _ = f[pynbody.filt.Cuboid(xc - s, yc - s, zc - s, xc + s, yc + s, zc + s)]
 
 
 

@@ -1,6 +1,8 @@
 #ifndef KD_HINCLUDED
 #define KD_HINCLUDED
 
+#include <tuple>
+
 #include <Python.h>
 
 #define PY_ARRAY_UNIQUE_SYMBOL PYNBODY_ARRAY_API
@@ -40,7 +42,6 @@ typedef struct KDContext {
   npy_intp nBucket;
   npy_intp nParticles;
   npy_intp nActive;
-  float fTime;
   int nLevels;
   npy_intp nNodes;
   npy_intp nSplit;
@@ -166,6 +167,11 @@ template <typename T> T GET2(PyObject *ar, npy_intp i, npy_intp j) {
   return *((T *)PyArray_GETPTR2(ar, i, j));
 }
 
+template <typename T> std::tuple<T, T, T> GET2(PyObject *ar, npy_intp i) {
+  T* ptr = (T *)PyArray_GETPTR1(ar, i);
+  return std::make_tuple(ptr[0], ptr[1], ptr[2]);
+}
+
 template <typename T> void SET(PyObject *ar, npy_intp i, T val) {
   *((T *)PyArray_GETPTR1(ar, i)) = val;
 }
@@ -180,6 +186,19 @@ template <typename T> void ACCUM(PyObject *ar, npy_intp i, T val) {
 
 template <typename T> void ACCUM2(PyObject *ar, npy_intp i, npy_intp j, T val) {
   (*((T *)PyArray_GETPTR2(ar, i, j))) += val;
+}
+
+template <typename T>
+inline npy_intp kdFindLocalBucket(KDContext *kdtree, T *position) {
+  npy_intp cell = ROOT;
+  KDNode *c = kdtree->kdNodes;
+  while (cell < kdtree->nSplit) {
+    if (position[c[cell].iDim] < c[cell].fSplit)
+      cell = LOWER(cell);
+    else
+      cell = UPPER(cell);
+  }
+  return cell;
 }
 
 #define GETSMOOTH(T, pid) GET<T>(kd->pNumpySmooth, kd->particleOffsets[pid])
