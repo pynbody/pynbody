@@ -95,6 +95,7 @@ def test_smooth_WendlandC2(rho_W):
     try:
         f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
         del f.properties['boxsize']
+        np.save('test_rho_W2.npy', f.dm['rho'][::100])
         npt.assert_allclose(f.d['rho'][::100], rho_W, rtol=1e-6)
     finally:
         pynbody.config['sph']['Kernel'] = 'CubicSpline'

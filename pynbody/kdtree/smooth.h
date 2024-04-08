@@ -9,6 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <queue>
+#include <cmath>
 
 #define RESMOOTH_SAFE 500
 #define WORKUNIT 1000
@@ -271,6 +272,8 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
   y = ri[1];
   z = ri[2];
 
+  // fBall2 = std::nextafter(fBall2, std::numeric_limits<T>::max());
+
   nCnt = 0;
   cp = ROOT;
   while (1) {
@@ -278,6 +281,7 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
     /*
      ** We have an intersection to test.
      */
+
     if (cp < nSplit) {
       cp = LOWER(cp);
       continue;
