@@ -293,7 +293,6 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
         dz = sz - GET2<T>(kd->pNumpyPos, p[pj], 2);
         fDist2 = dx * dx + dy * dy + dz * dz;
         if (fDist2 <= fBall2) {
-          
           nCnt = storeResultFunction(smx, fDist2, pj, nCnt);
         }
       }
@@ -605,10 +604,10 @@ template <typename T> T cubicSpline(SmoothingContext<T> * smx, T r2) {
 
 template <typename T> T Wendland_kernel(SmoothingContext<T> * smx, T r2, int nSmooth) {
   // Wendland Kernel
-  
-  T rs; 
 
-  if NPY_UNLIKELY(r2 > 4.0) 
+  T rs;
+
+  if NPY_UNLIKELY(r2 > 4.0)
     rs = 0;
   else if NPY_UNLIKELY(r2 == 0.0)
     rs = (21 / 16.) * (1 - 0.0294 * pow(nSmooth * 0.01, -0.977));
@@ -617,7 +616,7 @@ template <typename T> T Wendland_kernel(SmoothingContext<T> * smx, T r2, int nSm
     rs = pow(1 - au, 4);
     rs = (21 / 16.) * rs * (1 + 4 * au);
   }
-  
+
   return rs;
 }
 
