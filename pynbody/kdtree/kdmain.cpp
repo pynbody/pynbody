@@ -750,8 +750,6 @@ template <typename Tf, typename Tq> struct typed_populate {
 
       i = smGetNext(smx_local);
 
-      std::vector<int> num_neighbours(64, 0);
-
       Py_BEGIN_ALLOW_THREADS;
       while (i < nbodies) {
         // make a copy of the position of this particle
@@ -765,14 +763,6 @@ template <typename Tf, typename Tq> struct typed_populate {
         // use it to get nearest neighbours - NB following should be Tf not double
         nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
 
-        num_neighbours[nCnt] += 1;
-
-        if(kd->particleOffsets[i]==692400) {
-          for(int j=0; j<nCnt; j++) {
-            std::cout << "Neighbour " << j << " is " << smx_local->kd->particleOffsets[smx_local->pList[j]] << " at distance " << smx_local->fList[j]/(4*hsm*hsm) << std::endl;
-          }
-        }
-
         // calculate the density
         (*pSmFn)(smx_local, i, nCnt, Wendland);
 
@@ -783,11 +773,6 @@ template <typename Tf, typename Tq> struct typed_populate {
           break;
       }
       Py_END_ALLOW_THREADS;
-      for(int i=0; i<64; i++) {
-        if(num_neighbours[i]>0) {
-          std::cout << "Number of particles with " << i << " neighbours: " << num_neighbours[i] << std::endl;
-        }
-      }
 
     }
 

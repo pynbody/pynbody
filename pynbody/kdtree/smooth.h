@@ -251,6 +251,7 @@ inline npy_intp smBallGatherStoreResultInSmx(SmoothingContext<T>* smx, T fDist2,
   return foundIndex + 1;
 }
 
+
 template <typename T,
           npy_intp (*storeResultFunction)(SmoothingContext<T> *, T, npy_intp, npy_intp)>
 npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
@@ -292,6 +293,7 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
         dz = sz - GET2<T>(kd->pNumpyPos, p[pj], 2);
         fDist2 = dx * dx + dy * dy + dz * dz;
         if (fDist2 <= fBall2) {
+          
           nCnt = storeResultFunction(smx, fDist2, pj, nCnt);
         }
       }
@@ -306,6 +308,7 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
   assert(nCnt <= smx->nListSize);
   return (nCnt);
 }
+
 
 template <typename T>
 PyObject *getReturnParticleList(SmoothingContext<T> * smx);
@@ -498,7 +501,6 @@ template <typename T> void smDomainDecomposition(KDContext* kd, int nprocs);
 
 
 
-
 template<typename T>
 void initParticleList(SmoothingContext<T> * smx) {
   smx->result = std::make_unique<std::vector<npy_intp>>();
@@ -587,6 +589,7 @@ void smInitPriorityQueue(SmoothingContext<T> * smx) {
 
 }
 
+
 template <typename T> T cubicSpline(SmoothingContext<T> * smx, T r2) {
   // Cubic Spline Kernel
   T rs;
@@ -602,26 +605,22 @@ template <typename T> T cubicSpline(SmoothingContext<T> * smx, T r2) {
 
 template <typename T> T Wendland_kernel(SmoothingContext<T> * smx, T r2, int nSmooth) {
   // Wendland Kernel
-  T rs;
-  // Dehnen & Aly 2012 correction (1-0.0454684 at Ns=64) /
-  T Wzero = (21 / 16.) * (1 - 0.0294 * pow(nSmooth * 0.01, -0.977));
-  if NPY_UNLIKELY(r2 > 4.0)
+  
+  T rs; 
+
+  if NPY_UNLIKELY(r2 > 4.0) 
     rs = 0;
-  else if NPY_UNLIKELY(r2 <= 0)
-    rs = Wzero;
+  else if NPY_UNLIKELY(r2 == 0.0)
+    rs = (21 / 16.) * (1 - 0.0294 * pow(nSmooth * 0.01, -0.977));
   else {
     T au = sqrt(r2 * 0.25);
-    rs = 1 - au;
-    rs = rs * rs;
-    rs = rs * rs;
+    rs = pow(1 - au, 4);
     rs = (21 / 16.) * rs * (1 + 4 * au);
   }
-  if NPY_UNLIKELY(rs < 0 && !smx->warnings) {
-    fprintf(stderr, "Internal consistency error\n");
-    smx->warnings = true;
-  }
+  
   return rs;
 }
+
 
 template <typename T>
 void smDensitySym(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wendland) {
@@ -649,6 +648,9 @@ void smDensitySym(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wend
   }
 }
 
+
+
+
 template <typename T>
 void smDensity(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wendland) {
   T fNorm, ih2, r2, rs, ih;
@@ -673,6 +675,8 @@ void smDensity(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wendlan
              rs * GET<T>(kd->pNumpyMass, kd->particleOffsets[pj]));
   }
 }
+
+
 
 template <typename Tf, typename Tq>
 void smMeanQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {

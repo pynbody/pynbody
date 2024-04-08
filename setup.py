@@ -55,7 +55,15 @@ extra_compile_args = ['-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
+                      '-fno-expensive-optimizations', #<-- for arm64 gcc
                       '-g', '-std=c++14']
+
+# note on -fno-expensive-optimizations:
+# This is needed for arm64 gcc, which otherwise gets wrong results for a small number of particles
+# in the kdtree_test.py::test_smooth_wendlandC2 test. It's unclear why; quite possibly there is
+# a subtle bug in the code exposed by these optimizations, but it is such a vague optimization
+# that it's hard to know what it is. The actual routine affected is smBallGather, but for some reason
+# its impact only shows up with the Wendland kernel.
 
 extra_link_args = openmp_args + ['-std=c++14']
 

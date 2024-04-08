@@ -68,7 +68,6 @@ def smooth(self):
 
     start = time.time()
     self.kdtree.set_array_ref('smooth',sm)
-    print("derived smooth -- calling populate")
     self.kdtree.populate('hsm', config['sph']['smooth-particles'])
     end = time.time()
 
