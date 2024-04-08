@@ -483,7 +483,7 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
     @classmethod
     def _get_catalogue_multifile(cls, sim, user_provided_filename):
-        class Gadget4SubfindHdfMultiFileManager(gadgethdf.SubfindHdfMultiFileManager):
+        class Gadget4SubfindHdfMultiFileManager(gadgethdf._SubfindHdfMultiFileManager):
             _nfiles_groupname = cls._fof_name
             _nfiles_attrname = "NTask"
             _subgroup_name = None
@@ -492,7 +492,7 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
     @classmethod
     def _get_progenitor_or_descendant_multifile(cls, sim, prog_or_desc, user_provided_filename):
-        class Gadget4SubfindHdfProgenitorsMultiFileManager(gadgethdf.SubfindHdfMultiFileManager):
+        class Gadget4SubfindHdfProgenitorsMultiFileManager(gadgethdf._SubfindHdfMultiFileManager):
             _nfiles_groupname = "Header"
             _nfiles_attrname = "NumFiles"
             _subgroup_name = None
@@ -572,7 +572,7 @@ class TNGSubfindHDFCatalogue(ArepoSubfindHDFCatalogue):
 
     @classmethod
     def _get_catalogue_multifile(cls, sim):
-        class TNGSubfindHdfMultiFileManager(gadgethdf.SubfindHdfMultiFileManager):
+        class TNGSubfindHdfMultiFileManager(gadgethdf._SubfindHdfMultiFileManager):
             _nfiles_groupname = "Header"
             _nfiles_attrname = "NumFiles"
             _subgroup_name = None

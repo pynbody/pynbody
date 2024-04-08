@@ -57,7 +57,7 @@ def _auto_denoise(sim, kernel):
     else:
         return False
 
-@pynbody.snapshot.simsnap.SimSnap.stable_derived_quantity
+@pynbody.snapshot.simsnap.SimSnap.stable_derived_array
 def smooth(self):
     self.build_tree()
 
@@ -87,7 +87,7 @@ def _get_smooth_array_ensuring_compatibility(self):
         self['smooth'] = smooth_ar = smooth(self)
     return smooth_ar
 
-@pynbody.snapshot.simsnap.SimSnap.stable_derived_quantity
+@pynbody.snapshot.simsnap.SimSnap.stable_derived_array
 def rho(self):
     self.build_tree()
 

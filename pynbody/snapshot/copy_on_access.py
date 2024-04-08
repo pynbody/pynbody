@@ -1,18 +1,25 @@
+"""Implements classes to automatically copy data from another snapshot when needed.
+
+Most users will not need to use this module directly. It is used by `tangos <https://pynbody.github.io/tangos>`_
+to provide a transparent view of a snapshot that is actually stored in a different location.
+"""
+
 import copy
 
 from .simsnap import SimSnap
 
 
 class UnderlyingClassMixin:
+    """Mixin for a SimSnap that allows it to derive quantities associated with another class."""
     def __init__(self, underlying_class, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._underlying_class = underlying_class
 
     def _find_deriving_function(self, name):
         cl = self._underlying_class
-        if cl in self._derived_quantity_registry \
-                and name in self._derived_quantity_registry[cl]:
-            return self._derived_quantity_registry[cl][name]
+        if cl in self._derived_array_registry \
+                and name in self._derived_array_registry[cl]:
+            return self._derived_array_registry[cl][name]
         else:
             return super()._find_deriving_function(name)
 

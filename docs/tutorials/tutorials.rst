@@ -85,5 +85,6 @@ These tutorials are likely to be of interest only in special cases.
    :maxdepth: 1
 
    Performance <performance>
+   Derived quantities <derived>
    Configuration <configuration>
    Threading/multiprocessing <threads>
