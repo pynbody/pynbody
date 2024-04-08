@@ -73,8 +73,31 @@ plot = PlotModuleProxy()
 
 from .snapshot import load, new
 
-derived_array = snapshot.simsnap.SimSnap.derived_quantity
 
-__version__ = '2.0.0-beta.6'
+def derived_array(func):
+    """
+    Decorator to create a derived array for a SimSnap class
+
+    Example usage:
+
+    >>> @pynbody.derived_array
+    ... def _test_quantity(sim):
+    ...     return sim['input']+2
+
+    This will create a new array '_test_quantity' which is calculated
+    from the 'input' array in the simulation.
+
+    The function should take a single argument, the simulation object,
+    and return a numpy array of the same length as the simulation.
+
+    The array will be automatically updated whenever the 'input' array
+    is updated.
+
+    """
+    snapshot.SimSnap.derived_array(func)
+    return func
+derived_array = snapshot.simsnap.SimSnap.derived_array
+
+__version__ = '2.0.0-beta.7'
 
 __all__ = ['load', 'new', 'derived_array']

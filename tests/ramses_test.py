@@ -407,7 +407,7 @@ def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_bloc
     # Previously to #689, this would still break the loading with the same ValueError
     # Now it loads the derived field without issues
     from pynbody.snapshot.ramses import RamsesSnap
-    @RamsesSnap.derived_quantity
+    @RamsesSnap.derived_array
     def metals(snap):
         return np.zeros(len(snap))
 

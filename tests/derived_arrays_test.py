@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pynbody
 
@@ -112,7 +113,7 @@ def test_spherical_coordinates_after_coordinate_transform():
 class ExampleSnap(pynbody.snapshot.SimSnap):
     pass
 
-@ExampleSnap.derived_quantity
+@ExampleSnap.derived_array
 def _test_quantity(sim):
     return sim['input']+2
 
@@ -146,3 +147,23 @@ def test_derived_family_array_with_nonderived_partner_update():
 
     assert (f.dm['_test_quantity']==np.arange(2,22,2)).all()
     assert (f.star['_test_quantity']==np.arange(-10,0)).all()
+
+
+def test_deprecated_derived_quantity():
+    with pytest.warns(DeprecationWarning):
+        @ExampleSnap.derived_quantity
+        def another_test_quantity(sim):
+            return sim['input'] + 2
+
+    with pytest.warns(DeprecationWarning):
+        @ExampleSnap.stable_derived_quantity
+        def another_test_quantity_stable(sim):
+            return sim['input'] + 4
+
+    f = pynbody.new(10, class_=ExampleSnap)
+    f['input'] = np.arange(0,10)
+    assert (f['another_test_quantity']==np.arange(2,12)).all()
+    assert (f['another_test_quantity_stable']==np.arange(4,14)).all()
+    f['input']+=2
+    assert (f['another_test_quantity']==np.arange(4,14)).all()
+    assert (f['another_test_quantity_stable']==np.arange(4,14)).all()

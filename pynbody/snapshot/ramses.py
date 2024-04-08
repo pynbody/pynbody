@@ -1,16 +1,9 @@
 """
+Implements classes and functions for handling RAMSES files.
 
-ramses
-======
-
-Implements classes and functions for handling RAMSES files. AMR cells
-are loaded as particles. You rarely need to access this module
-directly as it will be invoked automatically via pynbody.load.
-
-
-For a complete demo on how to use RAMSES outputs with pynbody, look at
-the `ipython notebook demo
-<http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb>`_
+Note that AMR cells are loaded as particles, although this works surprisingly well for most analysis purposes.
+In particular SPH image generation routines automatically switch on an appropriate de-noising scheme to provide
+effective interpolation between cells.
 
 """
 
@@ -364,7 +357,8 @@ positive_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('
 
 negative_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('ramses', 'type-mapping-negative').split(",")]
 
-def read_descriptor(fname):
+def _read_descriptor(fname):
+    """Read a RAMSES file descriptor and return a list of the variable names."""
     description = []
     name_mapping = namemapper.AdaptiveNameMapper('ramses-name-mapping')
     with open(fname) as fd:
@@ -379,17 +373,15 @@ def read_descriptor(fname):
 
 
 class RamsesSnap(SimSnap):
+    """Implements loading of Ramses snapshots.
+
+    Note that AMR cells are loaded as particles, although this works surprisingly well for most analysis purposes.
+    In particular SPH image generation routines automatically switch on an appropriate de-noising scheme to provide
+    effective interpolation between cells.
+    """
     reader_pool = None
 
-    def __init__(
-        self,
-        dirname,
-        cpus=None,
-        maxlevel=None,
-        with_gas=True,
-        force_gas=False,
-        times_are_proper=None,
-    ):
+    def __init__(self, dirname, cpus=None, maxlevel=None, with_gas=True, force_gas=False, times_are_proper=None):
         """
         Initialize a RamsesSnap.
 
@@ -403,17 +395,17 @@ class RamsesSnap(SimSnap):
         maxlevel : int, optional
             The maximum refinement level to load. If not set, the
             deepest level is loaded.
-        with_gas : bool
+        with_gas : bool, optional
             If False, never load any gas cells (particles only).
             Default is True
-        force_gas : bool
+        force_gas : bool, optional
             If True, load the AMR cells as "gas particles" even if
             they don't actually contain gas in the run. Default is
             False.
-        times_are_proper : bool
+        times_are_proper : bool, optional
             If True, the times in the output are assumed to be proper
             times. If False, they are assumed to be conformal. If
-            unset, assume proper for non-cosmological simulations
+            None (default), assume proper for non-cosmological simulations
             and conformal for cosmological ones.
         """
 
@@ -492,7 +484,7 @@ class RamsesSnap(SimSnap):
 
         for desc_type, default_block, descriptor_fname in zip(types, default_blocks, descriptors_fnames):
             try:
-                block = read_descriptor(descriptor_fname)
+                block = _read_descriptor(descriptor_fname)
             except (FileNotFoundError, OSError):
                 block = default_block
 
@@ -1062,7 +1054,8 @@ class RamsesSnap(SimSnap):
 
 
     @property
-    def times_are_proper(self):
+    def times_are_proper(self) -> bool:
+        """Best guess for whether the times in the output (e.g. star formation times) are proper times"""
         if hasattr(self, "_is_using_proper_time"):
             # Already set, skipping
             pass
@@ -1217,7 +1210,7 @@ class RamsesSnap(SimSnap):
 
 
 @RamsesSnap.decorator
-def translate_info(sim):
+def _translate_info(sim):
 
     if sim._info['H0']>1e-3:
         sim.properties['a'] = sim._info['aexp']
@@ -1241,17 +1234,20 @@ def translate_info(sim):
     sim._file_units_system = [d_unit, t_unit, l_unit]
 
 
-@RamsesSnap.derived_quantity
+@RamsesSnap.derived_array
 def mass(sim):
+    """Gas mass estimated from cell size and density"""
     return sim['rho'] * sim['smooth'] ** 3
 
 
-@RamsesSnap.derived_quantity
+@RamsesSnap.derived_array
 def temp(sim):
-    """ Gas temperature derived from pressure and density """
+    """Gas temperature derived from pressure and density """
+
     # Has to be redefined and rederived here from Ramses native variables
     # to avoid running into circular dependencies with the traditional derived definition
     # Now uses the self-consistent molecular weight field from pynbody (issue 598)
+
     from ..derived import mu
     mu_est = array.SimArray(np.ones(len(sim)), units="1")
     for i in range(5):
