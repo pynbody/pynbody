@@ -44,7 +44,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.inheritance_diagram',
               'sphinx_copybutton',
               'numpydoc',
-              'sphinx_immaterial',]
+              ]
 
 autosummary_generate = True
 
@@ -128,26 +128,15 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_immaterial'
+html_theme = 'sphinx_book_theme'
 
 # set up bootstrap
-html_theme_options = { 'logo': 'logo.svg',
-                       'logo_name': False,
-                       'sidebar_collapse': True,
-                       'font': False,
-                       'features': ['toc.follow'],
-                        "social": [
-                                {
-                                    "icon": "fontawesome/brands/github",
-                                    "link": "https://github.com/pynbody/pynbody",
-                                    "name": "Source on github.com",
-                                },
-                                {
-                                    "icon": "fontawesome/brands/python",
-                                    "link": "https://pypi.org/project/pynbody/",
-                                },
-                            ],
+html_theme_options = {
+    "repository_url": "https://github.com/pynbody/pynbody",
+    "use_repository_button": True,
                        }
+
+html_logo = "_static/logo.svg"
 
 """html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
@@ -293,7 +282,7 @@ man_pages = [
 #autoclass_content = 'both'
 
 copybutton_copy_empty_lines = False
-copybutton_selector =  "div.highlight > pre"
+copybutton_selector =  "div.highlight > pre > code"
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
 copybutton_prompt_is_regexp = True
 copybutton_only_copy_prompt_lines = True
