@@ -50,6 +50,8 @@ autosummary_generate = True
 
 ipython_warning_is_error = False
 
+ipython_savefig_dir = '_static'
+
 extensions+=['IPython.sphinxext.ipython_console_highlighting',
              'IPython.sphinxext.ipython_directive']
 
