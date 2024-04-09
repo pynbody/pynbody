@@ -281,6 +281,9 @@ a function of mass in this halo catalogue:
 
 .. ipython::
 
+ @suppress
+ In [20]: plt.clf()
+
  In [20]: plt.plot(masses, v_std, 'o')
 
  In [21]: plt.xlabel(r'Mass / $M_{\odot}$')
