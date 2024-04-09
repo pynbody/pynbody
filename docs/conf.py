@@ -49,7 +49,7 @@ extensions = ['sphinx.ext.autodoc',
 autosummary_generate = True
 
 ipython_warning_is_error = False
-ipython_savefig_dir = '_static'
+ipython_savefig_dir = 'plots'
 
 # for .. plot:: directives
 plot_working_directory = '.'
