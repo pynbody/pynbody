@@ -158,6 +158,8 @@ For now, we will stick to the default units.
 
 For more information on the unit system, see the reference section on :ref:`units`.
 
+.. _centering:
+
 Centering on something interesting
 ----------------------------------
 
@@ -265,6 +267,8 @@ width as a string with a unit.
           Pynbody also has a companion package, `topsy <https://github.com/pynbody/topsy>`_,
           which enables real-time rendering of snapshots on a GPU. See its separate website
           for more information.
+
+.. _aligning:
 
 Aligning the Snapshot
 ---------------------

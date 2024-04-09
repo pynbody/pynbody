@@ -14,7 +14,7 @@ build:
      pre_create_environment:
        - echo "Getting test data"
        - cd docs && wget -q http://star.ucl.ac.uk/~app/testdata.tar.gz && tar --exclude="._*" -xzvf testdata.tar.gz
-       - cd docs && wget https://zenodo.org/records/10825178/files/tutorial_gadget4.tar.gz?download=1 -O tutorial_gadget4.tar.gz && tar -xvzf tutorial_gadget4.tar.gz
+       - cd docs && wget -q https://zenodo.org/records/10825178/files/tutorial_gadget4.tar.gz?download=1 -O tutorial_gadget4.tar.gz && tar -xvzf tutorial_gadget4.tar.gz
 
 sphinx:
    configuration: docs/conf.py

@@ -49,8 +49,11 @@ extensions = ['sphinx.ext.autodoc',
 autosummary_generate = True
 
 ipython_warning_is_error = False
-
 ipython_savefig_dir = '_static'
+
+# for .. plot:: directives
+plot_working_directory = '.'
+
 
 extensions+=['IPython.sphinxext.ipython_console_highlighting',
              'IPython.sphinxext.ipython_directive']
@@ -305,3 +308,8 @@ def hide_numpy_methods(app, what, name, obj, skip, options):
                 return True
 def setup(app):
     app.connect('autodoc-skip-member', hide_numpy_methods)
+
+import matplotlib
+matplotlib.rcParams['savefig.dpi'] = 200
+matplotlib.rcParams['savefig.bbox'] = 'tight'
+matplotlib.rcParams['savefig.pad_inches'] = 0.15
