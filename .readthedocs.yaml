@@ -16,8 +16,9 @@ build:
        - cd docs && wget -q http://star.ucl.ac.uk/~app/testdata.tar.gz && tar --exclude="._*" -xzvf testdata.tar.gz
        - cd docs && wget -q https://zenodo.org/records/10825178/files/tutorial_gadget4.tar.gz?download=1 -O tutorial_gadget4.tar.gz && tar -xvzf tutorial_gadget4.tar.gz
      post_build:
-       - cp -r docs/plots $READTHEDOCS_OUTPUT/html/tutorials/
-       # totally unclear why the above should be necessary - in my own setup, sphinx copies it automatically
+       - mkdir $READTHEDOCS_OUTPUT/html/tutorials/plots/
+       - cp -r docs/*.png $READTHEDOCS_OUTPUT/html/tutorials/plots/
+       # totally unclear why the above should be necessary - in my own setup, sphinx puts everything in sensible places
        - find $READTHEDOCS_OUTPUT/html  # for debugging
        - find docs/ # for debugging
 
