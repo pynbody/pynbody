@@ -26,14 +26,14 @@
 #define STAR 4
 
 typedef struct bndBound {
-  float fMin[3];
-  float fMax[3];
+  double fMin[3];
+  double fMax[3];
 } Boundary;
 
 typedef struct kdNode {
-  float fSplit;
+  double fSplit;
   Boundary bnd;
-  int iDim;
+  npy_intp iDim; // Looks weird to use intp for this, but otherwise the struct gets padded anyway
   npy_intp pLower;
   npy_intp pUpper;
 } KDNode;
@@ -66,8 +66,8 @@ typedef struct KDContext {
 
 #define INTERSECT(c, cp, fBall2, lx, ly, lz, x, y, z, sx, sy, sz)              \
   {                                                                            \
-    float INTRSCT_dx, INTRSCT_dy, INTRSCT_dz;                                  \
-    float INTRSCT_dx1, INTRSCT_dy1, INTRSCT_dz1, INTRSCT_fDist2;               \
+    double INTRSCT_dx, INTRSCT_dy, INTRSCT_dz;                                  \
+    double INTRSCT_dx1, INTRSCT_dy1, INTRSCT_dz1, INTRSCT_fDist2;               \
     INTRSCT_dx = c[cp].bnd.fMin[0] - x;                                        \
     INTRSCT_dx1 = x - c[cp].bnd.fMax[0];                                       \
     INTRSCT_dy = c[cp].bnd.fMin[1] - y;                                        \

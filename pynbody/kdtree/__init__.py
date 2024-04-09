@@ -15,15 +15,15 @@ logger = logging.getLogger("pynbody.kdtree")
 
 # Boundary type definition must exactly match the C++ definition (see kd.h)
 Boundary = np.dtype([
-    ('fMin', np.float32, (3,)),
-    ('fMax', np.float32, (3,))
+    ('fMin', np.float64, (3,)),
+    ('fMax', np.float64, (3,))
 ])
 
 # KDNode type definition must exactly match the C++ definition (see kd.h)
 KDNode = np.dtype([
-    ('fSplit', np.float32),
+    ('fSplit', np.float64),
     ('bnd', Boundary),
-    ('iDim', np.int32),
+    ('iDim', np.intp), # seems absurd to store this in an intp, but it makes the KDNodes align with 8-byte alignment
     ('pLower', np.intp),
     ('pUpper', np.intp)
 ])
