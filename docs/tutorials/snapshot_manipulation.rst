@@ -325,50 +325,13 @@ later.
   ask them to, so ``s.g.rotate_x(90)`` rotates only the gas while
   ``s.rotate_x(90)`` rotates the entire simulation.
 
-In the face-on orientation, we may wish to make a profile of the stars:
-
-.. ipython::
-
- In [23]: ps = pynbody.analysis.profile.Profile(main_halo.s, min = 0.01, max = 50, type = 'log')
-
- In [25]: pylab.clf()
-
- In [25]: pylab.plot(ps['rbins'], ps['density']);
-
- In [26]: pylab.semilogy();
-
- In [28]: pylab.xlabel('$R$ [kpc]');
-
- @savefig snapshot_manipulation_fig3.png width=5in
- In [29]: pylab.ylabel('$\Sigma$ [M$_\odot$/kpc$^2$]');
-
-We can also generate other profiles, like the rotation curve:
-
-.. ipython::
-
- In [1]: pylab.figure()
-
- In [1]: pd = pynbody.analysis.profile.Profile(main_halo.d,min=.01,max=50, type = 'log')
-
- In [2]: pg = pynbody.analysis.profile.Profile(main_halo.g,min=.01,max=50, type = 'log')
-
- In [3]: p = pynbody.analysis.profile.Profile(main_halo,min=.01,max=50, type = 'log')
-
- In [4]: for prof, name in zip([p,pd,ps,pg],['total','dm','stars','gas']) : pylab.plot(prof['rbins'],prof['v_circ'],label=name)
-
- In [5]: pylab.xlabel('$R$ [kpc]');
-
- In [6]: pylab.ylabel('$v_{circ}$ [km/s]');
-
- @savefig vcirc_profiles.png width=5in
- In [5]: pylab.legend()
 
 
 Where next?
 -----------
 
 * For more about *images*, see the :doc:`pictures` cookbook.
-* For more about *profiles*, see the :doc:`profile` walk-through.
+* For more about *profiles*, such as density profiles or rotation curves, see the :doc:`profile` walk-through.
 * For more about the low-level data access facilities, see the :ref:`data-access`
   walk-through.
 * For more about *halos*, see the :ref:`halos` cookbook.

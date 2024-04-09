@@ -1,8 +1,8 @@
 .. profile tutorial
 
 
-Profiles in Pynbody
-===================
+Profiles
+========
 
 The :class:`~pynbody.analysis.profile.Profile` class is a
 general-purpose class that can be used to bin information in a simulation
@@ -34,7 +34,7 @@ The final command here centres the origin on the main halo and puts the disk in 
 
 .. ipython::
 
-  In [3]: p = profile.Profile( h[0].star, rmin = '.01 kpc', rmax = '50 kpc')
+  In [3]: p = profile.Profile( h[0].star, rmin = '.05 kpc', rmax = '50 kpc')
 
 .. note:: You can pass either floating point values or unit strings to ``rmin`` and ``rmax``.
 
@@ -48,6 +48,24 @@ for analysis in this way. We can now plot the density profile:
 
   @savefig profile_stellar_den.png width=5in
   In [5]: plt.xlabel('$R$ [kpc]'); plt.ylabel(r'$\Sigma_{\star}$ [M$_{\odot}$ kpc$^{-2}$]'); plt.semilogy()
+
+
+The binning is linear by default, but we can see here that the profile is not well-sampled
+at large radii. We can change the binning to logarithmic by specifying ``type='log'``:
+
+.. ipython:: python
+
+  @suppress
+  plt.clf()
+
+  p = profile.Profile( h[0].star, rmin = '.05 kpc', rmax = '50 kpc', type='log')
+
+  plt.plot(p['rbins'].in_units('kpc'),p['density'].in_units('Msol kpc^-2'),'k')
+
+  @savefig profile_stellar_den_logbin.png width=5in
+  plt.xlabel('$R$ [kpc]'); \
+  plt.ylabel(r'$\Sigma_{\star}$ [M$_{\odot}$ kpc$^{-2}$]'); \
+  plt.semilogy()
 
 
 
@@ -97,7 +115,7 @@ above has metallicity information from which an Fe/H estimate can be derived by 
     In [5]: plt.xlabel('$R$ [kpc]'); plt.ylabel('[Fe/H]')
 
 Special quantities
--------------------
+------------------
 
 As well as straight-forward densities and mass-weighted averages, there are a number of
 special profiling functions implemented. To see a full list, use the
@@ -105,6 +123,7 @@ special profiling functions implemented. To see a full list, use the
 the list of functions in :mod:`pynbody.analysis.profile`.
 
 For example, the mass enclosed within a given radius is given by ``mass_enc``:
+
 .. ipython::
 
     @suppress
@@ -114,6 +133,23 @@ For example, the mass enclosed within a given radius is given by ``mass_enc``:
 
     @savefig profile_encmass.png width=5in
     In [5]: plt.xlabel('$R$ [kpc]'); plt.ylabel(r'$M_{\star}(<R)$')
+
+
+See the
+:class:`~pynbody.analysis.profile.Profile` documentation for a full
+list with brief descriptions. You can also check the available
+profiles in your session using
+:func:`~pynbody.analysis.profile.Profile.derivable_keys`.
+
+.. note::
+    You can also define your own profiling functions in your code
+    by using the :meth:`Profile.profile_property <pynbody.analysis.profile.Profile.profile_property>`
+    decorator; these become available in just the same way as the built-in profiling functions.
+    If you wish to do this, the best place to start is by studying the implementation
+    of the existing profile properties in the :mod:`~pynbody.analysis.profile` module.
+
+Surface brightnesses
+^^^^^^^^^^^^^^^^^^^^
 
 Some of the derivable quantities take parameters. For example, surface brightness
 profiles are given by ``sb`` and on consulting the :meth:`docstring <pynbody.analysis.profile.sb>`,
@@ -133,19 +169,42 @@ or for R-band ``sb,r``:
     In [5]: plt.xlabel('$R$ [kpc]'); plt.ylabel(r'SB/mag/arcsec$^2$');
        ...: plt.legend()
 
-
-See the
-:class:`~pynbody.analysis.profile.Profile` documentation for a full
-list with brief descriptions. You can also check the available
-profiles in your session using
-:func:`~pynbody.analysis.profile.Profile.derivable_keys`.
-
 .. note::
-    You can also define your own profiling functions in your code
-    by using the :meth:`Profile.profile_property <pynbody.analysis.profile.Profile.profile_property>`
-    decorator; these become available in just the same way as the built-in profiling functions.
-    If you wish to do this, the best place to start is by studying the implementation
-    of the existing profile properties in the :mod:`~pynbody.analysis.profile` module.
+    Surface brightnesses are calculated using SSP tables described further in the
+    :mod:`~pynbody.analysis.luminosity` module.
+
+
+Rotation curves
+^^^^^^^^^^^^^^^
+
+Another useful special quantity is the rotation curve, which can be calculated using
+the ``v_circ`` key:
+
+
+.. ipython::
+
+ @suppress
+ In [1]: plt.clf()
+
+ In [1]: p_dm = pynbody.analysis.profile.Profile(h[0].dm, min=.05, max=50, type = 'log')
+
+ In [2]: p_gas = pynbody.analysis.profile.Profile(h[0].gas, min=.05, max=50, type = 'log')
+
+ In [3]: p_all = pynbody.analysis.profile.Profile(h[0], min=.05, max=50, type = 'log')
+
+ In [4]: for prof, name in zip([p_all, p_dm, p, p_gas],['total', 'dm', 'stars', 'gas']):
+    ...:     plt.plot(prof['rbins'], prof['v_circ'], label=name)
+
+ In [5]: plt.xlabel('$R$ [kpc]');
+
+ In [6]: plt.ylabel('$v_{circ}$ [km/s]');
+
+ @savefig vcirc_profiles.png width=5in
+ In [5]: plt.legend()
+
+As the above example makes clear, the circular velocity is estimated from the gravitational force
+generated by particles known to the profile object, rather than the entire snapshot.
+
 
 Calculating Derivatives and Dispersions
 ---------------------------------------
@@ -168,12 +227,16 @@ root-mean-square values. You simply need to attach a ``_disp`` or
 ``_rms`` as a suffix to the profile name. To get the stellar velocity
 dispersion:
 
-.. ipython::
+.. ipython:: python
 
-    In [7]: plt.clf(); plt.plot(p['rbins'].in_units('kpc'),p['vr_disp'].in_units('km s^-1'),'k')
+    @suppress
+    plt.clf()
+
+    plt.plot(p['rbins'].in_units('kpc'), p['vr_disp'].in_units('km s^-1'), 'k')
 
     @savefig profile_fig2.png width=5in
-    In [6]: plt.xlabel('$R$ [kpc]'); plt.ylabel('$\sigma_{r}$')
+    plt.xlabel('$R$ [kpc]'); \
+    plt.ylabel('$\sigma_{r}$')
 
 
 In addition to doing this by hand, you can make a

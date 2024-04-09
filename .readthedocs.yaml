@@ -19,6 +19,7 @@ build:
        - cp -r docs/plots $READTHEDOCS_OUTPUT/html/tutorials/
        # totally unclear why the above should be necessary - in my own setup, sphinx copies it automatically
        - find $READTHEDOCS_OUTPUT/html  # for debugging
+       - find docs/ # for debugging
 
 sphinx:
    configuration: docs/conf.py

@@ -69,7 +69,6 @@ Cookbook/Recipes
    :maxdepth: 1
 
    Profiles <profile>
-   Rotation curves <rotation_curve>
    Images <pictures>
    Halo mass function <hmf>
 
