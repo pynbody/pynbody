@@ -73,10 +73,6 @@ def test_swift_singlefile_is_not_vds():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
     assert not f._hdf_files.is_virtual()
 
-
-
-# TODO: test partial loading where the region wraps around the periodic box
-
 def test_swift_singlefile_partial_loading():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
                      take_swift_cells=[5,15,20,25])
@@ -152,7 +148,7 @@ def test_swift_dtypes():
 
 @pytest.mark.parametrize('test_region',
                          [pynbody.filt.Sphere(50., (50., 50., 50.)),
-                         pynbody.filt.Cuboid(-20.0)])
+                         pynbody.filt.Cuboid(-20.0)]) # note the cuboid test region wraps around the box
 def test_swift_take_geometric_region(test_region):
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
                      take_region = test_region)
