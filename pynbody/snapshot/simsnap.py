@@ -23,6 +23,18 @@ from typing import Iterator
 
 import numpy as np
 
+from .. import (
+    array,
+    dependencytracker,
+    family,
+    filt,
+    iter_subclasses,
+    simdict,
+    transformation
+    units,
+    util,
+)
+
 from .. import array, dependencytracker, family, filt, simdict, units, util
 from ..units import has_units
 from ..util import iter_subclasses
@@ -34,7 +46,7 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger('pynbody.snapshot.simsnap')
 
-class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclasses):
+class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclasses, transformation.Transformable):
 
     """The class for managing simulation snapshots.
 
@@ -888,67 +900,6 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     ############################################
     # VECTOR TRANSFORMATIONS OF THE SNAPSHOT
     ############################################
-    def transform(self, matrix) -> transformation.Transformation:
-        """Transform the snapshot according to the 3x3 matrix given.
-
-        Returns a :class:`~pynbody.transformation.Transformation` object which can be used to revert the rotation
-        (either automatically or manually). See the documentation for the :mod:`~pynbody.transformation` module
-        for more information. """
-        from .. import transformation
-        return transformation.transform(self, matrix)
-
-    def _transform(self, matrix):
-        """Transforms the snapshot according to the 3x3 matrix given, without returning a Transformation object."""
-
-        # NB though it might seem more efficient to access _arrays and
-        # _family_arrays directly, this would not work for SubSnaps.
-        snapshot_keys = self.keys()
-
-        for array_name in snapshot_keys:
-            ar = self[array_name]
-            if len(ar.shape) == 2 and ar.shape[1] == 3:
-                ar[:] = np.dot(matrix, ar.transpose()).transpose()
-
-        for fam in self.families():
-            family_keys = self[fam].keys()
-            family_keys_not_in_snapshot = set(family_keys) - set(snapshot_keys)
-            for array_name in family_keys_not_in_snapshot:
-                ar = self[fam][array_name]
-                if len(ar.shape) == 2 and ar.shape[1] == 3:
-                    ar[:] = np.dot(matrix, ar.transpose()).transpose()
-
-    def rotate_x(self, angle) -> transformation.Transformation:
-        """Rotates the snapshot about the current x-axis by 'angle' degrees.
-
-        Returns a :class:`~pynbody.transformation.Transformation` object which can be used to revert the rotation
-        (either automatically or manually). See the documentation for the :mod:`~pynbody.transformation` module
-        for more information. """
-        angle *= np.pi / 180
-        return self.transform(np.array([[1,      0,             0],
-                                        [0, np.cos(angle), -np.sin(angle)],
-                                        [0, np.sin(angle),  np.cos(angle)]]))
-
-    def rotate_y(self, angle) -> transformation.Transformation:
-        """Rotates the snapshot about the current y-axis by 'angle' degrees.
-
-        Returns a :class:`~pynbody.transformation.Transformation` object which can be used to revert the rotation
-        (either automatically or manually). See the documentation for the :mod:`~pynbody.transformation` module
-        for more information. """
-        angle *= np.pi / 180
-        return self.transform(np.array([[np.cos(angle),    0,   np.sin(angle)],
-                                        [0,                1,        0],
-                                        [-np.sin(angle),   0,   np.cos(angle)]]))
-
-    def rotate_z(self, angle) -> transformation.Transformation:
-        """Rotates the snapshot about the current z-axis by 'angle' degrees.
-
-        Returns a :class:`~pynbody.transformation.Transformation` object which can be used to revert the rotation
-        (either automatically or manually). See the documentation for the :mod:`~pynbody.transformation` module
-        for more information. """
-        angle *= np.pi / 180
-        return self.transform(np.array([[np.cos(angle), -np.sin(angle), 0],
-                                        [np.sin(angle),  np.cos(angle), 0],
-                                        [0,             0,        1]]))
 
     def wrap(self, boxsize=None, convention='center'):
         """Wraps the positions of the particles in the box to lie in a chosen fundamental domain.

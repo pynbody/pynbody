@@ -1,28 +1,155 @@
+"""Module for describing, applying and reverting Galilean transformations on simulations.
+
+Generally it is not necessary to access this module directly, but it is used by
+:class:`~pynbody.snapshot.simsnap.SimSnap` class to implement e.g. 
+:meth:`~pynbody.snapshot.simsnap.SimSnap.rotate_x` etc, and also by analysis
+transformations such as :func:`~pynbody.analysis.halo.center` and 
+:func:`~pynbody.analysis.angmom.faceon` etc. 
+
+The main feature of this module is the :class:`Transformation` class, which performs 
+transformations of various kinds on simulations then reverts them.  You can use these objects
+as context managers, which means you can write code like this:
+
+>>> with f.translate(fshift) :
+>>>     print(f['pos'][0])
+
+which is equivalent to
+
+>>> try:
+>>>     f['pos']+=shift
+>>>     print(f['pos'][0])
+>>> finally:
+>>>     f['pos']-=shift
+
+You can also chain transformations together, like this:
+
+>>> with f.translate(fshift).rotate_x(45):
+>>>    print(f['pos'][0])
+
+This implies a translation followed by a rotation. When reverting the transformation, they are
+of course undone in the opposite order.
+"""
+
+from __future__ import annotations
+
+import typing
 import weakref
+
+if typing.TYPE_CHECKING:
+    from . import snapshot
+
+from . import util
 
 import numpy as np
 
-from . import snapshot
+class Transformable:
+    """A mixin class for objects that can generate a Transformation object"""
 
+    def translate(self, offset):
+        """Translate by the given offset.
+        
+        Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
+        as a context manager to ensure that the translation is undone.
+        
+        For more information, see the :mod:`pynbody.transformation` documentation."""
+        return GenericTranslation(self, 'pos', offset)
+    
+    def velocity_offset(self, offset):
+        """Shift the velocity by the given offset.
+        
+        Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
+        as a context manager to ensure that the translation is undone.
+        
+        For more information, see the :mod:`pynbody.transformation` documentation."""
+        return GenericTranslation(self, 'pos', offset)
+    
+    def rotate_x(self, angle):
+        """Rotates about the current x-axis by 'angle' degrees.
+        
+        Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
+        as a context manager to ensure that the translation is undone.
+        
+        For more information, see the :mod:`pynbody.transformation` documentation."""
+        angle *= np.pi / 180
+        return self.transform(np.array([[1,      0,             0],
+                                        [0, np.cos(angle), -np.sin(angle)],
+                                        [0, np.sin(angle),  np.cos(angle)]]))
 
-class Transformation:
+    def rotate_y(self, angle):
+        """Rotates about the current y-axis by 'angle' degrees.
+        
+        Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
+        as a context manager to ensure that the translation is undone.
+        
+        For more information, see the :mod:`pynbody.transformation` documentation."""
+        angle *= np.pi / 180
+        return self.transform(np.array([[np.cos(angle),    0,   np.sin(angle)],
+                                        [0,                1,        0],
+                                        [-np.sin(angle),   0,   np.cos(angle)]]))
 
-    def __init__(self, f, defer=False):
+    def rotate_z(self, angle):
+        """Rotates about the current z-axis by 'angle' degrees.
+        
+        Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
+        as a context manager to ensure that the translation is undone.
+        
+        For more information, see the :mod:`pynbody.transformation` documentation."""
+        angle *= np.pi / 180
+        return self.transform(np.array([[np.cos(angle), -np.sin(angle), 0],
+                                        [np.sin(angle),  np.cos(angle), 0],
+                                        [0,             0,        1]]))
+
+    def transform(self, matrix):
+        """Rotates using a specified matrix.
+        
+        Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
+        as a context manager to ensure that the translation is undone.
+        
+        For more information, see the :mod:`pynbody.transformation` documentation."""
+        return GenericRotation(self, matrix)
+    
+
+class Transformation(Transformable):
+    """The base class for all transformations.
+    
+    Note that this class inherits from :class:`Transformable`, so all transformations are themselves
+    transformable. This means that you can chain transformations together, e.g. for a 
+    :class:`~pynbody.snapshot.simsnap.SimSnap` object *f*:
+    
+    >>> with f.translate(fshift).rotate_x(45):
+    >>>    ...
+    """
+
+    def __init__(self, f, defer = False):
+        """Initialise a transformation, and apply it if not explicitly deferred
+        
+        Parameters
+        ----------
+        f : SimSnap or Transformation
+            The simulation or transformation to act on. If a transformation is given, this 
+            transformation will be chained to it, i.e. the result will represent the composed 
+            transformation.
+        defer : bool
+            If True, the transformation is not applied immediately. Otherwise, as soon as the object 
+            is constructed the transformation is applied to the simulation
+        """
+        from . import snapshot
         if isinstance(f, snapshot.SimSnap):
             self.sim = f
             self.next_transformation = None
         elif isinstance(f, Transformation):
-            self.sim = None
+            self.sim = self.next_transformation.sim
             self.next_transformation = f
         else:
-            raise ValueError("Transformation must either act on another Transformation or on a SimSnap")
+            raise TypeError("Transformation must either act on another Transformation or on a SimSnap")
 
         self.applied = False
         if not defer:
             self.apply(force=False)
 
     @property
-    def sim(self):
+    def sim(self) -> snapshot.SimSnap | None:
+        """The simulation to which this transformation applies"""
         return self._sim()
 
     @sim.setter
@@ -32,7 +159,22 @@ class Transformation:
         else:
             self._sim = weakref.ref(sim)
 
-    def apply_to(self, f):
+    def apply_to(self, f: snapshot.SimSnap) -> snapshot.SimSnap:
+        """Apply this transformation to a specified simulation. 
+        
+        Chained transformations are applied recursively.
+
+        Parameters
+        ----------
+        f : SimSnap
+            The simulation to apply the transformation to. Any simulation reference stored within 
+            the transformation itself is ignored
+
+        Returns
+        -------
+        SimSnap
+            The input simulation (not a copy)
+        """
         if self.next_transformation is not None:
             # this is a chained transformation, get the SimSnap to operate on
             # from the level below
@@ -43,6 +185,20 @@ class Transformation:
         return f
 
     def apply_inverse_to(self, f):
+        """Apply the inverse of this transformation to a specified simulation.
+        
+        Chained transformations are applied recursively.
+
+        Parameters
+        ----------
+        f : SimSnap
+            The simulation to apply the transformation to
+
+        Returns
+        -------
+        SimSnap
+            The input simulation (not a copy)
+        """
         self._revert(f)
 
         if self.next_transformation is not None:
@@ -51,6 +207,25 @@ class Transformation:
 
 
     def apply(self, force=True):
+        """Apply the transformation to the simulation it is associated with.
+        
+        This is either the simulation passed to the constructor or the one passed to the last
+        transformation in the chain. If the transformation has already been applied, a RuntimeError
+        is raised unless *force* is True, in which case the transformation is applied again.
+
+        Parameters
+        ----------
+
+        force : bool
+            If True, the transformation is applied even if it has already been applied. Otherwise,
+            a RuntimeError is raised if the transformation has already been applied.
+        
+        Returns
+        -------
+
+        SimSnap
+            The simulation after the transformation has been applied
+        """
 
         if self.next_transformation is not None:
             # this is a chained transformation, get the SimSnap to operate on
@@ -70,6 +245,7 @@ class Transformation:
         return f
 
     def revert(self):
+        """Revert the transformation. If it has not been applied, a RuntimeError is raised."""
         if not self.applied:
             raise RuntimeError("Transformation has not been applied")
         self._revert(self.sim)
@@ -91,8 +267,20 @@ class Transformation:
 
 
 class GenericTranslation(Transformation):
+    """A translation on a specified array of a simulation"""
 
     def __init__(self, f, arname, shift):
+        """Initialise a translation on a named array
+        
+        Parameters
+        ----------
+        f : SimSnap
+            The simulation to act on
+        arname : str
+            The name of the array to translate
+        shift : array_like
+            The shift to apply
+        """
         self.shift = shift
         self.arname = arname
         super().__init__(f)
@@ -105,8 +293,27 @@ class GenericTranslation(Transformation):
 
 
 class GenericRotation(Transformation):
+    """A rotation on all 3d vectors in a simulation, by a given orthogonal 3x3 matrix"""
 
     def __init__(self, f, matrix, ortho_tol=1.e-8):
+        """Initialise a rotation on a simulation.
+        
+        The matrix must be orthogonal to within *ortho_tol*.
+        
+        Parameters
+        ----------
+        f : SimSnap
+            The simulation to act on
+        
+        matrix : array_like
+            The 3x3 orthogonal matrix to rotate by
+
+        ortho_tol : float
+            The tolerance for orthogonality of the matrix. If the matrix is not orthogonal to within
+            this tolerance, a ValueError is raised.
+        
+
+        """
         # Check that the matrix is orthogonal
         resid = np.dot(matrix, np.asarray(matrix).T) - np.eye(3)
         resid = (resid ** 2).sum()
@@ -116,41 +323,43 @@ class GenericRotation(Transformation):
         super().__init__(f)
 
     def _apply(self, f):
-        f._transform(self.matrix)
-
+        self._transform(self.matrix)
+    
     def _revert(self, f):
-        f._transform(self.matrix.T)
+        self._transform(self.matrix.T)
+
+    def _transform(self, matrix):
+        """Transforms the snapshot according to the 3x3 matrix given."""
+
+        sim = self.sim
+
+        # NB though it might seem more efficient to access _arrays and
+        # _family_arrays directly, this would not work for SubSnaps.
+        snapshot_keys = sim.keys()
+
+        for array_name in snapshot_keys:
+            ar = sim[array_name]
+            if len(ar.shape) == 2 and ar.shape[1] == 3:
+                ar[:] = np.dot(matrix, ar.transpose()).transpose()
+
+        for fam in sim.families():
+            family_keys = sim[fam].keys()
+            family_keys_not_in_snapshot = set(family_keys) - set(snapshot_keys)
+            for array_name in family_keys_not_in_snapshot:
+                ar = sim[fam][array_name]
+                if len(ar.shape) == 2 and ar.shape[1] == 3:
+                    ar[:] = np.dot(matrix, ar.transpose()).transpose()
 
 
+@util.deprecated("This function is deprecated and will be removed in a future version. Use the translate method of a SimSnap object instead.")
 def translate(f, shift):
     """Form a context manager for translating the simulation *f* by the given
     spatial *shift*.
 
-    This allows you to enclose a code block within which the simulation is offset
-    by the specified amount. On exiting the code block, you are guaranteed the
-    simulation is put back to where it started, so
-
-    with translate(f, shift) :
-        print(f['pos'][0])
-
-    is equivalent to
-
-    try:
-        f['pos']+=shift
-        print(f['pos'][0])
-    finally:
-        f['pos']-=shift
-
-    On the other hand,
-
-    translate(f, shift)
-    print(f['pos'][0])
-
-    Performs the translation but does not revert it at any point.
     """
     return GenericTranslation(f, 'pos', shift)
 
-
+@util.deprecated("This function is deprecated and will be removed in a future version. Use the translate method of a SimSnap object instead.")
 def inverse_translate(f, shift):
     """Form a context manager for translating the simulation *f* by the spatial
     vector *-shift*.
@@ -158,7 +367,7 @@ def inverse_translate(f, shift):
     For a fuller description, see *translate*"""
     return translate(f, -np.asarray(shift))
 
-
+@util.deprecated("This function is deprecated and will be removed in a future version. Use the vel_translate method of a SimSnap object instead.")
 def v_translate(f, shift):
     """Form a context manager for translating the simulation *f* by the given
     velocity *shift*.
@@ -167,7 +376,7 @@ def v_translate(f, shift):
 
     return GenericTranslation(f, 'vel', shift)
 
-
+@util.deprecated("This function is deprecated and will be removed in a future version. Use the vel_translate method of a SimSnap object instead.")
 def inverse_v_translate(f, shift):
     """Form a context manager for translating the simulation *f* by the given
     velocity *-shift*.
@@ -176,7 +385,7 @@ def inverse_v_translate(f, shift):
 
     return GenericTranslation(f, 'vel', -np.asarray(shift))
 
-
+@util.deprecated("This function is deprecated and will be removed in a future version. Use sim.translate(...).vel_translate(...) instead.")
 def xv_translate(f, x_shift, v_shift):
     """Form a context manager for translating the simulation *f* by the given
     position *x_shift* and velocity *v_shift*.
