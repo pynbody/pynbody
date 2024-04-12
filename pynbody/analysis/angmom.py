@@ -1,14 +1,11 @@
-"""
-
-angmom
-======
+"""Analysis involving angular momentum.
 
 """
 import logging
 
 import numpy as np
 
-from .. import array, config, filt, transformation, units
+from .. import array, filt, transformation, units
 from . import halo
 
 logger = logging.getLogger('pynbody.analysis.angmom')
@@ -45,14 +42,15 @@ def ang_mom_vec_units(snap):
 
 
 def spin_parameter(snap):
-    r"""
+    r"""Return the spin parameter \lambda' of a centered halo
+    as defined in eq. (5) of Bullock et al. 2001 (2001MNRAS.321..559B).
 
-    Return the spin parameter \lambda' of a centered halo
-    as defined in eq. (5) of Bullock et al. 2001
-    (2001MNRAS.321..559B).
-    Note that the halo has to be aligned such that the disk
-    is in the x-y-plane and its center must be the coordinate
-    origin.
+    Note that the halo has to be aligned such that its center is the coordinate
+    origin and the velocity must be zeroed. If you are not sure whether this will
+    be true, calculate the spin parameter of h using:
+
+    >>> with pynbody.analysis.angmom.faceon(h):
+    >>>     spin = pynbody.analysis.angmom.spin_parameter(h)
 
     """
 
@@ -100,8 +98,6 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size="1 kpc",
 
     """
 
-    global config
-
     if move_all:
         top = h.ancestor
     else:
@@ -113,7 +109,7 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size="1 kpc",
     if cen is None:
         logger.info("Finding halo center...")
         # or h['pos'][h['phi'].argmin()]
-        cen = halo.center(h, retcen=True, **kwargs)
+        cen = halo.center(h, return_cen=True, **kwargs)
         logger.info("... cen=%s" % cen)
     else:
         cen = np.asanyarray(cen)
@@ -125,7 +121,7 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size="1 kpc",
 
     tx = tx.offset_velocity(-vcen)
 
-    # Use gas from inner 10kpc to calculate angular momentum vector
+    # Use gas from inner region to calculate angular momentum vector
     if (len(h.gas) > 0):
         cen = h.gas[filt.Sphere(disk_size)]
     else:

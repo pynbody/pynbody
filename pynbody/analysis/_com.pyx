@@ -2,6 +2,7 @@ cimport cython
 cimport numpy as np
 
 import logging
+import math
 
 import numpy as np
 from cython.parallel import prange
@@ -14,6 +15,7 @@ logger = logging.getLogger('pynbody.analysis._com')
 def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
                          np.ndarray[np.float64_t, ndim=1] mass,
                          int min_particles,
+                         int particles_for_second_radius,
                          float shrink_factor,
                          float starting_rmax,
                          int num_threads,
@@ -34,6 +36,8 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
 
     logger.info("Initial rough COM=%s",com_x)
 
+    second_radius = None
+
     while True :
         offset_x=0; offset_y=0; offset_z=0;
         cx=com_x[0]; cy=com_x[1]; cz=com_x[2]
@@ -50,6 +54,10 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
                     offset_z+=piz*mi
                     tot_mass+=mi
                     npart+=1
+
+        if npart < particles_for_second_radius and second_radius is None:
+            second_radius = math.sqrt(current_rmax2)
+
 
         if npart<min_particles:
             break
@@ -74,4 +82,4 @@ def shrink_sphere_center(np.ndarray[np.float64_t, ndim=2] pos,
         if iternum>itermax:
             raise RuntimeError, "shrink_sphere_center failed to converge after %d iterations"%itermax
 
-    return com_x, current_rmax
+    return com_x, current_rmax, second_radius

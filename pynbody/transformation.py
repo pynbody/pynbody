@@ -382,6 +382,8 @@ class Rotation(Transformation):
         if resid > ortho_tol or resid != resid:
             raise ValueError("Transformation matrix is not orthogonal")
         self.matrix = matrix
+        if description is None:
+            description = "rotate"
         super().__init__(f, description=description)
 
     def _apply(self, f):

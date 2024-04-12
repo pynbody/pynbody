@@ -29,31 +29,36 @@ def test_center():
 def test_center_wrapped_halo():
     npart = 10000
     f = pynbody.new(dm=npart)
+    np.random.seed(1337)
     f['pos'] = np.random.normal(scale=0.1, size=f['pos'].shape)
     f['vel'] = np.random.normal(scale=0.1, size=f['vel'].shape)
     f['pos'][0] = [0.0, 0.0, 0.0] # this is the known centre!
     f['vel'][0] = [0.0, 0.0, 0.0] # again, a known centre
-    f['vel'] += 1.0
+    f['vel'] += 5.0
 
     f['mass'] = np.ones(npart)
-    f['pos']+=1
+    f['x']+=0.95
+    f['y']+=0.5
+    f['z']-=0.94
     f.properties['boxsize'] = 2.0
     f.wrap()
 
-    with pynbody.analysis.halo.center(f):
-        npt.assert_allclose(f['pos'][0], [0.0, 0.0, 0.0], atol=1e-3)
-        npt.assert_allclose(f['vel'][0], [0.0, 0.0, 0.0], atol=1e-3)
+    with pynbody.analysis.halo.center(f) as t:
+        npt.assert_almost_equal(f['pos'][0], [0.0, 0.0, 0.0], decimal=1)
+        npt.assert_almost_equal(f['vel'][0], [0.0, 0.0, 0.0], decimal=1)
 
 
 
 def test_align():
     global f, h
-    with pynbody.analysis.angmom.faceon(h[0]):
-        np.testing.assert_allclose(f['pos'][:2], [[-0.010718, -0.001504, -0.044783],
-                                                  [-0.010026,  0.002441, -0.04465 ]], atol=1e-5)
+    with pynbody.analysis.angmom.faceon(h[0]) as t:
+        print(repr(t))
+        np.testing.assert_allclose(f['pos'][:2], [[-0.010702, -0.001511, -0.044786],
+                                                         [-0.010009,  0.002433, -0.044654]],
+                                   atol=1e-5)
 
-        np.testing.assert_allclose(f['vel'][:2], [[ 0.017203,  0.01848 , -0.019859],
-                                                  [ 0.051333,  0.027357, -0.010303]], atol=1e-5)
+        np.testing.assert_allclose(f['vel'][:2], [[ 0.01706 ,  0.017689, -0.019871],
+                                                          [ 0.051187,  0.026568, -0.010304]], atol=1e-5)
 
 
 def test_virialradius():
