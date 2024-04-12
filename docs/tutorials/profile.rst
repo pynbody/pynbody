@@ -308,4 +308,3 @@ halo 0 according to their age:
 
    @savefig profile_fig4.png width=5in
    In [6]: plt.legend()
-

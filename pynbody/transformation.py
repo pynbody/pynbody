@@ -1,12 +1,12 @@
 """Module for describing, applying and reverting Galilean transformations on simulations.
 
 Generally it is not necessary to access this module directly, but it is used by
-:class:`~pynbody.snapshot.simsnap.SimSnap` class to implement e.g. 
+:class:`~pynbody.snapshot.simsnap.SimSnap` class to implement e.g.
 :meth:`~pynbody.snapshot.simsnap.SimSnap.rotate_x` etc, and also by analysis
-transformations such as :func:`~pynbody.analysis.halo.center` and 
-:func:`~pynbody.analysis.angmom.faceon` etc. 
+transformations such as :func:`~pynbody.analysis.halo.center` and
+:func:`~pynbody.analysis.angmom.faceon` etc.
 
-The main feature of this module is the :class:`Transformation` class, which performs 
+The main feature of this module is the :class:`Transformation` class, which performs
 transformations of various kinds on simulations then reverts them.  You can use these objects
 as context managers, which means you can write code like this:
 
@@ -38,37 +38,38 @@ import weakref
 if typing.TYPE_CHECKING:
     from . import snapshot
 
+import numpy as np
+
 from . import util
 
-import numpy as np
 
 class Transformable:
     """A mixin class for objects that can generate a Transformation object"""
 
     def translate(self, offset):
         """Translate by the given offset.
-        
+
         Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
         as a context manager to ensure that the translation is undone.
-        
+
         For more information, see the :mod:`pynbody.transformation` documentation."""
         return GenericTranslation(self, 'pos', offset, description="translate")
-    
+
     def offset_velocity(self, offset):
         """Shift the velocity by the given offset.
-        
+
         Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
         as a context manager to ensure that the translation is undone.
-        
+
         For more information, see the :mod:`pynbody.transformation` documentation."""
         return GenericTranslation(self, 'vel', offset, description = "offset_velocity")
-    
+
     def rotate_x(self, angle):
         """Rotates about the current x-axis by 'angle' degrees.
-        
+
         Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
         as a context manager to ensure that the translation is undone.
-        
+
         For more information, see the :mod:`pynbody.transformation` documentation."""
         angle_rad = angle * np.pi / 180
         return self.rotate(np.array([[1, 0, 0],
@@ -78,10 +79,10 @@ class Transformable:
 
     def rotate_y(self, angle):
         """Rotates about the current y-axis by 'angle' degrees.
-        
+
         Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
         as a context manager to ensure that the translation is undone.
-        
+
         For more information, see the :mod:`pynbody.transformation` documentation."""
         angle_rad = angle * np.pi / 180
         return self.rotate(np.array([[np.cos(angle_rad), 0, np.sin(angle_rad)],
@@ -91,10 +92,10 @@ class Transformable:
 
     def rotate_z(self, angle):
         """Rotates about the current z-axis by 'angle' degrees.
-        
+
         Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
         as a context manager to ensure that the translation is undone.
-        
+
         For more information, see the :mod:`pynbody.transformation` documentation."""
         angle_rad = angle * np.pi / 180
         return self.rotate(np.array([[np.cos(angle_rad), -np.sin(angle_rad), 0],
@@ -104,10 +105,10 @@ class Transformable:
 
     def rotate(self, matrix, description = None):
         """Rotates using a specified matrix.
-        
+
         Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
         as a context manager to ensure that the translation is undone.
-        
+
         For more information, see the :mod:`pynbody.transformation` documentation.
 
         Parameters
@@ -125,30 +126,30 @@ class Transformable:
     def transform(self, matrix):
         """Deprecated alias for rotate"""
         return self.rotate(matrix)
-    
+
 
 class Transformation(Transformable):
     """The base class for all transformations.
-    
+
     Note that this class inherits from :class:`Transformable`, so all transformations are themselves
-    transformable. This means that you can chain transformations together, e.g. for a 
+    transformable. This means that you can chain transformations together, e.g. for a
     :class:`~pynbody.snapshot.simsnap.SimSnap` object *f*:
-    
+
     >>> with f.translate(fshift).rotate_x(45):
     >>>    ...
     """
 
     def __init__(self, f, defer = False, description = None):
         """Initialise a transformation, and apply it if not explicitly deferred
-        
+
         Parameters
         ----------
         f : SimSnap or Transformation
-            The simulation or transformation to act on. If a transformation is given, this 
-            transformation will be chained to it, i.e. the result will represent the composed 
+            The simulation or transformation to act on. If a transformation is given, this
+            transformation will be chained to it, i.e. the result will represent the composed
             transformation.
         defer : bool
-            If True, the transformation is not applied immediately. Otherwise, as soon as the object 
+            If True, the transformation is not applied immediately. Otherwise, as soon as the object
             is constructed the transformation is applied to the simulation
         description : str
             A description of the transformation to be returned from str() and repr()
@@ -199,14 +200,14 @@ class Transformation(Transformable):
             return self.__class__.__name__
 
     def apply_to(self, f: snapshot.SimSnap) -> snapshot.SimSnap:
-        """Apply this transformation to a specified simulation. 
-        
+        """Apply this transformation to a specified simulation.
+
         Chained transformations are applied recursively.
 
         Parameters
         ----------
         f : SimSnap
-            The simulation to apply the transformation to. Any simulation reference stored within 
+            The simulation to apply the transformation to. Any simulation reference stored within
             the transformation itself is ignored
 
         Returns
@@ -225,7 +226,7 @@ class Transformation(Transformable):
 
     def apply_inverse_to(self, f):
         """Apply the inverse of this transformation to a specified simulation.
-        
+
         Chained transformations are applied recursively.
 
         Parameters
@@ -247,7 +248,7 @@ class Transformation(Transformable):
 
     def apply(self, force=True):
         """Apply the transformation to the simulation it is associated with.
-        
+
         This is either the simulation passed to the constructor or the one passed to the last
         transformation in the chain. If the transformation has already been applied, a RuntimeError
         is raised unless *force* is True, in which case the transformation is applied again.
@@ -258,7 +259,7 @@ class Transformation(Transformable):
         force : bool
             If True, the transformation is applied even if it has already been applied. Otherwise,
             a RuntimeError is raised if the transformation has already been applied.
-        
+
         Returns
         -------
 
@@ -311,7 +312,7 @@ class GenericTranslation(Transformation):
 
     def __init__(self, f, arname, shift, description = None):
         """Initialise a translation on a named array
-        
+
         Parameters
         ----------
         f : Transformable
@@ -339,14 +340,14 @@ class GenericRotation(Transformation):
 
     def __init__(self, f, matrix, ortho_tol=1.e-8, description = None):
         """Initialise a rotation on a simulation.
-        
+
         The matrix must be orthogonal to within *ortho_tol*.
-        
+
         Parameters
         ----------
         f : SimSnap
             The simulation to act on
-        
+
         matrix : array_like
             The 3x3 orthogonal matrix to rotate by
 
@@ -356,7 +357,7 @@ class GenericRotation(Transformation):
 
         description: str
             A description of the rotation to be returned from str() and repr()
-        
+
 
         """
         # Check that the matrix is orthogonal
@@ -369,7 +370,7 @@ class GenericRotation(Transformation):
 
     def _apply(self, f):
         self._transform(self.matrix)
-    
+
     def _revert(self, f):
         self._transform(self.matrix.T)
 

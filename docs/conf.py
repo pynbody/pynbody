@@ -299,6 +299,7 @@ def setup(app):
     app.connect('autodoc-skip-member', hide_numpy_methods)
 
 import matplotlib
+
 matplotlib.rcParams['savefig.dpi'] = 200
 matplotlib.rcParams['savefig.bbox'] = 'tight'
 matplotlib.rcParams['savefig.pad_inches'] = 0.15
