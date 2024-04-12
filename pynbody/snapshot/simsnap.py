@@ -28,14 +28,11 @@ from .. import (
     dependencytracker,
     family,
     filt,
-    iter_subclasses,
     simdict,
     transformation,
     units,
     util,
 )
-
-from .. import array, dependencytracker, family, filt, simdict, units, util
 from ..units import has_units
 from ..util import iter_subclasses
 from .util import ContainerWithPhysicalUnitsOption
