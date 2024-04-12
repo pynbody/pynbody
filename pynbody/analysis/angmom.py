@@ -118,12 +118,12 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size="1 kpc",
         cen = halo.center(h, retcen=True, **kwargs)
         logger.info("... cen=%s" % cen)
 
-    tx = transformation.inverse_translate(top, cen)
+    tx = top.translate(-cen)
 
     if vcen is None:
         vcen = halo.vel_center(h, retcen=True, cen_size=cen_size)
 
-    tx = transformation.inverse_v_translate(tx, vcen)
+    tx = tx.offset_velocity(-vcen)
 
     # Use gas from inner 10kpc to calculate angular momentum vector
     if (len(h.gas) > 0):

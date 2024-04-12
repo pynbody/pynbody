@@ -323,20 +323,30 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
 
     if wrap:
         # centre on something within the halo and wrap
-        target = transformation.inverse_translate(target, sim['pos'][0])
-        target.sim.wrap()
-
-    if retcen:
-        return fn(sim, **kwargs)
+        initial_offset = -sim['pos'][0]
+        transform = target.translate(initial_offset)
+        target.wrap()
     else:
-        cen = fn(sim, **kwargs)
-        tx = transformation.inverse_translate(target, cen)
+        transform = transformation.null(target)
+        initial_offset = np.array([0., 0., 0.])
 
-    if vel:
-        velc = vel_center(sim, cen_size=cen_size, retcen=True)
-        tx = transformation.inverse_v_translate(tx, velc)
+    try:
+        centre = fn(sim, **kwargs)
+        if retcen:
+            transform.revert()
+            return centre - initial_offset
 
-    return tx
+        transform = transform.translate(-centre)
+
+        if vel:
+            velc = vel_center(sim, cen_size=cen_size, retcen=True)
+            transform = transform.offset_velocity(-velc)
+
+    except:
+        transform.revert()
+        raise
+
+    return transform
 
 def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     """
