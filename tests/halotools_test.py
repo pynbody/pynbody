@@ -3,6 +3,7 @@ import os
 import time
 
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
@@ -23,7 +24,26 @@ def test_center():
     global f, h
     with pynbody.analysis.halo.center(h[0]):
         np.testing.assert_allclose(
-            f['pos'][0], [-0.0137471,  -0.00208458, -0.04392379], atol=1e-4)
+            f['pos'][0], [-0.0137471,  -0.00208458, -0.04392379], rtol=1e-4)
+
+def test_center_wrapped_halo():
+    npart = 10000
+    f = pynbody.new(dm=npart)
+    f['pos'] = np.random.normal(scale=0.1, size=f['pos'].shape)
+    f['vel'] = np.random.normal(scale=0.1, size=f['vel'].shape)
+    f['pos'][0] = [0.0, 0.0, 0.0] # this is the known centre!
+    f['vel'][0] = [0.0, 0.0, 0.0] # again, a known centre
+    f['vel'] += 1.0
+
+    f['mass'] = np.ones(npart)
+    f['pos']+=1
+    f.properties['boxsize'] = 2.0
+    f.wrap()
+
+    with pynbody.analysis.halo.center(f):
+        npt.assert_allclose(f['pos'][0], [0.0, 0.0, 0.0], atol=1e-3)
+        npt.assert_allclose(f['vel'][0], [0.0, 0.0, 0.0], atol=1e-3)
+
 
 
 def test_align():

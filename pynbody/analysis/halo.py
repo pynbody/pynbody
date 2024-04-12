@@ -8,6 +8,7 @@ Functions for dealing with and manipulating halos in simulations.
 
 """
 
+import functools
 import logging
 import math
 
@@ -49,35 +50,44 @@ def center_of_mass_velocity(sim):
     return v
 
 
-def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verbose=False, num_threads = None,**kwargs):
+def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, num_threads = None, with_velocity = False):
+    """
+    Return the center according to the shrinking-sphere method of Power et al (2003)
+
+    Most users will want to use the general :func:`center` function, which actually performs the centering operation.
+    This function calculates the center but does not move the particles.
+
+    Parameters
+    ----------
+
+    sim : SimSnap
+        The simulation snapshot to center
+
+    r : float | str, optional
+        Initial search radius. If None, a rough estimate is used.
+
+    shrink_factor : float, optional
+        The amount to shrink the search radius by on each iteration
+
+    min_particles : int, optional
+        Minimum number of particles within the search radius. When this number is reached, the search is complete.
+
+    num_threads : int, optional
+        Number of threads to use for the calculation. If None, the number of threads is taken from the configuration.
+
+    with_velocity : bool, optional
+        If True, also return the center of mass velocity of the final sphere.
+
+    Returns
+    -------
+    com : SimArray
+        The center of mass of the final sphere
+
+    vel : SimArray
+        The center of mass velocity of the final sphere. Only returned if with_velocity is True.
+
     """
 
-    Return the center according to the shrinking-sphere method of
-    Power et al (2003)
-
-
-    **Input**:
-
-    *sim* : a simulation snapshot - this can be any subclass of SimSnap
-
-    **Optional Keywords**:
-
-    *r* (default=None): initial search radius. This can be a string
-     indicating the unit, i.e. "200 kpc", or an instance of
-     :func:`~pynbody.units.Unit`.
-
-    *shrink_factor* (default=0.7): the amount to shrink the search
-     radius by on each iteration
-
-    *min_particles* (default=100): minimum number of particles within
-     the search radius. When this number is reached, the search is
-     complete.
-
-    *verbose* (default=False): if True, prints out the diagnostics at
-     each iteration. Useful to determine whether the centering is
-     zeroing in on the wrong part of the simulation.
-
-    """
     if num_threads is None:
         num_threads = config['number_of_threads']
 
@@ -95,16 +105,20 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verb
     mass = np.asarray(sim['mass'], dtype='double')
     pos = np.asarray(sim['pos'], dtype='double')
 
-    if shrink_factor == 1.0:
-        tol = sim['eps'].in_units(sim['pos'].units, **sim.conversion_context()).min()*0.1
-        com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r, num_threads)
-        com = _com.move_sphere_center(pos, mass, min_particles, shrink_factor, r, tol)
-    else:
-        com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r, num_threads)
+    R = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r, num_threads)
+
+    com, final_radius = R
 
     logger.info("Final SSC=%s", com)
 
-    return array.SimArray(com, sim['pos'].units)
+    com_to_return = array.SimArray(com, sim['pos'].units)
+
+    if with_velocity:
+        vel = sim[filt.Sphere(final_radius, com)].mean_by_mass('vel')
+        return com_to_return, vel
+    else:
+        return com_to_return
+
 
 
 def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
@@ -163,16 +177,6 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
             mass_ar = np.asarray(sim['mass'])
             r_ar = np.asarray(sim['r'])
 
-        """
-        #pure numpy implementation
-        rho = lambda r: np.dot(
-            mass_ar, r_ar < r) / (4. * math.pi * (r ** 3) / 3)
-
-        #numexpr alternative - not much faster because sum is not threaded
-        def rho(r) :
-            r_ar; mass_ar; # just to get these into the local namespace
-            return ne.evaluate("sum((r_ar<r)*mass_ar)")/(4.*math.pi*(r**3)/3)
-        """
         rho = lambda r: util.sum_if_lt(mass_ar,r_ar,r)/(4. * math.pi * (r ** 3) / 3)
         result = util.bisect(r_min, r_max, lambda r: target_rho -
                              rho(r), epsilon=0, eta=1.e-3 * target_rho, verbose=False)
@@ -186,10 +190,26 @@ def potential_minimum(sim):
 
 
 def hybrid_center(sim, r='3 kpc', **kwargs):
-    """
+    """Determine the center of the halo by finding the shrink-sphere-center near the potential minimum
 
-    Determine the center of the halo by finding the shrink-sphere
-    -center inside the specified distance of the potential minimum
+    Parameters
+    ----------
+
+    sim : SimSnap
+        The simulation snapshot of which to find the center
+    r : float | str, optional
+        Radius from the potential minimum to search for the center. Default is 3 kpc.
+
+    Other parameters are passed onto :func:`shrink_sphere_center`.
+
+    Returns
+    -------
+
+    com : SimArray
+        The center of mass of the final sphere
+    vel : SimArray
+        The center of mass velocity of the final sphere. Only returned if with_velocity is True.
+
 
     """
 
@@ -201,9 +221,7 @@ def hybrid_center(sim, r='3 kpc', **kwargs):
 
 
 def index_center(sim, **kwargs):
-    """
-
-    Determine the center of mass based on specific particles.
+    """Determine the center of mass based on specific particles.
 
     Supply a list of indices using the ``ind`` keyword.
 
@@ -310,7 +328,7 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
     try:
         fn = {'pot': potential_minimum,
               'com': center_of_mass,
-              'ssc': shrink_sphere_center,
+              'ssc': functools.partial(shrink_sphere_center, with_velocity=True),
               'hyb': hybrid_center,
               'ind': index_center}[mode]
     except KeyError:
@@ -327,11 +345,17 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
         transform = target.translate(initial_offset)
         target.wrap()
     else:
-        transform = transformation.null(target)
+        transform = transformation.NullTransformation(target)
         initial_offset = np.array([0., 0., 0.])
 
     try:
         centre = fn(sim, **kwargs)
+        if len(centre) == 2:
+            # implies we have a velocity centre as well
+            centre, vel_centre = centre
+        else:
+            vel_centre = None
+
         if retcen:
             transform.revert()
             return centre - initial_offset
@@ -339,8 +363,9 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
         transform = transform.translate(-centre)
 
         if vel:
-            velc = vel_center(sim, cen_size=cen_size, retcen=True)
-            transform = transform.offset_velocity(-velc)
+            if vel_centre is None :
+                vel_centre = vel_center(sim, cen_size=cen_size, retcen=True)
+            transform = transform.offset_velocity(-vel_centre)
 
     except:
         transform.revert()

@@ -120,11 +120,11 @@ class Transformable:
         description : str
             A description of the rotation to be returned from str() and repr()
         """
-        return GenericRotation(self, matrix, description = description)
+        return Rotation(self, matrix, description = description)
 
     @util.deprecated("This method is deprecated and will be removed in a future version. Use the rotate method instead.")
     def transform(self, matrix):
-        """Deprecated alias for rotate"""
+        """Deprecated alias for :meth:`rotate`."""
         return self.rotate(matrix)
 
 
@@ -155,6 +155,10 @@ class Transformation(Transformable):
             A description of the transformation to be returned from str() and repr()
         """
         from . import snapshot
+
+        if isinstance(f, NullTransformation):
+            f = f.sim # as though we are starting from the simulation itself
+
         if isinstance(f, snapshot.SimSnap):
             self.sim = f
             self.next_transformation = None
@@ -307,6 +311,18 @@ class Transformation(Transformable):
         self.revert()
 
 
+class NullTransformation(Transformation):
+    """A transformation that does nothing, provided for convenience where a transformation is expected."""
+
+    def __init__(self, f):
+        super().__init__(f, description="null")
+
+    def _apply(self, f):
+        pass
+    def _revert(self, f):
+        pass
+
+
 class GenericTranslation(Transformation):
     """A translation on a specified array of a simulation"""
 
@@ -335,7 +351,7 @@ class GenericTranslation(Transformation):
         f[self.arname] -= self.shift
 
 
-class GenericRotation(Transformation):
+class Rotation(Transformation):
     """A rotation on all 3d vectors in a simulation, by a given orthogonal 3x3 matrix"""
 
     def __init__(self, f, matrix, ortho_tol=1.e-8, description = None):
@@ -397,69 +413,56 @@ class GenericRotation(Transformation):
                     ar[:] = np.dot(matrix, ar.transpose()).transpose()
 
 
+GenericRotation = Rotation # name from pynbody v1
+
+
 @util.deprecated("This function is deprecated and will be removed in a future version. Use the translate method of a SimSnap object instead.")
 def translate(f, shift):
-    """Form a context manager for translating the simulation *f* by the given
-    spatial *shift*.
+    """Deprecated alias for ``f.translate(shift)``"""
 
-    """
     return GenericTranslation(f, 'pos', shift)
 
 @util.deprecated("This function is deprecated and will be removed in a future version. Use the translate method of a SimSnap object instead.")
 def inverse_translate(f, shift):
-    """Form a context manager for translating the simulation *f* by the spatial
-    vector *-shift*.
-
-    For a fuller description, see *translate*"""
+    """Deprecated alias for ``f.translate(-shift)``"""
     return translate(f, -np.asarray(shift))
 
-@util.deprecated("This function is deprecated and will be removed in a future version. Use the vel_translate method of a SimSnap object instead.")
+@util.deprecated("This function is deprecated and will be removed in a future version. Use the offset_velocity method of a SimSnap object instead.")
 def v_translate(f, shift):
-    """Form a context manager for translating the simulation *f* by the given
-    velocity *shift*.
-
-    For a fuller description, see *translate* (which applies to position transformations)."""
+    """Deprecated alias for ``f.offset_velocity(shift)``"""
 
     return GenericTranslation(f, 'vel', shift)
 
-@util.deprecated("This function is deprecated and will be removed in a future version. Use the vel_translate method of a SimSnap object instead.")
+@util.deprecated("This function is deprecated and will be removed in a future version. Use the offset_velocity method of a SimSnap object instead.")
 def inverse_v_translate(f, shift):
-    """Form a context manager for translating the simulation *f* by the given
-    velocity *-shift*.
-
-    For a fuller description, see *translate* (which applies to position transformations)."""
+    """Deprecated alias for ``f.offset_velocity(-shift)``"""
 
     return GenericTranslation(f, 'vel', -np.asarray(shift))
 
 @util.deprecated("This function is deprecated and will be removed in a future version. Use sim.translate(...).vel_translate(...) instead.")
 def xv_translate(f, x_shift, v_shift):
-    """Form a context manager for translating the simulation *f* by the given
-    position *x_shift* and velocity *v_shift*.
-
-    For a fuller description, see *translate* (which applies to position transformations)."""
+    """Deprecated alias for ``f.translate(x_shift).offset_velocity(v_shift)``"""
 
     return translate(v_translate(f, v_shift), x_shift)
 
-
+@util.deprecated("This function is deprecated and will be removed in a future version. "
+                 "Use sim.translate(...).vel_translate(...) instead.")
 def inverse_xv_translate(f, x_shift, v_shift):
-    """Form a context manager for translating the simulation *f* by the given
-    position *-x_shift* and velocity *-v_shift*.
-
-    For a fuller description, see *translate* (which applies to position transformations)."""
+    """Deprecated alias for ``f.translate(-x_shift).offset_velocity(-v_shift)``"""
 
     return translate(v_translate(f, -np.asarray(v_shift)),
                      -np.asarray(x_shift))
 
-
+@util.deprecated("This function is deprecated and will be removed in a future version. "
+                 "Use the rotate method of a SimSnap object instead.")
 def transform(f, matrix):
-    """Form a context manager for rotating the simulation *f* by the given 3x3
-    *matrix*"""
+    """Deprecated alias for ``f.rotate(matrix)``"""
 
-    return GenericRotation(f, matrix)
+    return Rotation(f, matrix)
 
 
+@util.deprecated("This function is deprecated and will be removed in a future version. Use NullTransformation instead.")
 def null(f):
-    """Form a context manager for the null transformation (useful to avoid messy extra logic for situations where it's
-    unclear whether any transformation will be applied)"""
+    """Deprecated alias for ``NullTransformation(f)``"""
 
-    return Transformation(f)
+    return NullTransformation(f)
