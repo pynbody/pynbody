@@ -115,6 +115,8 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size="1 kpc",
         # or h['pos'][h['phi'].argmin()]
         cen = halo.center(h, retcen=True, **kwargs)
         logger.info("... cen=%s" % cen)
+    else:
+        cen = np.asanyarray(cen)
 
     tx = top.translate(-cen)
 
