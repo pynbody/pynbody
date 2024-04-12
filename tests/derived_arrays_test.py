@@ -106,9 +106,8 @@ def test_spherical_coordinates_after_coordinate_transform():
         test_spherical_coordinates_arrays()
 
     # And translation + rotation
-    with pynbody.transformation.translate(f, pynbody.array.SimArray([-100, 140, 200], units='kpc')):
-        with f.rotate_x(173):
-            test_spherical_coordinates_arrays()
+    with f.translate(pynbody.array.SimArray([-100, 140, 200], units='kpc')).rotate_x(173):
+        test_spherical_coordinates_arrays()
 
 class ExampleSnap(pynbody.snapshot.SimSnap):
     pass

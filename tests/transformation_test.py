@@ -22,7 +22,7 @@ def setup_module():
 def test_translate():
     global f, original
 
-    with pynbody.transformation.translate(f, [1, 0, 0]):
+    with f.translate([1, 0, 0]):
         npt.assert_almost_equal(f['pos'], original['pos'] + [1, 0, 0])
 
     # check moved back
@@ -30,7 +30,7 @@ def test_translate():
 
     # try again with with abnormal exit
     try:
-        with pynbody.transformation.translate(f, [1, 0, 0]):
+        with f.translate([1, 0, 0]):
             npt.assert_almost_equal(f['pos'], original['pos'] + [1, 0, 0])
             raise RuntimeError
     except RuntimeError:
@@ -42,7 +42,7 @@ def test_translate():
 def test_v_translate():
     global f, original
 
-    with pynbody.transformation.v_translate(f, [1, 0, 0]):
+    with f.offset_velocity([1, 0, 0]):
         npt.assert_almost_equal(f['vel'], original['vel'] + [1, 0, 0])
 
     # check moved back
@@ -50,7 +50,7 @@ def test_v_translate():
 
     # try again with with abnormal exit
     try:
-        with pynbody.transformation.v_translate(f, [1, 0, 0]):
+        with f.offset_velocity([1, 0, 0]):
             npt.assert_almost_equal(f['vel'], original['vel'] + [1, 0, 0])
             raise RuntimeError
     except RuntimeError:
@@ -62,7 +62,7 @@ def test_v_translate():
 def test_vp_translate():
     global f, original
 
-    with pynbody.transformation.xv_translate(f, [1, 0, 0], [2, 0, 0]):
+    with f.translate([1, 0, 0]).offset_velocity([2,0,0]):
         npt.assert_almost_equal(f['vel'], original['vel'] + [2, 0, 0])
         npt.assert_almost_equal(f['pos'], original['pos'] + [1, 0, 0])
 
@@ -72,7 +72,7 @@ def test_vp_translate():
 
     # try again with with abnormal exit
     try:
-        with pynbody.transformation.xv_translate(f, [1, 0, 0], [2, 0, 0]):
+        with f.translate([1, 0, 0]).offset_velocity([2,0,0]):
             npt.assert_almost_equal(f['vel'], original['vel'] + [2, 0, 0])
             npt.assert_almost_equal(f['pos'], original['pos'] + [1, 0, 0])
             raise RuntimeError
@@ -111,7 +111,7 @@ def test_family_rotate():
     npt.assert_almost_equal(f.bh['vel'][:, 1], 1.0)
 
 def test_chaining():
-    with pynbody.transformation.translate(f.rotate_x(90), [0, 1, 0]):
+    with f.rotate_x(90).translate([0, 1, 0]):
         npt.assert_almost_equal(f['y'], 1.0 - original['z'])
         npt.assert_almost_equal(f['z'], original['y'])
 
@@ -124,11 +124,17 @@ def test_halo_managers():
 
     npt.assert_almost_equal(f['pos'], original['pos'])
 
+def test_repr():
+    global f
+    tx = f.rotate_x(45).translate([0, 1, 0]).offset_velocity([0, 0, 1])
+    assert str(tx) == "rotate_x(45), translate, offset_velocity"
+    assert repr(tx) == "<Transformation rotate_x(45), translate, offset_velocity>"
+
 
 def test_weakref():
     global f
     tx1 = f.rotate_y(90)
-    tx2 = pynbody.transformation.translate(f.rotate_x(90), [0, 1, 0])
+    tx2 = tx1.rotate_x(90).translate([0, 1, 0])
     assert tx1.sim is not None
     assert tx2.sim is not None
     del f

@@ -52,16 +52,16 @@ class Transformable:
         as a context manager to ensure that the translation is undone.
         
         For more information, see the :mod:`pynbody.transformation` documentation."""
-        return GenericTranslation(self, 'pos', offset)
+        return GenericTranslation(self, 'pos', offset, description="translate")
     
-    def velocity_offset(self, offset):
+    def offset_velocity(self, offset):
         """Shift the velocity by the given offset.
         
         Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
         as a context manager to ensure that the translation is undone.
         
         For more information, see the :mod:`pynbody.transformation` documentation."""
-        return GenericTranslation(self, 'pos', offset)
+        return GenericTranslation(self, 'vel', offset, description = "offset_velocity")
     
     def rotate_x(self, angle):
         """Rotates about the current x-axis by 'angle' degrees.
@@ -70,10 +70,11 @@ class Transformable:
         as a context manager to ensure that the translation is undone.
         
         For more information, see the :mod:`pynbody.transformation` documentation."""
-        angle *= np.pi / 180
-        return self.transform(np.array([[1,      0,             0],
-                                        [0, np.cos(angle), -np.sin(angle)],
-                                        [0, np.sin(angle),  np.cos(angle)]]))
+        angle_rad = angle * np.pi / 180
+        return self.rotate(np.array([[1, 0, 0],
+                                     [0, np.cos(angle_rad), -np.sin(angle_rad)],
+                                     [0, np.sin(angle_rad),  np.cos(angle_rad)]]),
+                           description = f"rotate_x({angle})")
 
     def rotate_y(self, angle):
         """Rotates about the current y-axis by 'angle' degrees.
@@ -82,10 +83,11 @@ class Transformable:
         as a context manager to ensure that the translation is undone.
         
         For more information, see the :mod:`pynbody.transformation` documentation."""
-        angle *= np.pi / 180
-        return self.transform(np.array([[np.cos(angle),    0,   np.sin(angle)],
-                                        [0,                1,        0],
-                                        [-np.sin(angle),   0,   np.cos(angle)]]))
+        angle_rad = angle * np.pi / 180
+        return self.rotate(np.array([[np.cos(angle_rad), 0, np.sin(angle_rad)],
+                                     [0,                1,        0],
+                                     [-np.sin(angle_rad),   0,   np.cos(angle_rad)]]),
+                           description = f"rotate_y({angle})")
 
     def rotate_z(self, angle):
         """Rotates about the current z-axis by 'angle' degrees.
@@ -94,19 +96,35 @@ class Transformable:
         as a context manager to ensure that the translation is undone.
         
         For more information, see the :mod:`pynbody.transformation` documentation."""
-        angle *= np.pi / 180
-        return self.transform(np.array([[np.cos(angle), -np.sin(angle), 0],
-                                        [np.sin(angle),  np.cos(angle), 0],
-                                        [0,             0,        1]]))
+        angle_rad = angle * np.pi / 180
+        return self.rotate(np.array([[np.cos(angle_rad), -np.sin(angle_rad), 0],
+                                     [np.sin(angle_rad),  np.cos(angle_rad), 0],
+                                     [0,             0,        1]]),
+                           description = f"rotate_z({angle})")
 
-    def transform(self, matrix):
+    def rotate(self, matrix, description = None):
         """Rotates using a specified matrix.
         
         Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
         as a context manager to ensure that the translation is undone.
         
-        For more information, see the :mod:`pynbody.transformation` documentation."""
-        return GenericRotation(self, matrix)
+        For more information, see the :mod:`pynbody.transformation` documentation.
+
+        Parameters
+        ----------
+
+        matrix : array_like
+            The 3x3 orthogonal matrix to rotate by
+
+        description : str
+            A description of the rotation to be returned from str() and repr()
+        """
+        return GenericRotation(self, matrix, description = description)
+
+    @util.deprecated("This method is deprecated and will be removed in a future version. Use the rotate method instead.")
+    def transform(self, matrix):
+        """Deprecated alias for rotate"""
+        return self.rotate(matrix)
     
 
 class Transformation(Transformable):
@@ -120,7 +138,7 @@ class Transformation(Transformable):
     >>>    ...
     """
 
-    def __init__(self, f, defer = False):
+    def __init__(self, f, defer = False, description = None):
         """Initialise a transformation, and apply it if not explicitly deferred
         
         Parameters
@@ -132,16 +150,20 @@ class Transformation(Transformable):
         defer : bool
             If True, the transformation is not applied immediately. Otherwise, as soon as the object 
             is constructed the transformation is applied to the simulation
+        description : str
+            A description of the transformation to be returned from str() and repr()
         """
         from . import snapshot
         if isinstance(f, snapshot.SimSnap):
             self.sim = f
             self.next_transformation = None
         elif isinstance(f, Transformation):
-            self.sim = self.next_transformation.sim
+            self.sim = f.sim
             self.next_transformation = f
         else:
             raise TypeError("Transformation must either act on another Transformation or on a SimSnap")
+
+        self._description = description
 
         self.applied = False
         if not defer:
@@ -158,6 +180,23 @@ class Transformation(Transformable):
             self._sim = lambda: None
         else:
             self._sim = weakref.ref(sim)
+
+    def __repr__(self):
+        return "<Transformation " + str(self) + ">"
+
+    def __str__(self):
+        if self.next_transformation is not None:
+            s = str(self.next_transformation)+", "
+        else:
+            s = ""
+
+        return s + self._describe()
+
+    def _describe(self):
+        if self._description:
+            return self._description
+        else:
+            return self.__class__.__name__
 
     def apply_to(self, f: snapshot.SimSnap) -> snapshot.SimSnap:
         """Apply this transformation to a specified simulation. 
@@ -261,6 +300,7 @@ class Transformation(Transformable):
 
     def __enter__(self):
         self.apply(force=False)
+        return self
 
     def __exit__(self, *args):
         self.revert()
@@ -269,21 +309,23 @@ class Transformation(Transformable):
 class GenericTranslation(Transformation):
     """A translation on a specified array of a simulation"""
 
-    def __init__(self, f, arname, shift):
+    def __init__(self, f, arname, shift, description = None):
         """Initialise a translation on a named array
         
         Parameters
         ----------
-        f : SimSnap
-            The simulation to act on
+        f : Transformable
+            The transformable to act on
         arname : str
             The name of the array to translate
         shift : array_like
             The shift to apply
+        description : str
+            A description of the translation to be returned from str() and repr()
         """
         self.shift = shift
         self.arname = arname
-        super().__init__(f)
+        super().__init__(f, description=description)
 
     def _apply(self, f):
         f[self.arname] += self.shift
@@ -295,7 +337,7 @@ class GenericTranslation(Transformation):
 class GenericRotation(Transformation):
     """A rotation on all 3d vectors in a simulation, by a given orthogonal 3x3 matrix"""
 
-    def __init__(self, f, matrix, ortho_tol=1.e-8):
+    def __init__(self, f, matrix, ortho_tol=1.e-8, description = None):
         """Initialise a rotation on a simulation.
         
         The matrix must be orthogonal to within *ortho_tol*.
@@ -311,6 +353,9 @@ class GenericRotation(Transformation):
         ortho_tol : float
             The tolerance for orthogonality of the matrix. If the matrix is not orthogonal to within
             this tolerance, a ValueError is raised.
+
+        description: str
+            A description of the rotation to be returned from str() and repr()
         
 
         """
@@ -320,7 +365,7 @@ class GenericRotation(Transformation):
         if resid > ortho_tol or resid != resid:
             raise ValueError("Transformation matrix is not orthogonal")
         self.matrix = matrix
-        super().__init__(f)
+        super().__init__(f, description=description)
 
     def _apply(self, f):
         self._transform(self.matrix)
@@ -392,8 +437,7 @@ def xv_translate(f, x_shift, v_shift):
 
     For a fuller description, see *translate* (which applies to position transformations)."""
 
-    return translate(v_translate(f, v_shift),
-                     x_shift)
+    return translate(v_translate(f, v_shift), x_shift)
 
 
 def inverse_xv_translate(f, x_shift, v_shift):
