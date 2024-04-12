@@ -91,9 +91,7 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size="1 kpc",
            disk_size="5 kpc", cen=None, vcen=None, move_all=True,
            **kwargs):
     """
-
-    Reposition and rotate the simulation containing the halo h to see
-    h's disk edge on.
+    Reposition and rotate the simulation containing the halo h to see h's disk edge on.
 
     Given a simulation and a subview of that simulation (probably the
     halo of interest), this routine centers the simulation and rotates
@@ -136,7 +134,7 @@ def sideon(h, vec_to_xform=calc_sideon_matrix, cen_size="1 kpc",
 
     logger.info("Transforming simulation...")
 
-    tx = transformation.transform(tx, trans)
+    tx = tx.rotate(trans)
 
     logger.info("...done!")
 
