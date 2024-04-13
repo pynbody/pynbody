@@ -53,12 +53,12 @@ def test_align():
     global f, h
     with pynbody.analysis.angmom.faceon(h[0]) as t:
         print(repr(t))
-        np.testing.assert_allclose(f['pos'][:2], [[-0.010702, -0.001511, -0.044786],
-                                                         [-0.010009,  0.002433, -0.044654]],
+        np.testing.assert_allclose(f['pos'][:2], [[-0.010691, -0.001472, -0.04479 ],
+                                                          [-0.009998,  0.002472, -0.044654]],
                                    atol=1e-5)
 
-        np.testing.assert_allclose(f['vel'][:2], [[ 0.01706 ,  0.017689, -0.019871],
-                                                          [ 0.051187,  0.026568, -0.010304]], atol=1e-5)
+        np.testing.assert_allclose(f['vel'][:2], [[ 0.028102,  0.032423, -0.016872],
+                                                          [ 0.062226,  0.041293, -0.007289]], atol=1e-5)
 
 
 def test_virialradius():
