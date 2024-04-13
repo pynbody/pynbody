@@ -406,7 +406,7 @@ def get_tform(sim, *, times_are_proper: bool, use_part2birth: Optional[bool]=Non
         h0 = top.properties["h"]
         aexp_bins = np.geomspace(1e-3, 1, 10_000)
         z_bins = 1 / aexp_bins - 1
-        tau_bins = tau(top, z=z_bins) * h0
+        tau_bins = tau(top, z=z_bins, unit="0.01 s Mpc km^-1") * h0
         age_bins = age(top, z=z_bins)
         birth_date = np.interp(birth_raw, tau_bins, age_bins)
 
