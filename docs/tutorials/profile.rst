@@ -27,7 +27,7 @@ To illustrate, let's load a snapshot:
 
   In [2]: h = s.halos()
 
-  In [3]: pynbody.analysis.angmom.faceon(h[0])
+  In [3]: pynbody.analysis.faceon(h[0])
 
 The final command here centres the origin on the main halo and puts the disk in the xy-plane
 (see :ref:`aligning`). Now we can make the :class:`~pynbody.analysis.profile.Profile` instance:
@@ -39,7 +39,7 @@ The final command here centres the origin on the main halo and puts the disk in 
 .. note:: You can pass either floating point values or unit strings to ``rmin`` and ``rmax``.
 
 With the default parameters, a 2D profile is created, in the xy-plane. Our use of the
-:func:`~pynbody.analysis.angmom.faceon` function ensures that the stellar disk is ready
+:func:`~pynbody.analysis.faceon` function ensures that the stellar disk is ready
 for analysis in this way. We can now plot the density profile:
 
 .. ipython::
@@ -78,7 +78,7 @@ creating the profile.
 
 Even though we use ``s.dm`` here (i.e. dark matter from the full snapshot, not
 just halo 0), the whole snapshot is still centered on halo 0 following our earlier call to
-:func:`~pynbody.analysis.angmom.faceon`. This allows us to explore
+:func:`~pynbody.analysis.faceon`. This allows us to explore
 that far outer reaches of the halo around the galaxy. Let's now plot the dark matter
 density profile:
 
