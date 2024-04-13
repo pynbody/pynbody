@@ -43,7 +43,7 @@ To tackle both of these issues in turn:
  1. The image is *always* centred on ``(0,0,0)``, so you need to offset
  the simulation before you start. The most common way to do this
  is with the function :func:`pynbody.analysis.halo.center`; see
- :ref:`snapshot_manipulation` for an introduction.
+ :ref:`quickstart` for an introduction.
 
  2. The ``width`` keyword for the image function
  expects a floating point number in the current units of the

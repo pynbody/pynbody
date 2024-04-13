@@ -121,7 +121,7 @@ def test_chaining(test_simulation_with_copy):
 def test_halo_managers(test_simulation_with_copy):
     f, original = test_simulation_with_copy
 
-    with pynbody.analysis.angmom.sideon(f, disk_size=1, cen_size=1):
+    with pynbody.analysis.angmom.sideon(f, disk_size=1.0):
         pass
 
     npt.assert_almost_equal(f['pos'], original['pos'])
