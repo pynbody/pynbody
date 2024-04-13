@@ -159,3 +159,20 @@ def test_weakref():
     gc.collect()
     assert tx1.sim is None
     assert tx2.sim is None
+
+@pytest.mark.parametrize("family", [True, False])
+def test_derived_3d_array(family):
+    """Test for a bug where transformations would try to rotate derived arrays, raising an error"""
+    f = pynbody.new(dm=5, gas=5)
+
+    @pynbody.derived_array
+    def test_derived_3d_array_transformation(sim):
+        return np.random.normal(size=(len(sim), 3))
+
+    if family:
+        f = f.dm
+
+    _ = f['test_derived_3d_array_transformation']
+
+    with f.ancestor.rotate_y(90):
+        _ = f['test_derived_3d_array_transformation']

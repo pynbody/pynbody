@@ -403,7 +403,7 @@ class Rotation(Transformation):
 
         for array_name in snapshot_keys:
             ar = sim[array_name]
-            if len(ar.shape) == 2 and ar.shape[1] == 3:
+            if (not ar.derived) and len(ar.shape) == 2 and ar.shape[1] == 3:
                 ar[:] = np.dot(matrix, ar.transpose()).transpose()
 
         for fam in sim.families():
@@ -411,7 +411,7 @@ class Rotation(Transformation):
             family_keys_not_in_snapshot = set(family_keys) - set(snapshot_keys)
             for array_name in family_keys_not_in_snapshot:
                 ar = sim[fam][array_name]
-                if len(ar.shape) == 2 and ar.shape[1] == 3:
+                if (not ar.derived) and len(ar.shape) == 2 and ar.shape[1] == 3:
                     ar[:] = np.dot(matrix, ar.transpose()).transpose()
 
 

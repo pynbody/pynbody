@@ -21,7 +21,6 @@ from . import (
     theoretical_profiles,
 )
 from .angmom import faceon, sideon
-from .decomp import decomp
 from .halo import center
 from .hmf import halo_mass_function
 from .profile import Profile
