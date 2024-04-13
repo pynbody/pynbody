@@ -54,8 +54,8 @@ Walkthroughs
 .. toctree::
    :maxdepth: 1
 
-   Quick-start <snapshot_manipulation>
-   Reading data <data_access>
+   Quick-start <quickstart>
+   Reading snapshots <data_access>
    Sub-views & filters <filters>
    Halos & groups <halos>
    Linking snapshots <bridge>

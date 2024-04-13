@@ -163,6 +163,7 @@ docs_require = [
     'sphinx-book-theme',
     'sphinx-copybutton',
     'numpydoc',
+    'extinction',
 ],
 
 extras_require = {

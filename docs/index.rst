@@ -3,9 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root ``toctree`` directive.
 
+.. warning::
 
-Pynbody Documentation
-===============================
+ You are looking at the documentation for pynbody v2, which is currently in beta.
+ To install pynbody v2 beta, use ``pip install --pre pynbody``.  Documentation for
+ v1 remains available at https://pynbody.github.io/pynbody/ .
 
 Welcome to the documentation for `pynbody
 <http://pynbody.github.io>`_ -- an analysis package for
@@ -71,7 +73,7 @@ Where next?
 Consult the :doc:`installation` documentation for instructions on how
 to get going. Then you might like to download some `test data
 <https://github.com/pynbody/pynbody/releases>`_ and try out the
-:ref:`first steps tutorial <snapshot_manipulation>` which gets straight
+:ref:`quick-start tutorial <quickstart>` which gets straight
 to some of pynbody's analysis features. Or, if you prefer to learn
 a little more of how your data is organized, we also provide a :ref:`data
 access walkthrough <data-access>`.
