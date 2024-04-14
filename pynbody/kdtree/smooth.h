@@ -81,6 +81,19 @@ bool smCheckFits(KDContext* kd, T *fPeriod) {
   return true;
 }
 
+
+template<typename T>
+void smCheckPeriodicityAndWarn(KDContext* kd, T fPeriod[3]) {
+  if (!smCheckFits(kd, fPeriod)) {
+    PyErr_WarnEx(PyExc_RuntimeWarning,
+                 "\r\n\r\nThe particles span a region larger than the specified boxsize; disabling periodicity.\r\n\r\n"
+                 "For more information about this warning, see the module documentation for KDTree, \r\n"
+                 "https://pynbody.readthedocs.io/latest/reference/_autosummary/pynbody.kdtree.KDTree.html",
+                 1);
+    fPeriod[0] = fPeriod[1] = fPeriod[2] = std::numeric_limits<T>::max();
+  }
+}
+
 template<typename T>
 SmoothingContext<T> * smInit(KDContext* kd, int nSmooth, T fPeriod) {
   T fPeriodArray[3] = {fPeriod, fPeriod, fPeriod};
@@ -95,12 +108,7 @@ SmoothingContext<T> * smInit(KDContext* kd, int nSmooth, T fPeriod) {
     return nullptr;
   }
 
-  if(!smCheckFits<T>(kd, fPeriodArray)) {
-    PyErr_SetString(
-        PyExc_ValueError,
-        "The particles span a region larger than the specified boxsize");
-    return nullptr;
-  }
+  smCheckPeriodicityAndWarn(kd, fPeriodArray);
 
   auto smx = new SmoothingContext<T>(kd, nSmooth, fPeriodArray); // not shared_ptr because python will memory manage it
 

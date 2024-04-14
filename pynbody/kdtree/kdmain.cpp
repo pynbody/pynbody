@@ -318,6 +318,7 @@ PyObject *kdfree(PyObject *self, PyObject *args) {
   return Py_None;
 }
 
+
 /*==========================================================================*/
 /* nn_start                                                                 */
 /*==========================================================================*/
@@ -351,17 +352,7 @@ template<typename T> struct typed_nn_start {
       return NULL;
     }
 
-    /*
-    ** Check to make sure that the bounds of the simulation agree
-    ** with the period specified, if not cause an error.
-    */
-
-    if (!smCheckFits(kd, fPeriod)) {
-      PyErr_SetString(
-          PyExc_ValueError,
-          "The particles span a region larger than the specified boxsize");
-      return NULL;
-    }
+    smCheckPeriodicityAndWarn(kd, fPeriod);
 
     smx = smInit<T>(kd, nSmooth, period);
     if (smx == nullptr) return nullptr; // smInit sets the error message
@@ -370,6 +361,7 @@ template<typename T> struct typed_nn_start {
 
   }
 };
+
 
 
 

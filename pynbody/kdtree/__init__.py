@@ -52,6 +52,18 @@ class KDTree:
     pynbody configuration.
 
     Performance statistics can be tested using the ``performance_kdtree.py`` script in the tests folder.
+
+    Note that the KDTree takes into account periodicity of cosmological volumes if it can. However, as soon as a
+    snapshot has been rotated, this may become impossible. In this case, the KDTree will issue a warning,
+    and will not use periodicity. This is to avoid incorrect results due to the periodicity assumption,
+    but it will lead to artefacts on the edge of the box. If you are working with a cosmological simulation,
+    it is best to perform any KDTree operations (such as smoothing) before rotating the snapshot, e.g.:
+
+    >>> f = pynbody.load('my_snapshot')
+    >>> f['rho']; f['smooth'] # force KDTree to be built and density estimations made
+    >>> pynbody.analysis.faceon(f) # rotate the snapshot
+    >>> pynbody.plot.image(f.g, qty='rho', width='10 kpc')
+
     """
 
     PROPID_HSM = 1
