@@ -348,10 +348,13 @@ class AHFCatalogue(HaloCatalogue):
         keys = [re.sub(r'\([0-9]*\)', '', field)
                 for field in fields]
 
+        omit_first_column = False
+
         if self._is_new_format:
             # fix for column 0 being a non-column in some versions of the AHF
             # output
             if keys[0] == '':
+                omit_first_column = True
                 keys = keys[1:]
 
         self._halo_properties = {k: [] for k in keys}
@@ -366,7 +369,7 @@ class AHFCatalogue(HaloCatalogue):
             ]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as
             # well
-            if not self._is_new_format:
+            if omit_first_column:
                 values = values[1:]
 
             for key, value in zip(keys, values):
