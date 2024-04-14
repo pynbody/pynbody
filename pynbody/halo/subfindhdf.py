@@ -520,7 +520,9 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
         except ValueError:
             return False
         if not h5py.is_hdf5(file):
-            return False
+            file = file + ".0.hdf5"
+            if not h5py.is_hdf5(file):
+                return False
         with h5py.File(file, 'r') as f:
             if cls._header_name not in f:
                 return False
@@ -571,10 +573,10 @@ class TNGSubfindHDFCatalogue(ArepoSubfindHDFCatalogue):
         return f
 
     @classmethod
-    def _get_catalogue_multifile(cls, sim):
+    def _get_catalogue_multifile(cls, sim, user_provided_filename):
         class TNGSubfindHdfMultiFileManager(gadgethdf._SubfindHdfMultiFileManager):
             _nfiles_groupname = "Header"
             _nfiles_attrname = "NumFiles"
             _subgroup_name = None
 
-        return TNGSubfindHdfMultiFileManager(cls._catalogue_filename(sim))
+        return TNGSubfindHdfMultiFileManager(cls._catalogue_filename(sim, user_provided_filename))
