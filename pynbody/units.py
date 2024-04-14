@@ -468,6 +468,9 @@ class CompositeUnit(UnitBase):
                     s = "%.3f" % self._scale
                 else:
                     s = "%.4f" % self._scale
+
+                while "." in s and s.endswith("0") or s.endswith("."):
+                    s = s[:-1]
         else:
             s = ""
 

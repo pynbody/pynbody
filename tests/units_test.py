@@ -94,9 +94,9 @@ def test_get_with_unit():
 def test_latex():
     assert units.Unit("1.0 km s^-1").latex() == r"\mathrm{km}\,\mathrm{s}^{-1}"
     assert units.Unit("102.35151 km s^-1").latex() == r"102.4\,\mathrm{km}\,\mathrm{s}^{-1}"
+    assert units.Unit("100 km s^-1").latex() == r"100\,\mathrm{km}\,\mathrm{s}^{-1}" # trailing .00 should be removed
     assert units.Unit("10.234 km s^-1").latex() == r"10.23\,\mathrm{km}\,\mathrm{s}^{-1}"
     assert units.Unit("1234.567 km s^-1").latex() == r"1.23\times 10^{3}\,\mathrm{km}\,\mathrm{s}^{-1}"
     assert units.Unit("1.2345e-5 km s^-1").latex() == r"1.23\times 10^{-5}\,\mathrm{km}\,\mathrm{s}^{-1}"
     assert units.Unit("1.2345e-1 km s^-1").latex() == r"0.1235\,\mathrm{km}\,\mathrm{s}^{-1}"
     assert units.Unit("Msol").latex() == r"M_{\odot}"
-
