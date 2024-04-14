@@ -92,7 +92,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7,
     if particles_for_velocity > min_particles:
         final_sphere = sim[filt.Sphere(velocity_radius, com)]
         if len(final_sphere) == 0:
-            warnings.warn("Final sphere is empty; cannot return a velocity. This probably implies something is"
+            warnings.warn("Final sphere is empty; cannot return a velocity. This probably implies something is "
                           "wrong with the position centre too.", RuntimeWarning)
             return com_to_return, np.array([0., 0., 0.])
         else:
