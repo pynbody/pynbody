@@ -316,3 +316,12 @@ def test_kdtree_shared_mem(npart=1000):
     del f
     gc.collect()
     assert shared.get_num_shared_arrays_owned() == n
+
+def test_boxsize_too_small():
+    f = pynbody.new(dm=1000)
+    f['pos'] = np.random.normal(scale=1.0, size=f['pos'].shape)
+    f['vel'] = np.random.normal(scale=1.0, size=f['vel'].shape)
+    f['mass'] = np.random.uniform(1.0, 10.0, size=f['mass'].shape)
+    f.properties['boxsize'] = 0.1
+    with pytest.warns(RuntimeWarning, match = "span a region larger than the specified boxsize"):
+        _ = f['smooth']
