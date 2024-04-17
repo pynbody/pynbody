@@ -956,9 +956,9 @@ class GadgetSnap(SimSnap):
         the first 4 bytes"""
         fname = f
         if not f.exists():
-            if not f.with_suffix(".0").exists():
+            fname = f.parent / (f.name + ".0")
+            if not fname.exists():
                 return False
-            fname = f.with_suffix(".0")
 
         with open(fname, "br") as fd:
             r, = struct.unpack('=I', fd.read(4))

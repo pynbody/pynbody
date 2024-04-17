@@ -499,6 +499,8 @@ class GadgetHDFSnap(SimSnap):
                 i0 = 0
                 for hdf in self._all_hdf_groups_in_family(loading_fam):
                     npart = hdf['ParticleIDs'].size
+                    if npart == 0:
+                        continue
                     i1 = i0+npart
 
                     dataset = self._get_hdf_dataset(hdf, translated_name)

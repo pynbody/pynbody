@@ -77,6 +77,17 @@ class HBTPlusCatalogue(HaloCatalogue):
 
         raise FileNotFoundError(f'Could not find HBTPlus catalogue for {sim_filename}. Try passing hbt_filename explicitly.')
 
+    @classmethod
+    def _map_user_filename_to_file_0(cls, filename):
+        filename = pathlib.Path(filename)
+        if not filename.exists():
+            dot_hdf5 = filename.parent / (filename.name + '.hdf5')
+            dot_0_hdf5 = filename.parent / (filename.name + '.0.hdf5')
+            if dot_hdf5.exists():
+                filename = dot_hdf5
+            elif dot_0_hdf5.exists():
+                filename = dot_0_hdf5
+        return filename
 
     def _setup_parents(self):
         parents = np.empty(len(self), dtype=np.intp)
