@@ -124,8 +124,11 @@ def test_unit_array_interaction():
     npt.assert_allclose(y + x, SA([1.001] * 10, 'Mpc'))
     npt.assert_allclose(y - x, SA([-999.] * 10, 'kpc'))
 
-
-
+def test_norm_units():
+    x = SA(np.ones((10, 3) ), "kpc")
+    result = np.linalg.norm(x, axis=1)
+    npt.assert_allclose(result, np.ones(10) * np.sqrt(3), rtol=1.e-5)
+    assert result.units == "kpc"
 
 def test_dimensionful_comparison():
     # check that dimensionful units compare correctly
@@ -194,7 +197,6 @@ def test_issue_485_2():
     np.testing.assert_allclose(sigvt, np.array([28.49997711, 18.84262276,  0.]), rtol=1e-6)
     np.testing.assert_allclose(rxy, np.array([1136892.125, 1606893.625, 1610494.75]), rtol=1e-6)
 
-
 def _test_and_alter_shared_value(array_info):
     array = pynbody.array.shared._shared_array_reconstruct(array_info)
     assert (array[:] == np.arange(3)[: , np.newaxis] * np.arange(5)[np.newaxis, :]).all()
@@ -208,7 +210,7 @@ def test_shared_arrays():
     gc.collect() # this is to start with a clean slate, get rid of any shared arrays that might be hanging around
     baseline_num_shared_arrays = pyn_array.shared.get_num_shared_arrays_owned() # hopefully zero, but we can't guarantee that
 
-    ar = pyn_array._array_factory((3,5), dtype=np.float32, zeros=True, shared=True)
+    ar = pyn_array.array_factory((3, 5), dtype=np.float32, zeros=True, shared=True)
 
     assert ar.shape == (3,5)
     assert (ar == 0.0).all()
@@ -228,7 +230,7 @@ def test_shared_arrays():
 
     assert pyn_array.shared.get_num_shared_arrays_owned() == 1 + baseline_num_shared_arrays
 
-    ar2 = pyn_array._array_factory((3,5), dtype=np.float32, zeros=True, shared=True)
+    ar2 = pyn_array.array_factory((3, 5), dtype=np.float32, zeros=True, shared=True)
     assert pyn_array.shared.get_num_shared_arrays_owned() == 2 + baseline_num_shared_arrays
 
     del ar, ar2

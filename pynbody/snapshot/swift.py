@@ -6,10 +6,10 @@ import h5py
 import numpy as np
 
 from .. import halo, units, util
-from .gadgethdf import GadgetHdfMultiFileManager, GadgetHDFSnap
+from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager
 
 
-class SwiftMultiFileManager(GadgetHdfMultiFileManager):
+class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
     def __init__(self, filename: pathlib.Path, take_cells, take_region, mode='r'):
         self._take_cells = take_cells

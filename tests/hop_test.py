@@ -21,3 +21,14 @@ def test_get_halo(halos):
                                            971918, 189890, 981389, 978381, 184919, 201405, 227622, 180288,
                                            194977, 195167, 187596, 192792, 590108]).all()
     assert len(halos) == 369
+
+def test_autoload_halos(f):
+    halos = f.halos(priority=["HOPCatalogue"])
+    assert isinstance(halos, HOPCatalogue)
+    assert len(halos[0]) == 37927
+
+def test_autoload_halos_by_filename(f):
+    halos = f.halos(filename="testdata/output_00080/grp00080.tag")
+
+    assert isinstance(halos, HOPCatalogue)
+    assert len(halos[0]) == 37927

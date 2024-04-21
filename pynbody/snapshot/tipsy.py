@@ -212,7 +212,7 @@ class TipsySnap(SimSnap):
     def _update_loadable_keys(self):
         def is_readable_array(x):
             try:
-                with util.open_(x, 'r') as f:
+                with util.open_(x, 'rt') as f:
                     return int(f.readline()) == len(self)
             except ValueError:
                 # could be a binary file
@@ -974,7 +974,7 @@ def _abundance_estimator(metal):
     return Y_H, Y_He
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def HII(sim):
     """Number of HII ions per proton mass"""
     Y_H, Y_He = _abundance_estimator(sim["metals"])
@@ -984,26 +984,26 @@ def HII(sim):
         return Y_H - sim["HI"]
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def HeIII(sim):
     """Number of HeIII ions per proton mass"""
     Y_H, Y_He = _abundance_estimator(sim["metals"])
     return Y_He - sim["HeII"] - sim["HeI"]
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def ne(sim):
     """Number of electrons per proton mass"""
     return sim["HII"] + sim["HeII"] + 2 * sim["HeIII"]
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def hetot(self):
     """Helium mass fraction including correction based on metallicity"""
     return 0.236 + (2.1 * self['metals'])
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def hydrogen(self):
     """Hydrogen mass fraction including correction based on metallicity"""
     return 1.0 - self['metals'] - self['hetot']
@@ -1030,7 +1030,7 @@ XSOLMg = 6.44e-4          # 7e-4
 XSOLSi = 7e-4          # 6.7e-4
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def feh(self):
     """Iron abundance [Fe/H] derived from tipsy array FeMassFrac, with solar
     values from Asplund et al 09"""
@@ -1039,7 +1039,7 @@ def feh(self):
     return np.log10(self['FeMassFrac'] / self['hydrogen']) - np.log10(XSOLFe / XSOLH)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def oxh(self):
     """Oxygen abundance [O/H] derived from tipsy array FeMassFrac, with solar
     values from Asplund et al 09"""
@@ -1048,7 +1048,7 @@ def oxh(self):
     return np.log10(self['OxMassFrac'] / self['hydrogen']) - np.log10(XSOLO / XSOLH)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def ofe(self):
     """Oxygen-to-iron ratio [O/Fe] derived from tipsy arrays OxMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
@@ -1059,7 +1059,7 @@ def ofe(self):
     return np.log10(self['OxMassFrac'] / self['FeMassFrac']) - np.log10(XSOLO / XSOLFe)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def mgfe(sim):
     """Magnesium-to-iron ratio [Mg/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
@@ -1070,7 +1070,7 @@ def mgfe(sim):
     return np.log10(sim['MgMassFrac'] / sim['FeMassFrac']) - np.log10(XSOLMg / XSOLFe)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def nefe(sim):
     """Neon-to-iron ratio [Ne/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
@@ -1081,7 +1081,7 @@ def nefe(sim):
     return np.log10(sim['NeMassFrac'] / sim['FeMassFrac']) - np.log10(XSOLNe / XSOLFe)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def sife(sim):
     """Silicon-to-iron ratio [Si/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
@@ -1092,7 +1092,7 @@ def sife(sim):
     return np.log10(sim['SiMassFrac'] / sim['FeMassFrac']) - np.log10(XSOLSi / XSOLFe)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def c_s(self):
     """Ideal gas sound speed based on pressure and density"""
     #x = np.sqrt(5./3.*units.k*self['temp']*self['mu'])
@@ -1101,7 +1101,7 @@ def c_s(self):
     return x
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def c_s_turb(self):
     """Turbulent sound speed (from Mac Low & Klessen 2004)"""
     x = np.sqrt(self['c_s'] ** 2 + 1. / 3 * self['v_disp'] ** 2)
@@ -1109,7 +1109,7 @@ def c_s_turb(self):
     return x
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def mjeans(self):
     """Classical Jeans mass"""
     x = np.pi ** (5. / 2.) * self['c_s'] ** 3 / \
@@ -1118,7 +1118,7 @@ def mjeans(self):
     return x
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def mjeans_turb(self):
     """Turbulent Jeans mass"""
     x = np.pi ** (5. / 2.) * self['c_s_turb'] ** 3 / \
@@ -1127,7 +1127,7 @@ def mjeans_turb(self):
     return x
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def ljeans(self):
     """Jeans length"""
     x = self['c_s'] * np.sqrt(np.pi / (units.G * self['rho']))
@@ -1135,7 +1135,7 @@ def ljeans(self):
     return x
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def ljeans_turb(self):
     """Turbulent Jeans length"""
     x = self['c_s_turb'] * np.sqrt(np.pi / (units.G * self['rho']))

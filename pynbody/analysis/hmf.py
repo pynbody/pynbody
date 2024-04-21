@@ -834,16 +834,16 @@ def simulation_halo_mass_function(snapshot,
     # Make sure units are consistent
     bin_centers = bin_centers.view(pynbody.array.SimArray)
     bin_centers.units = "Msol h**-1"
-    bin_centers.context = snapshot
+    bin_centers.sim = snapshot
 
     num_halos = num_halos.view(pynbody.array.SimArray)
     num_halos.units = "a**-3 Mpc**-3 h**3"
-    num_halos.context = snapshot
+    num_halos.sim = snapshot
 
     if calculate_err:
         err = err.view(pynbody.array.SimArray)
         err.units = "a**-3 Mpc**-3 h**3"
-        err.context = snapshot
+        err.sim = snapshot
         return bin_centers, num_halos, err
     else:
         return bin_centers, num_halos

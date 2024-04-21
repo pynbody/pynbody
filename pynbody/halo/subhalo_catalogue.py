@@ -1,3 +1,5 @@
+"""Support for subhalo catalogues, which are effectively views on a parent halo catalogue"""
+
 import weakref
 
 from numpy.typing import NDArray
@@ -24,7 +26,7 @@ class SubhaloCatalogue(HaloCatalogue):
     def load_all(self):
         self._full_halo_catalogue.load_all()
 
-    def get_group_array(self, family=None):
+    def get_group_array(self, family=None, use_index=False):
         raise RuntimeError("It is not possible to retrieve the group array of a subhalo catalogue")
 
     def physical_units(self, distance='kpc', velocity='km s^-1', mass='Msol', persistent=True, convert_parent=False):

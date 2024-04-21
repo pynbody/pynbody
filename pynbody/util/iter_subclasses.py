@@ -9,6 +9,9 @@ class IterableSubclasses:
     a given file. """
     @classmethod
     def iter_subclasses(cls) -> Iterable[type]:
+        """Iterate over all subclasses of this class, recursively.
+
+        This is used by HaloCatalogue and SimSnap to find a suitable loader for a given file."""
         for c in cls.__subclasses__():
             yield from c.iter_subclasses()
             yield c

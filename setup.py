@@ -160,8 +160,10 @@ tests_require = [
 docs_require = [
     'ipython>=3',
     'Sphinx>=7',
-    'sphinx-bootstrap-theme',
+    'sphinx-book-theme',
+    'sphinx-copybutton',
     'numpydoc',
+    'extinction',
 ],
 
 extras_require = {
@@ -186,7 +188,7 @@ setup(name = 'pynbody',
       description = 'Light-weight astronomical N-body/SPH analysis for python',
       url = 'https://github.com/pynbody/pynbody/releases',
       package_dir = {'pynbody/': ''},
-      packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 'pynbody/array',
+      packages = ['pynbody', 'pynbody/analysis', 'pynbody/array',
                   'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/filt', 'pynbody/sph',
                   'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/halo/details',
                   'pynbody/extern', 'pynbody/kdtree', 'pynbody/test_utils', 'pynbody/util'],

@@ -1,23 +1,17 @@
 """
+Implements reading HDF5 Gadget files, in various variants.
 
-gadgethdf
-=========
-
-
-Implementation of backend reader for GadgetHDF files by Andrew Pontzen.
-
-The gadget array names are mapped into pynbody array mes according
-to the mappings given by the config.ini section [gadgethdf-name-mapping].
+The gadget array names are mapped into pynbody array names according
+to the mappings given by the config.ini section ``[gadgethdf-name-mapping]``.
 
 The gadget particle groups are mapped into pynbody families according
-to the mappings specified by the config.ini section [gadgethdf-type-mapping].
+to the mappings specified by the config.ini section ``[gadgethdf-type-mapping]``.
 This can be many-to-one (many gadget particle types mapping into one
 pynbody family), but only datasets which are common to all gadget types
 will be available from pynbody.
 
-Spanned files are supported. To load a range of files snap.0, snap.1, ... snap.n,
-pass the filename 'snap'. If you pass snap.0, only that particular file will
-be loaded.
+Spanned files are supported. To load a range of files ``snap.0.hdf5``, ``snap.1.hdf5``, ... ``snap.n.hdf5``,
+pass the filename ``snap``. If you pass e.g. ``snap.2.hdf5``, only file 2 will be loaded.
 """
 
 import configparser
@@ -54,7 +48,7 @@ for hdf_groups in _default_type_map.values():
 
 
 
-class DummyHDFData:
+class _DummyHDFData:
 
     """A stupid class to allow emulation of mass arrays for particles
     whose mass is in the header"""
@@ -73,7 +67,7 @@ class DummyHDFData:
         target[:] = self.value
 
 
-class GadgetHdfMultiFileManager:
+class _GadgetHdfMultiFileManager:
     _nfiles_groupname = "Header"
     _nfiles_attrname = "NumFilesPerSnapshot"
     _size_from_hdf5_key = "ParticleIDs"
@@ -155,7 +149,7 @@ class GadgetHdfMultiFileManager:
 
 
 
-class SubfindHdfMultiFileManager(GadgetHdfMultiFileManager):
+class _SubfindHdfMultiFileManager(_GadgetHdfMultiFileManager):
     _nfiles_groupname = "FOF"
     _nfiles_attrname = "NTask"
     _subgroup_name = "FOF"
@@ -163,15 +157,21 @@ class SubfindHdfMultiFileManager(GadgetHdfMultiFileManager):
 
 class GadgetHDFSnap(SimSnap):
     """
-    Class that reads HDF Gadget data
+    Class that reads HDF Gadget snapshots.
     """
 
-    _multifile_manager_class = GadgetHdfMultiFileManager
+    _multifile_manager_class = _GadgetHdfMultiFileManager
     _readable_hdf5_test_key = "PartType?"
     _size_from_hdf5_key = "ParticleIDs"
     _namemapper_config_section = "gadgethdf-name-mapping"
 
-    def __init__(self, filename, ):
+    def __init__(self, filename):
+        """Initialise a Gadget HDF snapshot.
+
+        Spanned files are supported. To load a range of files ``snap.0.hdf5``, ``snap.1.hdf5``, ... ``snap.n.hdf5``,
+        pass the filename ``snap``. If you pass e.g. ``snap.2.hdf5``, only file 2 will be loaded.
+        """
+
         super().__init__()
 
         self._filename = filename
@@ -362,8 +362,8 @@ class GadgetHDFSnap(SimSnap):
                 pgid = int(particle_group.name[-1])
                 mtab = particle_group.parent['Header'].attrs['MassTable'][pgid]
                 if mtab > 0:
-                    return DummyHDFData(mtab, particle_group[self._size_from_hdf5_key].size,
-                                        self._mass_dtype)
+                    return _DummyHDFData(mtab, particle_group[self._size_from_hdf5_key].size,
+                                         self._mass_dtype)
             except (IndexError, KeyError):
                 pass
 
@@ -708,9 +708,9 @@ class GadgetHDFSnap(SimSnap):
 
 class SubFindHDFSnap(GadgetHDFSnap) :
     """
-    Class to read Gadget's SubFind HDF data
+    Reads the variant of Gadget HDF snapshots that include SubFind output inside the snapshot itself.
     """
-    _multifile_manager_class = SubfindHdfMultiFileManager
+    _multifile_manager_class = _SubfindHdfMultiFileManager
     _readable_hdf5_test_key = "FOF"
 
 
@@ -738,8 +738,8 @@ class EagleLikeHDFSnap(GadgetHDFSnap):
             return halo.number_array.HaloNumberCatalogue(self, array="GroupNumber", ignore=np.max(self['GroupNumber']))
 
 ## Gadget has internal energy variable
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def u(self) :
     """Gas internal energy derived from snapshot variable or temperature"""
     try:
@@ -750,8 +750,8 @@ def u(self) :
 
     return u
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def p(sim) :
     """Calculate the pressure for gas particles, including polytropic equation of state gas"""
 
@@ -766,22 +766,22 @@ def p(sim) :
 
     return p
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def HII(sim) :
     """Number of HII ions per proton mass"""
 
     return sim.g["hydrogen"] - sim.g["HI"]
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def HeIII(sim) :
     """Number of HeIII ions per proton mass"""
 
     return sim.g["hetot"] - sim.g["HeII"] - sim.g["HeI"]
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def ne(sim) :
     """Number of electrons per proton mass, ignoring the contribution from He!"""
     ne = sim.g["HII"]  #+ sim["HeII"] + 2*sim["HeIII"]
@@ -789,49 +789,49 @@ def ne(sim) :
 
     return ne
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def rho_ne(sim) :
     """Electron number density per SPH particle, currently ignoring the contribution from He!"""
 
     return sim.g["ne"].in_units("m_p**-1") * sim.g["rho"].in_units("m_p cm**-3")
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def dm(sim) :
     """Dispersion measure per SPH particle currently ignoring n_e contribution from He """
 
     return sim.g["rho_ne"]
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def cosmodm(sim) :
     """Cosmological Dispersion measure per SPH particle includes (1+z) factor, currently ignoring n_e contribution from He """
 
     return sim.g["rho_ne"] * (1. + sim.g["redshift"])
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def redshift(sim) :
     """Redshift from LoS Velocity 'losvel' """
 
     return np.exp( sim['losvel'].in_units('c') ) - 1.
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def doppler_redshift(sim) :
     """Doppler Redshift from LoS Velocity 'losvel' using SR """
 
     return np.sqrt( (1. + sim['losvel'].in_units('c')) / (1. - sim['losvel'].in_units('c'))  ) - 1.
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def em(sim) :
     """Emission Measure (n_e^2) per particle to be integrated along LoS"""
 
     return sim.g["rho_ne"]*sim.g["rho_ne"]
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def halpha(sim) :
     """H alpha intensity (based on Emission Measure n_e^2) per particle to be integrated along LoS"""
 
@@ -850,8 +850,8 @@ def halpha(sim) :
 
     return alpha * sim["em"] # Flux erg cm^-3 s^-1 sr^-1
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def c_n_sq(sim) :
     """Turbulent amplitude C_N^2 for use in SM calculations (e.g. Eqn 20 of Macquart & Koay 2013 ApJ 776 2) """
 
@@ -863,20 +863,20 @@ def c_n_sq(sim) :
 
     return c_n_sq
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def hetot(self) :
     return self["He"]
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def hydrogen(self) :
     return self["H"]
 
 ## Need to use the ionisation fraction calculation here which gives ionisation fraction
 ## based on the gas temperature, density and redshift for a CLOUDY table
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def HI(sim) :
     """Fraction of Neutral Hydrogen HI use limited CLOUDY table"""
 
@@ -887,8 +887,8 @@ def HI(sim) :
 ## Need to use the ionisation fraction calculation here which gives ionisation fraction
 ## based on the gas temperature, density and redshift for a CLOUDY table, then applying
 ## selfshielding for the dense, star forming gas on the equation of state
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def HIeos(sim) :
     """Fraction of Neutral Hydrogen HI use limited CLOUDY table, assuming dense EoS gas is selfshielded"""
 
@@ -900,8 +900,8 @@ def HIeos(sim) :
 ## based on the gas temperature, density and redshift for a CLOUDY table, then applying
 ## selfshielding for the dense, star forming gas on the equation of state AND a further
 ## pressure based limit for
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def HID12(sim) :
     """Fraction of Neutral Hydrogen HI use limited CLOUDY table, using the Duffy +12a prescription for selfshielding"""
 
@@ -909,8 +909,8 @@ def HID12(sim) :
 
     return pynbody.analysis.hifrac.calculate(sim.g,ion='hi', selfshield='duffy12')
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def HeI(sim) :
     """Fraction of Helium HeI"""
 
@@ -918,8 +918,8 @@ def HeI(sim) :
 
     return pynbody.analysis.ionfrac.calculate(sim.g,ion='hei')
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def HeII(sim) :
     """Fraction of Helium HeII"""
 
@@ -927,8 +927,8 @@ def HeII(sim) :
 
     return pynbody.analysis.ionfrac.calculate(sim.g,ion='heii')
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def OI(sim) :
     """Fraction of Oxygen OI"""
 
@@ -936,8 +936,8 @@ def OI(sim) :
 
     return pynbody.analysis.ionfrac.calculate(sim.g,ion='oi')
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def OII(sim) :
     """Fraction of Oxygen OII"""
 
@@ -945,8 +945,8 @@ def OII(sim) :
 
     return pynbody.analysis.ionfrac.calculate(sim.g,ion='oii')
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def OVI(sim) :
     """Fraction of Oxygen OVI"""
 
@@ -954,8 +954,8 @@ def OVI(sim) :
 
     return pynbody.analysis.ionfrac.calculate(sim.g,ion='ovi')
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def CIV(sim) :
     """Fraction of Carbon CIV"""
 
@@ -963,8 +963,8 @@ def CIV(sim) :
 
     return pynbody.analysis.ionfrac.calculate(sim.g,ion='civ')
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def NV(sim) :
     """Fraction of Nitrogen NV"""
 
@@ -972,8 +972,8 @@ def NV(sim) :
 
     return pynbody.analysis.ionfrac.calculate(sim.g,ion='nv')
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def SIV(sim) :
     """Fraction of Silicon SiIV"""
 
@@ -981,8 +981,8 @@ def SIV(sim) :
 
     return pynbody.analysis.ionfrac.calculate(sim.g,ion='siiv')
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def MGII(sim) :
     """Fraction of Magnesium MgII"""
 
@@ -1003,77 +1003,77 @@ XSOLS=4.0898522E-4
 XSOLCa=6.4355E-5
 XSOLFe=1.1032152E-3
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def feh(self) :
     minfe = np.amin(self['Fe'][np.where(self['Fe'] > 0)])
     self['Fe'][np.where(self['Fe'] == 0)]=minfe
     return np.log10(self['Fe']/self['H']) - np.log10(XSOLFe/XSOLH)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def sixh(self) :
     minsi = np.amin(self['Si'][np.where(self['Si'] > 0)])
     self['Si'][np.where(self['Si'] == 0)]=minsi
     return np.log10(self['Si']/self['Si']) - np.log10(XSOLSi/XSOLH)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def sxh(self) :
     minsx = np.amin(self['S'][np.where(self['S'] > 0)])
     self['S'][np.where(self['S'] == 0)]=minsx
     return np.log10(self['S']/self['S']) - np.log10(XSOLS/XSOLH)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def mgxh(self) :
     minmg = np.amin(self['Mg'][np.where(self['Mg'] > 0)])
     self['Mg'][np.where(self['Mg'] == 0)]=minmg
     return np.log10(self['Mg']/self['Mg']) - np.log10(XSOLMg/XSOLH)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def oxh(self) :
     minox = np.amin(self['O'][np.where(self['O'] > 0)])
     self['O'][np.where(self['O'] == 0)]=minox
     return np.log10(self['O']/self['H']) - np.log10(XSOLO/XSOLH)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def nexh(self) :
     minne = np.amin(self['Ne'][np.where(self['Ne'] > 0)])
     self['Ne'][np.where(self['Ne'] == 0)]=minne
     return np.log10(self['Ne']/self['Ne']) - np.log10(XSOLNe/XSOLH)
 
-@SubFindHDFSnap.derived_quantity
+@SubFindHDFSnap.derived_array
 def hexh(self) :
     minhe = np.amin(self['He'][np.where(self['He'] > 0)])
     self['He'][np.where(self['He'] == 0)]=minhe
     return np.log10(self['He']/self['He']) - np.log10(XSOLHe/XSOLH)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def cxh(self) :
     mincx = np.amin(self['C'][np.where(self['C'] > 0)])
     self['C'][np.where(self['C'] == 0)]=mincx
     return np.log10(self['C']/self['H']) - np.log10(XSOLC/XSOLH)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def caxh(self) :
     mincax = np.amin(self['Ca'][np.where(self['Ca'] > 0)])
     self['Ca'][np.where(self['Ca'] == 0)]=mincax
     return np.log10(self['Ca']/self['H']) - np.log10(XSOLCa/XSOLH)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def nxh(self) :
     minnx = np.amin(self['N'][np.where(self['N'] > 0)])
     self['N'][np.where(self['N'] == 0)]=minnx
     return np.log10(self['N']/self['H']) - np.log10(XSOLH/XSOLH)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def ofe(self) :
     minox = np.amin(self['O'][np.where(self['O'] > 0)])
     self['O'][np.where(self['O'] == 0)]=minox
@@ -1081,8 +1081,8 @@ def ofe(self) :
     self['Fe'][np.where(self['Fe'] == 0)]=minfe
     return np.log10(self['O']/self['Fe']) - np.log10(XSOLO/XSOLFe)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def mgfe(sim) :
     minmg = np.amin(sim['Mg'][np.where(sim['Mg'] > 0)])
     sim['Mg'][np.where(sim['Mg'] == 0)]=minmg
@@ -1090,8 +1090,8 @@ def mgfe(sim) :
     sim['Fe'][np.where(sim['Fe'] == 0)]=minfe
     return np.log10(sim['Mg']/sim['Fe']) - np.log10(XSOLMg/XSOLFe)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def nefe(sim) :
     minne = np.amin(sim['Ne'][np.where(sim['Ne'] > 0)])
     sim['Ne'][np.where(sim['Ne'] == 0)]=minne
@@ -1099,8 +1099,8 @@ def nefe(sim) :
     sim['Fe'][np.where(sim['Fe'] == 0)]=minfe
     return np.log10(sim['Ne']/sim['Fe']) - np.log10(XSOLNe/XSOLFe)
 
-@GadgetHDFSnap.derived_quantity
-@SubFindHDFSnap.derived_quantity
+@GadgetHDFSnap.derived_array
+@SubFindHDFSnap.derived_array
 def sife(sim) :
     minsi = np.amin(sim['Si'][np.where(sim['Si'] > 0)])
     sim['Si'][np.where(sim['Si'] == 0)]=minsi

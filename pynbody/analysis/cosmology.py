@@ -1,9 +1,5 @@
 """
-
-cosmology
-=========
-
-A set of functions for common cosmological calculations.
+Functions for common cosmological calculations.
 
 """
 
@@ -37,14 +33,14 @@ def _da_dtau_recip(*args):
     return 1. / _da_dtau(*args)
 
 
-def hzoverh0(a, omegam0):
+def _hzoverh0(a, omegam0):
     """ returns: H(a) / H0  = [omegam/a**3 + (1-omegam)]**0.5 """
     return np.sqrt(omegam0 * np.power(a, -3) + (1. - omegam0))
 
 
 def _lingrowthintegrand(a, omegam0):
     """ (e.g. eq. 8 in lukic et al. 2008)   returns: da / [a*H(a)/H0]**3 """
-    return np.power((a * hzoverh0(a, omegam0)), -3)
+    return np.power((a * _hzoverh0(a, omegam0)), -3)
 
 
 def _lingrowthfac(red, omegam0, omegal0, return_norm=False):
@@ -56,7 +52,8 @@ def _lingrowthfac(red, omegam0, omegal0, return_norm=False):
 
     Delta(a) = 5 omegam / 2 H(a) / H(0) * integral[0:a] [da / [a H(a) H0]**3]
     equation  from  peebles 1980 (or e.g. eq. 8 in lukic et al. 2008) """
-# need to add w ~= , nonflat, -1 functionality
+
+    # need to add w ~= , nonflat, -1 functionality
 
     import scipy.integrate
 
@@ -67,13 +64,13 @@ def _lingrowthfac(red, omegam0, omegal0, return_norm=False):
 
     # 1st calc. for z=z
     lingrowth = scipy.integrate.quad(_lingrowthintegrand, 0., a, (omegam0))[0]
-    lingrowth *= 5. / 2. * omegam0 * hzoverh0(a, omegam0)
+    lingrowth *= 5. / 2. * omegam0 * _hzoverh0(a, omegam0)
 
     # then calc. for z=0 (for normalization)
     a0 = 1.
     lingrowtha0 = scipy.integrate.quad(
         _lingrowthintegrand, 0., a0, (omegam0))[0]
-    lingrowtha0 *= 5. / 2. * omegam0 * hzoverh0(a0, omegam0)
+    lingrowtha0 *= 5. / 2. * omegam0 * _hzoverh0(a0, omegam0)
 
     lingrowthfactor = lingrowth / lingrowtha0
     if return_norm:
@@ -83,11 +80,9 @@ def _lingrowthfac(red, omegam0, omegal0, return_norm=False):
 
 
 def linear_growth_factor(f, z=None):
-    """Calculate the linear growth factor b(a), normalized to 1
-    at z=0, for the cosmology of snapshot f.
+    """Calculate the linear growth factor b(a), normalized to 1 at z=0, for the cosmology of snapshot f.
 
-    The output is dimensionless. If a redshift z is
-    specified, it is used in place of the redshift in
+    The output is dimensionless. If a redshift z is specified, it is used in place of the redshift in
     output f.
     """
     if z is None:
@@ -98,11 +93,12 @@ def linear_growth_factor(f, z=None):
 
 
 def rate_linear_growth(f, z=None, unit='h Gyr^-1'):
-    """Calculate the linear growth rate b'(a), normalized
-    to 1 at z=0, for the cosmology of snapshot f.
+    """Calculate the linear growth rate b'(a), normalized to 1 at z=0, for the cosmology of snapshot f.
 
-    The output is in 'h Gyr^-1' by default. If a redshift z is specified,
-    it is used in place of the redshift in output f."""
+    The output is in 'h Gyr^-1' by default, but other units can be specified. If a redshift z is specified,
+    it is used in place of the redshift in output f.
+
+    """
 
     if z is None:
         z = f.properties['z']
@@ -115,7 +111,7 @@ def rate_linear_growth(f, z=None, unit='h Gyr^-1'):
 
     term1 = -(1.5 * omegam0 * a ** -3) * b / \
         math.sqrt(1. - omegam0 + omegam0 * a ** -3)
-    term2 = (2.5 * omegam0) * hzoverh0(a, omegam0) ** 2 * a * I / X
+    term2 = (2.5 * omegam0) * _hzoverh0(a, omegam0) ** 2 * a * I / X
 
     res = units.h * (term1 + term2) * 100. * units.Unit("km s^-1 Mpc^-1")
 
@@ -144,23 +140,31 @@ def _test_rate_linear_growth(f, z=None, unit='h Gyr^-1'):
 
 def age(f, z=None, unit='Gyr'):
     """
-    Calculate the age of the universe in the snapshot f
-    by integrating the Friedmann equation.
+    Calculate the age of the universe in the snapshot f by integrating the Friedmann equation.
 
-    The output is given in the specified units. If a redshift
-    z is specified, it is used in place of the redshift in the
+    The output is given in the specified units. If a redshift z is specified, it is used in place of the redshift in the
     output f.
 
-    **Input**:
+    If a long array of redshifts is provided, interpolation is used to speed up the calculation. Specifically,
+    the number of interpolation points is controlled by the configuration parameter 'cosmo-interpolation-points'.
 
-    *f*: SimSnap
+    Parameters
+    ----------
 
-    **Optional Keywords**:
+    f : SimSnap
+        The snapshot from which to obtain the cosmological parameters.
 
-    *z (None)*: desired redshift. Can be a single number, a list, or a
-    np.ndarray.
+    z : float, list, or np.ndarray, optional
+        The redshift(s) at which to calculate the age of the universe. If None, the redshift of the snapshot is used.
 
-    *unit ('Gyr')*: desired units for age output
+    unit : str, optional
+        The units in which to return the age of the universe. Default is 'Gyr'.
+
+    Returns
+    -------
+
+    SimArray | float
+        The age of the universe at the specified redshift(s).
 
     """
     if z is None:
@@ -192,23 +196,32 @@ def age(f, z=None, unit='Gyr'):
     else:
         return get_age(z)
 
-def tau(f, z=None):
+def tau(f, z=None, unit="Gyr"):
     """
-    Calculate the conformal time of the universe in the snapshot f
-    by integrating the Friedmann equation.
+    Calculate the conformal age of the universe in the snapshot f by integrating the conformal Friedmann equation.
 
-    The output is given in the specified units. If a redshift
-    z is specified, it is used in place of the redshift in the
+    The output is given in the specified units. If a redshift z is specified, it is used in place of the redshift in the
     output f.
 
-    **Input**:
+    Parameters
+    ----------
 
-    *f*: SimSnap
+    f : SimSnap
+        The snapshot from which to obtain the cosmological parameters.
 
-    **Optional Keywords**:
+    z : float, list, or np.ndarray, optional
+        The redshift(s) at which to calculate the age of the universe. If None, the redshift of the snapshot is used.
 
-    *z (None)*: desired redshift. Can be a single number, a list, or a
-    np.ndarray.
+    unit : str, optional
+        The units in which to return the age of the universe. Default is 'Gyr'.
+
+    Returns
+    -------
+
+    SimArray | float
+        The conformal age of the universe at the specified redshift(s).
+
+
     """
     if z is None:
         z = f.properties['z']
@@ -216,6 +229,8 @@ def tau(f, z=None):
     h0 = f.properties['h']
     omM = f.properties['omegaM0']
     omL = f.properties['omegaL0']
+
+    conv = units.Unit("0.01 s Mpc km^-1").ratio(unit, **f.conversion_context())
 
     @np.vectorize
     def get_tau(z):
@@ -227,26 +242,38 @@ def tau(f, z=None):
             args=(h0, omM, omL)
         )[0]
 
-    return get_tau(z)
+    results = (get_tau(z) * conv)
+
+    if isinstance(results, np.ndarray):
+        results = results.view(SimArray)
+        results.units = unit
+
+    return results
 
 
 @units.takes_arg_in_units((1, "Gyr"), context_arg=0)
 def redshift(f, time):
     """
-    Calculate the redshift given a snapshot and a time since Big Bang
-    in Gyr.
+    Calculate the redshift given a snapshot and a time since Big Bang in Gyr.
 
     Uses scipy.optimize.newton to do the root finding if number of
-    elements in the time array is less than 1000, otherwise uses a linear
+    elements in the time array is less than 1000; otherwise uses a linear
     interpolation.
 
 
-    **Input**:
+    Parameters
+    ----------
 
-    *f*: SimSnap with cosmological parameters defined
+    f : SimSnap
+        The snapshot from which to obtain the cosmological parameters.
 
-    *time*: time since the Big Bang in Gyr for which a redshift should
-     be returned. float, list, or np.ndarray
+    time : float, list, or np.ndarray
+        The time(s) since the Big Bang at which to calculate the redshift.
+
+    Returns
+    -------
+    float or np.ndarray
+        The redshift(s) corresponding to the input time(s).
 
     """
 
@@ -269,22 +296,36 @@ def redshift(f, time):
 
 
 def rho_crit(f, z=None, unit=None):
-    """Calculate the critical density of the universe in
-    the snapshot f.
+    """Calculate the critical density of the universe in the snapshot f.
 
-    z specifies the redshift. If z is none, the redshift of the
-    provided snapshot is used.
+    .. warning ::
+        You can get slightly confusing results if your simulation is in comoving units and you specify a different
+        redshift z. Specifically, the physical density for the redshift you specify is calulated, but expressed as
+        a comoving density *at the redshift of the snapshot*. This is intentional, but can be surprising.
 
-    unit specifies the units of the returned density. If unit is None,
-    the returned density will be in the units of
-    f["mass"].units/f["pos"].units**3. If that unit cannot be calculated,
-    the returned units are Msol kpc^-3 comoving.
+    Parameters
+    ----------
 
-    Note that you can get slightly confusing results if your
-    simulation is in comoving units and you specify a different
-    redshift z. Specifically, the physical density for the redshift
-    you specify is calulated, but expressed as a comoving density *at
-    the redshift of the snapshot*. This is intentional behaviour."""
+    f : SimSnap
+        The snapshot from which to obtain the cosmological parameters.
+
+    z : float, optional
+        The redshift at which to calculate the critical density. If None, the redshift of the snapshot is used.
+
+    unit : str, optional
+        The units in which to return the critical density. If None, the returned density will be in the units of
+        f["mass"].units/f["pos"].units**3. If that unit cannot be calculated, the returned units are Msol kpc^-3
+        comoving.
+
+    Returns
+    -------
+
+    float
+        The critical density of the universe at the specified redshift.
+
+
+
+    """
 
     if z is None:
         z = f.properties['z']
@@ -314,8 +355,32 @@ def rho_crit(f, z=None, unit=None):
 def rho_M(f, z=None, unit=None):
     """Calculate the matter density of the universe in snapshot f.
 
-    unit and z are used if not None, as by rho_crit. See also the note in
-    rho_crit about confusion over comoving units in this case."""
+    .. warning ::
+        You can get slightly confusing results if your simulation is in comoving units and you specify a different
+        redshift z. Specifically, the physical density for the redshift you specify is calulated, but expressed as
+        a comoving density *at the redshift of the snapshot*. This is intentional, but can be surprising.
+
+    Parameters
+    ----------
+
+    f : SimSnap
+        The snapshot from which to obtain the cosmological parameters.
+
+    z : float, optional
+        The redshift at which to calculate the critical density. If None, the redshift of the snapshot is used.
+
+    unit : str, optional
+        The units in which to return the matter density. If None, the returned density will be in the units of
+        f["mass"].units/f["pos"].units**3. If that unit cannot be calculated, the returned units are Msol kpc^-3
+        comoving.
+
+    Returns
+    -------
+
+    float
+        The matter density of the universe at the specified redshift.
+
+    """
 
     if z is None:
         z = f.properties['z']
@@ -325,7 +390,7 @@ def rho_M(f, z=None, unit=None):
 
 def H(f):
     """Calculate the Hubble parameter of the universe in snapshot f"""
-    return f.properties['h'] * hzoverh0(f.properties['a'], f.properties['omegaM0']) * units.Unit("100 km s^-1 Mpc^-1")
+    return f.properties['h'] * _hzoverh0(f.properties['a'], f.properties['omegaM0']) * units.Unit("100 km s^-1 Mpc^-1")
 
 
 def add_hubble(f):

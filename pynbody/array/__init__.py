@@ -1,8 +1,9 @@
 """
-array
-=====
+Arrays for simulation data
+==========================
 
-Defines a shallow wrapper around numpy.ndarray for extra functionality like unit-tracking.
+The main class defined in this module is the `SimArray` class, which defines a shallow wrapper around ``numpy.ndarray``
+for extra functionality like unit-tracking.
 
 For most purposes, the differences between numpy.ndarray and
 array.SimArray are not important. However, when units are specified
@@ -44,8 +45,8 @@ SimArray([ 1.,1.26])  # Lost track of units
 
 
 
-*Getting the array in specified units*
---------------------------------------
+Getting the array in specified units
+------------------------------------
 
 Given an array, you can convert it in-place into units of your
 own chosing:
@@ -90,8 +91,8 @@ SimArray([[ 1548.51403101, -1847.2525312 , -4485.71463308],
          [ 2047.2214441 , -2133.87693163, -2291.59406997]], 'kpc')
 
 
-*Specifying rules for ufunc's*
-------------------------------
+Specifying rules for ufunc's
+-----------------------------
 
 In general, it's not possible to infer what the output units from a given
 ufunc should be. While numpy built-in ufuncs should be handled OK, other
@@ -139,17 +140,20 @@ handler:
 
 """
 
+from __future__ import annotations
+
 import fractions
 import functools
 import logging
-import os
-import random
-import time
 import weakref
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .. import units as units
+from .. import units
+
+if TYPE_CHECKING:
+    from .. import family, snapshot
 
 _units = units
 
@@ -160,13 +164,11 @@ logger = logging.getLogger('pynbody.array')
 
 
 class SimArray(np.ndarray):
-
-    """
-    Defines a shallow wrapper around numpy.ndarray for extra
-    functionality like unit-tracking.
-    """
+    """A shallow wrapper around numpy.ndarray for extra functionality like unit-tracking."""
 
     _ufunc_registry = {}
+
+    __slots__ = ['_units', '_sim', '_name', '_family']
 
     @property
     def ancestor(self):
@@ -175,6 +177,9 @@ class SimArray(np.ndarray):
 
     @property
     def derived(self):
+        """True if this array has been derived by pynbody; False otherwise.
+
+        For more information on derived arrays, see :ref:`derived_arrays`."""
         if self.sim and self.name:
             return self.sim.is_derived_array(self.name, getattr(self, 'family', None))
         else:
@@ -199,8 +204,17 @@ class SimArray(np.ndarray):
         self._name = None
         np.ndarray.__setstate__(self, args[1:])
 
-    def __new__(subtype, data, units=None, sim=None, **kwargs):
-        new = np.array(data, **kwargs).view(subtype)
+    def __init__(self, data, units = None, sim = None, **kwargs):
+        """Initialise a SimArray with the specified units and simulation context.
+
+        Other arguments are as for numpy.ndarray. If the data argument is a SimArray, the units and sim arguments are ignored."""
+
+        # The actual initialisation is done by __new__ (it's actually unclear to me now why that should be the case,
+        # but it's been like this for a long time and so changing it would need to be handled with care.)
+        pass
+
+    def __new__(cls, data, units=None, sim=None, **kwargs):
+        new = np.array(data, **kwargs).view(cls)
         if hasattr(data, 'units') and hasattr(data, 'sim') and units is None and sim is None:
             units = data.units
             sim = data.sim
@@ -246,6 +260,41 @@ class SimArray(np.ndarray):
             self._sim = lambda: None
             self._name = None
 
+    def __array_function__(self, func, types, args, kwargs):
+        ok_types = (SimArray, np.ndarray)
+        if not all(issubclass(t, ok_types) for t in types):
+            return NotImplemented
+
+        args_processed = []
+        for arg in args:
+            if isinstance(arg, SimArray):
+                args_processed.append(arg.view(np.ndarray))
+            else:
+                args_processed.append(arg)
+
+        kwargs_processed= {}
+        for k, v in kwargs.items():
+            if isinstance(v, SimArray):
+                kwargs_processed[k] = v.view(np.ndarray)
+            else:
+                kwargs_processed[k] = v
+
+        result = func(*args_processed, **kwargs_processed)
+
+        if func in SimArray._ufunc_registry:
+            result = result.view(SimArray)
+            if isinstance(result, SimArray): # may not be true if the result is a scalar
+                sim = None
+                for arg in args:
+                    if isinstance(arg, SimArray):
+                        sim = arg.sim
+                        break
+                result.units = SimArray._ufunc_registry[func](*args, **kwargs)
+                result.sim = sim
+
+        return result
+
+
     def __array_wrap__(self, array, context=None):
         if context is None:
             n_array = array.view(SimArray)
@@ -271,7 +320,8 @@ class SimArray(np.ndarray):
         return x
 
     @property
-    def units(self):
+    def units(self) -> units.UnitBase:
+        """The units of the array, if known; otherwise :ref:`units.NoUnit`."""
         if hasattr(self.base, 'units'):
             return self.base.units
         else:
@@ -294,14 +344,15 @@ class SimArray(np.ndarray):
                 self._units = u
 
     @property
-    def name(self):
+    def name(self) -> str | None:
+        """The name of the array in the simulation snapshot, if known."""
         if hasattr(self.base, 'name'):
             return self.base.name
         return self._name
 
     @property
-    def sim(self):
-
+    def sim(self) -> snapshot.SimSnap | None:
+        """The simulation snapshot that the array belongs to, if known."""
         if hasattr(self.base, 'sim'):
             base_sim = self.base.sim
         else:
@@ -324,7 +375,14 @@ class SimArray(np.ndarray):
                 self._sim = lambda: None
 
     @property
-    def family(self):
+    def family(self) -> family.Family | None:
+        """Returns the pynbody family that the array belongs to, if any.
+
+        If ``family`` isn't None, an array ``a`` belongs to ``a.sim[family]`` rather than ``a.sim``.
+
+        This doesn't necessarily mean that it is a family-level array, however, since it could be a slice into
+        a simulation array.
+        """
         try:
             return self._family
         except AttributeError:
@@ -392,6 +450,9 @@ class SimArray(np.ndarray):
         return self
 
     def conversion_context(self):
+        """Return a dictionary of contextual information that may be required for unit conversion.
+
+        This is typically cosmological scalefactor and Hubble parameter."""
         if self.sim is not None:
             return self.sim.conversion_context()
         else:
@@ -550,7 +611,8 @@ class SimArray(np.ndarray):
         return x
 
     def mean_by_mass(self, *args, **kwargs):
-        return self.sim.mean_by_mass(self.name)
+        """Removed in pynbody 2.0. Use :func:`pynbody.snapshot.simsnap.SimSnap.mean_by_mass` instead."""
+        raise RuntimeError("SimArray.mean_by_mass has been removed. Use SimSnap.mean_by_mass instead.")
 
     def max(self, *args, **kwargs):
         x = np.ndarray.max(self, *args, **kwargs)
@@ -593,9 +655,18 @@ class SimArray(np.ndarray):
         return x
 
     def set_units_like(self, new_unit):
-        """Set the units for this array by performing dimensional analysis
-        on the supplied unit and referring to the units of the original
-        file"""
+        """Set the units of this array using a guess the ``sim``'s units for a given dimensionality.
+
+        For example, if ``sim`` has units of ``Msol`` and ``kpc``, and ``new_unit`` is ``kg m^-3``, the
+        units of this array will be set to ``Msol kpc^-3``.
+
+        The underlying code uses dimensional analysis; of course, simulation codes are free to use inconsistent
+        units if they like, so in general this routine cannot be guaranteed to infer the correct units. Human
+        cross-checks are strongly advised.
+
+        Note that this does not convert the array to the new units, it only sets the units attribute. To convert,
+        use :func:`in_units`, :func:`convert_units` or :func:`in_original_units`.
+        """
 
         if self.sim is not None:
             self.units = self.sim.infer_original_units(new_unit)
@@ -603,8 +674,18 @@ class SimArray(np.ndarray):
             raise RuntimeError("No link to SimSnap")
 
     def set_default_units(self, quiet=False):
-        """Set the units for this array by performing dimensional analysis
-        on the default dimensions for the array."""
+        """Set the units for this array by guessing the ``sim``'s unit scheme and known dimensionality information.
+
+        For example, if ``sim`` has units of ``Msol`` and ``kpc`` and this array is the ``rho`` array, the
+        units of this array will be set to ``Msol kpc^-3``.
+
+        The underlying code uses dimensional analysis; of course, simulation codes are free to use inconsistent
+        units if they like, so in general this routine cannot be guaranteed to infer the correct units. Human
+        cross-checks are strongly advised.
+
+        Note that this does not convert the array to the new units, it only sets the units attribute. To convert,
+        use :func:`in_units`, :func:`convert_units` or :func:`in_original_units`.
+        """
 
         if self.sim is not None:
             try:
@@ -616,14 +697,30 @@ class SimArray(np.ndarray):
             raise RuntimeError("No link to SimSnap")
 
     def in_original_units(self):
-        """Retun a copy of this array expressed in the units
-        specified in the parameter file."""
+        """Return a copy of this array expressed in the file's internal unit scheme.
+
+        For example, if ``sim`` has units of ``Msol`` and ``kpc`` and this array is the ``rho`` array, a copy of the
+        array in units of ``Msol kpc^-3`` will be returned, even if the current units are something else like
+        ``kg m^-3``.
+
+        The underlying code uses dimensional analysis; of course, simulation codes are free to use inconsistent
+        units if they like, so in general this routine cannot be guaranteed to infer the correct units. Human
+        cross-checks are strongly advised.
+        """
 
         return self.in_units(self.sim.infer_original_units(self.units))
 
     def in_units(self, new_unit, **context_overrides):
-        """Return a copy of this array expressed relative to an alternative
-        unit."""
+        """Return a copy of this array, expressed relative to an alternative unit ``new_unit``.
+
+        Additional keyword arguments are interpreted as context overrides for the unit conversion. For example, if the
+        array is a comoving distance and you want to convert it to a physical distance, you might call
+
+        >>> x.in_units('kpc', a=0.1)
+
+        to get the result assuming a scalefactor 0.1. If no context overrides are given, the context of the underlying
+        ``sim`` is adopted.
+        """
 
         context = self.conversion_context()
         context.update(context_overrides)
@@ -637,8 +734,7 @@ class SimArray(np.ndarray):
             raise ValueError("Units of array unknown")
 
     def convert_units(self, new_unit):
-        """Convert units of this array in-place. Note that if
-        this is a sub-view, the entire base array will be converted."""
+        """Convert units of this array in-place. If this is a sub-view, the entire base array will be converted."""
 
         if self.base is not None and hasattr(self.base, 'units'):
             self.base.convert_units(new_unit)
@@ -693,10 +789,10 @@ for f in np.ndarray.__lt__, np.ndarray.__le__, np.ndarray.__eq__, \
     # N.B. cannot use functools.partial because it doesn't implement the descriptor
     # protocol
     @functools.wraps(f, assigned=("__name__", "__doc__"))
-    def wrapper_function(self, other, comparison_op=f):
+    def _wrapper_function(self, other, comparison_op=f):
         return _unit_aware_comparison(self, other, comparison_op=comparison_op)
 
-    setattr(SimArray, f.__name__, wrapper_function)
+    setattr(SimArray, f.__name__, _wrapper_function)
 
 
 # Now add dirty bit setters to all the operations which are known
@@ -846,9 +942,22 @@ def _trig_units(*a):
 def _comparison_units(*a):
     return None
 
+@_u(np.linalg.norm)
+def _norm_units(a, *args, **kwargs):
+    return a.units
+
 
 class IndexedSimArray:
+    """A view into a SimArray that allows for indexing and slicing.
 
+    Unlike numpy arrays, IndexedSimArrays do not copy data when indexed. Instead, they provide a view into the original
+    data. This is used by pynbody to provide a view into a subset of a simulation snapshot without copying the data,
+    while making sure any changes to the data are reflected in the original snapshot.
+
+    For most purposes, an IndexedSimArray should behave exactly like a SimArray. However, advanced users may want to
+    understand more about performance implications and ways to optimize code. This can be found in the
+    :ref:`performance` section of the documentation.
+    """
     @property
     def derived(self):
         return self.base.derived
@@ -857,7 +966,10 @@ class IndexedSimArray:
     def ancestor(self):
         return self.base.ancestor
 
-    def __init__(self, array, ptr):
+    def __init__(self, array: SimArray, ptr: slice | np.ndarray):
+        """Initialise an IndexedSimArray based on an underlying SimArray and a pointer into that array.
+
+        The pointer can be a slice or an array of indexes."""
         self.base = array
         self._ptr = ptr
 
@@ -952,6 +1064,7 @@ class IndexedSimArray:
 # method.
 
 def _wrap_fn(w):
+    @functools.wraps(w)
     def q(s, *y,  **kw):
         return w(SimArray(s), *y, **kw)
 
@@ -963,16 +1076,27 @@ def _wrap_fn(w):
 _override = "__eq__", "__ne__", "__gt__", "__ge__", "__lt__", "__le__"
 
 for x in set(np.ndarray.__dict__).union(SimArray.__dict__):
-    w = getattr(SimArray, x)
-    if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and hasattr(w, '__call__') and x!="__buffer__":
-        setattr(IndexedSimArray, x, _wrap_fn(w))
+    _w = getattr(SimArray, x)
+    if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and hasattr(_w, '__call__') and x!="__buffer__":
+        setattr(IndexedSimArray, x, _wrap_fn(_w))
 
 
-def _array_factory(dims, dtype, zeros, shared):
+def array_factory(dims: int | tuple, dtype: np.dtype, zeros: bool, shared: bool) -> SimArray:
     """Create an array of dimensions *dims* with the given numpy *dtype*.
-    If *zeros* is True, the returned array is guaranteed zeroed. If *shared*
-    is True, the returned array uses shared memory so can be efficiently
-    shared across processes."""
+
+    Parameters
+    ----------
+
+    dims : int or tuple
+        The dimensions of the array.
+    dtype : numpy.dtype
+        The data type of the array.
+    zeros : bool
+        If True, the array is guaranteed to be zeroed.
+    shared : bool
+        If True, the array uses shared memory and can be efficiently shared across processes.
+
+    """
     if not hasattr(dims, '__len__'):
         dims = (dims,)
 

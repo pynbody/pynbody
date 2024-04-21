@@ -176,7 +176,7 @@ def test_copy():
     # copied in from IndexedSimArrays
 
 
-def test_mean_by_mass():
+def test_mean_by_mass_units():
     f['pos'].units = 'kpc'
     f['mass'].units = 'Msol'
 
@@ -256,3 +256,15 @@ def test_index_list():
     f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     h = f.halos()
     index_list = h[1].get_index_list(f)
+
+def test_mean_by_mass_value():
+    f = pynbody.new(dm=2000)
+    f['mass'] = np.ones(2000)
+    f['mass'][:500] = 2
+
+    f['test_array'] = np.arange(2000)
+
+    f = f[np.arange(1000)] # test on a subsnap for generality
+
+    np.testing.assert_allclose(f.mean_by_mass('test_array'),
+                               (f['test_array'][:500]*2./3 + f['test_array'][500:1000]*1./3).mean())

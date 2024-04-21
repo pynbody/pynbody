@@ -21,49 +21,49 @@ from .snapshot import SimSnap
 logger = logging.getLogger('pynbody.derived')
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def r(self):
     """Radial position"""
     return ((self['pos'] ** 2).sum(axis=1)) ** (1, 2)
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def rxy(self):
     """Cylindrical radius in the x-y plane"""
     return ((self['pos'][:, 0:2] ** 2).sum(axis=1)) ** (1, 2)
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def vr(self):
     """Radial velocity"""
     return (self['pos'] * self['vel']).sum(axis=1) / self['r']
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def v2(self):
     """Squared velocity"""
     return (self['vel'] ** 2).sum(axis=1)
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def vt(self):
     """Tangential velocity"""
     return np.sqrt(self['v2'] - self['vr'] ** 2)
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def ke(self):
     """Specific kinetic energy"""
     return 0.5 * (self['vel'] ** 2).sum(axis=1)
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def te(self):
     """Specific total energy"""
     return self['ke'] + self['phi']
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def j(self):
     """Specific angular momentum"""
     angmom = np.cross(self['pos'], self['vel']).view(array.SimArray)
@@ -71,25 +71,25 @@ def j(self):
     return angmom
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def j2(self):
     """Square of the specific angular momentum"""
     return (self['j'] ** 2).sum(axis=1)
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def jz(self):
     """z-component of the angular momentum"""
     return self['j'][:, 2]
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def vrxy(self):
     """Cylindrical radial velocity in the x-y plane"""
     return (self['pos'][:, 0:2] * self['vel'][:, 0:2]).sum(axis=1) / self['rxy']
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def vcxy(self):
     """Cylindrical tangential velocity in the x-y plane"""
     f = (self['x'] * self['vy'] - self['y'] * self['vx']) / self['rxy']
@@ -97,13 +97,13 @@ def vcxy(self):
     return f
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def vphi(self):
     """Azimuthal velocity (synonym for vcxy)"""
     return self['vcxy']
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def vtheta(self):
     """Velocity projected to polar direction"""
     return (np.cos(self['az']) * np.cos(self['theta']) * self['vx'] +
@@ -151,32 +151,32 @@ def _v_sph_operation(self, op):
     return sm
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def v_mean(self):
     """SPH-smoothed mean velocity"""
     return _v_sph_operation(self, "mean")
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def v_disp(self):
     """SPH-smoothed velocity dispersion"""
     return _v_sph_operation(self, "disp")
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def v_curl(self):
     """SPH-smoothed curl of velocity"""
     return _v_sph_operation(self, "curl")
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def vorticity(self):
     """SPH-smoothed vorticity"""
     return _v_sph_operation(self, "curl")
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def v_div(self):
     """SPH-smoothed divergence of velocity"""
     return _v_sph_operation(self, "div")
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def age(self):
     """Stellar age determined from formation time and current snapshot time"""
     return self.properties['time'].in_units(self['tform'].units, **self.conversion_context()) - self['tform']
@@ -193,7 +193,7 @@ for band in bands_available:
     X = lambda s, b=str(band): analysis.luminosity.calc_mags(s, band=b)
     X.__name__ = band + "_mag"
     X.__doc__ = band + " magnitude from analysis.luminosity.calc_mags"""
-    SimSnap.derived_quantity(X)
+    SimSnap.derived_array(X)
 
     lum_den = functools.partial(lum_den_template,band)
 
@@ -201,35 +201,35 @@ for band in bands_available:
     lum_den.__doc__ = "Luminosity density in astronomy-friendly units: 10^(-0.4 %s_mag) per unit volume. " \
                       "" \
                       "The magnitude is taken from analysis.luminosity.calc_mags."%band
-    SimSnap.derived_quantity(lum_den)
+    SimSnap.derived_array(lum_den)
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def theta(self):
     """Angle from the z axis, from [0:pi]"""
     return np.arccos(self['z'] / self['r'])
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def alt(self):
     """Angle from the horizon, from [-pi/2:pi/2]"""
     return np.pi / 2 - self['theta']
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def az(self):
     """Angle in the xy plane from the x axis, from [-pi:pi]"""
     return np.arctan2(self['y'], self['x'])
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def cs(self):
     """Sound speed"""
     return np.sqrt(5.0 / 3.0 * units.k * self['temp'] / self['mu'] / units.m_p)
 
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def mu(sim, t0=None, Y=0.245):
     """Mean molecular mass, i.e. the mean atomic mass per particle. Assumes primordial abundances."""
     try:
@@ -266,7 +266,7 @@ def _mu_from_electron_frac(sim, Y):
 
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def p(sim):
     """Pressure"""
     p = sim["u"] * sim["rho"] * (2. / 3)
@@ -274,14 +274,14 @@ def p(sim):
     return p
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def u(self):
     """Gas internal energy derived from temperature"""
     gamma = 5. / 3
     return self['temp'] * units.k / (self['mu'] * units.m_p * (gamma - 1))
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def temp(self):
     """Gas temperature derived from internal energy"""
     gamma = 5. / 3
@@ -294,7 +294,7 @@ def temp(self):
     return temp
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def zeldovich_offset(self):
     """The position offset in the current snapshot according to
     the Zel'dovich approximation applied to the current velocities.
@@ -310,7 +310,7 @@ def zeldovich_offset(self):
     return offset
 
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def aform(self):
     """The expansion factor at the time specified by the tform array."""
 
@@ -319,14 +319,14 @@ def aform(self):
     a = 1. / (1. + z)
     return a
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def tform(self):
     """The time of the specified expansion factor in the aform"""
     from . import analysis
     t = analysis.cosmology.age(self, 1./self['aform'] - 1.)
     return t
 
-@SimSnap.derived_quantity
+@SimSnap.derived_array
 def iord_argsort(self):
     """Indices so that particles are ordered by increasing ids"""
     return np.argsort(self['iord'])

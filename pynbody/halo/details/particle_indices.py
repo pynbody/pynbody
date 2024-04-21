@@ -33,14 +33,19 @@ class HaloParticleIndices:
     def get_halo_number_per_particle(self, sim_length, number_mapper, fill_value=-1, dtype=int):
         """Return an array of halo numbers, one per particle.
 
-        Requires a HaloNumberMapper to map halo indices to halo numbers"""
+        Requires a HaloNumberMapper to map halo indices to halo numbers. If None is passed for the number_mapper,
+        the halo indices are returned instead."""
         lengths = np.diff(self.particle_index_list_boundaries, axis=1).ravel()
         ordering = np.argsort(-lengths, kind='stable')
 
         id_array = np.empty(sim_length, dtype=dtype)
         id_array.fill(fill_value)
 
-        halo_numbers = number_mapper.index_to_number(ordering)
+        if number_mapper is not None:
+            halo_numbers = number_mapper.index_to_number(ordering)
+        else:
+            halo_numbers = range(len(ordering))
+
         for halo_number, halo_index in zip(halo_numbers, ordering):
             indexing_slice = self._get_index_slice_for_halo(halo_index)
             id_array[self.particle_index_list[indexing_slice]] = halo_number

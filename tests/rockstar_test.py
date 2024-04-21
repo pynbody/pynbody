@@ -46,8 +46,9 @@ def test_load_rockstar(dummy_file):
     assert len(h)==5851
     assert isinstance(h, pynbody.halo.rockstar.RockstarCatalogue)
 
-def test_autodetect_rockstar(dummy_file):
-    h = dummy_file.halos()
+def test_autodetect_rockstar_from_filename(dummy_file):
+    dummy_file._filename = ""
+    h = dummy_file.halos(filename="testdata/rockstar/halos_15.0.bin")
     assert isinstance(h, pynbody.halo.rockstar.RockstarCatalogue)
 
 def test_rockstar_properties(rockstar_halos):
