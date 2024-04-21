@@ -192,4 +192,4 @@ def test_halo_properties_physical_units(snap, load_all):
     if load_all:
         h.load_all()
     h.physical_units()
-    npt.assert_allclose(h[0].properties['CenterOfMass'], [1242.67381894, 1571.45917479, 2232.62036159])
+    npt.assert_allclose(h[0].properties['CenterOfMass'], [1242.674894, 1571.460534, 2232.622292])

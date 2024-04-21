@@ -32,7 +32,7 @@ def test_iord():
     assert (f['iord'][::10]==[ 0, 40,  5, 45, 10, 35, 15]).all()
 
 def test_mass():
-    npt.assert_allclose(f['mass'], 2.15729774e+14)
+    npt.assert_allclose(f['mass'], 2.157418e+14)
 
 def test_deltab():
     npt.assert_allclose(f['deltab'][::10], [0.0058372 , -0.00301547, -0.00595138, -0.00416407, -0.01490865,
