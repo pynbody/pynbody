@@ -124,8 +124,6 @@ def test_unit_array_interaction():
     npt.assert_allclose(y + x, SA([1.001] * 10, 'Mpc'))
     npt.assert_allclose(y - x, SA([-999.] * 10, 'kpc'))
 
-
-
 def test_norm_units():
     x = SA(np.ones((10, 3) ), "kpc")
     result = np.linalg.norm(x, axis=1)

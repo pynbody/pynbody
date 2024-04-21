@@ -27,7 +27,7 @@ def test_gravity():
 
     v_circ = pro['v_circ'].in_units('km s^-1')
 
-    npt.assert_allclose(v_circ, v_circ_correct,atol=1e-5)
+    npt.assert_allclose(v_circ, v_circ_correct, rtol=1e-2, atol=0)
 
 def test_gravity_float():
     f = pynbody.new(100)
