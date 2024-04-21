@@ -106,12 +106,12 @@ def test_mass_in_header():
     f = pynbody.load("testdata/snap_028_z000p000.0.hdf5")
     f.physical_units()
     f['mass'] # load all masses
-    assert np.allclose(f.dm['mass'][0], 3981879.2046075417)
+    assert np.allclose(f.dm['mass'][0], 3982880.471745421)
 
     f = pynbody.load("testdata/snap_028_z000p000.0.hdf5")
     f.physical_units()
     # don't load all masses, allow it to be loaded for DM only
-    assert np.allclose(f.dm['mass'][0], 3981879.2046075417)
+    assert np.allclose(f.dm['mass'][0], 3982880.471745421)
 
 def test_gadgethdf_style_units():
     f = pynbody.load("testdata/gadget3/data/snapshot_103/snap_103.hdf5")

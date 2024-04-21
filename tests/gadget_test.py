@@ -212,6 +212,6 @@ def test_units_override():
 def test_ignore_cosmology():
     f = pynbody.load("testdata/gadget2/test_g2_snap.1")
     f.physical_units()
-    np.testing.assert_allclose(f.properties['time'].in_units('Gyr'), 2.5769525238964737)
+    np.testing.assert_allclose(f.properties['time'].in_units('Gyr'), 2.57689526)
     f_no_cosmo = pynbody.load("testdata/gadget2/test_g2_snap.1", ignore_cosmo=True)
-    np.testing.assert_allclose(f_no_cosmo.properties['time'].in_units('Gyr'), 271.6149884391969)
+    np.testing.assert_allclose(f_no_cosmo.properties['time'].in_units('Gyr'), 271.608952)

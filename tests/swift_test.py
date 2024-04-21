@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.testing as npt
 import pytest
 from pytest import raises
 
@@ -29,7 +30,7 @@ def test_swift_arrays():
     # the reason the following isn't exactly 1.0 is because our solar mass is slightly different to swift's
     # (the pynbody value is outdated but it will need some work to think about how to fix this without
     # breaking backwards compatibility)
-    assert np.allclose(f.dm['mass'].units.ratio("1e10 Msol", **f.conversion_context()), 0.9997436)
+    assert np.allclose(f.dm['mass'].units.ratio("1e10 Msol", **f.conversion_context()), 1.0)
     assert np.allclose(f.dm['vel'][::50000], np.array([[-249.5395 ,   122.65865 , -144.79892 ],
                                              [  75.57313 ,  -51.598354 , 250.10258 ],
                                              [-139.62218 , -132.5298   , 479.02545 ],
@@ -158,3 +159,13 @@ def test_swift_take_geometric_region(test_region):
     assert len(f) < len(f_full)
 
     assert np.all(f[test_region]['iord'] == f_full[test_region]['iord'])
+
+def test_swift_scalefactor_in_units():
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+
+    # naively, one would assume cm^2 s^-2, but actual units header says 1e10 a^2 cm^2 s^-2
+    # So this tests pynbody respects that. Note that we don't give the scalefactor context,
+    # so if scalefactor exponents are wrong, this will raise an exception
+    npt.assert_allclose((f.gas['u'].units).in_units("km^2 s^-2 a^-2"), 1.0)
+
+    npt.assert_allclose(f.gas['pos'].units.in_units("Mpc a"), 1.0)
