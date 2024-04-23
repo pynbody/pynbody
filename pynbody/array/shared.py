@@ -14,8 +14,6 @@ import posix_ipc
 from ..configuration import config_parser
 from . import SimArray
 
-DELAY_BEFORE_CLOSING_SHARED_MEM = float(config_parser.get('shared-array', 'cleanup-delay'))
-
 _owned_shared_memory_names = []
 
 class SharedArrayNotFound(OSError):

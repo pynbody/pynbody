@@ -274,8 +274,8 @@ def vel_center(sim, cen_size="1 kpc", return_cen=False, move_all=True, **kwargs)
     vcen = (cen['vel'].transpose() * cen['mass']).sum(axis=1) / \
         cen['mass'].sum()
     vcen.units = cen['vel'].units
-    if config['verbose']:
-        logger.info("vcen=%s", vcen)
+
+    logger.info("vcen=%s", vcen)
 
     if return_cen:
         return vcen

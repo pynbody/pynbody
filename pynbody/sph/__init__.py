@@ -505,8 +505,6 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
     global config
 
-    verbose = config["verbose"] and not force_quiet
-
     snap_proxy = {}
 
     # cache the arrays and take a slice of them if we've been asked to
@@ -916,8 +914,6 @@ def spectra(snap, qty='rho', x1=0.0, y1=0.0, v2=400, nvel=200, v1=None,
     # before inlining, the views on the arrays must be standard np.ndarray
     # otherwise the normal numpy macros are not generated
     x,y,vz,temp,sm,qty, mass, rho = (q.view(np.ndarray) for q in (x,y,vz,temp,sm,qty, mass, rho))
-
-    if config['verbose']: print("Constructing SPH spectrum", file=sys.stderr)
 
     if config["tracktime"] :
         print("Beginning SPH render at %.2f s"%(time.time()-in_time), file=sys.stderr)

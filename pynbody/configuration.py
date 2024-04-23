@@ -1,3 +1,9 @@
+"""Read and expose configuration information for pynbody
+
+The configuration system in pynbody is described in the :doc:`configuration` tutorial.
+
+"""
+
 import logging
 import multiprocessing
 import os
@@ -39,8 +45,7 @@ def _add_overrides_to_config_parser(config_parser):
 
 def _get_basic_config_from_parser(config_parser):
 
-    config = {'verbose': config_parser.getboolean('general', 'verbose'),
-              'centering-scheme': config_parser.get('general', 'centering-scheme')}
+    config = {'centering-scheme': config_parser.get('general', 'centering-scheme')}
 
     config['snap-class-priority'] = list(map(str.strip,
                                         config_parser.get('general', 'snap-class-priority').split(",")))
@@ -85,7 +90,7 @@ def _setup_logger(config):
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
-    if config['verbose']:
+    if config_parser.get('general','verbose'):
         logger.setLevel(logging.INFO)
         logger.info("Verbose mode is on")
     else:
