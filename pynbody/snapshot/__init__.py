@@ -23,7 +23,12 @@ def load(filename, *args, **kwargs) -> SimSnap:
     filename : str
         The filename to load
 
-    Other arguments and keyword arguments are passed to the class constructor that is used to load the file.
+    priority : optional, list[str | type]
+        A list of SimSnap subclasses to try, in order. The first class which is capable of loading the file
+        is used. If not specified, the ordering is as specified in the configuration files.
+
+    *args, **kwargs :
+        Other arguments and keyword arguments are passed to the class constructor that is used to load the file.
 
     Returns
     -------
