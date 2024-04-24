@@ -1,6 +1,6 @@
 """Read and expose configuration information for pynbody
 
-The configuration system in pynbody is described in the :doc:`configuration` tutorial.
+The configuration system in pynbody is described in the :ref:`configuration` tutorial.
 
 """
 
@@ -90,7 +90,7 @@ def _setup_logger(config):
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
-    if config_parser.get('general','verbose'):
+    if config_parser.getboolean('general','verbose'):
         logger.setLevel(logging.INFO)
         logger.info("Verbose mode is on")
     else:
