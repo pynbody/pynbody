@@ -164,6 +164,7 @@ docs_require = [
     'sphinx-copybutton',
     'numpydoc',
     'extinction',
+    'nbsphinx'
 ],
 
 extras_require = {
