@@ -69,7 +69,7 @@ Cookbook/Recipes
    :maxdepth: 1
 
    Profiles <profile>
-   Images <pictures>
+   Images <images>
    Halo mass function <hmf>
 
 

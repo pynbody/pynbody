@@ -24,5 +24,5 @@ sph.velocity_image(h[1].g, vector_color="cyan", qty="temp",width=50,cmap="YlOrRd
 pynbody.analysis.angmom.faceon(h[1])
 s['pos'].convert_units('Mpc')
 sph.velocity_image(s.g, width='3 Mpc', cmap = "Greys_r", mode='stream', units='Msol kpc^-2',
-                   density = 2.0, vector_resolution=100, vmin=1e-1,subplot=axs[1],
+                   stream_density= 2.0, vector_resolution=100, vmin=1e-1, subplot=axs[1],
                    show_cbar=False, vector_color='black')

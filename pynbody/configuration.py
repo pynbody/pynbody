@@ -77,6 +77,8 @@ def _get_basic_config_from_parser(config_parser):
         'general', 'gravity_calculation_mode')
     config['disk-fit-function'] = config_parser.get('general', 'disk-fit-function')
 
+    config['image-default-resolution'] = int(config_parser.get('general', 'image-default-resolution'))
+
     return config
 
 def _setup_logger(config):
@@ -91,10 +93,17 @@ def _setup_logger(config):
     logger.addHandler(ch)
 
     if config_parser.getboolean('general','verbose'):
-        logger.setLevel(logging.INFO)
+        set_logging_level(logging.INFO)
         logger.info("Verbose mode is on")
     else:
-        logger.setLevel(logging.WARNING)
+        set_logging_level(logging.WARNING)
+
+def set_logging_level(level = logging.INFO):
+    """Set the logging level for pynbody, in terms of the standard Python logging module levels.
+
+    Set to logging.INFO for more verbose output, or logging.WARNING for less."""
+    logger = logging.getLogger('pynbody')
+    logger.setLevel(level)
 
 
 config_parser = _get_config_parser_with_defaults()

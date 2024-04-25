@@ -3,6 +3,14 @@ import matplotlib.quiver
 import matplotlib.transforms
 
 
+def _val_or_rc(val, rc_key):
+    """Return val if it is not None, otherwise return the value of rc_key in matplotlib.rcParams.
+
+    This is available in some versions of matplotlib, but was added in mid-2023, so we should support
+    older versions for now"""
+
+    return val if val is not None else matplotlib.rcParams[rc_key]
+
 class PynbodyQuiverKey(matplotlib.quiver.QuiverKey):
     """An improved version of matplotlib's QuiverKey, allowing a background color to be specified."""
 
@@ -26,9 +34,9 @@ class PynbodyQuiverKey(matplotlib.quiver.QuiverKey):
             Additional keyword arguments for matplotlib.quiver.QuiverKey
 
         """
-        self.boxfacecolor = matplotlib._val_or_rc(kwargs.pop('boxfacecolor', None),
+        self.boxfacecolor = _val_or_rc(kwargs.pop('boxfacecolor', None),
                                                      'legend.facecolor')
-        self.boxedgecolor = matplotlib._val_or_rc(kwargs.pop('boxedgecolor', None),
+        self.boxedgecolor = _val_or_rc(kwargs.pop('boxedgecolor', None),
                                                   'legend.edgecolor')
 
         if self.boxfacecolor == 'inherit':
@@ -37,7 +45,7 @@ class PynbodyQuiverKey(matplotlib.quiver.QuiverKey):
         if self.boxedgecolor == 'inherit':
             self.boxedgecolor = matplotlib.rcParams['axes.edgecolor']
 
-        self.fancybox = matplotlib._val_or_rc(kwargs.pop("fancybox", None),
+        self.fancybox = _val_or_rc(kwargs.pop("fancybox", None),
                                               'legend.fancybox')
 
         super().__init__(*args, **kwargs)

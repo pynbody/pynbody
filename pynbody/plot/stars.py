@@ -1,7 +1,5 @@
 """
-
-stars
-=====
+Routines for plots related to stellar particles
 
 """
 
@@ -15,29 +13,29 @@ import numpy as np
 from .. import array, filt, units, units as _units
 from ..analysis import angmom, profile
 from ..sph import Kernel2D, render_spherical_image
-from .sph import image
+from . import sph as plot_sph
 
 logger = logging.getLogger('pynbody.plot.stars')
 
 
-def bytscl(arr, mini=0, maxi=10000):
+def _bytscl(arr, mini=0, maxi=10000):
 	X = (arr - mini) / (maxi - mini)
 	X[X > 1] = 1
 	X[X < 0] = 0
 	return X
 
 
-def nw_scale_rgb(r, g, b, scales=[4, 3.2, 3.4]):
+def _nw_scale_rgb(r, g, b, scales=[4, 3.2, 3.4]):
 	return r * scales[0], g * scales[1], b * scales[2]
 
 
-def nw_arcsinh_fit(r, g, b, nonlinearity=3):
+def _nw_arcsinh_fit(r, g, b, nonlinearity=3):
 	radius = r + g + b
 	val = np.arcsinh(radius * nonlinearity) / nonlinearity / radius
 	return r * val, g * val, b * val
 
 
-def combine(r, g, b, magnitude_range, brightest_mag=None, mollview=False):
+def _combine(r, g, b, magnitude_range, brightest_mag=None, mollview=False):
 	# flip sign so that brightest pixels have biggest value
 	r = -r
 	g = -g
@@ -60,146 +58,180 @@ def combine(r, g, b, magnitude_range, brightest_mag=None, mollview=False):
 		brightest_mag = -brightest_mag
 
 	rgbim = np.zeros((r.shape[0], r.shape[1], 3))
-	rgbim[:, :, 0] = bytscl(r, brightest_mag - magnitude_range, brightest_mag)
-	rgbim[:, :, 1] = bytscl(g, brightest_mag - magnitude_range, brightest_mag)
-	rgbim[:, :, 2] = bytscl(b, brightest_mag - magnitude_range, brightest_mag)
+	rgbim[:, :, 0] = _bytscl(r, brightest_mag - magnitude_range, brightest_mag)
+	rgbim[:, :, 1] = _bytscl(g, brightest_mag - magnitude_range, brightest_mag)
+	rgbim[:, :, 2] = _bytscl(b, brightest_mag - magnitude_range, brightest_mag)
 	return rgbim, -brightest_mag
 
-def convert_to_mag_arcsec2(image, mollview=False):
+def _convert_to_mag_arcsec2(image, mollview=False):
 	if not mollview:
 		assert image.units=="pc^-2"
 	pc2_to_sqarcsec = 2.3504430539466191e-09
 	return -2.5*np.log10(image*pc2_to_sqarcsec)
 
-def render(sim, filename=None,
+def contour_surface_brightness(sim, band='v', width=50, resolution=None, axes=None, label=True,
+								contour_kwargs=None, smooth_min=0.0):
+	"""Plot surface brightness contours in the given band.
+
+	For information about how surface brightnesses are calculated, see the documentation for
+	:mod:`pynbody.analysis.luminosity`.
+
+	Parameters
+	----------
+
+	sim : SimSnap
+		The simulation snapshot to plot.
+
+	band : str
+		The band to plot. Default is 'v'.
+
+	width : float | str, optional
+		The width of the image to produce
+
+	resolution : int, optional
+		The resolution of the image to produce. The default is determined by the configuration
+		option ``image-default-resolution``.
+
+	axes : matplotlib axes object, optional
+		If not None, the axes object to plot to
+
+	label : bool, optional
+		If True, the contours are labelled with the surface brightness in mag arcsec^-2
+
+	contour_kwargs : dict or None, optional
+		Keyword arguments to pass to the matplotlib contour plot function. For example, this
+		can be used to determine the contour levels.
+
+	smooth_min : float or str, optional
+		The minimum size of the smoothing kernel, either as a float or a unit string.
+		Setting this to a non-zero value makes smoother, clearer contours but loses fine detail.
+		Default is 0.0.
+
+	"""
+
+	return plot_sph.contour(sim, qty=band + '_lum_den', units="pc^-2", width=width,
+							resolution=resolution, axes=axes, label=label, smooth_min=smooth_min,
+							_transform = _convert_to_mag_arcsec2,
+							log=False, contour_kwargs=contour_kwargs)
+
+
+
+def render(sim,
 		   r_band='i', g_band='v', b_band='u',
+		   width=50,
 		   r_scale=0.5, g_scale=1.0, b_scale=1.0,
+		   with_dust=False,
 		   dynamic_range=2.0,
 		   mag_range=None,
-		   width=50,
-		   resolution=500,
-		   starsize=None,
-		   plot=True, axes=None, ret_im=False, clear=True,
-		   ret_range=False, with_dust=False, z_range=50.0):
+		   resolution=None,
+		   noplot=False, axes=None, return_image=False, clear=True,
+		   return_range=False):
 	'''
 	Make a 3-color image of stars.
 
-	The colors are based on magnitudes found using stellar Marigo
-	stellar population code.  If with_dust is True, a simple dust
-	screening is applied.
+	For information about how surface brightnesses are calculated, see the documentation for
+	:mod:`pynbody.analysis.luminosity`.
 
-	Returns: If ret_im=True, an NxNx3 array representing an RGB image
+	If ``with_dust`` is True, a simple dust screening is applied; see below for important notes
+	on the dust screening.
 
-	**Optional keyword arguments:**
+	Parameters
+	----------
 
-	   *filename*: string (default: None)
-		 Filename to be written to (if a filename is specified)
+	sim : SimSnap
+		The simulation snapshot to plot.
 
-	   *r_band*: string (default: 'i')
-		 Determines which Johnston filter will go into the image red channel
+	r_band, g_band, b_band : str
+		The filter bands to use for R, G and B image channels. Default is 'i', 'v', 'b'.
 
-	   *g_band*: string (default: 'v')
-		 Determines which Johnston filter will go into the image green channel
+	width : float | str, optional
+		The width of the image to produce, either as a float or a unit string.
 
-	   *b_band*: string (default: 'b')
-		 Determines which Johnston filter will go into the image blue channel
+	r_scale, g_scale, b_scale : float, optional
+		The scaling of the red, green and blue channels before they are combined.
 
-	   *r_scale*: float (default: 0.5)
-		 The scaling of the red channel before channels are combined
+	dynamic_range : float, optional
+		The number of dex in luminosity over which the image brightness ranges, if
+		``mag_range`` is not provided.
 
-	   *g_scale*: float (default: 1.0)
-		 The scaling of the green channel before channels are combined
+	with_dust : bool, optional
+		If True, the image is rendered with a simple dust screening model. See important notes below.
 
-	   *b_scale*: float (default: 1.0)
-		 The scaling of the blue channel before channels are combined
+	mag_range : tuple, optional
+		The brightest and faintest surface brightnesses in the final image, in
+		mag arcsec^-2.
 
-	   *width*: float in kpc (default:50)
-		 Sets the size of the image field in kpc
+	resolution : int, optional
+		The resolution of the image to produce. The default is determined by the configuration
+		option ``image-default-resolution``.
 
-	   *resolution*: integer (default: 500)
-	     Sets the number of pixels on the side of the image
+	noplot : bool, optional
+		If True, the image is not plotted; most useful alongside ``return_image``, if you want to save the
+		image to a file.
 
-	   *starsize*: float in kpc (default: None)
-		 If not None, sets the maximum size of stars in the image
+	axes : matplotlib.axes.Axes, optional
+		If not None, the axes object to plot to.
 
-	   *ret_im*: bool (default: False)
-		 if True, the NxNx3 image array is returned
+	return_image : bool, optional
+		If True, the image is returned as an array (N x N x 3) for the RGB channels. Default is False.
 
-	   *ret_range*: bool (default: False)
-		 if True, the range of the image in mag arcsec^-2 is returned.
+	return_range : bool, optional
+		If True, a tuple with the range of the image in mag arcsec^-2 is returned. Default is False.
 
-	   *plot*: bool (default: True)
-		 if True, the image is plotted
+	clear : bool, optional
+		If True, the current figure is cleared before plotting. Default is True.
 
-	   *axes*: matplotlib axes object (deault: None)
-		 if not None, the axes object to plot to
 
-	   *dynamic_range*: float (default: 2.0)
-		 The number of dex in luminosity over which the image brightness ranges
+	Returns
+	-------
 
-	   *mag_range*: float, float (default: None)
-		 If provided, the brightest and faintest surface brightnesses in the range,
-		 in mag arcsec^-2. Takes precedence over dynamic_range.
+	If ``return_image`` is True, an array (N x N x 3) representing the RGB image is returned.
 
-	   *with_dust*: bool, (default: False)
-		 If True, the image is rendered with a simple dust screening model
-		 based on Calzetti's law.
+	If ``return_range`` is True, a tuple with the range of the image in mag arcsec^-2 is returned.
 
-	   *z_range*: float, (default: 50.0)
-		 If with_dust is True this parameter specifies the z range
-		 over which the column density will be calculated.
-		 The default value is 50 kpc.
+	Notes
+	-----
+
+	The dust screening model is exceptionally simple and can only be used for indicative purposes.
+	For more accurate results, radiative transfer is essential and is provided by other packages
+	such as `skirt <https://skirt.ugent.be/root/_home.html>`_.
+
+	The model assumes that the dust is proportional to the metal density. It estimates a V-band
+	extinction A_V using empirical data from Draine & Lee (1984, ApJ, 285, 89) and Savage and Mathis
+	(1979, ARA&A, 17, 73). This is then converted to extinction in the given bands using the
+	Calzetti law.
+
+	The model furthermore assumes that half the dust is in front of the stars and half behind, because
+	there is no radiative transfer to account for the actual distribution of dust in the 3d space.
 
 	'''
 
-	if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
-		if isinstance(width, str):
-			width = _units.Unit(width)
-		width = width.in_units(sim['pos'].units, **sim.conversion_context())
+	width = plot_sph._width_in_sim_units(sim, width)
 
-	if starsize is not None:
-		smf = filt.HighPass('smooth', str(starsize) + ' kpc')
-		sim.s[smf]['smooth'] = array.SimArray(starsize, 'kpc', sim=sim)
-
-	r = image(sim.s, qty=r_band + '_lum_den', width=width, log=False,
+	r = plot_sph.image(sim.s, qty=r_band + '_lum_den', width=width, log=False,
 			  units="pc^-2", clear=False, noplot=True, resolution=resolution) * r_scale
-	g = image(sim.s, qty=g_band + '_lum_den', width=width, log=False,
+	g = plot_sph.image(sim.s, qty=g_band + '_lum_den', width=width, log=False,
 			  units="pc^-2", clear=False, noplot=True, resolution=resolution) * g_scale
-	b = image(sim.s, qty=b_band + '_lum_den', width=width, log=False,
+	b = plot_sph.image(sim.s, qty=b_band + '_lum_den', width=width, log=False,
 			  units="pc^-2", clear=False, noplot=True, resolution=resolution) * b_scale
 
 	# convert all channels to mag arcsec^-2
 
-	r=convert_to_mag_arcsec2(r)
-	g=convert_to_mag_arcsec2(g)
-	b=convert_to_mag_arcsec2(b)
+	r=_convert_to_mag_arcsec2(r)
+	g=_convert_to_mag_arcsec2(g)
+	b=_convert_to_mag_arcsec2(b)
 
 	if with_dust is True:
 		# render image with a simple dust absorption correction based on Calzetti's law using the gas content.
+
+		a_v = _dust_Av_image(sim, width, resolution)
+
 		try:
 			import extinction
 		except ImportError:
-			warnings.warn(
-				"Could not load extinction package. If you want to use this feature, "
+			raise ImportError("Could not load extinction package. If you want to use this feature, "
 				"plaese install the extinction package from here: http://extinction.readthedocs.io/en/latest/"
-				"or <via pip install extinction> or <conda install -c conda-forge extinction>", RuntimeWarning)
-			return
-
-		warm = filt.HighPass('temp',3e4)
-		cool = filt.LowPass('temp',3e4)
-		positive = filt.BandPass('z',-z_range,z_range) #LowPass('z',0)
-
-		column_den_warm = image(sim.g[positive][warm], qty='rho', width=width, log=False,
-			  units="kg cm^-2", clear=False, noplot=True,z_camera=z_range)
-		column_den_cool = image(sim.g[positive][cool], qty='rho', width=width, log=False,
-			  units="kg cm^-2", clear=False, noplot=True,z_camera=z_range)
-		mh = 1.67e-27 # units kg
-
-		cool_fac = 0.25 # fudge factor to make dust absorption not too strong
-		# get the column density of gas
-		col_den = np.divide(column_den_warm,mh)+np.divide(column_den_cool*cool_fac,mh)
-		# get absorption coefficient
-		a_v = 0.5*col_den*2e-21
+				"or <via pip install extinction> or <conda install -c conda-forge extinction>") from None
 
 		#get the central wavelength for the given band
 		wavelength_avail = {'u':3571,'b':4378,'v':5466,'r':6695,'i':8565,'j':12101,
@@ -211,9 +243,9 @@ def render(sim, filename=None,
 		lr,lg,lb = wavelength_avail[r_band],wavelength_avail[g_band],wavelength_avail[b_band] #in Angstrom
 		wave = np.array([lb, lg, lr])
 
-		ext_r = np.empty_like(r)
-		ext_g = np.empty_like(g)
-		ext_b = np.empty_like(b)
+		ext_r = np.empty(a_v.shape)
+		ext_g = np.empty(a_v.shape)
+		ext_b = np.empty(a_v.shape)
 
 		for i in range(len(a_v)):
 			for j in range(len(a_v[0])):
@@ -230,13 +262,13 @@ def render(sim, filename=None,
 	#r,g,b = nw_arcsinh_fit(r,g,b)
 
 	if mag_range is None:
-		rgbim, mag_max = combine(r, g, b, dynamic_range*2.5)
+		rgbim, mag_max = _combine(r, g, b, dynamic_range * 2.5)
 		mag_min = mag_max + 2.5*dynamic_range
 	else:
 		mag_max, mag_min = mag_range
-		rgbim, mag_max = combine(r, g, b, mag_min - mag_max, mag_max)
+		rgbim, mag_max = _combine(r, g, b, mag_min - mag_max, mag_max)
 
-	if plot:
+	if not noplot:
 		if clear:
 			plt.clf()
 		if axes is None:
@@ -249,14 +281,47 @@ def render(sim, filename=None,
 			axes.set_ylabel('y [' + str(sim.s['y'].units) + ']')
 			plt.draw()
 
-	if filename:
-		plt.savefig(filename)
-
-	if ret_im:
+	if return_image:
 		return rgbim
 
-	if ret_range:
+	if return_range:
 		return mag_max, mag_min
+
+
+
+def _dust_Av_image(sim, width, resolution):
+	"""Produce a map of the extinction Av for the given simulation, using the gas content.
+
+	Note that the dust model is very simple and naive! See comments inline.
+	"""
+
+	# Assume that only the gas with z>0 absorbs light (i.e. 'all light' is produced in the midplane)
+	gas = sim.g
+
+	# calculate the density of metals, and assume that dust is proportional to the metal density
+	rho_metals = gas['rho'] * gas['metals']
+	rho_metals.units = gas['rho'].units
+	column_den = plot_sph.image(gas, qty=rho_metals, width=width, log=False, restrict_depth=True,
+					            units="m_p cm^-2", clear=False, noplot=True, resolution=resolution)
+
+	# From Draine & Lee (1984, ApJ, 285, 89) in the V band (lambda^-1 ~= 2 micron^-1), the optical
+	# depth is 0.5 for an H column density of 10^21 cm^2. That scaling in turn is based on data in
+	# the review of Savage and Mathis (1979, ARA&A, 17, 73). Amazingly, this is the most up-to-date
+	# reference I could find on the subject. There is no mention of the metallicity dependence but
+	# one would assume dust columns should scale at least with metal columns (perhaps even more
+	# steeply with local metallicity). Given the wild approximations in all this, I assume a
+	# metallicity of 0.02 for gas in the Milky Way
+
+	tau_to_mag_extinction = 2.5 / np.log(10.)
+
+	a_v = tau_to_mag_extinction * 0.5 * column_den / 1e21 / 0.02
+
+	# Finally, we assume that half the dust is in front of the stars and half behind. This is
+	# yet another big assumption!
+
+	a_v/=2
+
+	return a_v
 
 
 def mollview(map=None,fig=None,plot=False,filenme=None,
@@ -535,16 +600,16 @@ def render_mollweide(sim, filename=None,
 	b = mollview(b,return_projected_map=True,fig=f) * b_scale
 	# convert all channels to mag arcsec^-2
 
-	r=convert_to_mag_arcsec2(r, mollview=True)
-	g=convert_to_mag_arcsec2(g, mollview=True)
-	b=convert_to_mag_arcsec2(b, mollview=True)
+	r=_convert_to_mag_arcsec2(r, mollview=True)
+	g=_convert_to_mag_arcsec2(g, mollview=True)
+	b=_convert_to_mag_arcsec2(b, mollview=True)
 
 	if mag_range is None:
-		rgbim, mag_max = combine(r, g, b, dynamic_range*2.5, mollview=True)
+		rgbim, mag_max = _combine(r, g, b, dynamic_range * 2.5, mollview=True)
 		mag_min = mag_max + 2.5*dynamic_range
 	else:
 		mag_max, mag_min = mag_range
-		rgbim, mag_max = combine(r, g, b, mag_min - mag_max, mag_max, mollview=True)
+		rgbim, mag_max = _combine(r, g, b, mag_min - mag_max, mag_max, mollview=True)
 
 	if plot:
 		if clear:

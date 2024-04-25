@@ -55,10 +55,10 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
     global f
 
     im3d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False)
+        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, resolution=500)
 
     im2d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False)
+        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, resolution=500)
 
     im_grid = pynbody.sph.to_3d_grid(f.gas,nx=200,x2=20.0)[::50]
 
@@ -74,9 +74,11 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
 
     # Make images with a different kernel (Wendland C2)
     im3d_wendlandC2 = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, kernel_type='wendlandC2')
+        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, kernel_type='wendlandC2',
+        resolution=500)
     im2d_wendlandC2 = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, kernel_type='wendlandC2')
+        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, kernel_type='wendlandC2',
+        resolution=500)
 
 
     np.save("result_im_2d_wendlandC2.npy",im2d_wendlandC2)
@@ -99,9 +101,9 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
 def test_approximate_images(compare2d, compare3d):
     global f
     im3d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True)
+        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True, resolution=500)
     im2d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True )
+        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, resolution=500)
 
     np.save("result_approx_im_2d.npy", im2d)
     np.save("result_approx_im_3d.npy", im3d)
@@ -124,7 +126,7 @@ def test_denoise_projected_image_throws():
 def test_render_stars(stars_2d):
     global f
     with pytest.warns(UserWarning, match=r"No log file found; reverting to guess-and-check"):
-        im = pynbody.plot.stars.render(f, width=10.0, resolution=100, ret_im=True, plot=False)
+        im = pynbody.plot.stars.render(f, width=10.0, resolution=100, return_image=True, noplot=True)
 
     np.save("result_stars_2d.npy", im[40:60])
 

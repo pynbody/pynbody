@@ -97,6 +97,7 @@ def test_latex():
     assert units.Unit("100 km s^-1").latex() == r"100\,\mathrm{km}\,\mathrm{s}^{-1}" # trailing .00 should be removed
     assert units.Unit("10.234 km s^-1").latex() == r"10.23\,\mathrm{km}\,\mathrm{s}^{-1}"
     assert units.Unit("1234.567 km s^-1").latex() == r"1.23\times 10^{3}\,\mathrm{km}\,\mathrm{s}^{-1}"
+    assert units.Unit("1234 km s^-1").latex() == r"1234\,\mathrm{km}\,\mathrm{s}^{-1}" # can be compactly expressed, so do it
     assert units.Unit("1.2345e-5 km s^-1").latex() == r"1.23\times 10^{-5}\,\mathrm{km}\,\mathrm{s}^{-1}"
     assert units.Unit("1.2345e-1 km s^-1").latex() == r"0.1235\,\mathrm{km}\,\mathrm{s}^{-1}"
     assert units.Unit("Msol").latex() == r"M_{\odot}"
