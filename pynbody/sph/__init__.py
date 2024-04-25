@@ -391,11 +391,12 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                  kernel=Kernel(),
                  z_camera=None,
                  smooth='smooth',
-                 smooth_in_pixels=False,
+                 smooth_min=0.0,
                  force_quiet=False,
                  approximate_fast=_approximate_image,
                  threaded=None,
-                 denoise=None):
+                 denoise=None,
+                 z_range=None):
     """
     Render an SPH image using a typical (mass/rho)-weighted 'scatter'
     scheme.
@@ -433,11 +434,13 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
      the image in the z=0 plane. Particles too close to the camera are
      also excluded.
 
+     *z_range*: If set, only particles with z between z_range[0] and z_range[1] will be included
+
      *smooth*: The name of the array which contains the smoothing lengths
       (default 'smooth')
 
-     *smooth_in_pixels*: If True, the smoothing array contains the smoothing
-       length in image pixels, rather than in real distance units (default False)
+     *smooth_min*: The minimum smoothing length; if smoothing lengths fall below
+      this, they are artificially inflated to this value
 
      *approximate_fast*: if True, render high smoothing length particles at
        progressively lower resolution, resample and sum
@@ -470,23 +473,24 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
     if threaded is None:
         threaded = _get_threaded_image()
 
+    if isinstance(qty, str):
+        qty = snap[qty]
+
     if threaded:
         im = _threaded_render_image(base_renderer, snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
                                     out_units, xy_units, kernel, z_camera, smooth,
-                                    smooth_in_pixels, True,
-                                    num_threads=threaded)
+                                    True,
+                                    num_threads=threaded, smooth_min = smooth_min, z_range=z_range)
     else:
         im = base_renderer(snap, qty, x2, nx, y2, ny, x1, y1, z_plane,
                            out_units, xy_units, kernel, z_camera, smooth,
-                           smooth_in_pixels, False)
+                           False, smooth_min = smooth_min, z_range=z_range)
 
     if denoise:
         # call self to render a 'flat field'
-        snap['__denoise_one'] = 1
-        im2 = render_image(snap, '__denoise_one', x2, nx, y2, ny, x1, y1, z_plane, None,
-                           xy_units, kernel, z_camera, smooth, smooth_in_pixels,
-                           force_quiet, approximate_fast, threaded, False)
-        del snap.ancestor['__denoise_one']
+        im2 = render_image(snap, np.ones(len(snap), dtype=qty.dtype), x2, nx, y2, ny, x1, y1, z_plane, None,
+                           xy_units, kernel, z_camera, smooth, smooth_min, True, approximate_fast, threaded, False,
+                           z_range=z_range)
         im2 = im / im2
         im2.units = im.units
         return im2
@@ -497,8 +501,8 @@ def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
 
 def _render_image(snap, qty, x2, nx, y2, ny, x1,
                   y1, z_plane, out_units, xy_units, kernel, z_camera,
-                  smooth, smooth_in_pixels,  force_quiet,
-                  smooth_range=None, res_downgrade=None, snap_slice=None,
+                  smooth, force_quiet, smooth_min = 0.0,
+                  smooth_range=None, res_downgrade=None, snap_slice=None,z_range=None,
                   __threaded=False):
     """The single-threaded image rendering core function. External calls
     should be made to the render_image function."""
@@ -508,12 +512,18 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
     snap_proxy = {}
 
     # cache the arrays and take a slice of them if we've been asked to
-    for arname in 'x', 'y', 'z', 'pos', smooth, qty, 'rho', 'mass':
+    for arname in 'x', 'y', 'z', 'pos', smooth, 'rho', 'mass':
         snap_proxy[arname] = snap[arname]
         if snap_slice is not None:
             snap_proxy[arname] = snap_proxy[arname][snap_slice]
 
+    if snap_slice is not None:
+        qty = qty[snap_slice]
 
+    if units.has_units(qty):
+        qty_units = qty.units
+    else:
+        qty_units = 1.0
 
     in_time = time.time()
 
@@ -557,6 +567,13 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
         smooth_lo = 0.0
         smooth_hi = 100000.0
 
+    if z_range is not None:
+        z_lo = float(z_range[0])
+        z_hi = float(z_range[1])
+    else:
+        z_lo = -np.inf
+        z_hi = np.inf
+
     nx = int(nx + .5)
     ny = int(ny + .5)
 
@@ -573,25 +590,30 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
     sm = snap_proxy[smooth]
 
-    if sm.units != x.units and not smooth_in_pixels:
+    if sm.units != x.units:
         sm = sm.in_units(x.units)
 
-    qty_s = qty
-    qty = snap_proxy[qty]
+    if isinstance(smooth_min, str):
+        smooth_min = units.Unit(smooth_min)
+
+    if units.is_unit(smooth_min):
+        smooth_min = smooth_min.ratio(x.units, **snap.conversion_context())
+
     mass = snap_proxy['mass']
     rho = snap_proxy['rho']
 
     if out_units is not None:
         # Calculate the ratio now so we don't waste time calculating
         # the image only to throw a UnitsException later
-        conv_ratio = (qty.units * mass.units / (rho.units * sm.units ** kernel.h_power)).ratio(out_units,
+
+        conv_ratio = (qty_units * mass.units / (rho.units * sm.units ** kernel.h_power)).ratio(out_units,
                                                                                                **snap.conversion_context())
 
     if z_camera is None:
         z_camera = 0.0
 
     result = _render.render_image(nx, ny, x, y, z, sm, x1, x2, y1, y2, z_camera, 0.0, qty, mass, rho,
-                                  smooth_lo, smooth_hi, kernel,
+                                  smooth_lo, smooth_hi, z_lo, z_hi, smooth_min, kernel,
                                   _calculate_wrapping_repeat_array(snap, x1, x2, xy_units),
                                   _calculate_wrapping_repeat_array(snap, y1, y2, xy_units))
 
@@ -607,8 +629,7 @@ def _render_image(snap, qty, x2, nx, y2, ny, x1,
 
         # The following will be the units of outputs after the above conversion
         # is applied
-        result.units = snap_proxy[qty_s].units * \
-            snap_proxy['x'].units ** (3 - kernel.h_power)
+        result.units = qty_units * snap_proxy['x'].units ** (3 - kernel.h_power)
     else:
         result *= conv_ratio
         result.units = out_units

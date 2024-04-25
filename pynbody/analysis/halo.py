@@ -11,6 +11,7 @@ Functions for dealing with and manipulating halos in simulations.
 import functools
 import logging
 import math
+import operator
 import warnings
 
 import numpy as np
@@ -21,9 +22,9 @@ from . import _com, cosmology, profile
 logger = logging.getLogger('pynbody.analysis.halo')
 
 
-def shrink_sphere_center(sim, r=None, shrink_factor=0.7,
-                         min_particles=100,
-                         num_threads = None, particles_for_velocity = 0):
+def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100,
+                         num_threads = None, particles_for_velocity = 0,
+                         families_for_velocity = ['dm', 'star']):
     """
     Return the center according to the shrinking-sphere method of Power et al (2003)
 
@@ -51,6 +52,10 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7,
     particles_for_velocity : int, optional
         If > min_particles, a velocity centre is calculated when the number of particles falls below this threshold,
         and returned.
+
+    families_for_velocity : list, optional
+        The families to use for the velocity centering. Default is ['dm', 'star'], because gas particles may
+        be involved in violent outflows making them a risky choice for velocity centering.
 
     Returns
     -------
@@ -90,13 +95,16 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7,
     com_to_return = array.SimArray(com, sim['pos'].units)
 
     if particles_for_velocity > min_particles:
-        final_sphere = sim[filt.Sphere(velocity_radius, com)]
+        fam_filter = functools.reduce(operator.or_, (filt.FamilyFilter(f) for f in families_for_velocity))
+        final_sphere = sim[filt.Sphere(velocity_radius, com) & fam_filter]
+        logger.info("Particles in sphere = %d", len(final_sphere))
         if len(final_sphere) == 0:
             warnings.warn("Final sphere is empty; cannot return a velocity. This probably implies something is "
                           "wrong with the position centre too.", RuntimeWarning)
             return com_to_return, np.array([0., 0., 0.])
         else:
             vel = final_sphere.mean_by_mass('vel')
+            logger.info("Final velocity=%s", vel)
             return com_to_return, vel
     else:
         return com_to_return
@@ -284,7 +292,7 @@ def vel_center(sim, cen_size="1 kpc", return_cen=False, move_all=True, **kwargs)
 
 
 def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc",
-           cen_num_particles=5000, move_all=True, wrap=False, **kwargs):
+           cen_num_particles=10000, move_all=True, wrap=False, **kwargs):
     """Transform the ancestor snapshot so that the provided snapshot is centred
 
     The centering scheme is determined by the ``mode`` keyword. As well as the
@@ -408,6 +416,7 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
         if with_velocity:
             if vel_centre is None :
                 vel_centre = vel_center(sim, cen_size=cen_size, retcen=True)
+            logger.info("vel_centre=%s", vel_centre)
             transform = transform.offset_velocity(-vel_centre)
 
     except:

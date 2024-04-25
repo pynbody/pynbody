@@ -110,8 +110,7 @@ class FamilyFilter(Filter):
     """A filter that selects particles based on their family."""
 
     def __init__(self, family_):
-        assert isinstance(family_, family.Family)
-        self.family = family_
+        self.family = family.get_family(family_, False)
 
     def __repr__(self):
         return "FamilyFilter("+self.family.name+")"

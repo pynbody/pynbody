@@ -451,15 +451,11 @@ class CompositeUnit(UnitBase):
 
         if self._scale != 1:
             log10_scale = np.log10(abs(self._scale))
-            if log10_scale > 2.5 or log10_scale < -1.0:
-                x = ("%.2e" % self._scale).split('e')
-                s = x[0]
-                ex = x[1].lstrip('0+')
-                if len(ex) > 0 and ex[0] == '-':
-                    ex = '-' + (ex[1:]).lstrip('0')
-                if ex != '':
-                    s += r"\times 10^{" + ex + "}"
-            else:
+
+            # if we can compactly express the scale without exponents, do so
+            force_no_exponent = str(self._scale).endswith(".0") and log10_scale < 4
+
+            if (log10_scale < 2.5 and log10_scale > -1.0) or force_no_exponent:
                 if log10_scale > 2.0:
                     s = "%.1f" % self._scale
                 elif log10_scale > 1.0:
@@ -471,6 +467,15 @@ class CompositeUnit(UnitBase):
 
                 while "." in s and s.endswith("0") or s.endswith("."):
                     s = s[:-1]
+            else:
+                x = ("%.2e" % self._scale).split('e')
+                s = x[0]
+                ex = x[1].lstrip('0+')
+                if len(ex) > 0 and ex[0] == '-':
+                    ex = '-' + (ex[1:]).lstrip('0')
+                if ex != '':
+                    s += r"\times 10^{" + ex + "}"
+
         else:
             s = ""
 

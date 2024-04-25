@@ -146,6 +146,10 @@ def align(h, vec_to_xform, disk_size="5 kpc", move_all=True, already_centered = 
     """Reposition and rotate the ancestor of h to place the angular momentum into a specified orientation.
 
     The routine first calls the center routine to reposition the halo (unless already_centered is True).
+    If there are a sufficient number of gas particles (more than 100), only the gas particles are used for
+    centering, since these will also be used for angular momentum calculations; if there is an offset between
+    e.g. dark matter and baryons, it is better to centre on the baryons.
+
     Then, it determines the disk orientation using the angular momentum vector of the gas particles within
     a specified radius of the halo center. If there is no gas within this radius, the routine falls back first
     to stellar particles, and then to all particles.
@@ -189,7 +193,11 @@ def align(h, vec_to_xform, disk_size="5 kpc", move_all=True, already_centered = 
             top = h
         tx = transformation.NullTransformation(top)
     else:
-        tx = halo.center(h, **center_kwargs)
+        if len(h.st) > 100:
+            h_for_centering = h.st
+        else:
+            h_for_centering = h
+        tx = halo.center(h_for_centering, **center_kwargs)
 
     try:
         if len(h.gas) > 5:
