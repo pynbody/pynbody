@@ -6,7 +6,7 @@ import pytest
 
 def test_powspec_static():
     f = pynbody.new()
-    with pytest.warns(RuntimeWarning, match="Planck 2018"):
+    with pytest.warns(RuntimeWarning, match="Assuming default value"):
         ps = hmf.PowerSpectrumCAMB(f)
 
     assert np.allclose(ps.k.min(), 1.0e-4)
