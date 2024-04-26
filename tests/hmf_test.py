@@ -12,7 +12,7 @@ def test_powspec_static():
     assert np.allclose(ps.k.min(), 1.0e-4)
     assert np.allclose(ps.k.max(), 1.0e4)
     assert np.argmax(ps(ps.k)) == 369
-    assert np.allclose(ps(ps.k[369]), 25452.30251039246)
+    assert np.allclose(ps(ps.k[369]), 25452.63366178445)
 
 def test_powspec_live():
     f = pynbody.new()
@@ -22,5 +22,5 @@ def test_powspec_live():
     assert np.allclose(ps.k.min(), 1.0e-4)
     assert np.allclose(ps.k.max(), 1.0e4)
     assert np.argmax(ps(ps.k)) == 368
-    assert np.allclose(ps(ps.k[368]), 25986.02572910632)
+    assert np.allclose(ps(ps.k[368]), 25985.50574103266)
 

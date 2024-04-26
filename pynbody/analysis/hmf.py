@@ -276,8 +276,8 @@ def variance(M, f_filter=TophatFilter, powspec=PowerSpectrumCAMB, arg_is_R=False
 
     integrand = lambda k: k ** 2 * powspec(k) * f_filter.Wk(k * R) ** 2
     integrand_ln_k = lambda k: np.exp(k) * integrand(np.exp(k))
-    v = scipy.integrate.romberg(integrand_ln_k, math.log(powspec.min_k), math.log(
-        1. / R) + 3, divmax=10, rtol=1.e-4) / (2 * math.pi ** 2)
+    v =  scipy.integrate.quad(integrand_ln_k, math.log(powspec.min_k), math.log(
+        1. / R) + 3, epsrel=1.e-6)[0] / (2 * math.pi ** 2)
 
     return v
 
