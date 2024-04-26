@@ -748,8 +748,11 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         """Given a unit (or string) `dimensions`, returns a unit with the same
         physical dimensions which is in the unit schema of the current file."""
         dimensions = units.Unit(dimensions)
-        d = dimensions.dimensional_project(
-            self._file_units_system + ["a", "h"])
+        try:
+            d = dimensions.dimensional_project(
+                self._file_units_system + ["a", "h"])
+        except units.UnitsException:
+            return units.no_unit
         new_unit = reduce(lambda x, y: x * y, [
                           a ** b for a, b in zip(self._file_units_system, d)])
         return new_unit

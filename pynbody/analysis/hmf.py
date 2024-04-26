@@ -22,6 +22,7 @@ try:
 except ImportError:
     pass
 
+import copy
 import logging
 import math
 import subprocess
@@ -92,18 +93,21 @@ class HarmonicStepFilter(FieldFilter):
 
 class PowerSpectrumCAMB:
 
-    def __init__(self, context, filename=None, log_interpolation=True):
-        if filename is None:
-            warnings.warn(
-                "Using the default power-spectrum spectrum which assumes ns=0.96 and WMAP7+H0+BAO transfer function.", RuntimeWarning)
-            filename = os.path.join(os.path.dirname(__file__), "CAMB_WMAP7")
+    def __init__(self, context, filename=None, k=None, Pk=None, log_interpolation=True):
 
-        k, Pk = np.loadtxt(filename, unpack=True)
+        if k is None or Pk is None:
+            if filename is None:
+                warnings.warn(
+                    "Using the default power-spectrum spectrum which assumes Planck 2018 values: "
+                    "Omega_c h^2 = 0.120; Omega_b h^2 = 0.0224; h = 0.676; n_s = 0.9667. Sigma8 will be correctly scaled to the simulation value. ",
+                    RuntimeWarning)
+                filename = os.path.join(os.path.dirname(__file__), "CAMB_Planck18")
+            k, Pk = np.loadtxt(filename, unpack=True)
 
         self._orig_k_min = k.min()
         self._orig_k_max = k.max()
 
-        bot_k = 1.e-5
+        bot_k = 1.e-4
 
         if k[0] > bot_k:
             # extrapolate out
@@ -113,7 +117,7 @@ class PowerSpectrumCAMB:
             k = np.hstack((bot_k, k))
             Pk = np.hstack((Pkinterp, Pk))
 
-        top_k = 1.e7
+        top_k = 1.e4
 
         if k[-1] < top_k:
             # extrapolate out
@@ -127,11 +131,11 @@ class PowerSpectrumCAMB:
         self.k = k.view(pynbody.array.SimArray)
         self.k.units = "Mpc^-1 h a^-1"
 
-        self.Pk = Pk.view(pynbody.array.SimArray)
-        self.Pk.units = "Mpc^3 h^-3"
+        self.Pk_z0_unnormalised = Pk.view(pynbody.array.SimArray)
+        self.Pk_z0_unnormalised.units = "Mpc^3 h^-3"
 
         self.k.sim = context
-        self.Pk.sim = context
+        self.Pk_z0_unnormalised.sim = context
 
         self._lingrowth = 1
 
@@ -139,8 +143,8 @@ class PowerSpectrumCAMB:
             self._lingrowth = cosmology.linear_growth_factor(context) ** 2
 
         self._default_filter = TophatFilter(context)
-        self.min_k = self.k.min()
-        self.max_k = self.k.max()
+        self.min_k = self.k.min()*1.000001
+        self.max_k = self.k.max()*0.999999
         self._norm = 1
 
         self._log_interp = log_interpolation
@@ -152,9 +156,9 @@ class PowerSpectrumCAMB:
     def _init_interpolation(self):
         if self._log_interp:
             self._interp = scipy.interpolate.interp1d(
-                np.log(self.k), np.log(self.Pk))
+                np.log(self.k), np.log(self.Pk_z0_unnormalised))
         else:
-            self._interp = scipy.interpolate.interp1d(np.log(self.k), self.Pk)
+            self._interp = scipy.interpolate.interp1d(np.log(self.k), self.Pk_z0_unnormalised)
 
     def set_sigma8(self, sigma8):
         current_sigma8_2 = self.get_sigma8() ** 2
@@ -166,12 +170,6 @@ class PowerSpectrumCAMB:
         return current_sigma8
 
     def __call__(self, k):
-        if np.any(k < self._orig_k_min):
-            warnings.warn(
-                "Power spectrum does not extend to low enough k; using power-law extrapolation (this is likely to be fine)", RuntimeWarning)
-        if np.any(k > self._orig_k_max):
-            warnings.warn(
-                "Power spectrum does not extend to high enough k; using power-law extrapolation. This is bad but your results are unlikely to be sensitive to it unless they relate directly to very small scales or you have run CAMB with inappropriate settings.", RuntimeWarning)
         if self._log_interp:
             return self._norm * self._lingrowth * np.exp(self._interp(np.log(k)))
         else:
@@ -184,45 +182,52 @@ class PowerSpectrumCAMBLive(PowerSpectrumCAMB):
         """Run CAMB to get out a power spectrum. The default parameters are in cambtemplate.ini.
         Any of these can be modified by passing the appropriate kwarg."""
 
-        from .. import config_parser
-        path_to_camb = config_parser.get('camb', 'path')
-        if path_to_camb == '/path/to/camb':
-            raise RuntimeError("You need to compile CAMB and set up the executable path in your pynbody configuration file.")
+        try:
+            import camb
+        except ImportError:
+            warnings.warn("The camb module is not installed. Falling back to using a pre-computed power spectrum"
+                          "which may not be appropriate for your cosmology.")
+            super().__init__(context)
+            return
 
-        file_in = open(
-            os.path.join(os.path.dirname(__file__), "cambtemplate.ini"))
-        folder_out = tempfile.mkdtemp()
-        file_out = open(os.path.join(folder_out, "camb.ini"), "w")
+        camb_params_obj = camb.CAMBparams()
 
         if use_context:
             h0 = context.properties['h']
-            omB0 = context.properties['omegaB0'] * h0 ** 2
-            omM0 = context.properties['omegaM0'] * h0 ** 2
-            omC0 = omM0 - omB0
-            ns = context.properties['ns']
-            running = context.properties['running']
-            camb_params.update({'ombh2': omB0, 'omch2': omC0, 'hubble': h0 *
-                                100, 'scalar_nrun(1)': running, 'scalar_spectral_index(1)': ns})
+            omBh2 = context.properties['omegaB0'] * h0 ** 2
+            omMh2 = context.properties['omegaM0'] * h0 ** 2
+            if omBh2 == 0.0 and 'ombh2' not in camb_params_obj:
+                warnings.warn("OmegaB0 is zero, presumably because this is a DMO run. For the power spectrum, setting ombh2 to 0.0224 (Planck 2018)."
+                              "To override, set 'omegaB0' in the simulation parameters, or 'ombh2' in the camb_params argument.")
+                omBh2 = 0.0224
+            OmCh2 = omMh2 - omBh2
 
-        for line in file_in:
-            if "=" in line and "#" not in line:
-                name, val = line.split("=")
-                name = name.strip()
-                if name in camb_params:
-                    val = camb_params[name]
-                print(name, "=", val, file=file_out)
-            else:
-                print(line.strip(), file=file_out)
+            camb_params = copy.copy(camb_params)
+            if 'H0' not in camb_params:
+                camb_params['H0'] = h0 * 100
+            if 'ombh2' not in camb_params:
+                camb_params['ombh2'] = omBh2
+            if 'omch2' not in camb_params:
+                camb_params['omch2'] = OmCh2
 
-        file_out.close()
+            camb_params_obj.set_cosmology(**camb_params)
 
-        logger.info("Running %s on %s" %
-                    (path_to_camb, os.path.join(folder_out, "camb.ini")))
-        subprocess.check_output("cd %s; %s camb.ini" %
-                                (folder_out, path_to_camb), shell=True)
+            camb_params_obj.InitPower.set_params(ns=context.properties['ns'])
 
-        PowerSpectrumCAMB.__init__(self, context, os.path.join(
-            folder_out, "test_matterpower.dat"), log_interpolation=log_interpolation)
+        camb_params_obj.WantTransfer = True
+
+        # always get the matter power spectrum at z=0; growth factor will be scaled later if needed
+        camb_params_obj.set_matter_power(redshifts=[0.0], kmax=1e2, k_per_logint=0,
+                                     silent=True, nonlinear=False)
+        results = camb.get_results(camb_params_obj)
+
+        k, z, Pk = results.get_matter_power_spectrum(minkh=1.e-4, maxkh=1e2, npoints=1000)
+
+        assert len(z)==1
+        assert z[0] == 0.0
+
+        super().__init__(context, k=k, Pk=Pk[0], log_interpolation=log_interpolation)
+
 
 
 class BiasedPowerSpectrum(PowerSpectrumCAMB):
@@ -246,7 +251,7 @@ class BiasedPowerSpectrum(PowerSpectrumCAMB):
         self.min_k = pspec.min_k
         self.max_k = pspec.max_k
         self.k = pspec.k
-        self.Pk = pspec.Pk * self._bias(self.k) ** 2
+        self.Pk_z0_unnormalised = pspec.Pk_z0_unnormalised * self._bias(self.k) ** 2
 
     def __call__(self, k):
         return self._norm * self._pspec(k) * self._bias(k) ** 2
@@ -261,7 +266,7 @@ def variance(M, f_filter=TophatFilter, powspec=PowerSpectrumCAMB, arg_is_R=False
         ax = pynbody.array.SimArray(
             [variance(Mi, f_filter, powspec, arg_is_R) for Mi in M])
         # hopefully dimensionless
-        ax.units = powspec.Pk.units * powspec.k.units ** 3
+        ax.units = powspec.Pk_z0_unnormalised.units * powspec.k.units ** 3
         return ax
 
     if arg_is_R:
@@ -308,7 +313,7 @@ def correlation(r, powspec=PowerSpectrumCAMB):
 
     if hasattr(r, '__len__'):
         ax = pynbody.array.SimArray([correlation(ri,  powspec) for ri in r])
-        ax.units = powspec.Pk.units * powspec.k.units ** 3
+        ax.units = powspec.Pk_z0_unnormalised.units * powspec.k.units ** 3
         return ax
 
     # Because sin kr becomes so highly oscilliatory, normal

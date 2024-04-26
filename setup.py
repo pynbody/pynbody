@@ -154,7 +154,7 @@ install_requires = [
 ]
 
 tests_require = [
-    'pytest','pandas'
+    'pytest','pandas','camb'
 ]
 
 docs_require = [
@@ -164,7 +164,8 @@ docs_require = [
     'sphinx-copybutton',
     'numpydoc',
     'extinction',
-    'nbsphinx'
+    'nbsphinx',
+    'camb'
 ],
 
 extras_require = {
