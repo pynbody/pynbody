@@ -1,4 +1,4 @@
-.. hmf tutorial
+.. _hmf_tutorial:
 
 
 Halo Mass function
@@ -58,9 +58,9 @@ You can generate an HMF using the :func:`~pynbody.analysis.hmf.halo_mass_functio
 .. ipython::
 
   In [3]: m, sig, dn_dlogm = pynbody.analysis.hmf.halo_mass_function(s, log_M_min=10, log_M_max=15, delta_log_M=0.1,
-     ...:                                                            kern="ST")
+     ...:                                                            kern="REEDU")
 
-By specifying ``kern="ST"``, we are asking for a Sheth-Tormen mass function. Other options are
+By specifying ``kern="REEDU"``, we are asking for a Reed (2007) mass function. Other options are
 described in the documentation of :func:`~pynbody.analysis.hmf.halo_mass_function`.
 
 Let's inspect the output:
@@ -88,7 +88,7 @@ a Poissonian distribution:
 .. ipython::
 
   In [2]: bin_center, bin_counts, err = pynbody.analysis.hmf.simulation_halo_mass_function(s,
-     ...:                        log_M_min=10, log_M_max=15, delta_log_M=0.1)
+     ...:                        log_M_min=10, log_M_max=15, delta_log_M=0.1, )
 
 
 We are now ready to compare the two results on a plot:
@@ -98,5 +98,39 @@ We are now ready to compare the two results on a plot:
   In [2]: plt.errorbar(bin_center, bin_counts, yerr=err, fmt='o',
      ...:              capthick=2, elinewidth=2, color='darkgoldenrod')
 
+
   @savefig hmf_comparison.png width=6in
-  In [2]: plt.loglog()
+  In [2]: plt.xlim(1e10, 1e15)
+
+The agreement is pretty good. Note that in generating the empirical halo mass function above,
+Pynbody has summed the mass of particles in each halo to get the halo mass. This may not
+be what you want, especially e.g. if you want to compare with virial masses rather than
+bound masses. Furthermore, it can be slow for large simulations. For all these reasons, if \
+the halo finder provides pre-calculated masses you can plot those instead by passing them
+to the ``mass_property`` argument of :func:`~pynbody.analysis.hmf.simulation_halo_mass_function`.
+First, check the available properties for your halo catalogue:
+
+.. ipython::
+
+    In [2]: s.halos()[0].properties.keys()
+
+
+Here we can see SubFind calculated various mass definitions like ``mmean_200``,
+``mcrit_200`` etc. The particular properties available will depend on your halo finder.
+Let's use ``mmean_200`` as another comparison with the HMF:
+
+.. ipython::
+
+    In [2]: bin_center, bin_counts, err = pynbody.analysis.hmf.simulation_halo_mass_function(s,
+       ...:                        log_M_min=10, log_M_max=15, delta_log_M=0.1,
+       ...:                        mass_property='mmean_200')
+
+    In [2]: plt.errorbar(bin_center, bin_counts, yerr=err, fmt='o',
+       ...:              capthick=2, elinewidth=2, color='k', alpha=0.5)
+
+    @savefig hmf_comparison_finder_mass.png width=6in
+    In [2]: plt.xlim(1e10, 1e15)
+
+You can see that this agrees well. The slight change is expected because of the change in
+halo mass definition from a FoF mass to a spherical overdensity mass. The disagreement
+at low masses is due to the finite resolution of the simulation.
