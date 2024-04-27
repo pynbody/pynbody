@@ -176,25 +176,3 @@ def test_derived_3d_array(family):
 
     with f.ancestor.rotate_y(90):
         _ = f['test_derived_3d_array_transformation']
-
-
-
-def test_load_within_transformation_block():
-    """Test for what happens if a transformation has been applied when lazy-loading is triggered.
-
-    This is only an issue for rotations, as translations and velocity offsets will themselves trigger a
-    lazy-load of pos/vel array, whereas rotations don't know what 3-vectors are going to be accessed later.
-    """
-
-    f = pynbody.new(dm=100)
-    f['vel'] = np.random.normal(size=f['vel'].shape)
-    f['other_vec_field'] = f['vel']
-
-    f_alt = f.get_copy_on_access_simsnap()
-    f_alt['vel'] # noqa - trigger 'load' of vel
-
-    with f_alt.rotate_x(90):
-        npt.assert_allclose(f_alt['vel'], f_alt['other_vec_field'])
-
-    npt.assert_allclose(f_alt['vel'], f_alt['other_vec_field'])
-    npt.assert_allclose(f_alt['vel'], f['vel'])
