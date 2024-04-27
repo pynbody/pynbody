@@ -8,9 +8,9 @@ build:
    tools:
      python: "3.11"
    apt_packages:
-     - gcc-10
-     - g++-10
-     - gfortran-10
+     - gcc
+     - g++
+     - gfortran
    jobs:
      pre_create_environment:
        - echo "Getting test data"
