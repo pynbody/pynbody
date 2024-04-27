@@ -154,7 +154,7 @@ install_requires = [
 ]
 
 tests_require = [
-    'pytest','pandas'
+    'pytest','pandas','camb'
 ]
 
 docs_require = [
@@ -164,7 +164,8 @@ docs_require = [
     'sphinx-copybutton',
     'numpydoc',
     'extinction',
-    'nbsphinx'
+    'nbsphinx',
+    'camb'
 ],
 
 extras_require = {
@@ -197,7 +198,7 @@ setup(name = 'pynbody',
                     'pynbody/analysis': ['cmdlum.npz',
                                          'h1.hdf5',
                                          'ionfracs.npz',
-                                         'CAMB_WMAP7',
+                                         'CAMB_WMAP7', 'CAMB_Planck18',
                                          'cambtemplate.ini'],
                     'pynbody/plot': ['tollerud2008mw']},
       ext_modules = ext_modules,
