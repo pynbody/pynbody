@@ -10,6 +10,7 @@ build:
    apt_packages:
      - gcc-10
      - g++-10
+     - gfortran-10
    jobs:
      pre_create_environment:
        - echo "Getting test data"
