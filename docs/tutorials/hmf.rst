@@ -10,9 +10,10 @@ and compare it to a theoretical model.
 .. note::
 
  The halo mass function code in pynbody was implemented in 2012 when there
- were no other python libraries that could do this.
+ were no other python libraries that could calculate theoretical HMFs.
  Since then, cosmology-focussed libraries such as `hmf <https://hmf.readthedocs.io/en/latest/index.html>`_,
- and `CCL <https://halotools.readthedocs.io/en/latest/>`_ have been developed.
+ `Colossus <https://bdiemer.bitbucket.io/colossus/index.html>`_
+ and `CCL <https://ccl.readthedocs.io/en/latest/>`_ have been developed.
  For precision cosmology applications, we recommend using these libraries.
  The functionality here is retained for quick cross-checks of simulations.
 
@@ -105,9 +106,10 @@ We are now ready to compare the two results on a plot:
 The agreement is pretty good. Note that in generating the empirical halo mass function above,
 Pynbody has summed the mass of particles in each halo to get the halo mass. This may not
 be what you want, especially e.g. if you want to compare with virial masses rather than
-bound masses. Furthermore, it can be slow for large simulations. For all these reasons, if \
-the halo finder provides pre-calculated masses you can plot those instead by passing them
-to the ``mass_property`` argument of :func:`~pynbody.analysis.hmf.simulation_halo_mass_function`.
+bound masses. Furthermore, summing over particles for each halo can be slow for large simulations.
+For all these reasons, if the halo finder provides pre-calculated masses you can use those
+instead by passing them to the ``mass_property`` argument of
+:func:`~pynbody.analysis.hmf.simulation_halo_mass_function`.
 First, check the available properties for your halo catalogue:
 
 .. ipython::

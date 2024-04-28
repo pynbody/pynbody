@@ -4,7 +4,8 @@ Routines related to halo mass function and other cosmological calculations.
 .. warning ::
     These routines were implemented in 2012 when there were no other python libraries that could do this.
     Since then, cosmology-focussed libraries such as `hmf <https://hmf.readthedocs.io/en/latest/index.html>`_,
-    and `CCL <https://halotools.readthedocs.io/en/latest/>`_ have been developed.
+    `Colossus <https://bdiemer.bitbucket.io/colossus/index.html>`_ and
+    `CCL <https://ccl.readthedocs.io/en/latest/>`_ have been developed.
     For precision cosmology applications, we recommend using these libraries, since the routines here
     have not been tested for precision applications (and are known to use approximations).
 
@@ -863,8 +864,8 @@ def simulation_halo_mass_function(snapshot_or_cat,
         Provide an array of halo masses in Msol h^-1. If None, this is calculated from the snapshot.
 
     mass_property : str, optional
-        The property name giving them mass of each halo. If None, sums the mass in particles in each halo
-        according to the particle data in the catalogue. This can be slow for large catalogues.
+        The property name giving the mass of each halo. If None, sums the mass in particles in each halo
+        according to the particle data in the catalogue. Summing masses can be slow for large catalogues.
 
     calculate_err : bool, optional
         If True, estimates error bars according to Poisson statistics.
