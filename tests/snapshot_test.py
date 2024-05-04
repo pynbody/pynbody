@@ -1,3 +1,5 @@
+import threading
+import time
 import weakref
 
 import numpy as np
@@ -268,3 +270,36 @@ def test_mean_by_mass_value():
 
     np.testing.assert_allclose(f.mean_by_mass('test_array'),
                                (f['test_array'][:500]*2./3 + f['test_array'][500:1000]*1./3).mean())
+
+
+class SlowLoadingSnapshot(pynbody.snapshot.simsnap.SimSnap):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._has_entered = False
+        self._has_exited = False
+        self._filename = "test"
+
+    def _load_array(self, array_name, fam=None):
+        if self._has_entered:
+            raise RuntimeError("Entered twice")
+        if self._has_exited:
+            raise RuntimeError("Entered after exiting")
+        self._has_entered=True
+        time.sleep(0.1)
+        self[array_name] = np.arange(len(self))
+        self._has_entered=False
+        self._has_exited=True
+
+def test_race_condition():
+    """There was a race condition where if multiple threads tried to load the same array at once, strange errors
+    would result. This has been fixed by a lock on deriving/loading data."""
+    f = SlowLoadingSnapshot()
+
+    def load_array():
+        f['anyarray'] # noqa
+
+    threads = [threading.Thread(target=load_array) for i in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()

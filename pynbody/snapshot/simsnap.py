@@ -141,6 +141,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         self._family_arrays = {}
         self._derived_array_names = []
         self._family_derived_array_names = {}
+        self._get_array_lock = threading.RLock()
         for i in family._registry:
             self._family_derived_array_names[i] = []
 
@@ -311,37 +312,39 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
     def _get_array_with_lazy_actions(self, name):
         """Get an array by the given name; if it's not available, attempt to load or derive it first"""
-        if name in list(self.keys()):
-            self._dependency_tracker.touching(name)
 
-            # Ensure that any underlying dependencies on 1D positions and velocities
-            # are forwarded to 3D dependencies as well
-            nd_name = self._array_name_1D_to_ND(name)
-            if nd_name is not None:
-                self._dependency_tracker.touching(nd_name)
-
-        elif not self.lazy_off:
-            # The array is not currently in memory at the level we need it, and there is a possibility
-            # of getting it into memory using lazy derivation or loading. First, if there is a family level
-            # array by the same name, dispose of it. (Note if this is being called on a FamilySubSnap, the below
-            # has no effect, and anyway we wouldn't reach this point in the code if the family array were available.)
-            self.__resolve_obscuring_family_array(name)
-
-            # Now, we'll try to load the array...
-            did_load = False
-            if not self.lazy_load_off:
-                # Note that we don't want this to be inside _dependency_tracker.calculating(name), because there is a
-                # small possibility the load will be mapped into a derivation by the loader class. Specifically this
-                # happens in ramses snapshots for the mass array (which is derived from the density array for gas cells).
-                self.__load_if_required(name)
-
-            if name in self:
-                # We managed to load it. Note the dependency.
+        # the below is not thread-safe, so we lock
+        with self._get_array_lock:
+            if name in list(self.keys()):
                 self._dependency_tracker.touching(name)
-            elif not self.lazy_derive_off:
-                # Try deriving instead
-                with self._dependency_tracker.calculating(name):
-                    self.__derive_if_required(name)
+
+                # Ensure that any underlying dependencies on 1D positions and velocities
+                # are forwarded to 3D dependencies as well
+                nd_name = self._array_name_1D_to_ND(name)
+                if nd_name is not None:
+                    self._dependency_tracker.touching(nd_name)
+
+            elif not self.lazy_off:
+                # The array is not currently in memory at the level we need it, and there is a possibility
+                # of getting it into memory using lazy derivation or loading. First, if there is a family level
+                # array by the same name, dispose of it. (Note if this is being called on a FamilySubSnap, the below
+                # has no effect, and anyway we wouldn't reach this point in the code if the family array were available.)
+                self.__resolve_obscuring_family_array(name)
+
+                # Now, we'll try to load the array...
+                if not self.lazy_load_off:
+                    # Note that we don't want this to be inside _dependency_tracker.calculating(name), because there is a
+                    # small possibility the load will be mapped into a derivation by the loader class. Specifically this
+                    # happens in ramses snapshots for the mass array (which is derived from the density array for gas cells).
+                    self.__load_if_required(name)
+
+                if name in self:
+                    # We managed to load it. Note the dependency.
+                    self._dependency_tracker.touching(name)
+                elif not self.lazy_derive_off:
+                    # Try deriving instead
+                    with self._dependency_tracker.calculating(name):
+                        self.__derive_if_required(name)
 
         # At this point we've done everything we can to get the array into memory. If it's still not there, we'll
         # get a KeyError from the below.
