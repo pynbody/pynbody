@@ -1,8 +1,9 @@
 import pynbody
-import pynbody.array
+import pynbody.array as pyn_array
 import pynbody.array.shared as shared
 
 SA = pynbody.array.SimArray
+import gc
 import os
 import signal
 import sys
@@ -203,9 +204,6 @@ def _test_and_alter_shared_value(array_info):
     array[:] = np.arange(3)[:, np.newaxis]
 
 def test_shared_arrays():
-    import gc
-
-    import pynbody.array as pyn_array
 
     gc.collect() # this is to start with a clean slate, get rid of any shared arrays that might be hanging around
     baseline_num_shared_arrays = pyn_array.shared.get_num_shared_arrays_owned() # hopefully zero, but we can't guarantee that
@@ -237,6 +235,26 @@ def test_shared_arrays():
     gc.collect()
 
     assert pyn_array.shared.get_num_shared_arrays_owned() == baseline_num_shared_arrays
+
+def test_shared_array_ownership():
+    """Test that we can have two copies of a shared array in a process, but that only the 'owner' cleans up the memory"""
+
+    import pynbody.array as pyn_array
+
+    baseline_num_shared_arrays = pyn_array.shared.get_num_shared_arrays_owned()  # hopefully zero, but we can't guarantee that
+    ar = pyn_array.array_factory((10,), int, True, True)
+    assert pyn_array.shared.get_num_shared_arrays_owned() == 1 + baseline_num_shared_arrays
+
+    array_info = pyn_array.shared._shared_array_deconstruct(ar)
+    ar2 = pynbody.array.shared._shared_array_reconstruct(array_info)
+    del ar2
+
+    gc.collect()
+
+    # shouldn't have been deleted!
+    assert pyn_array.shared.get_num_shared_arrays_owned() == 1 + baseline_num_shared_arrays
+
+
 
 @pytest.fixture
 def clean_up_test_protection():

@@ -20,12 +20,13 @@ class SharedArrayNotFound(OSError):
     pass
 
 class SharedMemorySimArray(SimArray):
-    __slots__ = ['_shared_fname']
+    __slots__ = ['_shared_fname', '_shared_owner']
     _shared_fname: str
+    _shared_owner: bool
 
     def __del__(self):
         global _owned_shared_memory_names
-        if hasattr(self, '_shared_fname'):
+        if hasattr(self, '_shared_fname') and getattr(self, '_shared_owner', False):
             if self._shared_fname in _owned_shared_memory_names:
                 _owned_shared_memory_names.remove(self._shared_fname)
                 posix_ipc.unlink_shared_memory(self._shared_fname)
@@ -98,6 +99,7 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
 
     ret_ar = np.frombuffer(mapped_mem, dtype=dtype, count=size, offset=offset).reshape(dims).view(SharedMemorySimArray)
     ret_ar._shared_fname = fname
+    ret_ar._shared_owner = create
 
     if strides:
         ret_ar.strides = strides
