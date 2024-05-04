@@ -11,13 +11,14 @@ class ExposedBaseSnapshotMixin:
                   "properties", "_derived_array_names", "_family_derived_array_names",
                   "_dependency_tracker", "immediate_mode", "delay_promotion"]
 
-    def __init__(self, base, *args, **kwargs):
+    def __init__(self, base: SimSnap, *args, **kwargs):
         self.base = base
         super().__init__(base, *args, **kwargs)
 
     def _inherit(self):
         self._file_units_system = self.base._file_units_system
         self._unifamily = self.base._unifamily
+        self._get_array_lock = self.base._get_array_lock
 
         for x in self._inherited:
             setattr(self, x, getattr(self.base, x))
