@@ -75,6 +75,6 @@ from .snapshot import load, new
 
 derived_array = snapshot.simsnap.SimSnap.derived_array
 
-__version__ = '2.0.0-beta.7'
+__version__ = '2.0.0-beta.8'
 
 __all__ = ['load', 'new', 'derived_array']
