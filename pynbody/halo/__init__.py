@@ -355,7 +355,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         """Returns True if the halo catalogue contains the specified halo number."""
         return halo_number in self.number_mapper
 
-    def get_group_array(self, family=None, use_index=False):
+    def get_group_array(self, family=None, use_index=False, fill_value=-1):
         """Return an array with an integer for each particle in the simulation, indicating the halo of that particle.
 
         If there are multiple levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
@@ -371,10 +371,14 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             If True, return the halo index rather than the halo number. (See the class documentation for the
             distinction between halo numbers and indices.)
 
+        fill_value : int, optional
+            The value to fill for particles not in any halo.
+
         """
         self.load_all()
         number_per_particle = self._index_lists.get_halo_number_per_particle(len(self.base),
-                                                                             None if use_index else self.number_mapper)
+                                                                             None if use_index else self.number_mapper,
+                                                                             fill_value = fill_value)
         if family is not None:
             return number_per_particle[self.base._get_family_slice(family)]
         else:

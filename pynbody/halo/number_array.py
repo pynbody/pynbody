@@ -64,16 +64,20 @@ class HaloNumberCatalogue(HaloCatalogue):
     def _no_such_halo(self, i):
         raise KeyError(f"No such halo {i}")
 
-    def get_group_array(self, family=None, use_index=False):
+    def get_group_array(self, family=None, use_index=False, fill_value=-1):
         if family is not None:
             result = self.base[family][self._array]
         else:
             result = self.base[self._array]
 
         if use_index:
-            return self.number_mapper.number_to_index(result)
-        else:
-            return result
+            result = np.copy(result)
+            ignored = result == self._ignore
+            not_ignored = ~ignored
+            result[ignored] = fill_value
+            result[not_ignored] = self.number_mapper.number_to_index(result[not_ignored])
+
+        return result
 
 
     @classmethod
