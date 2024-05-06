@@ -50,6 +50,19 @@ def test_nonmonotonic_transfer_matrix():
 
     assert (xfer==[[4,1],[0,5]]).all()
 
+def test_missing_values_transfer_matrix():
+    """Test making a transfer matrix where some particles are in no halo at all"""
+    f1 = pynbody.new(dm=10)
+    f2 = pynbody.new(dm=10)
+
+    f1['grp'] = np.array([-1,0,-1,0,0,0,1,1,1,1],dtype=np.int32)
+    f2['grp'] = np.array([0,-1,-1,0,0,1,1,1,1,1],dtype=np.int32)
+    b = pynbody.bridge.OneToOneBridge(f1,f2)
+
+    h1 = pynbody.halo.number_array.HaloNumberCatalogue(f1, ignore=-1)
+    h2 = pynbody.halo.number_array.HaloNumberCatalogue(f2, ignore=-1)
+
+    b.count_particles_in_common(h1, h2)
 
 def test_nonmonotonic_incomplete_bridge():
     # Test the non-monotonic bridge where not all the particles are shared

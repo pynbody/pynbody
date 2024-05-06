@@ -128,3 +128,15 @@ def test_halo_particles(halos):
           264776, 558562, 362319, 591560, 706259, 348265, 249821, 231233,
           474710, 231023, 380767, 413674, 589153, 459711, 576598, 671059,
           523615])
+
+@pytest.mark.parametrize('use_index', [True, False])
+def test_halo_array(halos, use_index):
+    """Tests for a bug where the halo array was not set correctly with use_index=True"""
+    grp_array = halos.get_group_array(use_index=use_index)
+    halos.base['grp_array'] = grp_array
+    for h in halos[:100]:
+        if use_index:
+            halo_num_or_index = halos.number_mapper.number_to_index(h.properties['halo_number'])
+        else:
+            halo_num_or_index = h.properties['halo_number']
+        assert np.all(h['grp_array'] == halo_num_or_index)

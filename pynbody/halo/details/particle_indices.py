@@ -44,7 +44,7 @@ class HaloParticleIndices:
         if number_mapper is not None:
             halo_numbers = number_mapper.index_to_number(ordering)
         else:
-            halo_numbers = range(len(ordering))
+            halo_numbers = ordering
 
         for halo_number, halo_index in zip(halo_numbers, ordering):
             indexing_slice = self._get_index_slice_for_halo(halo_index)
