@@ -122,7 +122,7 @@ class AHFCatalogue(HaloCatalogue):
 
         try:
             self._load_ahf_substructure(self._ahfBasename + 'substructure')
-        except (KeyError, ValueError, FileNotFoundError):
+        except (KeyError, ValueError, FileNotFoundError, IndexError):
             if not ignore_missing_substructure:
                 raise
             logger.error("Unable to load AHF substructure file; continuing without. To expose the underlying problem as an exception, pass ignore_missing_substructure=False to the AHFCatalogue constructor")
