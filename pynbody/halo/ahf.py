@@ -140,7 +140,7 @@ class AHFCatalogue(HaloCatalogue):
 
     def _setup_halo_numbering(self, halo_numbers):
         has_id = 'ID' in self._halo_properties
-        if has_id:
+        if has_id and len(self._halo_properties['ID'])>0:
             self._ahf_own_number_mapper = create_halo_number_mapper(self._halo_properties['ID'])
         else:
             # if no explicit IDs, ahf implicitly numbers starting at 0 in file order
