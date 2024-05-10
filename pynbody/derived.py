@@ -1,20 +1,25 @@
 """
-derived
-=======
+Functions that derive arrays (e.g. radius) from others (e.g. position)
 
-Holds procedures for creating new arrays from existing ones, e.g. for
-getting the radial position. For more information see :ref:`derived`.
+Users do not need to call these functions directly. They are called automatically when a
+derived array is requested from any :class:`~pynbody.snapshot.simsnap.SimSnap`.
+
+.. seealso::
+  Not all derived arrays that are provided by the pynbody framework are defined in this
+  module. In particular, see :class:`~pynbody.analysis.luminosity` for arrays related to
+  stellar luminosity.
+
+  For more information about how the derived array system operates, see :ref:`derived`.
 
 """
 
-import functools
 import logging
 import time
 import warnings
 
 import numpy as np
 
-from . import analysis, array, config, units
+from . import array, config, units
 from .dependencytracker import DependencyError
 from .snapshot import SimSnap
 
@@ -120,8 +125,6 @@ _op_dict = {"mean": "mean velocity",
 
 def _v_sph_operation(self, op):
     """SPH-smoothed velocity operations"""
-    from . import sph
-
     self.build_tree()
 
     nsmooth = config['sph']['smooth-particles']
@@ -180,28 +183,6 @@ def v_div(self):
 def age(self):
     """Stellar age determined from formation time and current snapshot time"""
     return self.properties['time'].in_units(self['tform'].units, **self.conversion_context()) - self['tform']
-
-bands_available = ['u', 'b', 'v', 'r', 'i', 'j', 'h', 'k', 'U', 'B', 'V', 'R', 'I',
-                   'J', 'H', 'K']
-
-def lum_den_template(band, s):
-        val = (10 ** (-0.4 * s[band + "_mag"])) * s['rho'] / s['mass']
-        val.units = s['rho'].units/s['mass'].units
-        return val
-
-for band in bands_available:
-    X = lambda s, b=str(band): analysis.luminosity.calc_mags(s, band=b)
-    X.__name__ = band + "_mag"
-    X.__doc__ = band + " magnitude from analysis.luminosity.calc_mags"""
-    SimSnap.derived_array(X)
-
-    lum_den = functools.partial(lum_den_template,band)
-
-    lum_den.__name__ = band + "_lum_den"
-    lum_den.__doc__ = "Luminosity density in astronomy-friendly units: 10^(-0.4 %s_mag) per unit volume. " \
-                      "" \
-                      "The magnitude is taken from analysis.luminosity.calc_mags."%band
-    SimSnap.derived_array(lum_den)
 
 
 @SimSnap.derived_array
@@ -283,7 +264,16 @@ def u(self):
 
 @SimSnap.derived_array
 def temp(self):
-    """Gas temperature derived from internal energy"""
+    """Gas temperature derived from internal energy
+
+    Note that to perform this derivation requires the mean molecular mass of the gas to be
+    known. This  depends on the ionisation state, which not all simulations store explicitly.
+
+    This requires an iterative approach, repeatedly estimating the mean molecular
+    mass for a best-guess temperature, then refining the temperature estimate.
+
+
+    """
     gamma = 5. / 3
     mu_est = np.ones(len(self))
     for i in range(5):
