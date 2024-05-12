@@ -54,7 +54,7 @@ from .. import filt, snapshot
 from .interpolate import interpolate2d
 
 _ssp_table = None
-_default_ssp_file = os.path.join(os.path.dirname(__file__), "cmdlum.npz")
+_default_ssp_file = os.path.join(os.path.dirname(__file__), "default_ssp.txt")
 
 class SSPTable:
     """An SSP table for interpolating magnitudes from stellar populations"""
@@ -234,7 +234,7 @@ class StevSSPTable(SSPTable):
         ages = np.log10(data['age'])
         ages1d = np.unique(ages)
 
-        metallicities = data['Z']
+        metallicities = np.log10(data['Z'])
         metallicities1d = np.unique(metallicities)
 
         # check that the ages and metallicities are in the correct order
@@ -258,7 +258,7 @@ class StevSSPTable(SSPTable):
 
 
         super().__init__(ages1d, metallicities1d,
-                         {k[:-3]: data[k].reshape((len(ages1d), len(metallicities1d)))
+                         {k[:-3]: data[k].reshape((len(metallicities1d), len(ages1d)))
                           for k in column_names if k.endswith('mag')})
 
 
@@ -273,13 +273,16 @@ def _load_ssp_table(path_or_table):
     else:
         raise ValueError("Invalid path or table")
 
-def _get_current_ssp_table():
+def get_current_ssp_table() -> SSPTable:
+    """Get the current preferred SSP table for calculating magnitudes
+
+    This will either be pynbody's default table or a custom table specified by :func:`use_custom_ssp_table`."""
     global _ssp_table
     if _ssp_table is None:
         _ssp_table = _load_ssp_table(_default_ssp_file)
     return _ssp_table
 
-def use_custom_ssp_table(path_or_table):
+def use_custom_ssp_table(path_or_table : SSPTable):
     """Specify a custom SSP table for calculating magnitudes.
 
     This function allows you to specify a custom SSP table for calculating magnitudes.
@@ -291,10 +294,17 @@ def use_custom_ssp_table(path_or_table):
     ----------
 
     path_or_table : str or SSPTable
-        Path to the SSP table file, or an :class:`SSPTable` object
+        Path to the SSP table file, or an :class:`SSPTable` object. Alternatively, you can pass
+        either 'default' (for the default table included with pynbody) or 'v1' (for the
+        table included with pynbody v1).
 
     """
     global _ssp_table
+
+    if path_or_table == 'default':
+        path_or_table = _default_ssp_file
+    elif path_or_table == 'v1':
+        path_or_table = os.path.join(os.path.dirname(__file__), "cmdlum.npz")
 
     _ssp_table = _load_ssp_table(path_or_table)
 
@@ -330,7 +340,7 @@ def calc_mags(simstars, band='v', cmd_path=None):
     # Padova group stellar populations Marigo et al (2008), Girardi et al
     # (2010)
     if cmd_path is None:
-        table = _get_current_ssp_table()
+        table = get_current_ssp_table()
     else:
         table = _load_ssp_table(cmd_path)
 
@@ -340,22 +350,18 @@ def calc_mags(simstars, band='v', cmd_path=None):
 
 
 def halo_mag(sim, band='v'):
-    """Calculating halo magnitude
+    """Calculate the absolute magnitude of the provided halo (or other collection of particles)
 
-    Calls pynbody.analysis.luminosity.calc_mags for ever star in passed
-    in simulation, converts those magnitudes back to luminosities, adds
-    those luminosities, then converts that luminosity back to magnitudes,
-    which are returned.
+    Parameters
+    ----------
 
-    **Usage:**
+    sim : pynbody.SimSnap
+        Halo (or other subsnap, or even a whole simulation) for which to calculate the absolute magnitude.
+        Any non-star particles are ignored.
 
-    >>> import pynbody
-    >>> pynbody.analysis.luminosity.halo_mag(h[1].s)
-
-    **Optional keyword arguments:**
-
-       *band* (default='v'): Which observed bandpass magnitude in which
-            magnitude should be calculated
+    band : str
+        Bandpass name. Can be any that is defined in the SSP table. See the module documentation
+        (:mod:`pynbody.analysis.luminosity`).
     """
     if (len(sim.star) > 0):
         return -2.5 * np.log10(np.sum(10.0 ** (-0.4 * sim.star[band + '_mag'])))
