@@ -282,6 +282,21 @@ def get_current_ssp_table() -> SSPTable:
         _ssp_table = _load_ssp_table(_default_ssp_file)
     return _ssp_table
 
+class SSPTableContext:
+    """Context manager for temporarily using a custom SSP table"""
+    def __init__(self, ssp_table):
+        global _ssp_table
+        self._new_table = ssp_table
+        self._old_table = _ssp_table
+        _ssp_table = self._new_table
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, *args):
+        global _ssp_table
+        _ssp_table = self._old_table
+
 def use_custom_ssp_table(path_or_table : SSPTable):
     """Specify a custom SSP table for calculating magnitudes.
 
@@ -289,6 +304,23 @@ def use_custom_ssp_table(path_or_table : SSPTable):
     The specified table will be used for all future calls to :func:`calc_mags`, and by extension,
     for all derived arrays that depend on magnitudes. However, be aware that this will not affect
     any existing arrays that have already been derived.
+
+    A context manager is returned, so you can use this function in a ``with`` block to temporarily
+    use a custom table, i.e.
+
+    >>> with use_custom_ssp_table('mytable.npz'):
+    >>>     print(pynbody.analysis.luminosity.calc_mags(s, 'v'))
+    >>> print(pynbody.analysis.luminosity.calc_mags(s, 'v'))
+
+    Here, the first call to calc_mags will use 'mytable.npz', and the second call will use the default
+    table again.
+
+    However, you do not need to enter the context manager if you want to permanently change the table, i.e.
+
+    >>> use_custom_ssp_table('mytable.npz')
+    >>> print(pynbody.analysis.luminosity.calc_mags(s, 'v'))
+
+    Here, the call to calc_mags will use 'mytable.npz' until the table is changed again.
 
     Parameters
     ----------
@@ -298,15 +330,22 @@ def use_custom_ssp_table(path_or_table : SSPTable):
         either 'default' (for the default table included with pynbody) or 'v1' (for the
         table included with pynbody v1).
 
-    """
-    global _ssp_table
+    Returns
+    -------
 
+    SSPTableContext
+        A context manager that can be used to temporarily use a custom SSP table. This is useful
+        for situations where you want to use a custom table for a specific calculation, but then
+        revert to the default table.
+
+    """
     if path_or_table == 'default':
         path_or_table = _default_ssp_file
     elif path_or_table == 'v1':
         path_or_table = os.path.join(os.path.dirname(__file__), "cmdlum.npz")
 
-    _ssp_table = _load_ssp_table(path_or_table)
+    return SSPTableContext(_load_ssp_table(path_or_table))
+
 
 def use_custom_cmd(path):
     """Deprecated alias for :func:`use_custom_ssp_table`"""

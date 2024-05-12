@@ -75,8 +75,8 @@ def test_luminosity():
         f.st['massform'] # noqa - trigger starlog load and ignore any warnings
 
     for ssp_name, tests in results.items():
-        pynbody.analysis.luminosity.use_custom_ssp_table(ssp_name)
-        for band, result in tests.items():
-            mag = pynbody.analysis.luminosity.calc_mags(f.st, band=band)
-            print(repr(mag[::5000]))
-            npt.assert_allclose(mag[::5000], result, rtol=1e-5)
+        with pynbody.analysis.luminosity.use_custom_ssp_table(ssp_name):
+            for band, result in tests.items():
+                mag = pynbody.analysis.luminosity.calc_mags(f.st, band=band)
+                print(repr(mag[::5000]))
+                npt.assert_allclose(mag[::5000], result, rtol=1e-5)
