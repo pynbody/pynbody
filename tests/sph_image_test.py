@@ -125,7 +125,7 @@ def test_denoise_projected_image_throws():
 
 def test_render_stars(stars_2d):
     global f
-    with pytest.warns(UserWarning, match=r"No log file found; reverting to guess-and-check"):
+    with pytest.warns(UserWarning, match=r"No log file found"):
         im = pynbody.plot.stars.render(f, width=10.0, resolution=100, return_image=True, noplot=True)
 
     np.save("result_stars_2d.npy", im[40:60])
