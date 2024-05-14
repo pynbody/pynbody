@@ -10,6 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+import pynbody.analysis.luminosity
 from .. import array, filt, units, units as _units
 from ..analysis import angmom, profile
 from ..sph import Kernel2D, render_spherical_image
@@ -235,15 +236,8 @@ def render(sim,
 				"plaese install the extinction package from here: http://extinction.readthedocs.io/en/latest/"
 				"or <via pip install extinction> or <conda install -c conda-forge extinction>") from None
 
-		#get the central wavelength for the given band
-		wavelength_avail = {'u':3571,'b':4378,'v':5466,'r':6695,'i':8565,'j':12101,
-				   'h':16300,'k':21900,'U':3571,'B':4378,'V':5466,'R':6695,'I':8565,'J':12101,
-				   'H':16300,'K':21900} #in Angstrom
-		# effective wavelength taken from http://svo2.cab.inta-csic.es/svo/theory/fps3/index.php?mode=browse&gname=Generic&gname2=Johnson
-		# and from https://en.wikipedia.org/wiki/Photometric_system for h, k
-
-		lr,lg,lb = wavelength_avail[r_band],wavelength_avail[g_band],wavelength_avail[b_band] #in Angstrom
-		wave = np.array([lb, lg, lr])
+		ssp_table = pynbody.analysis.luminosity.get_current_ssp_table()
+		wavelengths = np.array([ssp_table.get_central_wavelength(band) for band in (b_band, g_band, r_band)])
 
 		ext_r = np.empty(a_v.shape)
 		ext_g = np.empty(a_v.shape)
@@ -251,7 +245,8 @@ def render(sim,
 
 		for i in range(len(a_v)):
 			for j in range(len(a_v[0])):
-				ext = extinction.calzetti00(wave.astype(np.float_), a_v[i][j].astype(np.float_), 3.1, unit='aa', out=None)
+				ext = extinction.calzetti00(wavelengths.astype(np.float_), a_v[i][j].astype(np.float_), 3.1,
+											unit='aa', out=None)
 				ext_r[i][j] = ext[2]
 				ext_g[i][j] = ext[1]
 				ext_b[i][j] = ext[0]
@@ -259,9 +254,6 @@ def render(sim,
 		r = r+ext_r
 		g = g+ext_g
 		b = b+ext_b
-
-	#r,g,b = nw_scale_rgb(r,g,b)
-	#r,g,b = nw_arcsinh_fit(r,g,b)
 
 	if mag_range is None:
 		rgbim, mag_max = _combine(r, g, b, dynamic_range * 2.5)
