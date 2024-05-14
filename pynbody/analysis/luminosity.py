@@ -1,12 +1,23 @@
 """
 Routines and derived arrays for calculating luminosities and magnitudes.
 
+.. versionchanged:: 2.0
+
+  Luminosity tables are now generated directly from the output of the STEV/CMD web interface.
+  The default tables are updated to more modern stellar population tracks (May 2024). This
+  will result in different magnitudes being calculated compared to pynbody v1. Furthermore,
+  the default tables now include the AB-calibrated LSST bandpasses (ugrizy) in addition to the
+  Vega-calibrated Johnson-Cousins bandpasses (UBVRIJHK). As a result, the bandpass names are
+  now case-sensitive.
+
+  To obtain pynbody v1 behaviour, you can use the 'v1' table. See :func:`use_custom_ssp_table`.
+
 This module provides a number of routines for calculating luminosities and magnitudes
 starting from the stellar populations in a simulation.
 
 Two sets of derived arrays are programmatically generated. The first set is the
-magnitude of a stellar particle in a given bandpass, e.g. 'v_mag'. The second set is
-the luminosity density, encoded as 10^{-0.4 * mag} per unit volume, e.g. 'v_lum_den'.
+magnitude of a stellar particle in a given bandpass, e.g. ``V_mag``. The second set is
+the luminosity density, encoded as $10^{-0.4 * {\rm mag}}$ per unit volume, e.g. ``V_lum_den``.
 The purpose of the luminosity density array is that, when integrated over a line of sight,
 it becomes a number of magnitudes per unit area (e.g. mag/kpc^2), which can then be
 turned into an astronomical surface brightness (mag/arcsec^2) -- this approach is taken
@@ -20,10 +31,17 @@ Origin of the luminosity tables
 Luminosities in pynbody are calculated by treating each star particle as a single
 stellar population (SSP) of a known age and metallicity, assuming a fixed initial
 mass function (IMF). Magntiudes for each star particle can then be interpolated
-from a table, for the known UBVRIJHK bandpasses.
+from a table, for the known UBVRIJHK and ugrizy bandpasses. Note that lower-case
+ugrizy are LSST bandpasses with an AB calibration, while upper-case UBVRIJHK are
+Johnson-Cousins bandpasses with a Vega calibration. For many applications, the
+distinction is unimportant, but pynbody can also generate absolute fluxes from
+AB-calibrated bandpasses.
 
-The SSP tables provided are computed using CMD 3.7, via the web interface at
-http://stev.oapd.inaf.it/cgi-bin/cmd_3.7 . There are a number of reasons why you
+Customizing the SSP tables
+---------------------------
+
+The SSP tables provided are computed using CMD 3.7 from the Padova group, via the web interface
+at http://stev.oapd.inaf.it/cgi-bin/cmd_3.7 . There are a number of reasons why you
 may wish to use a custom set of SSPs:
 
  * You wish to use a different set of stellar evolution assumptions;
@@ -37,10 +55,14 @@ If making your own tables using CMD, ensure that you opt for a grid of ages and 
 and a single-burst stellar population for 1 Msol of stars. These crucial options are near the
 bottom of the web interface (as of May 2024). For the default table included with pynbody,
 the requested table has log(age/yr) between 6.6 and 10.2 dex in steps of 0.1 dex, and the
-metallicities between -2 and 0.2 dex solar in steps of 0.2 dex.  Note that ages and metallicities lying
-outside the tabulated range are clamped to the edge of the table.
+metallicities between -2 and 0.0 dex solar in steps of 0.2 dex.  Note that ages and
+metallicities lying outside the tabulated range are clamped to the edge of the table.
 
 All other options are left as per the CMD 3.7 defaults in the default table.
+
+To use your own table, you can use the :func:`use_custom_ssp_table` function. This can also
+be used as a context manager, so you can temporarily use a custom table for a specific calculation.
+See the documentation for :func:`use_custom_ssp_table` for more information.
 
 """
 
@@ -50,16 +72,16 @@ import warnings
 
 import numpy as np
 
-from .. import filt, snapshot
+from .. import filt, snapshot, units
 from .interpolate import interpolate2d
 
 _ssp_table = None
-_default_ssp_file = os.path.join(os.path.dirname(__file__), "default_ssp.txt")
-
+_default_ssp_file = [os.path.join(os.path.dirname(__file__), "default_ssp.txt"),
+                        os.path.join(os.path.dirname(__file__), "lsst_ssp.txt")]
 class SSPTable:
     """An SSP table for interpolating magnitudes from stellar populations"""
 
-    def __init__(self, ages, metallicities, magnitudes, case_insensitive=True):
+    def __init__(self, ages, metallicities, magnitudes, case_insensitive=False, ignore_bands=None, is_ab_system=False):
         """Initialise an SSP table
 
         Parameters
@@ -77,6 +99,12 @@ class SSPTable:
         case_insensitive : bool, optional
             If True, the bandpass names are treated as case-insensitive.
 
+        ignore_bands : list[str], optional
+            List of bandpasses to ignore. These bandpasses will not be available in the table.
+
+        is_ab_system : bool, optional
+            If True, the magnitudes are in the AB system. If False, the magnitudes are in the Vega system.
+
 
         """
         self._ages = np.asarray(ages)
@@ -84,9 +112,20 @@ class SSPTable:
 
         self._case_insensitive = case_insensitive
         self._magnitudes = {k.lower() if self._case_insensitive else k: np.asarray(v) for k, v in magnitudes.items()}
+        self._is_ab_system = is_ab_system
+        if ignore_bands is not None:
+            for band in ignore_bands:
+                if self._case_insensitive:
+                    band = band.lower()
+                self._magnitudes.pop(band, None)
 
     def __repr__(self):
-        return f"<SSPTable; bands={list(self._magnitudes.keys())}>"
+        return f"<{type(self).__name__}; bands={', '.join(self.bands)}>"
+
+    @property
+    def bands(self):
+        """List of bandpasses available in this table"""
+        return list(self._magnitudes.keys())
 
     def interpolate(self, ages, metallicities, band):
         """Interpolate the magnitude for a given age, metallicity and bandpass
@@ -141,6 +180,7 @@ class SSPTable:
         """
 
         age_star = snapshot['age'].in_units('yr')
+        age_star[age_star<1.0] = 1.0
         metals = snapshot['metals']
         try:
             masses = snapshot['massform'].in_units('Msol')
@@ -177,9 +217,38 @@ class SSPTable:
 
         """
 
-        return {'u': 3598.54, 'b': 4385.92, 'v': 5490.56, 'r': 6594.72, 'i': 8059.88, 'j': 12369.26,
-                'h': 16464.45, 'k': 22105.45}[band.lower()]
+        table = {'u': 3598.54, 'b': 4385.92, 'v': 5490.56, 'g': 4858.82,
+                'r': 6594.72, 'i': 8059.88, 'z': 8669.25, 'j': 12369.26,
+                'h': 16464.45, 'k': 22105.45, 'y': 9738.60}
 
+        # we always treat band names as case-insensitive for getting a wavelength
+        band = band.lower()
+        if band in table:
+            return table[band]
+        else:
+            raise ValueError("The central wavelength is not known for this band")
+
+    def get_flux_normalization(self, band):
+        """Get the normalization factor for converting relative magnitudes to fluxes
+
+        The normalization factor is the flux of a star with a magnitude of 0 in the given bandpass.
+        Currently, this is only implemented for AB-calibrated systems, where the normalization
+        factor is 3631 Jy."""
+
+        if self._is_ab_system:
+            return 3631. * units.Jy
+        else:
+            raise ValueError("The flux normalization is not known for this band")
+
+    def get_spectral_density_normalization(self, band):
+        """Get the normalization factor for converting absolute magnitudes to spectral density
+
+        This uses the flux normalization and then (as per definition of absolute magnitude)
+        considers the source to be at a distance of 10 pc. The output units are
+        power per unit frequency (or, eqivalently, energy).
+        """
+
+        return self.get_flux_normalization(band) * (4 * np.pi * (10 * units.pc)**2)
 
 
     @classmethod
@@ -188,6 +257,36 @@ class SSPTable:
         value[value < np.min(values)] = np.min(values)
         value[value > np.max(values)] = np.max(values)
         return value
+
+class MultiSSPTable(SSPTable):
+    """Combines multiple SSP tables, each of which must offer different bandpasses"""
+    def __init__(self, *tables):
+        self._bandpass_to_table = {}
+        for table in tables:
+            for band in table.bands:
+                if band in self._bandpass_to_table:
+                    raise ValueError(f"Bandpass {band} is present in multiple tables")
+                self._bandpass_to_table[band] = table
+
+    @property
+    def bands(self):
+        return list(self._bandpass_to_table.keys())
+
+    def interpolate(self, ages, metallicities, band):
+        return self._bandpass_to_table[band].interpolate(ages, metallicities, band)
+
+    def __call__(self, snapshot, band):
+        return self._bandpass_to_table[band](snapshot, band)
+
+    def get_central_wavelength(self, band):
+        return self._bandpass_to_table[band].get_central_wavelength(band)
+
+    def get_flux_normalization(self, band):
+        return self._bandpass_to_table[band].get_flux_normalization(band)
+
+    def get_power_normalization(self, band):
+        return self._bandpass_to_table[band].get_power_normalization(band)
+
 
 class ArchivedSSPTable(SSPTable):
     """An SSP table from a pynbody v1 archive"""
@@ -205,12 +304,13 @@ class ArchivedSSPTable(SSPTable):
         data = np.load(path)
 
         super().__init__(np.log10(data['ages']), data['mets'],
-                         {k: data[k] for k in data.files if k not in ['ages', 'mets']})
+                         {k: data[k] for k in data.files if k not in ['ages', 'mets']},
+                         case_insensitive=True)
 
 class StevSSPTable(SSPTable):
     """An SSP table from the output of the STEV/CMD web interface"""
 
-    def __init__(self, path):
+    def __init__(self, path, ignore_bands=None):
         """Initialise an SSP table from the text output of the STEV/CMD web interface
 
         """
@@ -237,6 +337,8 @@ class StevSSPTable(SSPTable):
         metallicities = np.log10(data['Z'])
         metallicities1d = np.unique(metallicities)
 
+        is_ab_system = any('ABmags' in l for l in lines)
+
         # check that the ages and metallicities are in the correct order
         try:
             ages2d = ages.reshape((-1, len(ages1d)))
@@ -259,17 +361,20 @@ class StevSSPTable(SSPTable):
 
         super().__init__(ages1d, metallicities1d,
                          {k[:-3]: data[k].reshape((len(metallicities1d), len(ages1d)))
-                          for k in column_names if k.endswith('mag')})
+                          for k in column_names if k.endswith('mag')},
+                         ignore_bands=ignore_bands, is_ab_system=is_ab_system)
 
 
 def _load_ssp_table(path_or_table):
+    if isinstance(path_or_table, list) or isinstance(path_or_table, tuple):
+        return MultiSSPTable(*(_load_ssp_table(p) for p in path_or_table))
     if isinstance(path_or_table, SSPTable):
         return path_or_table
     elif isinstance(path_or_table, str):
         if path_or_table.endswith('.npz'):
             return ArchivedSSPTable(path_or_table)
         else:
-            return StevSSPTable(path_or_table)
+            return StevSSPTable(path_or_table, ignore_bands=["mbol"])
     else:
         raise ValueError("Invalid path or table")
 
@@ -374,10 +479,6 @@ def calc_mags(simstars, band='v', cmd_path=None):
 
     """
 
-    # find data file in PYTHONPATH
-    # data is from http://stev.oapd.inaf.it/cgi-bin/cmd
-    # Padova group stellar populations Marigo et al (2008), Girardi et al
-    # (2010)
     if cmd_path is None:
         table = get_current_ssp_table()
     else:
@@ -386,9 +487,7 @@ def calc_mags(simstars, band='v', cmd_path=None):
     return table(simstars, band)
 
 
-
-
-def halo_mag(sim, band='v'):
+def halo_mag(sim, band='V'):
     """Calculate the absolute magnitude of the provided halo (or other collection of particles)
 
     Parameters
@@ -408,39 +507,61 @@ def halo_mag(sim, band='v'):
         return np.nan
 
 
-def halo_lum(sim, band='v'):
-    """Calculating halo luminosiy
+def halo_lum(sim, band, physical_units=True):
+    """Calculate a total spectral density in a given bandpass for a halo.
 
-    Calls pynbody.analysis.luminosity.calc_mags for every star in passed
-    in simulation, converts those magnitudes back to luminosities, adds
-    those luminosities, which are returned.  Uses solar magnitudes from
-    http://www.ucolick.org/~cnaw/sun.html.
+    Note that this requires an absolute calibration to be known for the requested bandpass,
+    which presently is only coded for the AB system.
 
-    **Usage:**
+    Spectral density is here defined as the power emitted per unit frequency.
 
-    >>> import pynbody
-    >>> pynbody.analysis.luminosity.halo_mag(h[1].s)
+    Parameters
+    ----------
 
-    **Optional keyword arguments:**
+    sim : pynbody.SimSnap
+        Halo (or other subsnap, or even a whole simulation) for which to calculate the luminosity.
+        Any non-star particles are ignored.
 
-       *band* (default='v'): Which observed bandpass magnitude in which
-            magnitude should be calculated
+    band : str
+        Bandpass name. Must be in the current SSP table and have an absolute calibration (unless
+        normalized=False).
+
+    physical_units : bool
+        If True, the luminosity is normalized with physical units. This requires an absolute calibration
+        to be known for the requested bandpass. If False, the luminosity is normalized to a reference
+        star with a magnitude of 0 in the given bandpass.
     """
-    sun_abs_mag = {'u':5.56,'b':5.45,'v':4.8,'r':4.46,'i':4.1,'j':3.66,
-                   'h':3.32,'k':3.28}[band]
-    return np.sum(10.0 ** ((sun_abs_mag - sim.star[band + '_mag']) / 2.5))
+
+    if physical_units:
+        norm = get_current_ssp_table().get_spectral_density_normalization(band)
+    else:
+        norm = 1.0
+    return np.sum(10.0 ** ((- sim.star[band + '_mag']) / 2.5)) * norm
 
 
-def half_light_r(sim, band='v', cylindrical=False):
-    '''Calculate half light radius
+def half_light_r(sim, band='V', cylindrical=False):
+    '''Calculate half-light radius
 
-    Calculates entire luminosity of simulation, finds half that, sorts
-    stars by distance from halo center, and finds out inside which radius
-    the half luminosity is reached.
+    Calculates entire luminosity of the provided snapshot, finds half that, sorts
+    stars by distance from halo center, and finds out inside which radius the half luminosity
+    is reached.
 
-    If cylindrical is True compute the half light radius as seen from the z-axis.
+    Parameters
+    ----------
+
+    sim : pynbody.SimSnap
+        Halo (or other subsnap, or even a whole simulation) for which to calculate the half-light radius.
+        Any non-star particles are ignored.
+
+    band : str
+        Bandpass name. Can be any that is defined in the SSP table. See the module documentation
+        (:mod:`pynbody.analysis.luminosity`).
+
+    cylindrical : bool
+        If True, the radius is calculated in the cylindrical xy-plane coordinates.
+
     '''
-    half_l = halo_lum(sim, band=band) * 0.5
+    half_l = halo_lum(sim, band=band, physical_units=False) * 0.5
 
     if cylindrical:
         coord = 'rxy'
@@ -450,7 +571,7 @@ def half_light_r(sim, band='v', cylindrical=False):
     test_r = 0.5 * max_high_r
     testrf = filt.LowPass(coord, test_r)
     min_low_r = 0.0
-    test_l = halo_lum(sim[testrf], band=band)
+    test_l = halo_lum(sim[testrf], band=band, physical_units=False)
     it = 0
     while ((np.abs(test_l - half_l) / half_l) > 0.01):
         it = it + 1
@@ -462,7 +583,7 @@ def half_light_r(sim, band='v', cylindrical=False):
         else:
             test_r = (test_r + max_high_r) * 0.5
         testrf = filt.LowPass(coord, test_r)
-        test_l = halo_lum(sim[testrf], band=band)
+        test_l = halo_lum(sim[testrf], band=band, physical_units=False)
 
         if (test_l > half_l):
             max_high_r = test_r
@@ -474,8 +595,7 @@ def half_light_r(sim, band='v', cylindrical=False):
 
 def _setup_derived_arrays():
 
-    bands_available = ['u', 'b', 'v', 'r', 'i', 'j', 'h', 'k', 'U', 'B', 'V', 'R', 'I',
-                       'J', 'H', 'K']
+    bands_available = 'UBVRIJHKugrizy'
 
     def _lum_den_template(band, s):
         val = (10 ** (-0.4 * s[band + "_mag"])) * s['rho'] / s['mass']

@@ -117,7 +117,7 @@ def contour_surface_brightness(sim, band='v', width=50, resolution=None, axes=No
 
 
 def render(sim,
-		   r_band='i', g_band='v', b_band='u',
+		   r_band='I', g_band='V', b_band='U',
 		   width=50,
 		   r_scale=0.5, g_scale=1.0, b_scale=1.0,
 		   with_dust=False,
@@ -142,7 +142,9 @@ def render(sim,
 		The simulation snapshot to plot.
 
 	r_band, g_band, b_band : str
-		The filter bands to use for R, G and B image channels. Default is 'i', 'v', 'b'.
+		The filter bands to use for R, G and B image channels. Default is 'I', 'V', 'U'. These bands
+		are as defined in :mod:`pynbody.analysis.luminosity`, or overriden using the
+		:func:`pynbody.analysis.luminosity.use_custom_ssp_table` function.
 
 	width : float | str, optional
 		The width of the image to produce, either as a float or a unit string.
