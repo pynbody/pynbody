@@ -154,7 +154,7 @@ install_requires = [
 ]
 
 tests_require = [
-    'pytest','pandas','camb'
+    'pytest','pandas','camb','extinction'
 ]
 
 docs_require = [
@@ -195,7 +195,7 @@ setup(name = 'pynbody',
                   'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/halo/details',
                   'pynbody/extern', 'pynbody/kdtree', 'pynbody/test_utils', 'pynbody/util'],
       package_data={'pynbody': ['default_config.ini'],
-                    'pynbody/analysis': ['cmdlum.npz',
+                    'pynbody/analysis': ['cmdlum.npz', 'default_ssp.txt', 'lsst_ssp.txt',
                                          'h1.hdf5',
                                          'ionfracs.npz',
                                          'CAMB_WMAP7', 'CAMB_Planck18',

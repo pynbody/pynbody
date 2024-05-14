@@ -50,6 +50,10 @@ def compare_grid():
 def stars_2d():
     yield np.load(test_folder / "test_stars_2d.npy")
 
+@pytest.fixture
+def stars_dust_2d():
+    yield np.load(test_folder / "test_stars_dust_2d.npy")
+
 def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compare3d_wendlandC2):
 
     global f
@@ -123,14 +127,19 @@ def test_denoise_projected_image_throws():
         pynbody.plot.sph.image(f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, denoise=True)
 
 
-def test_render_stars(stars_2d):
+def test_render_stars(stars_2d, stars_dust_2d):
     global f
-    with pytest.warns(UserWarning, match=r"No log file found; reverting to guess-and-check"):
+    with pytest.warns(UserWarning, match=r"No log file found"):
         im = pynbody.plot.stars.render(f, width=10.0, resolution=100, return_image=True, noplot=True)
 
     np.save("result_stars_2d.npy", im[40:60])
 
     npt.assert_allclose(stars_2d,im[40:60],atol=0.01)
+
+    im = pynbody.plot.stars.render(f, width=10.0, resolution=100, return_image=True, noplot=True, with_dust=True)
+    np.save("result_stars_dust_2d.npy", im[40:60])
+
+    npt.assert_allclose(stars_dust_2d, im[40:60], atol=0.01)
 
 
 @pynbody.derived_array
