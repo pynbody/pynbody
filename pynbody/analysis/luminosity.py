@@ -44,12 +44,12 @@ The SSP tables provided are computed using CMD 3.7 from the Padova group, via th
 at http://stev.oapd.inaf.it/cgi-bin/cmd_3.7 . There are a number of reasons why you
 may wish to use a custom set of SSPs:
 
- * You wish to use a different set of stellar evolution assumptions;
- * You wish to use a different set of bandpasses;
- * You wish to assume a different IMF;
- * You wish to include interstellar dust extinctions (by default, only circumstellar
-   dust is included, and dust extinction is optionally applied separately when rendering
-   images; see the :func:`pynbody.plot.stars.render` documentation for more information).
+* You wish to use a different set of stellar evolution assumptions;
+* You wish to use a different set of bandpasses;
+* You wish to assume a different IMF;
+* You wish to include interstellar dust extinctions (by default, only circumstellar
+  dust is included, and dust extinction is optionally applied separately when rendering
+  images; see the :func:`pynbody.plot.stars.render` documentation for more information).
 
 If making your own tables using CMD, ensure that you opt for a grid of ages and metallicities
 and a single-burst stellar population for 1 Msol of stars. These crucial options are near the
