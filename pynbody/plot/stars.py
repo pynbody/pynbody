@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import pynbody.analysis.luminosity
+
 from .. import array, filt, units, units as _units
 from ..analysis import angmom, profile
 from ..sph import Kernel2D, render_spherical_image
