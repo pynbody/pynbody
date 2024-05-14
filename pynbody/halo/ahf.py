@@ -26,7 +26,7 @@ class AHFCatalogue(HaloCatalogue):
     """
 
     def __init__(self, sim, filename=None, make_grp=None, get_all_parts=None, use_iord=None, ahf_basename=None,
-                 dosort=None, only_stat=None, write_fpos=True, halo_numbers='file-order',
+                 dosort=None, only_stat=None, write_fpos=True, halo_numbers='ahf',
                  ignore_missing_substructure=True,
                  **kwargs):
         """Initialize an AHFCatalogue.
@@ -34,16 +34,16 @@ class AHFCatalogue(HaloCatalogue):
         Parameters
         ----------
 
-        *sim*: SimSnap
+        sim: SimSnap
           the simulation snapshot to which this catalogue refers
 
-        *filename*: str | pathlib.Path
+        filename: str | pathlib.Path
           specify a path to an AHF halo catalog. Note that AHF actually outputs multiple files; you can specify the
           path to the ``AHF_halos`` or ``AHF_particles`` file and the code will infer the other filenames from this.
           Alternatively you can specify the path up to the ``AHF_`` prefix and the code will similarly infer the full
           set of filenames.
 
-        *halo_numbers*: str
+        halo_numbers: str, optional
           specify how to number the halos. Options are:
 
           * 'ahf' (default): use the halo numbers written in the AHF halos file if present, or a zero-based indexing
@@ -52,30 +52,37 @@ class AHFCatalogue(HaloCatalogue):
           * 'length-order': sort by the number of particles in each halo, with the halo with most particles being halo 0
           * 'length-order-v1': as length-order, but indexing from halo 1, compatible with ``dosort=True`` in pynbody v1
 
-        *ignore_missing_substructure*: bool
+        ignore_missing_substructure : bool, optional
           If True (default), the code will not raise an exception if the substructure file is missing or corrupt. If
           False, it will raise an exception.
 
-        *use_iord*: bool
+        use_iord : bool, optional
           if True, the particle IDs in the Amiga catalogue are taken to refer to the iord array. If False,
           they are the particle offsets within the file. If None, the parameter defaults to True for GadgetSnap,
           False otherwise.
 
-        *ahf_basename*: str
+        write_fpos : bool, optional
+            If True (default), the code will attempt to write a file containing the starting positions of each halo's
+            particle information within the AHF_particles file. If False, it will not attempt to write this file. This
+            file is used to speed up loading of particle information for individual halos when :meth:`load_all` is not
+            called. If :meth`load_all` is called, there is no benefit to writing the file and better performance
+            is obtained by using ``write_fpos=False``.
+
+        ahf_basename : str, optional
           Deprecated way to specify the location of the catalogue
 
-        *make_grp*:
+        make_grp :
           Deprecated. If True a 'grp' array is created in the underlying snapshot specifying the lowest level halo
           that any given particle belongs to. If it is False, no such array is created; if None, the behaviour is
           determined by the configuration system.
 
-        *get_all_parts*:
+        get_all_parts :
           Deprecated; use the :meth:`load_all` method instead.
 
-        *dosort*:
+        dosort :
           Deprecated; equivalent to ``halo_numbers='length-order'``
 
-        *only_stat*:
+        only_stat :
           Deprecated; this keyword is now ignored. To obtain halo information without loading the particles,
           use the methods :meth:`get_properties_one_halo` or :meth:`get_properties_all_halos`.
 
