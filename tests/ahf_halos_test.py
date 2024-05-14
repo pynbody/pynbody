@@ -141,6 +141,17 @@ def test_detecting_ahf_catalogues_with_without_trailing_slash():
         f = pynbody.load(name)
         _halos = pynbody.halo.ahf.AHFCatalogue(f)
 
+def test_ramses_ahf_load_halo_no_fpos():
+    # test that we can load AHF halos without an fpos file
+    f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
+
+    # delete the fpos file, if it exists
+    fpos_path = "testdata/ramses_new_format_cosmo_with_ahf_output_00110/ramses_new_format_cosmo_with_ahf_output_00110_fullbox.tipsy.z0.031.AHF_fpos"
+    if os.path.exists(fpos_path):
+        os.remove(fpos_path)
+
+    h = f.halos()
+    h[0] # noqa - just checking there's no error
 
 def test_ramses_ahf_family_mapping_with_new_format():
     # Test Issue 691 where family mapping of AHF catalogues with Ramses new particle formats would go wrong

@@ -230,7 +230,7 @@ class AHFCatalogue(HaloCatalogue):
                     nhalo = int(f.readline().strip())
                     assert nhalo == len(self.number_mapper)
                     for hnum in range(nhalo):
-                        npart = int(f.readline().strip())
+                        npart = int(f.readline().split()[0].strip())
                         assert npart == self._halo_properties['npart'][hnum]
                         self._fpos[hnum] = f.tell()
                         for i in range(npart):
