@@ -170,7 +170,18 @@ class AHFCatalogue(HaloCatalogue):
 
         if 'hostHalo' in self._halo_properties:
             host_halo = self._halo_properties['hostHalo']
-            mask = host_halo != -1
+
+            # Below, we used to use:
+            #   mask = host_halo != -1
+            # but now it seems like specific runs (presumably MPI ones, where IDs are random?) use zero to indicate
+            # 'no host'.
+            #
+            # Of course, in other runs, halo 0 might be a perfectly valid host halo, so we need to deal with this
+            # by saying the mask is wherever host_halo is not a valid halo number. Rather than compare every entry
+            # to all the halo numbers (which would be expensive), we look for the minimum valid
+
+            mask = host_halo >= np.min(self.number_mapper.all_numbers)
+
             host_halo[mask] = self.number_mapper.index_to_number(
                 self._ahf_own_number_mapper.number_to_index(host_halo[mask])
             )
