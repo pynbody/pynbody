@@ -154,7 +154,7 @@ install_requires = [
 ]
 
 tests_require = [
-    'pytest','pandas','camb'
+    'pytest','pandas','camb','extinction'
 ]
 
 docs_require = [
