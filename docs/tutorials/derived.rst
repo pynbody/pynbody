@@ -192,4 +192,6 @@ the first time, but will not automatically update:
    More information about the derived array system can be found in the
    method documentation for :meth:`~pynbody.snapshot.simsnap.SimSnap.derived_array`
    and :meth:`~pynbody.snapshot.simsnap.SimSnap.stable_derived_array`. Information about
-   built-in derived arrays can be found in the module :mod:`pynbody.derived`.
+   built-in derived arrays can be found in the module :mod:`pynbody.derived`. The module
+   :mod:`pynbody.analysis.luminosity` also defines an entire class of derived arrays for
+   calculating magnitudes from stellar population tables.

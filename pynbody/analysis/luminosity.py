@@ -17,7 +17,7 @@ starting from the stellar populations in a simulation.
 
 Two sets of derived arrays are programmatically generated. The first set is the
 magnitude of a stellar particle in a given bandpass, e.g. ``V_mag``. The second set is
-the luminosity density, encoded as $10^{-0.4 * {\rm mag}}$ per unit volume, e.g. ``V_lum_den``.
+the luminosity density, encoded as :math:`10^{-0.4 * {\\rm mag}}` per unit volume, e.g. ``V_lum_den``.
 The purpose of the luminosity density array is that, when integrated over a line of sight,
 it becomes a number of magnitudes per unit area (e.g. mag/kpc^2), which can then be
 turned into an astronomical surface brightness (mag/arcsec^2) -- this approach is taken
