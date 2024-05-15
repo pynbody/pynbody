@@ -187,11 +187,12 @@ class AHFCatalogue(HaloCatalogue):
             # by saying the mask is wherever host_halo is not a valid halo number. Rather than compare every entry
             # to all the halo numbers (which would be expensive), we look for the minimum valid
 
-            mask = host_halo >= np.min(self._ahf_own_number_mapper.all_numbers)
+            if len(host_halo) > 0:
+                mask = host_halo >= np.min(self._ahf_own_number_mapper.all_numbers)
 
-            host_halo[mask] = self.number_mapper.index_to_number(
-                self._ahf_own_number_mapper.number_to_index(host_halo[mask])
-            )
+                host_halo[mask] = self.number_mapper.index_to_number(
+                    self._ahf_own_number_mapper.number_to_index(host_halo[mask])
+                )
 
     def _determine_format_revision_from_filename(self):
         if self._ahfBasename.split("z")[-2][-1] == ".":
