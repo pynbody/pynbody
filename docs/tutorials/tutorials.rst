@@ -78,12 +78,10 @@ Cookbook/Recipes
 Advanced topics
 ---------------
 
-These tutorials are likely to be of interest only in special cases.
-
 .. toctree::
    :maxdepth: 1
 
-   Performance <performance>
    Derived quantities <derived>
    Configuration <configuration>
    Threading/multiprocessing <threads>
+   Performance <performance>
