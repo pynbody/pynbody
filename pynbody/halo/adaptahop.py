@@ -216,8 +216,11 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                     npart = fpu.read_int()
                 self._npart[i] = npart
                 fpu.skip(1)  # skip over fortran field with ids of parts
-                self._halo_numbers[i] = fpu.read_int()
-                fpu.skip(Nskip) # skip over attributes
+                if self._longint:
+                    self._halo_numbers[i] = fpu.read_int64()
+                else:
+                    self._halo_numbers[i] = fpu.read_int()
+                fpu.skip(Nskip)     # skip over attributes
 
     def _get_all_particle_indices(self):
         particle_ids = np.empty(self._npart.sum(), dtype=self._length_type)
@@ -300,7 +303,10 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
             fpu.skip(1) # iord array
 
-            halo_id_read = fpu.read_int()
+            if self._longint:
+                halo_id_read = fpu.read_int64()
+            else:
+                halo_id_read = fpu.read_int()
             assert i == halo_id_read
             if self._read_contamination:
                 attrs = self._halo_attributes + self._halo_attributes_contam
@@ -358,7 +364,9 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             except (ValueError, OSError):
                 pass
 
-        raise ValueError("Could not detect longint")
+        raise ValueError(cls.__name__ + " could not detect longint. "
+                                        "Most likely, this class is expecting the wrong header/data blocks "
+                                        "compared to what is stored in the halo catalogue.")
 
     @classmethod
     def _can_load(cls, sim, filename=None, arr_name="grp", *args, **kwa):
@@ -451,6 +459,53 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
 
     _halo_attributes_contam = (
         ("contaminated", 1, "i"),
+        (("m_contam", "mtot_contam"), 2, "d"),
+        (("n_contam", "ntot_contam"), 2, "i8b"),
+    )
+
+
+class NewAdaptaHOPCatalogueFullyLongInts(NewAdaptaHOPCatalogue):
+    _header_attributes = (
+        ("npart", 1, "i8b"),
+        ("massp", 1, "d"),
+        ("aexp", 1, "d"),
+        ("omega_t", 1, "d"),
+        ("age", 1, "d"),
+        (("nhalos", "nsubs"), 2, "i8b"),
+    )
+
+    # List of the attributes read from file. This does *not* include the number of particles,
+    # the list of particles, the id of the halo and the "timestep" (first 4 records).
+    _halo_attributes = (
+        ("timestep", 1, "i8b"),
+        (
+            ("level", "host_id", "first_subhalo_id", "n_subhalos", "next_subhalo_id"),
+            5,
+            "i8b",
+        ),
+        ("m", 1, "d"),
+        ("ntot", 1, "i8b"),
+        ("mtot", 1, "d"),
+        # Note: we use pos_z instead of z to prevent confusion with redshift
+        (("pos_x", "pos_y", "pos_z"), 3, "d"),
+        (("vel_x", "vel_y", "vel_z"), 3, "d"),
+        (("angular_momentum_x", "angular_momentum_y", "angular_momentum_z"), 3, "d"),
+        (("max_distance", "shape_a", "shape_b", "shape_c"), 4, "d"),
+        (("kinetic_energy", "potential_energy", "total_energy"), 3, "d"),
+        ("spin", 1, "d"),
+        ("velocity_dispersion", 1, "d"),
+        (("virial_radius", "virial_mass", "virial_temperature", "virial_velocity"), 4, "d"),
+        (("max_velocity_radius", "max_velocity"), 2, "d"),
+        ("nfw_concentration", 1, "d"),
+        (("R200c", "M200c"), 2, "d"),
+        (("r_half_mass", "r_90percent_mass"), 2, "d"),
+        ("radius_profile", -1, "d"),
+        ("density_profile", -1, "d"),
+        (("nfw_rho0", "nfw_R_c"), 2, "d"),
+    )
+
+    _halo_attributes_contam = (
+        ("contaminated", 1, "i8b"),
         (("m_contam", "mtot_contam"), 2, "d"),
         (("n_contam", "ntot_contam"), 2, "i8b"),
     )
