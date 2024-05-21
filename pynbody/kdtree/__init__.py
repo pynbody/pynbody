@@ -124,7 +124,7 @@ class KDTree:
 
         self.boxsize = boxsize
         self._pos = pos
-        self.set_kernel(config['sph'].get('Kernel', 'CubicSpline'))
+        self.set_kernel(config['sph'].get('kernel', 'CubicSplineKernel'))
 
     def _set_num_threads(self, num_threads):
         if num_threads is None:
@@ -319,20 +319,24 @@ class KDTree:
             raise ValueError("Unknown smoothing request %s" % name)
 
 
-    def set_kernel(self, kernel = 'CubicSpline'):
+    def set_kernel(self, kernel = 'CubicSplineKernel'):
         """Set the kernel for smoothing operations.
 
         Parameters
         ----------
-        kernel : str
+        kernel : str or type
             Keyword to specify the smoothing kernel. Options: 'CubicSpline', 'WendlandC2'
         """
-        if kernel == 'CubicSpline':
-            self._kernel_id = 0
-        elif kernel == 'WendlandC2':
-            self._kernel_id = 1
+        if isinstance(kernel, str):
+            from .. import sph
+            for subclass in sph.KernelBase.__subclasses__():
+                if subclass.__name__ == kernel:
+                    self._kernel_id = subclass.get_c_kernel_id()
+                    break
+            else:
+                raise ValueError("Unknown kernel %s" % kernel)
         else:
-            raise ValueError("Kernel %r not recognised. Please choose either 'CubicSpline' or 'WendlandC2'." % kernel)
+            self._kernel_id = kernel.get_c_kernel_id()
 
 
     def populate(self, mode, nn):

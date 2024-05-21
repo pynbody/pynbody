@@ -578,7 +578,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
     if kernel_type == 'wendlandC2':
         kernel = sph.WendlandC2Kernel()
     elif kernel_type == 'spline':
-        kernel = sph.Kernel()
+        kernel = sph.SplineKernel()
     else:
         raise ValueError('Invalid kernel_type specified. Options are "spline" (default) and "wendlandC2".')
 

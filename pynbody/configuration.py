@@ -64,7 +64,7 @@ def _get_basic_config_from_parser(config_parser):
             config['sph'][k] = int(config_parser.get('sph', k))
         except ValueError:
             pass
-    config['sph']['Kernel'] = config_parser.get('sph', 'Kernel')
+    config['sph']['kernel'] = config_parser.get('sph', 'kernel')
 
     config['threading'] = config_parser.get('general', 'threading')
     config['number_of_threads'] = int(

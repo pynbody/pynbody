@@ -2,6 +2,7 @@
 
 #include "kd.h"
 #include "pq.h"
+#include "../sph/kernels.hpp"
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -44,6 +45,7 @@ public:
 
   std::unique_ptr<std::vector<npy_intp>> result;
   std::unique_ptr<PriorityQueue<T>> priorityQueue;
+  std::shared_ptr<kernels::Kernel<T>> pKernel;
 
   SmoothingContext(KDContext* kd, npy_intp nSmooth, T fPeriod[3]) : kd(kd), nSmooth(nSmooth), fPeriod{fPeriod[0], fPeriod[1], fPeriod[2]},
       nListSize(nSmooth + RESMOOTH_SAFE), fList(nListSize), pList(nListSize),
@@ -56,8 +58,13 @@ public:
       fPeriod{copy.fPeriod[0], copy.fPeriod[1], copy.fPeriod[2]},
       nListSize(copy.nListSize), fList(nListSize), pList(nListSize), pMutex(copy.pMutex),
       smx_global(const_cast<SmoothingContext<T>*>(&copy)),
-      priorityQueue(std::make_unique<PriorityQueue<T>>(nSmooth, kd->nActive)) { }
+      priorityQueue(std::make_unique<PriorityQueue<T>>(nSmooth, kd->nActive)),
+      pKernel(copy.pKernel) { }
       // copy constructor takes a pointer to the global context
+
+  void setupKernel(int kernel_id) {
+    pKernel = kernels::Kernel<T>::create(kernel_id, nSmooth);
+  }
 };
 
 
@@ -495,15 +502,6 @@ void smDivQty(SmoothingContext<Tf> *, npy_intp, int, bool);
 template <typename Tf, typename Tq>
 void smCurlQty(SmoothingContext<Tf> *, npy_intp, int, bool);
 
-
-template <typename T> T Wendland_kernel(SmoothingContext<T> *, T, int);
-
-template <typename T> T cubicSpline(SmoothingContext<T> *, T);
-
-template <typename Tf> Tf cubicSpline_gradient(Tf, Tf, Tf, Tf);
-
-template <typename Tf> Tf Wendland_gradient(Tf, Tf);
-
 template <typename T> void smDomainDecomposition(KDContext* kd, int nprocs);
 
 
@@ -597,40 +595,9 @@ void smInitPriorityQueue(SmoothingContext<T> * smx) {
 }
 
 
-template <typename T> T cubicSpline(SmoothingContext<T> * smx, T r2) {
-  // Cubic Spline Kernel
-  T rs;
-  rs = 2.0 - sqrt(r2);
-  if NPY_UNLIKELY(rs < 0)
-    rs = 0;
-  else if (r2 < 1.0)
-    rs = (1.0 - 0.75 * rs * r2);
-  else
-    rs = 0.25 * rs * rs * rs;
-  return rs;
-}
-
-template <typename T> T Wendland_kernel(SmoothingContext<T> * smx, T r2, int nSmooth) {
-  // Wendland Kernel
-
-  T rs;
-
-  if NPY_UNLIKELY(r2 > 4.0)
-    rs = 0;
-  else if NPY_UNLIKELY(r2 == 0.0)
-    rs = (21 / 16.) * (1 - 0.0294 * pow(nSmooth * 0.01, -0.977));
-  else {
-    T au = sqrt(r2 * 0.25);
-    rs = pow(1 - au, 4);
-    rs = (21 / 16.) * rs * (1 + 4 * au);
-  }
-
-  return rs;
-}
-
 
 template <typename T>
-void smDensitySym(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+void smDensitySym(SmoothingContext<T> * smx, npy_intp pi, int nSmooth) {
   T fNorm, ih2, r2, rs, ih;
   npy_intp i, pj;
   KDContext* kd = smx->kd;
@@ -639,14 +606,12 @@ void smDensitySym(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wend
   ih2 = ih * ih;
   fNorm = 0.5 * M_1_PI * ih * ih2;
 
+  auto & kernel = *(smx->pKernel);
+
   for (i = 0; i < nSmooth; ++i) {
     pj = smx->pList[i];
     r2 = smx->fList[i] * ih2;
-    if (Wendland) {
-      rs = Wendland_kernel(smx, r2, nSmooth);
-    } else {
-      rs = cubicSpline(smx, r2);
-    }
+    rs = kernel(r2);
     rs *= fNorm;
     ACCUM<T>(kd->pNumpyDen, kd->particleOffsets[pi],
              rs * GET<T>(kd->pNumpyMass, kd->particleOffsets[pj]));
@@ -659,10 +624,12 @@ void smDensitySym(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wend
 
 
 template <typename T>
-void smDensity(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+void smDensity(SmoothingContext<T> * smx, npy_intp pi, int nSmooth) {
   T fNorm, ih2, r2, rs, ih;
   npy_intp j, pj, pi_iord;
   KDContext* kd = smx->kd;
+
+  auto & kernel = *(smx->pKernel);
 
   pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<T>(kd->pNumpySmooth, pi_iord);
@@ -672,11 +639,7 @@ void smDensity(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wendlan
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     r2 = smx->fList[j] * ih2;
-    if (Wendland) {
-      rs = Wendland_kernel(smx, r2, nSmooth);
-    } else {
-      rs = cubicSpline(smx, r2);
-    }
+    rs = kernel(r2);
     rs *= fNorm;
     ACCUM<T>(kd->pNumpyDen, pi_iord,
              rs * GET<T>(kd->pNumpyMass, kd->particleOffsets[pj]));
@@ -686,10 +649,12 @@ void smDensity(SmoothingContext<T> * smx, npy_intp pi, int nSmooth, bool Wendlan
 
 
 template <typename Tf, typename Tq>
-void smMeanQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+void smMeanQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
   Tf fNorm, ih2, r2, rs, ih, mass, rho;
   npy_intp j, pj, pi_iord;
   KDContext* kd = smx->kd;
+
+  auto & kernel = *(smx->pKernel);
 
   pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
@@ -701,11 +666,7 @@ void smMeanQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wend
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     r2 = smx->fList[j] * ih2;
-    if (Wendland) {
-      rs = Wendland_kernel(smx, r2, nSmooth);
-    } else {
-      rs = cubicSpline(smx, r2);
-    }
+    rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
     rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
@@ -715,10 +676,12 @@ void smMeanQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wend
 }
 
 template <typename Tf, typename Tq>
-void smMeanQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+void smMeanQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
   Tf fNorm, ih2, r2, rs, ih, mass, rho;
   npy_intp j, k, pj, pi_iord;
   KDContext* kd = smx->kd;
+
+  auto & kernel = *(smx->pKernel);
 
   pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
@@ -731,11 +694,7 @@ void smMeanQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wend
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     r2 = smx->fList[j] * ih2;
-    if (Wendland) {
-      rs = Wendland_kernel(smx, r2, nSmooth);
-    } else {
-      rs = cubicSpline(smx, r2);
-    }
+    rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
     rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
@@ -747,38 +706,15 @@ void smMeanQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wend
   }
 }
 
-template <typename Tf> Tf cubicSpline_gradient(Tf q, Tf ih, Tf r, Tf ih2) {
-  // Kernel gradient
-  Tf rs;
-  if (q < 1.0)
-    rs = -3.0 * ih + 2.25 * r * ih2;
-  else
-    rs = -0.75 * (2 - q) * (2 - q) / r;
-
-  return rs;
-}
-
-template <typename Tf> Tf Wendland_gradient(Tf q, Tf r) {
-  // Kernel gradient
-  Tf rs;
-  if (r < 1e-24)
-    r = 1e-24; // Fix to avoid dividing by zero in case r = 0.
-  // For this case q = 0 and rs = 0 in any case, so we can savely set r to a
-  // tiny value.
-  if (q < 2.0)
-    rs = -5.0 * q * (1.0 - 0.5 * q) * (1.0 - 0.5 * q) * (1.0 - 0.5 * q) / r;
-  else
-    rs = 0.0;
-
-  return rs;
-}
 
 template <typename Tf, typename Tq>
-void smCurlQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
-  Tf fNorm, ih2, r2, r, rs, q2, q, ih, mass, rho, dqty[3], qty_i[3];
+void smCurlQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
+  Tf fNorm, ih2, r2, rs, q2, ih, mass, rho, dqty[3], qty_i[3];
   npy_intp j, k, pj, pi_iord, pj_iord;
   KDContext* kd = smx->kd;
   Tf curl[3], x, y, z, dx, dy, dz;
+
+  auto & kernel = *(smx->pKernel);
 
   pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
@@ -803,15 +739,10 @@ void smCurlQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendla
 
     r2 = smx->fList[j];
     q2 = r2 * ih2;
-    r = sqrt(r2);
-    q = sqrt(q2);
+
 
     // Kernel gradient
-    if (Wendland) {
-      rs = Wendland_gradient(q, r);
-    } else {
-      rs = cubicSpline_gradient(q, ih, r, ih2);
-    }
+    rs = kernel.gradient(q2, r2);
 
     rs *= fNorm;
 
@@ -832,11 +763,13 @@ void smCurlQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendla
 }
 
 template <typename Tf, typename Tq>
-void smDivQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
-  Tf fNorm, ih2, r2, r, rs, q2, q, ih, mass, rho, div, dqty[3], qty_i[3];
+void smDivQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
+  Tf fNorm, ih2, r2, rs, q2, ih, mass, rho, div, dqty[3], qty_i[3];
   npy_intp j, k, pj, pi_iord, pj_iord;
   KDContext* kd = smx->kd;
   Tf x, y, z, dx, dy, dz;
+
+  auto & kernel = *(smx->pKernel);
 
   pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
@@ -861,14 +794,8 @@ void smDivQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendlan
 
     r2 = smx->fList[j];
     q2 = r2 * ih2;
-    r = sqrt(r2);
-    q = sqrt(q2);
-    // Kernel gradient
-    if (Wendland) {
-      rs = Wendland_gradient(q, r);
-    } else {
-      rs = cubicSpline_gradient(q, ih, r, ih2);
-    }
+
+    rs = kernel.gradient(q2, r2);
 
     rs *= fNorm;
 
@@ -885,11 +812,13 @@ void smDivQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendlan
 }
 
 template <typename Tf, typename Tq>
-void smDispQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+void smDispQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
   Tf fNorm, ih2, r2, rs, ih, mass, rho;
   npy_intp j, k, pj, pi_iord;
   KDContext* kd = smx->kd;
   Tq mean[3], tdiff;
+
+  auto & kernel = *(smx->pKernel);
 
   pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
@@ -908,11 +837,7 @@ void smDispQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wend
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     r2 = smx->fList[j] * ih2;
-    if (Wendland) {
-      rs = Wendland_kernel(smx, r2, nSmooth);
-    } else {
-      rs = cubicSpline(smx, r2);
-    }
+    rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
     rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
@@ -925,11 +850,7 @@ void smDispQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wend
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     r2 = smx->fList[j] * ih2;
-    if (Wendland) {
-      rs = Wendland_kernel(smx, r2, nSmooth);
-    } else {
-      rs = cubicSpline(smx, r2);
-    }
+    rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
     rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
@@ -947,11 +868,13 @@ void smDispQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wend
 }
 
 template <typename Tf, typename Tq>
-void smDispQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wendland) {
+void smDispQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
   Tf fNorm, ih2, r2, rs, ih, mass, rho;
   npy_intp j, pj, pi_iord;
   KDContext* kd = smx->kd;
   Tq mean, tdiff;
+
+  auto & kernel = *(smx->pKernel);
 
   pi_iord = kd->particleOffsets[pi];
   ih = 1.0 / GET<Tf>(kd->pNumpySmooth, pi_iord);
@@ -967,11 +890,7 @@ void smDispQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wend
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     r2 = smx->fList[j] * ih2;
-    if (Wendland) {
-      rs = Wendland_kernel(smx, r2, nSmooth);
-    } else {
-      rs = cubicSpline(smx, r2);
-    }
+    rs = kernel(r2);
 
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
@@ -984,11 +903,7 @@ void smDispQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth, bool Wend
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     r2 = smx->fList[j] * ih2;
-    if (Wendland) {
-      rs = Wendland_kernel(smx, r2, nSmooth);
-    } else {
-      rs = cubicSpline(smx, r2);
-    }
+    rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
     rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);

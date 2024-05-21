@@ -40,15 +40,13 @@ _threaded_image = _get_threaded_image()
 _approximate_image = config_parser.getboolean('sph', 'approximate-fast-images')
 
 def _kernel_suitable_for_denoise(kernel):
-    if type(kernel) is not Kernel:
-        # e.g. does not work properly with Kernel2D
+    if isinstance(kernel, Kernel2D):
         return False
     else:
         return True
 
 def _auto_denoise(sim, kernel):
-    """Returns True if pynbody thinks denoise flag should be on for best
-    results with this simulation."""
+    """Returns True if pynbody thinks denoise should be on for best results with this simulation/kernel combination."""
 
     if not _kernel_suitable_for_denoise(kernel):
         return False
@@ -58,54 +56,55 @@ def _auto_denoise(sim, kernel):
         return False
 
 @pynbody.snapshot.simsnap.SimSnap.stable_derived_array
-def smooth(self):
-    self.build_tree()
+def smooth(sim):
+    """Return the smoothing length array for the simulation, using the configured number of neighbours"""
+    sim.build_tree()
 
     logger.info('Smoothing with %d nearest neighbours' %
                 config['sph']['smooth-particles'])
 
-    sm = array.SimArray(np.empty(len(self['pos']), dtype=self['pos'].dtype), self['pos'].units)
+    sm = array.SimArray(np.empty(len(sim['pos']), dtype=sim['pos'].dtype), sim['pos'].units)
 
     start = time.time()
-    self.kdtree.set_array_ref('smooth',sm)
-    self.kdtree.populate('hsm', config['sph']['smooth-particles'])
+    sim.kdtree.set_array_ref('smooth', sm)
+    sim.kdtree.populate('hsm', config['sph']['smooth-particles'])
     end = time.time()
 
     logger.info('Smoothing done in %5.3gs' % (end - start))
-    self._kdtree_derived_smoothing = True
+    sim._kdtree_derived_smoothing = True
     return sm
 
-def _get_smooth_array_ensuring_compatibility(self):
+def _get_smooth_array_ensuring_compatibility(sim):
     # On-disk smoothing information may conflict; KDTree assumes the number of nearest neighbours
     # is rigidly adhered to. Thus we must use our own self-consistent smoothing.
-    if 'smooth' in self:
-        if not getattr(self,'_kdtree_derived_smoothing',False):
-            smooth_ar = smooth(self)
+    if 'smooth' in sim:
+        if not getattr(sim, '_kdtree_derived_smoothing', False):
+            smooth_ar = smooth(sim)
         else:
-            smooth_ar = self['smooth']
+            smooth_ar = sim['smooth']
     else:
-        self['smooth'] = smooth_ar = smooth(self)
+        sim['smooth'] = smooth_ar = smooth(sim)
     return smooth_ar
 
 @pynbody.snapshot.simsnap.SimSnap.stable_derived_array
-def rho(self):
-    self.build_tree()
-
+def rho(sim):
+    """Return the SPH density array for the simulation, using the configured number of neighbours"""
+    sim.build_tree()
 
     logger.info('Calculating SPH density')
     rho = array.SimArray(
-        np.empty(len(self['pos'])), self['mass'].units / self['pos'].units ** 3,
-        dtype=self['pos'].dtype)
+        np.empty(len(sim['pos'])), sim['mass'].units / sim['pos'].units ** 3,
+        dtype=sim['pos'].dtype)
 
 
     start = time.time()
 
 
-    self.kdtree.set_array_ref('smooth',_get_smooth_array_ensuring_compatibility(self))
-    self.kdtree.set_array_ref('mass',self['mass'])
-    self.kdtree.set_array_ref('rho',rho)
+    sim.kdtree.set_array_ref('smooth', _get_smooth_array_ensuring_compatibility(sim))
+    sim.kdtree.set_array_ref('mass', sim['mass'])
+    sim.kdtree.set_array_ref('rho', rho)
 
-    self.kdtree.populate('rho', config['sph']['smooth-particles'])
+    sim.kdtree.populate('rho', config['sph']['smooth-particles'])
 
     end = time.time()
     logger.info('Density calculation done in %5.3g s' % (end - start))
@@ -113,7 +112,8 @@ def rho(self):
     return rho
 
 
-class Kernel:
+class KernelBase:
+    """Base class for SPH kernels. Subclasses should implement the get_value method."""
 
     def __init__(self):
         self.h_power = 3
@@ -136,9 +136,21 @@ class Kernel:
                     [self.get_value(x ** 0.5) for x in sample_pts], dtype=dtype)
         return self._samples
 
-    def get_value(self, d, h=1):
+    def get_value(self, d, h=1) -> float:
         """Get the value of the kernel for a given smoothing length."""
-        # Default : spline kernel
+        raise NotImplementedError("Subclasses must implement this method")
+
+    @classmethod
+    def get_c_kernel_id(cls) -> int:
+        """Return the C kernel id for this kernel
+
+        This is used to select the appropriate C code for the kernel, and must match
+        the kernel id defined in the Kernel::create function in kernels.hpp"""
+        raise NotImplementedError("Subclasses must implement this method")
+
+class CubicSplineKernel(KernelBase):
+    """A cubic spline kernel. This is the default kernel used by pynbody."""
+    def get_value(self, d, h=1):
         if d < 1:
             f = 1. - (3. / 2) * d ** 2 + (3. / 4.) * d ** 3
         elif d < 2:
@@ -148,11 +160,14 @@ class Kernel:
 
         return f / (math.pi * h ** 3)
 
+    @classmethod
+    def get_c_kernel_id(cls):
+        return 0
 
-class WendlandC2Kernel(Kernel):
+class WendlandC2Kernel(KernelBase):
+    """A Wendland C2 (quintic) kernel. This is the default kernel used by EAGLE."""
 
     def get_value(self, d, h=1):
-        # Wendland C2 (quintic) kernel, as used by EAGLE
         if d < 2:
             f = (1. - (d / 2.))**4 * (2. * d + 1)
         else:
@@ -160,10 +175,15 @@ class WendlandC2Kernel(Kernel):
 
         return (21. * f) / (16. * math.pi * h ** 3)
 
+    @classmethod
+    def get_c_kernel_id(cls):
+        return 1
 
-class Kernel2D(Kernel):
 
-    def __init__(self, k_orig=Kernel()):
+class Kernel2D(KernelBase):
+    """A 2D spline kernel, generated by numerically projecting an underlying 3D kernel"""
+    def __init__(self, k_orig=CubicSplineKernel()):
+        """Create a 2D kernel by projecting a 3D kernel. The 3D kernel is passed as an argument."""
         self.h_power = 2
         self.max_d = k_orig.max_d
         self.k_orig = k_orig
@@ -174,22 +194,11 @@ class Kernel2D(Kernel):
         import scipy.integrate as integrate
         return 2 * integrate.quad(lambda z: self.k_orig.get_value(np.sqrt(z ** 2 + d ** 2), h), 0, 2*h)[0]
 
-
-class TopHatKernel:
-
-    def __init__(self):
-        self.h_power = 3
-        self.max_d = 2
-
-    def get_c_code(self):
-        code = """#define KERNEL1(d,h) (d<%d *h)?%.5e/(h*h*h):0
-        #define KERNEL(dx,dy,dz,h) KERNEL1(sqrt((dx)*(dx)+(dy)*(dy)+(dz)*(dz)),h)
-        #define Z_CONDITION(dz,h) abs(dz)<(%d*h)
-        #define MAX_D_OVER_H %d""" % (self.max_d, 3. / (math.pi * 4 * self.max_d ** self.h_power), self.max_d, self.max_d)
-        return code
+    def get_c_kernel_id(self):
+        raise NotImplementedError("2D kernels are not supported in C")
 
 
-def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kernel(),
+def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=CubicSplineKernel(),
                            kstep=0.5, denoise=None, out_units=None, threaded=None):
     """Render an SPH image on a spherical surface. Requires healpy libraries.
 
@@ -236,7 +245,7 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kerne
     return im
 
 
-def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=Kernel(),
+def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=CubicSplineKernel(),
                             kstep=0.5, denoise=None, out_units=None, __threaded=False, snap_slice=None):
 
     if denoise is None:
@@ -388,7 +397,7 @@ def _render_image_bridge(fn):
 
 def render_image(snap, qty='rho', x2=100, nx=500, y2=None, ny=None, x1=None,
                  y1=None, z_plane=0.0, out_units=None, xy_units=None,
-                 kernel=Kernel(),
+                 kernel=CubicSplineKernel(),
                  z_camera=None,
                  smooth='smooth',
                  smooth_min=0.0,
@@ -653,7 +662,7 @@ def _calculate_wrapping_repeat_array(snap, x1, x2, xy_units):
 
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, x2=None, out_units=None,
-               xy_units=None, kernel=Kernel(), smooth='smooth', approximate_fast=_approximate_image,
+               xy_units=None, kernel=CubicSplineKernel(), smooth='smooth', approximate_fast=_approximate_image,
                threaded=None, snap_slice=None, denoise=None):
     """
 
