@@ -754,7 +754,7 @@ template <typename Tf, typename Tq> struct typed_populate {
         // retrieve the existing smoothing length
         hsm = GETSMOOTH(Tf, i);
 
-        // use it to get nearest neighbours - NB following should be Tf not double
+        // use it to get nearest neighbours
         nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
 
         // calculate the density
