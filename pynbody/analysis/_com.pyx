@@ -1,5 +1,6 @@
 cimport cython
 cimport numpy as np
+np.import_array()
 
 import logging
 import math

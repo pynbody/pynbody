@@ -3,6 +3,7 @@
 import numpy as np
 
 cimport numpy as np
+np.import_array()
 
 
 def scan_for_next_stop(np.ndarray[np.int64_t, ndim=1, mode="c"] ids not None,
