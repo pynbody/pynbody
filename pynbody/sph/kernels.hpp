@@ -56,7 +56,9 @@ namespace kernels
       T r_over_h = sqrt(r_over_h_squared);
       T r = sqrt(r_squared);
       T rs;
-      if (r_over_h < 1.0)
+      if (r_over_h < 1e-10)
+        return 0.0;
+      else if (r_over_h < 1.0)
         rs = -3.0 * r_over_h + 2.25 * r_over_h_squared;
       else
         rs = -0.75 * (2 - r_over_h) * (2 - r_over_h);
