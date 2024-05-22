@@ -364,15 +364,7 @@ class KDTree:
 
 
             if self.num_threads == 1:
-                NT = 8
-                util.thread_map(
-                    kdmain.populate,
-                    [self.kdtree] * NT,
-                    [smx] * NT,
-                    [propid] * NT,
-                    list(range(0, NT)),
-                    [self._kernel_id] * NT
-                )
+                kdmain.populate(self.kdtree, smx, propid, 0, self._kernel_id)
             else:
                 util.thread_map(
                     kdmain.populate,
