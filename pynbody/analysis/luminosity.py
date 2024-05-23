@@ -73,6 +73,7 @@ import warnings
 import numpy as np
 
 import pynbody
+
 from .. import filt, snapshot, units
 from .interpolate import interpolate2d
 

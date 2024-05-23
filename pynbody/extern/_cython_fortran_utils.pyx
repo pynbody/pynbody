@@ -1,4 +1,5 @@
 cimport numpy as np
+
 np.import_array()
 
 import cython

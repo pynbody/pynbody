@@ -3,6 +3,7 @@ import numpy as np
 cimport cython
 cimport libc.math as cmath
 cimport numpy as np
+
 np.import_array()
 from libc.math cimport atan, pow
 from libc.stdlib cimport free, malloc

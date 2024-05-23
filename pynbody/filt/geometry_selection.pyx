@@ -2,6 +2,7 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
+
 np.import_array()
 cimport openmp
 from cython.parallel cimport prange

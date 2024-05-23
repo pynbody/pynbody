@@ -8,6 +8,7 @@ from pynbody import array, config, openmp, units
 from pynbody.util import get_eps
 
 cimport numpy as np
+
 np.import_array()
 
 DTYPE = np.double
