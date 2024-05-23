@@ -305,7 +305,7 @@ class SimArray(np.ndarray):
             output_units = SimArray._ufunc_registry[ufunc](*context[1])
             n_array = array.view(SimArray)
             n_array.units = output_units
-            n_array.sim = self.sim
+            #n_array.sim = self.sim
             n_array._name = self._name
             return n_array
         except (KeyError, units.UnitsException):
