@@ -903,9 +903,9 @@ class GadgetSnap(SimSnap):
         ndim = self._get_array_dims(name)
 
         if ndim == 1:
-            dims = [self.get_block_parts(g_name, fam), ]
+            dims = [int(self.get_block_parts(g_name, fam)), ]
         else:
-            dims = [self.get_block_parts(g_name, fam), ndim]
+            dims = [int(self.get_block_parts(g_name, fam)), ndim]
 
         if fam is not None:
             p_types = gadget_type(fam)
@@ -934,7 +934,8 @@ class GadgetSnap(SimSnap):
     def __load_array(self, g_name, p_type):
        """Internal helper function for _load_array that takes a g_name and a gadget type,
        gets the data from each file and returns it as one long array."""
-       data = np.array(np.zeros(self._get_array_dims(g_name) * self.header.npart[p_type]), dtype=self._get_array_type_g(g_name))
+       # int cast necessary because numpy makes int * uint64 a float!
+       data = np.zeros(int(self._get_array_dims(g_name) * self.header.npart[p_type]), dtype=self._get_array_type_g(g_name))
        # Get a type from each file
        ipos = 0
        for f in self._files:
