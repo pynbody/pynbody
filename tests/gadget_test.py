@@ -187,7 +187,9 @@ def test_per_particle_loading():
 
     assert (f_all['pos'] == f_part['pos']).all()
 
-@pytest.mark.xfail(reason="This test is failing because pos is float32 while mass is float64 and I don't know why",strict=True)
+@pytest.mark.xfail(condition=int(np.__version__.split('.')[0])  == 2,
+                   reason="This test is failing because pos is float32 while mass is float64 and I don't know why",
+                   strict=True)
 def test_issue321():
     """L-PICOLA outputs single-precision with no mass block, which causes problems
     with testing kd-trees"""

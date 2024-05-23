@@ -113,7 +113,9 @@ def test_iop_sanity():
     assert id(x) == x_id
 
 
-@pytest.mark.xfail(reason="This test seems to fail because it creates a unit with 10 scales, which doesn't seem to be the intention of the units code?",strict=True)
+@pytest.mark.xfail(condition=int(np.__version__.split('.')[0])  == 2,
+                   reason="This test seems to fail because it creates a unit with 10 scales, which doesn't seem to be the intention of the units code?",
+                   strict=True)
 def test_unit_array_interaction():
     """Test for issue 113 and related"""
     x = pynbody.units.Unit('1 Mpc')

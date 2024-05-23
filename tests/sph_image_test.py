@@ -126,7 +126,9 @@ def test_denoise_projected_image_throws():
         # this should not:
         pynbody.plot.sph.image(f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, denoise=True)
 
-@pytest.mark.xfail(reason="Probably because extinction is not compatible with numpy 2.0",strict=True)
+@pytest.mark.xfail(condition=int(np.__version__.split('.')[0])  == 2,
+                   reason="Probably because extinction is not compatible with numpy 2.0",
+                   strict=True)
 def test_render_stars(stars_2d, stars_dust_2d):
     global f
     with pytest.warns(UserWarning, match=r"No log file found"):
