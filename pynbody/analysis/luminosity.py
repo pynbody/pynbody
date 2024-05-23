@@ -72,6 +72,7 @@ import warnings
 
 import numpy as np
 
+import pynbody
 from .. import filt, snapshot, units
 from .interpolate import interpolate2d
 
@@ -192,7 +193,7 @@ class SSPTable:
 
 
         vals = output_mags - 2.5 * np.log10(masses)
-
+        vals = vals.view(pynbody.array.SimArray)
         vals.units = None
         return vals
 
