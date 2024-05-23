@@ -7,7 +7,7 @@ from pynbody.halo.adaptahop import (
     AdaptaHOPCatalogue,
     BaseAdaptaHOPCatalogue,
     NewAdaptaHOPCatalogue,
-    NewAdaptaHOPCatalogueFullyLongInts
+    NewAdaptaHOPCatalogueFullyLongInts,
 )
 
 
