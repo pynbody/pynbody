@@ -58,9 +58,14 @@ jobs:
     - name: Run all tests
       working-directory: tests
       run: python -m pytest
+    # Following is temporarily necessary because of the >2.0.0rc1 numpy version
+    - name: sanitize artifact name
+      run: |
+        TARGET_SANI=$(echo "images-${{ matrix.python-version }}-${{ matrix.numpy-version }}" | tr ">" "_")
+        echo "TARGET_SANI=${TARGET_SANI}" >> "$GITHUB_ENV"
     - name: Upload test images
       uses: actions/upload-artifact@v4
       if: success() || failure()
       with:
-        name: images-${{ matrix.python-version }}-${{ matrix.numpy-version }}
+        name: ${{ env.TARGET_SANI }}
         path: tests/result*.npy
