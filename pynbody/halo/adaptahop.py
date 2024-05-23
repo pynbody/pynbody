@@ -208,10 +208,6 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             if self._read_contamination:
                 Nskip += len(self._halo_attributes_contam)
 
-            # We might need a reference to both int readers later in the loop
-            default_reader = fpu.read_int64
-            backup_reader = fpu.read_int
-
             for i in range(nhalos + nsubs):
                 self._file_offsets[i] = fpu.tell()
                 if self._longint:
@@ -220,16 +216,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                     npart = fpu.read_int()
                 self._npart[i] = npart
                 fpu.skip(1)  # skip over fortran field with ids of parts
-
-                # AdaptaHOP might use long ints for iord only, or for every
-                # int in the code. Hide this subtlety to the user with a try catch.
-                try:
-                    ipos = fpu.tell()
-                    self._halo_numbers[i] = default_reader()
-                except ValueError:
-                    fpu.seek(ipos)
-                    self._halo_numbers[i] = backup_reader()
-                    backup_reader, default_reader = default_reader, backup_reader
+                self._halo_numbers[i] = self._read_int_without_knowing_length(fpu)
                 fpu.skip(Nskip)     # skip over attributes
 
     def _get_all_particle_indices(self):
@@ -312,15 +299,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 npart = fpu.read_int()
 
             fpu.skip(1) # iord array
-
-            # Same as above -- after PR#821, AdaptaHOP catalogues can have mixed short/long int, or full long ints.
-            try:
-                ipos = fpu.tell()
-                halo_id_read = fpu.read_int64()
-            except ValueError:
-                fpu.seek(ipos)
-                halo_id_read = fpu.read_int()
-
+            halo_id_read = self._read_int_without_knowing_length(fpu)
             assert i == halo_id_read
             if self._read_contamination:
                 attrs = self._halo_attributes + self._halo_attributes_contam
@@ -383,6 +362,19 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             "Most likely, this class is expecting the wrong header/data blocks "
             "compared to what is stored in the halo catalogue."
         )
+
+    @classmethod
+    def _read_int_without_knowing_length(cls, fpu: FortranFile):
+        # After PR#821, AdaptaHOP catalogues can have short in headers, but long int iords,
+        # or be using long ints fully everywhere.
+        # This is a quick heuristic to enable reading of both without failing
+        try:
+            ipos = fpu.tell()
+            int_value = fpu.read_int64()
+        except ValueError:
+            fpu.seek(ipos)
+            int_value = fpu.read_int()
+        return int_value
 
     @classmethod
     def _can_load(cls, sim, filename=None, arr_name="grp", *args, **kwa):
