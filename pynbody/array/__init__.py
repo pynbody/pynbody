@@ -295,7 +295,7 @@ class SimArray(np.ndarray):
         return result
 
 
-    def __array_wrap__(self, array, context=None):
+    def __array_wrap__(self, array, context=None, return_scalar=False):
         if context is None:
             n_array = array.view(SimArray)
             return n_array
@@ -421,10 +421,6 @@ class SimArray(np.ndarray):
             self.units *= rhs
         else:
             np.ndarray.__imul__(self, rhs)
-            try:
-                self.units *= rhs.units
-            except AttributeError:
-                pass
         return self
 
     def __idiv__(self, rhs):
@@ -867,7 +863,7 @@ def _sqrt_units(a):
 
 
 @_u(np.multiply)
-def _mul_units(a, b):
+def _mul_units(a, b, catch=None):
     a_units, b_units = _get_units_or_none(a, b)
     if a_units is not None and b_units is not None:
         return a_units * b_units
@@ -879,7 +875,7 @@ def _mul_units(a, b):
 
 @_u(np.divide)
 @_u(np.true_divide)
-def _div_units(a, b):
+def _div_units(a, b, catch=True):
     a_units, b_units = _get_units_or_none(a, b)
     if a_units is not None and b_units is not None:
         return a_units / b_units
@@ -891,7 +887,7 @@ def _div_units(a, b):
 
 @_u(np.add)
 @_u(np.subtract)
-def _consistent_units(a, b):
+def _consistent_units(a, b, catch=None):
     a_units, b_units = _get_units_or_none(a, b)
     if a_units is not None and b_units is not None:
         if a_units == b_units:
@@ -973,7 +969,7 @@ class IndexedSimArray:
         self.base = array
         self._ptr = ptr
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         return np.asanyarray(self.base[self._ptr], dtype=dtype)
 
     def _reexpress_index(self, index):
