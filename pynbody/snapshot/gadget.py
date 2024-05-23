@@ -721,7 +721,7 @@ class GadgetSnap(SimSnap):
         first_file = _GadgetFile(filename)
         self._files.append(first_file)
         files_expected = self._files[0].header.num_files
-        npart = np.array(self._files[0].header.npart)
+        npart = np.array(self._files[0].header.npart,dtype=np.uint64) # 64-bit necessary in numpy 2.0 because of changes to data type promotion rules in the 2 * 32 calc below
 
         if files is None:
             # we want to load all files
@@ -743,7 +743,7 @@ class GadgetSnap(SimSnap):
         self.header = copy.deepcopy(self._files[0].header)
         self.header.npart = npart
         # Check and fix npartTotal and NallHW if they are wrong.
-        if npart is not self.header.npartTotal + 2 ** 32 * self.header.NallHW:
+        if npart is not self.header.npartTotal.astype(np.uint64) + 2 ** 32 * self.header.NallHW.astype(np.uint64):
             self.header.NallHW = npart // 2 ** 32
             self.header.npartTotal = npart - 2 ** 32 * self.header.NallHW
             for f in self._files:
