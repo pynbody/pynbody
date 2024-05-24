@@ -77,7 +77,11 @@ from numpy.typing import NDArray
 from .. import array, snapshot, units, util
 from ..util import iter_subclasses
 from .details.iord_mapping import make_iord_to_offset_mapper
-from .details.number_mapping import MonotonicHaloNumberMapper, create_halo_number_mapper
+from .details.number_mapping import (
+    HaloNumberMapper,
+    MonotonicHaloNumberMapper,
+    create_halo_number_mapper,
+)
 from .details.particle_indices import HaloParticleIndices
 
 if TYPE_CHECKING:
