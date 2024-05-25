@@ -90,7 +90,7 @@ def test_smooth(v_mean, v_disp, rho, smooth):
 
 
 def test_smooth_WendlandC2(rho_W):
-    pynbody.config['sph']['Kernel'] = 'WendlandC2'
+    pynbody.config['sph']['kernel'] = 'WendlandC2Kernel'
 
     try:
         f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
@@ -98,7 +98,7 @@ def test_smooth_WendlandC2(rho_W):
         np.save('test_rho_W2.npy', f.dm['rho'][::100])
         npt.assert_allclose(f.d['rho'][::100], rho_W, rtol=1e-6)
     finally:
-        pynbody.config['sph']['Kernel'] = 'CubicSpline'
+        pynbody.config['sph']['kernel'] = 'CubicSplineKernel'
 
 def test_kd_delete():
     global f

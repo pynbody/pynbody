@@ -6,7 +6,7 @@ pynbody
 N-body and hydrodynamic astrophysical simulations supporting PKDGRAV/Gasoline,
 Gadget, Gadget4/Arepo, N-Chilada and RAMSES AMR outputs. It supports Python 3
 only (versions prior to 1.0 are still available on PyPI for Python 2).
-Minor version support adheres roughly to [NEP29](https://numpy.org/neps/nep-0029-deprecation_policy.html).
+Minor version support adheres roughly to [SPEC0](https://scientific-python.org/specs/spec-0000/).
 
 Written in Python, the core tools are accompanied by a library of
 publication-level analysis routines. For a quick tour of some of

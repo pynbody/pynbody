@@ -10,6 +10,7 @@ import numpy as np
 import pylab as p
 
 from .. import config, sph, units as _units
+from ..sph import renderers
 
 
 def _width_in_sim_units(sim, width):
@@ -20,13 +21,13 @@ def _width_in_sim_units(sim, width):
 	return width
 
 def sideon_image(sim, *args, **kwargs):
-    """
+    """Create an image of the given simulation, side-on to the disc of the passed halo.
 
-    Rotate the simulation so that the disc of the passed halo is
-    side-on, then make an SPH image by passing the parameters into
-    the function image
+    This routine is a small wrapper around :func:`~pynbody.plot.sph.image` that rotates the simulation so that the disc
+    of the passed halo is side-on, makes the SPH image, then rotates the simulation back to its original orientation.
 
-    For a description of keyword arguments see :func:`~pynbody.plot.sph.image`.
+    More flexible control over the orientation of the simulation can be achieved by using
+    :func:`~pynbody.analysis.angmom.sideon` in combination with :func:`~pynbody.plot.sph.image`.
 
     """
 
@@ -37,13 +38,13 @@ def sideon_image(sim, *args, **kwargs):
 
 
 def faceon_image(sim, *args, **kwargs):
-    """
+    """Create an image of the given simulation, face-on to the disc of the passed halo.
 
-    Rotate the simulation so that the disc of the passed halo is
-    face-on, then make an SPH image by passing the parameters into
-    the function image
+    This routine is a small wrapper around :func:`~pynbody.plot.sph.image` that rotates the simulation so that the disc
+    of the passed halo is face-on, makes the SPH image, then rotates the simulation back to its original orientation.
 
-    For a description of keyword arguments see :func:`~pynbody.plot.sph.image`.
+    More flexible control over the orientation of the simulation can be achieved by using
+    :func:`~pynbody.analysis.angmom.faceon` in combination with :func:`~pynbody.plot.sph.image`.
 
     """
 
@@ -54,7 +55,7 @@ def faceon_image(sim, *args, **kwargs):
 
 
 def contour(sim, qty, width="10 kpc", resolution=None, units=None, axes=None, label=True, log=True, weight=None,
-			contour_kwargs=None, smooth_min=0.0, _transform=None):
+			contour_kwargs=None, smooth_floor=0.0, _transform=None):
     """Create an image of the given quantity then turn it into contours.
 
     Parameters
@@ -101,7 +102,7 @@ def contour(sim, qty, width="10 kpc", resolution=None, units=None, axes=None, la
     contour_kwargs : dict, optional
         Additional keyword arguments to pass to the matplotlib contour function. (Default is None)
 
-    smooth_min : float, optional
+    smooth_floor : float, optional
         The minimum size of the smoothing kernel, either as a float or a unit string.
 		Setting this to a non-zero value makes smoother, clearer contours but loses fine detail.
 		Default is 0.0.
@@ -125,8 +126,15 @@ def contour(sim, qty, width="10 kpc", resolution=None, units=None, axes=None, la
 
     # width of image must be a pixel wider than the width of the final contour field, since the contours
     # are based on the centres of the pixels not their edges
-    im = image(sim.s, qty, width=width + pixel_size, weight=weight, units=units, log=log, clear=False, noplot=True,
-               resolution=resolution, smooth_min=smooth_min)
+
+    pipeline = renderers.make_render_pipeline(sim.s, quantity=qty, width=width + pixel_size,
+                                              weight = weight, out_units = units, resolution = resolution,
+                                              smooth_floor = smooth_floor)
+
+    im = pipeline.render()
+
+    if log:
+        im = np.log10(im)
 
     if _transform:
         im = _transform(im)
@@ -239,12 +247,14 @@ def velocity_image(sim, qty='rho', vector_qty='vel', width="10 kpc", mode='quive
     if 'units' in kwargs and _units_imply_projection(sim, qty, _units.Unit(kwargs['units'])) and weight is None:
         weight_for_vector = 'rho'
 
-    vx = image(sim, qty=vx_name, width=width, log=False,
-               resolution=vector_resolution, noplot=True, weight=weight_for_vector,
-               restrict_depth=restrict_depth)
-    vy = image(sim, qty=vy_name, width=width, log=False,
-               resolution=vector_resolution, noplot=True, weight=weight_for_vector,
-               restrict_depth=restrict_depth)
+    vel_pipeline = renderers.make_render_pipeline(sim, quantity=vx_name, width=width,
+                                                  resolution=vector_resolution, weight=weight_for_vector,
+                                                  restrict_depth=restrict_depth)
+
+    vx = vel_pipeline.render()
+    vel_pipeline.set_quantity(vy_name)
+    vy = vel_pipeline.render()
+
     key_unit = _units.Unit(key_length)
 
     if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
@@ -300,27 +310,46 @@ def volume(sim, qty='rho', width=None, resolution=200,
            create_figure=True):
     """Create a volume rendering of the given simulation using mayavi.
 
-    **Keyword arguments:**
+    .. warning ::
+        This function requires mayavi to be installed. However, mayavi does not seem to be under
+        active development and is not compatible with the latest versions of python.
+        As a result, this function will probably be removed in future versions of pynbody.
+        For a more modern alternative, consider using `topsy <https://github.com/pynbody/topsy/>`_.
 
-    *qty* (rho): The name of the array to interpolate
+    Parameters
+    ----------
+    sim : pynbody.snapshot.simsnap.SimSnap
+        The simulation snapshot to visualize
 
-    *width* (None): The width of the cube to generate, centered on the origin
+    qty : str, optional
+        The name of the array to interpolate. Default is 'rho', which gives a density image.
 
-    *resolution* (200): The number of elements along each side of the cube
+    width : str or float, optional
+        The width of the cube to generate, centered on the origin. If None, the width is determined
+        by the extent of the simulation snapshot.
 
-    *color* (white): The color of the volume rendering. The value of each voxel
-       is used to set the opacity.
+    resolution : int, optional
+        The number of elements along each side of the cube. (Default is 200)
 
-    *vmin* (None): The value for zero opacity (calculated using dynamic_range if None)
+    color : tuple, optional
+        The color of the volume rendering. The value of each voxel is used to set the opacity.
 
-    *vmax* (None): The value for full opacity (calculated from the maximum
-       value in the region if None)
+    vmin : float, optional
+        The value for zero opacity. If None, this is inferred from vmax and dynamic_range.
 
-    *dynamic_range*: The dynamic range to use if vmin and vmax are not specified
+    vmax : float, optional
+        The value for full opacity. If None, the maximum value of the image is used.
 
-    *log* (True): log-scale the image before passing to mayavi
+    dynamic_range : float, optional
+        The dynamic range in dex to use if vmin and vmax are not specified.
+        Default is 4.0
 
-    *create_figure* (True): create a new mayavi figure before rendering
+    log : bool, optional
+        If True, the image is log-scaled before passing to mayavi. (Default is True)
+
+    create_figure : bool, optional
+        If True, create a new mayavi figure before rendering. (Default is True)
+
     """
 
     import mayavi
@@ -404,8 +433,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
           noplot=False, filename=None,
           return_image=False, return_array=False,
           fill_nan=True, fill_val=0.0, linthresh=None,
-          restrict_depth = False,
-          kernel_type='spline',
+          restrict_depth = False, threaded=True, approximate_fast=None, denoise=None,
+          kernel=None,
           **kwargs):
     """
     Make an image of the given simulation, using SPH or denoised-SPH interpolation.
@@ -499,9 +528,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
         If the image has negative and positive values and a log scaling is requested, the part
         between -linthresh and linthresh is shown on a linear scale to avoid divergence at 0.
 
-    kernel_type : str, optional
-        SPH kernel to use for smoothing. Defaults to a cubic spline, but can also be set to 'wendlandC2'.
-        (Default is 'spline')
+    kernel : str, optional
+        SPH kernel to use for smoothing; see :func:`~pynbody.sph.kernels.create_kernel` for options.
 
     approximate_fast : bool, optional
         If True, speed up the image-making by rendering large kernels onto a lower-resolution image
@@ -529,22 +557,14 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
 
     global config
 
-    if resolution is None:
-        resolution = config['image-default-resolution']
-
     if not noplot:
         import matplotlib.pylab as plt
-
-
-    if not noplot:
         if axes:
             p = axes
         else:
             p = plt
 
-
     if qtytitle is not None:
-
         warnings.warn("qtytitle is deprecated; use colorbar_label instead", DeprecationWarning)
         colorbar_label = qtytitle
 
@@ -556,74 +576,26 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
         return_image = kwargs.pop('ret_im')
         warnings.warn("ret_im is deprecated; use return_image instead", DeprecationWarning)
 
-
     if colorbar_label is None and isinstance(qty, str):
         qtytitle = qty
     else:
         qtytitle = None
 
-    if isinstance(units, str):
-        units = _units.Unit(units)
+    if weight and qtytitle:
+        qtytitle = f"$\\langle${qtytitle}$\\rangle$"
 
-    if isinstance(width, str) or isinstance(width, _units.UnitBase):
-        if isinstance(width, str):
-            width = _units.Unit(width)
-        width = width.in_units(sim['pos'].units, **sim.conversion_context())
+    renderer = renderers.make_render_pipeline(sim, quantity=qty, width=width, resolution=resolution,
+                                              out_units=units, weight=weight, restrict_depth=restrict_depth,
+                                              kernel=kernel, z_camera=z_camera, threaded=threaded,
+                                              approximate_fast=approximate_fast, denoise=denoise)
 
-    width = float(width)
+    # if width was provided e.g. as string, we'll need it as a float
+    width = renderer.geometry.width
 
-    if restrict_depth:
-        kwargs['z_range'] = (-width/2, width/2)
+    if renderer.is_projected and qtytitle is not None:
+        qtytitle = f"$\\int\\,${qtytitle}$\\,\\mathrm{{d}}z$"
 
-    if kernel_type == 'wendlandC2':
-        kernel = sph.WendlandC2Kernel()
-    elif kernel_type == 'spline':
-        kernel = sph.Kernel()
-    else:
-        raise ValueError('Invalid kernel_type specified. Options are "spline" (default) and "wendlandC2".')
-
-    perspective = z_camera is not None
-    if perspective and not weight:
-        kernel = sph.Kernel2D(kernel)
-
-    is_projected = False
-    if units is not None:
-        is_projected = _units_imply_projection(sim, qty, units)
-
-    if is_projected:
-        kernel = sph.Kernel2D(kernel)
-        if qtytitle:
-            qtytitle = f"$\\int\\,${qtytitle}$\\,\\mathrm{{d}}z$"
-
-    if weight:
-        if isinstance(kernel, sph.Kernel2D):
-            raise _units.UnitsException(
-                "Units already imply projected image; can't also average over line-of-sight!")
-        if qtytitle:
-            qtytitle = f"$\\langle${qtytitle}$\\rangle$"
-        kernel = sph.Kernel2D(kernel)
-        if units is not None:
-            aunits = units * sim['z'].units
-        else:
-            aunits = None
-
-        if isinstance(weight, str):
-            if units is not None:
-                aunits = units * sim[weight].units * sim['z'].units
-            qty = sim[weight] * sim[qty]
-        else:
-            weight = np.ones_like(sim[qty])
-
-        im = sph.render_image(sim, qty, width / 2, resolution, out_units=aunits, kernel=kernel,
-                              z_camera=z_camera, **kwargs)
-        im2 = sph.render_image(sim, weight, width / 2, resolution, kernel=kernel,
-                               z_camera=z_camera, **kwargs)
-
-        im = im / im2
-
-    else:
-        im = sph.render_image(sim, qty, width / 2, resolution, out_units=units,
-                              kernel=kernel,  z_camera=z_camera, **kwargs)
+    im = renderer.render()
 
     if fill_nan:
         im[np.isnan(im)] = fill_val
@@ -704,30 +676,3 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
         return ims
     elif return_array or noplot:
         return im
-
-
-
-def image_radial_profile(im, bins=100):
-
-    xsize, ysize = np.shape(im)
-    x = np.arange(-xsize / 2, xsize / 2)
-    y = np.arange(-ysize / 2, ysize / 2)
-    xs, ys = np.meshgrid(x, y)
-    rs = np.sqrt(xs ** 2 + ys ** 2)
-    hist, bin_edges = np.histogram(rs, bins=bins)
-    inds = np.digitize(rs.flatten(), bin_edges)
-    ave_vals = np.zeros(bin_edges.size)
-    max_vals = np.zeros(bin_edges.size)
-    min_vals = np.zeros(bin_edges.size)
-    for i in np.arange(bin_edges.size):
-        try:
-            min_vals[i] = np.min(10 ** (im.flatten()[np.where(inds == i)]))
-        except ValueError:
-            min_vals[i] = float('nan')
-        ave_vals[i] = np.mean(10 ** (im.flatten()[np.where(inds == i)]))
-        try:
-            max_vals[i] = np.max(10 ** (im.flatten()[np.where(inds == i)]))
-        except ValueError:
-            max_vals[i] = float('nan')
-
-    return ave_vals, min_vals, max_vals, bin_edges
