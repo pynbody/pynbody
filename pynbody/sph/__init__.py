@@ -1,6 +1,20 @@
 """
 Low-level functionality for SPH interpolation and rendering
 
+For most users, SPH functionality is accessed through the derived arrays `rho` and `smooth` in a snapshot object.
+These arrays are calculated on-the-fly when accessed.
+
+SPH-interpolated images and grids can also be generated. For most users, the :func:`pynbody.plot.sph.image` function
+is the most convenient interface for rendering images of SPH simulations.
+
+A slightly lower-level approach is to call :func:`render_image` directly; or to get closer still to the underlying
+machinery, use :func:`~pynbody.sph.renderers.make_render_pipeline` to create a renderer object, which then produces
+an image when the :meth:`~pynbody.sph.renderers.ImageRendererBase.render` method is called.
+
+The :func:`to_3d_grid` function can be used to create a 3D grid of interpolated values from an SPH simulation. This
+functionality is also a thin wrapper around the :func:`~pynbody.sph.renderers.make_render_pipeline` function and
+its associated classes in the :mod:`~pynbody.sph.renderers` module.
+
 """
 
 import copy
@@ -267,17 +281,11 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, width="10 kpc",
     renderer = renderers.make_render_pipeline(snap, quantity=qty, resolution=nx, width=width,
                                               out_units = out_units, kernel = kernel,
                                               approximate_fast=approximate_fast, threaded=threaded,
-                                              denoise=denoise, grid_3d=True)
-    if nx is not None:
-        renderer.geometry.nx = nx
-    if ny is not None:
-        renderer.geometry.ny = ny
-    if nz is not None:
-        renderer.geometry.nz = nz
+                                              denoise=denoise, grid_3d=True, nx=nx, ny=ny, nz=nz)
     return renderer.render()
 
 def render_image(*args, **kwargs):
-    """Render an SPH image. This is a wrapper around renderers.make_render_pipeline for convenience.
+    """Render an SPH image. This is a wrapper around the :mod:`pynbody.sph.renderers` module for convenience.
 
     All arguments and keyword arguments are forwarded to :func:`pynbody.sph.renderers.make_render_pipeline`,
     and the result is immediately rendered.

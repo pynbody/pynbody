@@ -676,30 +676,3 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
         return ims
     elif return_array or noplot:
         return im
-
-
-
-def image_radial_profile(im, bins=100):
-
-    xsize, ysize = np.shape(im)
-    x = np.arange(-xsize / 2, xsize / 2)
-    y = np.arange(-ysize / 2, ysize / 2)
-    xs, ys = np.meshgrid(x, y)
-    rs = np.sqrt(xs ** 2 + ys ** 2)
-    hist, bin_edges = np.histogram(rs, bins=bins)
-    inds = np.digitize(rs.flatten(), bin_edges)
-    ave_vals = np.zeros(bin_edges.size)
-    max_vals = np.zeros(bin_edges.size)
-    min_vals = np.zeros(bin_edges.size)
-    for i in np.arange(bin_edges.size):
-        try:
-            min_vals[i] = np.min(10 ** (im.flatten()[np.where(inds == i)]))
-        except ValueError:
-            min_vals[i] = float('nan')
-        ave_vals[i] = np.mean(10 ** (im.flatten()[np.where(inds == i)]))
-        try:
-            max_vals[i] = np.max(10 ** (im.flatten()[np.where(inds == i)]))
-        except ValueError:
-            max_vals[i] = float('nan')
-
-    return ave_vals, min_vals, max_vals, bin_edges

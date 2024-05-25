@@ -98,8 +98,10 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
     npt.assert_allclose(im3d_wendlandC2,compare3d_wendlandC2,rtol=1e-5)
 
     # check rectangular image is OK
-    im_rect = pynbody.sph.render_image(f.gas,nx=500,ny=250,x2=10.0,
+    im_rect = pynbody.sph.render_image(f.gas,nx=500,ny=250,width=20.0,
                                         approximate_fast=False).in_units("m_p cm^-3")
+    np.save("result_im_3d_rectangular.npy",im_rect)
+
     compare_rect = compare3d[125:-125]
     npt.assert_allclose(im_rect,compare_rect,rtol=1e-4)
 

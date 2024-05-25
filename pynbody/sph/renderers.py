@@ -89,6 +89,7 @@ class ImageGeometry:
         return copy.copy(self)
 
 class ReadOnlyGeometry:
+    """A wrapper around an :class:`ImageGeometry` object that makes it read-only."""
     def __init__(self, geometry):
         self._geometry = geometry
 
@@ -367,6 +368,7 @@ class ImageRendererBase:
         return ApproximateImageRenderer(self, levels, factor)
 
     def with_weighted_projection(self, weighting_array):
+        """Return a version of this renderer that will render a weighted projection along the line of sight."""
         self._check_quantity_set()
         if isinstance(weighting_array, str):
             weighting_array = self._snapshot[weighting_array]
@@ -375,10 +377,12 @@ class ImageRendererBase:
         return ProjectionAverageImageRenderer(self, weighting_array)
 
     def with_volume_weighted_projection(self):
+        """Return a version of this renderer that will render a volume-weighted projection along the line of sight."""
         self._check_quantity_set()
         return self.with_weighted_projection(np.ones_like(self._array.view(np.ndarray)))
 
 class MultipassImageRenderer(ImageRendererBase):
+    """A base class for image rendering using multiple passes to the underlying renderer"""
     def __init__(self, template, n_copies, share_geometry=False): # noqa - no need to call super constructor
         self._subrenderers : list[ImageRendererBase] = [template.copy(share_geometry=share_geometry)
                                                         for i in range(n_copies)]
@@ -432,7 +436,7 @@ class MultipassImageRenderer(ImageRendererBase):
         for r in self._subrenderers:
             r.set_projection(is_projected)
 
-    def with_threading(self, num_threads: int) -> ImageRendererBase:
+    def with_threading(self, num_threads = None ):
         raise RenderPipelineLogicError("Threading cannot be set for a multipass image render. Try setting the threading status for the individual stages before generating the multipass renderer.")
 
     def render(self):
@@ -663,6 +667,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
                          quantity: str | np.ndarray = 'rho',
                          width: float | str | units.UnitBase = 10.0,
                          resolution: int = None,
+                         nx: int = None, ny: int = None, nz: int = None,
                          out_units: str | units.UnitBase = None,
                          weight: bool | str | np.ndarray | NoneType = None,
                          restrict_depth: bool = False,
@@ -692,6 +697,18 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
     resolution : int, optional
         The resolution of the image to be rendered, in pixels. The default is None, in which case the
         default resolution from the configuration file is used.
+
+    nx : int, optional
+        The x resolution of the image to be rendered, in pixels. The default is None, in which case the
+        the resolution keyword is used instead.
+
+    ny : int, optional
+        The y resolution of the image to be rendered, in pixels. The default is None, in which case the
+        the resolution keyword is used instead.
+
+    nz : int, optional
+        The z resolution of the image to be rendered, in pixels (for 3d-grid renderers only). The default is None,
+        in which case the the resolution keyword is used instead.
 
     out_units : str, units.UnitBase, optional
         The units to be used for the output image. These are checked for compatibility with the array to be
@@ -769,6 +786,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
     else:
         renderer = ImageRenderer(sim)
 
+
     renderer.set_width(width)
     renderer.set_smooth_floor(smooth_floor)
     if restrict_depth:
@@ -776,6 +794,18 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     renderer.set_kernel(kernel)
     renderer.set_resolution(resolution)
+
+    if nx is not None:
+        renderer.geometry.nx = nx
+    if ny is not None:
+        renderer.geometry.ny = ny
+        renderer.geometry.y1 *= ny/nx
+        renderer.geometry.y2 *= ny/nx
+    if nz is not None:
+        renderer.geometry.nz = nz
+        renderer.geometry.z1 *= nz/nx
+        renderer.geometry.z2 *= nz/nx
+
     renderer.set_quantity(quantity)
     renderer.set_output_units(out_units)
 
