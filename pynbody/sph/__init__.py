@@ -82,30 +82,41 @@ def rho(sim):
 
     return rho
 def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=None,
-                           kstep=0.5, denoise=None, out_units=None, threaded=None):
-    """Render an SPH image on a spherical surface. Requires healpy libraries.
+                           kstep=0.5, denoise=None, out_units=None, threaded=False):
+    """Render an SPH image on a spherical surface. Requires healpy libraries to be installed.
 
-    **Keyword arguments:**
+    Parameters
+    ----------
 
-    *qty* ('rho'): The name of the simulation array to render
+    snap : pynbody.snapshot.simsnap.SimSnap
+        The snapshot to render
 
-    *nside* (8): The healpix nside resolution to use (must be power of 2)
+    qty : str
+        The name of the array within the simulation to render
 
-    *distance* (10.0): The distance of the shell (for 3D kernels) or maximum distance
-        of the skewers (2D kernels)
+    nside : int
+        The healpix nside resolution to use (must be power of 2)
 
-    *kernel*: The Kernel object to use (defaults to 3D spline kernel)
+    distance : float
+        The distance of the shell (for 3D kernels) or maximum distance of the skewers (2D kernels)
 
-    *kstep* (0.5): The sampling distance when projecting onto the spherical surface in units of the
-        smoothing length
+    kernel : str, kernels.KernelBase, optional
+        The Kernel object to use (defaults to 3D spline kernel)
 
-    *denoise* (False): if True, divide through by an estimate of the discreteness noise.
-      The returned image is then not strictly an SPH estimate, but this option can be
-      useful to reduce noise.
+    kstep : float
+        The sampling distance when projecting onto the spherical surface in units of the smoothing length
 
-    *threaded*: if False, render on a single core. Otherwise, the number of threads to use.
-      Defaults to a value specified in your configuration files. *Currently multi-threaded
-      rendering is slower than single-threaded because healpy does not release the gil*.
+    denoise : bool, optional
+        if True, divide through by an estimate of the discreteness noise. The returned image is then not strictly an
+        SPH estimate, but this option can be useful to reduce noise.
+
+    out_units : str, optional
+        The units to convert the output image into
+
+    threaded : bool, optional
+        if False, render on a single core. *Currently threading is not supported for spherical images, because
+        healpy does not release the gil*.
+
     """
 
     kernel = kernels.create_kernel(kernel)
@@ -119,14 +130,12 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=None,
     renderer = _render_spherical_image
 
     if threaded is None:
-        threaded = _get_threaded_image()
+        threaded = config_parser.getboolean('sph', 'threaded-image')
 
     if threaded:
-        im = _threaded_render_image(
-            renderer, snap, qty, nside, distance, kernel, kstep, denoise, out_units, num_threads=threaded)
-    else:
-        im = renderer(
-            snap, qty, nside, distance, kernel, kstep, denoise, out_units)
+        raise RuntimeError("Threading is not supported for spherical images, because healpy does not release the gil")
+
+    im = renderer(snap, qty, nside, distance, kernel, kstep, denoise, out_units)
     return im
 
 
