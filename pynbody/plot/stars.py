@@ -14,7 +14,7 @@ import pynbody.analysis.luminosity
 
 from .. import array, filt, units, units as _units
 from ..analysis import angmom, profile
-from ..sph import Kernel2D, render_spherical_image
+from ..sph import kernels, render_spherical_image, renderers
 from . import sph as plot_sph
 
 logger = logging.getLogger('pynbody.plot.stars')
@@ -72,7 +72,7 @@ def _convert_to_mag_arcsec2(image, mollview=False):
 	return -2.5*np.log10(image*pc2_to_sqarcsec)
 
 def contour_surface_brightness(sim, band='v', width=50, resolution=None, axes=None, label=True,
-								contour_kwargs=None, smooth_min=0.0):
+								contour_kwargs=None, smooth_floor=0.0):
 	"""Plot surface brightness contours in the given band.
 
 	For information about how surface brightnesses are calculated, see the documentation for
@@ -104,7 +104,7 @@ def contour_surface_brightness(sim, band='v', width=50, resolution=None, axes=No
 		Keyword arguments to pass to the matplotlib contour plot function. For example, this
 		can be used to determine the contour levels.
 
-	smooth_min : float or str, optional
+	smooth_floor : float or str, optional
 		The minimum size of the smoothing kernel, either as a float or a unit string.
 		Setting this to a non-zero value makes smoother, clearer contours but loses fine detail.
 		Default is 0.0.
@@ -112,7 +112,7 @@ def contour_surface_brightness(sim, band='v', width=50, resolution=None, axes=No
 	"""
 
 	return plot_sph.contour(sim, qty=band + '_lum_den', units="pc^-2", width=width,
-							resolution=resolution, axes=axes, label=label, smooth_min=smooth_min,
+							resolution=resolution, axes=axes, label=label, smooth_floor=smooth_floor,
 							_transform = _convert_to_mag_arcsec2,
 							log=False, contour_kwargs=contour_kwargs)
 
@@ -210,20 +210,23 @@ def render(sim,
 
 	'''
 
-	width = plot_sph._width_in_sim_units(sim, width)
+	renderer = renderers.make_render_pipeline(sim.s, quantity=r_band + '_lum_den', width=width,
+											  out_units="pc^-2", resolution=resolution)
 
-	r = plot_sph.image(sim.s, qty=r_band + '_lum_den', width=width, log=False,
-			  units="pc^-2", clear=False, noplot=True, resolution=resolution) * r_scale
-	g = plot_sph.image(sim.s, qty=g_band + '_lum_den', width=width, log=False,
-			  units="pc^-2", clear=False, noplot=True, resolution=resolution) * g_scale
-	b = plot_sph.image(sim.s, qty=b_band + '_lum_den', width=width, log=False,
-			  units="pc^-2", clear=False, noplot=True, resolution=resolution) * b_scale
+	r = renderer.render() * r_scale
+	renderer.set_quantity(g_band + '_lum_den')
+	g = renderer.render() * g_scale
+	renderer.set_quantity(b_band + '_lum_den')
+	b = renderer.render() * b_scale
+
 
 	# convert all channels to mag arcsec^-2
 
 	r=_convert_to_mag_arcsec2(r)
 	g=_convert_to_mag_arcsec2(g)
 	b=_convert_to_mag_arcsec2(b)
+
+	width = renderer.geometry.width
 
 	if with_dust is True:
 		# render image with a simple dust absorption correction based on Calzetti's law using the gas content.
@@ -296,8 +299,10 @@ def _dust_Av_image(sim, width, resolution):
 	# calculate the density of metals, and assume that dust is proportional to the metal density
 	rho_metals = gas['rho'] * gas['metals']
 	rho_metals.units = gas['rho'].units
-	column_den = plot_sph.image(gas, qty=rho_metals, width=width, log=False, restrict_depth=True,
-					            units="m_p cm^-2", clear=False, noplot=True, resolution=resolution)
+
+	renderer = renderers.make_render_pipeline(gas, quantity=rho_metals, width=width, out_units="m_p cm^-2",
+											  restrict_depth = True, resolution=resolution)
+	column_den = renderer.render()
 
 	# From Draine & Lee (1984, ApJ, 285, 89) in the V band (lambda^-1 ~= 2 micron^-1), the optical
 	# depth is 0.5 for an H column density of 10^21 cm^2. That scaling in turn is based on data in
@@ -585,13 +590,15 @@ def render_mollweide(sim, filename=None,
 		sim.s[smf]['smooth'] = array.SimArray(starsize, 'kpc', sim=sim)
 
 
-	r = render_spherical_image(sim.s, qty=r_band + '_lum_den', nside=nside, distance=width, kernel=Kernel2D(),kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * r_scale
+	kernel = kernels.create_kernel(None).projection()
+
+	r = render_spherical_image(sim.s, qty=r_band + '_lum_den', nside=nside, distance=width, kernel=kernel,kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * r_scale
 	r = mollview(r,return_projected_map=True) * r_scale
 	f=plt.gcf()
-	g = render_spherical_image(sim.s, qty=g_band + '_lum_den', nside=nside, distance=width, kernel=Kernel2D(),kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * g_scale
+	g = render_spherical_image(sim.s, qty=g_band + '_lum_den', nside=nside, distance=width, kernel=kernel,kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * g_scale
 	g = mollview(g,return_projected_map=True,fig=f) * g_scale
 	f=plt.gcf()
-	b = render_spherical_image(sim.s, qty=b_band + '_lum_den', nside=nside, distance=width, kernel=Kernel2D(),kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * b_scale
+	b = render_spherical_image(sim.s, qty=b_band + '_lum_den', nside=nside, distance=width, kernel=kernel,kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * b_scale
 	b = mollview(b,return_projected_map=True,fig=f) * b_scale
 	# convert all channels to mag arcsec^-2
 

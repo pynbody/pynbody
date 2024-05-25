@@ -319,24 +319,19 @@ class KDTree:
             raise ValueError("Unknown smoothing request %s" % name)
 
 
-    def set_kernel(self, kernel = 'CubicSplineKernel'):
+    def set_kernel(self, kernel = None):
         """Set the kernel for smoothing operations.
 
         Parameters
         ----------
-        kernel : str or type
-            Keyword to specify the smoothing kernel. Options: 'CubicSpline', 'WendlandC2'
+        kernel : various
+            Kernel to use for smoothing operations. Can be a string (e.g. 'CubicSplineKernel') or a
+            pynbody.sph.kernels.KernelBase instance. If None, the pynbody default kernel is
+            used. For more information see the documentation for :class:`pynbody.sph.kernels.create_kernel`.
         """
-        if isinstance(kernel, str):
-            from .. import sph
-            for subclass in sph.KernelBase.__subclasses__():
-                if subclass.__name__ == kernel:
-                    self._kernel_id = subclass.get_c_kernel_id()
-                    break
-            else:
-                raise ValueError("Unknown kernel %s" % kernel)
-        else:
-            self._kernel_id = kernel.get_c_kernel_id()
+        from ..sph import kernels
+        self._kernel_id = kernels.create_kernel(kernel).get_c_kernel_id()
+
 
 
     def populate(self, mode, nn):

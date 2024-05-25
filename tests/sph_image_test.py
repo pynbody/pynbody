@@ -5,6 +5,7 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+from pynbody.sph import renderers
 
 test_folder = Path(__file__).parent
 
@@ -58,11 +59,11 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
 
     global f
 
-    im3d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, resolution=500)
-
     im2d = pynbody.plot.sph.image(
         f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, resolution=500)
+
+    im3d = pynbody.plot.sph.image(
+        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, resolution=500)
 
     im_grid = pynbody.sph.to_3d_grid(f.gas,nx=200,x2=20.0)[::50]
 
@@ -78,10 +79,10 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
 
     # Make images with a different kernel (Wendland C2)
     im3d_wendlandC2 = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, kernel_type='wendlandC2',
+        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, kernel='wendlandC2',
         resolution=500)
     im2d_wendlandC2 = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, kernel_type='wendlandC2',
+        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, kernel='wendlandC2',
         resolution=500)
 
 
@@ -120,11 +121,14 @@ def test_approximate_images(compare2d, compare3d):
 def test_denoise_projected_image_throws():
     global f
     # this should be fine:
-    pynbody.plot.sph.image(f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True, denoise=True)
+    pipeline = renderers.make_render_pipeline(f.gas, width=20.0, out_units="m_p cm^-3", denoise=True, resolution=10)
+    pipeline.render()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(renderers.RenderPipelineLogicError):
         # this should not:
-        pynbody.plot.sph.image(f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, denoise=True)
+        pipeline = renderers.make_render_pipeline(f.gas, width=20.0, out_units="m_p cm^-2", denoise=True,
+                                                  resolution=10)
+
 
 
 def test_render_stars(stars_2d, stars_dust_2d):
