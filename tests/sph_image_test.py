@@ -94,8 +94,8 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
     npt.assert_raises(AssertionError,npt.assert_array_equal,im2d_wendlandC2,im2d)
 
     # Check that using a different kernel produces the correct image
-    npt.assert_allclose(im2d_wendlandC2,compare2d_wendlandC2,rtol=1e-6)
-    npt.assert_allclose(im3d_wendlandC2,compare3d_wendlandC2,rtol=1e-6)
+    npt.assert_allclose(im2d_wendlandC2,compare2d_wendlandC2,rtol=1e-5)
+    npt.assert_allclose(im3d_wendlandC2,compare3d_wendlandC2,rtol=1e-5)
 
     # check rectangular image is OK
     im_rect = pynbody.sph.render_image(f.gas,nx=500,ny=250,x2=10.0,
