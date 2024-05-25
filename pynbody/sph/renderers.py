@@ -48,7 +48,8 @@ class ImageGeometry:
         self.x1 = self.y1 = -100.0
         self.z1 = -np.inf
         self.z2 = np.inf
-        self.nx = self.ny = config['image-default-resolution']
+        self.nx = self.ny = self.nz = config['image-default-resolution']
+        # nz used only by 3d grid renderer
         self.z_plane = 0.0
         self.z_range = None
         self.z_camera = None
@@ -76,7 +77,7 @@ class ImageGeometry:
 
     def set_resolution(self, resolution: int):
         """Set the resolution of the image to be rendered, in pixels."""
-        self.nx = self.ny = resolution
+        self.nx = self.ny = self.nz = resolution
 
     def restrict_z_range(self):
         """Restrict the z range to the same as the x range"""
@@ -549,7 +550,6 @@ class ApproximateImageRenderer(MultipassImageRenderer):
             else:
                 renderer.set_smooth_range(1, factor)
             renderer.set_resolution(base._geometry.nx // (factor ** level))
-            print(f"Level {level} resolution: {renderer._geometry.nx}")
 
     def _apply_zoom(self, images):
         """Apply a zoom to the images, to account for the fact that the images are rendered at different resolutions."""
@@ -562,13 +562,11 @@ class ApproximateImageRenderer(MultipassImageRenderer):
 
     def render(self):
         results = self._apply_zoom(super().render())
-        print([r.max() for r in results])
         summed = sum(results)
-        print(summed.max())
         return summed
 
 class ImageRenderer(ImageRendererBase):
-    """An implementation of rendering a simulation snapshot, with no special rendering options."""
+    """Implementation for rendering a simulation snapshot to 2d image"""
 
     def _calculate_wrapping_repeat_array(self, x1, x2):
         if 'boxsize' in self._snapshot.properties:
@@ -620,12 +618,7 @@ class ImageRenderer(ImageRendererBase):
 
         smooth, array, mass, rho = (q.view(np.ndarray) for q in (smooth, array, mass, rho))
 
-        image = _render.render_image(g.nx, g.ny, x, y, z, smooth, g.x1, g.x2, g.y1, g.y2,
-                                     g.z_camera or 0.0, g.z_plane, array, mass, rho,
-                                     self._smooth_min, self._smooth_max, g.z1, g.z2,
-                                     self._smooth_floor, kernel,
-                                     self._calculate_wrapping_repeat_array(g.x1, g.x2),
-                                     self._calculate_wrapping_repeat_array(g.y1, g.y2))
+        image = self._call_c_renderer(array, g, kernel, mass, rho, smooth, x, y, z)
 
         if conversion != 1.0:
             image *= conversion
@@ -634,6 +627,36 @@ class ImageRenderer(ImageRendererBase):
         image.sim = self._snapshot
         image.units = out_units
 
+        return image
+
+    def _call_c_renderer(self, array, geometry, kernel, mass_array, rho_array, smooth_array, x_array, y_array, z_array):
+        image = _render.render_image(geometry.nx, geometry.ny, x_array, y_array, z_array, smooth_array, geometry.x1, geometry.x2, geometry.y1, geometry.y2,
+                                     geometry.z_camera or 0.0, geometry.z_plane, array, mass_array, rho_array,
+                                     self._smooth_min, self._smooth_max, geometry.z1, geometry.z2,
+                                     self._smooth_floor, kernel,
+                                     self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
+                                     self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2))
+        return image
+
+
+class Grid3dRenderer(ImageRenderer):
+    """Implementation for rendering a simulation snapshot to a 3d grid"""
+
+    def __init__(self, snap: snapshot.SimSnap):
+        super().__init__(snap)
+        self.geometry.restrict_z_range() # sets z1, z2 - here this is for the grid edges, not the camera
+
+    def set_width(self, width: float | str | units.UnitBase):
+        super().set_width(width)
+        self.geometry.restrict_z_range() # sets z1, z2 - here this is for the grid edges, not the camera
+
+    def _call_c_renderer(self, array, geometry, kernel, mass_array, rho_array, smooth_array, x_array, y_array, z_array):
+        image = _render.to_3d_grid(geometry.nx, geometry.ny, geometry.nz, x_array, y_array, z_array,
+                                   smooth_array, geometry.x1, geometry.x2, geometry.y1, geometry.y2, geometry.z1, geometry.z2,
+                                   array, mass_array, rho_array, self._smooth_min, self._smooth_max, kernel,
+                                   self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
+                                   self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2),
+                                   self._calculate_wrapping_repeat_array(geometry.z1, geometry.z2))
         return image
 
 def make_render_pipeline(sim : snapshot.SimSnap, /,
@@ -648,7 +671,8 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
                          z_camera: float | NoneType = None,
                          threaded: bool | NoneType = None,
                          approximate_fast: bool | NoneType = None,
-                         denoise: bool | NoneType = None
+                         denoise: bool | NoneType = None,
+                         grid_3d : bool = False
                          ) -> ImageRendererBase:
     """Generate a renderer object for rendering images of a simulation snapshot.
 
@@ -716,6 +740,9 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         is likely to benefit from it. If True, denoising is to be forced on the image; if that is actually
         impossible, this routine raises an exception. If False, denoising is never applied.
 
+    grid_3d : bool, optional
+        If True, the renderer will render a 3D grid instead of a 2D image. The default is False.
+
     """
     if resolution is None:
         resolution = config['image-default-resolution']
@@ -737,7 +764,11 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     width = float(width)
 
-    renderer = ImageRenderer(sim)
+    if grid_3d:
+        renderer = Grid3dRenderer(sim)
+    else:
+        renderer = ImageRenderer(sim)
+
     renderer.set_width(width)
     renderer.set_smooth_floor(smooth_floor)
     if restrict_depth:
