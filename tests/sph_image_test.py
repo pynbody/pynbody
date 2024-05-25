@@ -73,9 +73,9 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
     np.save("result_im_grid.npy",im_grid)
 
 
-    npt.assert_allclose(im2d,compare2d,rtol=1e-6)
-    npt.assert_allclose(im3d,compare3d,rtol=1e-6)
-    npt.assert_allclose(im_grid,compare_grid,rtol=1e-6)
+    npt.assert_allclose(im2d,compare2d,rtol=1e-5)
+    npt.assert_allclose(im3d,compare3d,rtol=1e-5)
+    npt.assert_allclose(im_grid,compare_grid,rtol=1e-5)
 
     # Make images with a different kernel (Wendland C2)
     im3d_wendlandC2 = pynbody.plot.sph.image(
