@@ -30,17 +30,13 @@ import numpy as np
 import scipy
 import scipy.ndimage
 
-import pynbody.snapshot.simsnap
-
-from . import kernels
-
 logger = logging.getLogger('pynbody.sph')
 
 from .. import array, config, config_parser, kdtree, snapshot, units, util
-from . import renderers
+from . import kernels, renderers
 
 
-@pynbody.snapshot.simsnap.SimSnap.stable_derived_array
+@snapshot.simsnap.SimSnap.stable_derived_array
 def smooth(sim):
     """Return the smoothing length array for the simulation, using the configured number of neighbours"""
     sim.build_tree()
@@ -71,7 +67,7 @@ def _get_smooth_array_ensuring_compatibility(sim):
         sim['smooth'] = smooth_ar = smooth(sim)
     return smooth_ar
 
-@pynbody.snapshot.simsnap.SimSnap.stable_derived_array
+@snapshot.simsnap.SimSnap.stable_derived_array
 def rho(sim):
     """Return the SPH density array for the simulation, using the configured number of neighbours"""
     sim.build_tree()
@@ -102,7 +98,7 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=None,
     Parameters
     ----------
 
-    snap : pynbody.snapshot.simsnap.SimSnap
+    snap : snapshot.simsnap.SimSnap
         The snapshot to render
 
     qty : str
@@ -229,7 +225,7 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, width="10 kpc",
     Parameters
     ----------
 
-    snap : pynbody.snapshot.simsnap.SimSnap
+    snap : snapshot.simsnap.SimSnap
         The snapshot to render
 
     qty : str
@@ -257,7 +253,7 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, width="10 kpc",
 
     kernel : str, kernels.KernelBase, optional
         The kernel to be used for the image rendering. If None, the default kernel is assigned. For more information
-        see :func:`pynbody.sph.kernels.create_kernel`.
+        see :func:`kernels.create_kernel`.
 
     approximate_fast : bool, optional
         Whether to render the image using a lower-resolution approximation for large smoothing lengths. The default
@@ -285,9 +281,9 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, width="10 kpc",
     return renderer.render()
 
 def render_image(*args, **kwargs):
-    """Render an SPH image. This is a wrapper around the :mod:`pynbody.sph.renderers` module for convenience.
+    """Render an SPH image. This is a wrapper around the :mod:`renderers` module for convenience.
 
-    All arguments and keyword arguments are forwarded to :func:`pynbody.sph.renderers.make_render_pipeline`,
+    All arguments and keyword arguments are forwarded to :func:`renderers.make_render_pipeline`,
     and the result is immediately rendered.
     """
 
