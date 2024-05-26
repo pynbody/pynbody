@@ -1,7 +1,7 @@
 """Core classes for rendering images of SPH simulations.
 
 For most users, the :func:`pynbody.plot.sph.image` function is the most convenient interface for rendering images of SPH
-simulations. A slightly lower-level approach is to use :func:make_render_pipeline` to create a renderer object, which
+simulations. A slightly lower-level approach is to use :func:`make_render_pipeline` to create a renderer object, which
 then produces an image when the :meth:`ImageRendererBase.render` method is called.
 
 For complete control, one may use the :class:`ImageRenderer` class directly.

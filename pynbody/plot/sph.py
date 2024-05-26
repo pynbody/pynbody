@@ -645,7 +645,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
         if units is None:
             units = im.units
 
-
+        if not isinstance(units, _units.UnitBase):
+            units = _units.Unit(units)
 
         if units.latex() == "":
             units=""
