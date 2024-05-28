@@ -1,3 +1,7 @@
+import shutil
+from pathlib import Path
+
+import h5py
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -169,3 +173,57 @@ def test_swift_scalefactor_in_units():
     npt.assert_allclose((f.gas['u'].units).in_units("km^2 s^-2 a^-2"), 1.0)
 
     npt.assert_allclose(f.gas['pos'].units.in_units("Mpc a"), 1.0)
+
+def test_ambiguous_name_mapping():
+    from pynbody.snapshot import namemapper
+    nm = namemapper.AdaptiveNameMapper("swift-name-mapping")
+    assert nm("mass") == "Masses" or nm("mass") == "SubgridMasses"
+
+    nm("Masses", reverse=True)
+    assert nm("mass") == "Masses"
+
+    nm("SubgridMasses", reverse=True)
+
+    # when allow_ambiguous = False, name mapper just returns the first format-specific name it knew about
+    assert nm("mass") == "SubgridMasses"
+
+    nm = namemapper.AdaptiveNameMapper("swift-name-mapping", return_all_format_names=True)
+    assert nm("mass") == ["Masses", "SubgridMasses"]
+
+    nm("Masses", reverse=True)
+
+    assert nm("mass") == ["Masses", "SubgridMasses"]
+
+    nm("SubgridMasses", reverse=True)
+
+    # when allow_ambiguous = True, name mapper returns a tuple of allowed format-specific names
+    assert nm("mass") == ["Masses", "SubgridMasses"]
+
+
+
+@pytest.fixture
+def swift_snap_with_alternate_mass_naming():
+    # In real swift snapshots, BH masses are called 'SubgridMasses' and other particles are called 'Masses'
+    # Here, to avoid adding another snapshot file, we just rename the gas masses in the snapshot we already have
+
+    # first copy snap_0150.hdf5 to a temporary file
+    tempdir = Path.cwd() / 'tempdir'
+    tempdir.mkdir(exist_ok=True)
+    tempfilename = tempdir / "snap_0150.hdf5"
+    shutil.copy("testdata/SWIFT/snap_0150.hdf5", tempfilename)
+
+    # now open the file and rename the gas masses
+    with h5py.File(tempfilename, 'r+') as f:
+        f['PartType0']['SubgridMasses'] = f['PartType0']['Masses']
+        del f['PartType0']['Masses']
+
+    yield str(tempfilename)
+
+    # clean up
+    shutil.rmtree(tempdir)
+
+def test_alternate_mass_file(swift_snap_with_alternate_mass_naming):
+    f = pynbody.load(swift_snap_with_alternate_mass_naming)
+    f1 = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+
+    assert np.allclose(f['mass'], f1['mass'])
