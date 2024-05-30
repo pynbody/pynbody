@@ -4,9 +4,11 @@ from typing import Sequence
 
 import numpy as np
 
-from .. import array, units, util
+from .. import array, units
 from ..extern.cython_fortran_utils import FortranFile
-from . import DummyHalo, Halo, HaloCatalogue, logger
+from . import HaloCatalogue, logger
+from .details import iord_mapping, number_mapping
+from .details.particle_indices import HaloParticleIndices
 
 unit_length = units.Unit("Mpc")
 unit_vel = units.Unit("km s**-1")
@@ -56,8 +58,7 @@ UNITS = {
 
 
 class BaseAdaptaHOPCatalogue(HaloCatalogue):
-    """A AdaptaHOP Catalogue. AdaptaHOP output files must be in
-    Halos/<simulation_number>/ directory or specified by fname"""
+    """Handles catalogues produced by AdaptaHOP."""
 
     _AdaptaHOP_fname = None
     _halos = None
@@ -69,59 +70,99 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _halo_attributes_contam = tuple()
     _header_attributes = tuple()
 
-    def __init__(self, sim, fname=None, read_contamination=None, longint=None):
+    def __init__(self, sim, filename=None, read_contamination=None, longint=None):
+        """Initialise a AdaptaHOP catalogue.
+
+        Parameters
+        ----------
+
+        sim : ~pynbody.snapshot.simsnap.SimSnap
+            The snapshot to which this catalogue is attached.
+
+        filename : str, optional
+            The filename of the AdaptaHOP catalogue (``path/to/tree_bricksXXX``). If not specified, the
+            code will attempt to find the catalogue in the simulation directory.
+
+        read_contamination : bool, optional
+            Whether to read information about contamination of each halo. If not specified, the code will attempt to
+            detect the format. Note that if specifying read_contamination, longint must also be specified.
+
+        longint : bool, optional
+            Whether to read 64-bit integers. If not specified, the code will attempt to detect the format. Note that if
+            specifying longint, read_contamination must also be specified.
+        """
         if FortranFile is None:
             raise RuntimeError(
                 "Support for AdaptaHOP requires the package `cython-fortran-file` to be installed."
             )
 
-        if fname is None:
-            for fname in AdaptaHOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
-                if os.path.exists(fname):
+        if filename is None:
+            for filename in AdaptaHOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
+                if os.path.exists(filename):
                     break
 
-            if not os.path.exists(fname):
+            if not os.path.exists(filename):
                 raise RuntimeError(
                     "Unable to find AdaptaHOP brick file in simulation directory"
                 )
+
+        self._fname = filename
+
+        if (read_contamination or longint) is not None and (read_contamination is None or longint is None):
+            raise ValueError("If specifying read_contamination or longint, both must be specified")
+
         if read_contamination is None or longint is None:
-            read_contamination, longint = self._detect_file_format(fname)
+            read_contamination, longint = self._detect_file_format(filename)
         self._read_contamination = read_contamination
         self._longint = longint
 
-        self._header_attributes = self.convert_i8b(self._header_attributes, longint)
-        self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
-        self._halo_attributes_contam = self.convert_i8b(self._halo_attributes_contam, longint)
+        if self._longint:
+            self._length_type = np.int64
+        else:
+            self._length_type = np.int32
+
 
         self._header_attributes = self.convert_i8b(self._header_attributes, longint)
         self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
         self._halo_attributes_contam = self.convert_i8b(self._halo_attributes_contam, longint)
 
-        # Call parent class
-        super().__init__(sim)
-
-        # Initialize internal data
-        self._base_dm = sim.dm
-
-        self._halos = {}
-        self._fname = fname
-        self._AdaptaHOP_fname = fname
+        self._header_attributes = self.convert_i8b(self._header_attributes, longint)
+        self._halo_attributes = self.convert_i8b(self._halo_attributes, longint)
+        self._halo_attributes_contam = self.convert_i8b(self._halo_attributes_contam, longint)
 
         logger.debug("AdaptaHOPCatalogue loading offsets")
 
-        # Compute offsets
-        self._ahop_compute_offset()
+        self._get_halo_numbers_and_file_offsets()
+
+        super().__init__(sim, number_mapper=number_mapping.create_halo_number_mapper(self._halo_numbers))
+
+        # Initialize internal data
+        self._base_dm = sim.dm
+        self._iord_to_fpos = iord_mapping.make_iord_to_offset_mapper(self._base_dm["iord"])
+
+        # dm needs to be at start of family map -- technically we will assume all particles are in dm
+        # but then the parent class will use the position offsets as though they refer to the whole file
+        dm_offset = self.base._get_family_slice('dm').start
+        if dm_offset>0:
+            self._iord_to_fpos = iord_mapping.IordOffsetModifier(self._iord_to_fpos, dm_offset)
+
+        self._halos = {}
+
+        self._AdaptaHOP_fname = filename
+
+
         logger.debug("AdaptaHOPCatalogue loaded")
 
-    def _detect_file_format(self, fname):
+    @classmethod
+    def _detect_file_format(cls, fname):
         """
         Detect if the file is in the old format or the new format.
         """
         with FortranFile(fname) as fpu:
-            longint_flag = self._detect_longint(fpu, (False, True))
+            longint_flag = cls._detect_longint(fpu, (False, True))
 
             # Now attempts reading the first halo data
-            attrs, attrs_contam = (self.convert_i8b(_, longint_flag) for _ in (self._halo_attributes, self._halo_attributes_contam))
+            attrs, attrs_contam = (cls.convert_i8b(_, longint_flag) for _ in (cls._halo_attributes, cls._halo_attributes_contam))
 
             if len(attrs_contam) == 0:
                 read_contamination = False
@@ -148,15 +189,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             headers.append((key, count, dtype))
         return tuple(headers)
 
-    def precalculate(self):
-        """Speed up future operations by precalculating the indices
-        for all halos in one operation. This is slow compared to
-        getting a single halo, however."""
-        # Get the mapping from particle to halo
-        self._base_dm._family_index()  # filling the cache
-        self._group_array = self.get_group_array(group_to_indices=True)
-
-    def _ahop_compute_offset(self):
+    def _get_halo_numbers_and_file_offsets(self):
         """
         Compute the offset in the brick file of each halo.
         """
@@ -167,39 +200,56 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             nhalos = self._headers["nhalos"]
             nsubs = self._headers["nsubs"]
 
+            self._halo_numbers = np.empty(nhalos + nsubs, dtype=int)
+            self._file_offsets = np.empty(nhalos + nsubs, dtype=self._length_type)
+            self._npart = np.empty(nhalos + nsubs, dtype=self._length_type)
+
             Nskip = len(self._halo_attributes)
             if self._read_contamination:
                 Nskip += len(self._halo_attributes_contam)
 
-            for _ in range(nhalos + nsubs):
-                ipos = fpu.tell()
-                fpu.skip(2)  # number + ids of parts
-                halo_ID = fpu.read_int()
-                fpu.skip(Nskip)
+            for i in range(nhalos + nsubs):
+                self._file_offsets[i] = fpu.tell()
+                npart = fpu.read_int32_or_64()
+                self._npart[i] = npart
+                fpu.skip(1)  # skip over fortran field with ids of parts
+                self._halo_numbers[i] = fpu.read_int32_or_64()
+                fpu.skip(Nskip)     # skip over attributes
 
-                # Fill-in data
-                dummy = DummyHalo()
-                dummy.properties["file_offset"] = ipos
-                self._halos[halo_ID] = dummy
+    def _get_all_particle_indices(self):
+        particle_ids = np.empty(self._npart.sum(), dtype=self._length_type)
+        particle_slices = np.empty((len(self), 2), dtype=self._length_type)
+        start = 0
 
-    def calc_item(self, halo_id):
-        return self._get_halo(halo_id)
+        with FortranFile(self._fname) as fpu:
+            for i in range(len(self)):
+                fpu.seek(self._file_offsets[i])
+                npart = fpu.read_int32_or_64()
 
-    def _get_halo(self, halo_id):
-        if halo_id not in self._halos:
-            raise KeyError(f"Halo with id '{halo_id}' does not seem to exist in the catalog.")
+                stop = start+npart
+                particle_ids[start:stop] = self._iord_to_fpos.map_ignoring_order(self._read_member_helper(fpu, npart))
+                particle_slices[i] = [start, stop]
+                start = stop
 
-        halo = self._halos[halo_id]
-        halo_dummy = self._halos[halo_id]
-        if isinstance(halo, DummyHalo):
-            halo = self._read_halo_data(halo_id, halo.properties["file_offset"])
-            halo.dummy = halo_dummy
-            self._halos[halo_id] = halo
+        assert stop == len(particle_ids)
+        assert (particle_ids < len(self.base)).all()
 
-        return halo
+        return HaloParticleIndices(particle_ids, particle_slices)
+
+    def _get_particle_indices_one_halo(self, halo_number):
+        halo_index = self.number_mapper.number_to_index(halo_number)
+        offset = self._file_offsets[halo_index]
+        with FortranFile(self._fname) as fpu:
+            fpu.seek(offset)
+            npart = fpu.read_int32_or_64()
+
+            assert npart == self._npart[halo_index]
+
+            return self._iord_to_fpos.map_ignoring_order(self._read_member_helper(fpu, npart))
+
 
     def _read_member_helper(self, fpu, expected_size):
-        """Read the member array from file, and return it *sorted*.
+        """Read the member array from file
 
         The function automatically find whether the particle ids are stored in
         32 or 64 bits.
@@ -217,10 +267,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                     # Store dtype for next time
                     self.base._iord_dtype = dtype
 
-                    if not util.is_sorted(iord_array) == 1:
-                        return np.sort(iord_array)
-                    else:
-                        return iord_array
+                    # we used to perform a sort here, but it's now done in the IordToFposIndex class
+                    return iord_array
 
             except ValueError:
                 pass
@@ -230,31 +278,19 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         # Could not read, throw an error
         raise RuntimeError("Could not read iord!")
 
-    def _read_halo_data(self, halo_id, offset):
-        """
-        Reads the halo data from file -- AdaptaHOP specific.
+    def get_properties_one_halo(self, i):
+        index = self.number_mapper.number_to_index(i)
+        offset = self._file_offsets[index]
 
-        Parameters
-        ----------
-        halo_id : int
-            The id of the halo
-        offset : int
-            The location in the file (in bytes)
-
-        Returns
-        -------
-        halo : Halo object
-            The halo object, filled with the data read from file.
-        """
         with FortranFile(self._fname) as fpu:
             fpu.seek(offset)
-            if self._longint:
-                npart = fpu.read_int64()
-            else:
-                npart = fpu.read_int()
-            iord_array = self._read_member_helper(fpu, npart)
-            halo_id_read = fpu.read_int()
-            assert halo_id == halo_id_read
+            npart = fpu.read_int32_or_64()
+            fpu.skip(1) # iord array
+
+            # After PR#821, AdaptaHOP catalogues can have short in headers but long int iords,
+            # or be using long ints fully everywhere. Updates in FortranFile now deal with this.
+            halo_id_read = fpu.read_int32_or_64()
+            assert i == halo_id_read
             if self._read_contamination:
                 attrs = self._halo_attributes + self._halo_attributes_contam
             else:
@@ -285,7 +321,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         props["file_offset"] = offset
         props["npart"] = npart
-        props["members"] = iord_array
+
         # Create position and velocity
         props["pos"] = array.SimArray(
             [props["pos_x"], props["pos_y"], props["pos_z"]],
@@ -298,85 +334,8 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             sim=self.base,
         )
 
-        # Create halo object and fill properties
-        if hasattr(self, "_group_to_indices"):
-            index_array = self._group_to_indices[halo_id]
-            iord_array = None
-        else:
-            index_array = None
-            iord_array = iord_array
-        halo = Halo(
-            halo_id, self, self._base_dm, index_array=index_array, iord_array=iord_array
-        )
-        for k, v in props.items():
-            halo.properties[k] = v
+        return props
 
-        # Need to convert the units of the halo object as we
-        # just updated them
-        halo._autoconvert_properties()
-
-        return halo
-
-    def get_group_array(self, family="dm", group_to_indices=False):
-        """Return an array with an integer for each particle in the simulation
-        indicating which halo that particle is associated with. If there are multiple
-        levels (i.e. subhalos), the number returned corresponds to the lowest level, i.e.
-        the smallest subhalo.
-
-        Arguments
-        ---------
-        family : optional, default : dm
-            The family of the particles that make the group
-        group_to_indices : optional, bool
-            If True, store the mapping from groups to particle on-disk location.
-
-        Returns
-        -------
-        igrp : int array
-            An array that contains the index of the group that contains each particle.
-        """
-        logger.debug("Get_group_array")
-        if family is None:
-            family == self.base.families()[0]
-        elif isinstance(family, str):
-            families = self.base.families()
-            matched_families = [f for f in families if f.name == family]
-            if len(matched_families) != 1:
-                raise Exception("Could not find family %s" % family)
-            family = matched_families[0]
-        try:
-            data = self.base[family]
-        except Exception:
-            logger.error(type(self.base))
-            logger.error(type(family))
-            raise
-
-        iord = data["iord"]
-        iord_argsort = data["iord_argsort"]
-
-        igrp = np.zeros(len(data), dtype=int) - 1
-
-        if group_to_indices:
-            grp2indices = {}
-        with FortranFile(self._fname) as fpu:
-            for halo_id, halo in self._halos.items():
-                fpu.seek(halo.properties["file_offset"])
-                if self._longint:
-                    npart = fpu.read_int64()
-                else:
-                    npart = fpu.read_int()
-                particle_ids = self._read_member_helper(fpu, npart)
-
-                indices = util.binary_search(particle_ids, iord, iord_argsort)
-                assert all(indices < len(iord))
-
-                igrp[indices] = halo_id
-
-                if group_to_indices:
-                    grp2indices[halo_id] = indices
-        if group_to_indices:
-            self._group_to_indices = grp2indices
-        return igrp
 
     @classmethod
     def _detect_longint(cls, fpu: FortranFile, longint_flags: Sequence) -> bool:
@@ -388,33 +347,34 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             except (ValueError, OSError):
                 pass
 
-        raise ValueError("Could not detect longint")
+        raise ValueError(
+            f"{cls.__name__} could not detect longint. "
+            "Most likely, this class is expecting the wrong header/data blocks "
+            "compared to what is stored in the halo catalogue."
+        )
 
     @classmethod
-    def _can_load(cls, sim, arr_name="grp", *args, **kwa):
-        candidates = [
-            fname
-            for fname in cls._enumerate_hop_tag_locations_from_sim(sim)
-        ]
+    def _can_load(cls, sim, filename=None, arr_name="grp", *args, **kwa):
+        if cls is BaseAdaptaHOPCatalogue:
+            return False # Must load a specialisation
+
+        if filename is None:
+            candidates = [
+                fname
+                for fname in cls._enumerate_hop_tag_locations_from_sim(sim)
+            ]
+        else:
+            candidates = [filename]
         valid_candidates = [fname for fname in candidates if os.path.exists(fname)]
         if len(valid_candidates) == 0:
             return False
 
-        # Logic is as follows:
-        # - If `longint` is provided, try loading with it.
-        # - Otherwise, try loading with and without it
-        use_longint = kwa.pop("longint", None)
-        if use_longint is None:
-            longint_flags = [True, False]
-        else:
-            longint_flags = use_longint
         for fname in valid_candidates:
-            with FortranFile(fname) as fpu:
-                try:
-                    cls._detect_longint(fpu, longint_flags)
-                    return True
-                except ValueError:
-                    pass
+            try:
+                cls._detect_file_format(fname)
+                return True
+            except ValueError:
+                pass
         return False
 
     @staticmethod
@@ -440,9 +400,6 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             os.path.join(s_dir, "Halos", "%d" % isim, name),
         ]
         return ret
-
-    def _can_run(self, *args, **kwa):
-        return False
 
 
 class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
@@ -487,6 +444,53 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
 
     _halo_attributes_contam = (
         ("contaminated", 1, "i"),
+        (("m_contam", "mtot_contam"), 2, "d"),
+        (("n_contam", "ntot_contam"), 2, "i8b"),
+    )
+
+
+class NewAdaptaHOPCatalogueFullyLongInts(NewAdaptaHOPCatalogue):
+    _header_attributes = (
+        ("npart", 1, "i8b"),
+        ("massp", 1, "d"),
+        ("aexp", 1, "d"),
+        ("omega_t", 1, "d"),
+        ("age", 1, "d"),
+        (("nhalos", "nsubs"), 2, "i8b"),
+    )
+
+    # List of the attributes read from file. This does *not* include the number of particles,
+    # the list of particles, the id of the halo and the "timestep" (first 4 records).
+    _halo_attributes = (
+        ("timestep", 1, "i8b"),
+        (
+            ("level", "host_id", "first_subhalo_id", "n_subhalos", "next_subhalo_id"),
+            5,
+            "i8b",
+        ),
+        ("m", 1, "d"),
+        ("ntot", 1, "i8b"),
+        ("mtot", 1, "d"),
+        # Note: we use pos_z instead of z to prevent confusion with redshift
+        (("pos_x", "pos_y", "pos_z"), 3, "d"),
+        (("vel_x", "vel_y", "vel_z"), 3, "d"),
+        (("angular_momentum_x", "angular_momentum_y", "angular_momentum_z"), 3, "d"),
+        (("max_distance", "shape_a", "shape_b", "shape_c"), 4, "d"),
+        (("kinetic_energy", "potential_energy", "total_energy"), 3, "d"),
+        ("spin", 1, "d"),
+        ("velocity_dispersion", 1, "d"),
+        (("virial_radius", "virial_mass", "virial_temperature", "virial_velocity"), 4, "d"),
+        (("max_velocity_radius", "max_velocity"), 2, "d"),
+        ("nfw_concentration", 1, "d"),
+        (("R200c", "M200c"), 2, "d"),
+        (("r_half_mass", "r_90percent_mass"), 2, "d"),
+        ("radius_profile", -1, "d"),
+        ("density_profile", -1, "d"),
+        (("nfw_rho0", "nfw_R_c"), 2, "d"),
+    )
+
+    _halo_attributes_contam = (
+        ("contaminated", 1, "i8b"),
         (("m_contam", "mtot_contam"), 2, "d"),
         (("n_contam", "ntot_contam"), 2, "i8b"),
     )

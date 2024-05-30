@@ -1,16 +1,18 @@
+.. Last checked by AP: 18 Mar 2024
+
 .. data_access tutorial
 
 .. _data-access:
 
-A walk through pynbody's low-level facilities
-=============================================
+A deeper walk through pynbody's data access facilities
+======================================================
 
 The following example shows how to load a file, determine various
-attributes, access some data and make use of unit information.
+attributes, access some data, make use of unit information, and understand
+how pynbody transforms data.
 
-If you're more interested in making pretty pictures and plots straight
-away, you may wish to read the :ref:`basic facilities tutorial
-<snapshot_manipulation>` first.
+A shorter tutorial that deals with the absolute basics and shows how to make
+some plots is offered by the :ref:`quick-start <quickstart>` guide.
 
 .. note::
 
@@ -19,9 +21,8 @@ away, you may wish to read the :ref:`basic facilities tutorial
  Before you start make sure ``pynbody`` is properly
  installed. See :ref:`pynbody-installation`
  for more information. You will also need the standard ``pynbody`` test
- files if you want to follow the tutorial.
- These files are available separately here:
- `testdata.tar.gz <https://github.com/pynbody/pynbody/releases>`_.
+ files if you want to follow the tutorial. See :ref:`obtaining_testdata`
+ for more information.
 
 After you have extracted the testdata folder (e.g. with ``tar -xzf
 testdata.tar.gz``), launch ``ipython`` or ``Jupyter``. At the prompt or in
@@ -41,14 +42,13 @@ functions we'll make use of later.
 
  In [1]: import numpy as np
 
- In [2]: f = pynbody.load("testdata/test_g2_snap")
+ In [2]: f = pynbody.load("testdata/gadget2/test_g2_snap")
 
 Here we've loaded a sample gadget file. Not much seems to have
 happened when you called :func:`pynbody.load`, but the variable ``f``
 is now your calling point for accessing data.
 
-In fact ``f`` is an object known as a ``SimSnap`` (see
-:class:`pynbody.snapshot.SimSnap`).
+In fact ``f`` is an object known as a :class:`~pynbody.snapshot.simsnap.SimSnap`.
 
 Behind the scenes, the function inspects the provided path and decides
 what file format it is. At the time of writing, supported file formats
@@ -59,10 +59,10 @@ framework.
 
 .. note:: If you look inside the ``testdata`` folder, you'll notice that
  our test snapshot is actually an example of a *spanned* gadget
- snapshot. There is not actually a file called ``test_g2_snap``, but
- rather two files from two CPUs, ``test_g2_snap.0`` and
- ``test_g2_snap.1``. ``pynbody`` knows to load both of these if you ask
- for ``test_g2_snap``; if you ask for ``test_g2_snap.1`` (for instance),
+ snapshot. There is not actually a file called ``gadget2/test_g2_snap``, but
+ rather two files from two CPUs, ``gadget2/test_g2_snap.0`` and
+ ``gadget2/test_g2_snap.1``. ``pynbody`` knows to load both of these if you ask
+ for ``gadget2/test_g2_snap``; if you ask for ``gadget2/test_g2_snap.1`` (for instance),
  it'll load only that particular file.
 
 The ``SimSnap`` object that's returned is currently a fairly empty
@@ -78,18 +78,15 @@ of particles in the file:
 
 .. ipython::
 
- @doctest
  In [3]: len(f)
- Out[3]: 8192
 
 We can also find out about particles of a particular type or ``family``
 as it is known within pynbody. To find out which families are present
-in the file, use :func:`~pynbody.snapshot.SimSnap.families`:
+in the file, use :func:`~pynbody.snapshot.simsnap.SimSnap.families`:
 
 .. ipython::
 
  In [3]: f.families()
- Out[3]: [<Family gas>, <Family dm>, <Family star>]
 
 You can pick out just the particles belonging to a family by using the
 syntax ``f.family``. So, for example, we can see how many particles of
@@ -98,17 +95,17 @@ each type are present:
 
 .. ipython::
 
- @doctest
- In [4]: len(f.dm)
- Out[4]: 4096
+     @doctest
+     In [4]: len(f.dm)
+     Out[4]: 4096
 
- @doctest
- In [5]: len(f.gas)
- Out[5]: 4039
+     @doctest
+     In [5]: len(f.gas)
+     Out[5]: 4039
 
- @doctest
- In [6]: len(f.star)
- Out[6]: 57
+     @doctest
+     In [6]: len(f.star)
+     Out[6]: 57
 
 Useful information about the file is stored in a python dictionary
 called ``properties``:
@@ -138,7 +135,7 @@ Retrieving data
 
 Like ``f.properties``, ``f`` itself also behaves like a python
 dictionary. The standard python method
-``f.``:func:`~pynbody.snapshot.SimSnap.keys` returns a list of arrays
+``f.``:func:`~pynbody.snapshot.simsnap.SimSnap.keys` returns a list of arrays
 that are currently in memory.
 
 .. ipython::
@@ -147,9 +144,8 @@ that are currently in memory.
   Out[7]: ['eps']
 
 Right now it's empty! That's actually correct because data is only
-retrieved when you first access it. To find out what *could*` be loaded,
-use the ``pynbody``-specific method
-``f.``:func:`~pynbody.snapshot.SimSnap.loadable_keys`.
+retrieved when you first access it. To find out what *could* be loaded,
+use the ``pynbody``-specific method :func:`~pynbody.snapshot.simsnap.SimSnap.loadable_keys`:
 
 .. ipython::
 
@@ -190,7 +186,7 @@ Some arrays are stored only for certain families. For example,
 densities are stored only for gas particles and are accessed as
 ``f.gas['rho']``.  To find out what arrays are available for the gas
 family, use
-``f.gas.``:func:`~pynbody.snapshot.SimSnap.loadable_keys`:
+``f.gas.``:func:`~pynbody.snapshot.simsnap.SimSnap.loadable_keys`:
 
 .. ipython::
 
@@ -284,16 +280,15 @@ the reference documentation for :ref:`derived arrays <derived>`.
 Keeping on top of units
 -----------------------
 
-
 You might have noticed in the output from the above experiments that
 ``pynbody`` keeps track of unit information whenever it can.
 
 .. warning:: It's worth understanding exactly where pynbody gets this
- information from, in case anything goes wrong. In the case
- of ``Ramses``, and ``Gadget-HDF`` files the unit information is stored
- within your snapshot, and pynbody takes advantage of this. For
- old-style ``Gadget`` snapshots, the default cosmological gadget setup is
- assumed. For ``nchilada`` and ``tipsy``, an nchilada or gasoline
+ information from, in case anything goes wrong. Many simulation data
+ formats now store units (e.g. gadget, arepo or swift's HDF5 output, or
+ ramses output folders). In such
+ cases, pynbody will use the specified units.
+ For ``nchilada`` and ``tipsy``, a ChaNGa or gasoline
  ``.param`` file is sought in the directory from which you are loading
  the snapshot and its immediate parent. You can also create a text file
  with the same name as your snapshot but the extension ``.units`` to override
@@ -400,8 +395,8 @@ the correct units. For example
  Out[57]:
 
 You can even associate arrays with the loaded
-:class:`~pynbody.snapshot.SimSnap` unit system even when you create
-them *outside* the :class:`~pynbody.snapshot.SimSnap`. This is useful
+:class:`~pynbody.snapshot.simsnap.SimSnap` unit system even when you create
+them *outside* the :class:`~pynbody.snapshot.simsnap.SimSnap`. This is useful
 for keeping things tidy with your unit conversions if you are
 calculating quantities that don't apply to all of the particles. For
 instance:
@@ -421,8 +416,8 @@ instance:
 Note that the units were correctly converted into physical units in
 the last step.
 
-For more information see the reference documentation for
-:class:`pynbody.units`.
+.. seealso::
+  For more information see the reference documentation for :class:`pynbody.units`.
 
 .. _subsnaps:
 
@@ -430,7 +425,7 @@ Subsnaps
 --------
 
 An important concept within ``pynbody`` is that of a subsnap. These are
-objects that look just like a :class:`~pynbody.snapshot.SimSnap` but actually only point
+objects that look just like a :class:`~pynbody.snapshot.simsnap.SimSnap` but actually only point
 at a subset of the particles within a ``parent``. Subsnaps are always
 instances of the :class:`~pynbody.snapshot.SubSnap` class.
 
@@ -534,15 +529,88 @@ centered on the origin, you can use:
 
  In [72]: f_sphere = f[Sphere('10 kpc')]
 
+.. seealso::
+  For more information see :ref:`filters_tutorial`, and for a list of filters, see :py:mod:`pynbody.filt`.
 
-For a list of filters, see  :py:mod:`pynbody.filt`.
+
+.. _centering:
+
+Centering
+---------
+
+Several built-in functions (e.g. those that plot images and make
+profiles) in ``pynbody`` like your data to be centered on a point of
+interest.  The most straight-forward way to center your snapshot on a
+halo is as follows:
+
+.. ipython :: python
+
+ f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024.gz");
+ h = f.halos();
+ pynbody.analysis.center(h[0])
+
+We passed ``h[0]`` to the function
+:func:`~pynbody.analysis.center` to center the *entire* snapshot
+on the largest halo. The default centring uses the *shrinking sphere* method,
+which normally gives a really stable and precise centre for galaxies, halos
+or any other astronomical object
+(see the documentation for :func:`~pynbody.analysis.center` for
+more details).
+
+Suppose we now want to center only the contents of halo 5, leaving the
+rest of the simulation untouched. This is no problem. Let's check
+where a particle in halo 5 is, then shift it and try again. You'll
+notice halo 1 doesn't move at all.
+
+.. ipython ::
+
+ In [4]: h[1]['pos'][0]
+
+ In [4]: h[5]['pos'][0]
+
+ In [4]: h5 = h[5]
+
+ In [4]: my_h5_transform = pynbody.analysis.center(h5, move_all=False)
+
+ In [4]: h[1]['pos'][0] # should be unchanged
+
+ In [4]: h5['pos'][0] # should be changed
+
+Note however that the data inside ``h5`` (or any halo) just *points*
+to a subset of the data in the full simulation. So you now have an
+inconsistent state where part of the simulation has been translated
+and the rest of it is where it started out. For that reason, functions
+that transform data return a ``Tranformation`` object that conveniently
+allows you to undo the operation:
+
+.. ipython ::
+
+ In [5]: my_h5_transform.revert()
+
+ In [5]: print(h5['pos'][0]) # back to where it started
+
+ In [5]: print(h[1]['pos'][0]) # still hasn't changed, of course
 
 
-Where next?
------------
+In fact, there's a more pythonic and compact way to do this. Suppose
+you want to process ``h[5]`` in some way, but be sure that the
+centering is unaffected after you are done. This is the thing to do:
 
-This concludes the tutorial for basic use of ``pynbody``. Further
-:ref:`tutorials <tutorials>` for specific tasks are available. We are
-happy to provide further assistance via our
-`user group email list
-<https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
+.. ipython ::
+
+ In [6]: with pynbody.analysis.center(h[5]):
+    ...:     print("Position when inside with block: ", h[5]['pos'][0])
+    ...: print("Position when outside with block: ", h[5]['pos'][0])
+
+
+Inside the ``with`` code block, ``h[5]`` is centered. The moment the block
+exits, the transformation is undone -- even if the block exits with an
+exception.
+
+.. seealso::
+
+ For more information about centering, see the documentation for
+ :func:`~pynbody.analysis.halo.center`.
+
+ For more information about transformations in general, see the documentation for the
+ :mod:`~pynbody.transformation` module.

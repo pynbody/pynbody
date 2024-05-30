@@ -21,11 +21,11 @@ jobs:
         # Following numpy's setup
         buildplat:
         - [ubuntu-20.04, manylinux, x86_64, ""]
-        - [macos-13, macosx, x86_64, "/usr/local/opt/"]
-        - [macos-13-xlarge, macosx, arm64, "/opt/homebrew/opt/"]
+        - [macos-13, macosx, x86_64, "/usr/local"]
+        - [macos-13-xlarge, macosx, arm64, "/opt/homebrew"]
         python: ["cp39", "cp310", "cp311", "cp312"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install GCC (Ubuntu)
         if: matrix.buildplat[0] == 'ubuntu-20.04'
@@ -36,16 +36,13 @@ jobs:
           echo "CC=gcc-10" >> $GITHUB_ENV
           echo "CXX=g++-10" >> $GITHUB_ENV
 
-      - name: Install Clang (MacOS)
+      - name: Install GCC (MacOS)
         if: startsWith(matrix.buildplat[0], 'macos')
         shell: bash
         run: |
-          brew install llvm@15 libomp pipx
-          echo "CC=${{matrix.buildplat[3]}}/llvm@15/bin/clang" >> $GITHUB_ENV
-          echo "CXX=${{matrix.buildplat[3]}}/llvm@15/bin/clang++" >> $GITHUB_ENV
-          echo 'LDFLAGS=-L${{matrix.buildplat[3]}}/llvm/lib -L${{matrix.buildplat[3]}}/libomp/lib' >> $GITHUB_ENV
-          echo 'CFLAGS=-I${{matrix.buildplat[3]}}/llvm/include -I${{matrix.buildplat[3]}}/libomp/include' >> $GITHUB_ENV
-          echo 'CPPFLAGS=-I${{matrix.buildplat[3]}}/llvm/include -I${{matrix.buildplat[3]}}/libomp/include' >> $GITHUB_ENV
+          brew install gcc@13 pipx
+          echo "CC=${{matrix.buildplat[3]}}/bin/gcc-13" >> $GITHUB_ENV
+          echo "CXX=${{matrix.buildplat[3]}}/bin/g++-13" >> $GITHUB_ENV
 
       # - name: Determine version tag
       #   if: github.event_name != 'pull_request'
@@ -66,13 +63,14 @@ jobs:
       #     fi
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: artifact-${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           path: ./wheelhouse/*.whl
 
   build_sdist:
@@ -80,9 +78,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         name: Install Python
         with:
           python-version: '3.9'
@@ -93,8 +91,9 @@ jobs:
       - name: Build sdist
         run: python setup.py sdist
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: artifact-source
           path: dist/*.tar.gz
 
   upload_pypi:
@@ -103,12 +102,13 @@ jobs:
     environment: PyPI
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: artifact
+          pattern: artifact-*
+          merge-multiple: true
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.6.4
+      - uses: pypa/gh-action-pypi-publish@v1.8.14
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}

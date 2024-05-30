@@ -10,6 +10,7 @@ properties.
 
 import logging
 import math
+import pickle
 import warnings
 from time import process_time
 
@@ -164,12 +165,12 @@ class Profile:
         x = self._x
 
         if load_from_file:
-            import pickle
 
             filename = self._get_unique_filepath_from_particle_list()
 
             try:
-                data = pickle.load(open(filename, 'rb'))
+                with open(filename, "rb") as f:
+                    data = pickle.load(f)
                 self._properties = data['properties']
                 self.max = data['max']
                 self.min = data['min']
@@ -509,8 +510,6 @@ class Profile:
 
         """
 
-        import pickle
-
         # record all the important data except for the snapshot itself
         # use the hash generated from the particle list for the file name
         # suffix
@@ -519,13 +518,18 @@ class Profile:
 
         logger.info("Writing profile to %s", filename)
 
-        pickle.dump({'properties': self._properties,
-                     'max': self.max,
-                     'min': self.min,
-                     'nbins': self.nbins,
-                     'profiles': self._profiles,
-                     'binind': self.binind},
-                    open(filename, 'wb'))   # Open file in binary mode to allow python 3.X writing
+        with open(filename, "wb") as f:
+            pickle.dump(
+                {
+                    'properties': self._properties,
+                    'max': self.max,
+                    'min': self.min,
+                    'nbins': self.nbins,
+                    'profiles': self._profiles,
+                    'binind': self.binind
+                },
+                f,
+            )
 
     @staticmethod
     def profile_property(fn):
@@ -677,12 +681,12 @@ def v_circ(p, grav_sim=None):
 
     grav_sim = grav_sim or p.sim
 
-    logger.warn(
+    logger.warning(
         "Profile v_circ -- this routine assumes the disk is in the x-y plane")
 
     # If this is a cosmological run, go up to the halo level
-    # if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
-    #    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+    # if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_number") :
+    #    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_number") :
     #        grav_sim = grav_sim.base
 
     # elif hasattr(grav_sim,'base') :
@@ -708,12 +712,12 @@ def pot(p):
     #from . import gravity
     import pynbody.gravity.calc as gravity
 
-    logger.warn(
+    logger.warning(
         "Profile pot -- this routine assumes the disk is in the x-y plane")
 
     grav_sim = p.sim
     # Go up to the halo level
-    while hasattr(grav_sim, 'base') and "halo_id" in grav_sim.base.properties:
+    while hasattr(grav_sim, 'base') and "halo_number" in grav_sim.base.properties:
         grav_sim = grav_sim.base
 
     start = process_time()

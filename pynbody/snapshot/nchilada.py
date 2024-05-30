@@ -1,11 +1,5 @@
 """
-
-nchilada
-========
-
-Implements classes and functions for handling nchilada files.  You rarely
-need to access this module directly as it will be invoked
-automatically via pynbody.load.
+Implements loading of nchilada files.
 
 """
 
@@ -31,6 +25,7 @@ _max_buf = 1024 * 512
 
 
 class NchiladaSnap(SimSnap):
+    """Implements loading of nchilada files."""
 
     def _load_header(self, f):
         # Used to use xdrlib, but that is deprecated in Python 3.11
@@ -70,8 +65,8 @@ class NchiladaSnap(SimSnap):
         # set up a logical map of particles on disk
         for f in sorted(self._loadable_keys_registry.keys()):
             ars = self._loadable_keys_registry[f]
-            tf = open(list(ars.values())[0], 'rb')
-            header_time, nbod, _, _ = self._load_header(tf)
+            with open(list(ars.values())[0], 'rb') as tf:
+                header_time, nbod, _, _ = self._load_header(tf)
             disk_family_slice[f] = slice(i, i + nbod)
             i += nbod
             self.properties['a'] = header_time
@@ -81,6 +76,18 @@ class NchiladaSnap(SimSnap):
         self._num_particles = self._load_control.mem_num_particles
 
     def __init__(self, filename, **kwargs):
+        """Load a nchilada file.
+
+        Parameters
+        ----------
+
+        filename : str
+            The path to the nchilada output to load. Nchilada outputs are directories containing a description.xml
+            file and a number of binary files.
+        take : np.ndarray, optional
+            The array of particles to load. If not specified, all particles are loaded.
+        """
+
         super().__init__()
 
         must_have_paramfile = kwargs.get('must_have_paramfile', False)
@@ -132,7 +139,8 @@ class NchiladaSnap(SimSnap):
             return
         for fam in fams:
             # this will raise an IOError propagating upwards if any family doesn't have the appropriate array
-            _, nbod, ndim, dtype = self._load_header(self._open_file_for_array(fam, array_name))
+            with self._open_file_for_array(fam, array_name) as f:
+                _, nbod, ndim, dtype = self._load_header(f)
             if universal_dtype is not None:
                 if ndim!=universal_ndim:
                     raise OSError("Mismatching dimensions for array")
@@ -180,26 +188,8 @@ class NchiladaSnap(SimSnap):
 
             if mem_index is not None:
                 r[mem_index] = b[buf_index]
+        f.close()
 
-    """
-    def _write_array(self, array_name, fam=None) :
-        if fam is None :
-            fam = self.families()
-
-        for f in fam :
-            fname = self._loadable_keys_registry[fam][array_name]
-            # to do: sort out what happens when this doesn't exist
-            ar = self[fam][array_name]
-
-            _, nbod, ndim, dtype = self._load_header(f)
-            for readlen, buf_index, mem_index in self._load_control.iterate(fam, fam) :
-                b = np.fromfile(f, dtype=disk_dtype, count=readlen*ndim)
-                if ndim>1 : b = b.reshape((readlen, ndim))
-                if mem_index is not None :
-                    b[buf_index] = ar[mem_index]
-                    f.seek(-readlen*ndim*disk_dtype.itemsize,1)
-    """
-
-    @staticmethod
-    def _can_load(f):
+    @classmethod
+    def _can_load(cls, f):
         return os.path.isdir(f) and os.path.exists(os.path.join(f, "description.xml"))

@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
         numpy-version: ["~=1.22.4", ""]
         exclude:
           - python-version: "3.12"
@@ -25,16 +25,16 @@ jobs:
       CXX: g++-10
     steps:
     - name: Install Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Cache testdata
       uses: actions/cache@v3
       id: cache-testdata
       with:
         path: tests/testdata
-        key: testdata-v1
+        key: testdata-v6
     - name: Install gcc
       run: |
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
@@ -58,8 +58,9 @@ jobs:
     - name: Run all tests
       working-directory: tests
       run: python -m pytest
-    - name: Uninstall posix_ipc
-      run: python -m pip uninstall -y posix_ipc
-    - name: Run ramses tests without shared memory support
-      working-directory: tests
-      run: python -m pytest ramses_new_ptcl_format_test.py ramses_test.py
+    - name: Upload test images
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: images-${{ matrix.python-version }}-${{ matrix.numpy-version }}
+        path: tests/result*.npy

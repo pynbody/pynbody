@@ -6,368 +6,297 @@
 Halos in Pynbody
 =======================
 
-Finding the groups of particles that represent galaxies is the key first
-step of simulation analysis.  There are several public group finders
-available today that find these groups of particles.
-``Pynbody`` includes interfaces to several commonly used group finders.
+.. versionchanged:: 2.0
 
-Groups that are virialized are called "halos",
-so groups are available in ``pynbody`` using the
-:class:`~pynbody.snapshot.SimSnap.halos` function on a
-simulation object (``SimSnap``).  When :class:`~pynbody.snapshot.SimSnap.halos`
-is called, ``pynbody`` creates
-a :class:`~pynbody.halo.HaloCatalogue` that consists of
-:class:`~pynbody.halo.Halo` objects.
-The ``Halo`` object holds information about the particle IDs and other properties
-about a given halo.  A :class:`~pynbody.halo.HaloCatalogue` is an
-object is a compilation of all the halos in a given snapshot.
+  Changes to the halo catalogue system, especially affecting AHF
 
-Some possible halo finders that pynbody recognises include:
-
- - `Amiga Halo Finder (AHF) <http://popia.ft.uam.es/AHF/Download.html>`_ (:class:`~pynbody.halo.AHFCatalogue`);
- -  `Rockstar <https://bitbucket.org/pbehroozi/rockstar-galaxies>`_ (:class:`~pynbody.halo.RockstarCatalogue`);
- - SKID (:class:`~pynbody.halo.GrpCatalogue` class);
- - SubFind (:class:`~pynbody.halo.SubfindCatalogue`).
-
-The :func:`~pynbody.snapshot.SimSnap.halos` function in
-:class:`~pynbody.snapshot.SimSnap`
-automatically determines whether halo data exists
-on disk already for ``pynbody`` to read, or if it should run a halo
-finder to create halo data.
-
-This tutorial will show you how to setup and configure pynbody to best use
-the group finder functionality built into pynbody. If you are not familiar with
-``Pynbody`` in general, it is recommended that you first have a look at
-the :ref:`snapshot_manipulation` tutorial.
-
-Configuration
--------------
-
-``Pynbody`` reads a number of different halo formats including the popular
-``subfind``. However, it is most comfortable with either AHF or (more
-experimentally) Rockstar and can in many cases actually run these codes
-for you if you haven't already generated halo catalogues for your simulation.
-
-Rockstar
-^^^^^^^^
-
-To install Rockstar, grab the code from Peter Behroozi's bitbucket
-repository, make it, and copy it into your ``$PATH``
-::
-
-	> git clone https://bitbucket.org/pbehroozi/rockstar-galaxies.git
-	> cd rockstar-galaxies; make
-	> cp rockstar-galaxies ~/bin/
-
-AHF
-^^^
-
-To install AHF, take the most recent version from Alexander Knebe's AHF
-page, uncompress it
-::
-
-	> wget http://popia.ft.uam.es/AHF/files/ahf-v1.0-084.tgz
-	> tar zxf ahf-v1.0-084.tgz; cd ahf-v1.0-084
-
-Edit Makefile.config appropriate for your code, make AHF,
-and copy it into your $PATH.
-::
-
-	> make AHF
-	> cp AHF-v1.0-084 ~/bin/
-
-Now ``pynbody`` will use one of these halo finders to create group files
-you can use to analyze your simulations.
-
-Configuration
-^^^^^^^^^^^^^
-
-As described in :ref:`configuration`, you can tell pynbody which group
-finder you prefer in your configuration file, ``~/.pynbodyrc``.  In the ``general``
-section, you can arrange the priority of halo finders to use as you like.
+  If migrating from version 1.x, please see relevant warnings :ref:`in the reference documentation <v2_0_halo_changes>`.
 
 
-Working with Halos and Catalogues
----------------------------------
+Finding the groups of particles that encompass galaxies is the key first
+step of simulation analysis. Generally speaking, groups of particles that are gravitationally bound
+are known as 'halos', while unbound collections of particles are known simply as 'groups'. Some literature
+also talks about 'subhalos', which are smaller groups of particles that are gravitationally bound within
+a larger halo. However, the nomenclature around groups, halos and subhalos is not consistent across the
+literature, and different halo finders may use different terminology. In *pynbody*, we use the term 'halo'
+to refer to *any* group of particles that has been identified by a finder and stored on disk. Thus, a
+*pynbody* :class:`~pynbody.halo.Halo` may represent a halo, a group, or a subhalo, depending on the
+context in which it was created.
 
-We will use the AHF catalogue here since that is the one that is
-available for the sample output in the ``testdata`` bundle. The SubFind specific
-halo / subhalo structure is handled later.
+There are several public group / halo finders available. Pynbody presents a common interface to these
+to the maximum extent possible. For a list of supported halo finders, see :ref:`supported_halo_finders`.
+
+.. note::
+
+    The principal development of ``pynbody`` took place in the UK, and the spelling of "catalogue" is British English.
+    However, since much code is written in American English, v2.0.0 introduced aliases such that all
+    classes can be accessed with the American spelling ``HaloCatalog``, ``AdaptaHOPCatalog`` etc.
+
+To load a catalogue, call the :func:`~pynbody.snapshot.simsnap.SimSnap.halos` method on a loaded
+simulation snapshot. *Pynbody* scans the disk looking for files that follow the naming convention of known
+halo finders.
+
+For example, with the *pynbody* test data, we can load halo catalogues as follows:
 
 .. ipython::
 
- In [1]: import pynbody, matplotlib.pylab as plt
+ In [1]: import pynbody
+    ...: import matplotlib.pylab as plt
 
- In [2]: s = pynbody.load('testdata/g15784.lr.01024.gz')
+ In [2]: s = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024.gz')
 
- In [3]: s.physical_units()
+ In [3]: s.halos()
 
-We've got the snapshot loaded, now we ask ``pynbody`` to load any
-available halo catalogue:
+
+In this case, we have loaded a simulation snapshot from the *Gasoline* code, for which an AHF halo catalogue
+is available. *Pynbody* has automatically detected the presence of the AHF catalogue and loaded it for us.
+Here is another example from the test data:
 
 .. ipython::
 
- In [3]: h = s.halos()
+ In [5]: s = pynbody.load('testdata/gadget4_subfind_HBT/snapshot_034.hdf5')
 
-``h`` is the halo catalogue.
+ In [6]: s.halos()
 
-.. note:: If the halo finders have to run to find the groups, they may take
-   	some time.  AHF typically takes 5 minutes for a million particle
-	simulation while Rockstar takes 5-10 minutes running on a single
-	processor.
 
-We can easily retrieve some basic
-information, like the total number of halos in this catalogue:
+The *Gadget4* snapshot has a SubFind halo catalogue, which *pynbody* has loaded for us. However, in this
+particular case there is _also_ and HBT+ catalogue available. To load this, we can specify the halo finder
+priority either in the configuration file (see :ref:`configuration`) or at runtime.
+
+
+Selecting a format
+------------------
+
+If you have more than one halo catalogue available, or if your halo catalogue is not in the default location,
+you need to provide additional information to the :func:`~pynbody.snapshot.simsnap.SimSnap.halos` method.
+
+To specify a particular halo finder, use the ``priority`` keyword argument. For example, to load the HBT+
+catalogue for the *Gadget4* snapshot, we can do:
+
+.. ipython::
+
+ In [8]: s.halos(priority=['HBTPlusCatalogue'])
+
+Notice that *pynbody* has now loaded the HBT+ catalogue instead of the SubFind catalogue.
+
+.. note::
+
+  In the specific case of HBT+, halos are found within the parent groups of a SubFind catalogue. To see the
+  full hierarchy of structure in this snapshot requires using both catalogues together. More information
+  about this is given in :ref:`the reference documentation <hbt_plus_parent_groups>`.
+
+For a list of the available halo finders, see :ref:`supported_halo_finders`. You can either pass classes or
+strings naming them to the ``priority`` argument.
+
+As described in :ref:`configuration`, you can also tell pynbody which group finders you prefer in your configuration
+file. The ``priority`` argument is used to override this default preference at runtime.
+
+Specifying locations
+--------------------
+
+If your halo catalogue is not in the default location, it probably will not be found automatically when you call
+the :meth:`pynbody.snapshot.simsnap.SimSnap.halos` method. You can therefore specify the path to the catalogue using the
+``filename`` keyword argument. This also functions as an alternative way to disambiguate between multiple
+halo catalogues. For example:
+
+.. ipython::
+
+ In [10]: s.halos(filename='testdata/gadget4_subfind_HBT/034/SubSnap_034.0.hdf5')
+ Out[10]: <HBTPlusCatalogue, length 2349>
+
+ In [11]: h = s.halos(filename='testdata/gadget4_subfind_HBT/fof_subhalo_tab_034.hdf5')
+
+ In [12]: h
+ Out[12]: <SubFindHDFCatalogue, length 2517>
+
+.. note::
+
+    Some halo finders produce multiple files, so the ``filename`` keyword argument
+    is necessarily interpreted slightly differently by some readers. As a general
+    guideline, if the halo finder output is of the form ``path/to/file.extension``,
+    ``path/to/file.another_extension`` etc, then the ``filename``argument should
+    be the path to the basename (i.e.``path/to/file``). For specific help, consult the reference
+    documentation for the specific halo finder's ``__init__``; a list of these is available in
+    :ref:`supported_halo_finders`.
+
+
+Information about the catalogue
+-------------------------------
+
+We will continue to use the Gadget4/SubFind sample catalogue for the following examples, and we
+assigned this to the variable ``h`` above.
+
+We can easily retrieve some basic information, like the total number of halos in this catalogue:
 
 .. ipython::
 
  In [4]: len(h)
 
-To actually access a halo, use square bracket syntax. For example, the following
-returns the number of particles in halos 1 and 2
+To access the particle members of a halo, use square bracket syntax. For example, the following
+returns the number of particles in the first two halos, use
 
 .. ipython::
 
- In [5]: len(h[1]), len(h[2])
+ In [5]: len(h[0]), len(h[1])
+ Out[5]: (307386, 137037)
+.. note ::
 
-The catalogue has halos ordered by number of particles, so the first
-halo for this zoom simulation will be the one we would most likely be
-interested in. Halo IDs begin with 1 for many halo finders (including AHF,
-which is the sample file being used here).
+   Halo numbers to use are assigned by the halo finder, unless overriden by the user. Here, the first halo
+   is halo 0, but that need not have been the case.
 
-As may now be evident, "halos" are treated using the
-:class:`~pynbody.snapshot.SubSnap` class. The syntax for dealing
-with an individual halo therefore precisely mirrors the syntax for
-dealing with an entire simulation. For example, we can get the total mass
-in halo 1 and see the position of its first few particles as follows:
+As may now be evident, the syntax for dealing with particles within an individual halo precisely mirrors the
+syntax for dealing with an entire simulation. For example, we can get the total mass
+in the first halo and see the position of its first few particles as follows:
 
 .. ipython::
 
- In [10]: h[1]['mass'].sum().in_units('1e12 Msol')
+ In [10]: h[0]['mass'].sum().in_units('1e12 Msol')
 
- In [8]: h[1]['pos'][:5]
+ In [11]: h[0]['pos'][:5]
 
-A really common use-case is that one wants to center the simulation on
-a given halo and analyze some of its properties. Since halos are just
-:class:`~pynbody.snapshot.SubSnap` objects, this is easy to do:
-
-.. ipython::
-
- In [1]: pynbody.analysis.halo.center(h[1])
-
- @savefig halo1_image.png width=5in
- In [2]: im = pynbody.plot.image(h[1].d, width = '500 kpc', cmap=plt.cm.Greys, units = 'Msol kpc^-2')
-
-
-Halo catalogue information
---------------------------
-
-Any additional information generated by the halo finder
-is available through the ``properties`` dictionary associated with halos. For
-example
+We might also be interested in the properties that a halo finder has calculated for each halo. For example,
+SubFind calculates various masses and names them ``GroupMass``. This is accessible in the following way:
 
 .. ipython::
 
- In [5]: h[1].properties['children']
+     In [12]: h[0].properties['GroupMass']
 
-returns a list of sub-halos of this halo. Here there are no sub-halos, so
-we've been returned an empty list. To see everything that is
-known about the halo one can use the standard python dictionary method ``keys``:
-
-.. ipython::
-
- In [6]: h[1].properties.keys()
-
-
-Dealing with big simulations and lots of halos
-----------------------------------------------
-
-Sometimes, simulations are too large to fit in the memory of your analysis
-machine. On the other hand, pynbody never actually loads particle data until
-it's needed so it is possible to load a halo catalogue anyway.
-
-Consider the following example.
+Here, the units are currently not very user-friendly. Just as with a simulation snapshot, we can convert
+the units in a halo catalogue to something more useful:
 
 .. ipython::
 
- In [2]: f = pynbody.load("testdata/g15784.lr.01024")
+     In [13]: h.physical_units()
 
- In [3]: h = f.halos()
+     In [14]: h[0].properties['GroupMass']
 
- In [4]: h[2].properties['mass']/1e12 # another property calculated by AHF in Msol/h
+Calling :meth:`~pynbody.halo.HaloCatalogue.physical_units` on a halo catalogue object will convert all
+properties, and additionally all particle data, to the default pynbody units or a different set of units
+if specified. The call signature is the same as for
+:meth:`SimSnap.physical_units <pynbody.snapshot.simsnap.SimSnap.physical_units>`.
 
- In [5]: len(h[2])
+For halo finders such as SubFind that support a hierarchical view of the structure, a ``subhalos`` attribute
+is provided:
 
-At no point does this load data from the simulation file; it only accesses the
-halo catalogue. In fact, with some formats (including AHF, which is what's
-in our sample test data here), you can specify ``dummy=True`` to load only the
-properties dictionary:
+.. ipython::
 
-.. ipython:: :okexcept:
+ In [6]: subhalos_of_0 = h[0].subhalos
 
- In [3]: h = f.halos(dummy=True)
+ In [7]: subhalos_of_0
 
- In [4]: h[2].properties['mass'] # this is still OK
+The ``subhalos_of_0`` object behaves just like a regular catalogue, but it only contains the specified subhalos.
+So, for example, we can see the number of particles in the first subhalo, and its mass:
 
- In [5]: len(h[2]) # this, of course, is unknown
+.. ipython::
+
+ In [8]: len(subhalos_of_0[0]), subhalos_of_0[0].properties['SubhaloMass']
 
 .. note::
 
- The remainder of this section requires the underlying snapshot loader
- to support partial loading, which is currently only the case for *tipsy*
- and *nchilada* formats. See :ref:`loaders`.
+    **SubFind-specific information**
 
-Combined with pynbody's partial-loading system, one can go further and
-pull only a single halo into your computer's memory at once. The following
-example shows you how:
+    SubFind distinguishes sharply between parent halos (known as FOF groups) and subhalos. Even the properties are
+    different. For example, the mass of a subhalo is stored in the ``SubhaloMass`` property, while the mass of a
+    parent halo is stored in the ``GroupMass`` property, as above.
 
-.. ipython::
+    The subhalos are not even available from the parent halo catalogue itself, i.e. running through all the
+    halos in ``h`` will not give you the subhalos, in contrast to some other halo finders. If you want to be able to
+    run through all subhalos within the entire simulation, you can load the subhalo catalogue directly using
 
- In [1]: h2data = h.load_copy(2)
+    .. code-block:: python
 
- In [2]: len(h2data) # this is correct again
-
- In [3]: h2data['mass']
-
-As you can see from the last line, you can now access particle arrays
-but the key difference is that ``h2data`` as constructed above only loads the
-particles that are required. Conversely
-accessing arrays
-directly from ``h[2]`` actually loads the full simulation array into memory, even
-if only part of it is ever going to be used.
+        all_subhalos = s.halos(subhalos=True)
 
 
+Accessing particle data
+-----------------------
 
+When accessing halos in the above way, the particle data is also available. The object returned by ``h[0]``, ``h[1]``
+etc is actually a :class:`~pynbody.halo.Halo` object, which is a subclass of :class:`~pynbody.snapshot.SubSnap`,
+which in turn is a subclass of :class:`~pynbody.snapshot.simsnap.SimSnap`.
 
-Write halo catalog (i.e. convert AHF outfiles to tipsy format)
---------------------------------------------------------------
-
-Tipsy is a particle viewer.  A tipsy format file can be useful for
-quick viewing in tipsy to check whether the AHF halo finder did
-anything sensible. Write the (ahf) halo catalog to disk. Former idl
-users might notice that this produces outfiles similar to 'Alyson's
-idl script'.
-
-The 3 written file types are:
-
-1.   .gtp (tipsy file with halos as star particles);
-2.   .grp (ascii halo id of every snapshot particle, 0 if none);
-3.   .stat (ascii condensed version of AHF halos file).
-
-This halo file set emulates the halo finder SKID. Tipsy and skid can be found at
-`<http://www-hpcc.astro.washington.edu/tools/>`_.
-
-
-Working with SubFind Halos and Subhalos
----------------------------------------
-
-If using the Gadget3 SubFind HDF5 output (for example, OWLS / Eagle or Smaug sims)
-most of the examples from AHF above can be used, except for the subhalos structure.
-One major change is that the halo catalogue is a separate file to the snapshot.
+This means that you can access the particle data as though the halo were a simulation snapshot. For example, to get
+the particle masses of the first halo:
 
 .. ipython::
 
- In [1]: import pynbody, matplotlib.pylab as plt
+ In [11]: h[0]['mass']
 
- In [2]: s = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
-
- In [3]: s.physical_units()
-
-We've got the snapshot loaded and can access the particle data in any manner we
-like as usual but unlike AHF we can't load halos. Instead to get ``pynbody``
-to load the halo catalogue we have to access the subfind output directly:
+We can verify that this agrees with the halo-finder-calculated mass:
 
 .. ipython::
 
- In [3]: s = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+ In [12]: h[0]['mass'].sum()
 
- In [2]: s.physical_units()
+ In [13]: h[0].properties['GroupMass']
 
- In [4]: h = s.halos()
-
-``h`` is the Friends-of-Friends (FOF) halo catalogue, upon which SubFind is based.
-
-As with the AHF example we can easily retrieve some basic
-information, like the total number of halos in this catalogue:
+The same is true for positions, velocities, etc. For example, to get the positions of the first 5 particles in the
+first halo:
 
 .. ipython::
 
- In [5]: len(h), h.ngroups, h.nsubhalos
+ In [14]: h[0]['pos'][:5]
 
-Where the last value is the number of subhalos, see next section on these.
-To actually access a halo, use square bracket syntax as before.
-For example, the following returns the number of particles in halos 1 and 2
-
-.. ipython::
-
- In [6]: len(h[1]), len(h[2])
-
-The catalogue has FOF halos ordered by number of particles, so the first
-halo for this small box simulation will be the largest object.
-Halo IDs begin with 0 for SubFind / FOF unlike AHF.
-
-The "halos" are treated using the
-:class:`~pynbody.gadgethdf.SubFindHDFSnap` class. The syntax for dealing
-with an individual halo is the same as AHF and the snapshot simulation.
-For example, we can get the total mass in the second FOF halo
-and see the position of its first few particles as follows:
+The same syntax can be used to access the particle data of subhalos. For example, to get the velocities of the first
+5 particles in the first subhalo of the first halo:
 
 .. ipython::
 
- In [7]: h[1]['mass'].sum().in_units('1e12 Msol')
-
- In [8]: h[1]['pos'][:5]
-
-A really common use-case is that one wants to center the simulation on
-a given halo and analyze some of its properties:
-
-.. ipython::
-
- In [9]: pynbody.analysis.halo.center(h[1], vel=False)
-
- @savefig halo1_image_subfind.png width=5in
- In [10]: im = pynbody.plot.image(h[1].d, width = '40 kpc', cmap=plt.cm.Greys, units = 'Msol kpc^-2')
+ In [15]: h[0].subhalos[0]['vel'][:5]
 
 
-Subhalo catalogue information
------------------------------
 
-After the FOF group has been found, SubFind runs on this reduced particle list
-to determine gravitational bound substructures (or subhalos) within the larger FOF halo.
-To access the list of subhalos simply call:
+Working with large numbers of halos
+-----------------------------------
+
+Most halo finders will produce a large number of halos. Sometimes we are only interested in accessing a few, in
+which case the approaches above are sufficient. If, however, we access several in a row, *pynbody* may issue
+a warning unless one first calls :meth:`~pynbody.halo.HaloCatalogue.load_all` to load all the halo data into memory.
+This is because *pynbody* is loading the data for each halo as it is accessed,
+and while this is efficient for a small number of halos, it can be slow if done repeatedly.
+
+Once in memory, the data can be accessed without further warnings. For example, to calculate the velocity
+dispersion in each of a number of halos, we can do:
 
 .. ipython::
 
- In [11]: h[1].sub[:]
+  In [15]: h.load_all()
 
-to return a list of sub-halos of this halo. Then one can select subhalo particles as
-before (e.g. dark matter velocities):
+  In [16]: h[0]['vel'].std() # for one
 
-.. ipython::
+  In [17]: v_std = [halo_i['vel'].std() for halo_i in h[:100]] # for the first 100
 
- In [12]: h[1].sub[0].d['vel']
-
-for the main (i.e. first) subhalo of the second FOF halo. As with AHF additional halo
-catalogue values such as the centre of mass, or the velocity dispersion, can be accessed
-by the properties list for each halo / subhalo. Note that the subhalo properties list
-is far more extensive than the FOF halo:
+If we are interested in finder-calculated properties, there is an even faster way to access them without ever
+constructing individual halo particle data objects. For example, to get the masses of halos, we can do:
 
 .. ipython::
 
- In [13]: h[2].properties
+ In [18]: h.get_properties_one_halo(0)['GroupMass'] # for one, without touching any particles
 
- In [14]: h[2].properties['CenterOfMass']
+ In [19]: masses = h.get_properties_all_halos()['GroupMass'][:100] # for first 100, without touching any particles
 
- In [15]: h[2].sub[4].properties
-
- In [16]: h[2].sub[4].properties['CenterOfMass']
-
-To access the entire dataset of a given property (say all of the Stellar
-Velocity Dispersions) requires an embedded for loop over the HDF5 catalogue and
-appending to an array:
+This is much faster than constructing individual halo objects, and is the recommended way to access finder-calculated
+properties when you are not interested in the particle data. We can now take a look at the velocity dispersion as
+a function of mass in this halo catalogue:
 
 .. ipython::
 
- In [17]: SubStellarVelDisp = [[subhalo.properties['SubStellarVelDisp'] for subhalo in halo.sub] for halo in h]
+ @suppress
+ In [20]: plt.clf()
 
- In [19]: SubStellarVelDisp[5]
+ In [20]: plt.plot(masses, v_std, 'o')
+
+ In [21]: plt.xlabel(r'Mass / $M_{\odot}$')
+
+ In [21]: plt.ylabel(r'rms velocity / $\mathrm{km/s}$')
+
+ @savefig masses_vs_vels.png width=5in
+ In [21]: plt.loglog()
+
+.. note::
+
+    Pynbody includes infrastructure for analysing large simulations and halo catalogues using parallel processing.
+    This is used
+    by its sister project, `tangos <https://pynbody.github.io/tangos/>`_, which offers a way to collate and analyse
+    halo data across different timesteps and simulations, generating rich interactive databases which can then be
+    queried and visualised in a variety of ways.

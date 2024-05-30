@@ -1,3 +1,9 @@
+"""Tool for mapping from individual simulation code's naming conventions to pynbody naming conventions.
+
+This module is a detail that is not intended to be used directly by end users. It is used by the snapshot classes to
+map between the names of arrays in different simulation codes.
+"""
+
 import configparser
 import sys
 
@@ -43,6 +49,15 @@ def name_map_function(name_map, rev_name_map):
 
 
 class AdaptiveNameMapper:
+    """A class to map between the names of arrays in different simulation codes.
+
+    This class is designed to be used in a context where the names of arrays in a simulation code may not be fully
+    known in advance. For example, we might be unsure whether pynbody's ``pos`` array corresponds to the ``Coordinates``
+    array or the ``Position`` array in a given simulation snapshot. This class allows us possible different mappings
+    to be given in the configuration, and then once one of the mappings is used, it is locked in for the duration of
+    the object's lifetime.
+
+    """
     def __init__(self, config_name, gadget_blocks=False):
         self._name_map, self._rev_name_map, self._alternates = setup_name_maps(config_name, gadget_blocks,True)
 

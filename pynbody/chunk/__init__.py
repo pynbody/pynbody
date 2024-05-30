@@ -1,8 +1,4 @@
 """
-
-chunk
-=====
-
 Methods for describing parts of files to load.
 
 This module provides generalized logic for getting parts of sequential data off disk.
@@ -12,135 +8,61 @@ it will make it a lot easier.
 The steps for loading particle data are as follows
 
 1. Set up a description of the particles you have on disk. This is a dictionary
-mapping a family type to a slice, e.g.
+   mapping a family type to a slice, e.g.
 
-  on_disk = {pynbody.family.dm: slice(0,100), pynbody.family.gas: slice(100, 150)}
+   .. code-block:: python
 
-describes a file with 100 dark matter particles followed by 50 gas particles.
+      on_disk = {pynbody.family.dm: slice(0,100), pynbody.family.gas: slice(100, 150)}
 
+   describes a file with 100 dark matter particles followed by 50 gas particles.
 
-2. Create a LoadControl object as defined in this module.
+2. Create a :class:`LoadControl` object.
 
- load_control = pynbody.chunk.LoadControl(on_disk, chunk_size, take)
+   .. code-block:: python
 
-Here,
+      load_control = pynbody.chunk.LoadControl(on_disk, chunk_size, take)
 
- * on_disk is the dictionary you set up in the last step.
+   Here,
 
- * chunk_size is the maximum number of particles you are willing to load off
-  disk at once these will have to be stored in a temporary array, so you don't
-  want it to be too large; but also reading a small number of large chunks is
-  more efficient, so you don't want it to be too small. No careful experimentation
-  has been done with this, but chunk_sizes of around 10000 seem to work OK.
+   * on_disk is the dictionary you set up in the last step.
 
- * take describes what to load in. Currently this is either None (= load the whole file)
-   or a list of ids (= load the specified particles). However this may be expanded
-   in future to a more comprehensive syntax. The idea is your code will not have to
-   change when this happens, and will automatically support more advanced partial loading
-   specifications.
+   * chunk_size is the maximum number of particles you are willing to load off
+     disk at once these will have to be stored in a temporary array, so you don't
+     want it to be too large; but also reading a small number of large chunks is
+     more efficient, so you don't want it to be too small. No careful experimentation
+     has been done with this, but chunk_sizes of around 10000 seem to work OK.
 
-3. Load your particle data. The load_control object has an iterate method. This returns
-step-by-step instructions that take you through the file, specifying what to keep and what
-to throw away in a simple-to-use fashion. See the help for LoadControl.iterate for details
-on how to implement this final step.
+   * take describes what to load in. Currently this is either ``None`` (= load the whole file)
+     or a list of ids (= load the specified particles). However this may be expanded
+     in future to a more comprehensive syntax. The idea is your code will not have to
+     change when this happens, and will automatically support more advanced partial loading
+     specifications.
+
+3. Load your particle data. The :class:`LoadControl` object has an ``iterate`` method. This returns
+   step-by-step instructions that take you through the file, specifying what to keep and what
+   to throw away in a simple-to-use fashion. See the help for :func:`LoadControl.iterate` for details
+   on how to implement this final step.
 
 """
 
+from __future__ import annotations
 
 import copy
-import math
-import random
+from typing import TYPE_CHECKING, Callable, Iterable, Iterator
 
 import numpy as np
 
 from .. import util
 
-
-class Chunk:
-
-    def __init__(self, *args, **kwargs):
-        pass
-        start, stop, step = 0, None, 1
-        if len(args) == 1:
-            start, stop, step = 0, args[0], 1
-        if len(args) == 2:
-            start, stop, step = args[0], args[1], 1
-        if len(args) == 3:
-            start, stop, step = args
-        self.random = kwargs.get('random', None)
-        self.ids = kwargs.get('ids', None)
-
-        self.start = start
-        self.stop = stop
-        self.step = step
-
-        assert (self.step is not None
-                or self.random is not None
-                or self.ids is not None)
-
-    def init(self, max_stop):
-
-        assert max_stop >= 0
-
-        if self.stop is None:
-            self.stop = max_stop
-        else:
-            self.stop = min(max_stop, self.stop)
-
-        assert self.start >= 0
-        assert self.stop >= 0, '%ld' % self.stop
-        assert self.step > 0
-        assert self.start <= self.stop
-
-        if self.random is not None:
-            assert random > 0
-
-        if self.ids is not None:
-            assert np.amax(self.ids) < max_stop
-            if self.random is not None:
-                if self.random < 1:
-                    self.random = int(self.random * len(self.ids))
-                self.ids = random.sample(self.ids, self.random)
-                self.ids.sort()
-            self.len = len(self.ids)
-        else:
-            slice_len = int(math.ceil((self.stop - self.start) / self.step))
-            self.len = slice_len
-            if self.random is not None:
-                if self.random < 1:
-                    self.random = int(self.random * self.len)
-                self.random = min(self.random, slice_len)
-                self.ids = random.sample(
-                    range(self.start, self.stop, self.step), self.random)
-                self.ids.sort()
-                self.len = len(self.ids)
-
-    def __len__(self):
-        return self.len
-
-    def pdeltas(self, step=None):
-
-        assert step is None or self.contiguous()
-        if step is None:
-            step = self.step
-
-        if self.ids is None:
-            for i in range(self.start, self.stop, self.step):
-                yield self.step
-        else:
-            yield self.ids[0]
-            for i in range(len(self.ids) - 1):
-                yield self.ids[i + 1] - self.ids[i]
-
-    def contiguous(self):
-        return self.ids is None and self.step == 1
-
+if TYPE_CHECKING:
+    from .. import family
 
 class LoadControl:
+    """LoadControl provides the logic required for partial loading.
 
-    """LoadControl provides the logic required for partial loading."""
+    See the documentation for :mod:`pynbody.chunk` for more information."""
 
-    def __init__(self, family_slice, max_chunk, clauses):
+    def __init__(self, family_slice: dict[family.Family, slice], max_chunk: int, clauses: np.ndarray | None):
         """Initialize a LoadControl object.
 
         *Inputs:*
@@ -152,10 +74,8 @@ class LoadControl:
             read operation. Larger values are likely more efficient, but also require
             bigger temporary buffers in your reader code.
 
-          *clauses*: a dictionary describing the type of partial loading to implement.
-            If this dictionary is empty, all data is loaded. Otherwise it can contain
-            'ids', a list of ids to load.
-
+          *clauses*: a description of the type of partial loading to implement. If None, all data is loaded.
+            Otherwise, currently the only supported option is a numpy array of particle ids to load.
          """
 
         self._disk_family_slice = family_slice
@@ -218,8 +138,10 @@ class LoadControl:
             self.mem_family_slice[current_family] = slice(start, stop)
 
     def _generate_null_chunks(self, max_chunk):
-        """Generate internal chunk map in the special case that we are loading
-        all data"""
+        """Generate internal chunk map in the special case that we are loading all data.
+
+        See also :func:`_generate_chunks` for the general case.
+        """
 
         self._family_chunks = {}
 
@@ -235,8 +157,13 @@ class LoadControl:
                     (nread, buf_sl, mem_sl))
 
     def _generate_chunks(self, max_chunk):
-        """Generate internal chunk map, with maximum load chunk of specified number
-        of entries, and with chunks that do not cross family boundaries."""
+        """Generate internal chunk map
+
+        This must satisfy the requirements that:
+          * maximum chunk size does not exceed *max_chunk*
+          * chunks do not cross family boundaries
+
+        """
 
         if self._ids is None:
             self._generate_null_chunks(max_chunk)
@@ -252,7 +179,6 @@ class LoadControl:
 
             disk_ptr = 0
             mem_ptr = 0
-            # print current_family, disk_sl.stop
 
             while disk_ptr < disk_sl.stop - disk_sl.start:
                 disk_ptr_end = disk_ptr + \
@@ -270,9 +196,6 @@ class LoadControl:
 
                 disk_mask = ids[i:j] - disk_ptr
 
-                # print mem_slice, (j-i), len(disk_mask), disk_ptr,
-                # disk_ptr_end, nread_disk
-
                 mem_ptr = mem_ptr + j - i
                 i = j
                 disk_ptr = disk_ptr_end
@@ -280,33 +203,35 @@ class LoadControl:
                 self._family_chunks[current_family].append(
                     (nread_disk, disk_mask, mem_slice))
 
-    def iterate_with_interrupts(self, families_on_disk, families_in_memory,
-                                disk_interrupt_points, disk_interrupt_fn, multiskip=False):
-        """Performs the same function as
-        :func:`~pynbody.chunk.LoadControl.iterate` but additionally
-        takes a list of exact file offsets *disk_interrupt_points* at
-        which to interrupt the loading process and call a
-        user-specified function *disk_interrupt_fn*.
+    def iterate_with_interrupts(self, families_on_disk: list[family.Family], families_in_memory: list[family.Family],
+                                disk_interrupt_points: Iterable[int], disk_interrupt_fn: Callable,
+                                multiskip: bool = False):
+        """Yields instructions for loading an array with the specified families, breaking at specified file offsets
 
-        **Input:** :
-          *disk_interrupt_points*: a list (or other iterable) of disk offsets
-            (must be in ascending order) at which to call the interrupt function
-          *disk_interrupt_fn*: a function which takes the file offset as an argument,
-            and is called precisely at the point that the disk interrupt point is reached
+        Performs the same function as :func:`iterate` but additionally takes a list of exact file offsets
+        *disk_interrupt_points* at which to interrupt the loading process and call a user-specified function
+        *disk_interrupt_fn*.
 
-          See func:`~pynbody.chunk.LoadControl.iterate` for other arguments.
+        Parameters
+        ----------
 
-          """
+        disk_interrupt_points: Iterable
+            List (or other iterable) of disk offsets at which to call the interrupt function, in ascending order
+
+        disk_interrupt_fn: Callable
+            Function which takes the file offset as an argument, and is called precisely at the point that the disk
+            interrupt point is reached
+
+
+        See :func:`iterate` for other parameters.
+
+        """
 
         fpos = 0
         i = 0
         next_dip = disk_interrupt_points[i]
         for nread_disk, disk_slice, mem_slice in self.iterate(families_on_disk, families_in_memory, multiskip):
             while next_dip and fpos + nread_disk > next_dip:
-
-                # print "ORIGINAL:",nread_disk, disk_slice, mem_slice,"starts@",fpos
-                # print "   INTERRUPT AT:",next_dip
-
                 # an interrupt falls in the middle of our slice
                 # work out what to read first
                 len_pre = next_dip - fpos
@@ -353,7 +278,6 @@ class LoadControl:
                     d_slice_post = None
                     m_slice_post = None
 
-                # print "PRE-INTERRUPT:",len_pre,d_slice_pre,m_slice_pre
                 yield len_pre, d_slice_pre, m_slice_pre
                 fpos += len_pre
                 disk_interrupt_fn(disk_interrupt_points[i])
@@ -370,36 +294,46 @@ class LoadControl:
                 # decomposition)
                 nread_disk, disk_slice, mem_slice = len_post, d_slice_post, m_slice_post
 
-                # print "POST-INTERRUPT:",nread_disk, disk_slice,
-                # mem_slice,"continues@",fpos
 
             yield nread_disk, disk_slice, mem_slice
             fpos += nread_disk
 
-    def iterate(self, families_on_disk, families_in_memory, multiskip=False):
-        """Provide an iterator which yields step-by-step instructions
-        for partial-loading an array with the specified families stored
-        on disk into a memory array containing the specified families.
+    def iterate(self, families_on_disk: list[family.Family], families_in_memory: list[family.Family],
+                multiskip: bool = False) -> Iterator[tuple[int, slice | None, slice | None]]:
+        """Yields step-by-step instructions for partial-loading an array with the specified families.
 
-        Each output consists of *readlen*, *file_index*, *memory_index*.
         A typical read loop should be as follows:
 
-        for readlen, buffer_index, memory_index in ctl.iterate(fams_on_disk, fams_in_mem) :
-          data = read_entries(count=readlen)
-          if memory_index is not None :
-            target_array[memory_index] = data[buffer_index]
+        .. code-block:: python
+
+            for readlen, buffer_index, memory_index in ctl.iterate(fams_on_disk, fams_in_mem) :
+              data = read_entries(count=readlen)
+              if memory_index is not None :
+                target_array[memory_index] = data[buffer_index]
 
         Obviously this can be optimized, for instance to skip through
         file data when memory_index is None rather than read and discard it.
 
-        **Input:** :
+        Parameters
+        ----------
+        families_on_disk : list
+            List of families for which the array exists on disk
+        families_in_memory : list
+            List of families for which we want to read the array into memory
+        multiskip : bool
+            If True, skip commands (i.e. entries with buffer_index=None)
+            can have readlen greater than the block length
 
-          *families_on_disk*: list of families for which the array exists on disk
-          *families_in_memory*: list of families to target in memory
-          *multiskip*: if True, skip commands (i.e. entries with file_index=None)
-             can have readlen greater than the block length
+        Yields
+        ------
+        readlen : int
+            Number of entries to read from disk
+        buffer_index : slice | None
+            Slice to read from the resulting buffer, or None if this particular read is to be ignored (skipped)
+        memory_index : slice | None
+            Slice to write into memory, or None if ``buffer_index`` is None
 
-          """
+        """
 
         mem_offset = 0
 

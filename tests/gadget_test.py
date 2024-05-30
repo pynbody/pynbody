@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
@@ -6,7 +7,7 @@ import pynbody
 
 def setup_module():
     global snap
-    snap = pynbody.load("testdata/test_g2_snap")
+    snap = pynbody.load("testdata/gadget2/test_g2_snap")
 
 
 def teardown_module():
@@ -16,13 +17,13 @@ def teardown_module():
 
 def test_construct():
     """Check the basic properties of the snapshot"""
-    assert (np.size(snap._files) == 2)
-    assert(snap.header.num_files == 2)
-    assert (snap.filename == "testdata/test_g2_snap")
-    assert(snap._num_particles == 8192)
+    assert np.size(snap._files) == 2
+    assert snap.header.num_files == 2
+    assert snap.filename == "testdata/gadget2/test_g2_snap"
+    assert snap._num_particles == 8192
     for f in snap._files:
-        assert(f.format2 == True)
-        assert(f.endian == "=")
+        assert f.format2
+        assert f.endian == "="
 
 def test_properties():
     assert "time" in snap.properties
@@ -70,8 +71,8 @@ def test_array_sizes():
 
 def test_fam_sim():
     """Check that an array loaded as families is the same as one loaded as a simulation array"""
-    snap2 = pynbody.load("testdata/test_g2_snap")
-    snap3 = pynbody.load("testdata/test_g2_snap")
+    snap2 = pynbody.load("testdata/gadget2/test_g2_snap")
+    snap3 = pynbody.load("testdata/gadget2/test_g2_snap")
     snap3.gas["pos"]
     snap3.dm["pos"]
     snap3.star["pos"]
@@ -104,7 +105,8 @@ def test_header():
 
 def test_g1_load():
     """Check we can load gadget-1 files also"""
-    snap2 = pynbody.load("testdata/gadget1.snap")
+    with pytest.warns(RuntimeWarning, match=r"Run out of block names in the config file. Using fallbacks: UNK\*"):
+        snap2 = pynbody.load("testdata/gadget1.snap")
 
 
 def test_write():
@@ -112,16 +114,16 @@ def test_write():
     and the written and the read are the same."""
     snap.write(filename='testdata/test_gadget_write')
     snap3 = pynbody.load('testdata/test_gadget_write')
-    assert(set(snap.loadable_keys()) == set(snap3.loadable_keys()))
-    assert((snap3["pos"].view(np.ndarray) == snap["pos"]).all())
-    assert((snap3.gas["rho"].view(np.ndarray) == snap.gas["rho"]).all())
-    assert(snap3.check_headers(snap.header, snap3.header))
+    assert set(snap.loadable_keys()) == set(snap3.loadable_keys())
+    npt.assert_equal(snap3["pos"].view(np.ndarray), snap["pos"])
+    npt.assert_equal(snap3.gas["rho"].view(np.ndarray), snap.gas["rho"])
+    assert snap3.check_headers(snap.header, snap3.header)
 
 
 def test_conversion():
     """Check that we can convert a file from tipsy format and load it again"""
-    snap4 = pynbody.load("testdata/g15784.lr.01024")
-    snap4.write(fmt=pynbody.gadget.GadgetSnap,
+    snap4 = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    snap4.write(fmt=pynbody.snapshot.gadget.GadgetSnap,
                 filename="testdata/test_conversion.gadget")
     snap5 = pynbody.load("testdata/test_conversion.gadget")
 
@@ -129,7 +131,7 @@ def test_conversion():
 def test_write_single_array():
     """Check that we can write a single array and read it back"""
     snap["pos"].write(overwrite=True)
-    snap6 = pynbody.load("testdata/test_g2_snap")
+    snap6 = pynbody.load("testdata/gadget2/test_g2_snap")
     assert((snap6["pos"] == snap["pos"]).all())
 
 
@@ -139,11 +141,11 @@ def test_no_mass_block():
 
 
 def test_unit_persistence():
-    f = pynbody.load("testdata/test_g2_snap")
+    f = pynbody.load("testdata/gadget2/test_g2_snap")
 
     # f2 is the comparison case - just load the whole
     # position array and convert it, simple
-    f2 = pynbody.load("testdata/test_g2_snap")
+    f2 = pynbody.load("testdata/gadget2/test_g2_snap")
     f2['pos']
     f2.physical_units()
 
@@ -176,8 +178,8 @@ def test_per_particle_loading():
     subtelties in the gadget handler that could mess this up by loading
     the wrong data."""
 
-    f_all = pynbody.load("testdata/test_g2_snap")
-    f_part = pynbody.load("testdata/test_g2_snap")
+    f_all = pynbody.load("testdata/gadget2/test_g2_snap")
+    f_part = pynbody.load("testdata/gadget2/test_g2_snap")
 
     f_part.dm['pos']
     f_part.star['pos']
@@ -195,21 +197,21 @@ def test_issue321():
 
 
 def test_units_override():
-    f = pynbody.load("testdata/test_g2_snap.0")
-    assert f.filename == "testdata/test_g2_snap"
+    f = pynbody.load("testdata/gadget2/test_g2_snap.0")
+    assert f.filename == "testdata/gadget2/test_g2_snap"
     assert f['pos'].units == "kpc a h^-1"
 
     # In this case the unit override system is not effective because
     # the final ".1" is not stripped away in the filename:
-    # the file `test_g2_snap.units` is not used
-    f_no_unit_override = pynbody.load("testdata/test_g2_snap.1")
-    assert f_no_unit_override.filename == "testdata/test_g2_snap.1"
+    # the file `gadget2/test_g2_snap.units` is not used
+    f_no_unit_override = pynbody.load("testdata/gadget2/test_g2_snap.1")
+    assert f_no_unit_override.filename == "testdata/gadget2/test_g2_snap.1"
     assert f_no_unit_override['pos'].units == "Mpc a h^-1"  # from default_config.ini
 
 
 def test_ignore_cosmology():
-    f = pynbody.load("testdata/test_g2_snap.1")
+    f = pynbody.load("testdata/gadget2/test_g2_snap.1")
     f.physical_units()
-    np.testing.assert_allclose(f.properties['time'].in_units('Gyr'), 2.5769525238964737)
-    f_no_cosmo = pynbody.load("testdata/test_g2_snap.1", ignore_cosmo=True)
-    np.testing.assert_allclose(f_no_cosmo.properties['time'].in_units('Gyr'), 271.6149884391969)
+    np.testing.assert_allclose(f.properties['time'].in_units('Gyr'), 2.57689526)
+    f_no_cosmo = pynbody.load("testdata/gadget2/test_g2_snap.1", ignore_cosmo=True)
+    np.testing.assert_allclose(f_no_cosmo.properties['time'].in_units('Gyr'), 271.608952)

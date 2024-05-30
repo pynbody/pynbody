@@ -1,15 +1,14 @@
 import glob
 import os
-import warnings
+import pathlib
 
 import numpy as np
+import pytest
 
 import pynbody
 
 sink_filename = "testdata/ramses_new_format_partial_output_00001/sink_00001.csv"
 sink_filename_moved = sink_filename+".temporarily_moved"
-
-import pytest
 
 
 def setup_module():
@@ -34,44 +33,41 @@ def test_sink_variables():
     assert str(f.bh['pos'].units)=="3.09e+21 cm"
     assert (f.bh['id']==np.array([1,2])).all()
 
-def _unexpected_format_warning_was_issued(warnings):
-    return any(["unexpected format" in str(w_i).lower() for w_i in warnings])
 
 def _no_bh_family_present(f):
     return (len(f.bh)==0) and (pynbody.family.bh not in f.families())
 
-def test_no_sink_file():
+@pytest.fixture
+def backup_sinkfile():
     try:
         os.rename(sink_filename, sink_filename_moved)
-        with warnings.catch_warnings(record=True) as w:
-            f_no_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
-        assert not _unexpected_format_warning_was_issued(w)
-        assert _no_bh_family_present(f_no_sink)
+        yield sink_filename
     finally:
         os.rename(sink_filename_moved, sink_filename)
 
-def test_garbled_sink_file():
-    try:
-        os.rename(sink_filename, sink_filename_moved)
-        with open(sink_filename,"w") as tfile:
+
+def test_no_sink_file(backup_sinkfile):
+    # No warning should be raised
+    f_no_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+    assert _no_bh_family_present(f_no_sink)
+
+def test_garbled_sink_file(backup_sinkfile):
+    with open(sink_filename, "w") as tfile:
+        tfile.write("1,2,3\r\n")
+
+    warn_str = r"Unexpected format in file .*\.csv -- sink data has not been loaded"
+    with pytest.warns(UserWarning, match=warn_str):
+        f_garbled_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+    assert _no_bh_family_present(f_garbled_sink)
+
+    with open(sink_filename,"w") as tfile:
+        for i in range(4):
             tfile.write("1,2,3\r\n")
 
-        with warnings.catch_warnings(record=True) as w:
-            f_garbled_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
-        assert _unexpected_format_warning_was_issued(w)
-        assert _no_bh_family_present(f_garbled_sink)
-
-        with open(sink_filename,"w") as tfile:
-            for i in range(4):
-                tfile.write("1,2,3\r\n")
-
+    with pytest.warns(UserWarning, match=warn_str):
         f_garbled_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
-        # Would be nice to test the warning is also raised here, but need to figure out how to get python to
-        # re-raise it despite the fact it was already triggered above.
 
-        assert _no_bh_family_present(f_garbled_sink)
-    finally:
-        os.rename(sink_filename_moved, sink_filename)
+    assert _no_bh_family_present(f_garbled_sink)
 
 def test_load_pos():
     loaded_vals = f.dm['pos'][::5001]
@@ -129,7 +125,75 @@ def test_load_no_ptcls():
     assert len(f.gas) == 196232
 
 def test_loaded_namelist():
-    assert f._namelist['cosmo'] == False
-    assert f._namelist['hydro'] == True
+    assert f._namelist['cosmo'] is False
+    assert f._namelist['hydro'] is True
     assert f._namelist['z_ave'] == 0.1
-    assert f._namelist.get("non_existent_key") == None
+    assert f._namelist.get("non_existent_key") is None
+
+@pytest.fixture(params=[True, False], ids=['mass-column-present', 'no-mass-column-present'])
+def snap_for_issue_771(request):
+    """Aids test for issue #771. In that example, an output has a 'mass' column in the sink csv file. In our test data
+    we instead have an 'msink' column. So we create a virtual version where we rename the column to 'mass'"""
+    src_dir = pathlib.Path('testdata/ramses_new_format_partial_output_00001')
+
+    if request.param:
+        # Make the virtual version of the output with 'mass' in place of 'msink' column
+        tgt_dir = pathlib.Path('testdata/ramses_new_format_partial_with_sink_mass_output_00001')
+
+        if not tgt_dir.exists():
+            # Create target directory if it doesn't exist
+            tgt_dir.mkdir()
+
+            # Iterate over all files in the source directory
+            for src_file in src_dir.iterdir():
+                tgt_file = tgt_dir / src_file.name
+
+                # If the file is 'sink_00001.csv', copy and modify its contents
+                if src_file.name == 'sink_00001.csv':
+                    with src_file.open() as f_in, tgt_file.open('w') as f_out:
+                        for line in f_in:
+                            f_out.write(line.replace('msink', 'mass'))
+                else:
+                    # Create a symbolic link for all other files
+                    tgt_file.symlink_to(src_file.absolute())
+
+        yield pynbody.load(tgt_dir)
+
+        # Clean up
+        #for tgt_file in tgt_dir.iterdir():
+        #    tgt_file.unlink()
+        #tgt_dir.rmdir()
+    else:
+        yield pynbody.load(src_dir)
+
+@pytest.mark.parametrize("in_physical_units", [True, False],
+                         ids=['physical', 'code'])
+def test_sink_file_mass_all_particles(snap_for_issue_771, in_physical_units):
+    # it should be OK if there isn't a mass column in the sinks
+    #f2 = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+    #f2['mass']
+
+    if in_physical_units:
+        snap_for_issue_771.physical_units()
+
+    snap_for_issue_771['mass']
+
+    reference_array = snap_for_issue_771['mass']
+    reference_array_gas = snap_for_issue_771.gas['mass']
+
+    # now let's try reloading that and accessing things in another order
+    f = pynbody.load(snap_for_issue_771.filename)
+    f.gas['mass']
+    if in_physical_units:
+        f.physical_units()
+
+    # this should be fine:
+    np.testing.assert_allclose(reference_array_gas, f.gas['mass'])
+
+    # now the gas mass derived array is already present, the code path via which the final mass array
+    # is assembled is different (no need to re-derive the gas mass). But this can seem to result
+    # in wrong results with physical_units.
+
+    test_array = f['mass'] # completes by loading the particle masses from disk. Should leave gas mass untouched.
+
+    np.testing.assert_allclose(reference_array, test_array)

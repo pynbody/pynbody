@@ -1,9 +1,10 @@
 import gc
-import pickle
 
 import numpy as np
 
 import pynbody
+import pynbody.snapshot.simsnap
+import pynbody.snapshot.subsnap
 
 
 def test_pickle():
@@ -42,7 +43,6 @@ def test_sim_propagation():
     del f
     gc.collect()
     assert X.sim is None
-
 
 def test_ndim_issue_399():
     f = pynbody.new(10)

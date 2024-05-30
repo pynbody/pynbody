@@ -8,8 +8,11 @@ Functions for dealing with and manipulating halos in simulations.
 
 """
 
+import functools
 import logging
 import math
+import operator
+import warnings
 
 import numpy as np
 
@@ -19,65 +22,53 @@ from . import _com, cosmology, profile
 logger = logging.getLogger('pynbody.analysis.halo')
 
 
-def center_of_mass(sim):
+def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100,
+                         num_threads = None, particles_for_velocity = 0,
+                         families_for_velocity = ['dm', 'star']):
+    """
+    Return the center according to the shrinking-sphere method of Power et al (2003)
+
+    Most users will want to use the higher-level :func:`center` function, which actually performs the centering operation.
+    This function is a lower-level interface that calculates the center but does not move the particles.
+
+    Parameters
+    ----------
+
+    sim : SimSnap
+        The simulation snapshot to center
+
+    r : float | str, optional
+        Initial search radius. If None, a rough estimate is used.
+
+    shrink_factor : float, optional
+        The amount to shrink the search radius by on each iteration
+
+    min_particles : int, optional
+        Minimum number of particles within the search radius. When this number is reached, the search is complete.
+
+    num_threads : int, optional
+        Number of threads to use for the calculation. If None, the number of threads is taken from the configuration.
+
+    particles_for_velocity : int, optional
+        If > min_particles, a velocity centre is calculated when the number of particles falls below this threshold,
+        and returned.
+
+    families_for_velocity : list, optional
+        The families to use for the velocity centering. Default is ['dm', 'star'], because gas particles may
+        be involved in violent outflows making them a risky choice for velocity centering.
+
+    Returns
+    -------
+    com : SimArray
+        The center of mass of the final sphere
+
+    vel : SimArray
+        The center of mass velocity of the final sphere. Only returned if particles_for_velocity > min_particles.
+
     """
 
-    Return the centre of mass of the SimSnap
-
-    """
-    mtot = sim["mass"].sum()
-    p = np.sum(sim["mass"] * sim["pos"].transpose(), axis=1) / mtot
-
-    # otherwise behaviour is numpy version dependent
-    p.units = sim["pos"].units
-
-    # only return position to be consistent with other functions in halo.py
-    return p
-
-
-def center_of_mass_velocity(sim):
-    """
-
-    Return the center of mass velocity of the SimSnap
-
-    """
-    mtot = sim["mass"].sum()
-    v = np.sum(sim["mass"] * sim["vel"].transpose(), axis=1) / mtot
-    # otherwise behaviour is numpy version dependent
-    v.units = sim["vel"].units
-
-    return v
-
-
-def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verbose=False, num_threads = config['number_of_threads'],**kwargs):
-    """
-
-    Return the center according to the shrinking-sphere method of
-    Power et al (2003)
-
-
-    **Input**:
-
-    *sim* : a simulation snapshot - this can be any subclass of SimSnap
-
-    **Optional Keywords**:
-
-    *r* (default=None): initial search radius. This can be a string
-     indicating the unit, i.e. "200 kpc", or an instance of
-     :func:`~pynbody.units.Unit`.
-
-    *shrink_factor* (default=0.7): the amount to shrink the search
-     radius by on each iteration
-
-    *min_particles* (default=100): minimum number of particles within
-     the search radius. When this number is reached, the search is
-     complete.
-
-    *verbose* (default=False): if True, prints out the diagnostics at
-     each iteration. Useful to determine whether the centering is
-     zeroing in on the wrong part of the simulation.
-
-    """
+    if num_threads is None:
+        num_threads = config['number_of_threads']
 
     if r is None:
 
@@ -93,40 +84,65 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100, verb
     mass = np.asarray(sim['mass'], dtype='double')
     pos = np.asarray(sim['pos'], dtype='double')
 
-    if shrink_factor == 1.0:
-        tol = sim['eps'].in_units(sim['pos'].units, **sim.conversion_context()).min()*0.1
-        com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r, num_threads)
-        com = _com.move_sphere_center(pos, mass, min_particles, shrink_factor, r, tol)
-    else:
-        com = _com.shrink_sphere_center(pos, mass, min_particles, shrink_factor, r, num_threads)
+    R = _com.shrink_sphere_center(pos, mass, min_particles, particles_for_velocity,
+                                  shrink_factor, r, num_threads)
 
+    com, final_radius, velocity_radius = R
+
+    logger.info("Radius for velocity measurement = %s", velocity_radius)
     logger.info("Final SSC=%s", com)
 
-    return array.SimArray(com, sim['pos'].units)
+    com_to_return = array.SimArray(com, sim['pos'].units)
+
+    if particles_for_velocity > min_particles:
+        fam_filter = functools.reduce(operator.or_, (filt.FamilyFilter(f) for f in families_for_velocity))
+        final_sphere = sim[filt.Sphere(velocity_radius, com) & fam_filter]
+        logger.info("Particles in sphere = %d", len(final_sphere))
+        if len(final_sphere) == 0:
+            warnings.warn("Final sphere is empty; cannot return a velocity. This probably implies something is "
+                          "wrong with the position centre too.", RuntimeWarning)
+            return com_to_return, np.array([0., 0., 0.])
+        else:
+            vel = final_sphere.mean_by_mass('vel')
+            logger.info("Final velocity=%s", vel)
+            return com_to_return, vel
+    else:
+        return com_to_return
+
 
 
 def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
-    """Calculate the virial radius of the halo centered on the given
-    coordinates.
+    """Calculate the virial radius of the halo centered on the given coordinates.
 
     The default is here defined by the sphere centered on cen which contains a
     mean density of overden * rho_M_0 * (1+z)^3.
 
-    **Input**:
+    Parameters
+    ----------
 
-    *sim* : a simulation snapshot - this can be any subclass of SimSnap, especially a halo.
+    sim : SimSnap
+        The simulation snapshot for which to calculate the virial radius.
 
-    **Optional Keywords**:
+    cen : array_like, optional
+        The center of the halo. If None, the halo is assumed to be already centered.
 
-    *cen* (default=None): Provides the halo center. If None, assumes that the snapshot is already centered.
+    overden : float, optional
+        The overdensity of the halo. Default is 178.
 
-    *rmax (default=None): Maximum radius to start the search. If None, inferred from the halo particle positions.
+    r_max : float, optional
+        The maximum radius to search for the virial radius. If None, the maximum radius of any
+        particle in *sim* is used
 
-    *overden (default=178): Overdensity corresponding to the required halo boundary definition.
-    178 is the virial criterion for spherical collapse in an EdS Universe. Common possible values are 200, 500 etc
+    rho_def : str, optional
+        The density definition to use.
+        Default is 'matter', which uses the matter density at the redshift of the simulation. Alternatively,
+        'critical' can be used for the critical density at this redshift.
 
-    *rho_def (default='matter'): Physical density used to define the overdensity. Default is the matter density at
-    the redshift of the simulation. An other choice is "critical" for the critical density at this redshift.
+    Returns
+    -------
+
+    float
+        The virial radius of the halo in the position units of *sim*.
 
     """
 
@@ -140,11 +156,6 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
 
     r_min = 0.0
 
-    if cen is not None:
-        tx = transformation.inverse_translate(sim, cen)
-    else:
-        tx = transformation.null(sim)
-
     if rho_def == 'matter':
        ref_density = sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0 + sim.properties["z"]) ** 3
     elif rho_def == 'critical':
@@ -155,22 +166,17 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
     target_rho = overden * ref_density
     logger.info("target_rho=%s", target_rho)
 
-    with tx:
+    if cen is not None:
+        transform = sim.translate(-np.asanyarray(cen))
+    else:
+        transform = transformation.NullTransformation(sim)
+
+    with transform:
         sim = sim[filt.Sphere(r_max)]
         with sim.immediate_mode:
             mass_ar = np.asarray(sim['mass'])
             r_ar = np.asarray(sim['r'])
 
-        """
-        #pure numpy implementation
-        rho = lambda r: np.dot(
-            mass_ar, r_ar < r) / (4. * math.pi * (r ** 3) / 3)
-
-        #numexpr alternative - not much faster because sum is not threaded
-        def rho(r) :
-            r_ar; mass_ar; # just to get these into the local namespace
-            return ne.evaluate("sum((r_ar<r)*mass_ar)")/(4.*math.pi*(r**3)/3)
-        """
         rho = lambda r: util.sum_if_lt(mass_ar,r_ar,r)/(4. * math.pi * (r ** 3) / 3)
         result = util.bisect(r_min, r_max, lambda r: target_rho -
                              rho(r), epsilon=0, eta=1.e-3 * target_rho, verbose=False)
@@ -178,58 +184,82 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
     return result
 
 
-def potential_minimum(sim):
+def _potential_minimum(sim):
     i = sim["phi"].argmin()
     return sim["pos"][i].copy()
 
 
 def hybrid_center(sim, r='3 kpc', **kwargs):
-    """
+    """Determine the center of the halo by finding the shrink-sphere-center near the potential minimum
 
-    Determine the center of the halo by finding the shrink-sphere
-    -center inside the specified distance of the potential minimum
+    Most users will want to use the general :func:`center` function, which actually performs the centering operation.
+    This function is a lower-level interface that calculates the center but does not move the particles.
+
+    Parameters
+    ----------
+
+    sim : SimSnap
+        The simulation snapshot of which to find the center
+    r : float | str, optional
+        Radius from the potential minimum to search for the center. Default is 3 kpc.
+
+    Remaining parameters are passed onto :func:`shrink_sphere_center`.
+
+    Returns
+    -------
+
+    com : SimArray
+        The center of mass of the final sphere
+    vel : SimArray
+        The center of mass velocity of the final sphere. Only returned if particles_for_velocity > min_particles.
+
 
     """
 
     try:
-        cen_a = potential_minimum(sim)
+        cen_a = _potential_minimum(sim)
     except KeyError:
         cen_a = center_of_mass(sim)
     return shrink_sphere_center(sim[filt.Sphere(r, cen_a)], **kwargs)
 
 
-def index_center(sim, **kwargs):
+
+def vel_center(sim, cen_size="1 kpc", return_cen=False, move_all=True, **kwargs):
+    """Recenter the snapshot on the center of mass velocity inside a sphere of specified radius
+
+    Attempts to use the star particles, falling back to gas or dark matter if necessary.
+
+    Parameters
+    ----------
+
+    sim : SimSnap
+        The simulation snapshot to center
+
+    cen_size : str or float, optional
+        The size of the sphere to use for the velocity centering. Default is 1 kpc.
+
+    return_cen : bool, optional
+        If True, only return the velocity center without actually moving the snapshot. Default is False.
+
+    move_all : bool, optional
+        If True (default), move the entire snapshot. Otherwise only move the particles in the halo passed in.
+
+    retcen : bool, optional
+        Deprecated alias for return_cen
+
+    Returns
+    -------
+
+    Transformation | SimArray
+        Normally, a transformation object that can be used to revert the transformation.
+        However, if return_cen is True, a SimArray containing the velocity center
+        coordinates is returned instead, and the snapshot is not transformed.
+
     """
 
-    Determine the center of mass based on specific particles.
-
-    Supply a list of indices using the ``ind`` keyword.
-
-    """
-
-    try:
-        ind = kwargs['ind']
-        return center_of_mass(sim[ind])
-    except KeyError:
-        raise RuntimeError("Need to supply indices for centering")
-
-
-def vel_center(sim, mode=None, cen_size="1 kpc", retcen=False, move_all=True, **kwargs):
-    """Use stars from a sphere to calculate center of velocity. The size
-    of the sphere is given by the ``cen_size`` keyword and defaults to
-    1 kpc.
-
-    **Keyword arguments:**
-
-    *mode*: reserved for future use; currently ignored
-
-    *move_all*: if True (default), move the entire snapshot. Otherwise only move
-    the particles in the halo passed in.
-
-    *retcen*: if True only return the velocity center without moving the
-     snapshot (default = False)
-
-    """
+    if "retcen" in kwargs:
+        return_cen = kwargs.pop("retcen")
+        warnings.warn("The 'retcen' keyword is deprecated. Use 'return_cen' instead.", DeprecationWarning)
 
     logger.info("Finding halo velocity center...")
 
@@ -252,65 +282,106 @@ def vel_center(sim, mode=None, cen_size="1 kpc", retcen=False, move_all=True, **
     vcen = (cen['vel'].transpose() * cen['mass']).sum(axis=1) / \
         cen['mass'].sum()
     vcen.units = cen['vel'].units
-    if config['verbose']:
-        logger.info("vcen=%s", vcen)
 
-    if retcen:
+    logger.info("vcen=%s", vcen)
+
+    if return_cen:
         return vcen
     else:
-        return transformation.v_translate(target, -vcen)
+        return target.offset_velocity(-vcen)
 
 
-def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=True, wrap=False, **kwargs):
+def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc",
+           cen_num_particles=10000, move_all=True, wrap=False, **kwargs):
+    """Transform the ancestor snapshot so that the provided snapshot is centred
+
+    The centering scheme is determined by the ``mode`` keyword. As well as the
+    position, the velocity can also be centred.
+
+    The following centring modes are available:
+
+    *  *pot*: potential minimum
+
+    *  *com*: center of mass
+
+    *  *ssc*: shrink sphere center
+
+    *  *hyb*: for most halos, returns the same as ssc, but works faster by starting iteration near potential minimum
+
+    Before the main centring routine is called, the snapshot is translated so that the
+    halo is already near the origin. The box is then wrapped so that halos on the edge
+    of the box are handled correctly.
+
+
+    Parameters
+    ----------
+
+    sim : SimSnap
+        The simulation snapshot from which to derive a centre. The ancestor snapshot is
+        then transformed.
+
+    mode : str or function, optional
+        The method to use to determine the centre. If None, the default is taken from the configuration.
+        Accepted values are discussed above. A function returning the centre, or a pair of
+        centres (position and velocity) can also be passed.
+
+    cen_size : str or float, optional
+        The size of the sphere to use for the velocity centering. Default is 1 kpc.
+        Note that this is only used if velocity centring is requested but the underlying
+        method does not return a velocity centre. For example, if using the 'ssc' method,
+        the cen_num_particles keyword should be used instead.
+
+    cen_num_particles : int, optional
+        The number of particles to use for the velocity centering. Default is 5000.
+        This is passed to the 'ssc' method, which then finds the sphere with approximately
+        this number of particles in it for the velocity centering.
+
+    with_velocity: bool, optional
+        If True, also center the velocity. Default is True.
+
+    return_cen: bool, optional
+        If True, only return the center without actually centering the snapshot.
+        Default is False.
+
+    move_all: bool, optional
+        If True (default), move the entire snapshot. Otherwise only move the particles
+        in the halo/subsnap passed into this function.
+
+    vel: bool, optional
+        Deprecated alias for with_velocity. Default is True.
+
+    retcen: bool, optional
+        If True, only return the center without centering the snapshot. Default is False.
+
+    Returns
+    -------
+    Transformation | SimArray
+        Normally, a transformation object that can be used to revert the transformation.
+        However, if return_cen is True, a SimArray containing the center
+        coordinates is returned instead, and the snapshot is not transformed.
+
+
+
     """
 
-    Determine the center of mass of the given particles using the
-    specified mode, then recenter the particles (of the entire
-    ancestor snapshot) accordingly
+    if 'vel' in kwargs:
+        warnings.warn("The 'vel' keyword is deprecated. Use 'with_velocity' instead.", DeprecationWarning)
+        with_velocity = kwargs.pop('vel')
 
-    Accepted values for *mode* are
+    if 'retcen' in kwargs:
+        warnings.warn("The 'retcen' keyword is deprecated. Use 'return_cen' instead.", DeprecationWarning)
+        return_cen = kwargs.pop('retcen')
 
-      *pot*: potential minimum
-
-      *com*: center of mass
-
-      *ssc*: shrink sphere center
-
-      *ind*: center on specific particles; supply the list of particles using the ``ind`` keyword.
-
-      *hyb*: for sane halos, returns the same as ssc, but works faster by
-             starting iteration near potential minimum
-
-    or a function returning the COM.
-
-    **Other keywords:**
-
-    *retcen*: if True only return the center without centering the
-     snapshot (default = False)
-
-    *ind*: only used when *mode=ind* -- specifies the indices of
-     particles to be used for centering
-
-    *vel*: if True, translate velocities so that the velocity of the
-    central 1kpc (default) is zeroed. Other values can be passed with cen_size.
-
-    *move_all*: if True (default), move the entire snapshot. Otherwise only move
-    the particles in the halo passed in.
-
-    *wrap*: if True, pre-centre and wrap the simulation so that halos on the edge
-    of the box are handled correctly. Default False.
-    """
 
     global config
     if mode is None:
         mode = config['centering-scheme']
 
     try:
-        fn = {'pot': potential_minimum,
-              'com': center_of_mass,
-              'ssc': shrink_sphere_center,
-              'hyb': hybrid_center,
-              'ind': index_center}[mode]
+        fn = {'pot': _potential_minimum,
+              'com': lambda s : s.mean_by_mass('pos'),
+              'ssc': functools.partial(shrink_sphere_center, particles_for_velocity=cen_num_particles),
+              'hyb': hybrid_center}[mode]
     except KeyError:
         fn = mode
 
@@ -321,51 +392,87 @@ def center(sim, mode=None, retcen=False, vel=True, cen_size="1 kpc", move_all=Tr
 
     if wrap:
         # centre on something within the halo and wrap
-        target = transformation.inverse_translate(target, sim['pos'][0])
-        target.sim.wrap()
-
-    if retcen:
-        return fn(sim, **kwargs)
+        initial_offset = -sim['pos'][0]
+        transform = target.translate(initial_offset)
+        target.wrap()
     else:
-        cen = fn(sim, **kwargs)
-        tx = transformation.inverse_translate(target, cen)
+        transform = transformation.NullTransformation(target)
+        initial_offset = np.array([0., 0., 0.])
 
-    if vel:
-        velc = vel_center(sim, cen_size=cen_size, retcen=True)
-        tx = transformation.inverse_v_translate(tx, velc)
+    try:
+        centre = fn(sim, **kwargs)
+        if len(centre) == 2:
+            # implies we have a velocity centre as well
+            centre, vel_centre = centre
+        else:
+            vel_centre = None
 
-    return tx
+        if return_cen:
+            transform.revert()
+            return centre - initial_offset
+
+        transform = transform.translate(-centre)
+
+        if with_velocity:
+            if vel_centre is None :
+                vel_centre = vel_center(sim, cen_size=cen_size, retcen=True)
+            logger.info("vel_centre=%s", vel_centre)
+            transform = transform.offset_velocity(-vel_centre)
+
+    except:
+        transform.revert()
+        raise
+
+    return transform
 
 def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     """
-    Returns radii in units of ``sim['pos']``, axis ratios b/a and c/a,
-    the alignment angle of axis a in radians, and the rotation matrix
-    for homeoidal shells over a range of N halo radii.
+    Computes the shape of a halo as a function of radius by fitting homeoidal shells.
 
-    **Keyword arguments:**
+    The halo must be pre-centred, e.g. using :func:`center`.
 
-    *N* (100): The number of homeoidal shells to consider. Shells with
-    few particles will take longer to fit.
-
-    *rin* (None): The minimum radial bin in units of ``sim['pos']``.
-    Note that this applies to axis a, so particles within this radius
-    may still be included within homeoidal shells. By default this is
-    taken as rout/1000.
-
-    *rout* (None): The maximum radial bin in units of ``sim['pos']``.
-    By default this is taken as the largest radial value in the halo
-    particle distribution.
-
-    *bins* (equal): The spacing scheme for the homeoidal shell bins.
-    ``equal`` initialises radial bins with equal numbers of particles,
-    with the exception of the final bin which will accomodate remainders.
-    This number is not necessarily maintained during fitting.
-    ``log`` and ``lin`` initialise bins with logarithmic and linear
-    radial spacing.
-
-    Halo must be in a centered frame.
     Caution is advised when assigning large number of bins and radial
     ranges with many particles, as the algorithm becomes very slow.
+
+    Parameters
+    ----------
+
+    N : int
+        The number of homeoidal shells to consider. Shells with few particles will take longer to fit.
+
+    rin : float
+        The minimum radial bin in units of sim['pos']. By default this is taken as rout/1000.
+        Note that this applies to axis a, so particles within this radius may still be included within
+        homeoidal shells.
+
+    rout : float
+        The maximum radial bin in units of sim['pos']. By default this is taken as the largest radial value
+        in the halo particle distribution.
+
+    bins : str
+        The spacing scheme for the homeoidal shell bins. 'equal' initialises radial bins with equal numbers
+        of particles, with the exception of the final bin which will accomodate remainders. This
+        number is not necessarily maintained during fitting. 'log' and 'lin' initialise bins
+        with logarithmic and linear radial spacing.
+
+    Returns
+    -------
+
+    rbin : SimArray
+        The radial bins used for the fitting.
+
+    ba : array
+        The axial ratio b/a as a function of radius.
+
+    ca : array
+        The axial ratio c/a as a function of radius.
+
+    angle : array
+        The angle of the a-direction with respect to the x-axis as a function of radius.
+
+    Es : array
+        The rotation matrices for each shell.
+
     """
 
     #-----------------------------FUNCTIONS-----------------------------
@@ -387,8 +494,8 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     almnt = lambda E: np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
     #-----------------------------FUNCTIONS-----------------------------
 
-    if (rout == None): rout = sim.dm['r'].max()
-    if (rin == None): rin = rout/1E3
+    if (rout is None): rout = sim.dm['r'].max()
+    if (rin is None): rin = rout/1E3
 
     posr = np.array(sim.dm['r'])[np.where(sim.dm['r'] < rout)]
     pos = np.array(sim.dm['pos'])[np.where(sim.dm['r'] < rout)]

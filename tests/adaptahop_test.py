@@ -3,7 +3,12 @@ import pytest
 from scipy.io import FortranFile as FF
 
 import pynbody
-from pynbody.halo.adaptahop import AdaptaHOPCatalogue, NewAdaptaHOPCatalogue
+from pynbody.halo.adaptahop import (
+    AdaptaHOPCatalogue,
+    BaseAdaptaHOPCatalogue,
+    NewAdaptaHOPCatalogue,
+    NewAdaptaHOPCatalogueFullyLongInts,
+)
 
 
 # Note: we do not use a module-wide fixture here to prevent caching of units
@@ -14,7 +19,7 @@ def f():
 
 @pytest.fixture
 def halos(f):
-    yield f.halos()
+    yield AdaptaHOPCatalogue(f)
 
 
 def test_load_adaptahop_catalogue(halos):
@@ -22,14 +27,45 @@ def test_load_adaptahop_catalogue(halos):
 
 
 @pytest.mark.parametrize(
-    ("path", "nhalos"),
-    (("testdata/output_00080", 170), ("testdata/new_adaptahop_output_00080", 2)),
+    ("path", "nhalos", "halo1_len", "halo2_len", "halo1_iord", "halo2_iord"),
+    (("testdata/output_00080", 170, 235, 1201,
+      [   48,  7468, 33923],
+      [     91,    1203,    2703,    4151,    5539,    6907,    8535,   10227,   11355,
+       12739,   14303,   15547,  992896,  993104  ,  993284,  993464,  993608,  993784,
+      993932,  994152,  994288,  994452,  994596  ,  994720,  994896,  995060,  995216,
+      995352,  995512,  995620,  995772,  995924  ,  996068,  996208,  996336,  996512,
+      996624,  996784,  996908,  997080,  997224  ,  997408,  997552,  997692,  997852,
+      998008,  998152,  998296,  998428,  998556  ,  998692,  998880,  999036,  999152,
+      999300,  999412,  999556,  999700,  999912  , 1000056, 1000200, 1000356, 1000508,
+     1000668, 1000796, 1000924, 1001084, 1001264  , 1001420, 1001584, 1001712, 1001892,
+     1002064, 1002212, 1002392, 1002552, 1002700  , 1002876, 1003048, 1003204, 1003344,
+     1003548, 1003700, 1003828, 1004020, 1004204  , 1004360, 1004536, 1004676, 1004824,
+     1005032, 1005188, 1005308, 1005420, 1005560  , 1005716, 1005864, 1006064, 1006188,
+     1006308, 1006436, 1006580, 1006712, 1006880  , 1007060, 1007160, 1007308, 1007460,
+     1007620, 1007736, 1007872, 1008060, 1008160  , 1008276, 1008404, 1008548, 1008688,
+     1010244, 1012248, 1031365, 1033027,]
+      ),
+     ("testdata/new_adaptahop_output_00080", 2, 22, 26,
+      [852173],
+      [762435,  21188,  29809])
+     )
 )
-def test_load_one_halo(path, nhalos):
+@pytest.mark.parametrize('load_all', [True, False])
+def test_load_halo(path, nhalos, halo1_len, halo2_len, halo1_iord, halo2_iord, load_all):
     f = pynbody.load(path)
     halos = f.halos()
-    np.testing.assert_allclose(halos[1].properties["members"], halos[1]["iord"])
+    assert isinstance(halos, BaseAdaptaHOPCatalogue)
+
+    if load_all:
+        halos.load_all()
+
     assert len(halos) == nhalos
+
+    assert len(halos[2]) == halo2_len
+    assert (halos[2].dm['iord'][::10] == halo2_iord).all()
+
+    assert len(halos[1]) == halo1_len
+    assert (halos[1].dm['iord'][::100] == halo1_iord).all()
 
 
 def test_properties_are_simarrays(f, halos):
@@ -101,7 +137,7 @@ def test_physical_conversion_from_halo_catalogue(f, halos):
     halos.physical_units()
     assert f.dm["mass"].units == "Msol"
     assert halos[1].properties["m"].units == "Msol"
-    assert halos[1]["mass"].units == "Msol"
+    assert halos[1].dm["mass"].units == "Msol"
 
 
 def test_physical_conversion_from_snapshot(f):
@@ -112,7 +148,7 @@ def test_physical_conversion_from_snapshot(f):
 
     assert f.dm["mass"].units == "Msol"
     assert halos[1].properties["m"].units == "Msol"
-    assert halos[1]["mass"].units == "Msol"
+    assert halos[1].dm["mass"].units == "Msol"
 
     # Load then convert
     f = pynbody.load("testdata/output_00080")
@@ -123,10 +159,10 @@ def test_physical_conversion_from_snapshot(f):
 
     assert f.dm["mass"].units == "Msol"
     assert halos[1].properties["m"].units == "Msol"
-    assert halos[1]["mass"].units == "Msol"
+    assert halos[1].dm["mass"].units == "Msol"
 
 def test_get_group(f, halos):
-    group_array = halos.get_group_array()
+    group_array = halos.get_group_array(family='dm')
     iord = f.dm["iord"]
 
     for halo_id in range(1, len(halos) + 1):
@@ -137,12 +173,13 @@ def test_get_group(f, halos):
         # - obtained from get_group_array masking
         # are the same (in term of sets)
         iord_1 = np.sort(iord[mask])
-        iord_2 = np.sort(halos[halo_id]["iord"])
+        iord_2 = np.sort(halos[halo_id].dm["iord"])
 
         np.testing.assert_equal(iord_1, iord_2)
 
 
 def test_halo_particle_ids(halos):
+    halos.load_all()
     with FF(halos._fname, mode="r") as f:
         for halo_id in range(1, len(halos) + 1):
             # Manually read the particle ids and make sure pynbody is reading them as it should
@@ -152,7 +189,7 @@ def test_halo_particle_ids(halos):
             expected_members = f.read_ints("i")  # halo members
 
             np.testing.assert_equal(
-                expected_members, halos[halo_id].properties["members"]
+                expected_members, halos[halo_id].dm["iord"]
             )
 
 
@@ -179,6 +216,11 @@ def test_halo_particle_ids(halos):
             NewAdaptaHOPCatalogue,
             dict(_longint=True, _read_contamination=False),
         ),
+        (
+            "testdata/EDGE_adaptahop_output/tree_bricks100_full_long_ints",
+            NewAdaptaHOPCatalogueFullyLongInts,
+            dict(_longint=True, _read_contamination=True),
+        ),
     ),
 )
 def test_longint_contamination_autodetection(f, fname, Halo_T, ans):
@@ -186,7 +228,7 @@ def test_longint_contamination_autodetection(f, fname, Halo_T, ans):
     # we just want to make sure the longint/contamination
     # flags are properly detected.
 
-    halos = Halo_T(f, fname=fname)
+    halos = Halo_T(f, filename=fname)
     assert halos._longint == ans["_longint"]
     assert halos._read_contamination == ans["_read_contamination"]
 
@@ -196,3 +238,20 @@ def test_halo_iteration(halos):
     assert len(h) == len(halos)
     assert h[0] is halos[1]
     assert h[-1] is halos[len(halos)]
+
+def test_dm_not_first_family(f):
+    # AdaptaHOP files only refer to DM particles, but we can't assume that DM is the first family
+    # e.g. tracer particles come first
+
+    f = pynbody.load("testdata/new_adaptahop_output_00080")
+    f_with_tracers = pynbody.new(gas_tracer=100, dm=len(f.dm), star=len(f.star), gas=len(f.gas))
+    f_with_tracers.dm['iord'] = f.dm['iord']
+    f_with_tracers.properties.update(f.properties)
+
+    halos = f.halos()
+
+    halos2 = pynbody.halo.adaptahop.NewAdaptaHOPCatalogue(f_with_tracers,
+                                                          filename="testdata/new_adaptahop_output_00080/Halos/tree_bricks080")
+
+    assert (halos2[1].dm['iord'] == halos[1].dm['iord']).all()
+    assert (halos2[2].dm['iord'] == halos[2].dm['iord']).all()

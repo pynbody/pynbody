@@ -1,62 +1,63 @@
 import os
+from pathlib import Path
 
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
 
 
-def setup_module():
-    global f
-    f = pynbody.load("testdata/ramses_partial_output_00250")
+@pytest.fixture
+def ramses_file():
+    yield pynbody.load("testdata/ramses_partial_output_00250")
 
+def test_lengths(ramses_file):
+    assert len(ramses_file.gas) == 152667
+    assert len(ramses_file.star) == 2655
+    assert len(ramses_file.dm) == 51887
 
-def test_lengths():
-    assert len(f.gas) == 152667
-    assert len(f.star) == 2655
-    assert len(f.dm) == 51887
+def test_properties(ramses_file):
+    np.testing.assert_almost_equal(ramses_file.properties['a'], 1.0)
+    np.testing.assert_almost_equal(ramses_file.properties['h'], 0.01)
+    np.testing.assert_almost_equal(ramses_file.properties['omegaM0'], 1.0)
 
-def test_properties():
-    np.testing.assert_almost_equal(f.properties['a'], 1.0)
-    np.testing.assert_almost_equal(f.properties['h'], 0.01)
-    np.testing.assert_almost_equal(f.properties['omegaM0'], 1.0)
-
-def test_particle_arrays():
-    f['pos']
-    f['vel']
-    np.testing.assert_allclose(f.star['pos'][50], [ 29.93861623,  29.29166795,  29.77920022])
-    np.testing.assert_allclose(f.dm['pos'][50], [ 23.76016295,  21.64945726,   7.70719058])
-    np.testing.assert_equal(f.dm['iord'][-50:-40],[126079, 679980, 602104, 352311, 306943, 147989, 121521, 915870,
+def test_particle_arrays(ramses_file):
+    ramses_file['pos'] # noqa
+    ramses_file['vel'] # noqa
+    np.testing.assert_allclose(ramses_file.star['pos'][50], [ 29.93861623,  29.29166795,  29.77920022])
+    np.testing.assert_allclose(ramses_file.dm['pos'][50], [ 23.76016295,  21.64945726,   7.70719058])
+    np.testing.assert_equal(ramses_file.dm['iord'][-50:-40],[126079, 679980, 602104, 352311, 306943, 147989, 121521, 915870,
        522489, 697169])
-    np.testing.assert_equal(f.star['iord'][-50:-40],[124122,  65978, 160951,  83281, 120237, 117882, 124849, 111615,
+    np.testing.assert_equal(ramses_file.star['iord'][-50:-40],[124122,  65978, 160951,  83281, 120237, 117882, 124849, 111615,
        144166,  26147])
-    np.testing.assert_allclose(f.dm['vel'][50], [ 0.32088361, -0.82660566, -0.32874243])
+    np.testing.assert_allclose(ramses_file.dm['vel'][50], [ 0.32088361, -0.82660566, -0.32874243])
 
-def test_array_unit_sanity():
+def test_array_unit_sanity(ramses_file):
     """Picks up on problems with converting arrays as they
     get promoted from family to simulation level"""
 
-    f.gas['pos']
-    f.star['pos']
-    f.dm['pos']
-    f.physical_units()
+    ramses_file.gas['pos'] # noqa
+    ramses_file.star['pos'] # noqa
+    ramses_file.dm['pos'] # noqa
+    ramses_file.physical_units()
 
     f2 = pynbody.load("testdata/ramses_partial_output_00250")
     f2.physical_units()
-    f2.gas['pos']
-    f2.dm['pos']
-    f2.star['pos']
+    f2.gas['pos'] # noqa
+    f2.dm['pos'] # noqa
+    f2.star['pos'] # noqa
 
-    np.testing.assert_allclose(f2['pos'], f['pos'], atol=1e-5)
+    np.testing.assert_allclose(f2['pos'], ramses_file['pos'], atol=1e-5)
 
-def test_key_error():
+def test_key_error(ramses_file):
     """Tests that the appropriate KeyError is raised when a
     hydro array is not found. This is a regression test for
     a problem where AttributeError could be raised instead because
     _rt_blocks_3d was missing for non-RT runs"""
 
     with pytest.raises(KeyError):
-        f.gas['nonexistentarray']
+        ramses_file.gas['nonexistentarray'] # noqa
 
 def test_mass_unit_sanity():
     """Picks up on problems with converting array units as
@@ -80,7 +81,8 @@ def test_rt_arrays():
         assert 'rad_%d_rho'%group in f1.gas.loadable_keys()
         assert 'rad_%d_flux'%group in f1.gas.loadable_keys()
 
-    f1.gas['rad_0_flux'] # ensure 3d name triggers loading
+    with pytest.warns(UserWarning, match="Loading RT data from disk. Photon densities are stored in flux units*"):
+        f1.gas['rad_0_flux'] # ensure 3d name triggers loading
 
     np.testing.assert_allclose(f1.gas['rad_0_rho'][::5000],
       [  8.63987256e-02,   3.73498855e-04,   3.46061505e-04,
@@ -108,8 +110,10 @@ def test_rt_unit_warning_for_photon_rho():
         f1.gas['rad_0_rho']
 
 
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_all_dm():
     f1 = pynbody.load("testdata/ramses_dmo_partial_output_00051")
+
     assert len(f1.families())==1
     assert len(f1.dm)==274004
     np.testing.assert_allclose(f1.dm['x'][::5000],
@@ -126,6 +130,7 @@ def test_all_dm():
                                rtol=1e-5
                                )
 
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_forcegas_dmo():
     f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", cpus=[1], force_gas=True)
     assert len(f_dmo.families())==2
@@ -172,8 +177,8 @@ def test_forcegas_dmo():
             1.80143985e+16], rtol=1e-5)
 
 
-def test_metals_field_correctly_copied_from_metal():
-    np.testing.assert_allclose(f.st['metals'][::5000], f.st['metal'][::5000], rtol=1e-5)
+def test_metals_field_correctly_copied_from_metal(ramses_file):
+    np.testing.assert_allclose(ramses_file.st['metals'][::5000], ramses_file.st['metal'][::5000], rtol=1e-5)
 
 
 def _test_tform_checker(tform_raw):
@@ -194,11 +199,11 @@ def _test_tform_checker(tform_raw):
         rtol=1e-5,
     )
 
-def test_tform_and_tform_raw():
+def test_tform_and_tform_raw(ramses_file):
     # Standard test output is a non-cosmological run, for which tform should be read from disk,
     # rather than transformed. Tform raw and transformed are therefore the same
-    assert len(f.st["tform"]) == len(f.st["tform_raw"]) == 2655
-    np.testing.assert_allclose(f.st["tform_raw"], f.st["tform"])
+    assert len(ramses_file.st["tform"]) == len(ramses_file.st["tform_raw"]) == 2655
+    np.testing.assert_allclose(ramses_file.st["tform_raw"], ramses_file.st["tform"])
 
     fcosmo = pynbody.load("testdata/output_00080")
 
@@ -246,8 +251,7 @@ def test_tform_and_tform_raw():
     _test_tform_checker(tform_raw)
 
 
-def test_rt_conformal_time_detection():
-    from pathlib import Path
+def test_rt_conformal_time_detection(ramses_file):
     path = Path("testdata/output_00080")
     f = pynbody.load(str(path), cpus=[1, 2, 3])
 
@@ -271,7 +275,7 @@ def test_rt_conformal_time_detection():
         )
 
         with pytest.warns(UserWarning) as record:
-            assert f.times_are_proper
+            assert ramses_file.times_are_proper
 
         for rec in record:
             assert rec.category == UserWarning
@@ -296,6 +300,7 @@ def use_part2birth_by_default():
     pynbody.config_parser.set("ramses", "use_part2birth_by_default", use_part2birth_by_default)
     pynbody.config_parser.set("ramses", "ramses_utils", ramses_utils)
 
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 def test_tform_and_tform_raw_without_sidecar_files(use_part2birth_by_default):
     fcosmo = pynbody.load("testdata/output_00080")
 
@@ -311,16 +316,14 @@ def test_tform_and_tform_raw_without_sidecar_files(use_part2birth_by_default):
     _test_tform_checker(tform_raw)
 
 def test_proper_time_loading():
-    expected_times = np.array([
-        2.50421602, 2.54981476, 2.64293759, 2.97459085, 2.47246567,
-        3.60575216, 2.19990045, 2.51812602, 2.28107602, 3.43433139,
-        2.46447623, 3.40593189, 2.37042486, 2.72302068, 3.05392067,
-        2.66978924, 2.94991936, 3.05711287, 2.46661848, 3.78098984,
-        3.9314067 , 2.22836996, 3.99929978, 3.63914358, 2.61559192,
-        2.67241162, 2.57897509, 4.02035096, 2.75958541, 2.69266309,
-        2.35971505, 4.34920931, 2.66643275, 3.354545  , 3.25341288,
-        3.01484682, 2.41245746, 2.63102207, 2.88776033, 2.54323499
-    ])
+    expected_times = np.array([2.50416037, 2.5497581 , 2.64287886, 2.97452475, 2.47241073,
+          3.60567204, 2.19985156, 2.51807006, 2.28102533, 3.43425507,
+          2.46442147, 3.4058562 , 2.37037218, 2.72296016, 3.05385281,
+          2.66972991, 2.9498538 , 3.05704494, 2.46656367, 3.78090582,
+          3.93131933, 2.22832044, 3.9992109 , 3.63906271, 2.61553379,
+          2.67235223, 2.57891777, 4.02026162, 2.75952408, 2.69260326,
+          2.35966261, 4.34911266, 2.66637349, 3.35447046, 3.25334058,
+          3.01477982, 2.41240385, 2.6309636 , 2.88769616, 2.54317847])
     for (load_opts, force) in (
         ({"times_are_proper": True}, False),
         ({}, True),
@@ -335,6 +338,7 @@ def test_proper_time_loading():
 
         f_pt._load_particle_block('tform')
         f_pt._convert_tform()
+
         np.testing.assert_allclose(
             f_pt.s["tform"].in_units("Gyr"),
             expected_times,
@@ -342,6 +346,7 @@ def test_proper_time_loading():
         )
 
 
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_is_cosmological_without_namelist():
     # Load a cosmo run, but without the namelist.txt file and checks that cosmo detection works with a warning
     f_without_namelist = pynbody.load("testdata/ramses_dmo_partial_output_00051")
@@ -355,23 +360,25 @@ def test_is_cosmological_without_namelist():
         assert f_without_namelist.is_cosmological
 
 
-def test_temperature_derivation():
-    f.g['mu']
-    f.g['temp']
+@pytest.mark.filterwarnings("ignore:No ionization fractions found, assuming.*:UserWarning")
+def test_temperature_derivation(ramses_file):
+    ramses_file.g['mu']
+    ramses_file.g['temp']
 
-    assert(f.g['mu'].min() != f.g['mu'].max())   # Check that ionized and neutral mu are now generated
-    np.testing.assert_allclose(f.g['mu'][:10], 0.590406 * np.ones(10), rtol=1e-5)
-    np.testing.assert_allclose(f.g['mu'].max(), 1.225115, rtol=1e-5)
+    assert(ramses_file.g['mu'].min() != ramses_file.g['mu'].max())   # Check that ionized and neutral mu are now generated
+    np.testing.assert_allclose(ramses_file.g['mu'][:10], 0.590406 * np.ones(10), rtol=1e-5)
+    np.testing.assert_allclose(ramses_file.g['mu'].max(), 1.225115, rtol=1e-5)
 
-    np.testing.assert_allclose(f.g['temp'][:10], [26006.212237, 28014.491234, 28014.45815 , 30537.462281,
-                                                          26950.323296, 29093.741241, 29197.270737, 31939.873103,
-                                                          26950.318628, 29197.316078])
+    np.testing.assert_allclose(ramses_file.g['temp'][:10], [26006.242067, 28014.523369, 28014.490285,
+                                                                   30537.49731 , 26950.35421 , 29093.774613,
+                                                                   29197.304228, 31939.90974 , 26950.349542,
+                                                                   29197.349569])
 
 
-def test_family_array():
-    f.dm['mass']
-    assert "mass" in f.family_keys()
-    assert f.dm['mass'].sim == f.dm
+def test_family_array(ramses_file):
+    ramses_file.dm['mass']
+    assert "mass" in ramses_file.family_keys()
+    assert ramses_file.dm['mass'].sim == ramses_file.dm
 
 
 def test_file_descriptor_reading():
@@ -384,6 +391,7 @@ def test_file_descriptor_reading():
         assert field in loadable_fields
 
 
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_blocks():
     # DMO snapshot would not have tform or metals in the header or defined on disc
     f_dmo = pynbody.load("testdata/ramses_dmo_partial_output_00051", force_gas=True)
@@ -392,26 +400,23 @@ def test_tform_and_metals_do_not_break_loading_when_not_present_in_particle_bloc
     # Previous to the fix of #689, it would break with
     # ValueError: 'metal' is not in list
     # Because the field is not present in the particle blocks but was attempted to be accessed
-    try:
-        f_dmo.st['metals']
-    except KeyError as e:
-        assert("No array" in str(e))
+    with pytest.raises(KeyError, match="No array.*"):
+        f_dmo.st['metals'] # noqa
 
     # Now define a custom-derived metals array, which should enable us to access the array at all time
     # Previously to #689, this would still break the loading with the same ValueError
     # Now it loads the derived field without issues
     from pynbody.snapshot.ramses import RamsesSnap
-    @RamsesSnap.derived_quantity
+    @RamsesSnap.derived_array
     def metals(snap):
         return np.zeros(len(snap))
 
-    f_dmo.st['metals']
+    f_dmo.st['metals'] # noqa
 
 
 def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
     # Setup a function to extensively test whether Tipsy snapshot written to disc with ramses_util
     # match their original Ramses values and have correct units
-    import numpy.testing as npt
     ramses_snap.physical_units()
     tipsy_snap.physical_units()
 
@@ -454,36 +459,49 @@ def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
         npt.assert_allclose(ramses_snap.g['mass'], tipsy_snap.g['mass'], rtol=rtol)
 
 
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_tipsy_conversion_for_dmo():
     path = "testdata/ramses_dmo_partial_output_00051"
     f_dmo = pynbody.load(path)
-    pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f_dmo, write_param=True)
+
+    with pytest.warns(UserWarning, match=r"This routine currently makes the assumption that the ramses snapshot is cosmological.*"):
+        pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f_dmo, write_param=True)
 
     # There are many tipsy parameter files that are automatically detected by the loader
     # in the testdata folder, make sure we point the right one
     tipsy_path = path + "_fullbox.tipsy"
-    tipsy_dmo = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
+    try:
+        tipsy_dmo = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
 
-    array_by_array_test_tipsy_converter(f_dmo, tipsy_dmo)
-    # Clean up our created param file to avoid it being detected and picked up by other tipsy tests
-    os.remove(tipsy_path + ".param")
+        array_by_array_test_tipsy_converter(f_dmo, tipsy_dmo)
+    finally:
+        # Clean up our created param file to avoid it being detected and picked up by other tipsy tests
+        os.remove(tipsy_path + ".param")
 
 
+@pytest.mark.filterwarnings(r"ignore:No ionization fractions found.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 def test_tipsy_conversion_for_cosmo_gas():
     path = "testdata/output_00080"
-    # The namelist file is not included in the test data
-    # Write a quick one-liner to ensure that we identify cosmo correctly
-    # and get the correct time units
-    with open(path + os.sep + "namelist.txt", "w") as namelist:
-        namelist.write("cosmo=.true.")
+    try:
+        # The namelist file is not included in the test data
+        # Write a quick one-liner to ensure that we identify cosmo correctly
+        # and get the correct time units
+        with open(path + os.sep + "namelist.txt", "w") as namelist:
+            namelist.write("cosmo=.true.")
 
-    f = pynbody.load(path)
-    pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
+        f = pynbody.load(path)
+        with pytest.warns(UserWarning, match=r"This routine currently makes the assumption that "
+                                             r"the ramses snapshot is cosmological.*"):
+            pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f, write_param=True)
 
-    tipsy_path = path + "_fullbox.tipsy"
-    tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
 
-    array_by_array_test_tipsy_converter(f, tipsy)
-    # Clean up our namelist to avoid any other issues with other tests
-    os.remove(path + os.sep + "namelist.txt")
-    os.remove(tipsy_path + ".param")
+        tipsy_path = path + "_fullbox.tipsy"
+
+        tipsy = pynbody.load(tipsy_path, paramfile=tipsy_path + ".param")
+
+        array_by_array_test_tipsy_converter(f, tipsy)
+    finally:
+        # Clean up our namelist to avoid any other issues with other tests
+        Path(path + os.sep + "namelist.txt").unlink(missing_ok=True)
+        Path(tipsy_path + ".param").unlink(missing_ok=True)

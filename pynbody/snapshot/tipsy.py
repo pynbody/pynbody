@@ -17,9 +17,6 @@ parent directories.
 
 """
 
-  # for py2.5
-
-
 import copy
 import glob
 import logging
@@ -58,30 +55,27 @@ class TipsySnap(SimSnap):
 
         must_have_paramfile = kwargs.get('must_have_paramfile', False)
         take = kwargs.get('take', None)
-        verbose = kwargs.get('verbose', config['verbose'])
 
         self.partial_load = take is not None
 
-        self._filename = util.cutgz(filename)
-
-        f = util.open_(filename, 'rb')
+        self._filename = str(util.cutgz(filename))
 
         if not only_header:
             logger.info("Loading %s", filename)
+        with util.open_(filename, 'rb') as f:
+            t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
+            if (ndim > 3 or ndim < 1):
+                self._byteswap = True
+                f.seek(0)
+                t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
+            else:
+                self._byteswap = False
 
-        t, n, ndim, ng, nd, ns = struct.unpack("diiiii", f.read(28))
-        if (ndim > 3 or ndim < 1):
-            self._byteswap = True
-            f.seek(0)
-            t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
-        else:
-            self._byteswap = False
+            assert ndim == 3
 
-        assert ndim == 3
+            self._header_t = t
 
-        self._header_t = t
-
-        f.read(4)
+            f.read(4)
 
         disk_family_slice = dict({family.gas: slice(0, ng),
                                   family.dm: slice(ng, nd + ng),
@@ -134,8 +128,6 @@ class TipsySnap(SimSnap):
 
         if time_unit is not None:
             self.properties['time'] *= time_unit
-
-        del f
 
     def _load_main_file(self):
 
@@ -204,7 +196,7 @@ class TipsySnap(SimSnap):
                     f.seek(st_len * readlen, 1)
                     continue
 
-                buf = np.fromstring(f.read(st_len * readlen), dtype=dtype)
+                buf = np.frombuffer(f.read(st_len * readlen), dtype=dtype)
 
                 if self._byteswap:
                     buf = buf.byteswap()
@@ -215,17 +207,18 @@ class TipsySnap(SimSnap):
                         if name in write:
                             self_fam[name][mem_index] = buf[name][buf_index]
 
+        f.close()
+
     def _update_loadable_keys(self):
         def is_readable_array(x):
             try:
-                f = util.open_(x, 'r')
-                return int(f.readline()) == len(self)
+                with util.open_(x, 'rt') as f:
+                    return int(f.readline()) == len(self)
             except ValueError:
                 # could be a binary file
-                f = util.open_(x, 'rb')
-
-                header = f.read(4)
-                if len(header)!=4:
+                with util.open_(x, 'rb') as f:
+                    header = f.read(4)
+                if len(header) != 4:
                     return False
 
                 if self._byteswap:
@@ -300,10 +293,11 @@ class TipsySnap(SimSnap):
             for arr in ['vx', 'vy', 'vz']:
                 arrays.append(arr)
 
-        with self.lazy_off:
-            fin = util.open_(self.filename, "rb")
-            fout = util.open_(self.filename + ".tmp", "wb")
-
+        with (
+            self.lazy_off,
+            util.open_(self.filename, "rb") as fin,
+            util.open_(self.filename + ".tmp", "wb") as fout
+        ):
             if self._byteswap:
                 t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", fin.read(28))
                 fout.write(struct.pack(">diiiiii", t, n, ndim, ng, nd, ns, 0))
@@ -339,10 +333,10 @@ class TipsySnap(SimSnap):
 
                     # Read in the block
                     if(self._byteswap):
-                        g = np.fromstring(
+                        g = np.frombuffer(
                             fin.read(len(st) * n_block * 4), 'f').byteswap().reshape((n_block, len(st)))
                     else:
-                        g = np.fromstring(
+                        g = np.frombuffer(
                             fin.read(len(st) * n_block * 4), 'f').reshape((n_block, len(st)))
 
                     if fam in fam_out:
@@ -568,12 +562,13 @@ class TipsySnap(SimSnap):
                      for this array, or None if this cannot be determined"""
 
         try:
-            f = open(self.filename + "." + array_name + ".pynbody-meta")
+            with open(self.filename + "." + array_name + ".pynbody-meta") as f:
+                lines = f.readlines()
         except OSError:
             return self._default_units_for(array_name), None, None
 
         res = {}
-        for l in f:
+        for l in lines:
 
             X = l.split(":")
 
@@ -600,18 +595,16 @@ class TipsySnap(SimSnap):
     @staticmethod
     def _write_array_metafile(self, filename, units, families, dtype):
 
-        f = open(filename + ".pynbody-meta", "w")
-        print("# This file automatically created by pynbody", file=f)
-        if not hasattr(units, "_no_unit"):
-            print("units:", units, file=f)
-        print("families:", end=' ', file=f)
-        for x in families:
-            print(x.name, end=' ', file=f)
-        print(file=f)
-        if dtype is not None:
-            print("dtype:", TipsySnap.__get_write_dtype(dtype), file=f)
-
-        f.close()
+        with open(filename + ".pynbody-meta", "w") as f:
+            print("# This file automatically created by pynbody", file=f)
+            if not hasattr(units, "_no_unit"):
+                print("units:", units, file=f)
+            print("families:", end=' ', file=f)
+            for x in families:
+                print(x.name, end=' ', file=f)
+            print(file=f)
+            if dtype is not None:
+                print("dtype:", TipsySnap.__get_write_dtype(dtype), file=f)
 
         if isinstance(self, TipsySnap):
             # update the loadable keys if this operation is likely to have
@@ -790,13 +783,13 @@ class TipsySnap(SimSnap):
             starlog_keys += ['massform']
 
         if filename is None and array_name in starlog_keys:
-
             try:
                 self.read_starlog()
-                if fam is not None:
-                    return self[fam][array_name]
-                else:
-                    return self[array_name]
+                with self.lazy_off:
+                    if fam is not None:
+                        return self[fam][array_name]
+                    else:
+                        return self[array_name]
             except OSError:
                 pass
 
@@ -814,7 +807,6 @@ class TipsySnap(SimSnap):
             else:
                 filename = self._filename + "." + array_name
 
-        f = util.open_(filename, 'r')
 
         logger.info("Attempting to load auxiliary array %s", filename)
         # if we get here, we've got the file - try loading it
@@ -824,6 +816,7 @@ class TipsySnap(SimSnap):
             dtype = self._get_preferred_dtype(array_name)
 
         try:
+            f = util.open_(filename, 'r')
             l = int(f.readline())
             binary = False
             if l != self._load_control.disk_num_particles:
@@ -847,10 +840,10 @@ class TipsySnap(SimSnap):
                 f, dtype=dtype, sep="\n", count=count)
             # data = np.fromfile(f, dtype=tp, sep="\n")
         except ValueError:
+            f.close()
             # this is probably a binary file
             binary = True
             f = util.open_(filename, 'rb')
-
             # Read header and check endianness
             if self._byteswap:
                 l = struct.unpack(">i", f.read(4))[0]
@@ -872,15 +865,13 @@ class TipsySnap(SimSnap):
             # Read longest data array possible.
             # Assume byteswap since most will be.
             if self._byteswap:
-                loadblock = lambda count: np.fromstring(
+                loadblock = lambda count: np.frombuffer(
                     f.read(count * 4), dtype=dtype, count=count).byteswap()
                 # data = np.fromstring(f.read(3*len(self)*4),dtype).byteswap()
             else:
-                loadblock = lambda count: np.fromstring(
+                loadblock = lambda count: np.frombuffer(
                     f.read(count * 4), dtype=dtype, count=count)
                 # data = np.fromstring(f.read(3*len(self)*4),dtype)
-
-        ndim = 1
 
         self.ancestor._tipsy_arrays_binary = binary
 
@@ -891,11 +882,13 @@ class TipsySnap(SimSnap):
         else:
             r = np.empty(len(self[fam]), dtype=dtype).view(array.SimArray)
 
-        for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
-            buf = loadblock(readlen)
-            if mem_index is not None:
-                r[mem_index] = buf[buf_index]
-
+        try:
+            for readlen, buf_index, mem_index in self._load_control.iterate(all_fam, fam):
+                buf = loadblock(readlen)
+                if mem_index is not None:
+                    r[mem_index] = buf[buf_index]
+        finally:
+            f.close()
 
         if units is not None:
             r.units = units
@@ -914,40 +907,43 @@ class TipsySnap(SimSnap):
         l = glob.glob(os.path.join(x, "*.starlog"))
         if (len(l)):
             for filename in l:
-                sl = StarLog(filename)
+                starlog = StarLog(filename)
         else:
             l = glob.glob(os.path.join(x, "../*.starlog"))
             if (len(l) == 0):
                 raise OSError("Couldn't find starlog file")
             for filename in l:
-                sl = StarLog(filename)
+                starlog = StarLog(filename)
 
         logger.info("Bridging starlog into SimSnap")
-        b = pynbody.bridge.OrderBridge(self, sl)
-        b(b(b(sl))).star['iorderGas'] = b(b(sl)).star['iorderGas']
-        b(b(b(sl))).star['massform'] = b(b(sl)).star['massform']
-        b(b(b(sl))).star['rhoform'] = b(b(sl)).star['rhoform']
-        b(b(b(sl))).star['tempform'] = b(b(sl)).star['tempform']
-        b(b(b(sl)))['posform'] = b(b(sl))['pos']
-        b(b(b(sl)))['velform'] = b(b(sl))['vel']
-        #b(sl).star['iorderGas'] = sl.star['iorderGas'][:len(self.star)]
-        #b(sl).star['massform'] = sl.star['massform'][:len(self.star)]
-        #b(sl).star['rhoform'] = sl.star['rhoform'][:len(self.star)]
-        #b(sl).star['tempform'] = sl.star['tempform'][:len(self.star)]
-        #b(sl)['posform'] = sl['pos'][:len(self.star), :]
-        #b(sl)['velform'] = sl['vel'][:len(self.star), :]
-        if 'h2form' in list(sl.star.keys()):
-            b(b(b(sl))).star['h2form'] = b(b(sl)).star['h2form']
-        else: print("No H2 data found in StarLog file")
+        b = pynbody.bridge.OrderBridge(self, starlog)
+
+        source = b(b(starlog))
+        dest = b(source)
+
+        dest.star['iorderGas'] = source.star['iorderGas']
+        dest.star['massform'] = source.star['massform']
+        dest.star['rhoform'] = source.star['rhoform']
+        dest.star['tempform'] = source.star['tempform']
+        dest['posform'] = source['pos']
+        dest['velform'] = source['vel']
+
+        if 'h2form' in list(starlog.star.keys()):
+            dest.star['h2form'] = source.star['h2form']
+        else:
+            logger.info("No H2 data found in StarLog file")
+
         for i, x in enumerate(['x', 'y', 'z']):
             self._arrays[x + 'form'] = self['posform'][:, i]
         for i, x in enumerate(['vx', 'vy', 'vz']):
             self._arrays[x + 'form'] = self['velform'][:, i]
 
-    @staticmethod
-    def _can_load(f):
+    @classmethod
+    def _can_load(cls, f):
         try:
-            check = TipsySnap(f, verbose=False)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                check = TipsySnap(f)
             del check
         except Exception as e:
             return False
@@ -978,7 +974,7 @@ def _abundance_estimator(metal):
     return Y_H, Y_He
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def HII(sim):
     """Number of HII ions per proton mass"""
     Y_H, Y_He = _abundance_estimator(sim["metals"])
@@ -988,26 +984,26 @@ def HII(sim):
         return Y_H - sim["HI"]
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def HeIII(sim):
     """Number of HeIII ions per proton mass"""
     Y_H, Y_He = _abundance_estimator(sim["metals"])
     return Y_He - sim["HeII"] - sim["HeI"]
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def ne(sim):
     """Number of electrons per proton mass"""
     return sim["HII"] + sim["HeII"] + 2 * sim["HeIII"]
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def hetot(self):
     """Helium mass fraction including correction based on metallicity"""
     return 0.236 + (2.1 * self['metals'])
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def hydrogen(self):
     """Hydrogen mass fraction including correction based on metallicity"""
     return 1.0 - self['metals'] - self['hetot']
@@ -1034,7 +1030,7 @@ XSOLMg = 6.44e-4          # 7e-4
 XSOLSi = 7e-4          # 6.7e-4
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def feh(self):
     """Iron abundance [Fe/H] derived from tipsy array FeMassFrac, with solar
     values from Asplund et al 09"""
@@ -1043,7 +1039,7 @@ def feh(self):
     return np.log10(self['FeMassFrac'] / self['hydrogen']) - np.log10(XSOLFe / XSOLH)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def oxh(self):
     """Oxygen abundance [O/H] derived from tipsy array FeMassFrac, with solar
     values from Asplund et al 09"""
@@ -1052,7 +1048,7 @@ def oxh(self):
     return np.log10(self['OxMassFrac'] / self['hydrogen']) - np.log10(XSOLO / XSOLH)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def ofe(self):
     """Oxygen-to-iron ratio [O/Fe] derived from tipsy arrays OxMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
@@ -1063,7 +1059,7 @@ def ofe(self):
     return np.log10(self['OxMassFrac'] / self['FeMassFrac']) - np.log10(XSOLO / XSOLFe)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def mgfe(sim):
     """Magnesium-to-iron ratio [Mg/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
@@ -1074,7 +1070,7 @@ def mgfe(sim):
     return np.log10(sim['MgMassFrac'] / sim['FeMassFrac']) - np.log10(XSOLMg / XSOLFe)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def nefe(sim):
     """Neon-to-iron ratio [Ne/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
@@ -1085,7 +1081,7 @@ def nefe(sim):
     return np.log10(sim['NeMassFrac'] / sim['FeMassFrac']) - np.log10(XSOLNe / XSOLFe)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def sife(sim):
     """Silicon-to-iron ratio [Si/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
@@ -1096,7 +1092,7 @@ def sife(sim):
     return np.log10(sim['SiMassFrac'] / sim['FeMassFrac']) - np.log10(XSOLSi / XSOLFe)
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def c_s(self):
     """Ideal gas sound speed based on pressure and density"""
     #x = np.sqrt(5./3.*units.k*self['temp']*self['mu'])
@@ -1105,7 +1101,7 @@ def c_s(self):
     return x
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def c_s_turb(self):
     """Turbulent sound speed (from Mac Low & Klessen 2004)"""
     x = np.sqrt(self['c_s'] ** 2 + 1. / 3 * self['v_disp'] ** 2)
@@ -1113,7 +1109,7 @@ def c_s_turb(self):
     return x
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def mjeans(self):
     """Classical Jeans mass"""
     x = np.pi ** (5. / 2.) * self['c_s'] ** 3 / \
@@ -1122,7 +1118,7 @@ def mjeans(self):
     return x
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def mjeans_turb(self):
     """Turbulent Jeans mass"""
     x = np.pi ** (5. / 2.) * self['c_s_turb'] ** 3 / \
@@ -1131,7 +1127,7 @@ def mjeans_turb(self):
     return x
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def ljeans(self):
     """Jeans length"""
     x = self['c_s'] * np.sqrt(np.pi / (units.G * self['rho']))
@@ -1139,7 +1135,7 @@ def ljeans(self):
     return x
 
 
-@TipsySnap.derived_quantity
+@TipsySnap.derived_array
 def ljeans_turb(self):
     """Turbulent Jeans length"""
     x = self['c_s_turb'] * np.sqrt(np.pi / (units.G * self['rho']))
@@ -1155,142 +1151,143 @@ class StarLog(SimSnap):
         self._filename = filename
         self._paramfilename = paramfile
 
-        f = util.open_(filename, "rb")
-        self.properties = {}
+        with util.open_(filename, "rb") as f:
+            self.properties = {}
 
-        size = struct.unpack("i", f.read(4))
-        if (size[0] > 1000 or size[0] < 10):
-            self._byteswap = True
-            f.seek(0)
-            size = struct.unpack(">i", f.read(4))
-        iSize = size[0]
+            size = struct.unpack("i", f.read(4))
+            if (size[0] > 1000 or size[0] < 10):
+                self._byteswap = True
+                f.seek(0)
+                size = struct.unpack(">i", f.read(4))
+            iSize = size[0]
 
-        bigstarlog = False
-        molecH = False
-        bigIOrds = False
+            bigstarlog = False
+            molecH = False
+            bigIOrds = False
 
-        # replace only the .starlog suffix with .log
-        self._logfile = '.'.join([x for x in filename.split('.')[:-1]]) + '.log'
+            # replace only the .starlog suffix with .log
+            self._logfile = '.'.join([x for x in filename.split('.')[:-1]]) + '.log'
 
-        if use_log:
-            # assumes log file would be in the same location as starlog file
-            logger.info('Attempting to load starlog metadata from log file')
-            try:
-                with open(self._logfile) as g:
-                    read_metadata = False
-                    structure_names = []
-                    structure_formats = []
-                    for line in g:
-                        if line.startswith('# end starlog data'):
-                            break
-                        if read_metadata:
-                            meta_name, meta_type = line.strip().strip('#').split()
-                            meta_name = self._infer_name_from_tipsy_log(meta_name)
-                            structure_names.append(meta_name)
-                            structure_formats.append(meta_type)
-                        if line.startswith('# starlog data:'):
-                            read_metadata = True
-                file_structure = np.dtype({'names': structure_names,
-                                           'formats': structure_formats})
-                if file_structure.itemsize != iSize:
-                    raise ValueError('Starlog metadata size does not match with starlog file size')
-                if file_structure['iord'] == 'f8':
-                	bigIOrds = True
-                if 'h2form' in file_structure.names:
-                	molecH = True
-            except FileNotFoundError:
-                warnings.warn('No log file found; reverting to guess-and-check')
-                use_log = False
-            except ValueError:
-                warnings.warn('log file found, but there was a problem with the starlog metadata. '
-                              'Reverting to guess-and-check')
-                use_log = False
-
-
-
-
-        if use_log is False:
-            file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
-                                                 "x", "y", "z",
-                                                 "vx", "vy", "vz",
-                                                 "massform", "rhoform", "tempform"),
-                                       'formats': ('i4', 'i4', 'f8',
-                                                   'f8', 'f8', 'f8',
-                                                   'f8', 'f8', 'f8',
-                                                   'f8', 'f8', 'f8')})
-
-            if (iSize > file_structure.itemsize):
-                file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
-                                                 "x", "y", "z",
-                                                 "vx", "vy", "vz",
-                                                 "massform", "rhoform", "tempform","h2form"),
-                                       'formats': ('i4', 'i4', 'f8',
-                                                   'f8', 'f8', 'f8',
-                                                   'f8', 'f8', 'f8',
-                                                   'f8', 'f8', 'f8','f8')})
-                molecH = True
-                # Unfortunately molecularH with small iOrders has the same as
-                # no moleculuarH with big iOrders.  Attempt to distinguish here
-                if(iSize == file_structure.itemsize):
-                    if(self._byteswap):
-                        testread = np.fromstring(
-                            f.read(iSize), dtype=file_structure).byteswap()
-                    else:
-                        testread = np.fromstring(f.read(iSize), dtype=file_structure)
-                    # All star iorders are greater than any gas iorder
-                    # so this indicates a bad format. (N.B. there is the
-                    # possibility of a false negative)
-                    if(testread['iord'][0] < testread['iorderGas'][0]):
-                        file_structure = np.dtype({'names': ("iord", "iorderGas",
-                                                 "tform",
-                                                 "x", "y", "z",
-                                                 "vx", "vy", "vz",
-                                                 "massform", "rhoform", "tempform"),
-                                           'formats': ('i8', 'i8', 'f8',
-                                                       'f8', 'f8', 'f8',
-                                                       'f8', 'f8', 'f8',
-                                                       'f8', 'f8', 'f8')})
-                        f.seek(4)
-                        logger.info("Using 64 bit iOrders")
-                        molecH = False
+            if use_log:
+                # assumes log file would be in the same location as starlog file
+                logger.info('Attempting to load starlog metadata from log file')
+                try:
+                    with open(self._logfile) as g:
+                        read_metadata = False
+                        structure_names = []
+                        structure_formats = []
+                        for line in g:
+                            if line.startswith('# end starlog data'):
+                                break
+                            if read_metadata:
+                                meta_name, meta_type = line.strip().strip('#').split()
+                                meta_name = self._infer_name_from_tipsy_log(meta_name)
+                                structure_names.append(meta_name)
+                                structure_formats.append(meta_type)
+                            if line.startswith('# starlog data:'):
+                                read_metadata = True
+                    file_structure = np.dtype({'names': structure_names,
+                                               'formats': structure_formats})
+                    if file_structure.itemsize != iSize:
+                        raise ValueError('Starlog metadata size does not match with starlog file size')
+                    if file_structure['iord'] == 'f8':
                         bigIOrds = True
-            if (iSize != file_structure.itemsize):
+                    if 'h2form' in file_structure.names:
+                        molecH = True
+                except FileNotFoundError:
+                    warnings.warn('No log file found, so the precise structure of the starlog is not defined; reverting to guess-and-check')
+                    use_log = False
+                except ValueError:
+                    warnings.warn('log file found, but there was a problem with the starlog metadata. '
+                                  'Reverting to guess-and-check')
+                    use_log = False
+
+
+
+
+            if use_log is False:
                 file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
                                                      "x", "y", "z",
                                                      "vx", "vy", "vz",
-                                                     "massform", "rhoform", "tempform",
-                                                     "phiform", "nsmooth"),
+                                                     "massform", "rhoform", "tempform"),
                                            'formats': ('i4', 'i4', 'f8',
                                                        'f8', 'f8', 'f8',
                                                        'f8', 'f8', 'f8',
+                                                       'f8', 'f8', 'f8')})
+
+                if (iSize > file_structure.itemsize):
+                    file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
+                                                     "x", "y", "z",
+                                                     "vx", "vy", "vz",
+                                                     "massform", "rhoform", "tempform","h2form"),
+                                           'formats': ('i4', 'i4', 'f8',
                                                        'f8', 'f8', 'f8',
-                                                       'f8', 'i4')})
-                molecH = False
+                                                       'f8', 'f8', 'f8',
+                                                       'f8', 'f8', 'f8','f8')})
+                    molecH = True
+                    # Unfortunately molecularH with small iOrders has the same as
+                    # no moleculuarH with big iOrders.  Attempt to distinguish here
+                    if(iSize == file_structure.itemsize):
+                        if(self._byteswap):
+                            testread = np.frombuffer(
+                                f.read(iSize), dtype=file_structure).byteswap()
+                        else:
+                            testread = np.frombuffer(f.read(iSize), dtype=file_structure)
+                        # All star iorders are greater than any gas iorder
+                        # so this indicates a bad format. (N.B. there is the
+                        # possibility of a false negative)
+                        if(testread['iord'][0] < testread['iorderGas'][0]):
+                            file_structure = np.dtype({'names': ("iord", "iorderGas",
+                                                     "tform",
+                                                     "x", "y", "z",
+                                                     "vx", "vy", "vz",
+                                                     "massform", "rhoform", "tempform"),
+                                               'formats': ('i8', 'i8', 'f8',
+                                                           'f8', 'f8', 'f8',
+                                                           'f8', 'f8', 'f8',
+                                                           'f8', 'f8', 'f8')})
+                            f.seek(4)
+                            logger.info("Using 64 bit iOrders")
+                            molecH = False
+                            bigIOrds = True
+                if (iSize != file_structure.itemsize):
+                    file_structure = np.dtype({'names': ("iord", "iorderGas", "tform",
+                                                         "x", "y", "z",
+                                                         "vx", "vy", "vz",
+                                                         "massform", "rhoform", "tempform",
+                                                         "phiform", "nsmooth"),
+                                               'formats': ('i4', 'i4', 'f8',
+                                                           'f8', 'f8', 'f8',
+                                                           'f8', 'f8', 'f8',
+                                                           'f8', 'f8', 'f8',
+                                                           'f8', 'i4')})
+                    molecH = False
 
-                if (iSize != file_structure.itemsize and iSize != 104):
-                    raise OSError("Unknown starlog structure iSize:" + \
-                        str(iSize) + ", file_structure itemsize:" + \
-                        str(file_structure.itemsize))
-                else:
-                    bigstarlog = True
-            if molecH == True: print("h2 information found in StarLog!")
+                    if (iSize != file_structure.itemsize and iSize != 104):
+                        raise OSError("Unknown starlog structure iSize:" + \
+                            str(iSize) + ", file_structure itemsize:" + \
+                            str(file_structure.itemsize))
+                    else:
+                        bigstarlog = True
+                if molecH is True: print("h2 information found in StarLog!")
 
-        datasize = os.path.getsize(filename) - f.tell()
+            datasize = os.path.getsize(filename) - f.tell()
 
-        # check whether datasize is a multiple of iSize. If it is not,
-        # the starlog is likely corrupted, but try to read it anyway
+            # check whether datasize is a multiple of iSize. If it is not,
+            # the starlog is likely corrupted, but try to read it anyway
 
-        if (datasize % iSize > 0) and (iSize != 104):
-            warnings.warn(
-                "The size of the starlog file does not make sense -- it is likely corrupted. Pynbody will read it anyway, but use with caution.")
-            datasize -= datasize % iSize
+            if (datasize % iSize > 0) and (iSize != 104):
+                warnings.warn(
+                    "The size of the starlog file does not make sense -- it is likely corrupted. Pynbody will read it anyway, but use with caution.")
+                datasize -= datasize % iSize
 
-        logger.info("Reading starlog file %s", filename)
-        if(self._byteswap):
-            g = np.fromstring(
-                f.read(datasize), dtype=file_structure).byteswap()
-        else:
-            g = np.fromstring(f.read(datasize), dtype=file_structure)
+            logger.info("Reading starlog file %s", filename)
+            if(self._byteswap):
+                g = np.frombuffer(
+                    f.read(datasize), dtype=file_structure).byteswap()
+            else:
+                g = np.frombuffer(f.read(datasize), dtype=file_structure)
+
 
         # hoping to provide backward compatibility for np.unique by
         # copying relavent part of current numpy source:
@@ -1317,7 +1314,7 @@ class StarLog(SimSnap):
         self._create_arrays(["iord"], dtype='int32')
         self._create_arrays(
             ["iorderGas", "massform", "rhoform", "tempform", "metals", "tform"])
-        if molecH==True:
+        if molecH:
             self._create_arrays(["h2form"])
         if bigstarlog:
             self._create_arrays(["phiform", "nsmooth"])
@@ -1421,57 +1418,50 @@ class StarLog(SimSnap):
 @StarLog.decorator
 @nchilada.NchiladaSnap.decorator
 def load_paramfile(sim):
-    x = os.path.abspath(sim._filename)
-    done = False
+    x = os.path.dirname(os.path.abspath(sim._filename))
     sim._paramfile = {}
-    f = None
+    ok = False
     if sim._paramfilename is None:
-        for i in range(2):
-            x = os.path.dirname(x)
-            l = [x for x in glob.glob(
-                os.path.join(x, "*.param")) if "mpeg" not in x]
-
-            for filename in l:
-                # Attempt the loading of information
-                try:
-                    f = open(filename)
-                    done = True
-                    break  # the file is there, break out of the loop
-                except OSError:
-                    l = glob.glob(os.path.join(x, "../*.param"))
-                    if l == []:
-                        continue
-                    try:
-                        for filename in l:
-                            f = open(filename)
-                            break  # the file is there, break out of the loop
-                    except OSError:
-                        continue
-            if done:
-                break
-
+        candidates = [
+            *glob.glob(os.path.join(x, "*.param")),
+            *glob.glob(os.path.join(x, "../*.param")),
+        ]
     else:
-        filename = sim._paramfilename
+        candidates = [sim._paramfilename]
+
+    for filename in candidates:
         try:
-            f = open(filename)
+            with open(filename):
+                pass
+            ok = True
+            break
         except OSError:
-            raise OSError("The parameter filename you supplied is invalid")
-
-    if f is None:
-        return
-
-    for line in f:
-        try:
-            if line[0] != "#":
-                s = line.split("#")[0].split()
-                sim._paramfile[s[0]] = " ".join(s[2:])
-
-        except IndexError as ValueError:
             pass
 
-        if len(sim._paramfile) > 1:
-            sim._paramfile["filename"] = filename
 
+    if not ok:
+        if sim._paramfile:
+            raise OSError("The parameter filename you supplied is invalid")
+        return
+
+    with open(filename) as f:
+        lines = f.readlines()
+
+    for line in lines:
+        if line.startswith("#"):
+            continue
+        # Remove comments
+        line = line.split("#")[0]
+
+        # Lines are "key  =  val"
+        try:
+            key, val = (_.strip() for _ in line.split("="))
+        except ValueError:
+            continue
+        sim._paramfile[key] = val
+
+    if len(sim._paramfile) > 1:
+        sim._paramfile["filename"] = filename
 
 @TipsySnap.decorator
 @StarLog.decorator
@@ -1479,6 +1469,8 @@ def load_paramfile(sim):
 def param2units(sim):
     with sim.lazy_off:
         munit = dunit = hub = None
+
+        logger.debug("paramfile: %s", sim._paramfile)
 
         try:
             hub = float(sim._paramfile["dHubble0"])
@@ -1492,11 +1484,12 @@ def param2units(sim):
             munit = float(sim._paramfile["dMsolUnit"])
             dunit_st = sim._paramfile["dKpcUnit"] + " kpc"
             dunit = float(sim._paramfile["dKpcUnit"])
+            logger.debug("munit: %s, dunit: %s", munit_st, dunit_st)
         except KeyError:
             pass
 
         if munit is None or dunit is None:
-            if hub != None:
+            if hub is not None:
                 sim.properties['h'] = hub
             return
 
@@ -1591,15 +1584,18 @@ def param2units(sim):
         try:
             sim._file_units_system = [
                 sim["vel"].units, sim.star["mass"].units, sim["pos"].units, units.K]
+            logger.debug("file_units_system set from arrays %s", sim._file_units_system)
         except KeyError:
             try:
                 sim._file_units_system = [
                     sim["vel"].units, sim.star["massform"].units, sim["pos"].units, units.K]
+                logger.debug("file_units_system set from arrays inc star massform %s", sim._file_units_system)
             except KeyError:
                 try:
                     sim._file_units_system = [units.Unit(velunit_st),
                                               units.Unit(munit_st),
                                               units.Unit(dunit_st), units.K]
+                    logger.debug("file_units_system set from paramfile %s", sim._file_units_system)
                 except Exception:
                     pass
 
@@ -1705,7 +1701,7 @@ def slparam2units(sim):
         timeunit_st = ("%.5g" % timeunit) + " Gyr"
 
 
-        if hub != None:
+        if hub is not None:
             # append dependence on 'a' for cosmological runs
             dunit_st += " aform"
 

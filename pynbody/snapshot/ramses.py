@@ -1,21 +1,11 @@
 """
+Implements classes and functions for handling RAMSES files.
 
-ramses
-======
-
-Implements classes and functions for handling RAMSES files. AMR cells
-are loaded as particles. You rarely need to access this module
-directly as it will be invoked automatically via pynbody.load.
-
-
-For a complete demo on how to use RAMSES outputs with pynbody, look at
-the `ipython notebook demo
-<http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb>`_
+Note that AMR cells are loaded as particles, although this works surprisingly well for most analysis purposes.
+In particular SPH image generation routines automatically switch on an appropriate de-noising scheme to provide
+effective interpolation between cells.
 
 """
-
-  # for py2.5
-
 
 import csv
 import logging
@@ -25,6 +15,8 @@ import warnings
 from pathlib import Path
 
 import numpy as np
+
+import pynbody.array.shared
 
 from .. import array, config_parser, family, units
 from ..analysis.cosmology import age
@@ -36,21 +28,12 @@ logger = logging.getLogger('pynbody.snapshot.ramses')
 multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
 multiprocess = (multiprocess_num > 1)
 
-issue_multiprocess_warning = False
-
 if multiprocess:
-    try:
-        import multiprocessing
+    import multiprocessing
 
-        import posix_ipc  # noqa: F401
-
-        remote_exec = array.shared_array_remote
-        remote_map = array.remote_map
-    except ImportError:
-        issue_multiprocess_warning = True
-        multiprocess = False
-
-if not multiprocess:
+    remote_exec = pynbody.array.shared.shared_array_remote
+    remote_map = pynbody.array.shared.remote_map
+else:
     def remote_exec(fn):
         return fn
 
@@ -63,7 +46,7 @@ _int_type = 'i'
 
 def _timestep_id(basename):
     try:
-        return re.findall("output_([0-9]*)/*$", basename)[0]
+        return re.findall("output_([0-9]*)/*$", str(basename))[0]
     except IndexError:
         return None
 
@@ -374,7 +357,8 @@ positive_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('
 
 negative_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('ramses', 'type-mapping-negative').split(",")]
 
-def read_descriptor(fname):
+def _read_descriptor(fname):
+    """Read a RAMSES file descriptor and return a list of the variable names."""
     description = []
     name_mapping = namemapper.AdaptiveNameMapper('ramses-name-mapping')
     with open(fname) as fd:
@@ -389,17 +373,15 @@ def read_descriptor(fname):
 
 
 class RamsesSnap(SimSnap):
+    """Implements loading of Ramses snapshots.
+
+    Note that AMR cells are loaded as particles, although this works surprisingly well for most analysis purposes.
+    In particular SPH image generation routines automatically switch on an appropriate de-noising scheme to provide
+    effective interpolation between cells.
+    """
     reader_pool = None
 
-    def __init__(
-        self,
-        dirname,
-        cpus=None,
-        maxlevel=None,
-        with_gas=True,
-        force_gas=False,
-        times_are_proper=None,
-    ):
+    def __init__(self, dirname, cpus=None, maxlevel=None, with_gas=True, force_gas=False, times_are_proper=None):
         """
         Initialize a RamsesSnap.
 
@@ -413,17 +395,17 @@ class RamsesSnap(SimSnap):
         maxlevel : int, optional
             The maximum refinement level to load. If not set, the
             deepest level is loaded.
-        with_gas : bool
+        with_gas : bool, optional
             If False, never load any gas cells (particles only).
             Default is True
-        force_gas : bool
+        force_gas : bool, optional
             If True, load the AMR cells as "gas particles" even if
             they don't actually contain gas in the run. Default is
             False.
-        times_are_proper : bool
+        times_are_proper : bool, optional
             If True, the times in the output are assumed to be proper
             times. If False, they are assumed to be conformal. If
-            unset, assume proper for non-cosmological simulations
+            None (default), assume proper for non-cosmological simulations
             and conformal for cosmological ones.
         """
 
@@ -441,6 +423,8 @@ class RamsesSnap(SimSnap):
             self._dirname = dirname
         else:
             self._dirname = os.path.split(dirname)[0]
+        self._translate_array_name = namemapper.AdaptiveNameMapper('ramses-name-mapping')
+
         self._load_sink_data_to_temporary_store()
         self._load_infofile()
         self._load_namelistfile()
@@ -492,10 +476,6 @@ class RamsesSnap(SimSnap):
             self._shared_arrays = True
             if (RamsesSnap.reader_pool is None):
                 RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
-        elif issue_multiprocess_warning:
-            warnings.warn(
-                "RamsesSnap is configured to use multiple processes, but the posix_ipc module is missing. Reverting to single thread.",
-                RuntimeWarning)
 
     def _load_fluid_descriptors(self):
         types = ["hydro", "grav"]
@@ -504,7 +484,7 @@ class RamsesSnap(SimSnap):
 
         for desc_type, default_block, descriptor_fname in zip(types, default_blocks, descriptors_fnames):
             try:
-                block = read_descriptor(descriptor_fname)
+                block = _read_descriptor(descriptor_fname)
             except (FileNotFoundError, OSError):
                 block = default_block
 
@@ -514,11 +494,12 @@ class RamsesSnap(SimSnap):
         self._rt_blocks = []
         self._rt_blocks_3d = set()
         try:
-            f = open(os.path.join(self._filename, f"info_rt_{self._timestep_id}.txt"))
+            with open(os.path.join(self._filename, f"info_rt_{self._timestep_id}.txt")) as f:
+                lines = f.readlines()
         except OSError:
             return
 
-        self._load_info_from_specified_file(f)
+        self._load_info_from_specified_file(lines)
 
         for group in range(self._info['nGroups']):
             for block in rt_blocks:
@@ -529,8 +510,8 @@ class RamsesSnap(SimSnap):
         for block in self._rt_blocks:
             self._rt_blocks_3d.add(self._array_name_1D_to_ND(block) or block)
 
-    def _load_info_from_specified_file(self, f):
-        for line in f:
+    def _load_info_from_specified_file(self, lines):
+        for line in lines:
             if '=' in line:
                 name, val = list(map(str.strip, line.split('=')))
                 try:
@@ -543,16 +524,17 @@ class RamsesSnap(SimSnap):
 
     def _load_infofile(self):
         self._info = {}
-        f = open(os.path.join(self._filename, f"info_{self._timestep_id}.txt"))
-
-        self._load_info_from_specified_file(f)
+        info_fname = os.path.join(self._filename, f"info_{self._timestep_id}.txt")
+        header_fname = os.path.join(self._filename, f"header_{self._timestep_id}.txt")
+        with open(info_fname) as f:
+            self._load_info_from_specified_file(f)
         try:
-            f = open(os.path.join(self._filename, f"header_{self._timestep_id}.txt"))
             # most of this file is unhelpful, but depending on the ramses
             # version, there may be information on the particle fields present
-            for line in f:
-                if "level" in line:
-                    self._info['particle-blocks'] = line.split()
+            with open(header_fname) as f:
+                for line in f:
+                    if "level" in line:
+                        self._info['particle-blocks'] = line.split()
         except OSError:
             warnings.warn(
                 "No header file found -- no particle block information available")
@@ -581,11 +563,11 @@ class RamsesSnap(SimSnap):
         namelist_file = os.path.join(self._filename, "namelist.txt")
 
         if os.path.exists(namelist_file):
-            f = open(namelist_file)
-            try:
-                self._load_namelist_from_specified_file(f)
-            except ValueError:
-                warnings.warn("Namelist found but unable to read.")
+            with open(namelist_file) as f:
+                try:
+                    self._load_namelist_from_specified_file(f)
+                except ValueError:
+                    warnings.warn("Namelist found but unable to read.")
 
         else:
             warnings.warn("No namelist file found.")
@@ -601,7 +583,6 @@ class RamsesSnap(SimSnap):
         with open(os.path.join(self._filename, "part_file_descriptor.txt")) as f:
             self._particle_blocks = []
             self._particle_types = []
-            self._translate_array_name = namemapper.AdaptiveNameMapper('ramses-name-mapping')
             for line in f:
                 if not line.startswith("#"):
                     ivar, name, dtype = list(map(str.strip,line.split(",")))
@@ -762,7 +743,8 @@ class RamsesSnap(SimSnap):
         column_names[0] = column_names[0][1:].strip()
         dimensions[0] = dimensions[0][1:].strip()
 
-        self._sink_column_names = column_names
+        self._sink_column_names = [self._translate_array_name(c, reverse=True)
+                                   for c in column_names]
         self._sink_dimensions = dimensions
         self._sink_data = data
 
@@ -1072,7 +1054,8 @@ class RamsesSnap(SimSnap):
 
 
     @property
-    def times_are_proper(self):
+    def times_are_proper(self) -> bool:
+        """Best guess for whether the times in the output (e.g. star formation times) are proper times"""
         if hasattr(self, "_is_using_proper_time"):
             # Already set, skipping
             pass
@@ -1172,6 +1155,14 @@ class RamsesSnap(SimSnap):
                 self._load_gas_vars(_gv_load_rt)
                 for u_block in self._rt_blocks_3d:
                     self[fam][u_block].units = self._rt_unit
+            elif array_name == 'mass':
+                # Very special case. If 'mass' has been created already for particle blocks (or sink blocks), and the
+                # user requests it across the whole simulation, the SimSnap framework will issue this request rather
+                # than a request to load across all families (handled below). If we raise an exception, the user
+                # will see a confusing message about mass being unavailable for gas. So instead we redirect this to
+                # a derived array, which will result in a full mass array being returned (good) and a warning about
+                # conjoining derived and non-derived arrays (logical, at least).
+                self._derive_array('mass', fam)
             else:
                 raise OSError("No such array on disk")
         elif fam is None and array_name in ['pos', 'vel']:
@@ -1192,9 +1183,15 @@ class RamsesSnap(SimSnap):
                 self._load_particle_block(name)
 
         elif fam is None and array_name == 'mass':
+            # mass has to be handled separately because it is present as a particle block
+            # but not as a gas block -- there it will be derived. It is also present as a sink block,
+            # which is again handled differently. So somehow we need to bring all of this together in
+            # a way which doesn't baffle users.
+
             self._create_array('mass')
             self._load_particle_block('mass')
             self['mass'].set_default_units()
+
             if len(self.gas) > 0:
                 gasmass = mass(self.gas)
                 gasmass.convert_units(self['mass'].units)
@@ -1213,7 +1210,7 @@ class RamsesSnap(SimSnap):
 
 
 @RamsesSnap.decorator
-def translate_info(sim):
+def _translate_info(sim):
 
     if sim._info['H0']>1e-3:
         sim.properties['a'] = sim._info['aexp']
@@ -1237,17 +1234,20 @@ def translate_info(sim):
     sim._file_units_system = [d_unit, t_unit, l_unit]
 
 
-@RamsesSnap.derived_quantity
+@RamsesSnap.derived_array
 def mass(sim):
+    """Gas mass estimated from cell size and density"""
     return sim['rho'] * sim['smooth'] ** 3
 
 
-@RamsesSnap.derived_quantity
+@RamsesSnap.derived_array
 def temp(sim):
-    """ Gas temperature derived from pressure and density """
+    """Gas temperature derived from pressure and density """
+
     # Has to be redefined and rederived here from Ramses native variables
     # to avoid running into circular dependencies with the traditional derived definition
     # Now uses the self-consistent molecular weight field from pynbody (issue 598)
+
     from ..derived import mu
     mu_est = array.SimArray(np.ones(len(sim)), units="1")
     for i in range(5):

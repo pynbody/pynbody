@@ -3,6 +3,7 @@ import os
 import time
 
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
@@ -10,7 +11,7 @@ import pynbody
 
 def setup_module():
     global f, h
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     h = f.halos()
 
 
@@ -21,24 +22,48 @@ def teardown_module():
 
 def test_center():
     global f, h
-    with pynbody.analysis.halo.center(h[1]):
+    with pynbody.analysis.halo.center(h[0]):
         np.testing.assert_allclose(
-            f['pos'][0], [-0.0137471,  -0.00208458, -0.04392379], atol=1e-4)
+            f['pos'][0], [-0.0137471,  -0.00208458, -0.04392379], rtol=1e-4)
+
+def test_center_wrapped_halo():
+    npart = 10000
+    f = pynbody.new(dm=npart)
+    np.random.seed(1337)
+    f['pos'] = np.random.normal(scale=0.1, size=f['pos'].shape)
+    f['vel'] = np.random.normal(scale=0.1, size=f['vel'].shape)
+    f['pos'][0] = [0.0, 0.0, 0.0] # this is the known centre!
+    f['vel'][0] = [0.0, 0.0, 0.0] # again, a known centre
+    f['vel'] += 5.0
+
+    f['mass'] = np.ones(npart)
+    f['x']+=0.95
+    f['y']+=0.5
+    f['z']-=0.94
+    f.properties['boxsize'] = 2.0
+    f.wrap()
+
+    with pynbody.analysis.halo.center(f) as t:
+        npt.assert_almost_equal(f['pos'][0], [0.0, 0.0, 0.0], decimal=1)
+        npt.assert_almost_equal(f['vel'][0], [0.0, 0.0, 0.0], decimal=1)
+
 
 
 def test_align():
     global f, h
-    with pynbody.analysis.angmom.faceon(h[1]):
-        np.testing.assert_allclose(f['pos'][:2], [[-0.010718, -0.001504, -0.044783],
-                                                  [-0.010026,  0.002441, -0.04465 ]], atol=1e-5)
+    with pynbody.analysis.angmom.faceon(h[0]) as t:
+        print(repr(t))
+        np.testing.assert_allclose(f['pos'][:2], [[-0.010711, -0.001491, -0.044785],
+                                                          [-0.010019,  0.002454, -0.04465 ]],
+                                   atol=1e-5)
 
-        np.testing.assert_allclose(f['vel'][:2], [[ 0.017203,  0.01848 , -0.019859],
-                                                  [ 0.051333,  0.027357, -0.010303]], atol=1e-5)
+        np.testing.assert_allclose(f['vel'][:2], [[ 0.019214,  0.024604, -0.020356],
+                                                          [ 0.053343,  0.033478, -0.010793]], atol=1e-5)
 
 
 def test_virialradius():
     global f, h
-    with pynbody.analysis.halo.center(h[1]):
+    with pynbody.analysis.halo.center(h[0]):
         start = time.time()
         vrad = pynbody.analysis.halo.virial_radius(f)
         print ("time=",time.time()-start)
@@ -46,7 +71,7 @@ def test_virialradius():
 
 
 def test_ssc_bighalo():
-    s = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+    s = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103')
     s.physical_units()
     h = s.halos()
     pynbody.analysis.halo.center(h[1])
@@ -54,18 +79,21 @@ def test_ssc_bighalo():
 
 
 def test_binning_hmf():
-    subfind = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+    subfind = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103')
 
     h = subfind.halos()
     assert len(h) == 4226
 
-    center, means, err = pynbody.analysis.hmf.simulation_halo_mass_function(subfind,
-                                                                            log_M_min=8,
-                                                                            log_M_max=14,
-                                                                            delta_log_M=0.5,
-                                                                            subsample_catalogue=100)
+    with pytest.warns(UserWarning, match=r"Halo finder masses not provided\. Calculating them.*"):
+        center, means, err = pynbody.analysis.hmf.simulation_halo_mass_function(
+            subfind,
+            log_M_min=8,
+            log_M_max=14,
+            delta_log_M=0.5,
+            subsample_catalogue=100
+        )
 
-    assert(len(means) == len(center) == len(err) == 12)
+    assert len(means) == len(center) == len(err) == 12
 
     np.testing.assert_allclose(center, [2.08113883e+08,   6.58113883e+08,   2.08113883e+09,   6.58113883e+09,
                                         2.08113883e+10,   6.58113883e+10,   2.08113883e+11,   6.58113883e+11,
