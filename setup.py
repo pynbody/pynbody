@@ -1,6 +1,7 @@
 import codecs
 import distutils
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -13,6 +14,22 @@ from Cython.Compiler.Options import get_directive_defaults
 from setuptools import Extension, setup
 
 get_directive_defaults()['language_level'] = 3
+
+def is_macos():
+    return platform.system() == 'Darwin'
+
+def get_xcode_version():
+    result = subprocess.run(['xcodebuild', '-version'], capture_output=True, text=True)
+    version_line = result.stdout.split('\n')[0]
+    version = version_line.split(' ')[1]
+    return version
+
+def xcode_fix_needed():
+    if is_macos() and int(get_xcode_version().split('.')[0]) >= 15:
+        return True
+    else:
+        return False
+
 
 def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
@@ -46,6 +63,11 @@ extra_compile_args = ['-ftree-vectorize',
                       '-g', '-std=c++14']
 
 extra_link_args = ['-std=c++14']
+
+if xcode_fix_needed():
+    # workaround for XCode bug FB13097713
+    # https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
+    extra_link_args += ['-Wl,-ld_classic']
 
 incdir = [np.get_include()]
 
