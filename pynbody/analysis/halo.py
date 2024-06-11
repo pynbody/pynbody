@@ -455,6 +455,9 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', matter_type = 'DM'
         number is not necessarily maintained during fitting. 'log' and 'lin' initialise bins
         with logarithmic and linear radial spacing.
 
+    matter_type : str
+        The type of particles to consider. Default is 'DM'. Other options are 'Stars' and 'Gas'.
+
     Returns
     -------
 
@@ -481,17 +484,28 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', matter_type = 'DM'
         x,y,z = np.dot(np.transpose(E),[r[:,0],r[:,1],r[:,2]])
         return (x/a)**2 + (y/b)**2 + (z/c)**2
 
+
     # Define moment of inertia tensor:
-    MoI = lambda r,m: np.array([[np.sum(m*r[:,i]*r[:,j]) for j in range(3)]\
-                               for i in range(3)])
+    def MoI(r,m):
+        ShapeTensor = np.zeros((3,3))
+        for i in range(3):
+            for j in range(3):
+                ShapeTensor[i,j] = np.sum(m*r[:,i]*r[:,j])
+        return ShapeTensor
 
     # Splits 'r' array into N groups containing equal numbers of particles.
     # An array is returned with the radial bins that contain these groups.
-    sn = lambda r,N: np.append([r[i*int(len(r)/N):(1+i)*int(len(r)/N)][0]\
-                               for i in range(N)],r[-1])
+    def sn(r, N):
+        split = np.array(())
+        for i in range(N):
+            split = np.append(split, r[i*int(len(r)/N):(1+i)*int(len(r)/N)][0])
+        split = np.append(split, r[-1])
+        return split
 
     # Retrieves alignment angle:
-    almnt = lambda E: np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
+    def almnt(E):
+        theta = np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
+        return theta
     #-----------------------------FUNCTIONS-----------------------------
 
     #select particle type
@@ -569,7 +583,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', matter_type = 'DM'
                 D[0] = D[0].real ; D[1] = D[1].real
                 logger.info('Complex numbers in D removed...')
 
-            # Compute ratios a,b,c from moment of intertia principles:
+            # Compute ratios a,b,c from moment of inertia principles:
             anew,bnew,cnew = np.sqrt(abs(D[0])*3.0)
 
             # The rotation matrix must be reoriented:
@@ -599,4 +613,4 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', matter_type = 'DM'
             # Reset a,b,c for the next iteration:
             a,b,c = anew,bnew,cnew
 
-    return [array.SimArray(rbin, sim.d['pos'].units), ba, ca, angle, Es]
+    return [array.SimArray(rbin, sim_m['pos'].units), ba, ca, angle, Es]
