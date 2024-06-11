@@ -425,7 +425,7 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
 
     return transform
 
-def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
+def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', matter_type = 'DM'):
     """
     Computes the shape of a halo as a function of radius by fitting homeoidal shells.
 
@@ -494,12 +494,21 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
     almnt = lambda E: np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
     #-----------------------------FUNCTIONS-----------------------------
 
-    if (rout is None): rout = sim.dm['r'].max()
-    if (rin is None): rin = rout/1E3
+    #select particle type
+    if matter_type == 'DM':
+        sim_m = sim.dm
+    elif matter_type == 'Stars':
+        sim_m = sim.star
+    elif matter_type == 'Gas':
+        sim_m = sim.gas
 
-    posr = np.array(sim.dm['r'])[np.where(sim.dm['r'] < rout)]
-    pos = np.array(sim.dm['pos'])[np.where(sim.dm['r'] < rout)]
-    mass = np.array(sim.dm['mass'])[np.where(sim.dm['r'] < rout)]
+    if (rout == None): rout = sim_m['r'].max()
+    if (rin == None): rin = rout/1E3
+
+    radius_mask = (np.where(sim_m['r'] < rout)) & (np.where(sim_m['r'] > rin))
+    posr = np.array(sim_m['r'])[radius_mask]
+    pos = np.array(sim_m['pos'])[radius_mask]
+    mass = np.array(sim_m['mass'])[radius_mask]
 
     rx = [[1.,0.,0.],[0.,0.,-1.],[0.,1.,0.]]
     ry = [[0.,0.,1.],[0.,1.,0.],[-1.,0.,0.]]
@@ -507,16 +516,16 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
     # Define bins:
     if (bins == 'equal'): # Each bin contains equal number of particles
-        mid = sn(np.sort(posr[np.where((posr >= rin) & (posr <= rout))]),N*2)
+        mid = sn(np.sort(posr),N*2)
         rbin = mid[1:N*2+1:2]
         mid = mid[0:N*2+1:2]
 
     elif (bins == 'log'): # Bins are logarithmically spaced
-        mid = profile.Profile(sim.dm, type='log', ndim=3, rmin=rin, rmax=rout, nbins=N+1)['rbins']
+        mid = profile.Profile(sim_m, type='log', ndim=3, rmin=rin, rmax=rout, nbins=N+1)['rbins']
         rbin = np.sqrt(mid[0:N]*mid[1:N+1])
 
     elif (bins == 'lin'): # Bins are linearly spaced
-        mid = profile.Profile(sim.dm, type='lin', ndim=3, rmin=rin, rmax=rout, nbins=N+1)['rbins']
+        mid = profile.Profile(sim_m, type='lin', ndim=3, rmin=rin, rmax=rout, nbins=N+1)['rbins']
         rbin = 0.5*(mid[0:N]+mid[1:N+1])
 
     # Define b/a and c/a ratios and angle arrays:
