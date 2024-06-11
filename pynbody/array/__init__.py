@@ -260,24 +260,86 @@ class SimArray(np.ndarray):
             self._sim = lambda: None
             self._name = None
 
+    @classmethod
+    def _simarray_to_plain_ndarray(cls, inputs):
+        """Converts any SimArrays to plain np.ndarray, for use when a ufunc or other numpy func is being called"""
+        if isinstance(inputs, dict):
+            return {k: i.view(np.ndarray) if isinstance(i, SimArray) else i for k, i in inputs.items()}
+        else:
+            return [i.view(np.ndarray) if isinstance(i, SimArray) else i for i in inputs]
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        units_func = SimArray._ufunc_registry.get(ufunc, None)
+        if units_func is None:
+            out_units = units.NoUnit()
+            inputs = self._simarray_to_plain_ndarray(inputs)
+        else:
+            result = units_func(*inputs)
+            if isinstance(result, tuple):
+                out_units, inputs = result
+            else:
+                out_units = result
+                inputs = self._simarray_to_plain_ndarray(inputs)
+
+        # convert inputs to vanilla numpy arrays for calling the underlying ufunc
+
+
+        if len(inputs)==2:
+            # if one of the inputs is a unit, we replace it with 1 in the ufunc call and let the
+            # unit handling do the rest
+            if isinstance(inputs[0], units.UnitBase):
+                if not isinstance(inputs[1], np.ndarray):
+                    return NotImplemented
+                inputs[0] = np.array(1, dtype=inputs[1].dtype)
+            elif isinstance(inputs[1], units.UnitBase):
+                if not isinstance(inputs[0], np.ndarray):
+                    return NotImplemented
+                inputs[1] = np.array(1, dtype=inputs[0].dtype)
+
+        out = kwargs.get('out', None)
+        if out is not None:
+            if len(out)!=1:
+                return NotImplemented
+            else:
+                kwargs['out'] = (out[0].view(np.ndarray), )
+
+        result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+
+        if np.isscalar(result):
+            # If we want to return units, numpy scalars aren't a good return type.
+            # It's not ideal to directly contravene numpy convention here, but the best we can do.
+            # Other options are:
+            #  1. Return the scalar as numpy has returned. But then weird side-effects happen like
+            #     (a+b) has no units, even if a and b are both scalar arrays with units
+            #  2. Return the scalar as a UnitBase. But then some ufuncs like std() fail because they expect an
+            #     object with a numpy-like interface [specifically, units have no sqrt method] and anyway it seems
+            #     counterintuitive that a scalar array doesn't get mapped onto a scalar array. (This seems a weird
+            #     design choice in numpy - not entirely clear why it happens.)
+            #  3. Do what we're doing and wrap things up into a scalar array but ONLY if we have units to return.
+            #     But this would probably just be even more baffling to a user.
+            result = np.array(result)
+
+        if out is not None:
+            # checked above that there is only one output
+            if isinstance(out[0], SimArray):
+                out[0].units = out_units
+            return out[0]
+        elif isinstance(result, np.ndarray):
+            # reinstate units in output
+            result = result.view(SimArray)
+            result.units = out_units
+            return result
+        else:
+            return result
+
     def __array_function__(self, func, types, args, kwargs):
+        # called for non-ufuncs e.g. for numpy.linlag.norm
         ok_types = (SimArray, np.ndarray)
         if not all(issubclass(t, ok_types) for t in types):
             return NotImplemented
 
-        args_processed = []
-        for arg in args:
-            if isinstance(arg, SimArray):
-                args_processed.append(arg.view(np.ndarray))
-            else:
-                args_processed.append(arg)
-
-        kwargs_processed= {}
-        for k, v in kwargs.items():
-            if isinstance(v, SimArray):
-                kwargs_processed[k] = v.view(np.ndarray)
-            else:
-                kwargs_processed[k] = v
+        args_processed = self._simarray_to_plain_ndarray(args)
+        kwargs_processed = self._simarray_to_plain_ndarray(kwargs)
 
         result = func(*args_processed, **kwargs_processed)
 
@@ -294,27 +356,21 @@ class SimArray(np.ndarray):
 
         return result
 
-
-    def __array_wrap__(self, array, context=None, return_scalar=False):
-        if context is None:
-            n_array = array.view(SimArray)
-            return n_array
-
-        try:
-            ufunc = context[0]
-            output_units = SimArray._ufunc_registry[ufunc](*context[1])
-            n_array = array.view(SimArray)
-            n_array.units = output_units
-            #n_array.sim = self.sim
-            n_array._name = self._name
-            return n_array
-        except (KeyError, units.UnitsException):
-            return array
-
     @staticmethod
-    def ufunc_rule(for_ufunc):
+    def ufunc_rule(*for_ufuncs):
+        """Function decorator to mark a function as providing the output units for a given ufunc (or ufuncs).
+
+        The function should take the same number of arguments as the ufunc, and return the output units. The function
+        may optionally also return a tuple of the output units and the modified input arguments, in which case the
+        input arguments will be passed to the ufunc in place of the original arguments.
+
+        Note that while this is predominantly used for ufuncs, in fact it can also be used for things which are
+        not strictly ufuncs, like numpy.linalg.norm
+
+        """
         def x(fn):
-            SimArray._ufunc_registry[for_ufunc] = fn
+            for for_ufunc in for_ufuncs:
+                SimArray._ufunc_registry[for_ufunc] = fn
             return fn
 
         return x
@@ -392,59 +448,6 @@ class SimArray(np.ndarray):
     def family(self, fam):
         self._family = fam
 
-    def __mul__(self, rhs):
-        if isinstance(rhs, _units.UnitBase):
-            x = self.copy()
-            x.units = x.units * rhs
-            return x
-        else:
-            return np.ndarray.__mul__(self, rhs)
-
-    def __div__(self, rhs):
-        if isinstance(rhs, _units.UnitBase):
-            x = self.copy()
-            x.units = x.units / rhs
-            return x
-        else:
-            return np.ndarray.__div__(self, rhs)
-
-    def __truediv__(self, rhs):
-        if isinstance(rhs, _units.UnitBase):
-            x = self.copy()
-            x.units = x.units / rhs
-            return x
-        else:
-            return np.ndarray.__truediv__(self, rhs)
-
-    def __imul__(self, rhs):
-        if isinstance(rhs, _units.UnitBase):
-            self.units *= rhs
-        else:
-            np.ndarray.__imul__(self, rhs)
-        return self
-
-    def __idiv__(self, rhs):
-        if isinstance(rhs, _units.UnitBase):
-            self.units /= rhs
-        else:
-            np.ndarray.__idiv__(self, rhs)
-            try:
-                self.units /= rhs.units
-            except AttributeError:
-                pass
-        return self
-
-    def __itruediv__(self, rhs):
-        if isinstance(rhs, _units.UnitBase):
-            self.units /= rhs
-        else:
-            np.ndarray.__itruediv__(self, rhs)
-            try:
-                self.units /= rhs.units
-            except AttributeError:
-                pass
-        return self
-
     def conversion_context(self):
         """Return a dictionary of contextual information that may be required for unit conversion.
 
@@ -496,57 +499,6 @@ class SimArray(np.ndarray):
         else:
             r = add_op(self, x)
             return r
-
-    def __add__(self, x):
-        if isinstance(x, _units.UnitBase):
-            return x + self
-        else:
-            return self._generic_add(x)
-
-    def __sub__(self, x):
-        if isinstance(x, _units.UnitBase):
-            return (-x + self).in_units(self.units)
-        else:
-            return self._generic_add(x, np.subtract)
-
-    def __iadd__(self, x):
-        self._generic_add(x, np.ndarray.__iadd__)
-        return self
-
-    def __isub__(self, x):
-        self._generic_add(x, np.ndarray.__isub__)
-        return self
-
-    def __pow__(self, x):
-        numerical_x = x
-
-        if isinstance(x, tuple):
-            x = fractions.Fraction(x[0], x[1])
-            numerical_x = float(x)
-        elif isinstance(x, fractions.Fraction):
-            numerical_x = float(x)
-
-        # The following magic circumvents our normal unit-assignment
-        # code which couldn't cope with the numerical version of x
-        # in the case of fractions. All this is necessary to make the
-        # magic tuple->fraction conversions work seamlessly.
-        r = np.asarray(np.power(self.view(np.ndarray), numerical_x)).view(SimArray)
-
-        # Recent numpy versions can take 1-element arrays and return
-        # scalars, in which case we now have a floating point number :(
-        if type(r) is not SimArray:
-            return r
-
-        if self.units is not None and (
-                isinstance(x, fractions.Fraction) or
-                isinstance(x, int)):
-            r.sim = self.sim
-            r.units = self.units ** x
-        else:
-            r.units = None
-            r.sim = self.sim
-
-        return r
 
     def __repr__(self):
         x = np.ndarray.__repr__(self)
@@ -760,37 +712,6 @@ class SimArray(np.ndarray):
             raise RuntimeError("No link to SimSnap")
 
 
-# Set up the correct comparison functions
-
-def _unit_aware_comparison(ar, other, comparison_op=None):
-    # guaranteed to be called with ar a SimArray instance
-    if units.is_unit_like(other):
-        if units.has_units(ar):
-            # either other is a unit, or an array with a unit If
-            # it's an array with a unit that matches our own, we
-            # want to fall straight through to the comparison
-            # operation. If it's an array with a unit that doesn't
-            # match ours, OR it's a plain unit, we want to
-            # convert first.
-            if units.is_unit(other) or other.units != ar.units:
-                other = other.in_units(ar.units)
-        else:
-            raise units.UnitsException("One side of a comparison has units and the other side does not")
-
-    return comparison_op(ar, other)
-
-for f in np.ndarray.__lt__, np.ndarray.__le__, np.ndarray.__eq__, \
-        np.ndarray.__ne__, np.ndarray.__gt__, np.ndarray.__ge__:
-
-    # N.B. cannot use functools.partial because it doesn't implement the descriptor
-    # protocol
-    @functools.wraps(f, assigned=("__name__", "__doc__"))
-    def _wrapper_function(self, other, comparison_op=f):
-        return _unit_aware_comparison(self, other, comparison_op=comparison_op)
-
-    setattr(SimArray, f.__name__, _wrapper_function)
-
-
 # Now add dirty bit setters to all the operations which are known
 # to modify the numpy array
 
@@ -824,26 +745,21 @@ _dirty_fns = ['__setitem__', '__setslice__',
               '__ipow__']
 
 for x in _dirty_fns:
-    setattr(SimArray, x, _dirty_fn(getattr(SimArray, x)))
-
-_u = SimArray.ufunc_rule
+    if hasattr(SimArray, x): # numpy 2 doesn't have __idiv__
+        setattr(SimArray, x, _dirty_fn(getattr(SimArray, x)))
 
 
 def _get_units_or_none(*a):
-    if len(a) == 1:
-        if hasattr(a[0], "units"):
-            return a[0].units
+    r = []
+    for x in a:
+        if isinstance(x, units.UnitBase):
+            r.append(x)
+        elif hasattr(x, "units"):
+            r.append(x.units)
         else:
-            return None
-    else:
-        r = []
-        for x in a:
-            if hasattr(x, "units"):
-                r.append(x.units)
-            else:
-                r.append(None)
+            r.append(None)
 
-        return r
+    return r
 
 #
 # Now we have the rules for unit outputs after numpy built-in ufuncs
@@ -854,7 +770,7 @@ def _get_units_or_none(*a):
 # of SimArrays.
 
 
-@_u(np.sqrt)
+@SimArray.ufunc_rule(np.sqrt)
 def _sqrt_units(a):
     if a.units is not None:
         return a.units ** (1, 2)
@@ -862,7 +778,7 @@ def _sqrt_units(a):
         return None
 
 
-@_u(np.multiply)
+@SimArray.ufunc_rule(np.multiply)
 def _mul_units(a, b, catch=None):
     a_units, b_units = _get_units_or_none(a, b)
     if a_units is not None and b_units is not None:
@@ -873,8 +789,7 @@ def _mul_units(a, b, catch=None):
         return b_units
 
 
-@_u(np.divide)
-@_u(np.true_divide)
+@SimArray.ufunc_rule(np.divide, np.true_divide)
 def _div_units(a, b, catch=True):
     a_units, b_units = _get_units_or_none(a, b)
     if a_units is not None and b_units is not None:
@@ -885,60 +800,99 @@ def _div_units(a, b, catch=True):
         return 1 / b_units
 
 
-@_u(np.add)
-@_u(np.subtract)
-def _consistent_units(a, b, catch=None):
-    a_units, b_units = _get_units_or_none(a, b)
-    if a_units is not None and b_units is not None:
-        if a_units == b_units:
-            return a_units
+@SimArray.ufunc_rule(np.add, np.subtract, np.negative)
+def _consistent_units(*arrays, catch=None):
+    array_units = _get_units_or_none(*arrays)
+    numpy_arrays = []
+    for a in arrays:
+        if isinstance(a, np.ndarray):
+            numpy_arrays.append(a.view(np.ndarray))
+        elif isinstance(a, units.UnitBase):
+            numpy_arrays.append(1)
         else:
-            raise units.UnitsException("Incompatible units")
+            numpy_arrays.append(a)
 
-    elif a_units is not None:
-        return a_units
+    if len(array_units)==0:
+        return None
+    if len(array_units)==1:
+        return array_units[0]
     else:
-        return b_units
+        output_unit = None
+        for i, (unit, numpy_array) in enumerate(zip(array_units, numpy_arrays)):
+            if unit is None or isinstance(unit, units.NoUnit):
+                continue
+            elif output_unit is None:
+                output_unit = unit
+                continue
+            else:
+                if unit != output_unit:
+                    conversion_ratio = unit.ratio(output_unit)
+                    numpy_arrays[i] = numpy_array * conversion_ratio
+
+        return output_unit, numpy_arrays
 
 
-@_u(np.power)
+@SimArray.ufunc_rule(np.square)
+def _square_units(a):
+    if a.units is not None:
+        return a.units ** 2
+    else:
+        return None
+
+@SimArray.ufunc_rule(np.power)
 def _pow_units(a, b):
-    a_units = _get_units_or_none(a)
+    a_units,  = _get_units_or_none(a)
+
+    numeric_b = b
+
+    if isinstance(b, tuple):
+        b = fractions.Fraction(b[0], b[1])
+        numeric_b = float(b)
+
+    if isinstance(b, float):
+        b = fractions.Fraction(b).limit_denominator(1000)
+
+    if isinstance(b, np.ndarray):
+        # can never figure out units in this case
+        return None
+
     if a_units is not None:
-        if not isinstance(b, int) and not isinstance(b, units.Fraction):
-            raise units.UnitsException("Can't track units")
-        return a_units ** b
+        if not (isinstance(numeric_b, int) or isinstance(numeric_b, float)):
+            raise units.UnitsException(f"Don't know how to take the power of a unit with exponent of type {type(b)}")
+        return a_units ** b, (a.view(np.ndarray), numeric_b)
     else:
         return None
 
 
-@_u(np.arctan)
-@_u(np.arctan2)
-@_u(np.arcsin)
-@_u(np.arccos)
-@_u(np.arcsinh)
-@_u(np.arccosh)
-@_u(np.arctanh)
-@_u(np.sin)
-@_u(np.tan)
-@_u(np.cos)
-@_u(np.sinh)
-@_u(np.tanh)
-@_u(np.cosh)
+@SimArray.ufunc_rule(np.arctan, np.arctan2, np.arcsin, np.arccos, np.arcsinh, np.arccosh, np.arctanh, np.sin, np.tan,
+    np.cos, np.sinh, np.tanh, np.cosh)
 def _trig_units(*a):
     return 1
 
 
-@_u(np.greater)
-@_u(np.greater_equal)
-@_u(np.less)
-@_u(np.less_equal)
-@_u(np.equal)
-@_u(np.not_equal)
-def _comparison_units(*a):
-    return None
+@SimArray.ufunc_rule(np.greater, np.greater_equal, np.less, np.less_equal, np.equal, np.not_equal)
+def _comparison_units(ar, other):
+    if units.is_unit_like(other):
+        if units.has_units(ar):
+            # either other is a unit, or an array with a unit If
+            # it's an array with a unit that matches our own, we
+            # want to fall straight through to the comparison
+            # operation. If it's an array with a unit that doesn't
+            # match ours, OR it's a plain unit, we want to
+            # convert first.
+            if units.is_unit(other) or other.units != ar.units:
+                other = other.in_units(ar.units)
+        else:
+            raise units.UnitsException("One side of a comparison has units and the other side does not")
 
-@_u(np.linalg.norm)
+    if isinstance(ar, SimArray):
+        ar = ar.view(np.ndarray)
+    if isinstance(other, SimArray):
+        other = other.view(np.ndarray)
+
+    return None, (ar, other)
+
+@SimArray.ufunc_rule(np.linalg.norm)
 def _norm_units(a, *args, **kwargs):
     return a.units
 
