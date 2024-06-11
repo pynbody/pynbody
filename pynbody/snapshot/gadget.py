@@ -918,8 +918,8 @@ class GadgetSnap(SimSnap):
         for p in p_types:
             # Special-case mass
             if g_name == b"MASS" and self.header.mass[p] != 0.:
-                data = np.append(data, self.header.mass[
-                                 p] * np.ones(self.header.npart[p], dtype=data.dtype))
+                mass_as_correct_type = self.header.mass[p].astype(self._get_array_type(name))
+                data = np.append(data, np.repeat(mass_as_correct_type, self.header.npart[p]))
             else:
                 data = np.append(data, self.__load_array(g_name, p))
 
