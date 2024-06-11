@@ -672,16 +672,18 @@ template <typename Tf, typename Tq> struct typed_populate {
     int propid;
     Tf ri[3];
     Tf hsm;
-    int Wendland;
+    int kernel_id;
 
-    void (*pSmFn)(SmoothingContext<Tf> *, npy_intp, int, bool) = NULL;
+    void (*pSmFn)(SmoothingContext<Tf> *, npy_intp, int) = NULL;
 
     PyObject *kdobj, *smxobj;
 
     PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid,
-                     &Wendland);
+                     &kernel_id);
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
     smx_global = (SmoothingContext<Tf> *)PyCapsule_GetPointer(smxobj, NULL);
+
+    smx_global->setupKernel(kernel_id);
 
     long nbodies = PyArray_DIM(kd->pNumpyPos, 0);
 
@@ -757,11 +759,11 @@ template <typename Tf, typename Tq> struct typed_populate {
         // retrieve the existing smoothing length
         hsm = GETSMOOTH(Tf, i);
 
-        // use it to get nearest neighbours - NB following should be Tf not double
+        // use it to get nearest neighbours
         nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
 
         // calculate the density
-        (*pSmFn)(smx_local, i, nCnt, Wendland);
+        (*pSmFn)(smx_local, i, nCnt);
 
         // select next particle in coordination with other threads
         i = smGetNext(smx_local);

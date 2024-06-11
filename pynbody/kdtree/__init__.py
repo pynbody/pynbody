@@ -124,7 +124,7 @@ class KDTree:
 
         self.boxsize = boxsize
         self._pos = pos
-        self.set_kernel(config['sph'].get('Kernel', 'CubicSpline'))
+        self.set_kernel(config['sph'].get('kernel', 'CubicSplineKernel'))
 
     def _set_num_threads(self, num_threads):
         if num_threads is None:
@@ -319,20 +319,19 @@ class KDTree:
             raise ValueError("Unknown smoothing request %s" % name)
 
 
-    def set_kernel(self, kernel = 'CubicSpline'):
+    def set_kernel(self, kernel = None):
         """Set the kernel for smoothing operations.
 
         Parameters
         ----------
-        kernel : str
-            Keyword to specify the smoothing kernel. Options: 'CubicSpline', 'WendlandC2'
+        kernel : various
+            Kernel to use for smoothing operations. Can be a string (e.g. 'CubicSplineKernel') or a
+            pynbody.sph.kernels.KernelBase instance. If None, the pynbody default kernel is
+            used. For more information see the documentation for :class:`pynbody.sph.kernels.create_kernel`.
         """
-        if kernel == 'CubicSpline':
-            self._kernel_id = 0
-        elif kernel == 'WendlandC2':
-            self._kernel_id = 1
-        else:
-            raise ValueError("Kernel %r not recognised. Please choose either 'CubicSpline' or 'WendlandC2'." % kernel)
+        from ..sph import kernels
+        self._kernel_id = kernels.create_kernel(kernel).get_c_kernel_id()
+
 
 
     def populate(self, mode, nn):
@@ -360,15 +359,7 @@ class KDTree:
 
 
             if self.num_threads == 1:
-                NT = 8
-                util.thread_map(
-                    kdmain.populate,
-                    [self.kdtree] * NT,
-                    [smx] * NT,
-                    [propid] * NT,
-                    list(range(0, NT)),
-                    [self._kernel_id] * NT
-                )
+                kdmain.populate(self.kdtree, smx, propid, 0, self._kernel_id)
             else:
                 util.thread_map(
                     kdmain.populate,

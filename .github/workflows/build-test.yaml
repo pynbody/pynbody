@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
         numpy-version: ["~=1.22.4'", "'", ">=2.0.0rc1' --pre"]
         exclude:
           - python-version: "3.12"
@@ -34,7 +34,7 @@ jobs:
       id: cache-testdata
       with:
         path: tests/testdata
-        key: testdata-v5
+        key: testdata-v6
     - name: Install gcc
       run: |
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
