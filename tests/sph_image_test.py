@@ -126,18 +126,23 @@ def test_denoise_projected_image_throws():
         # this should not:
         pynbody.plot.sph.image(f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, denoise=True)
 
-@pytest.mark.xfail(condition=int(np.__version__.split('.')[0])  == 2,
-                   reason="Probably because extinction is not compatible with numpy 2.0",
-                   strict=True)
+
+@pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
 def test_render_stars(stars_2d, stars_dust_2d):
     global f
-    with pytest.warns(UserWarning, match=r"No log file found"):
-        im = pynbody.plot.stars.render(f, width=10.0, resolution=100, return_image=True, noplot=True)
+
+    im = pynbody.plot.stars.render(f, width=10.0, resolution=100, return_image=True, noplot=True)
 
     np.save("result_stars_2d.npy", im[40:60])
 
     npt.assert_allclose(stars_2d,im[40:60],atol=0.01)
 
+@pytest.mark.xfail(condition=int(np.__version__.split('.')[0])  == 2,
+                   reason="Extinction is not currently compatible with numpy 2.0",
+                   strict=True)
+@pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
+def test_render_stars_with_dust(stars_dust_2d):
+    global f
     im = pynbody.plot.stars.render(f, width=10.0, resolution=100, return_image=True, noplot=True, with_dust=True)
     np.save("result_stars_dust_2d.npy", im[40:60])
 
