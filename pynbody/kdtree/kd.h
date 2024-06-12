@@ -6,7 +6,8 @@
 #include <Python.h>
 
 #define PY_ARRAY_UNIQUE_SYMBOL PYNBODY_ARRAY_API
-#include <numpy/arrayobject.h>
+#include <numpy/ndarraytypes.h>
+#include <numpy/ndarrayobject.h>
 
 #define ROOT 1
 #define LOWER(i) (i << 1)
@@ -47,20 +48,20 @@ typedef struct KDContext {
   npy_intp nSplit;
 
   npy_intp *particleOffsets; // length N array mapping from KDTree order to pynbody/file order
-  PyObject *pNumpyParticleOffsets; // Numpy array from which the pointer stored in particleOffsets has been derived
+  PyArrayObject *pNumpyParticleOffsets; // Numpy array from which the pointer stored in particleOffsets has been derived
 
   KDNode *kdNodes;           // length-N_nodes array of KDNode
-  PyObject *kdNodesPyObject; // Numpy array from which the pointer stored in kdNodes has been derived
+  PyArrayObject *kdNodesPyArrayObject; // Numpy array from which the pointer stored in kdNodes has been derived
 
 
   int nBitDepth;        // bit depth of arrays other than pNumpyQty which can be
                         // different
-  PyObject *pNumpyPos;  // Nx3 Numpy array of positions
-  PyObject *pNumpyMass; // Nx1 Numpy array of masses
-  PyObject *pNumpySmooth;
-  PyObject *pNumpyDen;         // Nx1 Numpy array of density
-  PyObject *pNumpyQty;         // Nx1 Numpy array of density
-  PyObject *pNumpyQtySmoothed; // Nx1 Numpy array of density
+  PyArrayObject *pNumpyPos;  // Nx3 Numpy array of positions
+  PyArrayObject *pNumpyMass; // Nx1 Numpy array of masses
+  PyArrayObject *pNumpySmooth;
+  PyArrayObject *pNumpyDen;         // Nx1 Numpy array of density
+  PyArrayObject *pNumpyQty;         // Nx1 Numpy array of density
+  PyArrayObject *pNumpyQtySmoothed; // Nx1 Numpy array of density
 
 };
 
@@ -159,32 +160,32 @@ template <typename T> void kdBuildNode(KDContext*, npy_intp, int);
 
 void kdCombine(KDNode *p1, KDNode *p2, KDNode *pOut);
 
-template <typename T> T GET(PyObject *ar, npy_intp i) {
+template <typename T> T GET(PyArrayObject *ar, npy_intp i) {
   return *((T *)PyArray_GETPTR1(ar, i));
 }
 
-template <typename T> T GET2(PyObject *ar, npy_intp i, npy_intp j) {
+template <typename T> T GET2(PyArrayObject *ar, npy_intp i, npy_intp j) {
   return *((T *)PyArray_GETPTR2(ar, i, j));
 }
 
-template <typename T> std::tuple<T, T, T> GET2(PyObject *ar, npy_intp i) {
+template <typename T> std::tuple<T, T, T> GET2(PyArrayObject *ar, npy_intp i) {
   T* ptr = (T *)PyArray_GETPTR1(ar, i);
   return std::make_tuple(ptr[0], ptr[1], ptr[2]);
 }
 
-template <typename T> void SET(PyObject *ar, npy_intp i, T val) {
+template <typename T> void SET(PyArrayObject *ar, npy_intp i, T val) {
   *((T *)PyArray_GETPTR1(ar, i)) = val;
 }
 
-template <typename T> void SET2(PyObject *ar, npy_intp i, npy_intp j, T val) {
+template <typename T> void SET2(PyArrayObject *ar, npy_intp i, npy_intp j, T val) {
   *((T *)PyArray_GETPTR2(ar, i, j)) = val;
 }
 
-template <typename T> void ACCUM(PyObject *ar, npy_intp i, T val) {
+template <typename T> void ACCUM(PyArrayObject *ar, npy_intp i, T val) {
   (*((T *)PyArray_GETPTR1(ar, i))) += val;
 }
 
-template <typename T> void ACCUM2(PyObject *ar, npy_intp i, npy_intp j, T val) {
+template <typename T> void ACCUM2(PyArrayObject *ar, npy_intp i, npy_intp j, T val) {
   (*((T *)PyArray_GETPTR2(ar, i, j))) += val;
 }
 

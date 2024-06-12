@@ -1,6 +1,7 @@
 import pynbody
 import pynbody.array as pyn_array
 import pynbody.array.shared as shared
+import pynbody.units as units
 
 SA = pynbody.array.SimArray
 import gc
@@ -47,6 +48,11 @@ def test_return_types():
 
     assert type(x2d.sum(axis=1)) is SA
 
+def test_add_iop_to_plain_array():
+    x = np.array([1,2,3])
+    y = SA([1,2,3], "kpc")
+    x+=y
+    assert (x == [2,4,6]).all()
 
 def test_unit_tracking():
 
@@ -58,7 +64,11 @@ def test_unit_tracking():
 
     assert abs((x * y).units.ratio("kpc Mpc") - 1.0) < 1.e-9
 
-    assert ((x ** 2).units.ratio("kpc**2") - 1.0) < 1.e-9
+    assert ((x ** 2).units.ratio("kpc**2") - 1.0) < 1.e-9 # ... translates to np.square
+
+    assert ((x ** (3,2)).units.ratio("kpc**3/2") - 1.0) < 1.e-9  # ... translates to np.power
+
+    npt.assert_allclose(x**(3,2), x.view(np.ndarray)**1.5) # double check the right power was taken
 
     assert ((x / y).units.ratio("") - 1.e-3) < 1.e-12
 
@@ -69,18 +79,18 @@ def test_unit_tracking():
 
 
 def test_iop_units():
-    x = SA([1, 2, 3, 4])
+    x = SA([1, 2, 3, 4], dtype=float)
     x.units = 'kpc'
 
-    y = SA([2, 3, 4, 5])
+    y = SA([2, 3, 4, 5], dtype=float)
     y.units = 'km s^-1'
 
-    z = SA([1000, 2000, 3000, 4000])
+    z = SA([1000, 2000, 3000, 4000], dtype=float)
     z.units = 'm s^-1'
 
-    assert repr(x) == "SimArray([1, 2, 3, 4], 'kpc')"
+    assert repr(x) == "SimArray([1., 2., 3., 4.], 'kpc')"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(pynbody.units.UnitsException):
         x += y
 
     x *= pynbody.units.Unit('K')
@@ -92,12 +102,12 @@ def test_iop_units():
     x *= y
 
     assert x.units == 'km s^-1 kpc'
-    assert (x == [2, 6, 12, 20]).all()
+    npt.assert_allclose(x, [2, 6, 12, 20])
 
     y += z
     assert y.units == 'km s^-1'
 
-    assert (y == [3, 5, 7, 9]).all()
+    npt.assert_allclose(y, [3, 5, 7, 9])
 
 
 def test_iop_sanity():
@@ -122,7 +132,7 @@ def test_unit_array_interaction():
 
     assert (x + y).units == 'Mpc'
 
-    npt.assert_allclose(y + x, SA([1.001] * 10, 'Mpc'))
+    npt.assert_allclose(y + x, SA([1001] * 10, 'kpc'))
     npt.assert_allclose(y - x, SA([-999.] * 10, 'kpc'))
 
 def test_norm_units():

@@ -721,7 +721,7 @@ class GadgetSnap(SimSnap):
         first_file = _GadgetFile(filename)
         self._files.append(first_file)
         files_expected = self._files[0].header.num_files
-        npart = np.array(self._files[0].header.npart)
+        npart = np.array(self._files[0].header.npart,dtype=np.uint64) # 64-bit necessary in numpy 2.0 because of changes to data type promotion rules in the 2 * 32 calc below
 
         if files is None:
             # we want to load all files
@@ -743,7 +743,7 @@ class GadgetSnap(SimSnap):
         self.header = copy.deepcopy(self._files[0].header)
         self.header.npart = npart
         # Check and fix npartTotal and NallHW if they are wrong.
-        if npart is not self.header.npartTotal + 2 ** 32 * self.header.NallHW:
+        if npart is not self.header.npartTotal.astype(np.uint64) + 2 ** 32 * self.header.NallHW.astype(np.uint64):
             self.header.NallHW = npart // 2 ** 32
             self.header.npartTotal = npart - 2 ** 32 * self.header.NallHW
             for f in self._files:
@@ -903,9 +903,9 @@ class GadgetSnap(SimSnap):
         ndim = self._get_array_dims(name)
 
         if ndim == 1:
-            dims = [self.get_block_parts(g_name, fam), ]
+            dims = [int(self.get_block_parts(g_name, fam)), ]
         else:
-            dims = [self.get_block_parts(g_name, fam), ndim]
+            dims = [int(self.get_block_parts(g_name, fam)), ndim]
 
         if fam is not None:
             p_types = gadget_type(fam)
@@ -918,8 +918,8 @@ class GadgetSnap(SimSnap):
         for p in p_types:
             # Special-case mass
             if g_name == b"MASS" and self.header.mass[p] != 0.:
-                data = np.append(data, self.header.mass[
-                                 p] * np.ones(self.header.npart[p], dtype=data.dtype))
+                mass_as_correct_type = self.header.mass[p].astype(self._get_array_type(name))
+                data = np.append(data, np.repeat(mass_as_correct_type, self.header.npart[p]))
             else:
                 data = np.append(data, self.__load_array(g_name, p))
 
@@ -934,7 +934,8 @@ class GadgetSnap(SimSnap):
     def __load_array(self, g_name, p_type):
        """Internal helper function for _load_array that takes a g_name and a gadget type,
        gets the data from each file and returns it as one long array."""
-       data = np.array(np.zeros(self._get_array_dims(g_name) * self.header.npart[p_type]), dtype=self._get_array_type_g(g_name))
+       # int cast necessary because numpy makes int * uint64 a float!
+       data = np.zeros(int(self._get_array_dims(g_name) * self.header.npart[p_type]), dtype=self._get_array_type_g(g_name))
        # Get a type from each file
        ipos = 0
        for f in self._files:

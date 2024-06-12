@@ -9,6 +9,8 @@ from pynbody.util import get_eps
 
 cimport numpy as np
 
+np.import_array()
+
 DTYPE = np.double
 
 ctypedef fused DTYPE_t:
@@ -69,12 +71,7 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
             m_by_r2[pi,2] += mass_i*dz * drsoft3
 
 
-    m_by_r = m_by_r.view(array.SimArray)
-    m_by_r2 = m_by_r2.view(array.SimArray)
-    m_by_r.units = f['mass'].units/f['pos'].units
-    m_by_r2.units = f['mass'].units/f['pos'].units**2
+    pot = array.SimArray(-m_by_r,units=f['mass'].units/f['pos'].units * units.G)
+    accel = array.SimArray(-m_by_r2,units=f['mass'].units/f['pos'].units**2 * units.G)
 
-    m_by_r*=units.G
-    m_by_r2*=units.G
-
-    return -m_by_r, -m_by_r2
+    return pot, accel

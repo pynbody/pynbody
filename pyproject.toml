@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "oldest-supported-numpy", "cython"]
+requires = ["setuptools", "wheel", "numpy>=2.0.0rc1", "cython"]
 
 [tool.pytest.ini_options]
 testpaths = ['tests']

@@ -4,6 +4,8 @@ import numpy as np
 
 cimport cython
 cimport numpy as npc
+
+npc.import_array()
 from cython cimport integral
 
 # The following slightly odd repetitiveness is to force Cython to generate
