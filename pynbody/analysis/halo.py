@@ -456,8 +456,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', use_family='dm'):
         with logarithmic and linear radial spacing.
 
     use_family : str or pynbody.family.Family
-        The type of particles to consider. Default is 'DM'. Example of other str options would be 'Star', 'Gas',
-        Alternatively use pynbody.family.Family object.
+        The particle family to use. Default is 'dm'. 
 
     Returns
     -------
