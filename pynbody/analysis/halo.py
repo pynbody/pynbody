@@ -425,7 +425,7 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
 
     return transform
 
-def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', matter_type = 'DM'):
+def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', use_family='dm'):
     """
     Computes the shape of a halo as a function of radius by fitting homeoidal shells.
 
@@ -455,8 +455,9 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', matter_type = 'DM'
         number is not necessarily maintained during fitting. 'log' and 'lin' initialise bins
         with logarithmic and linear radial spacing.
 
-    matter_type : str
-        The type of particles to consider. Default is 'DM'. Other options are 'Stars' and 'Gas'.
+    use_family : str or pynbody.family.Family
+        The type of particles to consider. Default is 'DM'. Example of other str options would be 'Star', 'Gas',
+        Alternatively use pynbody.family.Family object.
 
     Returns
     -------
@@ -487,11 +488,11 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', matter_type = 'DM'
 
     # Define moment of inertia tensor:
     def MoI(r,m):
-        ShapeTensor = np.zeros((3,3))
+        shape_tensor = np.zeros((3, 3))
         for i in range(3):
             for j in range(3):
-                ShapeTensor[i,j] = np.sum(m*r[:,i]*r[:,j])
-        return ShapeTensor
+                shape_tensor[i,j] = np.sum(m * r[:, i] * r[:, j])
+        return shape_tensor
 
     # Splits 'r' array into N groups containing equal numbers of particles.
     # An array is returned with the radial bins that contain these groups.
@@ -508,13 +509,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', matter_type = 'DM'
         return theta
     #-----------------------------FUNCTIONS-----------------------------
 
-    #select particle type
-    if matter_type == 'DM':
-        sim_m = sim.dm
-    elif matter_type == 'Stars':
-        sim_m = sim.star
-    elif matter_type == 'Gas':
-        sim_m = sim.gas
+    sim_m = sim[pynbody.family.get_family(use_family)]
 
     if (rout == None): rout = sim_m['r'].max()
     if (rin == None): rin = rout/1E3
