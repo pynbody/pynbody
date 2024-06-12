@@ -477,6 +477,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', use_family='dm'):
         The rotation matrices for each shell.
 
     """
+    from pynbody import family
 
     #-----------------------------FUNCTIONS-----------------------------
     # Define an ellipsoid shell with lengths a,b,c and orientation E:
@@ -513,7 +514,7 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal', use_family='dm'):
     if (rout == None): rout = sim_m['r'].max()
     if (rin == None): rin = rout/1E3
 
-    radius_mask = (np.where(sim_m['r'] < rout)) & (np.where(sim_m['r'] > rin))
+    radius_mask = (sim_m['r'] < rout) & (sim_m['r'] > rin)
     posr = np.array(sim_m['r'])[radius_mask]
     pos = np.array(sim_m['pos'])[radius_mask]
     mass = np.array(sim_m['mass'])[radius_mask]
