@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.testing as npt
+import pytest
 
 import pynbody
 
@@ -39,7 +40,6 @@ def test_gravity_float():
     f['eps'] = np.ones(100,dtype=np.float32)
     f['mass'] = np.ones(100,dtype=np.float32)
     pynbody.gravity.calc.all_direct(f)
-
 
 def test_eps_retrieval_str():
     f = pynbody.load("testdata/gadget2/test_g2_snap.0")
