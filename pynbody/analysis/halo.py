@@ -415,7 +415,7 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
 
         if with_velocity:
             if vel_centre is None :
-                vel_centre = vel_center(sim, cen_size=cen_size, retcen=True)
+                vel_centre = vel_center(sim, cen_size=cen_size, return_cen=True)
             logger.info("vel_centre=%s", vel_centre)
             transform = transform.offset_velocity(-vel_centre)
 
@@ -425,19 +425,19 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
 
     return transform
 
-def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal', ndim=3, max_iterations=10, tol=1e-3, justify=False):
+def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
+          ndim=3, max_iterations=10, tol=1e-3, justify=False):
 
-  """
-  Calculates the shape of the provided particles in homeoidal shells, over a range of nbins radii.
+  """Calculates the shape of the provided particles in homeoidal shells, over a range of nbins radii.
 
   Homeoidal shells maintain a fixed area (ndim=2) or volume (ndim=3).
 
-  The algorithm is sensitive to substructure, which should ideally be removed.
-
   The simulation must be pre-centred, e.g. using :func:`center`.
 
-  Caution is advised when assigning large number of bins and radial
-  ranges with many particles, as the algorithm becomes very slow.
+  The algorithm is sensitive to substructure, which should ideally be removed.
+
+  Caution is advised when assigning large number of bins and radial ranges with many particles, as the
+  algorithm becomes very slow.
 
   Parameters
   ----------
@@ -481,19 +481,16 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal', ndim=3, max_iterat
     -------
 
     rbin : SimArray
-        The radial bins used for the fitting.
+        The radial bins used for the fitting
 
-    ba : array
-        The axial ratio b/a as a function of radius.
+    axis_lengths : array
+        TODO - write something clear here
 
-    ca : array
-        The axial ratio c/a as a function of radius.
+    N : array
+        The number of particles within each bin
 
-    angle : array
-        The angle of the a-direction with respect to the x-axis as a function of radius.
-
-    Es : array
-        The rotation matrices for each shell.
+    R : array
+        The rotation matrices for each shell
 
   """
 
