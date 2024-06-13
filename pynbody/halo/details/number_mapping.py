@@ -55,7 +55,7 @@ class MonotonicHaloNumberMapper(HaloNumberMapper):
             missing_halo_numbers = halo_number[missing_halo_mask]
 
             if missing_halo_numbers.size > 0:
-                raise KeyError(f"No such halos: {missing_halo_numbers}")
+                raise KeyError(f"No such halos: {', '.join(str(i) for i in np.unique(missing_halo_numbers))}")
         else:
             if halo_index >= len(self._halo_numbers) or self._halo_numbers[halo_index] != halo_number:
                 raise KeyError(f"No such halo {halo_number}")

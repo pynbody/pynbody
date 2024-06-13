@@ -1,11 +1,5 @@
 """
-snapshot
-========
-
-This module implements the  :class:`~pynbody.snapshot.SimSnap` class which manages and stores snapshot data.
-It also implements the :class:`~pynbody.snapshot.SubSnap` class (and relatives) which
-represent different views of an existing :class:`~pynbody.snapshot.SimSnap`.
-
+Implements classes to load and manipulate snapshot data
 """
 
 import logging
@@ -19,8 +13,29 @@ logger = logging.getLogger('pynbody.snapshot')
 
 
 def load(filename, *args, **kwargs) -> SimSnap:
-    """Loads a file using the appropriate class, returning a SimSnap
-    instance."""
+    """Loads a file using the appropriate class, returning a SimSnap instance.
+
+    This routine is the main entry point for loading snapshots. It will try to load the file using the appropriate
+    class, based on inspection by the candidate subclasses. If no class can load the file, an OSError is raised.
+
+    Arguments
+    ---------
+    filename : str
+        The filename to load
+
+    priority : optional, list[str | type]
+        A list of SimSnap subclasses to try, in order. The first class which is capable of loading the file
+        is used. If not specified, the ordering is as specified in the configuration files.
+
+    *args, **kwargs :
+        Other arguments and keyword arguments are passed to the class constructor that is used to load the file.
+
+    Returns
+    -------
+    SimSnap
+        The loaded snapshot
+
+    """
 
     filename = pathlib.Path(filename)
 
@@ -34,25 +49,22 @@ def load(filename, *args, **kwargs) -> SimSnap:
     raise OSError(
         "File %r: format not understood or does not exist" % filename)
 
-def new(n_particles=0, order=None, class_=SimSnap, **families):
+def new(n_particles = 0, order = None, class_ = SimSnap, **families) -> SimSnap:
     """Create a blank SimSnap, with the specified number of particles.
 
-    Position, velocity and mass arrays are created and filled
-    with zeros.
+    Position, velocity and mass arrays are created and filled with zeros.
 
     By default all particles are taken to be dark matter.
-    To specify otherwise, pass in keyword arguments specifying
-    the number of particles for each family, e.g.
 
-    f = new(dm=50, star=25, gas=25)
+    To specify otherwise, pass in keyword arguments specifying the number of particles for each family, e.g.
 
-    The order in which the different families appear in the snapshot
-    is unspecified unless you add an 'order' argument:
+    >>> f = new(dm=50, star=25, gas=25)
 
-    f = new(dm=50, star=25, gas=25, order='star,gas,dm')
+    The order in which the different families appear in the snapshot is unspecified unless you add an 'order' argument:
 
-    guarantees the stars, then gas, then dark matter particles appear
-    in sequence.
+    >>> f = new(dm=50, star=25, gas=25, order='star,gas,dm')
+
+    guarantees the stars, then gas, then dark matter particles appear in sequence.
     """
 
     if len(families) == 0:

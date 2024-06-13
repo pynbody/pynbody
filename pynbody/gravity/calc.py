@@ -1,27 +1,102 @@
+"""Gravity calculations
+"""
+
+from __future__ import annotations
+
 import math
 import warnings
 
 import numpy as np
 
 from .. import array, config, units
+from ..array import SimArray
+from ..snapshot.simsnap import SimSnap
 from ..util import eps_as_simarray, get_eps
-from . import tree
 from ._gravity import direct
 
 
-def all_direct(f, eps=None):
+def all_direct(f: SimSnap, eps: float | SimArray | None = None):
+    """Calculate the potential and acceleration for all particles in the snapshot using a direct summation algorithm.
+
+    The results are stored inside the snapshot itself, as f['phi'] and f['acc'].
+
+    .. warning::
+       The direct summation algorithm is implemented in Cython and parallelised. Nonetheless, given the O(N^2) scaling
+       of the algorithm, it quickly becomes prohibitive for large numbers of particles.
+
+    Parameters
+    ----------
+
+    f :
+        The snapshot to calculate the potential and acceleration for
+    eps :
+        The gravitational softening length. If not provided, the value of ``f['eps']`` will be used.
+
+    """
     phi, acc = direct(f, f['pos'].view(np.ndarray), eps)
     f['phi'] = phi
     f['acc'] = acc
 
 
-def all_pm(f, eps=None, ngrid=10):
+def all_pm(f: SimSnap, ngrid: int = 10):
+    """Calculate the potential and acceleration for all particles in the snapshot using a Particle-Mesh algorithm.
+
+    The results are stored inside the snapshot itself, as ``f['phi']`` and ``f['acc']``.
+
+    .. warning::
+       PM calculations assume periodic boundary conditions, and are only accurate on large scales (much larger than
+
+
+    Parameters
+    ----------
+
+    f :
+        The snapshot to calculate the potential and acceleration for
+
+    ngrid :
+        The number of grid points to use in each dimension for the Particle-Mesh calculation.
+
+    """
     phi, acc = pm(f, f['pos'].view(np.ndarray), eps, ngrid=ngrid)
     f['phi'] = phi
     f['acc'] = acc
 
 
-def pm(f, ipos, eps=None, ngrid=10, x0=-1, x1=1):
+def pm(f: SimSnap, ipos: np.ndarray, ngrid:int = 10, x0=None, x1=None):
+    """Calculate the potential and acceleration for a set of particles using a Particle-Mesh algorithm.
+
+    Parameters
+    ----------
+
+    f :
+        The snapshot to calculate the potential and acceleration for
+
+    ipos :
+        The positions of the particles to calculate the potential and acceleration for
+
+    x0 :
+        The lower bound of the grid in each dimension. If ``None``, the minimum of the snapshot's positions will be
+        used.
+
+    x1 :
+        The upper bound of the grid in each dimension. If ``None``, ``x0 + f.properties['boxsize']`` will be used.
+
+    Returns
+    -------
+
+    phi : array.SimArray
+        The gravitational potential at the specified positions
+
+    grad_phi : array.SimArray
+        The gravitational acceleration at the specified positions
+
+    """
+
+    if x0 is None:
+        x0 = f['pos'].min()
+    if x1 is None:
+        x1 = x0 + f.properties['boxsize']
+
     dx = float(x1 - x0) / ngrid
     grid, edges = np.histogramdd(f['pos'],
                                  bins=ngrid,
@@ -63,21 +138,22 @@ def pm(f, ipos, eps=None, ngrid=10, x0=-1, x1=1):
 
     return phi, -grad_phi
 
-def treecalc(f, rs, eps=None):
-    gtree = tree.GravTree(
-        f['pos'].view(np.ndarray), f['mass'].view(np.ndarray), eps=f['eps'], rs=rs)
-    a, p = gtree.calc(rs, eps=eps)
-    return p, a
+def midplane_rot_curve(f: SimSnap, rxy_points: np.ndarray, eps: float | SimArray | None = None):
+    """Calculate the rotation curve of a disk galaxy in the x-y midplane (with z=0)
 
+    Parameters
+    ----------
+    f :
+        The snapshot to calculate the rotation curve for
+    rxy_points :
+        A list or array of radii at which to calculate the rotation curve, in the xy-plane
 
-def midplane_rot_curve(f, rxy_points, eps=None, mode=config['gravity_calculation_mode']):
+    Returns
+    -------
 
-    direct_omp = None
-
-    if mode == 'direct_omp':
-        mode = 'direct'  # deprecated
-        warnings.warn(
-            "OpenMP module is now selected at install time", DeprecationWarning)
+    v : array.SimArray
+        The rotation curve at the specified radii
+    """
 
     if eps is None:
         eps = get_eps(f)
@@ -90,14 +166,7 @@ def midplane_rot_curve(f, rxy_points, eps=None, mode=config['gravity_calculation
     rs = [pos for r in rxy_points for pos in [
         (r, 0, 0), (0, r, 0), (-r, 0, 0), (0, -r, 0)]]
 
-    try:
-        fn = {'direct': direct,
-              'tree': treecalc,
-              }[mode]
-    except KeyError:
-        fn = mode
-
-    pot, accel = fn(f, np.array(rs, dtype=f['pos'].dtype), eps=eps)
+    pot, accel = direct(f, np.array(rs, dtype=f['pos'].dtype), eps=eps)
 
     u_out = (accel.units * f['pos'].units) ** (1, 2)
 
@@ -125,14 +194,22 @@ def midplane_rot_curve(f, rxy_points, eps=None, mode=config['gravity_calculation
     return x
 
 
-def midplane_potential(f, rxy_points, eps=None, mode=config['gravity_calculation_mode']):
-    direct_omp = None
+def midplane_potential(f, rxy_points, eps=None):
+    """Calculate the potential of a disk galaxy in the x-y midplane (with z=0)
 
-    if mode == 'direct_omp':
-        try:
-            from pynbody.grav_omp import direct as direct_omp
-        except ImportError:
-            mode = 'direct'
+    Parameters
+    ----------
+    f :
+        The snapshot to calculate the potential for
+    rxy_points :
+        A list or array of radii at which to calculate the potential, in the xy-plane
+
+    Returns
+    -------
+
+    v : array.SimArray
+        The potential at the specified radii
+    """
 
     if eps is None:
         eps = get_eps(f)
@@ -141,19 +218,12 @@ def midplane_potential(f, rxy_points, eps=None, mode=config['gravity_calculation
 
     u_out = units.G * f['mass'].units / f['pos'].units
 
-    try:
-        fn = {'direct': direct,
-              'direct_omp': direct_omp,
-              'tree': tree,
-              }[mode]
-    except KeyError:
-        fn = mode
 
     # Do four samples like Tipsy does
     rs = [pos for r in rxy_points for pos in [
         (r, 0, 0), (0, r, 0), (-r, 0, 0), (0, -r, 0)]]
 
-    m_by_r, m_by_r2 = fn(f, np.array(rs, dtype=f['pos'].dtype), eps=eps)
+    m_by_r, m_by_r2 = direct(f, np.array(rs, dtype=f['pos'].dtype), eps=eps)
 
     potential = units.G * m_by_r * f['mass'].units / f['pos'].units
 

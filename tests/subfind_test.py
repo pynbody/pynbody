@@ -14,19 +14,29 @@ def snap(request):
 
 @pytest.fixture
 def halos(snap):
-    return pynbody.halo.subfind.SubfindCatalogue(snap, subs=True)
+    return pynbody.halo.subfind.SubfindCatalogue(snap, subhalos=True)
 
 @pytest.fixture
 def groups(snap):
-    return pynbody.halo.subfind.SubfindCatalogue(snap, subs=False)
+    return pynbody.halo.subfind.SubfindCatalogue(snap, subhalos=False)
 
 
 def test_lengths(halos, groups):
     assert len(groups)==2853
     assert len(halos)==3290
 
+def test_deprecated_subs_keyword(snap, halos):
+    with pytest.warns(DeprecationWarning):
+        new_halos = snap.halos(subs=True)
+        assert isinstance(new_halos, pynbody.halo.subfind.SubfindCatalogue)
+        assert len(new_halos) == len(halos)
+
 def test_autodetect_subfind(snap):
     assert isinstance(snap.halos(), pynbody.halo.subfind.SubfindCatalogue)
+
+def test_autodetect_subfind_from_filename(snap):
+    snap._filename = ""
+    assert isinstance(snap.halos(filename="testdata/subfind/groups_019"), pynbody.halo.subfind.SubfindCatalogue)
 
 def test_group_properties(groups):
     assert_allclose(float(groups[3].properties['mmean_200']), 1.22e14, rtol=1.e-2)
@@ -51,7 +61,7 @@ def test_group_children(groups):
     halo_nums_in_subs = [sh.properties['halo_number'] for sh in groups[3].subhalos]
     assert (halo_nums_in_subs == np.arange(89,109)).all()
 
-    halos = groups.base.halos(subs=True)
+    halos = groups.base.halos(subhalos=True)
     for sh_from_group, sh in zip(groups[3].subhalos, halos[89:109]):
         assert sh.properties['halo_number'] == sh_from_group.properties['halo_number']
         assert np.all(sh['iord'] == sh_from_group['iord'])
@@ -118,3 +128,15 @@ def test_halo_particles(halos):
           264776, 558562, 362319, 591560, 706259, 348265, 249821, 231233,
           474710, 231023, 380767, 413674, 589153, 459711, 576598, 671059,
           523615])
+
+@pytest.mark.parametrize('use_index', [True, False])
+def test_halo_array(halos, use_index):
+    """Tests for a bug where the halo array was not set correctly with use_index=True"""
+    grp_array = halos.get_group_array(use_index=use_index)
+    halos.base['grp_array'] = grp_array
+    for h in halos[:100]:
+        if use_index:
+            halo_num_or_index = halos.number_mapper.number_to_index(h.properties['halo_number'])
+        else:
+            halo_num_or_index = h.properties['halo_number']
+        assert np.all(h['grp_array'] == halo_num_or_index)

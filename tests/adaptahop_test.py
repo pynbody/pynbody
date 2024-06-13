@@ -7,6 +7,7 @@ from pynbody.halo.adaptahop import (
     AdaptaHOPCatalogue,
     BaseAdaptaHOPCatalogue,
     NewAdaptaHOPCatalogue,
+    NewAdaptaHOPCatalogueFullyLongInts,
 )
 
 
@@ -215,6 +216,11 @@ def test_halo_particle_ids(halos):
             NewAdaptaHOPCatalogue,
             dict(_longint=True, _read_contamination=False),
         ),
+        (
+            "testdata/EDGE_adaptahop_output/tree_bricks100_full_long_ints",
+            NewAdaptaHOPCatalogueFullyLongInts,
+            dict(_longint=True, _read_contamination=True),
+        ),
     ),
 )
 def test_longint_contamination_autodetection(f, fname, Halo_T, ans):
@@ -222,7 +228,7 @@ def test_longint_contamination_autodetection(f, fname, Halo_T, ans):
     # we just want to make sure the longint/contamination
     # flags are properly detected.
 
-    halos = Halo_T(f, fname=fname)
+    halos = Halo_T(f, filename=fname)
     assert halos._longint == ans["_longint"]
     assert halos._read_contamination == ans["_read_contamination"]
 
@@ -232,3 +238,20 @@ def test_halo_iteration(halos):
     assert len(h) == len(halos)
     assert h[0] is halos[1]
     assert h[-1] is halos[len(halos)]
+
+def test_dm_not_first_family(f):
+    # AdaptaHOP files only refer to DM particles, but we can't assume that DM is the first family
+    # e.g. tracer particles come first
+
+    f = pynbody.load("testdata/new_adaptahop_output_00080")
+    f_with_tracers = pynbody.new(gas_tracer=100, dm=len(f.dm), star=len(f.star), gas=len(f.gas))
+    f_with_tracers.dm['iord'] = f.dm['iord']
+    f_with_tracers.properties.update(f.properties)
+
+    halos = f.halos()
+
+    halos2 = pynbody.halo.adaptahop.NewAdaptaHOPCatalogue(f_with_tracers,
+                                                          filename="testdata/new_adaptahop_output_00080/Halos/tree_bricks080")
+
+    assert (halos2[1].dm['iord'] == halos[1].dm['iord']).all()
+    assert (halos2[2].dm['iord'] == halos[2].dm['iord']).all()

@@ -31,7 +31,7 @@ class ExampleSnap(pynbody.snapshot.simsnap.SimSnap):
     pass
 
 
-@ExampleSnap.derived_quantity
+@ExampleSnap.derived_array
 def foo(sim):
     return sim['blob']+5
 

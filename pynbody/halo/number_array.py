@@ -1,3 +1,5 @@
+"""Support for generic halo catalogues based on an array of halo numbers for each particle."""
+
 import numpy as np
 
 from . import HaloCatalogue
@@ -62,11 +64,21 @@ class HaloNumberCatalogue(HaloCatalogue):
     def _no_such_halo(self, i):
         raise KeyError(f"No such halo {i}")
 
-    def get_group_array(self, family=None):
+    def get_group_array(self, family=None, use_index=False, fill_value=-1):
         if family is not None:
-            return self.base[family][self._array]
+            result = self.base[family][self._array]
         else:
-            return self.base[self._array]
+            result = self.base[self._array]
+
+        if use_index:
+            result = np.copy(result)
+            ignored = result == self._ignore
+            not_ignored = ~ignored
+            result[ignored] = fill_value
+            result[not_ignored] = self.number_mapper.number_to_index(result[not_ignored])
+
+        return result
+
 
     @classmethod
     def _can_load(cls, sim, arr_name='grp'):

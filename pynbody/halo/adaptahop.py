@@ -58,8 +58,7 @@ UNITS = {
 
 
 class BaseAdaptaHOPCatalogue(HaloCatalogue):
-    """A AdaptaHOP Catalogue. AdaptaHOP output files must be in
-    Halos/<simulation_number>/ directory or specified by fname"""
+    """Handles catalogues produced by AdaptaHOP."""
 
     _AdaptaHOP_fname = None
     _halos = None
@@ -71,26 +70,49 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
     _halo_attributes_contam = tuple()
     _header_attributes = tuple()
 
-    def __init__(self, sim, fname=None, read_contamination=None, longint=None):
+    def __init__(self, sim, filename=None, read_contamination=None, longint=None):
+        """Initialise a AdaptaHOP catalogue.
+
+        Parameters
+        ----------
+
+        sim : ~pynbody.snapshot.simsnap.SimSnap
+            The snapshot to which this catalogue is attached.
+
+        filename : str, optional
+            The filename of the AdaptaHOP catalogue (``path/to/tree_bricksXXX``). If not specified, the
+            code will attempt to find the catalogue in the simulation directory.
+
+        read_contamination : bool, optional
+            Whether to read information about contamination of each halo. If not specified, the code will attempt to
+            detect the format. Note that if specifying read_contamination, longint must also be specified.
+
+        longint : bool, optional
+            Whether to read 64-bit integers. If not specified, the code will attempt to detect the format. Note that if
+            specifying longint, read_contamination must also be specified.
+        """
         if FortranFile is None:
             raise RuntimeError(
                 "Support for AdaptaHOP requires the package `cython-fortran-file` to be installed."
             )
 
-        if fname is None:
-            for fname in AdaptaHOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
-                if os.path.exists(fname):
+        if filename is None:
+            for filename in AdaptaHOPCatalogue._enumerate_hop_tag_locations_from_sim(sim):
+                if os.path.exists(filename):
                     break
 
-            if not os.path.exists(fname):
+            if not os.path.exists(filename):
                 raise RuntimeError(
                     "Unable to find AdaptaHOP brick file in simulation directory"
                 )
 
-        self._fname = fname
+        self._fname = filename
+
+        if (read_contamination or longint) is not None and (read_contamination is None or longint is None):
+            raise ValueError("If specifying read_contamination or longint, both must be specified")
 
         if read_contamination is None or longint is None:
-            read_contamination, longint = self._detect_file_format(fname)
+            read_contamination, longint = self._detect_file_format(filename)
         self._read_contamination = read_contamination
         self._longint = longint
 
@@ -120,24 +142,27 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         # dm needs to be at start of family map -- technically we will assume all particles are in dm
         # but then the parent class will use the position offsets as though they refer to the whole file
-        assert self.base._get_family_slice('dm') == slice(0, len(self._base_dm))
+        dm_offset = self.base._get_family_slice('dm').start
+        if dm_offset>0:
+            self._iord_to_fpos = iord_mapping.IordOffsetModifier(self._iord_to_fpos, dm_offset)
 
         self._halos = {}
 
-        self._AdaptaHOP_fname = fname
+        self._AdaptaHOP_fname = filename
 
 
         logger.debug("AdaptaHOPCatalogue loaded")
 
-    def _detect_file_format(self, fname):
+    @classmethod
+    def _detect_file_format(cls, fname):
         """
         Detect if the file is in the old format or the new format.
         """
         with FortranFile(fname) as fpu:
-            longint_flag = self._detect_longint(fpu, (False, True))
+            longint_flag = cls._detect_longint(fpu, (False, True))
 
             # Now attempts reading the first halo data
-            attrs, attrs_contam = (self.convert_i8b(_, longint_flag) for _ in (self._halo_attributes, self._halo_attributes_contam))
+            attrs, attrs_contam = (cls.convert_i8b(_, longint_flag) for _ in (cls._halo_attributes, cls._halo_attributes_contam))
 
             if len(attrs_contam) == 0:
                 read_contamination = False
@@ -185,14 +210,11 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
             for i in range(nhalos + nsubs):
                 self._file_offsets[i] = fpu.tell()
-                if self._longint:
-                    npart = fpu.read_int64()
-                else:
-                    npart = fpu.read_int()
+                npart = fpu.read_int32_or_64()
                 self._npart[i] = npart
                 fpu.skip(1)  # skip over fortran field with ids of parts
-                self._halo_numbers[i] = fpu.read_int()
-                fpu.skip(Nskip) # skip over attributes
+                self._halo_numbers[i] = fpu.read_int32_or_64()
+                fpu.skip(Nskip)     # skip over attributes
 
     def _get_all_particle_indices(self):
         particle_ids = np.empty(self._npart.sum(), dtype=self._length_type)
@@ -202,10 +224,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         with FortranFile(self._fname) as fpu:
             for i in range(len(self)):
                 fpu.seek(self._file_offsets[i])
-                if self._longint:
-                    npart = fpu.read_int64()
-                else:
-                    npart = fpu.read_int()
+                npart = fpu.read_int32_or_64()
 
                 stop = start+npart
                 particle_ids[start:stop] = self._iord_to_fpos.map_ignoring_order(self._read_member_helper(fpu, npart))
@@ -222,10 +241,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         offset = self._file_offsets[halo_index]
         with FortranFile(self._fname) as fpu:
             fpu.seek(offset)
-            if self._longint:
-                npart = fpu.read_int64()
-            else:
-                npart = fpu.read_int()
+            npart = fpu.read_int32_or_64()
 
             assert npart == self._npart[halo_index]
 
@@ -268,14 +284,12 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
         with FortranFile(self._fname) as fpu:
             fpu.seek(offset)
-            if self._longint:
-                npart = fpu.read_int64()
-            else:
-                npart = fpu.read_int()
-
+            npart = fpu.read_int32_or_64()
             fpu.skip(1) # iord array
 
-            halo_id_read = fpu.read_int()
+            # After PR#821, AdaptaHOP catalogues can have short in headers but long int iords,
+            # or be using long ints fully everywhere. Updates in FortranFile now deal with this.
+            halo_id_read = fpu.read_int32_or_64()
             assert i == halo_id_read
             if self._read_contamination:
                 attrs = self._halo_attributes + self._halo_attributes_contam
@@ -333,33 +347,34 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             except (ValueError, OSError):
                 pass
 
-        raise ValueError("Could not detect longint")
+        raise ValueError(
+            f"{cls.__name__} could not detect longint. "
+            "Most likely, this class is expecting the wrong header/data blocks "
+            "compared to what is stored in the halo catalogue."
+        )
 
     @classmethod
-    def _can_load(cls, sim, arr_name="grp", *args, **kwa):
-        candidates = [
-            fname
-            for fname in cls._enumerate_hop_tag_locations_from_sim(sim)
-        ]
+    def _can_load(cls, sim, filename=None, arr_name="grp", *args, **kwa):
+        if cls is BaseAdaptaHOPCatalogue:
+            return False # Must load a specialisation
+
+        if filename is None:
+            candidates = [
+                fname
+                for fname in cls._enumerate_hop_tag_locations_from_sim(sim)
+            ]
+        else:
+            candidates = [filename]
         valid_candidates = [fname for fname in candidates if os.path.exists(fname)]
         if len(valid_candidates) == 0:
             return False
 
-        # Logic is as follows:
-        # - If `longint` is provided, try loading with it.
-        # - Otherwise, try loading with and without it
-        use_longint = kwa.pop("longint", None)
-        if use_longint is None:
-            longint_flags = [True, False]
-        else:
-            longint_flags = use_longint
         for fname in valid_candidates:
-            with FortranFile(fname) as fpu:
-                try:
-                    cls._detect_longint(fpu, longint_flags)
-                    return True
-                except ValueError:
-                    pass
+            try:
+                cls._detect_file_format(fname)
+                return True
+            except ValueError:
+                pass
         return False
 
     @staticmethod
@@ -429,6 +444,53 @@ class NewAdaptaHOPCatalogue(BaseAdaptaHOPCatalogue):
 
     _halo_attributes_contam = (
         ("contaminated", 1, "i"),
+        (("m_contam", "mtot_contam"), 2, "d"),
+        (("n_contam", "ntot_contam"), 2, "i8b"),
+    )
+
+
+class NewAdaptaHOPCatalogueFullyLongInts(NewAdaptaHOPCatalogue):
+    _header_attributes = (
+        ("npart", 1, "i8b"),
+        ("massp", 1, "d"),
+        ("aexp", 1, "d"),
+        ("omega_t", 1, "d"),
+        ("age", 1, "d"),
+        (("nhalos", "nsubs"), 2, "i8b"),
+    )
+
+    # List of the attributes read from file. This does *not* include the number of particles,
+    # the list of particles, the id of the halo and the "timestep" (first 4 records).
+    _halo_attributes = (
+        ("timestep", 1, "i8b"),
+        (
+            ("level", "host_id", "first_subhalo_id", "n_subhalos", "next_subhalo_id"),
+            5,
+            "i8b",
+        ),
+        ("m", 1, "d"),
+        ("ntot", 1, "i8b"),
+        ("mtot", 1, "d"),
+        # Note: we use pos_z instead of z to prevent confusion with redshift
+        (("pos_x", "pos_y", "pos_z"), 3, "d"),
+        (("vel_x", "vel_y", "vel_z"), 3, "d"),
+        (("angular_momentum_x", "angular_momentum_y", "angular_momentum_z"), 3, "d"),
+        (("max_distance", "shape_a", "shape_b", "shape_c"), 4, "d"),
+        (("kinetic_energy", "potential_energy", "total_energy"), 3, "d"),
+        ("spin", 1, "d"),
+        ("velocity_dispersion", 1, "d"),
+        (("virial_radius", "virial_mass", "virial_temperature", "virial_velocity"), 4, "d"),
+        (("max_velocity_radius", "max_velocity"), 2, "d"),
+        ("nfw_concentration", 1, "d"),
+        (("R200c", "M200c"), 2, "d"),
+        (("r_half_mass", "r_90percent_mass"), 2, "d"),
+        ("radius_profile", -1, "d"),
+        ("density_profile", -1, "d"),
+        (("nfw_rho0", "nfw_R_c"), 2, "d"),
+    )
+
+    _halo_attributes_contam = (
+        ("contaminated", 1, "i8b"),
         (("m_contam", "mtot_contam"), 2, "d"),
         (("n_contam", "ntot_contam"), 2, "i8b"),
     )

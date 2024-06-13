@@ -1,3 +1,5 @@
+"""Support for the Velociraptor halo finder."""
+
 from __future__ import annotations
 
 import functools
@@ -15,8 +17,7 @@ from .details import number_mapping
 
 
 class VelociraptorCatalogue(HaloCatalogue):
-    """
-    Velociraptor catalogue -- tested only with swift at present
+    """Handles catalogues produced by the velociraptor halo finder.
     """
 
     @classmethod
@@ -61,19 +62,33 @@ class VelociraptorCatalogue(HaloCatalogue):
 
         return True
 
-    def __init__(self, sim, vr_basename=None, include_unbound=False):
+    def __init__(self, sim, filename=None, include_unbound=False):
+        """Create a new velociraptor catalogue object
+
+        Parameters
+        ----------
+        sim : pynbody.SimSnap
+            The simulation snapshot
+        filename : str, optional
+            The filename of the velociraptor catalogue. If not specified, the code will try to guess the filename.
+            Here, the filename is considered to be the stem; e.g. if your velociraptor files are called
+            ``folder/output.properties.0`, ``folder/output.catalog_groups.0``, etc., you should specify
+            ``filename='folder/output'``.
+        include_unbound : bool, optional
+            Whether to include unbound particles in the particle list. Default is False.
+        """
 
         self._include_unbound = include_unbound
-        if vr_basename is None:
+        if filename is None:
             self._path = self._catalogue_path(sim)
         else:
-            self._path = Path(vr_basename)
+            self._path = Path(filename)
 
         if self._path is None:
             raise OSError("Could not find velociraptor catalogue. Try specifying vr_basename='path/to/output', where the velociraptor outputs are output.properties.0 etc")
         self._grps = h5py.File(str(self._path.with_suffix('.catalog_groups.0')), 'r')
         self._part_ids = h5py.File(str(self._path.with_suffix('.catalog_particles.0')), 'r')
-        self._properties = h5py.File(str(self._path.with_suffix('.properties.0')), 'r')
+        self._properties_hdf_file = h5py.File(str(self._path.with_suffix('.properties.0')), 'r')
 
         if include_unbound:
             self._part_ids_unbound = h5py.File(str(self._path.with_suffix('.catalog_particles.unbound.0')), 'r')
@@ -83,7 +98,7 @@ class VelociraptorCatalogue(HaloCatalogue):
 
         self._num_halos = self._grps['Num_of_groups'][0]
 
-        super().__init__(sim, number_mapping.create_halo_number_mapper(self._properties['ID']))
+        super().__init__(sim, number_mapping.create_halo_number_mapper(self._properties_hdf_file['ID']))
 
         self._setup_property_keys()
         self._setup_property_units()
@@ -92,8 +107,8 @@ class VelociraptorCatalogue(HaloCatalogue):
 
     def _setup_property_keys(self):
         self._property_keys = []
-        for k in self._properties.keys():
-            if len(self._properties[k]) == self._num_halos:
+        for k in self._properties_hdf_file.keys():
+            if len(self._properties_hdf_file[k]) == self._num_halos:
                 self._property_keys.append(k)
 
     def _setup_property_units(self):
@@ -150,17 +165,17 @@ class VelociraptorCatalogue(HaloCatalogue):
 
     def get_properties_all_halos(self, with_units=True) -> dict:
         if with_units:
-            all_properties = {k: array.SimArray(self._properties[k][:], u)
+            all_properties_hdf_file = {k: array.SimArray(self._properties_hdf_file[k][:], u)
                               for k, u in zip(self._property_keys, self._property_units)}
         else:
-            all_properties = {k: self._properties[k] for k in self._property_keys}
+            all_properties_hdf_file = {k: self._properties_hdf_file[k] for k in self._property_keys}
 
-        all_properties.update(
+        all_properties_hdf_file.update(
                {'parent': self._parents,
                 'children': [self._all_children_ordered_by_parent[start:end]
                              for start, end in zip(self._children_start_index, self._children_stop_index)]}
         )
-        return all_properties
+        return all_properties_hdf_file
 
 
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:

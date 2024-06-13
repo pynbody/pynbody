@@ -1,5 +1,7 @@
 cimport numpy as np
 
+np.import_array()
+
 import cython
 import numpy as np
 
@@ -237,6 +239,42 @@ cdef class FortranFile:
                           'this record - check header dtype')
 
         return data
+
+    cpdef INT64_t read_int32_or_64(self) except? -1:
+        """Reads a single int32 or int64 (based on length of record) from the
+        file and return it as an int64.
+
+        Returns
+        -------
+        data : int64
+            The value.
+        """
+
+        cdef INT32_t s1, s2
+        cdef INT32_t data32
+        cdef INT64_t data64
+
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
+
+        fread(&s1, INT32_SIZE, 1, self.cfile)
+
+        if s1 == INT32_SIZE:
+            fread(&data32, INT32_SIZE, s1 // INT32_SIZE, self.cfile)
+            data64 = <INT64_t> data32
+        elif s1 == INT64_SIZE:
+            fread(&data64, INT64_SIZE, s1 // INT64_SIZE, self.cfile)
+        else:
+            raise ValueError('Size obtained (%s) does not match with the expected '
+                             'size (%s or %s) of record' % (s1, INT32_SIZE, INT64_SIZE))
+
+        fread(&s2, INT32_SIZE, 1, self.cfile)
+
+        if s1 != s2:
+            raise IOError('Sizes do not agree in the header and footer for '
+                          'this record - check header dtype')
+
+        return data64
 
 
     def read_attrs(self, object attrs):
