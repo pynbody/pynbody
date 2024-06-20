@@ -2,6 +2,7 @@ import numpy as np
 import numpy.testing as npt
 
 import pynbody
+import pytest
 
 
 def test_2D_shape():
@@ -53,3 +54,36 @@ def test_3D_shape():
                                             [[-0.79726644, -0.52493542, 0.29800844],
                                              [-0.55662529, 0.44834656, -0.6993952],
                                              [0.23352626, -0.72348336, -0.649644]]], atol=1e-5)
+
+
+
+def test_halo_shape_wrapper():
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024.gz")
+    h = f.halos()
+    pynbody.analysis.halo.center(h[0], mode='hyb')
+
+    with pytest.warns(DeprecationWarning):
+        r, ba, ca, angle, Es = pynbody.analysis.halo.halo_shape(h[0], 3, rin=0, rout=0.004)
+
+    expected_r = [0.00031609, 0.00120895, 0.00275823]
+    expected_ba = [0.915934, 0.9474405, 0.92449305]
+    expected_ca = [0.83998546, 0.73845282, 0.79051978]
+    expected_angle = [0.96076658, 1.42698473, 0.6480433]
+    expected_E =  np.array([[[0.57289184, -0.79477302, -0.20032668],
+                          [0.75671193, 0.4189613, 0.50185505],
+                          [-0.31493173, -0.43909825, 0.84143374]],
+
+                         [[0.14331639, -0.94978421, 0.2781553],
+                          [-0.84688607, -0.2631251, -0.46211381],
+                          [0.51209804, -0.16933736, -0.84206915]],
+
+                         [[-0.79726644, -0.52493542, 0.29800844],
+                          [-0.55662529, 0.44834656, -0.6993952],
+                          [0.23352626, -0.72348336, -0.649644]]])
+
+
+    np.testing.assert_allclose(r, expected_r, atol=1e-5)
+    np.testing.assert_allclose(ba, expected_ba, atol=1e-5)
+    np.testing.assert_allclose(ca, expected_ca, atol=1e-5)
+    np.testing.assert_allclose(angle, expected_angle, atol=1e-5)
+    np.testing.assert_allclose(Es, expected_E, atol=1e-5)

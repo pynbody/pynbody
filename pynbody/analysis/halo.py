@@ -425,6 +425,62 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
 
     return transform
 
+@util.deprecated("halo_shape is deprecated. Use shape instead.")
+def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
+    """Deprecated wrapper around :func:`shape`, for backwards compatibility.
+
+    The halo must be pre-centred, e.g. using :func:`center`.
+
+    Caution is advised when assigning large number of bins and radial
+    ranges with many particles, as the algorithm becomes very slow.
+
+    Parameters
+    ----------
+
+    N : int
+        The number of homeoidal shells to consider. Shells with few particles will take longer to fit.
+
+    rin : float
+        The minimum radial bin in units of sim['pos']. By default this is taken as rout/1000.
+        Note that this applies to axis a, so particles within this radius may still be included within
+        homeoidal shells.
+
+    rout : float
+        The maximum radial bin in units of sim['pos']. By default this is taken as the largest radial value
+        in the halo particle distribution.
+
+    bins : str
+        The spacing scheme for the homeoidal shell bins. 'equal' initialises radial bins with equal numbers
+        of particles, with the exception of the final bin which will accomodate remainders. This
+        number is not necessarily maintained during fitting. 'log' and 'lin' initialise bins
+        with logarithmic and linear radial spacing.
+
+    Returns
+    -------
+    rbin : SimArray
+        The radial bins used for the fitting.
+
+    ba : array
+        The axial ratio b/a as a function of radius.
+
+    ca : array
+        The axial ratio c/a as a function of radius.
+
+    angle : array
+        The angle of the a-direction with respect to the x-axis as a function of radius.
+
+    Es : array
+        The rotation matrices for each shell.
+    """
+
+    angle = lambda E: np.arccos(abs(E[:,0,0]))
+
+    rbin, axis_lengths, num_particles, rotation_matrices = shape(sim.dm, nbins=N, rmin=rin, rmax=rout, bins=bins)
+
+    ba = axis_lengths[:, 1] / axis_lengths[:, 0]
+    ca = axis_lengths[:, 2] / axis_lengths[:, 0]
+
+    return rbin, ba.view(np.ndarray), ca.view(np.ndarray), angle(rotation_matrices), rotation_matrices
 
 def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
           ndim=3, max_iterations=10, tol=1e-3, justify=False):
@@ -479,8 +535,8 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
           Align the rotation matrix directions such that they point in a single consistent direction
           aligned with the overall halo shape. This can be useful if working with slerps.
 
-      Returns
-      -------
+    Returns
+    -------
 
       rbin : SimArray
           The radial bins used for the fitting
