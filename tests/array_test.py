@@ -174,6 +174,10 @@ def test_dimensionful_comparison():
     assert (y['b'] < y['a']).all()
     assert not (y['b'] > y['a']).any()
 
+def test_squeeze_units():
+    x = SA([[1.0, 2.0, 3.0]], "kpc")
+    assert np.squeeze(x).units == "kpc"
+
 def test_issue_485_1():
     s = pynbody.load("testdata/gadget2/test_g2_snap.1")
     stars = s.s
