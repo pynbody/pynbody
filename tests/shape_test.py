@@ -1,8 +1,8 @@
 import numpy as np
 import numpy.testing as npt
+import pytest
 
 import pynbody
-import pytest
 
 
 def test_2D_shape():
