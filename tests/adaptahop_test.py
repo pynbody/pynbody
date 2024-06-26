@@ -8,6 +8,7 @@ from pynbody.halo.adaptahop import (
     AdaptaHOPCatalogue,
     BaseAdaptaHOPCatalogue,
     NewAdaptaHOPCatalogue,
+    NewAdaptaHOPCatalogueFullyLongInts,
 )
 
 
@@ -219,6 +220,11 @@ def test_halo_particle_ids(halos):
             "testdata/adaptahop_longint/tree_bricks047_nocontam",
             NewAdaptaHOPCatalogue,
             dict(_longint=True, _read_contamination=False),
+        ),
+        (
+            "testdata/EDGE_adaptahop_output/tree_bricks100_full_long_ints",
+            NewAdaptaHOPCatalogueFullyLongInts,
+            dict(_longint=True, _read_contamination=True),
         ),
     ),
 )

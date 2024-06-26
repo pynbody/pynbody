@@ -211,11 +211,13 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         self._fof_group_first_subhalo = np.empty(self._ngroups, dtype=int)
         for h in self._hdf_files.iterroot():
             parent_groups = h[self._subfind_name].get(self._subfind_grnr_name, [])
-            self._subfind_halo_parent_groups[nsub:nsub + len(parent_groups)] = parent_groups
+            # .astype(int)[:] stopgap until h5py support numpy 2.0
+            self._subfind_halo_parent_groups[nsub:nsub + len(parent_groups)] = parent_groups.astype(int)[:]
             nsub += len(parent_groups)
 
             first_groups = h.get(self._subfind_first_gr_name,[])
-            self._fof_group_first_subhalo[nfof:nfof + len(first_groups)] = first_groups
+            # .astype(int)[:] stopgap until h5py support numpy 2.0
+            self._fof_group_first_subhalo[nfof:nfof + len(first_groups)] = first_groups.astype(int)[:]
             nfof += len(first_groups)
 
     def __get_length(self):
@@ -251,15 +253,17 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                     # fof groups
                     offset = self._get_halodata_array_with_default(h, self._grp_offset_name, self._fof_name, ptype, [])
                     length = self._get_halodata_array_with_default(h, self._grp_len_name, self._fof_name, ptype, [])
-                    self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset
-                    self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
+                    # .astype('int64')[:] stopgap until h5py support numpy 2.0
+                    self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset.astype('int64')[:]
+                    self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length.astype('int64')[:]
                     curr_groups += len(offset)
 
                     # subfind subhalos
                     offset = self._get_halodata_array_with_default(h, self._sub_offset_name, self._subfind_name, ptype, [])
                     length = self._get_halodata_array_with_default(h, self._sub_len_name, self._subfind_name, ptype, [])
-                    self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset
-                    self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length
+                    # .astype('int64')[:] stopgap until h5py support numpy 2.0
+                    self._subfind_halo_offsets[ptype][curr_subhalos:curr_subhalos + len(offset)] = offset.astype('int64')[:]
+                    self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(offset)] = length.astype('int64')[:]
                     curr_subhalos += len(offset)
                 if curr_groups!=self._ngroups:
                     warnings.warn(f"Incorrect number of groups recovered from HDF files. Expected {self._ngroups}, found {curr_groups}")

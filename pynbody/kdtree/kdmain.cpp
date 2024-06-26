@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <numpy/ndarraytypes.h>
+#include <numpy/ndarrayobject.h>
+
 #include "kd.h"
 #include "smooth.h"
 
@@ -139,9 +142,9 @@ template <typename T> int checkArray(PyObject *check, const char *name, npy_intp
     return 1;
   }
 
-  PyArray_Descr *descr = PyArray_DESCR(check);
+  PyArray_Descr *descr = PyArray_DESCR((PyArrayObject *) check);
 
-  if (descr == NULL || descr->kind != np_kind<T>() || descr->elsize != sizeof(T)) {
+  if (descr == NULL || descr->kind != np_kind<T>() ||PyDataType_ELSIZE(descr) != sizeof(T)) {
     PyErr_Format(
         PyExc_TypeError,
         "Incorrect numpy data type for %s passed to kdtree - must match C %s",
@@ -149,12 +152,12 @@ template <typename T> int checkArray(PyObject *check, const char *name, npy_intp
     return 1;
   }
 
-  if(size > 0 && PyArray_DIM(check, 0) != size) {
+  if(size > 0 && PyArray_DIM((PyArrayObject *) check, 0) != size) {
     PyErr_Format(PyExc_ValueError, "Array '%s' has the wrong size", name);
     return 1;
   }
 
-  if(require_c_contiguous && (PyArray_FLAGS(check) & NPY_ARRAY_C_CONTIGUOUS) == 0) {
+  if(require_c_contiguous && (PyArray_FLAGS((PyArrayObject *) check) & NPY_ARRAY_C_CONTIGUOUS) == 0) {
     PyErr_Format(PyExc_ValueError, "Array '%s' must be C-contiguous", name);
     return 1;
   }
@@ -203,13 +206,13 @@ PyObject *kdinit(PyObject *self, PyObject *args) {
   KDContext *kd = new KDContext();
   kd->nBucket = nBucket;
 
-  npy_intp nbodies = PyArray_DIM(pos, 0);
+  npy_intp nbodies = PyArray_DIM((PyArrayObject *) pos, 0);
 
   kd->nParticles = nbodies;
   kd->nActive = nbodies;
   kd->nBitDepth = bitdepth;
-  kd->pNumpyPos = pos;
-  kd->pNumpyMass = mass;
+  kd->pNumpyPos = (PyArrayObject *) pos;
+  kd->pNumpyMass = (PyArrayObject *) mass;
 
   Py_INCREF(pos);
   Py_INCREF(mass);
@@ -253,13 +256,13 @@ PyObject * build_or_import(PyObject *self, PyObject *args, bool import_mode) {
     return nullptr;
   }
 
-  kd->kdNodes = static_cast<KDNode*>(PyArray_DATA(kdNodeArray));
-  kd->kdNodesPyObject = kdNodeArray;
+  kd->kdNodes = static_cast<KDNode*>(PyArray_DATA((PyArrayObject *) kdNodeArray));
+  kd->kdNodesPyArrayObject = (PyArrayObject *) kdNodeArray;
 
-  kd->particleOffsets = static_cast<npy_intp*>(PyArray_DATA(orderArray));
-  kd->pNumpyParticleOffsets = orderArray;
+  kd->particleOffsets = static_cast<npy_intp*>(PyArray_DATA((PyArrayObject *) orderArray));
+  kd->pNumpyParticleOffsets = (PyArrayObject *) orderArray;
 
-  Py_INCREF(kd->kdNodesPyObject);
+  Py_INCREF(kd->kdNodesPyArrayObject);
   Py_INCREF(kd->pNumpyParticleOffsets);
 
 
@@ -309,7 +312,7 @@ PyObject *kdfree(PyObject *self, PyObject *args) {
   Py_XDECREF(kd->pNumpyMass);
   Py_XDECREF(kd->pNumpySmooth);
   Py_XDECREF(kd->pNumpyDen);
-  Py_XDECREF(kd->kdNodesPyObject);
+  Py_XDECREF(kd->kdNodesPyArrayObject);
   Py_XDECREF(kd->pNumpyParticleOffsets);
 
   delete kd;
@@ -478,11 +481,11 @@ int getBitDepth(PyObject *check) {
     return 0;
   }
 
-  PyArray_Descr *descr = PyArray_DESCR(check);
-  if (descr != NULL && descr->kind == 'f' && descr->elsize == sizeof(float))
+  PyArray_Descr *descr = PyArray_DESCR((PyArrayObject *) check);
+  if (descr != NULL && descr->kind == 'f' && PyDataType_ELSIZE(descr) == sizeof(float))
     return 32;
   else if (descr != NULL && descr->kind == 'f' &&
-           descr->elsize == sizeof(double))
+           PyDataType_ELSIZE(descr) == sizeof(double))
     return 64;
   else
     return 0;
@@ -491,7 +494,8 @@ int getBitDepth(PyObject *check) {
 
 PyObject *set_arrayref(PyObject *self, PyObject *args) {
   int arid;
-  PyObject *kdobj, *arobj, **existing;
+  PyObject *kdobj, *arobj;
+  PyArrayObject **existing;
   KDContext* kd;
 
   const char *name0 = "smooth";
@@ -551,7 +555,7 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
   }
 
   Py_XDECREF(*existing);
-  (*existing) = arobj;
+  (*existing) = (PyArrayObject *) arobj;
   Py_INCREF(arobj);
 
   Py_INCREF(Py_None);
@@ -560,7 +564,8 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
 
 PyObject *get_arrayref(PyObject *self, PyObject *args) {
   int arid;
-  PyObject *kdobj, *arobj, **existing;
+  PyObject *kdobj, *arobj;
+  PyArrayObject **existing;
   KDContext* kd;
 
   PyArg_ParseTuple(args, "Oi", &kdobj, &arid);
@@ -595,7 +600,7 @@ PyObject *get_arrayref(PyObject *self, PyObject *args) {
     Py_INCREF(Py_None);
     return Py_None;
   } else
-    return (*existing);
+    return ((PyObject *) *existing);
 }
 
 PyObject *domain_decomposition(PyObject *self, PyObject *args) {
@@ -610,10 +615,10 @@ PyObject *domain_decomposition(PyObject *self, PyObject *args) {
     return NULL;
 
   if (kd->nBitDepth == 32) {
-    if (checkArray<float>(kd->pNumpySmooth, "smooth"))
+    if (checkArray<float>((PyObject *) kd->pNumpySmooth, "smooth"))
       return NULL;
   } else {
-    if (checkArray<double>(kd->pNumpySmooth, "smooth"))
+    if (checkArray<double>((PyObject *) kd->pNumpySmooth, "smooth"))
       return NULL;
   }
 
@@ -667,32 +672,34 @@ template <typename Tf, typename Tq> struct typed_populate {
     int propid;
     Tf ri[3];
     Tf hsm;
-    int Wendland;
+    int kernel_id;
 
-    void (*pSmFn)(SmoothingContext<Tf> *, npy_intp, int, bool) = NULL;
+    void (*pSmFn)(SmoothingContext<Tf> *, npy_intp, int) = NULL;
 
     PyObject *kdobj, *smxobj;
 
     PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid,
-                     &Wendland);
+                     &kernel_id);
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
     smx_global = (SmoothingContext<Tf> *)PyCapsule_GetPointer(smxobj, NULL);
 
+    smx_global->setupKernel(kernel_id);
+
     long nbodies = PyArray_DIM(kd->pNumpyPos, 0);
 
-    if (checkArray<Tf>(kd->pNumpySmooth, "smooth"))
+    if (checkArray<Tf>((PyObject *) kd->pNumpySmooth, "smooth"))
       return NULL;
 
     if (propid > PROPID_HSM) {
-      if (checkArray<Tf>(kd->pNumpyDen, "rho"))
+      if (checkArray<Tf>((PyObject *) kd->pNumpyDen, "rho"))
         return NULL;
-      if (checkArray<Tf>(kd->pNumpyMass, "mass"))
+      if (checkArray<Tf>((PyObject *) kd->pNumpyMass, "mass"))
         return NULL;
     }
     if (propid > PROPID_RHO) {
-      if (checkArray<Tq>(kd->pNumpyQty, "qty"))
+      if (checkArray<Tq>((PyObject *) kd->pNumpyQty, "qty"))
         return NULL;
-      if (checkArray<Tq>(kd->pNumpyQtySmoothed, "qty_sm"))
+      if (checkArray<Tq>((PyObject *) kd->pNumpyQtySmoothed, "qty_sm"))
         return NULL;
     }
 
@@ -752,11 +759,11 @@ template <typename Tf, typename Tq> struct typed_populate {
         // retrieve the existing smoothing length
         hsm = GETSMOOTH(Tf, i);
 
-        // use it to get nearest neighbours - NB following should be Tf not double
+        // use it to get nearest neighbours
         nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
 
         // calculate the density
-        (*pSmFn)(smx_local, i, nCnt, Wendland);
+        (*pSmFn)(smx_local, i, nCnt);
 
         // select next particle in coordination with other threads
         i = smGetNext(smx_local);
@@ -794,7 +801,7 @@ PyObject *type_dispatcher_2(PyObject *self, PyObject *args) {
   int nQ = 32;
 
   if (kd->pNumpyQty != NULL) {
-    nQ = getBitDepth(kd->pNumpyQty);
+    nQ = getBitDepth((PyObject *) kd->pNumpyQty);
   }
 
   if (nF == 64 && nQ == 64)

@@ -777,6 +777,7 @@ def halo_mass_function(context,
         # eq 7.46, Mo, van den Bosch and White
         out = (rho_bar / (10 ** M_mid)) * kern(nu_mid) * \
             d_ln_nu_d_ln_M * math.log(10.) * context.properties['a'] ** 3
+    out= out.view(pynbody.array.SimArray)
     out.units = "Mpc^-3 h^3 a^-3"
     out.sim = context
 

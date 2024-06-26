@@ -47,7 +47,6 @@ def test_gravity_float():
     f['mass'] = np.ones(100,dtype=np.float32)
     pynbody.gravity.calc.all_direct(f)
 
-
 def test_eps_retrieval_str():
     f = pynbody.load("testdata/gadget2/test_g2_snap.0")
     f.properties['eps'] = "0.3 kpc"

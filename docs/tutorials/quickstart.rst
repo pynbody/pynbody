@@ -329,7 +329,7 @@ and a density profile.
 
 * In the :ref:`next tutorial <data-access>`, we will go into more depth on how to manipulate the
   data inside a snapshot.
-* For more about *images*, see the :doc:`pictures` cookbook.
+* For more about *images*, see the :doc:`images` cookbook.
 * For more about *profiles*, such as density profiles or rotation curves, see the :doc:`profile` walk-through.
 * For more about the low-level data access facilities, see the :ref:`data-access`
   walk-through.

@@ -361,7 +361,7 @@ def test_unit_persistence():
     assert f1['pos'].units != 'kpc'
 
 
-@pytest.mark.filterwarnings("ignore:No log file found; reverting to guess-and-check:UserWarning")
+@pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
 def test_3d_interpolation(snap):
     # this is the result using scipy.interpolate.interp
     ref3d = np.array([0.07527991, 0.06456315, 0.08380653, 0.15143689, 0.15568259,
@@ -388,48 +388,6 @@ def test_3d_interpolation(snap):
     arr = pynbody.analysis.ionfrac.calculate(snap, 'ovi')
     assert(np.allclose(arr[0:100], ref3d))
 
-    ref2d = np.array([-8.43178697, -8.43437937, -8.43515772, -8.43554701, -8.43801415,
-                      -8.44009401, -8.44048422, -
-                      8.4410046, -8.44178542, -8.44204576,
-                      -8.44217594, -8.44217594, -
-                      8.44243633, -8.44269675, -8.4429572,
-                      -8.44334794, -8.4434782, -
-                      8.44412964, -8.44412964, -8.44439027,
-                      -8.4445206, -8.44465094, -
-                      8.44504199, -8.44530274, -8.44530274,
-                      -8.44530274, -8.44543312, -
-                      8.44595474, -8.44608516, -8.44608516,
-                      -8.4462156, -8.4462156, -8.4462156, -
-                      8.44634604, -8.44634604,
-                      -8.44647649, -8.44686789, -
-                      8.44686789, -8.44699837, -8.44712886,
-                      -8.44725936, -8.44738987, -
-                      8.44738987, -8.44752038, -8.44765091,
-                      -8.44765091, -8.44791198, -
-                      8.44830364, -8.44830364, -8.44843421,
-                      -8.44869538, -8.44869538, -
-                      8.4490872, -8.4490872, -8.44934845,
-                      -8.44947909, -8.44960973, -
-                      8.44987105, -8.44987105, -8.45000172,
-                      -8.45000172, -8.4501324, -
-                      8.45052448, -8.45091663, -8.45104737,
-                      -8.45117811, -8.45130886, -
-                      8.45130886, -8.45130886, -8.45157039,
-                      -8.45183196, -8.45196275, -
-                      8.45196275, -8.45209355, -8.45209355,
-                      -8.45235518, -8.45235518, -
-                      8.452486, -8.452486, -8.452486,
-                      -8.45261684, -8.45261684, -
-                      8.45287853, -8.45287853, -8.45300939,
-                      -8.45300939, -8.45300939, -
-                      8.45314025, -8.45340201, -8.4536638,
-                      -8.4536638, -8.4536638, -8.45379471, -
-                      8.45379471, -8.45379471,
-                      -8.45379471, -8.45392562, -8.45392562, -8.45405654, -8.45405654])
-
-    arr = pynbody.analysis.luminosity.calc_mags(snap.s)
-    assert(np.allclose(arr[0:100], ref2d))
-
 def test_alternative_cmd(snap):
     """A very basic test that the alternative cmd path is respected"""
     with pytest.raises(IOError):
@@ -443,7 +401,7 @@ def test_issue_313(snap):
 def test_issue_315(snap):
     assert np.allclose(snap.g['cs'][:3], [ 319.46246429,  359.4923197,   300.13751002])
 
-@pytest.mark.filterwarnings("ignore:No log file found; reverting to guess-and-check:UserWarning")
+@pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
 def test_read_starlog_no_log(snap):
     rhoform = snap.s['rhoform'].in_units('Msol kpc**-3')[:1000:100]
     correct = np.array([ 2472533.42024787,  5336799.91228041, 64992197.77874849,

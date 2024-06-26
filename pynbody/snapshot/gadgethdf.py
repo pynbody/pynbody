@@ -178,7 +178,8 @@ class GadgetHDFSnap(SimSnap):
 
         self._init_hdf_filemanager(filename)
 
-        self._translate_array_name = namemapper.AdaptiveNameMapper(self._namemapper_config_section)
+        self._translate_array_name = namemapper.AdaptiveNameMapper(self._namemapper_config_section,
+                                                                   return_all_format_names=True) # required for swift
         self._init_unit_information()
         self.__init_family_map()
         self.__init_file_map()
@@ -302,7 +303,7 @@ class GadgetHDFSnap(SimSnap):
         raise RuntimeError("Not implemented")
 
     def write_array(self, array_name, fam=None, overwrite=False):
-        translated_name = self._translate_array_name(array_name)
+        translated_name = self._translate_array_name(array_name)[0]
 
         self._hdf_files.reopen_in_mode('r+')
 
@@ -471,8 +472,8 @@ class GadgetHDFSnap(SimSnap):
             raise OSError("No such array on disk")
         else:
 
-            translated_name = self._translate_array_name(array_name)
-            dtype, dy, units = self.__get_dtype_dims_and_units(fam, translated_name)
+            translated_names = self._translate_array_name(array_name)
+            dtype, dy, units = self.__get_dtype_dims_and_units(fam, translated_names)
 
             if array_name=='mass':
                 dtype = self._mass_dtype
@@ -503,8 +504,11 @@ class GadgetHDFSnap(SimSnap):
                         continue
                     i1 = i0+npart
 
-                    dataset = self._get_hdf_dataset(hdf, translated_name)
-
+                    for translated_name in translated_names:
+                        try:
+                            dataset = self._get_hdf_dataset(hdf, translated_name)
+                        except KeyError:
+                            continue
                     target_array = self[loading_fam][array_name][i0:i1]
                     assert target_array.size == dataset.size
 
@@ -512,7 +516,7 @@ class GadgetHDFSnap(SimSnap):
 
                     i0 = i1
 
-    def __get_dtype_dims_and_units(self, fam, translated_name):
+    def __get_dtype_dims_and_units(self, fam, translated_names):
         if fam is None:
             fam = self.families()[0]
 
@@ -522,18 +526,25 @@ class GadgetHDFSnap(SimSnap):
         # not all arrays are present in all hdfs so need to loop
         # until we find one
         for hdf0 in self._hdf_files:
-            try:
-                representative_dset = self._get_hdf_dataset(hdf0[
-                                                  self._family_to_group_map[fam][0]], translated_name)
-                representative_hdf = hdf0
-                if hasattr(representative_dset, "attrs"):
-                    inferred_units = self._get_units_from_hdf_attr(representative_dset.attrs)
-
-                if len(representative_dset)!=0:
-                    # suitable for figuring out everything we need to know about this array
+            for translated_name in translated_names:
+                try:
+                    representative_dset = self._get_hdf_dataset(hdf0[
+                                                      self._family_to_group_map[fam][0]], translated_name)
                     break
-            except KeyError:
+                except KeyError:
+                    continue
+
+            if representative_dset is None:
                 continue
+
+            representative_hdf = hdf0
+            if hasattr(representative_dset, "attrs"):
+                inferred_units = self._get_units_from_hdf_attr(representative_dset.attrs)
+
+            if len(representative_dset)!=0:
+                # suitable for figuring out everything we need to know about this array
+                break
+
         if representative_dset is None:
             raise KeyError("Array is not present in HDF file")
 

@@ -10,9 +10,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+import pynbody.analysis.luminosity
+
 from .. import array, filt, units, units as _units
 from ..analysis import angmom, profile
-from ..sph import Kernel2D, render_spherical_image
+from ..sph import kernels, render_spherical_image, renderers
 from . import sph as plot_sph
 
 logger = logging.getLogger('pynbody.plot.stars')
@@ -70,7 +72,7 @@ def _convert_to_mag_arcsec2(image, mollview=False):
 	return -2.5*np.log10(image*pc2_to_sqarcsec)
 
 def contour_surface_brightness(sim, band='v', width=50, resolution=None, axes=None, label=True,
-								contour_kwargs=None, smooth_min=0.0):
+								contour_kwargs=None, smooth_floor=0.0):
 	"""Plot surface brightness contours in the given band.
 
 	For information about how surface brightnesses are calculated, see the documentation for
@@ -102,7 +104,7 @@ def contour_surface_brightness(sim, band='v', width=50, resolution=None, axes=No
 		Keyword arguments to pass to the matplotlib contour plot function. For example, this
 		can be used to determine the contour levels.
 
-	smooth_min : float or str, optional
+	smooth_floor : float or str, optional
 		The minimum size of the smoothing kernel, either as a float or a unit string.
 		Setting this to a non-zero value makes smoother, clearer contours but loses fine detail.
 		Default is 0.0.
@@ -110,14 +112,14 @@ def contour_surface_brightness(sim, band='v', width=50, resolution=None, axes=No
 	"""
 
 	return plot_sph.contour(sim, qty=band + '_lum_den', units="pc^-2", width=width,
-							resolution=resolution, axes=axes, label=label, smooth_min=smooth_min,
+							resolution=resolution, axes=axes, label=label, smooth_floor=smooth_floor,
 							_transform = _convert_to_mag_arcsec2,
 							log=False, contour_kwargs=contour_kwargs)
 
 
 
 def render(sim,
-		   r_band='i', g_band='v', b_band='u',
+		   r_band='I', g_band='V', b_band='U',
 		   width=50,
 		   r_scale=0.5, g_scale=1.0, b_scale=1.0,
 		   with_dust=False,
@@ -142,7 +144,9 @@ def render(sim,
 		The simulation snapshot to plot.
 
 	r_band, g_band, b_band : str
-		The filter bands to use for R, G and B image channels. Default is 'i', 'v', 'b'.
+		The filter bands to use for R, G and B image channels. Default is 'I', 'V', 'U'. These bands
+		are as defined in :mod:`pynbody.analysis.luminosity`, or overriden using the
+		:func:`pynbody.analysis.luminosity.use_custom_ssp_table` function.
 
 	width : float | str, optional
 		The width of the image to produce, either as a float or a unit string.
@@ -206,20 +210,23 @@ def render(sim,
 
 	'''
 
-	width = plot_sph._width_in_sim_units(sim, width)
+	renderer = renderers.make_render_pipeline(sim.s, quantity=r_band + '_lum_den', width=width,
+											  out_units="pc^-2", resolution=resolution)
 
-	r = plot_sph.image(sim.s, qty=r_band + '_lum_den', width=width, log=False,
-			  units="pc^-2", clear=False, noplot=True, resolution=resolution) * r_scale
-	g = plot_sph.image(sim.s, qty=g_band + '_lum_den', width=width, log=False,
-			  units="pc^-2", clear=False, noplot=True, resolution=resolution) * g_scale
-	b = plot_sph.image(sim.s, qty=b_band + '_lum_den', width=width, log=False,
-			  units="pc^-2", clear=False, noplot=True, resolution=resolution) * b_scale
+	r = renderer.render() * r_scale
+	renderer.set_quantity(g_band + '_lum_den')
+	g = renderer.render() * g_scale
+	renderer.set_quantity(b_band + '_lum_den')
+	b = renderer.render() * b_scale
+
 
 	# convert all channels to mag arcsec^-2
 
 	r=_convert_to_mag_arcsec2(r)
 	g=_convert_to_mag_arcsec2(g)
 	b=_convert_to_mag_arcsec2(b)
+
+	width = renderer.geometry.width
 
 	if with_dust is True:
 		# render image with a simple dust absorption correction based on Calzetti's law using the gas content.
@@ -233,15 +240,8 @@ def render(sim,
 				"plaese install the extinction package from here: http://extinction.readthedocs.io/en/latest/"
 				"or <via pip install extinction> or <conda install -c conda-forge extinction>") from None
 
-		#get the central wavelength for the given band
-		wavelength_avail = {'u':3571,'b':4378,'v':5466,'r':6695,'i':8565,'j':12101,
-				   'h':16300,'k':21900,'U':3571,'B':4378,'V':5466,'R':6695,'I':8565,'J':12101,
-				   'H':16300,'K':21900} #in Angstrom
-		# effective wavelength taken from http://svo2.cab.inta-csic.es/svo/theory/fps3/index.php?mode=browse&gname=Generic&gname2=Johnson
-		# and from https://en.wikipedia.org/wiki/Photometric_system for h, k
-
-		lr,lg,lb = wavelength_avail[r_band],wavelength_avail[g_band],wavelength_avail[b_band] #in Angstrom
-		wave = np.array([lb, lg, lr])
+		ssp_table = pynbody.analysis.luminosity.get_current_ssp_table()
+		wavelengths = np.array([ssp_table.get_central_wavelength(band) for band in (b_band, g_band, r_band)])
 
 		ext_r = np.empty(a_v.shape)
 		ext_g = np.empty(a_v.shape)
@@ -249,7 +249,8 @@ def render(sim,
 
 		for i in range(len(a_v)):
 			for j in range(len(a_v[0])):
-				ext = extinction.calzetti00(wave.astype(np.float_), a_v[i][j].astype(np.float_), 3.1, unit='aa', out=None)
+				ext = extinction.calzetti00(wavelengths.astype(np.float_), a_v[i][j].astype(np.float_), 3.1,
+											unit='aa', out=None)
 				ext_r[i][j] = ext[2]
 				ext_g[i][j] = ext[1]
 				ext_b[i][j] = ext[0]
@@ -257,9 +258,6 @@ def render(sim,
 		r = r+ext_r
 		g = g+ext_g
 		b = b+ext_b
-
-	#r,g,b = nw_scale_rgb(r,g,b)
-	#r,g,b = nw_arcsinh_fit(r,g,b)
 
 	if mag_range is None:
 		rgbim, mag_max = _combine(r, g, b, dynamic_range * 2.5)
@@ -301,8 +299,10 @@ def _dust_Av_image(sim, width, resolution):
 	# calculate the density of metals, and assume that dust is proportional to the metal density
 	rho_metals = gas['rho'] * gas['metals']
 	rho_metals.units = gas['rho'].units
-	column_den = plot_sph.image(gas, qty=rho_metals, width=width, log=False, restrict_depth=True,
-					            units="m_p cm^-2", clear=False, noplot=True, resolution=resolution)
+
+	renderer = renderers.make_render_pipeline(gas, quantity=rho_metals, width=width, out_units="m_p cm^-2",
+											  restrict_depth = True, resolution=resolution)
+	column_den = renderer.render()
 
 	# From Draine & Lee (1984, ApJ, 285, 89) in the V band (lambda^-1 ~= 2 micron^-1), the optical
 	# depth is 0.5 for an H column density of 10^21 cm^2. That scaling in turn is based on data in
@@ -590,13 +590,15 @@ def render_mollweide(sim, filename=None,
 		sim.s[smf]['smooth'] = array.SimArray(starsize, 'kpc', sim=sim)
 
 
-	r = render_spherical_image(sim.s, qty=r_band + '_lum_den', nside=nside, distance=width, kernel=Kernel2D(),kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * r_scale
+	kernel = kernels.create_kernel(None).projection()
+
+	r = render_spherical_image(sim.s, qty=r_band + '_lum_den', nside=nside, distance=width, kernel=kernel,kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * r_scale
 	r = mollview(r,return_projected_map=True) * r_scale
 	f=plt.gcf()
-	g = render_spherical_image(sim.s, qty=g_band + '_lum_den', nside=nside, distance=width, kernel=Kernel2D(),kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * g_scale
+	g = render_spherical_image(sim.s, qty=g_band + '_lum_den', nside=nside, distance=width, kernel=kernel,kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * g_scale
 	g = mollview(g,return_projected_map=True,fig=f) * g_scale
 	f=plt.gcf()
-	b = render_spherical_image(sim.s, qty=b_band + '_lum_den', nside=nside, distance=width, kernel=Kernel2D(),kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * b_scale
+	b = render_spherical_image(sim.s, qty=b_band + '_lum_den', nside=nside, distance=width, kernel=kernel,kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * b_scale
 	b = mollview(b,return_projected_map=True,fig=f) * b_scale
 	# convert all channels to mag arcsec^-2
 

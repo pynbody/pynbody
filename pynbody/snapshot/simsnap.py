@@ -1442,11 +1442,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         quantity. If the derived array is being added for a specific subclass, a list of subclasses is also
         included in the automatic modifications to the docstring.
 
-        For more information about derived quantities see :ref:`derived-quantities`.
-
         .. versionchanged:: 2.0
             The function name has been changed from ``derived_quantity`` to ``derived_array``. The old name is
             still available but will be removed in a future version.
+
+        .. seealso::
+            For introductory information about derived quantities see :ref:`derived`.
         """
         if cls not in SimSnap._derived_array_registry:
             SimSnap._derived_array_registry[cls] = {}

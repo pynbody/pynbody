@@ -3,18 +3,24 @@
 Automatically Derived Arrays
 ============================
 
-``Pynbody`` includes a system which automatically derives one array from
-others. The idea is that this system
+Pynbody includes a system which automatically derives one array from
+others. There are two goals for this system:
 
-(1) permits analysis code to assume that certain arrays exist --
-whether or not they exist in the file;
+(1) Help make user code more independent of the underlying file format,
+    by providing missing arrays. For example, some simulation formats
+    store temperature while others store internal energy. By always
+    presenting a ``temp`` array to you, and handling the conversion
+    automatically, the need to explicitly distinguish between different
+    scenarios is removed.
 
-(2) allows arrays to be kept up-to-date when they depend on other
-arrays
+(2) Keep arrays up-to-date when they depend on other arrays. For example,
+    if you are interested in the radius of particles from the origin,
+    a derived ``r`` array is offered which is automatically recalculated if
+    the position of particles changes.
 
 
-Built-in derived arrays
------------------------
+Example: the radius array
+-------------------------
 
 The quantities listed under :mod:`~pynbody.derived` are calculated for
 all simulation types. If you want, for example, to calculate the
@@ -29,6 +35,10 @@ pynbody will calculate it:
 
    In [5]: s['r']
 
+Here, ``r`` has been calculated in the same units as the position array,
+which in turn are in the units of the simulation.
+You can call :meth:`~pynbody.snapshot.simsnap.SimSnap.physical_units` as
+normal to convert to more recognizable units.
 Note that you cannot directly alter a derived array:
 
 .. ipython:: :okexcept:
@@ -89,7 +99,7 @@ Derived functions for specific formats
 --------------------------------------
 
 Some derived arrays are specific to certain simulation formats. For example, ramses simulations
-need to derive masses for their gas cells and as such :func:`~pynbody.ramses.mass` is registered
+need to derive masses for their gas cells and as such :func:`~pynbody.snapshot.ramses.mass` is registered
 as a derived array specifically for the :class:`~pynbody.snapshot.ramses.RamsesSnap` class.
 
 
@@ -97,7 +107,8 @@ Defining your own deriving functions
 ------------------------------------
 
 You can easily define your own derived arrays. The easiest way to do
-this is using the decorator ``pynbody.derived_array``.
+this is using the decorator :func:`pynbody.snapshot.simsnap.SimSnap.derived_array`.
+This is handily aliased to ``pynbody.derived_array``.
 
 Here's an example of a derived array that calculates the specific
 kinetic energy of a particle:
@@ -139,17 +150,12 @@ e.g.
    In [9]: another_snap['half_mass']
 
 The derived array will only be available for the class it was defined for, so the
-final command will raise an error.
+final command raised an error.
 
 .. versionchanged:: 2.0
     The method name has been changed from ``derived_quantity`` to ``derived_array``.
     The old name is still available but will be removed in a future version.
 
-.. note::
-    ``pynbody.derived_array`` is an alias for
-    :func:`pynbody.snapshot.simsnap.SimSnap.derived_array`.
-
-    Derived arrays apply to all subclasses of the class on which they are defined.
 
 .. _stable_derived:
 
@@ -180,3 +186,12 @@ the first time, but will not automatically update:
    In [9]: s['x']
 
    In [9]: s['stable_x_copy']
+
+
+.. seealso::
+   More information about the derived array system can be found in the
+   method documentation for :meth:`~pynbody.snapshot.simsnap.SimSnap.derived_array`
+   and :meth:`~pynbody.snapshot.simsnap.SimSnap.stable_derived_array`. Information about
+   built-in derived arrays can be found in the module :mod:`pynbody.derived`. The module
+   :mod:`pynbody.analysis.luminosity` also defines an entire class of derived arrays for
+   calculating magnitudes from stellar population tables.
