@@ -2,6 +2,12 @@ import numpy as np
 import pytest
 
 import pynbody
+import pynbody.test_utils
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf", "ramses")
 
 
 def test_order_bridge():
@@ -104,7 +110,7 @@ def test_family_morphing():
 def test_bridging_with_more_families():
     # Test that we can create a group array for snapshots that have a complex family structure,
     # and bridge only with one family (DM). This is necessary for e.g. Tangos linking
-    f1 = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
+    f1 = pynbody.load("testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110")
     g1 = pynbody.halo.ahf.AHFCatalogue(f1, halo_numbers='v1')
     g1.load_all()
     # Work only on one family and create a useless bridge which is enough to break the code

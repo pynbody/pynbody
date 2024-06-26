@@ -84,10 +84,10 @@ class Family:
 
     >>> import pynbody
     >>> tachs = pynbody.family.Family("tachyon", aliases=["t", "tachyons"])
-    >>> f = pynbody.new(dm=100, tachyon=100)
-    >>> f.tachyon['pos'] # <-- get the tachyon positions
-    >>> f.t['pos'] # <-- use an alias to get the tachyon positions
-    >>> f[tachs]['pos'] # <-- another way to get the tachyon positions
+    >>> snap = pynbody.new(dm=100, tachyon=100)
+    >>> snap.tachyon['pos'] # <-- get the tachyon positions
+    >>> snap.t['pos'] # <-- use an alias to get the tachyon positions
+    >>> snap[tachs]['pos'] # <-- another way to get the tachyon positions
 
     """
 
@@ -145,6 +145,6 @@ class Family:
 # Instantiate the default families as specified by the configuration file
 
 g = globals()
-for f in config_parser.options('families'):
-    aliases = config_parser.get('families', f)
-    g[f] = Family(f, list(map(str.strip, aliases.split(","))))
+for snap in config_parser.options('families'):
+    aliases = config_parser.get('families', snap)
+    g[snap] = Family(snap, list(map(str.strip, aliases.split(","))))

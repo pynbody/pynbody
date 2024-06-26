@@ -165,8 +165,8 @@ def density_profile(sim, linestyle=False, center=True, clear=True, fit=False,in_
     **Usage:**
 
     >>> import pynbody.plot as pp
-    >>> h = s.halos()
-    >>> pp.density_profile(h[1],linestyle='dashed',color='k')
+    >>> halos = s.halos()
+    >>> pp.density_profile(halos[1],linestyle='dashed',color='k')
 
 
     '''

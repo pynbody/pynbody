@@ -7,7 +7,13 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
 from pynbody.dependencytracker import DependencyError
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf")
 
 
 def setup_module():
@@ -224,7 +230,7 @@ def test_array_write(snap):
 @pytest.mark.filterwarnings("ignore:Paramfile suggests time is cosmological.*:RuntimeWarning")
 @pytest.mark.filterwarnings("ignore:No readable param file.*:RuntimeWarning")
 def test_isolated_read():
-    s = pynbody.load('testdata/isolated_ics.std')
+    s = pynbody.load('testdata/gasoline_isolated/isolated_ics.std')
 
 
 def test_array_metadata(test_output):

@@ -7,24 +7,25 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
 
 
-def setup_module():
-    global f, h
-    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
-    h = f.halos()
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf", "gadget")
 
+@pytest.fixture
+def snap():
+    return pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
 
-def teardown_module():
-    global f, h
-    del f, h
+@pytest.fixture
+def halos(snap):
+    return snap.halos()
 
-
-def test_center():
-    global f, h
-    with pynbody.analysis.halo.center(h[0]):
+def test_center(snap, halos):
+    with pynbody.analysis.halo.center(halos[0]):
         np.testing.assert_allclose(
-            f['pos'][0], [-0.0137471,  -0.00208458, -0.04392379], rtol=1e-4)
+            snap['pos'][0], [-0.0137471, -0.00208458, -0.04392379], rtol=1e-4)
 
 def test_center_wrapped_halo():
     npart = 10000
@@ -49,23 +50,21 @@ def test_center_wrapped_halo():
 
 
 
-def test_align():
-    global f, h
-    with pynbody.analysis.angmom.faceon(h[0]) as t:
+def test_align(snap, halos):
+    with pynbody.analysis.angmom.faceon(halos[0]) as t:
         print(repr(t))
-        np.testing.assert_allclose(f['pos'][:2], [[-0.010711, -0.001491, -0.044785],
-                                                          [-0.010019,  0.002454, -0.04465 ]],
+        np.testing.assert_allclose(snap['pos'][:2], [[-0.010711, -0.001491, -0.044785],
+                                                     [-0.010019,  0.002454, -0.04465 ]],
                                    atol=1e-5)
 
-        np.testing.assert_allclose(f['vel'][:2], [[ 0.019214,  0.024604, -0.020356],
-                                                          [ 0.053343,  0.033478, -0.010793]], atol=1e-5)
+        np.testing.assert_allclose(snap['vel'][:2], [[0.019214, 0.024604, -0.020356],
+                                                     [ 0.053343,  0.033478, -0.010793]], atol=1e-5)
 
 
-def test_virialradius():
-    global f, h
-    with pynbody.analysis.halo.center(h[0]):
+def test_virialradius(snap, halos):
+    with pynbody.analysis.halo.center(halos[0]):
         start = time.time()
-        vrad = pynbody.analysis.halo.virial_radius(f)
+        vrad = pynbody.analysis.halo.virial_radius(snap)
         print ("time=",time.time()-start)
         np.testing.assert_allclose(vrad, 0.005946911872, atol=1.e-5)
 

@@ -180,8 +180,8 @@ for name, reqs in extras_require.items():
 
 
 this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as snap:
+    long_description = snap.read()
 
 setup(name = 'pynbody',
       author = 'The pynbody team',

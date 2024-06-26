@@ -1,3 +1,4 @@
+import gc
 import shutil
 
 import h5py
@@ -6,20 +7,29 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
 from pynbody import units
 
 
-def setup_module() :
-    global snap,subfind
-    snap = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103.hdf5')
-    subfind = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103')
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gadget", "arepo")
 
-def teardown_module() :
-    global snap,subfind
-    del snap
-    del subfind
+@pytest.fixture
+def snap():
+    f = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103.hdf5')
+    yield f
+    del f
+    gc.collect()
 
-def test_standard_arrays() :
+@pytest.fixture
+def subfind():
+    f = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103')
+    yield f
+    del f
+    gc.collect()
+
+def test_standard_arrays(snap, subfind) :
     """Check that the data loading works"""
 
     for s in [snap, subfind] :
@@ -48,7 +58,7 @@ def _h5py_copy_with_key_rename(src,dest):
 
 
 
-def test_alt_names():
+def test_alt_names(snap):
     _h5py_copy_with_key_rename('testdata/gadget3/data/snapshot_103/snap_103.hdf5',
                 'testdata/gadget3/data/snapshot_103/snap_103_altnames.hdf5')
 
@@ -56,7 +66,7 @@ def test_alt_names():
     assert 'mass' in snap_alt.loadable_keys()
     assert all(snap_alt['mass']==snap['mass'])
 
-def test_issue_256() :
+def test_issue_256(snap) :
     assert 'pos' in snap.loadable_keys()
     assert 'pos' in snap.dm.loadable_keys()
     assert 'pos' in snap.gas.loadable_keys()
@@ -65,16 +75,19 @@ def test_issue_256() :
     assert 'He' in snap.gas.loadable_keys()
 
 def test_write():
+    # make a copy of snap_103.hdf5 to avoid disturbing the original
+    shutil.copy('testdata/gadget3/data/snapshot_103/snap_103.hdf5', 'testdata/gadget3/data/snapshot_103/snap_103_copy.hdf5')
+    snap = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103_copy.hdf5')
     ar_name = 'test_array'
     snap[ar_name] = np.random.uniform(0,1,len(snap))
     snap[ar_name].write()
-    snap2 = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103.hdf5')
+    snap2 = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103_copy.hdf5')
     v = snap[ar_name]
     with pytest.warns(UserWarning, match="Unable to infer units from HDF attributes"):
         v2 = snap2[ar_name]
     npt.assert_allclose(v, v2)
 
-def test_hi_derivation():
+def test_hi_derivation(subfind):
     HI_answer = [  6.96499870e-06,   6.68348046e-06,   1.13855074e-05,
          1.10936027e-05,   1.40641633e-05,   1.67324738e-05,
          2.26228929e-05,   1.64661638e-05,   2.79337124e-05,
@@ -93,7 +106,7 @@ def test_hi_derivation():
 
     assert np.allclose(subfind.halos()[0].gas['HI'][::100],HI_answer)
 
-def test_hdf_ordering():
+def test_hdf_ordering(snap):
     # HDF files do not intrinsically specify the order in which the particle types occur
     # Because some operations may require stability, pynbody now imposes order by the particle type
     # number
@@ -103,12 +116,12 @@ def test_hdf_ordering():
 
 
 def test_mass_in_header():
-    f = pynbody.load("testdata/snap_028_z000p000.0.hdf5")
+    f = pynbody.load("testdata/gadget3/snap_028_z000p000.0.hdf5")
     f.physical_units()
     f['mass'] # load all masses
     assert np.allclose(f.dm['mass'][0], 3982880.471745421)
 
-    f = pynbody.load("testdata/snap_028_z000p000.0.hdf5")
+    f = pynbody.load("testdata/gadget3/snap_028_z000p000.0.hdf5")
     f.physical_units()
     # don't load all masses, allow it to be loaded for DM only
     assert np.allclose(f.dm['mass'][0], 3982880.471745421)

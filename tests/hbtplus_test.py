@@ -6,6 +6,12 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("hbt")
 
 pytestmark = pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
 

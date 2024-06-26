@@ -5,9 +5,15 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
 
 # load Alan Duffy's module from https://bitbucket.org/astroduff/pyreadgadget
 from pynbody.test_utils.pyread_gadget_hdf5 import pyread_gadget_hdf5
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gadget")
 
 
 @pytest.fixture

@@ -6,32 +6,38 @@ import numpy as np
 import pytest
 
 import pynbody
+import pynbody.test_utils
 
-sink_filename = "testdata/ramses_new_format_partial_output_00001/sink_00001.csv"
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("ramses")
+
+
+sink_filename = "testdata/ramses/ramses_new_format_partial_output_00001/sink_00001.csv"
 sink_filename_moved = sink_filename+".temporarily_moved"
 
+@pytest.fixture
+def snap():
+    return pynbody.load("testdata/ramses/ramses_new_format_partial_output_00001")
 
-def setup_module():
-    global f
-    f = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+def test_family_lengths(snap):
+    assert len(snap.dm) == 136006
+    assert len(snap.star) == 12236
+    assert len(snap.gas) == 196232
+    assert len(snap.bh) == 2
+    assert pynbody.family.bh in snap.families()
 
-def test_family_lengths():
-    assert len(f.dm)==136006
-    assert len(f.star)==12236
-    assert len(f.gas)==196232
-    assert len(f.bh)==2
-    assert pynbody.family.bh in f.families()
+def test_properties(snap):
+    np.testing.assert_almost_equal(snap.properties['a'], 1.0)
+    np.testing.assert_almost_equal(snap.properties['h'], 0.01)
+    np.testing.assert_almost_equal(snap.properties['omegaM0'], 1.0)
 
-def test_properties():
-    np.testing.assert_almost_equal(f.properties['a'], 1.0)
-    np.testing.assert_almost_equal(f.properties['h'], 0.01)
-    np.testing.assert_almost_equal(f.properties['omegaM0'], 1.0)
-
-def test_sink_variables():
-    np.testing.assert_allclose(f.bh['pos'], [[2.5e-2,2.5e-2,2.5e-2],
-                                             [3.5e-2,4.5e-2,5.5e-2]])
-    assert str(f.bh['pos'].units)=="3.09e+21 cm"
-    assert (f.bh['id']==np.array([1,2])).all()
+def test_sink_variables(snap):
+    np.testing.assert_allclose(snap.bh['pos'], [[2.5e-2, 2.5e-2, 2.5e-2],
+                                                [3.5e-2,4.5e-2,5.5e-2]])
+    assert str(snap.bh['pos'].units) == "3.09e+21 cm"
+    assert (snap.bh['id'] == np.array([1, 2])).all()
 
 
 def _no_bh_family_present(f):
@@ -48,7 +54,7 @@ def backup_sinkfile():
 
 def test_no_sink_file(backup_sinkfile):
     # No warning should be raised
-    f_no_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+    f_no_sink = pynbody.load("testdata/ramses/ramses_new_format_partial_output_00001")
     assert _no_bh_family_present(f_no_sink)
 
 def test_garbled_sink_file(backup_sinkfile):
@@ -57,7 +63,7 @@ def test_garbled_sink_file(backup_sinkfile):
 
     warn_str = r"Unexpected format in file .*\.csv -- sink data has not been loaded"
     with pytest.warns(UserWarning, match=warn_str):
-        f_garbled_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+        f_garbled_sink = pynbody.load("testdata/ramses/ramses_new_format_partial_output_00001")
     assert _no_bh_family_present(f_garbled_sink)
 
     with open(sink_filename,"w") as tfile:
@@ -65,12 +71,12 @@ def test_garbled_sink_file(backup_sinkfile):
             tfile.write("1,2,3\r\n")
 
     with pytest.warns(UserWarning, match=warn_str):
-        f_garbled_sink = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+        f_garbled_sink = pynbody.load("testdata/ramses/ramses_new_format_partial_output_00001")
 
     assert _no_bh_family_present(f_garbled_sink)
 
-def test_load_pos():
-    loaded_vals = f.dm['pos'][::5001]
+def test_load_pos(snap):
+    loaded_vals = snap.dm['pos'][::5001]
     test_vals = [[ 0.01105415,  0.02300947,  0.00724412],
        [ 0.02122232,  0.02265619,  0.00677652],
        [ 0.02018343,  0.02035065,  0.0095223 ],
@@ -102,43 +108,43 @@ def test_load_pos():
 
     np.testing.assert_allclose(loaded_vals,test_vals, atol=1e-7)
 
-def test_load_iord():
-    loaded_vals = f.star['iord'][::1001]
+def test_load_iord(snap):
+    loaded_vals = snap.star['iord'][::1001]
     np.testing.assert_equal(loaded_vals,
                             [1001684, 1006393, 1039350, 1099620, 1035230, 1086365, 1000185,
                              1000429, 1077059, 1011855, 1096842, 1013422, 1020021])
 
 def _make_virtual_output_with_no_ptcls():
-    if os.path.exists("testdata/ramses_new_format_partial_no_ptcls_output_00001"):
+    if os.path.exists("testdata/ramses/ramses_new_format_partial_no_ptcls_output_00001"):
         return
 
-    os.mkdir("testdata/ramses_new_format_partial_no_ptcls_output_00001")
-    for i in glob.glob("testdata/ramses_new_format_partial_output_00001/*"):
+    os.mkdir("testdata/ramses/ramses_new_format_partial_no_ptcls_output_00001")
+    for i in glob.glob("testdata/ramses/ramses_new_format_partial_output_00001/*"):
         if "part_00001" not in i and '.csv' not in i:
-            os.symlink("../../"+i, i.replace("ramses_new_format_partial_output","ramses_new_format_partial_no_ptcls_output"))
+            os.symlink("../../../"+i, i.replace("ramses_new_format_partial_output","ramses_new_format_partial_no_ptcls_output"))
 
 def test_load_no_ptcls():
     _make_virtual_output_with_no_ptcls()
-    f = pynbody.load("testdata/ramses_new_format_partial_no_ptcls_output_00001")
+    f = pynbody.load("testdata/ramses/ramses_new_format_partial_no_ptcls_output_00001")
     assert len(f.dm)==0
     assert len(f.star)==0
     assert len(f.gas) == 196232
 
-def test_loaded_namelist():
-    assert f._namelist['cosmo'] is False
-    assert f._namelist['hydro'] is True
-    assert f._namelist['z_ave'] == 0.1
-    assert f._namelist.get("non_existent_key") is None
+def test_loaded_namelist(snap):
+    assert snap._namelist['cosmo'] is False
+    assert snap._namelist['hydro'] is True
+    assert snap._namelist['z_ave'] == 0.1
+    assert snap._namelist.get("non_existent_key") is None
 
 @pytest.fixture(params=[True, False], ids=['mass-column-present', 'no-mass-column-present'])
 def snap_for_issue_771(request):
     """Aids test for issue #771. In that example, an output has a 'mass' column in the sink csv file. In our test data
     we instead have an 'msink' column. So we create a virtual version where we rename the column to 'mass'"""
-    src_dir = pathlib.Path('testdata/ramses_new_format_partial_output_00001')
+    src_dir = pathlib.Path('testdata/ramses/ramses_new_format_partial_output_00001')
 
     if request.param:
         # Make the virtual version of the output with 'mass' in place of 'msink' column
-        tgt_dir = pathlib.Path('testdata/ramses_new_format_partial_with_sink_mass_output_00001')
+        tgt_dir = pathlib.Path('testdata/ramses/ramses_new_format_partial_with_sink_mass_output_00001')
 
         if not tgt_dir.exists():
             # Create target directory if it doesn't exist
@@ -170,7 +176,7 @@ def snap_for_issue_771(request):
                          ids=['physical', 'code'])
 def test_sink_file_mass_all_particles(snap_for_issue_771, in_physical_units):
     # it should be OK if there isn't a mass column in the sinks
-    #f2 = pynbody.load("testdata/ramses_new_format_partial_output_00001")
+    #f2 = pynbody.load("testdata/ramses/ramses_new_format_partial_output_00001")
     #f2['mass']
 
     if in_physical_units:

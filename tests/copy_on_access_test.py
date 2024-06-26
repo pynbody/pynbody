@@ -3,6 +3,12 @@ import pytest
 
 import pynbody
 import pynbody.snapshot
+import pynbody.test_utils
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf")
 
 
 def test_copy_on_access_subsnap_data_isolation():

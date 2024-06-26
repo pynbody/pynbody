@@ -1,6 +1,7 @@
 import pynbody
 import pynbody.array as pyn_array
 import pynbody.array.shared as shared
+import pynbody.test_utils
 
 SA = pynbody.array.SimArray
 import gc
@@ -12,6 +13,12 @@ import time
 import numpy as np
 import numpy.testing as npt
 import pytest
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gadget")
+
 
 
 def test_pickle():
