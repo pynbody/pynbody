@@ -46,6 +46,7 @@ jobs:
 
     - name: Get testdata hash
       id: get-testdata-hash
+      working-directory: tests
       run: |
         echo "testdatahash=$(python -c 'import pynbody.test_utils as tu; print(tu.test_data_hash())')" >> $GITHUB_OUTPUT
       shell: bash
