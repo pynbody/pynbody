@@ -800,7 +800,7 @@ def _div_units(a, b, catch=True):
         return 1 / b_units
 
 
-@SimArray.ufunc_rule(np.add, np.subtract, np.negative)
+@SimArray.ufunc_rule(np.add, np.subtract, np.negative, np.squeeze)
 def _consistent_units(*arrays, catch=None):
     array_units = _get_units_or_none(*arrays)
     numpy_arrays = []

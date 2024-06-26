@@ -415,7 +415,7 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
 
         if with_velocity:
             if vel_centre is None :
-                vel_centre = vel_center(sim, cen_size=cen_size, retcen=True)
+                vel_centre = vel_center(sim, cen_size=cen_size, return_cen=True)
             logger.info("vel_centre=%s", vel_centre)
             transform = transform.offset_velocity(-vel_centre)
 
@@ -425,9 +425,9 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
 
     return transform
 
+@util.deprecated("halo_shape is deprecated. Use shape instead.")
 def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
-    """
-    Computes the shape of a halo as a function of radius by fitting homeoidal shells.
+    """Deprecated wrapper around :func:`shape`, for backwards compatibility.
 
     The halo must be pre-centred, e.g. using :func:`center`.
 
@@ -457,7 +457,6 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
     Returns
     -------
-
     rbin : SimArray
         The radial bins used for the fitting.
 
@@ -472,122 +471,236 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
 
     Es : array
         The rotation matrices for each shell.
+    """
+
+    angle = lambda E: np.arccos(abs(E[:,0,0]))
+
+    rbin, axis_lengths, num_particles, rotation_matrices = shape(sim.dm, nbins=N, rmin=rin, rmax=rout, bins=bins)
+
+    ba = axis_lengths[:, 1] / axis_lengths[:, 0]
+    ca = axis_lengths[:, 2] / axis_lengths[:, 0]
+
+    return rbin, ba.view(np.ndarray), ca.view(np.ndarray), angle(rotation_matrices), rotation_matrices
+
+def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
+          ndim=3, max_iterations=10, tol=1e-3, justify=False):
+    """Calculates the shape of the provided particles in homeoidal shells, over a range of nbins radii.
+
+    Homeoidal shells maintain a fixed area (ndim=2) or volume (ndim=3). Note that all provided particles are used in
+    calculating the shape, so e.g. to measure dark matter halo shape from a halo with baryons, you should pass
+    only the dark matter particles.
+
+    The simulation must be pre-centred, e.g. using :func:`center`.
+
+    The algorithm is sensitive to substructure, which should ideally be removed.
+
+    Caution is advised when assigning large number of bins and radial ranges with many particles, as the
+    algorithm becomes very slow.
+
+    Parameters
+    ----------
+
+      nbins : int
+          The number of homeoidal shells to consider. Shells with few particles will take longer to fit.
+
+      rmin : float
+          The minimum radial bin in units of sim['pos']. By default this is taken as rout/1000.
+          Note that this applies to axis a, so particles within this radius may still be included within
+          homeoidal shells.
+
+      rmax : float
+          The maximum radial bin in units of sim['pos']. By default this is taken as the largest radial value
+          in the halo particle distribution.
+
+      bins : str
+          The spacing scheme for the homeoidal shell bins. 'equal' initialises radial bins with equal numbers
+          of particles, with the exception of the final bin which will accomodate remainders. This
+          number is not necessarily maintained during fitting. 'log' and 'lin' initialise bins
+          with logarithmic and linear radial spacing.
+
+      ndim : int
+          The number of dimensions to consider; either 2 or 3 (default). If ndim=2, the shape is calculated
+          in the x-y plane. If using ndim=2, you may wish to make a cut in the z direction before
+          passing the particles to this routine (e.g. using :class:`pynbody.filt.BandPass`).
+
+      max_iterations : int
+          The maximum number of shape calculations (default 10). Fewer iterations will result in a speed-up,
+          but with a bias towards spheroidal results.
+
+      tol : float
+          Convergence criterion for the shape calculation. Convergence is achieved when the axial ratios have
+          a fractional change <=tol between iterations.
+
+      justify : bool
+          Align the rotation matrix directions such that they point in a single consistent direction
+          aligned with the overall halo shape. This can be useful if working with slerps.
+
+    Returns
+    -------
+
+      rbin : SimArray
+          The radial bins used for the fitting
+
+      axis_lengths : SimArray
+          A nbins x ndim array containing the axis lengths of the ellipsoids in each shell
+
+      num_particles : np.ndarray
+          The number of particles within each bin
+
+      rotation_matrices : np.ndarray
+          The rotation matrices for each shell
 
     """
 
-    #-----------------------------FUNCTIONS-----------------------------
-    # Define an ellipsoid shell with lengths a,b,c and orientation E:
-    def Ellipsoid(r, a,b,c, E):
-        x,y,z = np.dot(np.transpose(E),[r[:,0],r[:,1],r[:,2]])
-        return (x/a)**2 + (y/b)**2 + (z/c)**2
+    # Sanitise inputs:
+    if (rmax == None): rmax = sim['r'].max()
+    if (rmin == None): rmin = rmax / 1E3
+    assert ndim in [2, 3]
+    assert max_iterations > 0
+    assert tol > 0
+    assert rmin >= 0
+    assert rmax > rmin
+    assert nbins > 0
+    if ndim == 2:
+        assert np.sum((sim['rxy'] >= rmin) & (sim['rxy'] < rmax)) > nbins * 2
+    elif ndim == 3:
+        assert np.sum((sim['r'] >= rmin) & (sim['r'] < rmax)) > nbins * 2
+    if bins not in ['equal', 'log', 'lin']: bins = 'equal'
+
+    # Handy 90 degree rotation matrices:
+    Rx = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    Ry = np.array([[0, 0, 1], [0, 1, 0], [-1, 0, 0]])
+    Rz = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+
+    # -----------------------------FUNCTIONS-----------------------------
+    sn = lambda r, N: np.append([r[i * int(len(r) / N):(1 + i) * int(len(r) / N)][0] \
+                                 for i in range(N)], r[-1])
+
+    # General equation for an ellipse/ellipsoid:
+    def Ellipsoid(pos, a, R):
+        x = np.dot(R.T, pos.T)
+        return np.sum(np.divide(x.T, a) ** 2, axis=1)
 
     # Define moment of inertia tensor:
-    MoI = lambda r,m: np.array([[np.sum(m*r[:,i]*r[:,j]) for j in range(3)]\
-                               for i in range(3)])
+    def MoI(r, m, ndim=3):
+        return np.array([[np.sum(m * r[:, i] * r[:, j]) for j in range(ndim)] for i in range(ndim)])
 
-    # Splits 'r' array into N groups containing equal numbers of particles.
-    # An array is returned with the radial bins that contain these groups.
-    sn = lambda r,N: np.append([r[i*int(len(r)/N):(1+i)*int(len(r)/N)][0]\
-                               for i in range(N)],r[-1])
+    # Calculate the shape in a single shell:
+    def shell_shape(r, pos, mass, a, R, r_range, ndim=3):
 
-    # Retrieves alignment angle:
-    almnt = lambda E: np.arccos(np.dot(np.dot(E,[1.,0.,0.]),[1.,0.,0.]))
-    #-----------------------------FUNCTIONS-----------------------------
+        # Find contents of homoeoidal shell:
+        mult = r_range / np.mean(a)
+        in_shell = (r > min(a) * mult[0]) & (r < max(a) * mult[1])
+        pos, mass = pos[in_shell], mass[in_shell]
+        inner = Ellipsoid(pos, a * mult[0], R)
+        outer = Ellipsoid(pos, a * mult[1], R)
+        in_ellipse = (inner > 1) & (outer < 1)
+        ellipse_pos, ellipse_mass = pos[in_ellipse], mass[in_ellipse]
 
-    if (rout is None): rout = sim.dm['r'].max()
-    if (rin is None): rin = rout/1E3
+        # End if there is no data in range:
+        if not len(ellipse_mass):
+            return a, R, np.sum(in_ellipse)
 
-    posr = np.array(sim.dm['r'])[np.where(sim.dm['r'] < rout)]
-    pos = np.array(sim.dm['pos'])[np.where(sim.dm['r'] < rout)]
-    mass = np.array(sim.dm['mass'])[np.where(sim.dm['r'] < rout)]
+        # Calculate shape tensor & diagonalise:
+        D = list(np.linalg.eigh(MoI(ellipse_pos, ellipse_mass, ndim) / np.sum(ellipse_mass)))
 
-    rx = [[1.,0.,0.],[0.,0.,-1.],[0.,1.,0.]]
-    ry = [[0.,0.,1.],[0.,1.,0.],[-1.,0.,0.]]
-    rz = [[0.,-1.,0.],[1.,0.,0.],[0.,0.,1.]]
+        # Rescale axis ratios to maintain constant ellipsoidal volume:
+        R2 = np.array(D[1])
+        a2 = np.sqrt(abs(D[0]) * ndim)
+        div = (np.prod(a) / np.prod(a2)) ** (1 / float(ndim))
+        a2 *= div
 
-    # Define bins:
-    if (bins == 'equal'): # Each bin contains equal number of particles
-        mid = sn(np.sort(posr[np.where((posr >= rin) & (posr <= rout))]),N*2)
-        rbin = mid[1:N*2+1:2]
-        mid = mid[0:N*2+1:2]
+        return a2, R2, np.sum(in_ellipse)
 
-    elif (bins == 'log'): # Bins are logarithmically spaced
-        mid = profile.Profile(sim.dm, type='log', ndim=3, rmin=rin, rmax=rout, nbins=N+1)['rbins']
-        rbin = np.sqrt(mid[0:N]*mid[1:N+1])
+    # Re-align rotation matrix:
+    def realign(R, a, ndim):
+        if ndim == 3:
+            if a[0] > a[1] > a[2] < a[0]:
+                pass  # abc
+            elif a[0] > a[1] < a[2] < a[0]:
+                R = np.dot(R, Rx)  # acb
+            elif a[0] < a[1] > a[2] < a[0]:
+                R = np.dot(R, Rz)  # bac
+            elif a[0] < a[1] > a[2] > a[0]:
+                R = np.dot(np.dot(R, Rx), Ry)  # bca
+            elif a[0] > a[1] < a[2] > a[0]:
+                R = np.dot(np.dot(R, Rx), Rz)  # cab
+            elif a[0] < a[1] < a[2] > a[0]:
+                R = np.dot(R, Ry)  # cba
+        elif ndim == 2:
+            if a[0] > a[1]:
+                pass  # ab
+            elif a[0] < a[1]:
+                R = np.dot(R, Rz[:2, :2])  # ba
+        return R
 
-    elif (bins == 'lin'): # Bins are linearly spaced
-        mid = profile.Profile(sim.dm, type='lin', ndim=3, rmin=rin, rmax=rout, nbins=N+1)['rbins']
-        rbin = 0.5*(mid[0:N]+mid[1:N+1])
+    # Calculate the angle between two vectors:
+    def angle(a, b):
+        return np.arccos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
-    # Define b/a and c/a ratios and angle arrays:
-    ba,ca,angle = np.zeros(N),np.zeros(N),np.zeros(N)
-    Es = [0]*N
+    # Flip x,y,z axes of R2 if they provide a better alignment with R1.
+    def flip_axes(R1, R2):
+        for i in range(len(R1)):
+            if angle(R1[:, i], -R2[:, i]) < angle(R1[:, i], R2[:, i]):
+                R2[:, i] *= -1
+        return R2
 
-    # Begin loop through radii:
-    for i in range(0,N):
+    # -----------------------------FUNCTIONS-----------------------------
 
-        # Initialise convergence criterion:
-        tol = 1E-3
-        count = 0
+    # Set up binning:
+    r = np.array(sim['r']) if ndim == 3 else np.array(sim['rxy'])
+    pos = np.array(sim['pos'])[:, :ndim]
+    mass = np.array(sim['mass'])
 
-        # Define initial spherical shell:
-        a=b=c = rbin[i]
-        E = np.identity(3)
-        L1,L2 = rbin[i]-mid[i],mid[i+1]-rbin[i]
+    if (bins == 'equal'):  # Bins contain equal number of particles
+        full_bins = sn(np.sort(r[(r >= rmin) & (r <= rmax)]), nbins * 2)
+        bin_edges = full_bins[0:nbins * 2 + 1:2]
+        rbins = full_bins[1:nbins * 2 + 1:2]
+    elif (bins == 'log'):  # Bins are logarithmically spaced
+        bin_edges = np.logspace(np.log10(rmin), np.log10(rmax), nbins + 1)
+        rbins = np.sqrt(bin_edges[:-1] * bin_edges[1:])
+    elif (bins == 'lin'):  # Bins are linearly spaced
+        bin_edges = np.linspace(rmin, rmax, nbins + 1)
+        rbins = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
-        # Begin iterative procedure to fit data to shell:
-        while True:
-            count += 1
+    # Initialise the shape arrays:
+    rbins = array.SimArray(rbins, sim['pos'].units)
+    axis_lengths = array.SimArray(np.zeros([nbins, ndim]), sim['pos'].units)
+    N_in_bin = np.zeros(nbins).astype('int')
+    rotations = [0] * nbins
 
-            # Collect all particle positions and masses within shell:
-            r = pos[np.where((posr < a+L2) & (posr > c-L1*c/a))]
-            inner = Ellipsoid(r, a-L1,b-L1*b/a,c-L1*c/a, E)
-            outer = Ellipsoid(r, a+L2,b+L2*b/a,c+L2*c/a, E)
-            r = r[np.where((inner > 1.) & (outer < 1.))]
-            m = mass[np.where((inner > 1.) & (outer < 1.))]
+    # Loop over all radial bins:
+    for i in range(nbins):
 
-            # End iterations if there is no data in range:
-            if (len(r) == 0):
-                ba[i],ca[i],angle[i],Es[i] = b/a,c/a,almnt(E),E
-                logger.info('No data in range after %i iterations' %count)
-                break
+        # Initial spherical shell:
+        a = np.ones(ndim) * rbins[i]
+        a2 = np.zeros(ndim)
+        a2[0] = np.inf
+        R = np.identity(ndim)
 
-            # Calculate shape tensor & diagonalise:
-            D = list(np.linalg.eig(MoI(r,m)/np.sum(m)))
+        # Iterate shape estimate until a convergence criterion is met:
+        iteration_counter = 0
+        while ((np.abs(a[1] / a[0] - np.sort(a2)[-2] / max(a2)) > tol) & \
+               (np.abs(a[-1] / a[0] - min(a2) / max(a2)) > tol)) & \
+                (iteration_counter < max_iterations):
+            a2 = a.copy()
+            a, R, N = shell_shape(r, pos, mass, a, R, bin_edges[[i, i + 1]], ndim)
+            iteration_counter += 1
 
-            # Purge complex numbers:
-            if isinstance(D[1][0,0],complex):
-                D[0] = D[0].real ; D[1] = D[1].real
-                logger.info('Complex numbers in D removed...')
+        # Adjust orientation to match axis ratio order:
+        R = realign(R, a, ndim)
 
-            # Compute ratios a,b,c from moment of intertia principles:
-            anew,bnew,cnew = np.sqrt(abs(D[0])*3.0)
+        # Ensure consistent coordinate system:
+        if np.sign(np.linalg.det(R)) == -1:
+            R[:, 1] *= -1
 
-            # The rotation matrix must be reoriented:
-            E = D[1]
-            if ((bnew > anew) & (anew >= cnew)): E = np.dot(E,rz)
-            if ((cnew > anew) & (anew >= bnew)): E = np.dot(np.dot(E,ry),rx)
-            if ((bnew > cnew) & (cnew >= anew)): E = np.dot(np.dot(E,rz),rx)
-            if ((anew > cnew) & (cnew >= bnew)): E = np.dot(E,rx)
-            if ((cnew > bnew) & (bnew >= anew)): E = np.dot(E,ry)
-            cnew,bnew,anew = np.sort(np.sqrt(abs(D[0])*3.0))
+        # Update profile arrays:
+        a = np.flip(np.sort(a))
+        axis_lengths[i], rotations[i], N_in_bin[i] = a, R, N
 
-            # Keep a as semi-major axis and distort b,c by b/a and c/a:
-            div = rbin[i]/anew
-            anew *= div
-            bnew *= div
-            cnew *= div
+    # Ensure the axis vectors point in a consistent direction:
+    if justify:
+        _, _, _, R_global = shape(sim, nbins=1, rmin=rmin, rmax=rmax, ndim=ndim)
+        rotations = np.array([flip_axes(R_global, i) for i in rotations])
 
-            # Convergence criterion:
-            if (np.abs(b/a-bnew/anew) < tol) & (np.abs(c/a-cnew/anew) < tol):
-                if (almnt(-E) < almnt(E)): E = -E
-                ba[i],ca[i],angle[i],Es[i] = bnew/anew,cnew/anew,almnt(E),E
-                break
-
-            # Increase tolerance if convergence has stagnated:
-            elif (count%10 == 0): tol *= 5.
-
-            # Reset a,b,c for the next iteration:
-            a,b,c = anew,bnew,cnew
-
-    return [array.SimArray(rbin, sim.d['pos'].units), ba, ca, angle, Es]
+    return rbins, np.squeeze(axis_lengths.T).T, N_in_bin, np.squeeze(rotations)
