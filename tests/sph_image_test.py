@@ -5,8 +5,8 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
-from pynbody.sph import renderers
 import pynbody.test_utils
+from pynbody.sph import renderers
 
 test_folder = Path(__file__).parent
 

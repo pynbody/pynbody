@@ -66,6 +66,7 @@ jobs:
       run: python -m pytest
     # Following is temporarily necessary because of the >2.0.0rc1 numpy version
     - name: sanitize artifact name
+      if: always()
       run: |
         TARGET_SANI=$(echo "images-${{ matrix.python-version }}-${{ matrix.numpy-version }}" | tr ">" "_")
         echo "TARGET_SANI=${TARGET_SANI}" >> "$GITHUB_ENV"

@@ -222,7 +222,7 @@ def test_halo_particle_ids(halos):
             dict(_longint=True, _read_contamination=False),
         ),
         (
-            "testdata/EDGE_adaptahop_output/tree_bricks100_full_long_ints",
+            "testdata/adaptahop_longint/tree_bricks100_full_long_ints",
             NewAdaptaHOPCatalogueFullyLongInts,
             dict(_longint=True, _read_contamination=True),
         ),
