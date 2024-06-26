@@ -141,8 +141,7 @@ def test_denoise_projected_image_throws(snap):
 
 
 @pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
-def test_render_stars(stars_2d, stars_dust_2d):
-    global f
+def test_render_stars(stars_2d, stars_dust_2d, snap):
 
     im = pynbody.plot.stars.render(snap, width=10.0, resolution=100, return_image=True, noplot=True)
 
@@ -154,9 +153,8 @@ def test_render_stars(stars_2d, stars_dust_2d):
                    reason="Extinction is not currently compatible with numpy 2.0",
                    strict=True)
 @pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
-def test_render_stars_with_dust(stars_dust_2d):
-    global f
-    im = pynbody.plot.stars.render(f, width=10.0, resolution=100, return_image=True, noplot=True, with_dust=True)
+def test_render_stars_with_dust(stars_dust_2d, snap):
+    im = pynbody.plot.stars.render(snap, width=10.0, resolution=100, return_image=True, noplot=True, with_dust=True)
     np.save("result_stars_dust_2d.npy", im[40:60])
 
     npt.assert_allclose(stars_dust_2d, im[40:60], atol=0.01)
