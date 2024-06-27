@@ -109,8 +109,8 @@ First, clone the `git repository from Github
    .. code-block :: bash
 
      $ cd tests
-     $ wget http://star.ucl.ac.uk/~app/testdata.tar.gz
-     $ tar -xzf testdata.tar.gz
+     $ # next line is optional: pre-download all test data (otherwise the tests will download them on the fly):
+     $ python -c "import pynbody.test_utils as tu; tu.precache_test_data()"
      $ pytest
 
    If this yields no errors, you are ready to use pynbody in the usual way. If ``pytest`` generates errors and you

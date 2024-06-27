@@ -24,10 +24,6 @@ some plots is offered by the :ref:`quick-start <quickstart>` guide.
  files if you want to follow the tutorial. See :ref:`obtaining_testdata`
  for more information.
 
-After you have extracted the testdata folder (e.g. with ``tar -xzf
-testdata.tar.gz``), launch ``ipython`` or ``Jupyter``. At the prompt or in
-a cell, type ``import pynbody``. If all is installed correctly, this should silently
-succeed, and you are ready to use ``pynbody``.
 
 First steps
 -----------

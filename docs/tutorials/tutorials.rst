@@ -27,24 +27,17 @@ Obtaining test data
 -------------------
 
 Many of the tutorials below use the same dataset that pynbody is tested on. While they are easily adapted for your
-own data, you can also download and unpack the test data to replicate the examples exactly. To do this, perform the
-following steps:
+own data, you can also download and unpack the test data to replicate the examples exactly. To do this, you can either
+manually download the tarballs from `zenodo <https://zenodo.org/doi/10.5281/zenodo.12552027>`_ and unpack them
+to a directory of your choice, or automatically download using pynbody's built-in testdata downloader:
 
-1. Download the testdata tarball from `here <http://star.ucl.ac.uk/~app/testdata.tar.gz>`_. This is approximately 2.0GB.
-   From a command line, you can do this with the command
+.. code:: python
 
-   .. code:: bash
+    import pynbody.test_utils
+    pynbody.test_utils.precache_test_data()
 
-       $ wget http://star.ucl.ac.uk/~app/testdata.tar.gz
-
-2. Unpack the tarball in a directory of your choice. This will create a directory called ``testdata``.
-
-   .. code:: bash
-
-       $ tar -xzf testdata.tar.gz
-
-3. Launch python, ipython or jupyter from the directory where you unpacked the tarball. You can then follow the tutorials
-   below, using the ``testdata`` directory as the root of your data.
+Note that pynbody automatically creates a folder called ``testdata`` in this case, and the tutorials assume
+that you have put the data in this folder.
 
 .. _walkthroughs:
 

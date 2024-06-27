@@ -38,9 +38,8 @@ test_data_url = "https://zenodo.org/record/12552028/files/{archive_name}?downloa
 
 def precache_test_data():
     """Download and unpack all test data packages."""
-    for package_name in test_data_packages:
-        print("Fetching test data package", package_name)
-        download_and_unpack_test_data(test_data_packages[package_name]['archive_name'])
+    for package in test_data_packages.values():
+        _download_and_unpack_test_data_if_not_present(package)
 
 def test_data_hash():
     """Return a hash representing the data packages to be downloaded"""
@@ -89,5 +88,9 @@ def ensure_test_data_available(*package_names):
         if package_name not in test_data_packages:
             raise ValueError(f"Test data package {package_name} not found in test_data_packages")
         package = test_data_packages[package_name]
-        if not pathlib.Path(f"testdata/{package['path']}").exists():
-            download_and_unpack_test_data(package['archive_name'])
+        _download_and_unpack_test_data_if_not_present(package)
+
+
+def _download_and_unpack_test_data_if_not_present(package):
+    if not pathlib.Path(f"testdata/{package['path']}").exists():
+        download_and_unpack_test_data(package['archive_name'])
