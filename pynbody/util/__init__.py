@@ -70,38 +70,6 @@ def open_with_size(filename, *args):
         f.seek(4, os.SEEK_SET)
         return f, buflen
 
-
-def eps_as_simarray(f, eps):
-    """Convert th given eps to a SimArray with units of f['pos'] and dtype of f['mass']"""
-    if isinstance(eps, str):
-        eps = units.Unit(eps)
-    if not isinstance(eps, units.UnitBase):
-        eps = eps * f['pos'].units
-        logger.info(f"Considering eps = {eps}")
-    eps_value = eps._scale
-    eps_unit = eps/eps_value
-    eps = SimArray(np.ones(len(f), dtype=f['mass'].dtype) * eps_value, eps_unit)
-    return eps
-
-
-def get_eps(f):
-    """The gravitational softening length is determined from (in order of
-    preference):
-    1. the array f['eps']
-    2. f.properties['eps'] (scalar or unit)
-
-    Return a SimArray with correct units and dtype (same dtype as 'mass' array)"""
-
-    try:
-        eps = f['eps']
-    except KeyError:
-        if 'eps' in f.properties:
-            eps = eps_as_simarray(f, f.properties['eps'])
-        else:
-            raise RuntimeError("Cannot retrieve 'eps' from SimSnap")
-    return eps
-
-
 def gcf(a, b):
     while b > 0:
         a, b = b, a % b

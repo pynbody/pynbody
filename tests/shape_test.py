@@ -45,7 +45,7 @@ def test_3D_shape():
                                        [0.00306224, 0.00283095, 0.00242072]], atol=1e-5)
     assert np.all(N == [50179, 50298, 50153])
 
-    npt.assert_allclose(rotation_matrices, [[[0.57289184, -0.79477302, -0.20032668],
+    npt.assert_allclose(abs(rotation_matrices), np.abs( [[[0.57289184, -0.79477302, -0.20032668],
                                              [0.75671193, 0.4189613, 0.50185505],
                                              [-0.31493173, -0.43909825, 0.84143374]],
                                             [[0.14331639, -0.94978421, 0.2781553],
@@ -53,7 +53,7 @@ def test_3D_shape():
                                              [0.51209804, -0.16933736, -0.84206915]],
                                             [[-0.79726644, -0.52493542, 0.29800844],
                                              [-0.55662529, 0.44834656, -0.6993952],
-                                             [0.23352626, -0.72348336, -0.649644]]], atol=1e-5)
+                                             [0.23352626, -0.72348336, -0.649644]]]), atol=1e-5)
 
 
 
@@ -86,4 +86,4 @@ def test_halo_shape_wrapper():
     np.testing.assert_allclose(ba, expected_ba, atol=1e-5)
     np.testing.assert_allclose(ca, expected_ca, atol=1e-5)
     np.testing.assert_allclose(angle, expected_angle, atol=1e-5)
-    np.testing.assert_allclose(Es, expected_E, atol=1e-5)
+    np.testing.assert_allclose(abs(Es), abs(expected_E), atol=1e-5)

@@ -5,7 +5,6 @@ cimport cython
 import numpy as np
 
 from pynbody import array, config, openmp, units
-from pynbody.util import get_eps
 
 cimport numpy as np
 
@@ -25,7 +24,6 @@ cdef extern from "math.h" nogil:
 @cython.cdivision(True)
 @cython.boundscheck(False)
 def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
-
     from cython.parallel cimport prange
 
     global config
@@ -43,7 +41,24 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
     openmp.set_threads(num_threads)
 
     if eps is None:
-        eps = get_eps(f)
+        try:
+            eps = f['eps']
+        except KeyError:
+            eps = f.properties['eps']
+
+    if isinstance(eps, str):
+        eps = units.Unit(eps)
+
+    if isinstance(eps, units.UnitBase):
+        eps = eps.in_units(f['pos'].units, **f.conversion_context())
+
+    if np.isscalar(eps):
+        eps = np.repeat(np.array(eps, dtype=ipos.dtype), len(ipos))
+
+    if isinstance(eps, array.SimArray):
+        eps = eps.in_units(f['pos'].units, **f.conversion_context())
+        eps = eps.view(np.ndarray)
+
 
     cdef unsigned int nips = len(ipos)
     cdef np.ndarray[DTYPE_t, ndim=2] m_by_r2 = np.zeros((nips,3), dtype = ipos.dtype)
