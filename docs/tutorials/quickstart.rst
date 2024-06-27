@@ -29,11 +29,8 @@ different.
 .. note:: Before you start make sure ``pynbody`` is properly
  installed. See :ref:`pynbody-installation` for more information. You
  will also need the standard ``pynbody`` test files, so that you can
- load the exact same data as used to write the tutorial. You need to
- download these separately here:
- `testdata.tar.gz <http://star.ucl.ac.uk/~app/testdata.tar.gz>`_.
- You can then extract them in a directory of your
- choice with ``tar -zxvf testdata.tar.gz``
+ load the exact same data as used to write the tutorial; see
+ :ref:`obtaining_testdata`.
 
  Code snippets can be copied from this page and pasted into
  python, ipython or jupyter. Hover over the code and click the
