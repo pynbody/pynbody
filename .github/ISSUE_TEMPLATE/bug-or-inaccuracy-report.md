@@ -15,9 +15,9 @@ A clear and concise description of what the bug or inaccuracy is.
 **To Reproduce**
 Provide a simple, minimal python script that we can use to reproduce the bug or inaccuracy.
 
-Preferably reproduce the bug using pynbody's own test data (as used by the tutorials, and downloadable from 
-[zenodo](https://zenodo.org/doi/10.5281/zenodo.12552027). If this impossible, provide us a pointer to another file 
-that we can use to reproduce the problem. This file should be as small as possible to illustrate the problem, as it 
+Preferably reproduce the bug using pynbody's own test data (as used by the tutorials, and downloadable from
+[zenodo](https://zenodo.org/doi/10.5281/zenodo.12552027). If this impossible, provide us a pointer to another file
+that we can use to reproduce the problem. This file should be as small as possible to illustrate the problem, as it
 may be incorporated into future versions of the test data.
 
 **Expected behaviour or result**
