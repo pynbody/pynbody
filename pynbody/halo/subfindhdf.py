@@ -54,9 +54,9 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         By default, the FoF groups are imported, and subhalos are available via the 'subhalos' attribute of each
         halo object, e.g.
 
-        >>> f = pynbody.load('path/to/snapshot.hdf5')
-        >>> h = f.halos()
-        >>> h[1].subhalos[2] # returns the third subhalo of FoF group 1
+        >>> snap = pynbody.load('path/to/snapshot.hdf5')
+        >>> halos = snap.halos()
+        >>> halos[1].subhalos[2] # returns the third subhalo of FoF group 1
 
         However by setting ``subhalos=True``, the FoF groups are ignored and the catalogue is of all subhalos.
 

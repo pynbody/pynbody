@@ -681,9 +681,9 @@ class GadgetHDFSnap(SimSnap):
         atr = self._get_hdf_header_attrs()
 
         # expansion factor could be saved as redshift
-        try:
+        if 'ExpansionFactor' in atr:
             self.properties['a'] = atr['ExpansionFactor']
-        except KeyError:
+        elif 'Redshift' in atr:
             self.properties['a'] = 1. / (1 + atr['Redshift'])
 
         # Gadget 4 stores parameters in a separate dictionary <sigh>. For older formats, this will point back to the same
@@ -691,16 +691,20 @@ class GadgetHDFSnap(SimSnap):
         atr = self._get_hdf_parameter_attrs()
 
         # not all omegas need to be specified in the attributes
-        try:
+        if 'OmegaBaryon' in atr:
             self.properties['omegaB0'] = atr['OmegaBaryon']
-        except KeyError:
-            pass
+        if 'Omega0' in atr:
+            self.properties['omegaM0'] = atr['Omega0']
+        if 'OmegaLambda' in atr:
+            self.properties['omegaL0'] = atr['OmegaLambda']
+        if 'BoxSize' in atr:
+            self.properties['boxsize'] = atr['BoxSize'] * self.infer_original_units('cm')
+        if 'HubbleParam' in atr:
+            self.properties['h'] = atr['HubbleParam']
 
-        self.properties['omegaM0'] = atr['Omega0']
-        self.properties['omegaL0'] = atr['OmegaLambda']
-        self.properties['boxsize'] = atr['BoxSize'] * self.infer_original_units('cm')
-        self.properties['z'] = (1. / self.properties['a']) - 1
-        self.properties['h'] = atr['HubbleParam']
+        if 'a' in self.properties:
+            self.properties['z'] = (1. / self.properties['a']) - 1
+
 
         # time unit might not be set in the attributes
         if "Time_GYR" in atr:

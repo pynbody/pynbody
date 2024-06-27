@@ -11,6 +11,12 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf", "ramses")
 
 
 @pytest.fixture
@@ -135,18 +141,18 @@ def test_ahf_unwritable(snap_in_unwritable_folder):
 def test_detecting_ahf_catalogues_with_without_trailing_slash():
     # Test small fixes in #688 to detect AHF catalogues with and wihtout trailing slashes in directories
     for name in (
-        "testdata/ramses_new_format_cosmo_with_ahf_output_00110",
-        "testdata/ramses_new_format_cosmo_with_ahf_output_00110/"
+        "testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110",
+        "testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110/"
     ):
         f = pynbody.load(name)
         _halos = pynbody.halo.ahf.AHFCatalogue(f)
 
 def test_ramses_ahf_load_halo_no_fpos():
     # test that we can load AHF halos without an fpos file
-    f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
+    f = pynbody.load("testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110")
 
     # delete the fpos file, if it exists
-    fpos_path = "testdata/ramses_new_format_cosmo_with_ahf_output_00110/ramses_new_format_cosmo_with_ahf_output_00110_fullbox.tipsy.z0.031.AHF_fpos"
+    fpos_path = "testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110/ramses_new_format_cosmo_with_ahf_output_00110_fullbox.tipsy.z0.031.AHF_fpos"
     if os.path.exists(fpos_path):
         os.remove(fpos_path)
 
@@ -155,7 +161,7 @@ def test_ramses_ahf_load_halo_no_fpos():
 
 def test_ramses_ahf_family_mapping_with_new_format():
     # Test Issue 691 where family mapping of AHF catalogues with Ramses new particle formats would go wrong
-    f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
+    f = pynbody.load("testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110")
     halos = pynbody.halo.ahf.AHFCatalogue(f)
 
     assert len(halos) == 149    # 150 lines in AHF halos file
@@ -196,7 +202,7 @@ def test_ahf_corrupt_substructure():
 
 
 def test_ahf_substructure():
-    f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
+    f = pynbody.load("testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110")
     halos = pynbody.halo.ahf.AHFCatalogue(f)
     halos.load_all()
 

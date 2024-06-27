@@ -9,7 +9,13 @@ import pynbody
 import pynbody.halo.details.iord_mapping
 import pynbody.halo.details.number_mapping
 import pynbody.halo.details.particle_indices
+import pynbody.test_utils
 from pynbody import halo
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("ramses")
 
 
 class SimpleHaloCatalogue(halo.HaloCatalogue):
@@ -369,7 +375,7 @@ def test_long_iord_to_pos_map():
 def test_load_halo_priority():
     from pynbody.halo.adaptahop import AdaptaHOPCatalogue
     from pynbody.halo.hop import HOPCatalogue
-    f = pynbody.load("testdata/output_00080")
+    f = pynbody.load("testdata/ramses/output_00080")
 
     # check that the priority ordering is respected
     halos = f.halos(priority=['HOPCatalogue'])
@@ -389,7 +395,7 @@ def test_load_halo_priority():
 def test_load_halo_priority_americanised():
     from pynbody.halo.adaptahop import AdaptaHOPCatalogue
     from pynbody.halo.hop import HOPCatalogue
-    f = pynbody.load("testdata/output_00080")
+    f = pynbody.load("testdata/ramses/output_00080")
 
     # check that the priority ordering is respected
     halos = f.halos(priority=['HOPCatalog'])
@@ -399,6 +405,6 @@ def test_load_halo_priority_americanised():
     assert isinstance(halos, AdaptaHOPCatalogue)
 
 def test_repr():
-    f = pynbody.load("testdata/output_00080")
+    f = pynbody.load("testdata/ramses/output_00080")
     halos = f.halos()
     assert repr(halos) == "<AdaptaHOPCatalogue, length 170>"

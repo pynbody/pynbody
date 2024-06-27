@@ -42,32 +42,32 @@ xcs = np.random.uniform(-0.5, 0.5, size=Ntrials).astype(dtype)
 ycs = np.random.uniform(-0.5, 0.5, size=Ntrials).astype(dtype)
 zcs = np.random.uniform(-0.5, 0.5, size=Ntrials).astype(dtype)
 
-f = pynbody.new(dm=Npart)
-f._create_array('pos', 3, dtype=dtype)
-f._create_array('mass', 1, dtype=dtype)
+snap = pynbody.new(dm=Npart)
+snap._create_array('pos', 3, dtype=dtype)
+snap._create_array('mass', 1, dtype=dtype)
 
-f['pos'] = np.random.uniform(size=(Npart,3)).astype(dtype)
-f['pos'] -= 0.5
-f['mass'] = np.ones(Npart, dtype=dtype)
-f.properties['boxsize'] = 1.0
+snap['pos'] = np.random.uniform(size=(Npart, 3)).astype(dtype)
+snap['pos'] -= 0.5
+snap['mass'] = np.ones(Npart, dtype=dtype)
+snap.properties['boxsize'] = 1.0
 
-print("Using data type = ",f['pos'].dtype)
+print("Using data type = ", snap['pos'].dtype)
 
 with timer("sphere queries without tree"):
     for cen, rad in zip(centres, radii):
         print(".",end="")
         sys.stdout.flush()
-        _ = f[pynbody.filt.Sphere(rad, cen)]
+        _ = snap[pynbody.filt.Sphere(rad, cen)]
 
 with timer("cube queries without tree"):
     for xc, yc, zc, s in zip(xcs, ycs, zcs, radii):
         print(".",end="")
         sys.stdout.flush()
-        _ = f[pynbody.filt.Cuboid(xc-s, yc-s, zc-s, xc+s, yc+s, zc+s)]
+        _ = snap[pynbody.filt.Cuboid(xc - s, yc - s, zc - s, xc + s, yc + s, zc + s)]
 
 
 with timer("tree build"):
-    f.build_tree(num_threads=num_threads)
+    snap.build_tree(num_threads=num_threads)
 
 
 
@@ -75,7 +75,7 @@ with timer("sphere queries from tree"):
     for cen,rad in zip(centres,radii):
         print(".", end="")
         sys.stdout.flush()
-        _ = f[pynbody.filt.Sphere(rad, cen)]
+        _ = snap[pynbody.filt.Sphere(rad, cen)]
 
 # with timer("cube queries from tree"):
 #     for xc, yc, zc, s in zip(xcs, ycs, zcs, radii):
@@ -86,7 +86,7 @@ with timer("sphere queries from tree"):
 
 
 with timer("get smooth"):
-    _ = f['smooth']
+    _ = snap['smooth']
 
 with timer("get rho"):
-    _ = f['rho']
+    _ = snap['rho']

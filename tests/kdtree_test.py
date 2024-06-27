@@ -7,20 +7,23 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
 from pynbody.array import shared
 
 
-def setup_module():
-    global f
-    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf", "gadget")
 
+
+@pytest.fixture
+def snap():
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     # for compatibility with original results, pretend the box
     # is not periodic
     del f.properties['boxsize']
 
-def teardown_module():
-    global f
-    del f
+    return f
 
 test_folder = Path(__file__).parent
 @pytest.fixture
@@ -55,8 +58,7 @@ def smooth_periodic():
 def div_curl():
     yield np.load(test_folder / 'test_div_curl.npz')
 
-def test_smooth(v_mean, v_disp, rho, smooth):
-    global f
+def test_smooth(v_mean, v_disp, rho, smooth, snap):
     """
     np.save('test_smooth.npy', f.dm['smooth'][::100])
     np.save('test_rho.npy', f.dm['rho'][::100])
@@ -64,26 +66,26 @@ def test_smooth(v_mean, v_disp, rho, smooth):
     np.save('test_v_disp.npy',f.dm['v_disp'][::100])
     """
 
-    npt.assert_allclose(f.dm['smooth'][::100],
-                        smooth,rtol=1e-8)
+    npt.assert_allclose(snap.dm['smooth'][::100],
+                        smooth, rtol=1e-8)
 
-    npt.assert_allclose(f.dm['rho'][::100],
-                        rho,rtol=1e-8)
+    npt.assert_allclose(snap.dm['rho'][::100],
+                        rho, rtol=1e-8)
 
 
 
-    npt.assert_allclose(v_mean,f.dm['v_mean'][::100],rtol=1e-8)
-    npt.assert_allclose(v_disp,f.dm['v_disp'][::100],rtol=1e-8)
+    npt.assert_allclose(v_mean, snap.dm['v_mean'][::100], rtol=1e-8)
+    npt.assert_allclose(v_disp, snap.dm['v_disp'][::100], rtol=1e-8)
 
     # check 1D smooth works too
-    vz_mean = f.dm.kdtree.sph_mean(f.dm['vz'],32)
+    vz_mean = snap.dm.kdtree.sph_mean(snap.dm['vz'], 32)
     npt.assert_allclose(v_mean[:,2],vz_mean[::100],rtol=1e-8)
 
     # check 1D dispersions
     v_disp_squared = (
-        f.dm.kdtree.sph_dispersion(f.dm['vx'], 32)**2+
-        f.dm.kdtree.sph_dispersion(f.dm['vy'], 32)**2+
-        f.dm.kdtree.sph_dispersion(f.dm['vz'], 32)**2
+            snap.dm.kdtree.sph_dispersion(snap.dm['vx'], 32) ** 2 +
+            snap.dm.kdtree.sph_dispersion(snap.dm['vy'], 32) ** 2 +
+            snap.dm.kdtree.sph_dispersion(snap.dm['vz'], 32) ** 2
     )
 
     npt.assert_allclose(v_disp**2, v_disp_squared[::100], rtol=1e-8)
@@ -100,16 +102,15 @@ def test_smooth_WendlandC2(rho_W):
     finally:
         pynbody.config['sph']['kernel'] = 'CubicSplineKernel'
 
-def test_kd_delete():
-    global f
-    f.dm['smooth']
+def test_kd_delete(snap):
+    snap.dm['smooth']
 
-    assert hasattr(f.dm,'kdtree')
+    assert hasattr(snap.dm, 'kdtree')
 
-    f.physical_units()
+    snap.physical_units()
 
     # position array has been updated - kdtree should be auto-deleted
-    assert not hasattr(f.dm,'kdtree')
+    assert not hasattr(snap.dm, 'kdtree')
 
 
 def test_kd_issue_88() :

@@ -1,9 +1,16 @@
 import numpy as np
 import numpy.testing as npt
+import pytest
 
 import pynbody
+import pynbody.test_utils
 
 np.random.seed(1)
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf")
 
 def make_fake_bar(npart=100000, max=1, min=-1, barlength=.8, barwidth=0.05, phi=0, fraction=0.2):
 

@@ -10,7 +10,12 @@ from pytest import raises
 import pynbody
 import pynbody.halo.velociraptor
 import pynbody.snapshot.swift
+import pynbody.test_utils
 
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("swift")
 
 def test_load_identifies_swift():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")

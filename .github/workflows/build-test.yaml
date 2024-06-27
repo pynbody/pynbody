@@ -29,12 +29,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - uses: actions/checkout@v4
-    - name: Cache testdata
-      uses: actions/cache@v3
-      id: cache-testdata
-      with:
-        path: tests/testdata
-        key: testdata-v6
     - name: Install gcc
       run: |
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
@@ -49,17 +43,31 @@ jobs:
         python -m pip install -v .[tests]
         echo "[ramses]" >> ~/.pynbodyrc
         echo "parallel-read=2" >> ~/.pynbodyrc
+
+    - name: Get testdata hash
+      id: get-testdata-hash
+      working-directory: tests
+      run: |
+        echo "testdatahash=$(python -c 'import pynbody.test_utils as tu; print(tu.test_data_hash())')" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Cache testdata
+      uses: actions/cache@v3
+      id: cache-testdata
+      with:
+        path: tests/testdata
+        key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
     - name: Fetch and unpack test data
       if: steps.cache-testdata.outputs.cache-hit != 'true'
       working-directory: tests
       run: |
-        wget -q http://star.ucl.ac.uk/~app/testdata.tar.gz
-        tar --exclude="._*" -xzvf testdata.tar.gz
+        python -c "import pynbody.test_utils as tu; tu.precache_test_data()"
     - name: Run all tests
       working-directory: tests
       run: python -m pytest
     # Following is temporarily necessary because of the >2.0.0rc1 numpy version
     - name: sanitize artifact name
+      if: always()
       run: |
         TARGET_SANI=$(echo "images-${{ matrix.python-version }}-${{ matrix.numpy-version }}" | tr ">" "_")
         echo "TARGET_SANI=${TARGET_SANI}" >> "$GITHUB_ENV"

@@ -5,27 +5,36 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
 from pynbody.sph import renderers
 
 test_folder = Path(__file__).parent
 
-def setup_module():
-    global f
-    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
-    h = f.halos()
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf")
+
+
+@pytest.fixture
+def snap():
+    snap = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    h = snap.halos()
     # hard-code the centre so we're not implicitly testing the centering routine too:
     cen = [0.024456279579533, -0.034112552174141, -0.122436359962132]
     #cen = pynbody.analysis.halo.center(h[1],retcen=True)
     #print "[%.15f, %.15f, %.15f]"%tuple(cen)
-    f['pos']-=cen
+    snap['pos']-=cen
 
     # derive smoothing lengths direct from file data so we are
     # not testing the kdtree (which is tested elsewhere)
 
-    f.gas['smooth']=(f.gas['mass']/f.gas['rho'])**(1,3)
-    np.save("result_im_x_pre_phys.npy", f.gas['x'])
-    f.physical_units()
-    np.save("result_im_x_post_phys.npy", f.gas['x'])
+    snap.gas['smooth']= (snap.gas['mass'] / snap.gas['rho']) ** (1, 3)
+    np.save("result_im_x_pre_phys.npy", snap.gas['x'])
+    snap.physical_units()
+    np.save("result_im_x_post_phys.npy", snap.gas['x'])
+
+    return snap
 
 @pytest.fixture
 def compare2d():
@@ -55,17 +64,14 @@ def stars_2d():
 def stars_dust_2d():
     yield np.load(test_folder / "test_stars_dust_2d.npy")
 
-def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compare3d_wendlandC2):
-
-    global f
+def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compare3d_wendlandC2, snap):
+    im3d = pynbody.plot.sph.image(
+        snap.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, resolution=500)
 
     im2d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, resolution=500)
+        snap.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, resolution=500)
 
-    im3d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, resolution=500)
-
-    im_grid = pynbody.sph.to_3d_grid(f.gas,nx=200,x2=20.0, approximate_fast=False)[::50]
+    im_grid = pynbody.sph.to_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=False)[::50]
 
 
     np.save("result_im_2d.npy",im2d)
@@ -79,10 +85,10 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
 
     # Make images with a different kernel (Wendland C2)
     im3d_wendlandC2 = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, kernel='wendlandC2',
+        snap.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, kernel='wendlandC2',
         resolution=500)
     im2d_wendlandC2 = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, kernel='wendlandC2',
+        snap.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, kernel='wendlandC2',
         resolution=500)
 
 
@@ -98,20 +104,19 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
     npt.assert_allclose(im3d_wendlandC2,compare3d_wendlandC2,rtol=1e-5)
 
     # check rectangular image is OK
-    im_rect = pynbody.sph.render_image(f.gas,nx=500,ny=250,width=20.0,
+    im_rect = pynbody.sph.render_image(snap.gas,nx=500,ny=250,width=20.0,
                                         approximate_fast=False).in_units("m_p cm^-3")
     np.save("result_im_3d_rectangular.npy",im_rect)
 
     compare_rect = compare3d[125:-125]
     npt.assert_allclose(im_rect,compare_rect,rtol=1e-4)
 
-def test_approximate_images(compare2d, compare3d, compare_grid):
-    global f
+def test_approximate_images(compare2d, compare3d, compare_grid, snap):
     im3d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True, resolution=500)
+        snap.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True, resolution=500)
     im2d = pynbody.plot.sph.image(
-        f.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, resolution=500)
-    im_grid = pynbody.sph.to_3d_grid(f.gas, nx=200, x2=20.0, approximate_fast=True)[::50]
+        snap.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, resolution=500)
+    im_grid = pynbody.sph.to_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=True)[::50]
 
     np.save("result_approx_im_2d.npy", im2d)
     np.save("result_approx_im_3d.npy", im3d)
@@ -123,24 +128,22 @@ def test_approximate_images(compare2d, compare3d, compare_grid):
     assert abs(np.log10(im_grid / compare_grid)).mean() < 0.03
 
 
-def test_denoise_projected_image_throws():
-    global f
+def test_denoise_projected_image_throws(snap):
     # this should be fine:
-    pipeline = renderers.make_render_pipeline(f.gas, width=20.0, out_units="m_p cm^-3", denoise=True, resolution=10)
+    pipeline = renderers.make_render_pipeline(snap.gas, width=20.0, out_units="m_p cm^-3", denoise=True, resolution=10)
     pipeline.render()
 
     with pytest.raises(renderers.RenderPipelineLogicError):
         # this should not:
-        pipeline = renderers.make_render_pipeline(f.gas, width=20.0, out_units="m_p cm^-2", denoise=True,
+        pipeline = renderers.make_render_pipeline(snap.gas, width=20.0, out_units="m_p cm^-2", denoise=True,
                                                   resolution=10)
 
 
 
 @pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
-def test_render_stars(stars_2d, stars_dust_2d):
-    global f
+def test_render_stars(stars_2d, stars_dust_2d, snap):
 
-    im = pynbody.plot.stars.render(f, width=10.0, resolution=100, return_image=True, noplot=True)
+    im = pynbody.plot.stars.render(snap, width=10.0, resolution=100, return_image=True, noplot=True)
 
     np.save("result_stars_2d.npy", im[40:60])
 
@@ -150,9 +153,8 @@ def test_render_stars(stars_2d, stars_dust_2d):
                    reason="Extinction is not currently compatible with numpy 2.0",
                    strict=True)
 @pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
-def test_render_stars_with_dust(stars_dust_2d):
-    global f
-    im = pynbody.plot.stars.render(f, width=10.0, resolution=100, return_image=True, noplot=True, with_dust=True)
+def test_render_stars_with_dust(stars_dust_2d, snap):
+    im = pynbody.plot.stars.render(snap, width=10.0, resolution=100, return_image=True, noplot=True, with_dust=True)
     np.save("result_stars_dust_2d.npy", im[40:60])
 
     npt.assert_allclose(stars_dust_2d, im[40:60], atol=0.01)
@@ -165,6 +167,6 @@ def intentional_circular_reference(sim):
 # Note: we ignore all warnings here, since pytest will otherwise
 # trigger a warning internally because of the exception propagation
 @pytest.mark.filterwarnings("ignore:.*")
-def test_exception_propagation():
+def test_exception_propagation(snap):
     with pytest.raises(RuntimeError):
-        pynbody.plot.sph.image(f.gas, qty='intentional_circular_reference')
+        pynbody.plot.sph.image(snap.gas, qty='intentional_circular_reference')

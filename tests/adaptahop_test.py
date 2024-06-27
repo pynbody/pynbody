@@ -3,6 +3,7 @@ import pytest
 from scipy.io import FortranFile as FF
 
 import pynbody
+import pynbody.test_utils
 from pynbody.halo.adaptahop import (
     AdaptaHOPCatalogue,
     BaseAdaptaHOPCatalogue,
@@ -11,10 +12,14 @@ from pynbody.halo.adaptahop import (
 )
 
 
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("ramses", "adaptahop_longint")
+
 # Note: we do not use a module-wide fixture here to prevent caching of units
 @pytest.fixture
 def f():
-    yield pynbody.load("testdata/output_00080")
+    yield pynbody.load("testdata/ramses/output_00080")
 
 
 @pytest.fixture
@@ -28,7 +33,7 @@ def test_load_adaptahop_catalogue(halos):
 
 @pytest.mark.parametrize(
     ("path", "nhalos", "halo1_len", "halo2_len", "halo1_iord", "halo2_iord"),
-    (("testdata/output_00080", 170, 235, 1201,
+    (("testdata/ramses/output_00080", 170, 235, 1201,
       [   48,  7468, 33923],
       [     91,    1203,    2703,    4151,    5539,    6907,    8535,   10227,   11355,
        12739,   14303,   15547,  992896,  993104  ,  993284,  993464,  993608,  993784,
@@ -45,7 +50,7 @@ def test_load_adaptahop_catalogue(halos):
      1007620, 1007736, 1007872, 1008060, 1008160  , 1008276, 1008404, 1008548, 1008688,
      1010244, 1012248, 1031365, 1033027,]
       ),
-     ("testdata/new_adaptahop_output_00080", 2, 22, 26,
+     ("testdata/ramses/new_adaptahop_output_00080", 2, 22, 26,
       [852173],
       [762435,  21188,  29809])
      )
@@ -151,7 +156,7 @@ def test_physical_conversion_from_snapshot(f):
     assert halos[1].dm["mass"].units == "Msol"
 
     # Load then convert
-    f = pynbody.load("testdata/output_00080")
+    f = pynbody.load("testdata/ramses/output_00080")
     assert f.dm["mass"].units != "Msol"
 
     halos = f.halos()
@@ -197,27 +202,27 @@ def test_halo_particle_ids(halos):
     ("fname", "Halo_T", "ans"),
     (
         (
-            "testdata/output_00080/Halos/tree_bricks080",
+            "testdata/ramses/output_00080/Halos/tree_bricks080",
             AdaptaHOPCatalogue,
             dict(_longint=False, _read_contamination=False),
         ),
         (
-            "testdata/new_adaptahop_output_00080/Halos/tree_bricks080",
+            "testdata/ramses/new_adaptahop_output_00080/Halos/tree_bricks080",
             NewAdaptaHOPCatalogue,
             dict(_longint=False, _read_contamination=True),
         ),
         (
-            "testdata/EDGE_adaptahop_output/tree_bricks047_contam",
+            "testdata/adaptahop_longint/tree_bricks047_contam",
             NewAdaptaHOPCatalogue,
             dict(_longint=True, _read_contamination=True),
         ),
         (
-            "testdata/EDGE_adaptahop_output/tree_bricks047_nocontam",
+            "testdata/adaptahop_longint/tree_bricks047_nocontam",
             NewAdaptaHOPCatalogue,
             dict(_longint=True, _read_contamination=False),
         ),
         (
-            "testdata/EDGE_adaptahop_output/tree_bricks100_full_long_ints",
+            "testdata/adaptahop_longint/tree_bricks100_full_long_ints",
             NewAdaptaHOPCatalogueFullyLongInts,
             dict(_longint=True, _read_contamination=True),
         ),
@@ -243,7 +248,7 @@ def test_dm_not_first_family(f):
     # AdaptaHOP files only refer to DM particles, but we can't assume that DM is the first family
     # e.g. tracer particles come first
 
-    f = pynbody.load("testdata/new_adaptahop_output_00080")
+    f = pynbody.load("testdata/ramses/new_adaptahop_output_00080")
     f_with_tracers = pynbody.new(gas_tracer=100, dm=len(f.dm), star=len(f.star), gas=len(f.gas))
     f_with_tracers.dm['iord'] = f.dm['iord']
     f_with_tracers.properties.update(f.properties)
@@ -251,7 +256,7 @@ def test_dm_not_first_family(f):
     halos = f.halos()
 
     halos2 = pynbody.halo.adaptahop.NewAdaptaHOPCatalogue(f_with_tracers,
-                                                          filename="testdata/new_adaptahop_output_00080/Halos/tree_bricks080")
+                                                          filename="testdata/ramses/new_adaptahop_output_00080/Halos/tree_bricks080")
 
     assert (halos2[1].dm['iord'] == halos[1].dm['iord']).all()
     assert (halos2[2].dm['iord'] == halos[2].dm['iord']).all()
