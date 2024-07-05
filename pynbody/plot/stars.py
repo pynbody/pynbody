@@ -829,9 +829,9 @@ def schmidtlaw(sim, center=True, filename=None, pretime='50 Myr',
 	if clear:
 		plt.clf()
 
-    plt.loglog(pg['density'].in_units('Msol pc^-2'),
-               (ps['density']/pretime).in_units('Msol kpc**-2 yr**-1'), "+",
-               **kwargs)
+	plt.loglog(pg['density'].in_units('Msol pc^-2'),
+			   (ps['density']/pretime).in_units('Msol kpc**-2 yr**-1'), "+",
+			   **kwargs)
 
 	if compare:
 		xsigma = np.logspace(np.log10(pg['density'].in_units('Msol pc^-2')).min(),
