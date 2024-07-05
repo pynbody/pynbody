@@ -64,13 +64,28 @@ def rho_T(sim, rho_units=None, rho_range=None, t_range=None, two_phase='split', 
     else:
         ylabel = r'log$_{10}$(T/$' + sim.gas['temp'].units.latex() + '$)'
 
-    if 'Tinc' in sim.loadable_keys() and two_phase == 'merge':
-        return hist2d(sim.gas['rho'].in_units(rho_units),sim.gas['Tinc'],
+    gasoline_two_phase = False
+    changa_two_phase = False
+
+    if ('Tinc' in sim.loadable_keys() and 'MassHot' in sim.loadable_keys() and
+        'uHot' in sim.loadable_keys()):
+        gasoline_two_phase = True
+        temp_key = 'Tinc'
+        mass_hot_key = 'MassHot'
+
+    if ('tempEff' in sim.loadable_keys() and 'massHot' in sim.loadable_keys() and
+        'uHot' in sim.loadable_keys()):
+        changa_two_phase = True
+        temp_key = 'temp_eff'
+        mass_hot_key = 'massHot'
+
+    if (gasoline_two_phase or changa_two_phase) and two_phase == 'merge':
+        return hist2d(sim.gas['rho'].in_units(rho_units),sim.gas[temp_key],
                       xlogrange=True,ylogrange=True,xlabel=xlabel,
                       ylabel=ylabel, **kwargs)
 
-    if 'uHot' in sim.loadable_keys() and 'MassHot' in sim.loadable_keys() and two_phase == 'split':
-        E = sim.g['uHot']*sim.g['MassHot']+sim.g['u']*(sim.g['mass']-sim.g['MassHot'])
+    if (gasoline_two_phase or changa_two_phase) and two_phase == 'split':
+        E = sim.g['uHot']*sim.g['MassHot']+sim.g['u']*(sim.g['mass']-sim.g[mass_hot_key])
         rho = np.concatenate((sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['u']),
             sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['uHot'])))
         temp = np.concatenate((sim.g['temp'], sim.g['temp']/sim.g['u']*sim.g['uHot']))
