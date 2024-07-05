@@ -1,10 +1,7 @@
 import codecs
-import distutils
 import os
-import shutil
+import platform
 import subprocess
-import sys
-import tempfile
 from os import path
 
 import numpy as np
@@ -14,42 +11,20 @@ from setuptools import Extension, setup
 
 get_directive_defaults()['language_level'] = 3
 
+def is_macos():
+    return platform.system() == 'Darwin'
 
-def check_for_pthread():
-    # Create a temporary directory
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
+def get_xcode_version():
+    result = subprocess.run(['xcodebuild', '-version'], capture_output=True, text=True)
+    version_line = result.stdout.split('\n')[0]
+    version = version_line.split(' ')[1]
+    return version
 
-    # Get compiler invocation
-    compiler = os.environ.get('CC',
-                              distutils.sysconfig.get_config_var('CC'))
-
-    # make sure to use just the compiler name without flags
-    compiler = compiler.split()[0]
-
-    filename = r'test.c'
-    with open(filename,'w') as f :
-        f.write(
-        "#include <pthread.h>\n"
-        "#include <stdio.h>\n"
-        "int main() {\n"
-        "}"
-        )
-
-    try:
-        with open(os.devnull, 'w') as fnull:
-            exit_code = subprocess.call([compiler, filename],
-                                        stdout=fnull, stderr=fnull)
-    except OSError :
-        exit_code = 1
-
-
-    # Clean up
-    os.chdir(curdir)
-    shutil.rmtree(tmpdir)
-
-    return (exit_code==0)
+def xcode_fix_needed():
+    if is_macos() and int(get_xcode_version().split('.')[0]) >= 15:
+        return True
+    else:
+        return False
 
 def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
@@ -64,8 +39,6 @@ def get_version(rel_path):
     else:
         raise RuntimeError("Unable to find version string.")
 
-
-have_pthread = check_for_pthread()
 
 
 # Support for compiling without OpenMP has been removed, for now, due to the spiralling
@@ -82,18 +55,28 @@ extra_compile_args = ['-ftree-vectorize',
                       '-funroll-loops',
                       '-fprefetch-loop-arrays',
                       '-fstrict-aliasing',
-                      '-g']
+                      '-fno-expensive-optimizations', #<-- for arm64 gcc
+                      '-g', '-std=c++14']
 
-if have_pthread:
-    extra_compile_args.append('-DKDT_THREADING')
+# note on -fno-expensive-optimizations:
+# This is needed for arm64 gcc, which otherwise gets wrong results for a small number of particles
+# in the kdtree_test.py::test_smooth_wendlandC2 test. It's unclear why; quite possibly there is
+# a subtle bug in the code exposed by these optimizations, but it is such a vague optimization
+# that it's hard to know what it is. The actual routine affected is smBallGather, but for some reason
+# its impact only shows up with the Wendland kernel.
 
-extra_link_args = []
+extra_link_args = openmp_args + ['-std=c++14']
+
+if xcode_fix_needed():
+    # workaround for XCode bug FB13097713
+    # https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
+    extra_link_args += ['-Wl,-ld_classic']
 
 incdir = [np.get_include()]
 
-kdmain = Extension('pynbody.sph.kdmain',
-                   sources = ['pynbody/sph/kdmain.cpp', 'pynbody/sph/kd.cpp',
-                              'pynbody/sph/smooth.cpp'],
+kdmain = Extension('pynbody.kdtree.kdmain',
+                   sources = ['pynbody/kdtree/kdmain.cpp', 'pynbody/kdtree/kd.cpp',
+                              'pynbody/kdtree/smooth.cpp'],
                    include_dirs=incdir,
                    undef_macros=['DEBUG'],
 
@@ -107,13 +90,13 @@ gravity = Extension('pynbody.gravity._gravity',
                         sources = ["pynbody/gravity/_gravity.pyx"],
                         include_dirs=incdir,
                         extra_compile_args=openmp_args,
-                        extra_link_args=openmp_args)
+                        extra_link_args=extra_link_args)
 
 omp_commands = Extension('pynbody.openmp',
                         sources = ["pynbody/"+openmp_module_source+".pyx"],
                         include_dirs=incdir,
                         extra_compile_args=openmp_args,
-                        extra_link_args=openmp_args)
+                        extra_link_args=extra_link_args)
 
 chunkscan = Extension('pynbody.chunk.scan',
                   sources=['pynbody/chunk/scan.pyx'],
@@ -127,17 +110,24 @@ halo_pyx = Extension('pynbody.analysis._com',
                      sources=['pynbody/analysis/_com.pyx'],
                      include_dirs=incdir,
                      extra_compile_args=openmp_args,
-                     extra_link_args=openmp_args)
+                     extra_link_args=extra_link_args)
 
 bridge_pyx = Extension('pynbody.bridge._bridge',
                      sources=['pynbody/bridge/_bridge.pyx'],
                      include_dirs=incdir)
 
-util_pyx = Extension('pynbody._util',
-                     sources=['pynbody/_util.pyx'],
+util_pyx = Extension('pynbody.util._util',
+                     sources=['pynbody/util/_util.pyx'],
                      include_dirs=incdir,
                      extra_compile_args=openmp_args,
-                     extra_link_args=openmp_args)
+                     extra_link_args=extra_link_args)
+
+filt_geom_pyx = Extension('pynbody.filt.geometry_selection',
+                     sources=['pynbody/filt/geometry_selection.pyx'],
+                     include_dirs=incdir,
+                     extra_compile_args=openmp_args,
+                     extra_link_args=extra_link_args,
+                     language='c++')
 
 cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
                                 sources=['pynbody/extern/_cython_fortran_utils.pyx'],
@@ -151,25 +141,31 @@ interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
                               extra_link_args=openmp_args)
 
 
-ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx,
+ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx, filt_geom_pyx,
                 cython_fortran_file, interpolate3d_pyx, omp_commands]
 
 install_requires = [
     'cython>=0.20',
-    'h5py>=2.10.0',
+    'h5py>=3.0.0',
     'matplotlib>=3.0.0',
     'numpy>=1.21.6',
-    'scipy>=1.0.0'
+    'scipy>=1.0.0',
+    'posix-ipc>=1.1.0'
 ]
 
 tests_require = [
-    'pytest','pandas'
+    'pytest','pandas','camb','extinction'
 ]
 
 docs_require = [
     'ipython>=3',
-    'Sphinx==1.6.*',
-    'sphinx-bootstrap-theme',
+    'Sphinx>=7',
+    'sphinx-book-theme',
+    'sphinx-copybutton',
+    'numpydoc',
+    'extinction',
+    'nbsphinx',
+    'camb'
 ],
 
 extras_require = {
@@ -184,8 +180,8 @@ for name, reqs in extras_require.items():
 
 
 this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as snap:
+    long_description = snap.read()
 
 setup(name = 'pynbody',
       author = 'The pynbody team',
@@ -194,18 +190,19 @@ setup(name = 'pynbody',
       description = 'Light-weight astronomical N-body/SPH analysis for python',
       url = 'https://github.com/pynbody/pynbody/releases',
       package_dir = {'pynbody/': ''},
-      packages = ['pynbody', 'pynbody/analysis', 'pynbody/bc_modules', 'pynbody/array',
-                  'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/sph',
-                  'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/extern'],
+      packages = ['pynbody', 'pynbody/analysis', 'pynbody/array',
+                  'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/filt', 'pynbody/sph',
+                  'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/halo/details',
+                  'pynbody/extern', 'pynbody/kdtree', 'pynbody/test_utils', 'pynbody/util'],
       package_data={'pynbody': ['default_config.ini'],
-                    'pynbody/analysis': ['cmdlum.npz',
+                    'pynbody/analysis': ['cmdlum.npz', 'default_ssp.txt', 'lsst_ssp.txt',
                                          'h1.hdf5',
                                          'ionfracs.npz',
-                                         'CAMB_WMAP7',
+                                         'CAMB_WMAP7', 'CAMB_Planck18',
                                          'cambtemplate.ini'],
                     'pynbody/plot': ['tollerud2008mw']},
       ext_modules = ext_modules,
-      classifiers = ["Development Status :: 5 - Production/Stable",
+      classifiers = ["Development Status :: 4 - Beta",
                      "Intended Audience :: Developers",
                      "Intended Audience :: Science/Research",
                      "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
@@ -216,7 +213,7 @@ setup(name = 'pynbody',
       install_requires=install_requires,
       tests_require=tests_require,
       extras_require=extras_require,
-      python_requires='>=3.9',
+      python_requires='>=3.10',
       long_description=long_description,
       long_description_content_type='text/markdown'
       )

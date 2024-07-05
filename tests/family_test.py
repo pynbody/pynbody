@@ -1,6 +1,13 @@
 import numpy as np
+import pytest
 
 import pynbody
+import pynbody.test_utils
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf")
 
 
 def test_pickle():
@@ -10,7 +17,7 @@ def test_pickle():
 
 def test_family_array_dtype() :
     # test for issue #186
-    f = pynbody.load('testdata/g15784.lr.01024.gz')
+    f = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024.gz')
     f.g['rho'] = np.zeros(len(f.g), dtype=np.float32)
     f.s['rho']
 

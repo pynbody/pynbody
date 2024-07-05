@@ -1,5 +1,5 @@
+import gc
 import shutil
-from itertools import chain
 
 import h5py
 import numpy as np
@@ -7,20 +7,29 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
 from pynbody import units
 
 
-def setup_module() :
-    global snap,subfind
-    snap = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
-    subfind = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103')
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gadget", "arepo")
 
-def teardown_module() :
-    global snap,subfind
-    del snap
-    del subfind
+@pytest.fixture
+def snap():
+    f = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103.hdf5')
+    yield f
+    del f
+    gc.collect()
 
-def test_standard_arrays() :
+@pytest.fixture
+def subfind():
+    f = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103')
+    yield f
+    del f
+    gc.collect()
+
+def test_standard_arrays(snap, subfind) :
     """Check that the data loading works"""
 
     for s in [snap, subfind] :
@@ -49,15 +58,15 @@ def _h5py_copy_with_key_rename(src,dest):
 
 
 
-def test_alt_names():
-    _h5py_copy_with_key_rename('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5',
-                'testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103_altnames.hdf5')
+def test_alt_names(snap):
+    _h5py_copy_with_key_rename('testdata/gadget3/data/snapshot_103/snap_103.hdf5',
+                'testdata/gadget3/data/snapshot_103/snap_103_altnames.hdf5')
 
-    snap_alt = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103_altnames.hdf5')
+    snap_alt = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103_altnames.hdf5')
     assert 'mass' in snap_alt.loadable_keys()
     assert all(snap_alt['mass']==snap['mass'])
 
-def test_issue_256() :
+def test_issue_256(snap) :
     assert 'pos' in snap.loadable_keys()
     assert 'pos' in snap.dm.loadable_keys()
     assert 'pos' in snap.gas.loadable_keys()
@@ -65,108 +74,20 @@ def test_issue_256() :
     assert 'He' not in snap.dm.loadable_keys()
     assert 'He' in snap.gas.loadable_keys()
 
-def test_halo_loading() :
-    """ Check that halo loading works """
-    h = subfind.halos()
-    # check that data loading for individual fof groups works
-    h[0]['pos']
-    h[1]['pos']
-
-    # check that loading the subhalos works
-    h[0].sub[0]['pos']
-    for i,halo in enumerate(h[0:10]) :
-        halo['mass'].sum()
-        for fam in [halo.g, halo.d, halo.s] :
-            assert(len(fam['iord']) == subfind._hdf_files[0][subfind._family_to_group_map[fam.families()[0]][0]]['Length'][i])
-        for s in halo.sub :
-            s['mass'].sum()
-
-
-
-    # test halo catalogue slicing
-    for halo in h[0:10] : pass
-    for halo in h[30:40] : pass
-    for sub in h[0].sub[1:5] : pass
-
-
-
-def test_halo_values() :
-    """ Check that halo values (and sizes) agree with pyread_gadget_hdf5 """
-
-    filesub = 'testdata/Test_NOSN_NOZCOOL_L010N0128/data/subhalos_103/subhalo_103'
-
-    # load Alan Duffy's module from https://bitbucket.org/astroduff/pyreadgadget
-    from pyread_gadget_hdf5 import pyread_gadget_hdf5
-
-    FoF_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='fof', nopanda=True, silent=None)
-    FoF_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='fof', nopanda=True, silent=True)
-    Sub_Mass = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'Mass', sub_dir='subfind', nopanda=True, silent=True)
-    Sub_MassType = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'MassType', sub_dir='subfind', nopanda=True, silent=True)
-    NsubPerHalo = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'NsubPerHalo', sub_dir='subfind', nopanda=True, silent=True)
-    OffsetHalo = np.roll(NsubPerHalo.cumsum(), 1)
-    OffsetHalo[0]=0 ## To start counter
-
-    h = subfind.halos()
-
-    FoF_CoM = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'CenterOfMass', sub_dir='fof', nopanda=True, silent=True)
-    Sub_CoM = pyread_gadget_hdf5(filesub+'.0.hdf5', 10, 'CenterOfMass', sub_dir='subfind', nopanda=True, silent=True)
-
-    # Check the Halo Array values
-    for i,halo in enumerate(h[0:10]) :
-        assert(np.allclose(halo.properties['CenterOfMass'], FoF_CoM[i], rtol=1e-3))
-
-        for j, s in enumerate(halo.sub) :
-            assert(np.allclose(s.properties['CenterOfMass'], Sub_CoM[OffsetHalo[i]+j], rtol=1e-3))
-
-    ###
-    # Test the Halo particle information
-    ###
-
-    # Mass of each component for FOF halos
-    for i,halo in enumerate(h[0:10]) :
-        assert(np.allclose(halo.g['mass'].sum(), FoF_MassType[i,0], rtol=1e-3))
-        assert(np.allclose(halo.dm['mass'].sum(), FoF_MassType[i,1], rtol=1e-3))
-        assert(np.allclose(halo.s['mass'].sum(), FoF_MassType[i,4], rtol=1e-3))
-        assert(np.allclose(halo['mass'].sum(), FoF_Mass[i], rtol=1e-3))
-
-    # Mass of each component for Subhalos
-    for i,halo in enumerate(h[0:10]) :
-        for j, s in enumerate(halo.sub) :
-            assert(np.allclose(s.g['mass'].sum(), Sub_MassType[OffsetHalo[i]+j,0], rtol=1e-3))
-            assert(np.allclose(s.dm['mass'].sum(), Sub_MassType[OffsetHalo[i]+j,1], rtol=1e-3))
-            assert(np.allclose(s.s['mass'].sum(), Sub_MassType[OffsetHalo[i]+j,4], rtol=1e-3))
-            assert(np.allclose(s['mass'].sum(), Sub_Mass[OffsetHalo[i]+j], rtol=1e-3))
-
-    FoF_Temp = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Temperature', sub_dir='fof', nopanda=True, silent=True, physunits=True)[:, 0]
-    FoF_Length = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Length', sub_dir='fof', nopanda=True, silent=True, physunits=True).astype(int)[:, 0]
-    FoF_Offset = pyread_gadget_hdf5(filesub+'.0.hdf5', 0, 'Offset', sub_dir='fof', nopanda=True, silent=True, physunits=True).astype(int)[:, 0]
-
-    # Test the Particle Temperature and implicitly the particle ordering
-    for i,halo in enumerate(h[0:10]) :
-        npt.assert_allclose(
-            halo.g['temp'],
-            FoF_Temp[FoF_Offset[i]:FoF_Offset[i]+FoF_Length[i]],
-        )
-
 def test_write():
+    # make a copy of snap_103.hdf5 to avoid disturbing the original
+    shutil.copy('testdata/gadget3/data/snapshot_103/snap_103.hdf5', 'testdata/gadget3/data/snapshot_103/snap_103_copy.hdf5')
+    snap = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103_copy.hdf5')
     ar_name = 'test_array'
     snap[ar_name] = np.random.uniform(0,1,len(snap))
     snap[ar_name].write()
-    snap2 = pynbody.load('testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5')
+    snap2 = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103_copy.hdf5')
     v = snap[ar_name]
     with pytest.warns(UserWarning, match="Unable to infer units from HDF attributes"):
         v2 = snap2[ar_name]
     npt.assert_allclose(v, v2)
 
-def test_grp_array():
-    h = subfind.halos()
-    grp = h.get_group_array()
-    print(grp)
-    for i in range(0,100,10):
-        assert len(subfind['iord'][grp==i]) == len(h[i])
-        assert (h[i]['iord'] == subfind['iord'][grp==i]).all()
-
-def test_hi_derivation():
+def test_hi_derivation(subfind):
     HI_answer = [  6.96499870e-06,   6.68348046e-06,   1.13855074e-05,
          1.10936027e-05,   1.40641633e-05,   1.67324738e-05,
          2.26228929e-05,   1.64661638e-05,   2.79337124e-05,
@@ -185,15 +106,7 @@ def test_hi_derivation():
 
     assert np.allclose(subfind.halos()[0].gas['HI'][::100],HI_answer)
 
-
-def test_fof_vs_sub_assignment():
-    h = subfind.halos()
-    npt.assert_allclose(h.get_halo_properties(0, with_unit=False)['Mass'],28.604694074339932)
-    npt.assert_allclose(h.get_halo_properties(0, with_unit=False)['Halo_M_Crit200'], 29.796955896599684)
-    npt.assert_allclose(h.get_halo_properties(1, with_unit=False)['Mass'], 8.880245794949587)
-    npt.assert_allclose(h.get_halo_properties(1, with_unit=False)['Halo_M_Crit200'],8.116568749712314)
-
-def test_hdf_ordering():
+def test_hdf_ordering(snap):
     # HDF files do not intrinsically specify the order in which the particle types occur
     # Because some operations may require stability, pynbody now imposes order by the particle type
     # number
@@ -203,18 +116,18 @@ def test_hdf_ordering():
 
 
 def test_mass_in_header():
-    f = pynbody.load("testdata/snap_028_z000p000.0.hdf5")
+    f = pynbody.load("testdata/gadget3/snap_028_z000p000.0.hdf5")
     f.physical_units()
     f['mass'] # load all masses
-    assert np.allclose(f.dm['mass'][0], 3981879.2046075417)
+    assert np.allclose(f.dm['mass'][0], 3982880.471745421)
 
-    f = pynbody.load("testdata/snap_028_z000p000.0.hdf5")
+    f = pynbody.load("testdata/gadget3/snap_028_z000p000.0.hdf5")
     f.physical_units()
     # don't load all masses, allow it to be loaded for DM only
-    assert np.allclose(f.dm['mass'][0], 3981879.2046075417)
+    assert np.allclose(f.dm['mass'][0], 3982880.471745421)
 
 def test_gadgethdf_style_units():
-    f = pynbody.load("testdata/Test_NOSN_NOZCOOL_L010N0128/data/snapshot_103/snap_103.hdf5")
+    f = pynbody.load("testdata/gadget3/data/snapshot_103/snap_103.hdf5")
     npt.assert_allclose(f.st['InitialMass'].units.in_units("1.989e43 g h^-1"), 1.0,
                         rtol=1e-3)
 

@@ -544,9 +544,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
     if legend:
         plt.legend(loc=2)
 
-    if (filename):
-        if config['verbose']:
-            print("Saving " + filename)
+    if filename:
         plt.savefig(filename)
 
 

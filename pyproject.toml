@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "oldest-supported-numpy", "cython"]
+requires = ["setuptools", "wheel", "numpy>=2.0.0rc1", "cython"]
 
 [tool.pytest.ini_options]
 testpaths = ['tests']
@@ -15,8 +15,10 @@ filterwarnings = [
     'ignore:Conjoining derived and non-derived arrays.*:RuntimeWarning',
     'ignore:invalid value encountered in multiply:RuntimeWarning',
     # ignore deprecation warnings triggered by h5py with python 3.12
-    'ignore:datetime.datetime.utcfromtimestamp\(\) is deprecated:DeprecationWarning'
-]
+    'ignore:datetime.datetime.utcfromtimestamp\(\) is deprecated:DeprecationWarning',
+    # ignore integration warnings which come up
+    'ignore:The occurrence of roundoff error:UserWarning'
+  ]
 
 [tool.isort]
 profile = "black"

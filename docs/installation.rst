@@ -1,3 +1,5 @@
+.. Last checked by AP: 18 Mar 2024
+
 .. summary How to install pynbody
 
 .. _pynbody-installation:
@@ -5,89 +7,132 @@
 Pynbody Installation
 ====================
 
-Nothing makes us happier than a new pynbody user, so we hope that your
-installation experience is swift and painless. If you encounter issues
-during the installation process, please let us know right away. Once
-you complete the installation, don't forget to read the
-:ref:`getting-help` section. Finally, if you decide you like pynbody
-and you end up using it for your scientific work, please see
-:ref:`acknowledging-pynbody`. Enjoy!
-
 
 In brief
 --------
 
-To install the latest release version (which depends only on numpy and scipy), use
+Pynbody provides binary distributions for Mac and Linux. Windows is not supported currently,
+except via `WSL (Windows Subsystem for Linux) <https://learn.microsoft.com/en-us/windows/wsl/install>`_
+which provides a Linux compatibility layer. To use the latest release of
+*pynbody*, you must be using a recent version of Python 3, as supported by
+`numpy <http://www.numpy.org>`_ and `scipy <http://www.scipy.org>`_. The standardized
+`SPEC0 <https://scientific-python.org/specs/spec-0000/>`_ policy describes the versions of numpy, scipy and Python we aim to support.
 
-``pip install pynbody``
+To install the latest release version of *pynbody*, use:
 
-To install from our bleeding edge, use
+.. code-block :: bash
 
-``pip install git+git://github.com/pynbody/pynbody.git``
+  $ pip install pynbody
 
-If you have problems or need more help, read on.
+This should efficiently install a binary version of pynbody. To install from our bleeding edge, ensure
+that your compilers are installed and up to date, and then use:
+
+.. code-block :: bash
+
+  $ pip install git+git://github.com/pynbody/pynbody.git
+
+That's all there is to it, really. But if you have problems or need more help, read on.
 
 
 Getting python
 --------------
 
-If you're new to python we recommend using the `Anaconda Python
-<https://store.continuum.io/cshop/anaconda/>`_ bundle from Continuum
-Analytics that comes with a nice and easy to use package manager
-``conda``. They  provide free licenses for academic use, and the default
-installation includes all the pakages you require.
+**Option 1:** If you administer your own machine, start by downloading and installing the latest version of Python. We generally recommend
+downloading directly from the `Python website <http://www.python.org>`_.
 
-As of 2020, Python 2.X is `no longer supported <https://python3statement.org>`_ by the Python developers or by
-core modules such as numpy. For this reason, we have also removed support
-from pynbody.
+You can ``pip install`` directly into your central installation, although it's generally better to use a virtual environment (see below).
 
-If you desparately want to continue using Python 2.7, you can use pip to install old versions
-of pynbody, but these are provided without support.
+**Option 2:** If your don't administer your own machine, but there is a centrally-installed recent version of Python, you can still make your own virtual environment. This is a way of creating a self-contained Python
+installation pointing back to the central one. This is done by typing
+
+.. code-block :: bash
+
+  $ python -m venv mypython
+
+
+where ``mypython`` is the name of the directory you want to create. Then you can activate the environment by typing
+
+.. code-block :: bash
+
+  $ source mypython/bin/activate
+
+You need to activate the environment every time you want to use it. For more information about virtual environments, see the `Python packaging documentation <https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/#create-and-use-virtual-environments>`_.
+
+**Option 3:** If you do not have administrative access to your machine, and the centrally-installed python is unsuitable (e.g. is
+too old), you may want to use a third-party installer such as `Anaconda
+<https://www.anaconda.com/download/>`_ which can install to a user folder.
+Note that we do not ship binary distributions for the ``conda`` utility, but you can still install pynbody using ``pip`` into your conda environment.
+
+
+
 
 .. _install-pynbody:
 
-Installing pynbody direct from the repository
----------------------------------------------
-
-You can type in your shell:
-
-::
-
-   pip install git+git://github.com/pynbody/pynbody.git
-
-and everything should happen automatically. This will give you
-whatever the latest code from the `git repository <https://github.com/pynbody/pynbody>`_.
-
-.. note:: If your distutils are not installed properly and you don't have root permissions, this will fail -- see :ref:`distutils`.
-
-If you don't have ``pip`` or if you want to develop ``pynbody`` here is
-how you can do it manually.
+Installing and testing for development
+--------------------------------------
 
 First, clone the `git repository from Github
 <https://github.com/pynbody/pynbody>`_. Pynbody uses `git
 <http://git-scm.com/>`_ for development:
 
+
 0. ``git`` is probably already on your machine -- try typing ``git`` from the shell. If it exists, go to step 2.
 
 1. get the appropriate binary from http://git-scm.com/downloads and install ``git``
 
-2. ``$ git clone https://github.com/pynbody/pynbody.git``
+2. Clone the git repository:
 
-3. to get the newest from the repository, run ``git pull``.
+   .. code-block :: bash
 
-4. ``$ cd pynbody``
+     $ git clone https://github.com/pynbody/pynbody.git
 
-5. ``$ pip install .[all]``
 
-Now the package is installed wherever your python packages reside and should be importable from within python:
+3. Whenever you need the newest version of the repository, run
 
-6. ``$ cd ~``
+   .. code-block :: bash
 
-7. ``$ python``
+    $ git pull
 
-8. ``>>> import pynbody``
+4. To compile and install, type:
 
-If this yields no errors, you are done!
+   .. code-block :: bash
+
+      $ cd pynbody
+      $ pip install -e .[all]
+
+
+   If you encounter problems on MacOS, check the :ref:`macos-compilers` section below.
+
+5. Now the package is installed wherever your python packages reside and should be importable from within python.
+   The first thing to try is probably running the tests to make sure everything is working:
+
+   .. code-block :: bash
+
+     $ cd tests
+     $ # next line is optional: pre-download all test data (otherwise the tests will download them on the fly):
+     $ python -c "import pynbody.test_utils as tu; tu.precache_test_data()"
+     $ pytest
+
+   If this yields no errors, you are ready to use pynbody in the usual way. If ``pytest`` generates errors and you
+   haven't edited the code, please report the error on the `issue tracker <https://github.com/pynbody/pynbody/issues>`_,
+   giving as much information as possible. If the ``pytest`` command isn't found, you probably didn't install
+   ``pynbody`` with the ``[all]`` option above; you can install ``pytest`` separately with ``pip install pytest``.
+
+6. If you are planning to contribute to the development of pynbody, you should run the tests again before submitting a
+   pull request, and ideally find a way to add a test that demonstrates the bug you are fixing. This is not always
+   possible, but it is always appreciated. For more information on the testing framework, see the
+   `pytest documentation <https://docs.pytest.org/en/latest/>`_.
+
+7. If you are planning to contribute to the development of pynbody, you should also install the pre-commit hooks by
+   running the following command:
+
+   .. code-block :: bash
+
+     $ pip install pre-commit
+     $ pre-commit install
+
+   The pre-commit hooks will run every time you commit changes to the repository and will check for common formatting
+   issues. For more information on the pre-commit hooks, see the `pre-commit documentation <https://pre-commit.com/>`_.
 
 .. note::
    If you plan on joining the development efforts and you are
@@ -96,46 +141,30 @@ If this yields no errors, you are done!
    is quite good and it's worth a read through Chapter 3 on
    branching. You may also choose to `fork the repo
    <https://help.github.com/articles/fork-a-repo>`_ if you already
-   have a `github <http://github.com>`_ account.
+   have a `github <http://github.com>`_ account. And finally, please
+   read our `code of conduct <https://github.com/pynbody/pynbody/blob/master/CODE_OF_CONDUCT.md>`_
+   for contributors.
 
 
+.. _macos-compilers:
 
-Upgrading your installation and testing features or bug-fixes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MacOS compilers
+^^^^^^^^^^^^^^^
 
-If you want to use the most recent version from the repository because
-a crucial bug has just been fixed, for example, you can easily update
-your installation. If you installed using ``pip`` to begin with, simply
-do
+If you are using MacOS, be aware that Apple's default ``clang`` compiler does not support OpenMP.
+Your attempt to install pynbody from source may therefore be unsuccessful, in which case
+you need to isntall a different compiler.
+We recommend using *gcc* from the `MacPorts <https://www.macports.org/>`_ package.
+Once you have installed MacPorts, you can install *gcc* and then use it to install pynbody as
+follows:
 
-::
+.. code-block :: bash
 
-   pip install -I --no-deps git+git://github.com/pynbody/pynbody@master
+  $ sudo port install gcc13
+  $ export CC=gcc-mp-13
+  $ export CXX=g++-mp-13
+  $ pip install -e .[all]
 
-If you cloned or forked the git repository and installed manually, go
-into the top-level ``pynbody`` source directory (the one with
-``setup.py`` in it) and do :
-
-::
-
-   git checkout master  # make sure you are on the master branch
-   git pull origin master
-   pip install .
-
-
-If you are testing a new feature or a bug fix that resides in a branch
-other than ``master`` this procedure is slightly different:
-
-::
-
-   git fetch
-   git checkout -b branch origin/branch  # where "branch" will be the name of the branch for bug fix or feature
-   pip install .
-
-When you install a new version of the code and you already have a
-python session active with ``pynbody`` loaded, you have to (carefully)
-reload all of the affected ``pynbody`` modules. The safest is to just
-quit and restart the python session if you're not sure.
 
 
 Open your simulation and start analyzing
@@ -146,48 +175,15 @@ especially the :ref:`data-access` to get going.
 
 
 
-Updating Code
-^^^^^^^^^^^^^
-
-Remember that the ``master`` branch is the
-code that everyone else receives when they do a fresh clone of the
-repository. It is therefore recommended that any development work is
-done in a separate branch that is merged back into the main branch
-only when it has been satisfactorily checked. See `What a Branch Is
-<http://git-scm.com/book/en/Git-Branching-What-a-Branch-Is>`_ and a
-primer on `Basic Branching and Merging
-<http://git-scm.com/book/en/Git-Branching-Basic-Branching-and-Merging>`_
-in the git documentation. This `description of a workflow
-<http://sandofsky.com/blog/git-workflow.html>`_ that discusses tidying
-up development branches before merging into the master branch is a
-good read.
-
-We are in pretty active development stage at the moment, so it's
-always a good idea to keep your code updated. If you want to see what
-everyone else has been commiting, you can see the `commit history on
-the github code site
-<https://github.com/pynbody/pynbody/commits/master>`_.
-
-
-Nose tests
-^^^^^^^^^^
-
-The root directory of the pynbody distribution includes a ``nose``
-directory, where the unit (nose) tests reside. In order to run them,
-you'll need to download the ``testdata`` bundle from the `downloads section
-<https://github.com/pynbody/pynbody/releases>`_ of the pynbody site.
-
-
 Building your own documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------
 
 You obviously know where to find the documentation since you are
 reading it. But if you wanted to build your own flavor of it or if you
 want to contribute to the documentation, go to ``docs`` in the root
 directory. You will need to install `Sphinx <http://sphinx-doc.org/>`_
-to build the docs, and this is usually most easily done with
-``easy_install sphinx`` if you have distutils properly
-configured. Once you have ``sphinx`` installed, you can simply run
+and some ancillary packages to build the docs, and this is usually most easily done with
+``pip install pynbody[docs]``. Once you have ``sphinx`` installed, you can simply run
 ``make html`` in the ``docs`` directory to build the html version or
 make latexpdf to generate a pdf file, for example. All builds are
 found in ``_build``.

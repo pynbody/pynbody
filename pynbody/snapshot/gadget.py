@@ -1,11 +1,13 @@
 """
+Implements reading old-style gadget binary files (format 1 and 2, but not HDF5).
 
-gadget
-======
+The gadget array names are mapped into pynbody array names according to the mappings given by the `config.ini`
+section `[gadget-name-mapping]`.
 
-Implements classes and functions for handling gadget files; you rarely
-need to access this module directly as it will be invoked
-automatically via pynbody.load.
+Very old gadget-1 style files have a fixed block order, which is specified in the config.ini section
+`[gadget-1-blocks]`.
+
+
 
 """
 
@@ -15,6 +17,7 @@ import copy
 import errno
 import itertools
 import os
+import pathlib
 import struct
 import sys
 import warnings
@@ -66,7 +69,7 @@ def gadget_type(fam):
         return _type_map[fam]
 
 
-class GadgetBlock:
+class _GadgetBlock:
 
     """Class to describe each block.
     Each block has a start, a length, and a length-per-particle"""
@@ -124,8 +127,8 @@ def _construct_gadget_header(data, endian='='):
      NallHW[0], NallHW[1], NallHW[2], NallHW[3], NallHW[4], NallHW[5],
      flag_entropy_instead_u, flag_doubleprecision, flag_ic_info, lpt_scalingfactor, fill) = struct.unpack(fmt, data)
 
-    header = GadgetHeader(npart, mass, time, redshift,
-                          BoxSize, Omega0, OmegaLambda, HubbleParam, num_files)
+    header = _GadgetHeader(npart, mass, time, redshift,
+                           BoxSize, Omega0, OmegaLambda, HubbleParam, num_files)
     header.flag_sfr = flag_sfr
     header.flag_feedback = flag_feedback
     header.npartTotal = npartTotal
@@ -142,7 +145,7 @@ def _construct_gadget_header(data, endian='='):
     return header
 
 
-class GadgetHeader:
+class _GadgetHeader:
 
     """Describes the header of gadget class files; this is all our metadata, so we are going to store it inline"""
 
@@ -249,10 +252,10 @@ class GadgetHeader:
         return data
 
 
-class GadgetFile:
+class _GadgetFile:
 
     """Gadget file management class. Users should access gadget files through
-    :class:`~pynbody.gadget.GadgetSnap`."""
+    :class:`~pynbody.snapshot.gadget.GadgetSnap`."""
 
     def __init__(self, filename):
         self._filename = filename
@@ -272,7 +275,7 @@ class GadgetFile:
                 # This is a counter for the fallback
                 self.extra = 0
             while True:
-                block = GadgetBlock()
+                block = _GadgetBlock()
                 (name, block.length) = self.read_block_head(fd)
                 if block.length == 0:
                     break
@@ -360,7 +363,7 @@ class GadgetFile:
 
         # Make a mass block if one isn't found.
         if b'MASS' not in self.blocks:
-            block = GadgetBlock()
+            block = _GadgetBlock()
             block.length = 0
             block.start = 0
 
@@ -576,7 +579,7 @@ class GadgetFile:
             dtype = np.float32  # coerce to single precision
 
         # Make new block
-        block = GadgetBlock(length=blocksize, partlen=partlen, dtype=dtype)
+        block = _GadgetBlock(length=blocksize, partlen=partlen, dtype=dtype)
         block.start = lb.start + lb.length + 6 * \
             4  # For the block header, and footer of the previous block
         if p_types is None:
@@ -643,7 +646,7 @@ class GadgetFile:
             fd.close()
 
 
-class GadgetWriteFile (GadgetFile):
+class _GadgetWriteFile(_GadgetFile):
 
     """Class for write-only snapshots, as when we are creating a new set of files from, eg, a TipsySnap.
         Should not be used directly. block_names is a list so we can specify an on-disc ordering."""
@@ -666,14 +669,14 @@ class GadgetWriteFile (GadgetFile):
             # Add block if present for some types
             if block.types.sum():
                 b_part = npart * block.types
-                b = GadgetBlock(
+                b = _GadgetBlock(
                     start=cur_pos + header_size, partlen=block.partlen,
                     length=block.partlen * b_part.sum(), dtype=block.dtype, p_types=block.types)
                 cur_pos += b.length + header_size + footer_size
                 self.blocks[_to_raw(block.name)] = b
 
 
-class WriteBlock:
+class _WriteBlock:
 
     """Internal structure for passing data around between file and snapshot"""
 
@@ -692,18 +695,18 @@ class WriteBlock:
 
 
 class GadgetSnap(SimSnap):
+    """Class for reading Gadget-1 and Gadget-2 old-style (i.e. pre-HDF5) snapshots."""
 
-    """Main class for reading Gadget-2 snapshots. The constructor makes a map of the locations
-    of the blocks, which are then read by _load_array"""
+    def __init__(self, filename: pathlib.Path, only_header=False, must_have_paramfile=False, ignore_cosmo=False):
 
-    def __init__(self, filename, only_header=False, must_have_paramfile=False, ignore_cosmo=False):
+        filename = str(filename)
 
         global config
         super().__init__()
         self._files = []
         self._filename = filename
         self._ignore_cosmo = ignore_cosmo
-        npart = np.empty(N_TYPE)
+
         # Check whether the file exists, and get the ".0" right
         if os.path.exists(filename):
             files = [filename]
@@ -715,10 +718,10 @@ class GadgetSnap(SimSnap):
             self._filename = filename[:-2]
         # Read the first file and use it to get an idea of how many files we
         # are expecting.
-        first_file = GadgetFile(filename)
+        first_file = _GadgetFile(filename)
         self._files.append(first_file)
         files_expected = self._files[0].header.num_files
-        npart = np.array(self._files[0].header.npart)
+        npart = np.array(self._files[0].header.npart,dtype=np.uint64) # 64-bit necessary in numpy 2.0 because of changes to data type promotion rules in the 2 * 32 calc below
 
         if files is None:
             # we want to load all files
@@ -727,7 +730,7 @@ class GadgetSnap(SimSnap):
                      for i in range(files_expected)]
 
         for filename in files[1:]:
-            tmp_file = GadgetFile(filename)
+            tmp_file = _GadgetFile(filename)
             if not self.check_headers(tmp_file.header, self._files[0].header):
                 warnings.warn("file " + str(
                     i) + " is not part of this snapshot set!", RuntimeWarning)
@@ -740,7 +743,7 @@ class GadgetSnap(SimSnap):
         self.header = copy.deepcopy(self._files[0].header)
         self.header.npart = npart
         # Check and fix npartTotal and NallHW if they are wrong.
-        if npart is not self.header.npartTotal + 2 ** 32 * self.header.NallHW:
+        if npart is not self.header.npartTotal.astype(np.uint64) + 2 ** 32 * self.header.NallHW.astype(np.uint64):
             self.header.NallHW = npart // 2 ** 32
             self.header.npartTotal = npart - 2 ** 32 * self.header.NallHW
             for f in self._files:
@@ -900,9 +903,9 @@ class GadgetSnap(SimSnap):
         ndim = self._get_array_dims(name)
 
         if ndim == 1:
-            dims = [self.get_block_parts(g_name, fam), ]
+            dims = [int(self.get_block_parts(g_name, fam)), ]
         else:
-            dims = [self.get_block_parts(g_name, fam), ndim]
+            dims = [int(self.get_block_parts(g_name, fam)), ndim]
 
         if fam is not None:
             p_types = gadget_type(fam)
@@ -915,8 +918,8 @@ class GadgetSnap(SimSnap):
         for p in p_types:
             # Special-case mass
             if g_name == b"MASS" and self.header.mass[p] != 0.:
-                data = np.append(data, self.header.mass[
-                                 p] * np.ones(self.header.npart[p], dtype=data.dtype))
+                mass_as_correct_type = self.header.mass[p].astype(self._get_array_type(name))
+                data = np.append(data, np.repeat(mass_as_correct_type, self.header.npart[p]))
             else:
                 data = np.append(data, self.__load_array(g_name, p))
 
@@ -931,7 +934,8 @@ class GadgetSnap(SimSnap):
     def __load_array(self, g_name, p_type):
        """Internal helper function for _load_array that takes a g_name and a gadget type,
        gets the data from each file and returns it as one long array."""
-       data = np.array(np.zeros(self._get_array_dims(g_name) * self.header.npart[p_type]), dtype=self._get_array_type_g(g_name))
+       # int cast necessary because numpy makes int * uint64 a float!
+       data = np.zeros(int(self._get_array_dims(g_name) * self.header.npart[p_type]), dtype=self._get_array_type_g(g_name))
        # Get a type from each file
        ipos = 0
        for f in self._files:
@@ -947,15 +951,15 @@ class GadgetSnap(SimSnap):
            ipos += iread
        return data
 
-    @staticmethod
-    def _can_load(f):
+    @classmethod
+    def _can_load(cls, f: pathlib.Path):
         """Check whether we can load the file as Gadget format by reading
         the first 4 bytes"""
         fname = f
-        if not os.path.exists(f):
-            if not os.path.exists(f + ".0"):
+        if not f.exists():
+            fname = f.parent / (f.name + ".0")
+            if not fname.exists():
                 return False
-            fname = f + ".0"
 
         with open(fname, "br") as fd:
             r, = struct.unpack('=I', fd.read(4))
@@ -1005,7 +1009,7 @@ class GadgetSnap(SimSnap):
                 # Construct a header
                 # npart, mass, time, redshift, BoxSize,Omega0, OmegaLambda,
                 # HubbleParam, num_files=1
-                gheader = GadgetHeader(
+                gheader = _GadgetHeader(
                     npart, np.zeros(N_TYPE, float), self.properties[
                         "a"], self.properties["z"],
                     self.properties["boxsize"].in_units(self[
@@ -1036,11 +1040,11 @@ class GadgetSnap(SimSnap):
                                 partlen = 1  # dtype.itemsize
                         except KeyError:
                             pass
-                    bb = WriteBlock(partlen, dtype=dtype, types=types, name=_translate_array_name(
+                    bb = _WriteBlock(partlen, dtype=dtype, types=types, name=_translate_array_name(
                         k).upper().ljust(4)[0:4])
                     block_names.append(bb)
                 # Create an output file
-                out_file = GadgetWriteFile(
+                out_file = _GadgetWriteFile(
                     filename, npart, block_names, gheader)
                 # Write the header
                 out_file.write_header(gheader, filename)
@@ -1159,10 +1163,7 @@ def _header_suggests_cosmological(gadget_header):
     return (gadget_header.HubbleParam != 0.) and (gadget_header.Omega0 != 0.) and (gadget_header.BoxSize != 0.)
 
 @GadgetSnap.decorator
-def do_units(sim):
-    # cosmo =
-    # (sim._hdf_files['Parameters']['NumericalParameters'].attrs['ComovingIntegrationOn'])!=0
-
+def _do_units(sim):
     vel_unit = config_parser.get('gadget-units', 'vel')
     dist_unit = config_parser.get('gadget-units', 'pos')
     mass_unit = config_parser.get('gadget-units', 'mass')
@@ -1182,7 +1183,7 @@ def do_units(sim):
 
 
 @GadgetSnap.decorator
-def do_properties(sim):
+def _do_properties(sim):
     h = sim.header
 
     if not(sim._ignore_cosmo) and _header_suggests_cosmological(h):

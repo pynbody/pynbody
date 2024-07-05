@@ -11,13 +11,14 @@ class ExposedBaseSnapshotMixin:
                   "properties", "_derived_array_names", "_family_derived_array_names",
                   "_dependency_tracker", "immediate_mode", "delay_promotion"]
 
-    def __init__(self, base, *args, **kwargs):
+    def __init__(self, base: SimSnap, *args, **kwargs):
         self.base = base
         super().__init__(base, *args, **kwargs)
 
     def _inherit(self):
         self._file_units_system = self.base._file_units_system
         self._unifamily = self.base._unifamily
+        self._get_array_lock = self.base._get_array_lock
 
         for x in self._inherited:
             setattr(self, x, getattr(self.base, x))
@@ -72,7 +73,7 @@ class SubSnapBase(SimSnap):
 
     @property
     def _filename(self):
-        return self._subsnap_base._filename + ":" + self._descriptor
+        return str(self._subsnap_base._filename) + ":" + self._descriptor
 
     def keys(self):
         return list(self._subsnap_base.keys())
@@ -185,6 +186,8 @@ class IndexingViewMixin:
     def __init__(self, *args, **kwargs):
         index_array = kwargs.pop('index_array', None)
         iord_array = kwargs.pop('iord_array', None)
+        allow_family_sort = kwargs.pop('allow_family_sort', False)
+
         super().__init__(*args, **kwargs)
         self._descriptor = "indexed"
 
@@ -201,7 +204,7 @@ class IndexingViewMixin:
             index_array = self._iord_to_index(iord_array)
 
         if isinstance(index_array, filt.Filter):
-            self._descriptor = index_array._descriptor
+            self._descriptor = "filtered"
             index_array = index_array.where(self._subsnap_base)[0]
 
         elif isinstance(index_array, tuple):
@@ -213,11 +216,17 @@ class IndexingViewMixin:
             index_array = np.asarray(index_array)
 
         findex = self._subsnap_base._family_index()[index_array]
-        # Check the family index array is monotonically increasing
-        # If not, the family slices cannot be implemented
-        if not all(np.diff(findex) >= 0):
-            raise ValueError(
-                "Families must retain the same ordering in the SubSnap")
+
+        if allow_family_sort:
+            sort_ar = np.argsort(findex)
+            index_array = index_array[sort_ar]
+            findex = findex[sort_ar]
+        else:
+            # Check the family index array is monotonically increasing
+            # If not, the family slices cannot be implemented
+            if not all(np.diff(findex) >= 0):
+                raise ValueError(
+                    "Families must retain the same ordering in the SubSnap")
 
         self._slice = index_array
         self._family_slice = {}

@@ -165,8 +165,8 @@ def density_profile(sim, linestyle=False, center=True, clear=True, fit=False,in_
     **Usage:**
 
     >>> import pynbody.plot as pp
-    >>> h = s.halos()
-    >>> pp.density_profile(h[1],linestyle='dashed',color='k')
+    >>> halos = s.halos()
+    >>> pp.density_profile(halos[1],linestyle='dashed',color='k')
 
 
     '''
@@ -229,8 +229,6 @@ def density_profile(sim, linestyle=False, center=True, clear=True, fit=False,in_
         fit_inds = np.where(r < fit_factor*sim['r'].max())
         alphfit = np.polyfit(np.log10(r[fit_inds]),
                              np.log10(den[fit_inds]), 1)
-
-#        print "alpha: ", alphfit[0], "  norm:", alphfit[1]
 
         fit = np.poly1d(alphfit)
         plt.plot(r[fit_inds], 10**fit(np.log10(r[fit_inds])),

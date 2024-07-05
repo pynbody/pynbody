@@ -673,9 +673,7 @@ def v_circ(p, grav_sim=None):
     """Circular velocity, i.e. rotation curve. Calculated by computing the gravity
     in the midplane - can be expensive"""
 
-    import pynbody.gravity.calc as gravity
-
-    from .. import config
+    from .. import config, gravity
 
     global config
 
@@ -685,8 +683,8 @@ def v_circ(p, grav_sim=None):
         "Profile v_circ -- this routine assumes the disk is in the x-y plane")
 
     # If this is a cosmological run, go up to the halo level
-    # if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
-    #    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_id") :
+    # if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_number") :
+    #    while hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_number") :
     #        grav_sim = grav_sim.base
 
     # elif hasattr(grav_sim,'base') :
@@ -709,15 +707,14 @@ def E_circ(p):
 @Profile.profile_property
 def pot(p):
     """Calculates the potential in the midplane - can be expensive"""
-    #from . import gravity
-    import pynbody.gravity.calc as gravity
+    from .. import gravity
 
     logger.warning(
         "Profile pot -- this routine assumes the disk is in the x-y plane")
 
     grav_sim = p.sim
     # Go up to the halo level
-    while hasattr(grav_sim, 'base') and "halo_id" in grav_sim.base.properties:
+    while hasattr(grav_sim, 'base') and "halo_number" in grav_sim.base.properties:
         grav_sim = grav_sim.base
 
     start = process_time()

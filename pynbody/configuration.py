@@ -1,3 +1,9 @@
+"""Read and expose configuration information for pynbody
+
+The configuration system in pynbody is described in the :ref:`configuration` tutorial.
+
+"""
+
 import logging
 import multiprocessing
 import os
@@ -39,8 +45,7 @@ def _add_overrides_to_config_parser(config_parser):
 
 def _get_basic_config_from_parser(config_parser):
 
-    config = {'verbose': config_parser.getboolean('general', 'verbose'),
-              'centering-scheme': config_parser.get('general', 'centering-scheme')}
+    config = {'centering-scheme': config_parser.get('general', 'centering-scheme')}
 
     config['snap-class-priority'] = list(map(str.strip,
                                         config_parser.get('general', 'snap-class-priority').split(",")))
@@ -59,7 +64,7 @@ def _get_basic_config_from_parser(config_parser):
             config['sph'][k] = int(config_parser.get('sph', k))
         except ValueError:
             pass
-    config['sph']['Kernel'] = config_parser.get('sph', 'Kernel')
+    config['sph']['kernel'] = config_parser.get('sph', 'kernel')
 
     config['threading'] = config_parser.get('general', 'threading')
     config['number_of_threads'] = int(
@@ -71,6 +76,8 @@ def _get_basic_config_from_parser(config_parser):
     config['gravity_calculation_mode'] = config_parser.get(
         'general', 'gravity_calculation_mode')
     config['disk-fit-function'] = config_parser.get('general', 'disk-fit-function')
+
+    config['image-default-resolution'] = int(config_parser.get('general', 'image-default-resolution'))
 
     return config
 
@@ -85,24 +92,18 @@ def _setup_logger(config):
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
-    if config['verbose']:
-        logger.setLevel(logging.INFO)
+    if config_parser.getboolean('general','verbose'):
+        set_logging_level(logging.INFO)
         logger.info("Verbose mode is on")
     else:
-        logger.setLevel(logging.WARNING)
+        set_logging_level(logging.WARNING)
 
+def set_logging_level(level = logging.INFO):
+    """Set the logging level for pynbody, in terms of the standard Python logging module levels.
 
-def configure_snapshot_and_halo_loading_priority():
-    from . import halo, snapshot
-
-    # Turn the config strings for snapshot/halo classes into lists of
-    # actual classes
-    _snap_classes_dict = {x.__name__: x for x in snapshot._get_snap_classes()}
-    _halo_classes_dict = {x.__name__: x for x in halo._get_halo_classes()}
-    config['snap-class-priority'] = [_snap_classes_dict[x]
-                                     for x in config['snap-class-priority']]
-    config['halo-class-priority'] = [_halo_classes_dict[x]
-                                     for x in config['halo-class-priority']]
+    Set to logging.INFO for more verbose output, or logging.WARNING for less."""
+    logger = logging.getLogger('pynbody')
+    logger.setLevel(level)
 
 
 config_parser = _get_config_parser_with_defaults()

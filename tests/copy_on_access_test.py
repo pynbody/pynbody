@@ -3,6 +3,12 @@ import pytest
 
 import pynbody
 import pynbody.snapshot
+import pynbody.test_utils
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf")
 
 
 def test_copy_on_access_subsnap_data_isolation():
@@ -31,7 +37,7 @@ class ExampleSnap(pynbody.snapshot.simsnap.SimSnap):
     pass
 
 
-@ExampleSnap.derived_quantity
+@ExampleSnap.derived_array
 def foo(sim):
     return sim['blob']+5
 
@@ -117,13 +123,13 @@ def test_properties():
     assert f.properties['test_property'] == 101
 
 def test_repr():
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     f_c = f.get_copy_on_access_simsnap()
 
-    assert repr(f_c) == '<SimSnap "testdata/g15784.lr.01024:copied_on_access" len=1717156>'
+    assert repr(f_c) == '<SimSnap "testdata/gasoline_ahf/g15784.lr.01024:copied_on_access" len=1717156>'
 
 def test_loadable_keys():
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     f['pos'] # noqa
     f.dm['new_array'] = np.empty(len(f.dm))
 
@@ -140,7 +146,7 @@ def test_loadable_keys():
     assert 'new_array' in f_c.dm.loadable_keys()
 
 def test_all_keys():
-    f = pynbody.load("testdata/g15784.lr.01024")
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     f_c = f.get_copy_on_access_simsnap()
     assert 'pos' in f_c.all_keys()
 
