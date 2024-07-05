@@ -130,8 +130,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         if _inherit_data_from:
             self.__inherit_data(_inherit_data_from)
         else:
-            self.__init_halo_offset_data()
-            self.__init_subhalo_relationships()
+            self._init_halo_offset_data()
+            self._init_subhalo_relationships()
             self.__init_halo_properties()
             self.__reshape_multidimensional_properties()
             self.__reassign_properties_from_sub_to_fof()
@@ -224,7 +224,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             self._fof_properties[reassign_i] = self._sub_properties[reassign_i]
             del self._sub_properties[reassign_i]
 
-    def __init_subhalo_relationships(self):
+    def _init_subhalo_relationships(self):
         nsub = 0
         nfof = 0
         self._subfind_halo_parent_groups = np.empty(self._nsubhalos, dtype=int)
@@ -245,7 +245,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         else:
             return int(hdf0[self._header_name].attrs[self._numgrps_name])
 
-    def __init_halo_offset_data(self):
+    def _init_halo_offset_data(self):
         hdf0 = self._hdf_files.get_file0_root()
 
         self._fof_group_offsets = {}
@@ -608,3 +608,73 @@ class TNGSubfindHDFCatalogue(ArepoSubfindHDFCatalogue):
             _subgroup_name = None
 
         return TNGSubfindHdfMultiFileManager(cls._catalogue_filename(sim))
+
+    def _init_halo_offset_data(self):
+        hdf0 = self._hdf_files.get_file0_root()
+
+        self._fof_group_offsets = {}
+        self._fof_group_lengths = {}
+        self._subfind_halo_offsets = {}
+        self._subfind_halo_lengths = {}
+
+        self._ngroups = int(hdf0[self._header_name].attrs[self._numgrps_name])
+        self._nsubhalos = int(hdf0[self._header_name].attrs[self._numsubs_name])
+
+        # Process FOF groups first
+        for fam in self.base._families_ordered():
+            ptypes = self.base._family_to_group_map[fam]
+            ptype_group_offset = 0
+            for ptype in ptypes:
+                self._fof_group_offsets[ptype] = np.empty(self._ngroups, dtype='int64')
+                self._fof_group_lengths[ptype] = np.empty(self._ngroups, dtype='int64')
+
+                curr_groups = 0
+                curr_group_offset = ptype_group_offset
+
+                for h in self._hdf_files:
+                    # fof groups
+                    offset = self._get_halodata_array_with_default(h, self._grp_offset_name, self._fof_name, ptype, [])
+                    length = self._get_halodata_array_with_default(h, self._grp_len_name, self._fof_name, ptype, [])
+                    offset = np.array(offset)
+                    if len(offset)>0:
+                        self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset + curr_group_offset
+                        self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
+                        curr_groups += len(offset)
+                        curr_group_offset += offset[-1] + length[-1]
+                # TNG specific fix: 
+                ptype_group_offset += self.base.properties['NumPart_Total'][int(ptype[-1])]
+                if curr_groups!=self._ngroups:
+                    warnings.warn(f"Incorrect number of groups recovered from HDF files. Expected {self._ngroups}, found {curr_groups}")
+                    self._ngroups = curr_groups
+                    self._fof_group_offsets[ptype] = self._fof_group_offsets[ptype][:curr_groups]
+                    self._fof_group_lengths[ptype] = self._fof_group_lengths[ptype][:curr_groups]
+
+        # Process Subfind subhalos next
+        self._init_subhalo_relationships()
+        first_subs_in_groups = self._fof_group_first_subhalo.copy()
+        first_subs_in_groups = first_subs_in_groups[(first_subs_in_groups>-1) & (first_subs_in_groups<self._nsubhalos)] # Just need actual first subhalo numbers, don't need to worry about haloes with no subhaloes. Accounts for formats where *no* first subhalo is recorded as i) '-1' and ii) 'total number of subhaloes'
+        last_subs_in_groups = np.concatenate((first_subs_in_groups[1:], [self._nsubhalos]))-1
+        for fam in self.base._families_ordered():
+            ptypes = self.base._family_to_group_map[fam]
+            for ptype in ptypes:
+                self._subfind_halo_offsets[ptype] = np.empty(self._nsubhalos, dtype='int64')
+                self._subfind_halo_lengths[ptype] = np.empty(self._nsubhalos, dtype='int64')
+
+                curr_subhalos = 0
+                
+                # Only get lengths
+                for h in self._hdf_files:
+                    length = self._get_halodata_array_with_default(h, self._sub_len_name, self._subfind_name, ptype, [])
+                    self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(length)] = length
+                    curr_subhalos += len(length)
+                # Add offsets in blocks for all subhalos of a single halo
+                for first_sub, last_sub in zip(first_subs_in_groups, last_subs_in_groups):
+                    length = self._subfind_halo_lengths[ptype][first_sub:last_sub+1]
+                    offset = np.concatenate(([0], np.cumsum(length)[:-1]))
+                    parent_fof_offset = self._fof_group_offsets[ptype][self._subfind_halo_parent_groups[first_sub]]
+                    self._subfind_halo_offsets[ptype][first_sub:last_sub+1] = offset + parent_fof_offset
+                if curr_subhalos!=self._nsubhalos:
+                    warnings.warn(f"Incorrect number of subhalos recovered from HDF files. Expected {self._nsubhalos}, found {curr_subhalos}")
+                    self._nsubhalos = curr_subhalos
+                    self._subfind_halo_offsets[ptype] = self._subfind_halo_offsets[ptype][:curr_groups]
+                    self._subfind_halo_lengths[ptype] = self._subfind_halo_lengths[ptype][:curr_groups]
