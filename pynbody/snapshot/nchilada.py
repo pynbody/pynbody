@@ -1,11 +1,5 @@
 """
-
-nchilada
-========
-
-Implements classes and functions for handling nchilada files.  You rarely
-need to access this module directly as it will be invoked
-automatically via pynbody.load.
+Implements loading of nchilada files.
 
 """
 
@@ -31,6 +25,7 @@ _max_buf = 1024 * 512
 
 
 class NchiladaSnap(SimSnap):
+    """Implements loading of nchilada files."""
 
     def _load_header(self, f):
         # Used to use xdrlib, but that is deprecated in Python 3.11
@@ -81,6 +76,18 @@ class NchiladaSnap(SimSnap):
         self._num_particles = self._load_control.mem_num_particles
 
     def __init__(self, filename, **kwargs):
+        """Load a nchilada file.
+
+        Parameters
+        ----------
+
+        filename : str
+            The path to the nchilada output to load. Nchilada outputs are directories containing a description.xml
+            file and a number of binary files.
+        take : np.ndarray, optional
+            The array of particles to load. If not specified, all particles are loaded.
+        """
+
         super().__init__()
 
         must_have_paramfile = kwargs.get('must_have_paramfile', False)
@@ -183,25 +190,6 @@ class NchiladaSnap(SimSnap):
                 r[mem_index] = b[buf_index]
         f.close()
 
-    """
-    def _write_array(self, array_name, fam=None) :
-        if fam is None :
-            fam = self.families()
-
-        for f in fam :
-            fname = self._loadable_keys_registry[fam][array_name]
-            # to do: sort out what happens when this doesn't exist
-            ar = self[fam][array_name]
-
-            _, nbod, ndim, dtype = self._load_header(f)
-            for readlen, buf_index, mem_index in self._load_control.iterate(fam, fam) :
-                b = np.fromfile(f, dtype=disk_dtype, count=readlen*ndim)
-                if ndim>1 : b = b.reshape((readlen, ndim))
-                if mem_index is not None :
-                    b[buf_index] = ar[mem_index]
-                    f.seek(-readlen*ndim*disk_dtype.itemsize,1)
-    """
-
-    @staticmethod
-    def _can_load(f):
+    @classmethod
+    def _can_load(cls, f):
         return os.path.isdir(f) and os.path.exists(os.path.join(f, "description.xml"))

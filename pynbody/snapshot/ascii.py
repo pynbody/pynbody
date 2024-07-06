@@ -1,14 +1,7 @@
 """
-
-ascii
-=====
-
-A simple ascii file reader for pynbody
+Supports loading of ASCII snapshots. The format is a simple text file with a header line defining columns.
 
 """
-
-  # for py2.5
-
 
 import os
 import pathlib
@@ -22,6 +15,13 @@ _max_buf = 1024 * 512
 
 
 class AsciiSnap(SimSnap):
+    """Supports loading of ASCII snapshots. The format is a simple text file with a header line defining columns.
+
+    For an ASCII snapshot to be identified automatically using :func:`pynbody.load`, the file must have a `.txt`
+    extension.
+
+    All particles are assumed to be dark matter.
+    """
 
     def _setup_slices(self, num_lines, take=None):
         disk_family_slice = {family.dm: slice(0,num_lines)}
@@ -90,10 +90,6 @@ class AsciiSnap(SimSnap):
                     raise OSError("No such array on disk")
 
         self._load_arrays(ars)
-
-
-
-
 
     @classmethod
     def _can_load(cls, f: pathlib.Path):

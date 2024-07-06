@@ -4,6 +4,12 @@
 Common Pitfalls
 ===============
 
+I can't compile from source because of an error to do with OpenMP
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you're on a mac, you need to use a non-default compiler. See
+:ref:`macos-compilers` for more details.
+
 .. _paramfiles_are_good:
 
 I get errors like "Unknown units" or "Not convertible" from analysis or plotting routines
@@ -37,7 +43,7 @@ To tackle both of these issues in turn:
  1. The image is *always* centred on ``(0,0,0)``, so you need to offset
  the simulation before you start. The most common way to do this
  is with the function :func:`pynbody.analysis.halo.center`; see
- :ref:`snapshot_manipulation` for an introduction.
+ :ref:`quickstart` for an introduction.
 
  2. The ``width`` keyword for the image function
  expects a floating point number in the current units of the

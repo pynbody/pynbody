@@ -6,10 +6,10 @@ import h5py
 import numpy as np
 
 from .. import halo, units, util
-from .gadgethdf import GadgetHdfMultiFileManager, GadgetHDFSnap
+from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager
 
 
-class SwiftMultiFileManager(GadgetHdfMultiFileManager):
+class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
     def __init__(self, filename: pathlib.Path, take_cells, take_region, mode='r'):
         self._take_cells = take_cells
@@ -204,7 +204,8 @@ class SwiftSnap(GadgetHDFSnap):
                 unitname = k.split(" ")[0]
                 exponent = util.fractions.Fraction.from_float(float(ExtractScalarWrapper(hdfattrs)[k])).limit_denominator()
 
-                this_unit *= self._hdf_unitvar.get(unitname, units.no_unit)**exponent
+                if exponent != 0:
+                    this_unit *= self._hdf_unitvar.get(unitname, units.no_unit)**exponent
 
         return this_unit
 
@@ -220,13 +221,18 @@ class SwiftSnap(GadgetHDFSnap):
                    'U_L': dist_unit,
                    'U_M': mass_unit,
                    'U_t': time_unit,
-                   'U_T': temp_unit}
-
-        if self._is_cosmological():
-            dist_unit *= units.a
+                   'U_T': temp_unit,
+                   'a-scale': units.a,
+                   'h-scale': units.h}
 
 
         self._hdf_unitvar = unitvar
+
+        if self._is_cosmological():
+            # when using hdf-provided exponents, the scalefactor will automatically be included. However, if using
+            # infer_original_units, our best guess is that distances are comoving. So include the scalefactor
+            # in self._file_units_system but not in self._hdf_unitvar.
+            dist_unit = dist_unit * units.a
 
         self._file_units_system = [vel_unit, dist_unit, mass_unit, temp_unit]
 

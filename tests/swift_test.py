@@ -1,11 +1,21 @@
+import shutil
+from pathlib import Path
+
+import h5py
 import numpy as np
+import numpy.testing as npt
 import pytest
 from pytest import raises
 
 import pynbody
 import pynbody.halo.velociraptor
 import pynbody.snapshot.swift
+import pynbody.test_utils
 
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("swift")
 
 def test_load_identifies_swift():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
@@ -29,7 +39,7 @@ def test_swift_arrays():
     # the reason the following isn't exactly 1.0 is because our solar mass is slightly different to swift's
     # (the pynbody value is outdated but it will need some work to think about how to fix this without
     # breaking backwards compatibility)
-    assert np.allclose(f.dm['mass'].units.ratio("1e10 Msol", **f.conversion_context()), 0.9997436)
+    assert np.allclose(f.dm['mass'].units.ratio("1e10 Msol", **f.conversion_context()), 1.0)
     assert np.allclose(f.dm['vel'][::50000], np.array([[-249.5395 ,   122.65865 , -144.79892 ],
                                              [  75.57313 ,  -51.598354 , 250.10258 ],
                                              [-139.62218 , -132.5298   , 479.02545 ],
@@ -72,10 +82,6 @@ def test_swift_multifile_without_vds():
 def test_swift_singlefile_is_not_vds():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
     assert not f._hdf_files.is_virtual()
-
-
-
-# TODO: test partial loading where the region wraps around the periodic box
 
 def test_swift_singlefile_partial_loading():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
@@ -152,7 +158,7 @@ def test_swift_dtypes():
 
 @pytest.mark.parametrize('test_region',
                          [pynbody.filt.Sphere(50., (50., 50., 50.)),
-                         pynbody.filt.Cuboid(-20.0)])
+                         pynbody.filt.Cuboid(-20.0)]) # note the cuboid test region wraps around the box
 def test_swift_take_geometric_region(test_region):
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
                      take_region = test_region)
@@ -162,3 +168,67 @@ def test_swift_take_geometric_region(test_region):
     assert len(f) < len(f_full)
 
     assert np.all(f[test_region]['iord'] == f_full[test_region]['iord'])
+
+def test_swift_scalefactor_in_units():
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+
+    # naively, one would assume cm^2 s^-2, but actual units header says 1e10 a^2 cm^2 s^-2
+    # So this tests pynbody respects that. Note that we don't give the scalefactor context,
+    # so if scalefactor exponents are wrong, this will raise an exception
+    npt.assert_allclose((f.gas['u'].units).in_units("km^2 s^-2 a^-2"), 1.0)
+
+    npt.assert_allclose(f.gas['pos'].units.in_units("Mpc a"), 1.0)
+
+def test_ambiguous_name_mapping():
+    from pynbody.snapshot import namemapper
+    nm = namemapper.AdaptiveNameMapper("swift-name-mapping")
+    assert nm("mass") == "Masses" or nm("mass") == "SubgridMasses"
+
+    nm("Masses", reverse=True)
+    assert nm("mass") == "Masses"
+
+    nm("SubgridMasses", reverse=True)
+
+    # when allow_ambiguous = False, name mapper just returns the first format-specific name it knew about
+    assert nm("mass") == "SubgridMasses"
+
+    nm = namemapper.AdaptiveNameMapper("swift-name-mapping", return_all_format_names=True)
+    assert nm("mass") == ["Masses", "SubgridMasses"]
+
+    nm("Masses", reverse=True)
+
+    assert nm("mass") == ["Masses", "SubgridMasses"]
+
+    nm("SubgridMasses", reverse=True)
+
+    # when allow_ambiguous = True, name mapper returns a tuple of allowed format-specific names
+    assert nm("mass") == ["Masses", "SubgridMasses"]
+
+
+
+@pytest.fixture
+def swift_snap_with_alternate_mass_naming():
+    # In real swift snapshots, BH masses are called 'SubgridMasses' and other particles are called 'Masses'
+    # Here, to avoid adding another snapshot file, we just rename the gas masses in the snapshot we already have
+
+    # first copy snap_0150.hdf5 to a temporary file
+    tempdir = Path.cwd() / 'tempdir'
+    tempdir.mkdir(exist_ok=True)
+    tempfilename = tempdir / "snap_0150.hdf5"
+    shutil.copy("testdata/SWIFT/snap_0150.hdf5", tempfilename)
+
+    # now open the file and rename the gas masses
+    with h5py.File(tempfilename, 'r+') as f:
+        f['PartType0']['SubgridMasses'] = f['PartType0']['Masses']
+        del f['PartType0']['Masses']
+
+    yield str(tempfilename)
+
+    # clean up
+    shutil.rmtree(tempdir)
+
+def test_alternate_mass_file(swift_snap_with_alternate_mass_naming):
+    f = pynbody.load(swift_snap_with_alternate_mass_naming)
+    f1 = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+
+    assert np.allclose(f['mass'], f1['mass'])

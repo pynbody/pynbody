@@ -4,52 +4,88 @@ import pytest
 import pynbody
 from pynbody.test_utils.gadget4_subfind_reader import Halos
 
+# tell pytest not to raise warnings across this module
+pytestmark = pytest.mark.filterwarnings("ignore:Masses are either stored")
 
-def setup_module():
-    global snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gadget", "arepo", "hbt")
+
+
+@pytest.fixture
+def snap():
     with pytest.warns(UserWarning, match="Masses are either stored in the header or have another dataset .*"):
-        snap = pynbody.load('testdata/gadget4_subfind/snapshot_000.hdf5')
-        snap_arepo = pynbody.load('testdata/arepo/cosmobox_015.hdf5')
+        return pynbody.load('testdata/gadget4_subfind/snapshot_000.hdf5')
 
-    halos = pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap)
-    subhalos = pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap, subs=True)
-    htest = Halos('testdata/gadget4_subfind/', 0)
+@pytest.fixture
+def halos(snap):
+    return pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap)
 
-    halos_arepo = pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo)
-    subhalos_arepo = pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo, subs=True)
-    htest_arepo = Halos('testdata/arepo/', 15)
+@pytest.fixture
+def subhalos(snap):
+    return pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap, subhalos=True)
+
+@pytest.fixture
+def htest():
+    return Halos('testdata/gadget4_subfind/', 0)
+
+@pytest.fixture
+def snap_arepo():
+    with pytest.warns(UserWarning, match="Masses are either stored in the header or have another dataset .*"):
+        return pynbody.load('testdata/arepo/cosmobox_015.hdf5')
+
+@pytest.fixture
+def halos_arepo(snap_arepo):
+    return pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo)
+
+@pytest.fixture
+def subhalos_arepo(snap_arepo):
+    return pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue(snap_arepo, subhalos=True)
+
+@pytest.fixture
+def htest_arepo():
+    return Halos('testdata/arepo/', 15)
 
 
-def teardown_module():
-    global snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
-    del snap, halos, subhalos, htest, snap_arepo, halos_arepo, subhalos_arepo, htest_arepo
-
-
-def test_catalogue():
+def test_catalogue(snap, snap_arepo, halos, subhalos, halos_arepo, subhalos_arepo):
     _h_nogrp = snap.halos()
-    _subh_nogrp = snap.halos(subs=True)
+    _subh_nogrp = snap.halos(subhalos=True)
     _harepo_nogrp = snap_arepo.halos()
-    _subharepo_nogrp = snap_arepo.halos(subs=True)
+    _subharepo_nogrp = snap_arepo.halos(subhalos=True)
     for h in [halos, subhalos, _h_nogrp, _subh_nogrp, halos_arepo, subhalos_arepo, _harepo_nogrp, _subharepo_nogrp]:
         assert(isinstance(h, pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue)), \
             "Should be a Gadget4SubfindHDFCatalogue catalogue but instead it is a " + str(type(h))
 
-def test_lengths():
+def test_lengths(halos, subhalos, halos_arepo, subhalos_arepo):
     assert len(halos)==299
     assert len(subhalos)==343
     assert len(halos_arepo)==447
     assert len(subhalos_arepo)==475
 
+def test_catalogue_from_filename_gadget4():
+    snap = pynbody.load('testdata/gadget4_subfind/snapshot_000.hdf5')
+    snap._filename = ""
+
+    halos = snap.halos(filename='testdata/gadget4_subfind/fof_subhalo_tab_000.hdf5')
+    assert isinstance(halos, pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue)
+
+def test_catalogue_from_filename_arepo():
+    snap = pynbody.load('testdata/arepo/cosmobox_015.hdf5')
+    snap._filename = ""
+
+    halos = snap.halos(filename='testdata/arepo/fof_subhalo_tab_015.hdf5')
+    assert isinstance(halos, pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue)
 
 @pytest.mark.parametrize('mode', ('gadget4', 'arepo'))
-@pytest.mark.parametrize('subhalos', (True, False))
-def test_halo_or_subhalo_properties(mode, subhalos):
+@pytest.mark.parametrize('subhalo_mode', (True, False))
+def test_halo_or_subhalo_properties(mode, subhalo_mode, halos, snap, htest, halos_arepo, snap_arepo, htest_arepo):
 
-    halos_str = 'subhalos' if subhalos else 'halos'
+    halos_str = 'subhalos' if subhalo_mode else 'halos'
     if mode == 'gadget4':
-        comparison_catalogue, pynbody_catalogue = htest.load()[halos_str], snap.halos(subs=subhalos)
+        comparison_catalogue, pynbody_catalogue = htest.load()[halos_str], snap.halos(subhalos=subhalos)
     elif mode=='arepo':
-        comparison_catalogue, pynbody_catalogue = htest_arepo.load()[halos_str], snap_arepo.halos(subs=subhalos)
+        comparison_catalogue, pynbody_catalogue = htest_arepo.load()[halos_str], snap_arepo.halos(subhalos=subhalos)
     else:
         raise ValueError("Invalid mode")
 
@@ -72,7 +108,7 @@ def test_halo_or_subhalo_properties(mode, subhalos):
             np.testing.assert_allclose(pynbody_all[key], comparison_catalogue[key])
 
 @pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
-def test_halo_loading() :
+def test_halo_loading(halos, htest, halos_arepo, htest_arepo) :
     """ Check that halo loading works """
     # check that data loading for individual fof groups works
     _ = halos[0]['pos']
@@ -87,21 +123,23 @@ def test_halo_loading() :
     arepo_halos = htest_arepo.load()['halos']
     assert(len(halos_arepo[0]['iord']) == len(halos_arepo[0]) == np.sum(arepo_halos['GroupLenType'][0, :], axis=-1))
 
-def test_subhalos():
+def test_subhalos(halos):
     assert len(halos[1].subhalos) == 8
     assert len(halos[1].subhalos[2]) == 91
     assert halos[1].subhalos[2].properties['halo_number'] == 22
 
 @pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes", "ignore:Accessing multiple halos")
-def test_particle_data():
+def test_particle_data(halos, htest):
     hids = np.random.choice(range(len(halos)), 5)
     for hid in hids:
         assert(np.allclose(halos[hid].dm['iord'], htest[hid]['iord']))
 
 @pytest.mark.filterwarnings("ignore:Masses are either stored")
 def test_progenitors_and_descendants():
+    # although this uses the HBT snapshot, we actually test for the subfind properties...
     f = pynbody.load("testdata/gadget4_subfind_HBT/snapshot_034.hdf5")
     h = f.halos()
+    assert isinstance(h, pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue)
     p = h[0].subhalos[0].properties
     match = {'FirstProgSubhaloNr': 0, 'NextDescSubhaloNr': 127, 'ProgSubhaloNr': 0,
              'SubhaloNr': 0, 'DescSubhaloNr': 0, 'FirstDescSubhaloNr': 0, 'NextProgSubhaloNr': 74}

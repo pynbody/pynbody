@@ -3,6 +3,8 @@ import numpy as np
 cimport cython
 cimport libc.math as cmath
 cimport numpy as np
+
+np.import_array()
 from libc.math cimport atan, pow
 from libc.stdlib cimport free, malloc
 
@@ -133,6 +135,8 @@ def render_image(int nx, int ny,
                  np.ndarray[fused_input_type_4,ndim=1] mass,
                  np.ndarray[fused_input_type_5,ndim=1] rho,
                  fixed_input_type smooth_lo, fixed_input_type smooth_hi,
+                 fixed_input_type z_lo, fixed_input_type z_hi,
+                 fixed_input_type min_smooth,
                  kernel,
                  wrap_offsets_x=[0], wrap_offsets_y=[0]) :
 
@@ -186,6 +190,12 @@ def render_image(int nx, int ny,
                     x_i = x[i]+wrap_offset_x; y_i=y[i]+wrap_offset_y;
                     z_i=z[i]; sm_i = sm[i]; qty_i = qty[i]*mass[i]/rho[i]
 
+                    if z_i<z_lo or z_i>z_hi :
+                        continue
+
+                    if qty_i!=qty_i:
+                        continue
+
                     if z_camera!=0.0 :
                         # perspective image -
                         # update image bounds for the current z
@@ -202,9 +212,13 @@ def render_image(int nx, int ny,
                         x_start = x1+pixel_dx/2
                         y_start = y1+pixel_dy/2
 
+                    # minimum smoothing can be specified to create a smoother image (esp useful for contour plots)
+                    if sm_i<min_smooth:
+                        sm_i = min_smooth
 
                     # check particle smoothing is within specified range
                     if sm_i<pixel_dx*smooth_lo or sm_i>pixel_dx*smooth_hi : continue
+
 
                     total_ptcls+=1
 

@@ -1,36 +1,43 @@
 """
+Filters are used to define subsets of simulations, especially (but not exclusively) spatial sub-regions.
 
-filt
-====
+The basic idea is that a :class:`Filter` object stores the abstract definition of the subset, and then it can be
+called with a simulation to return a boolean array indicating which particles are in the subset. The implementation
+of filters is designed to be as efficient as possible, and in many cases the selection is done in C with OpenMP
+parallelisation. Additionally, if a simulation has a :class:`pynbody.kdtree.KDTree` built (via
+:meth:`pynbody.snapshot.simsnap.SimSnap.build_tree`), then the selection can be done using the KDTree, which is considerably
+faster for very large simulations.
 
-Defines and implements 'filters' which allow abstract subsets
-of data to be specified.
+Filters can be combined using the logical operators `&`, `|` and `~` to create more complex selections.
 
-See the `filter tutorial
-<http://pynbody.github.io/pynbody/tutorials/filters.html>`_ for some
-sample usage.
-
+For a friendly introduction, see :doc:`/tutorials/filters`.
 """
-
+from __future__ import annotations
 
 import pickle
+from typing import TYPE_CHECKING
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from .. import family, units
 from . import geometry_selection
 
+if TYPE_CHECKING:
+    from .. import snapshot
 
 class Filter:
+    """Base class for all filters. Filters are callables that take simulations as input and return a boolean mask"""
 
-    def __init__(self):
-        self._descriptor = "filter"
-        pass
+    def where(self, sim: snapshot.SimSnap):
+        """Return the indices of particles that are in the filter.
 
-    def where(self, sim):
+        This is a convenience method that is equivalent to np.where(f(sim)) but may be more efficient for some filters.
+        """
         return np.where(self(sim))
 
-    def __call__(self, sim):
+    def __call__(self, sim: snapshot.SimSnap):
+        """Return a boolean mask indicating which particles are in the filter."""
         return np.ones(len(sim), dtype=bool)
 
     def __and__(self, f2):
@@ -100,10 +107,10 @@ class Filter:
         return boxsize, deltax
 
 class FamilyFilter(Filter):
+    """A filter that selects particles based on their family."""
+
     def __init__(self, family_):
-        assert isinstance(family_, family.Family)
-        self._descriptor = family_.name
-        self.family = family_
+        self.family = family.get_family(family_, False)
 
     def __repr__(self):
         return "FamilyFilter("+self.family.name+")"
@@ -115,9 +122,16 @@ class FamilyFilter(Filter):
         return flags
 
 class And(Filter):
+    """A filter that selects particles that are in both of two other filters.
+
+    You can construct this filter conveniently using the ``&`` operator, i.e.
+
+    >>> f = f1 & f2
+
+    returns a filter that selects particles that are in both ``f1`` and ``f2``.
+    """
 
     def __init__(self, f1, f2):
-        self._descriptor = f1._descriptor + "&" + f2._descriptor
         self.f1 = f1
         self.f2 = f2
 
@@ -132,9 +146,15 @@ class And(Filter):
                self.f2.cubic_cell_intersection(centroids)
 
 class Or(Filter):
+    """A filter that selects particles that are in either of two other filters.
+
+    You can construct this filter conveniently using the ``|`` operator, i.e.
+
+    >>> f = f1 | f2
+
+    returns a filter that selects particles that are in either ``f1`` or ``f2``."""
 
     def __init__(self, f1, f2):
-        self._descriptor = f1._descriptor + "|" + f2._descriptor
         self.f1 = f1
         self.f2 = f2
 
@@ -150,9 +170,16 @@ class Or(Filter):
 
 
 class Not(Filter):
+    """A filter that selects particles that are not in another filter.
+
+    You can construct this filter conveniently using the ``~`` operator, i.e.
+
+    >>> f = ~f1
+
+    returns a filter that selects particles that are not in ``f1``.
+    """
 
     def __init__(self, f):
-        self._descriptor = "~" + f._descriptor
         self.f = f
 
     def __call__(self, sim):
@@ -167,20 +194,24 @@ class Not(Filter):
 
 
 class Sphere(Filter):
-
     """
-    Return particles that are within `radius` of the point `cen`.
-
-    Inputs:
-    -------
-
-    *radius* : extent of the sphere. Can be a number or a string specifying the units.
-
-    *cen* : center of the sphere. default = (0,0,0)
+    A filter that selects particles within `radius` of the point `cen`.
     """
 
-    def __init__(self, radius, cen=(0, 0, 0)):
-        self._descriptor = "sphere"
+    def __init__(self, radius: float | str | units.UnitBase, cen: ArrayLike = (0, 0, 0)):
+        """Create a sphere filter.
+
+        Parameters
+        ----------
+
+        radius :
+            The radius of the sphere. If a string, it is interpreted as a unit string.
+
+        cen :
+            The centre of the sphere. If a :class:`pynbody.snapshot.simsnap.SimArray`, units can be provided and
+            will be correctly accounted for.
+        """
+
         self.cen = np.asarray(cen)
         if self.cen.shape != (3,):
             raise ValueError("Centre must be length 3 array")
@@ -235,17 +266,16 @@ class Sphere(Filter):
 
 
 class Cuboid(Filter):
+    """A filter that selects particles within a cuboid defined by two opposite corners."""
 
-    """Create a cube with specified edge coordinates. If any of the cube
-    coordinates `x1`, `y1`, `z1`, `x2`, `y2`, `z2` are not specified
-    they are determined as `y1=x1;` `z1=x1;` `x2=-x1;` `y2=-y1;`
-    `z2=-z1`.
+    def __init__(self, x1: float | str | units.UnitBase, y1: float | str | units.UnitBase = None,
+                 z1: float | str | units.UnitBase = None, x2: float | str | units.UnitBase = None,
+                 y2: float | str | units.UnitBase = None, z2: float | str | units.UnitBase = None):
+        """Create a cuboid filter.
 
-    """
-
-    def __init__(self, x1, y1=None, z1=None, x2=None, y2=None, z2=None):
-
-        self._descriptor = "cube"
+        If any of the cube coordinates ``x1``, ``y1``, ``z1``, ``x2``, ``y2``, ``z2`` are not specified they are
+        determined as ``y1=x1``; ``z1=x1``; ``x2=-x1``; ``y2=-y1``; ``z2=-z1``.
+        """
         x1, y1, z1, x2, y2, z2 = (
             units.Unit(x) if isinstance(x, str) else x for x in (x1, y1, z1, x2, y2, z2))
         if y1 is None:
@@ -323,14 +353,29 @@ class Cuboid(Filter):
 
 
 class Disc(Filter):
+    """A filter that selects particles within a disc of specified extent and thickness."""
 
-    """
-    Return particles that are within a disc of extent `radius` and
-    thickness `height` centered on `cen`.
-    """
+    def __init__(self, radius: float | str | units.UnitBase, height: float | str | units.UnitBase,
+                 cen: ArrayLike = (0, 0, 0)):
+        """Create a disc filter.
 
-    def __init__(self, radius, height, cen=(0, 0, 0)):
-        self._descriptor = "disc"
+        In keeping with other parts of pynbody, the disc is defined in the x-y plane, with the z-axis being the
+        symmetry axis. This is useful in conjunction with automated disc alignment e.g.
+        :meth:`pynbody.analysis.angmom.sideon`.
+
+        Parameters
+        ----------
+
+        radius :
+            The radius of the disc (in the xy-plane). If a string, it is interpreted as a unit string.
+
+        height :
+            The thickness of the disc (in the z-direction). If a string, it is interpreted as a unit string.
+
+        cen :
+            The centre of the disc. If a :class:`pynbody.snapshot.simsnap.SimArray`, units can be provided and
+            will be correctly accounted for.
+        """
         self.cen = np.asarray(cen)
         if self.cen.shape != (3,):
             raise ValueError("Centre must be length 3 array")
@@ -368,15 +413,23 @@ class Disc(Filter):
 
 
 class BandPass(Filter):
+    """Selects particles in a bandpass of a named property"""
 
-    """
-    Return particles whose property `prop` is within `min` and `max`,
-    which can be specified as unit strings.
-    """
+    def __init__(self, prop: str, min: float | str | units.UnitBase, max: float | str | units.UnitBase):
+        """Create a bandpass filter.
 
-    def __init__(self, prop, min, max):
-        self._descriptor = "bandpass_" + prop
+        Parameters
+        ----------
 
+        prop :
+            The name of the simulation array to filter on.
+
+        min :
+            The minimum value of the property. If a string, it is interpreted as a unit string.
+
+        max :
+            The maximum value of the property. If a string, it is interpreted as a unit string.
+        """
         if isinstance(min, str):
             min = units.Unit(min)
 
@@ -408,15 +461,21 @@ class BandPass(Filter):
 
 
 class HighPass(Filter):
-
-    """
-    Return particles whose property `prop` exceeds `min`, which can be
-    specified as a unit string.
+    """Selects particles exceeding a specified threshold of a named property
     """
 
-    def __init__(self, prop, min):
-        self._descriptor = "highpass_" + prop
+    def __init__(self, prop: str, min: float | str | units.UnitBase):
+        """Create a high-pass filter.
 
+        Parameters
+        ----------
+
+        prop :
+            The name of the simulation array to filter on.
+
+        min :
+            The minimum value of the property. If a string, it is interpreted as a unit string.
+        """
         if isinstance(min, str):
             min = units.Unit(min)
 
@@ -442,13 +501,21 @@ class HighPass(Filter):
 
 class LowPass(Filter):
 
-    """Return particles whose property `prop` is less than `max`, which can be
-    specified as a unit string.
+    """Selects particles below a specified threshold of a named property
     """
 
-    def __init__(self, prop, max):
-        self._descriptor = "lowpass_" + prop
+    def __init__(self, prop: str, max: float | str | units.UnitBase):
+        """Create a low-pass filter.
 
+        Parameters
+        ----------
+
+        prop :
+            The name of the simulation array to filter on.
+
+        max :
+            The maximum value of the property. If a string, it is interpreted as a unit string.
+        """
         if isinstance(max, str):
             max = units.Unit(max)
 
@@ -472,24 +539,56 @@ class LowPass(Filter):
         return f"LowPass('{self._prop}', {max})"
 
 
-def Annulus(r1, r2, cen=(0, 0, 0)):
-    """
-    Convenience function that returns a filter which selects particles
-    in between two spheres specified by radii `r1` and `r2` centered
-    on `cen`.
+class Annulus(And):
+    """A filter that selects particles in between two spheres specified by radii `r1` and `r2` centered on `cen`."""
+
+    def __init__(self, r1: float | str | units.UnitBase, r2: float | str | units.UnitBase, cen: ArrayLike = (0, 0, 0)):
+        """Create an annulus filter.
+
+        Parameters
+        ----------
+
+        r1 :
+            The inner radius of the annulus. If a string, it is interpreted as a unit string.
+
+        r2 :
+            The outer radius of the annulus. If a string, it is interpreted as a unit string.
+
+        cen :
+            The centre of the annulus. If a :class:`pynbody.snapshot.simsnap.SimArray`, units can be provided and
+            will be correctly accounted for.
+        """
+        super().__init__(~Sphere(r1, cen), Sphere(r2, cen))
+
+
+class SolarNeighborhood(And):
+    """A filter that selects particles in a disc between 2d radii `r1` and `r2` and thickness `height`.
+
+    As for :class:`Disc`, the galaxy disc is defined in the x-y plane, with the z-axis being the symmetry axis.
+
+    Default parameters are provided that are approximately the solar neighborhood (coarsely selected).
     """
 
-    x = Sphere(max(r1, r2), cen) & ~Sphere(min(r1, r2), cen)
-    x._descriptor = "annulus"
-    return x
+    def __init__(self, r1: float | str | units.UnitBase = units.Unit("5 kpc"),
+                 r2: float | str | units.UnitBase = units.Unit("10 kpc"),
+                 height: float | str | units.UnitBase = units.Unit("2 kpc"),
+                 cen: ArrayLike = (0, 0, 0)):
+        """Create a solar neighborhood filter.
 
+        Parameters
+        ----------
 
-def SolarNeighborhood(r1=units.Unit("5 kpc"), r2=units.Unit("10 kpc"), height=units.Unit("2 kpc"), cen=(0, 0, 0)):
-    """
-    Convenience function that returns a filter which selects particles
-    in a disc between radii `r1` and `r2` and thickness `height`.
-    """
+        r1 :
+            The inner radius of the disc. If a string, it is interpreted as a unit string.
 
-    x = Disc(max(r1, r2), height, cen) & ~Disc(min(r1, r2), height, cen)
-    x._descriptor = "Solar Neighborhood"
-    return x
+        r2 :
+            The outer radius of the disc. If a string, it is interpreted as a unit string.
+
+        height :
+            The thickness of the disc. If a string, it is interpreted as a unit string.
+
+        cen :
+            The centre of the disc. If a :class:`pynbody.snapshot.simsnap.SimArray`, units can be provided and
+            will be correctly accounted for.
+        """
+        super().__init__(~Disc(r1, height, cen), Disc(r2, height, cen))

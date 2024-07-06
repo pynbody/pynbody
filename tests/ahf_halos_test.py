@@ -11,6 +11,12 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf", "ramses")
 
 
 @pytest.fixture
@@ -25,6 +31,21 @@ def test_load_ahf_catalogue():
     h = pynbody.halo.ahf.AHFCatalogue(f)
     assert len(h)==1411
 
+def test_load_ahf_catalogue_via_filename():
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    f._filename = '' # obfuscate the filename, so we can check loading via user-specified filename
+
+    h = f.halos(filename="testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF")
+    assert isinstance(h, pynbody.halo.ahf.AHFCatalogue)
+    assert len(h)==1411
+
+h0_sample_iords = [57, 27875, 54094, 82969, 112002, 140143, 173567, 205840, 264606,
+           301694, 333383, 358730, 374767, 402300, 430180, 456015, 479885, 496606,
+           519824, 539971, 555195, 575204, 596047, 617669, 652724, 1533992, 1544021,
+           1554045, 1564080, 1574107, 1584130, 1594158, 1604204, 1614257, 1624308, 1634376,
+           1644485, 1654580, 1664698, 1674831, 1685054, 1695252, 1705513, 1715722, 1725900,
+           1736070, 1746235, 1756400, 1766584, 1776754, 1786886]
+
 @pytest.mark.parametrize("do_load_all", [True, False])
 def test_ahf_particles(do_load_all, cleanup_fpos_file):
     f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
@@ -34,15 +55,17 @@ def test_ahf_particles(do_load_all, cleanup_fpos_file):
         h.load_all()
 
     assert len(h[0])==502300
-    assert (h[0]['iord'][::10000]==[57, 27875, 54094, 82969, 112002, 140143, 173567, 205840, 264606,
-           301694, 333383, 358730, 374767, 402300, 430180, 456015, 479885, 496606,
-           519824, 539971, 555195, 575204, 596047, 617669, 652724, 1533992, 1544021,
-           1554045, 1564080, 1574107, 1584130, 1594158, 1604204, 1614257, 1624308, 1634376,
-           1644485, 1654580, 1664698, 1674831, 1685054, 1695252, 1705513, 1715722, 1725900,
-           1736070, 1746235, 1756400, 1766584, 1776754, 1786886]).all()
+    assert h[0].ancestor is f
+    assert (h[0]['iord'][::10000]==h0_sample_iords).all()
     assert len(h[19])==3272
     assert(h[19]['iord'][::1000] == [232964, 341019, 752354, 793468]).all()
 
+def test_load_copy():
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    h = pynbody.halo.ahf.AHFCatalogue(f)
+    hcopy = h.load_copy(0)
+    assert (hcopy['iord'][::10000] == h0_sample_iords).all()
+    assert hcopy.ancestor is not f
 
 @pytest.mark.parametrize("do_load_all", [True, False])
 def test_load_ahf_catalogue_non_gzipped(do_load_all):
@@ -118,16 +141,27 @@ def test_ahf_unwritable(snap_in_unwritable_folder):
 def test_detecting_ahf_catalogues_with_without_trailing_slash():
     # Test small fixes in #688 to detect AHF catalogues with and wihtout trailing slashes in directories
     for name in (
-        "testdata/ramses_new_format_cosmo_with_ahf_output_00110",
-        "testdata/ramses_new_format_cosmo_with_ahf_output_00110/"
+        "testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110",
+        "testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110/"
     ):
         f = pynbody.load(name)
         _halos = pynbody.halo.ahf.AHFCatalogue(f)
 
+def test_ramses_ahf_load_halo_no_fpos():
+    # test that we can load AHF halos without an fpos file
+    f = pynbody.load("testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110")
+
+    # delete the fpos file, if it exists
+    fpos_path = "testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110/ramses_new_format_cosmo_with_ahf_output_00110_fullbox.tipsy.z0.031.AHF_fpos"
+    if os.path.exists(fpos_path):
+        os.remove(fpos_path)
+
+    h = f.halos()
+    h[0] # noqa - just checking there's no error
 
 def test_ramses_ahf_family_mapping_with_new_format():
     # Test Issue 691 where family mapping of AHF catalogues with Ramses new particle formats would go wrong
-    f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
+    f = pynbody.load("testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110")
     halos = pynbody.halo.ahf.AHFCatalogue(f)
 
     assert len(halos) == 149    # 150 lines in AHF halos file
@@ -168,7 +202,7 @@ def test_ahf_corrupt_substructure():
 
 
 def test_ahf_substructure():
-    f = pynbody.load("testdata/ramses_new_format_cosmo_with_ahf_output_00110")
+    f = pynbody.load("testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110")
     halos = pynbody.halo.ahf.AHFCatalogue(f)
     halos.load_all()
 

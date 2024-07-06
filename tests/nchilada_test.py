@@ -1,7 +1,15 @@
 import numpy as np
 import numpy.testing as npt
+import pytest
 
 import pynbody
+import pynbody.test_utils
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("nchilada")
+
 
 reference_positions = np.array([[4.80664825e+01, -8.99647751e+01,
                                  3.74038162e+01],

@@ -45,6 +45,13 @@ def test_sphere(snap):
     sp_units = f[pynbody.filt.Sphere('500 pc')]
     assert len(sp_units.intersect(sp)) == len(sp)
 
+
+def test_empty_sphere():
+    snap = pynbody.new(0)
+    # This would fail due to the C code seeing an array it couldn't handle (due to zero length)
+    sp_empty = snap[pynbody.filt.Sphere(1.0)]
+    assert len(sp_empty) == 0
+
 def test_wrapping_sphere(wrapping_snap):
     f, min = wrapping_snap
     # put a sphere at the lower left corner of the box
@@ -156,6 +163,24 @@ def test_family_filter():
     assert (f_dm.get_index_list(f) == f_dm_filter.get_index_list(f)).all()
     assert (f_gas.get_index_list(f) == f_gas_filter.get_index_list(f)).all()
 
+def test_annulus(snap):
+    a = snap[pynbody.filt.Annulus(0.5, 1.0)]
+    assert len(a)>100 and len(a)<200
+    assert (a.get_index_list(snap) == np.where(
+        (snap['r'] > 0.5) * (snap['r'] < 1.0))[0]).all()
+
+def test_disc(snap):
+    d = snap[pynbody.filt.Disc(0.8, 0.3)]
+    assert len(d)>50 and len(d)<100
+    assert (d.get_index_list(snap) == np.where(
+        (snap['rxy'] < 0.8) * (abs(snap['z']) < 0.3))[0]).all()
+
+def test_solar_neighbourhood(snap):
+    filt = pynbody.filt.SolarNeighborhood(0.5, 1.0, 0.3)
+    sn = snap[filt]
+    assert len(sn) > 50 and len(sn) < 100
+    assert (sn.get_index_list(snap) == np.where(
+        (snap['rxy'] > 0.5) * (snap['rxy'] < 1.0) * (abs(snap['z']) < 0.3))[0]).all()
 
 def test_hashing():
     X = {}
