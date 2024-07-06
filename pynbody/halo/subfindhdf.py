@@ -617,7 +617,7 @@ class TNGSubfindHDFCatalogue(ArepoSubfindHDFCatalogue):
                         self._fof_group_lengths[ptype][curr_groups:curr_groups + len(offset)] = length
                         curr_groups += len(offset)
                         curr_group_offset += offset[-1] + length[-1]
-                # TNG specific fix: 
+                # TNG specific fix:
                 ptype_group_offset += self.base.properties['NumPart_Total'][int(ptype[-1])]
                 if curr_groups!=self._ngroups:
                     warnings.warn(f"Incorrect number of groups recovered from HDF files. Expected {self._ngroups}, found {curr_groups}")
@@ -637,7 +637,7 @@ class TNGSubfindHDFCatalogue(ArepoSubfindHDFCatalogue):
                 self._subfind_halo_lengths[ptype] = np.empty(self._nsubhalos, dtype='int64')
 
                 curr_subhalos = 0
-                
+
                 # Only get lengths
                 for h in self._hdf_files:
                     length = self._get_halodata_array_with_default(h, self._sub_len_name, self._subfind_name, ptype, [])
@@ -654,4 +654,3 @@ class TNGSubfindHDFCatalogue(ArepoSubfindHDFCatalogue):
                     self._nsubhalos = curr_subhalos
                     self._subfind_halo_offsets[ptype] = self._subfind_halo_offsets[ptype][:curr_groups]
                     self._subfind_halo_lengths[ptype] = self._subfind_halo_lengths[ptype][:curr_groups]
-
