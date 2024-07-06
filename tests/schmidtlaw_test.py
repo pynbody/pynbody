@@ -27,7 +27,7 @@ def make_disc(size=8**5):
     s.s['tform'] = 90*np.ones(size)
     s.s['tform'][s.s['r'] > 0.5 ] /= 9
     s.s['tform'].units = 'Myr'
-    
+
     # Scale disk
     s['x'] *= 20
     s['y'] *= 20
