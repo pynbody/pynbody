@@ -813,8 +813,8 @@ def schmidtlaw(sim, center=True, filename=None, pretime='50 Myr',
 
 	# calculate surface densities
 	if radial:
-		ps = profile.Profile(diskstars[youngstars], nbins=bins, rmin=0, rmax=units.Unit(rmax))
-		pg = profile.Profile(diskgas, nbins=bins, rmin=0, rmax=units.Unit(rmax))
+		ps = profile.Profile(diskstars[youngstars], nbins=bins, rmin=0, rmax=rmax)
+		pg = profile.Profile(diskgas, nbins=bins, rmin=0, rmax=rmax)
 	else:
 		# make bins 2 kpc
 		nbins = rmax * 2 / binsize
@@ -852,6 +852,7 @@ def schmidtlaw(sim, center=True, filename=None, pretime='50 Myr',
 	if (filename):
 		logger.info("Saving %s", filename)
 		plt.savefig(filename)
+	return pg['density'].in_units('Msol pc^-2'), (ps['density']/pretime).in_units('Msol kpc**-2 yr**-1')
 
 
 def oneschmidtlawpoint(sim, center=True, pretime='50 Myr',
