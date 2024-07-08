@@ -10,7 +10,7 @@ pytestmark = pytest.mark.filterwarnings("ignore:Masses are either stored")
 
 @pytest.fixture(scope='module', autouse=True)
 def get_data():
-    pynbody.test_utils.ensure_test_data_available("gadget", "arepo", "hbt")
+    pynbody.test_utils.ensure_test_data_available("gadget", "arepo", "hbt", "tng_subfind")
 
 
 @pytest.fixture
@@ -152,3 +152,56 @@ def test_progenitors_and_descendants():
              'DescSubhaloNr': 221, 'FirstDescSubhaloNr': 221, 'NextProgSubhaloNr': -1}
     for k, v in match.items():
         assert p[k] == v
+
+
+@pytest.mark.filterwarnings("ignore:Masses are either stored")
+@pytest.mark.filterwarnings("ignore:Incorrect number of ") # test data has only some of the files
+def test_multifile_multipart_tng_halos():
+    # This addresses a number of linked bugs in reading subfind data where there are multiple files, and
+    # more than one particle type mapping into the same family. See #839
+    f = pynbody.load("testdata/arepo/tng/snapdir_261/snap_261")
+    h = f.halos()
+    assert (h[0]['iord'][::100000] == [1079368176, 1073346509, 1079169082, 1076024094, 1078414281,
+          1079318645, 1060773038, 1079036573, 1076276269, 1045575677,
+          1056566404, 1063954410, 1078469798,   23152184,   20085564,
+            24029526,   23927910,   20018798,   24197828,   21084457,
+            23217921,   22226505,   18947605,   25089761,   21155098,
+            18961540,   24820839,   21071365,   25913167,   18242487,
+            22815450,   20701085,   22021963,   18445394,   22331098,
+            18828642,   25965289,   19799793,   24274707,   20909980,
+            23210270,   23462569,   19879522,   20108215,   24434760,
+            17475958,   20648454,   18793266,   22666648,   20739052,
+            23397149,   22953590,   17407270,   16811069,   20600621,
+            23023164,   17306789,   21346551,   23646591,   20535924,
+          1038202167, 1038385095, 1041854620, 1041212679, 1033619448,
+          1038549232, 1033659336, 1043699534, 1031042903, 1029945620,
+          1051418078, 1055911654, 1055831064, 1065659516, 1049027467,
+          1061288281, 1056286673, 1067075166, 1028317439, 1077239322]).all()
+
+    # here are two low-res particles that are actually PartType2 but lumped into the DM family by pynbody
+    # these were previously assigned to wrong particles (PartType2 mapped into PartType1 particles by mistake)
+    assert (h[0].dm['iord'][-2:] == [5801691, 5801450]).all()
+
+    assert (h[0].subhalos[2]['iord'][::1000] == [1076590348, 1079252330, 1079343916, 1079237207, 1075658142,
+          1075226456, 1074535510,   21365624,   21358512,   21406282,
+            22432720,   21411320,   20340518,   20288656,   22321526,
+            22377688,   21399799,   21349549,   22323202,   24413954,
+            22256512,   21218148,   21360613,   21400353,   22373060,
+            20343482,   22322281,   23345354,   22322474,   23341431,
+            19413719,   22380145,   20346069,   22259777,   20346110,
+          1061149399, 1076605146, 1048386188, 1019409154, 1019367044,
+          1034899938]).all()
+
+    assert (h[0].dm['iord'][-2:] == [5801691, 5801450]).all()
+
+
+    assert ((h[1]['iord'][::100000]) == [1078937127, 1076029549, 1078029745,   19522035,   18616445,
+            21423889,   22453094]).all()
+
+    assert ((h[1].subhalos[3]['iord'][::100] == [26360186, 26359643, 26360908, 26356085, 25978477, 26396901,
+          26356628, 26022586, 26360378, 25977706, 26360175, 26355601,
+          26356851, 26356882, 26396677, 25978240]).all())
+
+    # another test that PartType2 lumped into DM particles get picked up OK
+
+    assert (h[1].subhalos[0].dm['iord'][-5:] == [5477082,  5477081,  5476835,  5346238,  5346239]).all()
