@@ -333,8 +333,11 @@ def _run_function_externally(function_name):
     process.wait()
 
 
-def test_vstack():
-    # test for any of the following creating an infinite recursion
+def test_ufunc_multi_input():
+    # Test for any of the following creating an infinite recursion. See #844
+    #
+    # Note that arguably these should look at their units, but at the moment they don't. That's a secondary
+    # issue and at least we don't hit infinite recursion any more.
     np.concatenate([SA([1, 2, 3]), SA([4, 5, 6])])
     np.vstack([SA([1, 2, 3]), SA([4, 5, 6])])
     np.hstack([SA([1, 2, 3]), SA([4, 5, 6])])
