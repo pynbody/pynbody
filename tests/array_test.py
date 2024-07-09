@@ -331,3 +331,10 @@ def _run_function_externally(function_name):
                                 f"from array_test import {function_name}; {function_name}()"]
                                , cwd=pwd)
     process.wait()
+
+
+def test_vstack():
+    # test for any of the following creating an infinite recursion
+    np.concatenate([SA([1, 2, 3]), SA([4, 5, 6])])
+    np.vstack([SA([1, 2, 3]), SA([4, 5, 6])])
+    np.hstack([SA([1, 2, 3]), SA([4, 5, 6])])
