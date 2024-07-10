@@ -264,9 +264,13 @@ class SimArray(np.ndarray):
     def _simarray_to_plain_ndarray(cls, inputs):
         """Converts any SimArrays to plain np.ndarray, for use when a ufunc or other numpy func is being called"""
         if isinstance(inputs, dict):
-            return {k: i.view(np.ndarray) if isinstance(i, SimArray) else i for k, i in inputs.items()}
+            return {k: cls._simarray_to_plain_ndarray(i) for k, i in inputs.items()}
+        elif isinstance(inputs, list) or isinstance(inputs, tuple):
+            return [cls._simarray_to_plain_ndarray(i) for i in inputs]
+        elif isinstance(inputs, SimArray):
+            return inputs.view(np.ndarray)
         else:
-            return [i.view(np.ndarray) if isinstance(i, SimArray) else i for i in inputs]
+            return inputs
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         units_func = SimArray._ufunc_registry.get(ufunc, None)
