@@ -133,7 +133,7 @@ class HBTPlusCatalogue(HaloCatalogue):
             if candidate_path.exists():
                 return candidate_path
 
-        raise FileNotFoundError(f'Could not find HBTPlus catalogue for {sim_filename}. Try passing hbt_filename explicitly.')
+        raise FileNotFoundError(f'Could not find HBTPlus catalogue for {sim_filename}. Try passing filename explicitly.')
 
     @classmethod
     def _map_user_filename_to_file_0(cls, filename):
