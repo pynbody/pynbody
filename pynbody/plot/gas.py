@@ -86,9 +86,9 @@ def rho_T(sim, rho_units=None, rho_range=None, t_range=None, two_phase='split', 
 
     if (gasoline_two_phase or changa_two_phase) and two_phase == 'split':
         E = sim.g['uHot']*sim.g[mass_hot_key]+sim.g['u']*(sim.g['mass']-sim.g[mass_hot_key])
-        rho = np.concatenate(((sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['u'])).flat,
-            (sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['uHot'])).flat))
-        temp = np.concatenate((sim.g['temp'].flat, (sim.g['temp']/sim.g['u']*sim.g['uHot']).flat))
+        rho = np.concatenate((np.array(sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['u'])),
+            np.array(sim.g['rho'].in_units(rho_units)*E/(sim.g['mass']*sim.g['uHot']))))
+        temp = np.concatenate((np.array(sim.g['temp']), np.array(sim.g['temp']/sim.g['u']*sim.g['uHot'])))
         temp = temp[np.where(np.isfinite(rho))]
         rho = rho[np.where(np.isfinite(rho))]
         return hist2d(rho, temp, xlogrange=True,ylogrange=True,xlabel=xlabel,
