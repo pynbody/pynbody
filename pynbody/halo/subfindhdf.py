@@ -266,7 +266,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                         # Arepo doesn't store offsets, so we need to calculate them. Note these are relative to
                         # the specific PartType we are looking at, but across all files (ordered sequentially).
                         lengths_cumulative = np.cumsum(length)
-                        offset = np.concatenate(([current_offset], lengths_cumulative[:-1]))
+                        offset = np.concatenate(([current_offset], current_offset+lengths_cumulative[:-1]))
                         current_offset += lengths_cumulative[-1]
 
                     self._fof_group_offsets[ptype][curr_groups:curr_groups + len(offset)] = offset.astype('int64')[:]

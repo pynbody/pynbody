@@ -202,6 +202,7 @@ def test_multifile_multipart_tng_halos():
           26356628, 26022586, 26360378, 25977706, 26360175, 26355601,
           26356851, 26356882, 26396677, 25978240]).all())
 
+    assert (h[3].s['iord'][:5] == [1062632156, 1057152317, 1049782182, 1038218046, 1039576336]).all()
     # another test that PartType2 lumped into DM particles get picked up OK
 
     assert (h[1].subhalos[0].dm['iord'][-5:] == [5477082,  5477081,  5476835,  5346238,  5346239]).all()
