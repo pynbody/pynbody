@@ -32,9 +32,11 @@ test_data_packages = {
                  'archive_name': 'rockstar.tar.gz'},
     'subfind': {'path': 'subfind',
                 'archive_name': 'subfind.tar.gz'},
+    'tng_subfind': {'path': 'arepo/tng',
+                    'archive_name': 'tng_subfind.tar.gz'},
 }
 
-test_data_url = "https://zenodo.org/record/12552028/files/{archive_name}?download=1"
+test_data_url = "https://zenodo.org/record/12687409/files/{archive_name}?download=1"
 
 def precache_test_data():
     """Download and unpack all test data packages."""
@@ -76,7 +78,7 @@ def download_and_unpack_test_data(archive_name):
 
     # Unpack the tar file
     with tarfile.open(archive_name) as tar:
-        tar.extractall(unpack_path)
+        tar.extractall(unpack_path, filter='data')
 
     # Remove the downloaded tar file
     os.remove(archive_name)
