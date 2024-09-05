@@ -179,7 +179,7 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
 
         rho = lambda r: util.sum_if_lt(mass_ar,r_ar,r)/(4. * math.pi * (r ** 3) / 3)
         result = util.bisect(r_min, r_max, lambda r: target_rho -
-                             rho(r), epsilon=0, eta=1.e-3 * target_rho, verbose=False)
+                                                     rho(r), epsilon=0, eta=1.e-3 * target_rho)
 
     return result
 

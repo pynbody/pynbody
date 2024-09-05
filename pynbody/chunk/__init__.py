@@ -52,6 +52,8 @@ from typing import TYPE_CHECKING, Callable, Iterable, Iterator
 
 import numpy as np
 
+import pynbody.util.indexing_tricks
+
 from .. import util
 
 if TYPE_CHECKING:
@@ -237,16 +239,16 @@ class LoadControl:
                 len_pre = next_dip - fpos
 
                 if disk_slice is not None:
-                    d_slice_pre = util.concatenate_indexing(
+                    d_slice_pre = pynbody.util.indexing_tricks.concatenate_indexing(
                         slice(0, len_pre), disk_slice)
-                    len_m_pre = util.indexing_length(d_slice_pre)
-                    m_slice_pre = util.concatenate_indexing(
+                    len_m_pre = pynbody.util.indexing_tricks.indexing_length(d_slice_pre)
+                    m_slice_pre = pynbody.util.indexing_tricks.concatenate_indexing(
                         mem_slice, slice(0, len_m_pre))
 
                     # work out what to read second
                     len_post = nread_disk - len_pre
-                    d_slice_post = copy.copy(util.concatenate_indexing(
-                        disk_slice, slice(len_m_pre, util.indexing_length(mem_slice))))
+                    d_slice_post = copy.copy(pynbody.util.indexing_tricks.concatenate_indexing(
+                        disk_slice, slice(len_m_pre, pynbody.util.indexing_tricks.indexing_length(mem_slice))))
                     # the copy above is necessary to ensure we don't end up inadvertently modifying
                     # list of offsets somewhere else
 
@@ -259,15 +261,15 @@ class LoadControl:
                     else:
                         d_slice_post -= len_pre
 
-                    len_m_post = util.indexing_length(d_slice_post)
-                    m_slice_post = util.concatenate_indexing(
+                    len_m_post = pynbody.util.indexing_tricks.indexing_length(d_slice_post)
+                    m_slice_post = pynbody.util.indexing_tricks.concatenate_indexing(
                         mem_slice, slice(len_m_pre, len_m_pre + len_m_post))
 
-                    if util.indexing_length(d_slice_post) == 0:
+                    if pynbody.util.indexing_tricks.indexing_length(d_slice_post) == 0:
                         d_slice_post = None
                         m_slice_post = None
 
-                    if util.indexing_length(d_slice_pre) == 0:
+                    if pynbody.util.indexing_tricks.indexing_length(d_slice_pre) == 0:
                         d_slice_pre = None
                         m_slice_pre = None
 

@@ -52,7 +52,17 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
     For an introduction to using this class, see :doc:`/tutorials/data_access`.
 
+    :ivar util.ExecutionControl lazy_off: used to disable lazy-loading and lazy-derivation
+    :ivar util.ExecutionControl lazy_derive_off: used to disable lazy-derivation
+    :ivar util.ExecutionControl lazy_load_off: used to disable lazy-loading
+    :ivar util.ExecutionControl auto_propagate_off: used to disable auto-flagging changes in derived arrays
+    :ivar util.ExecutionControl immediate_mode: used to return actual numpy arrays, rather than IndexedSubArrays
+    :ivar util.ExecutionControl delay_promotion: used to prevent any family arrays being promoted into simulation arrays
+    :ivar dict properties: a dictionary of properties of the snapshot
     """
+
+    # Note about the above docstring - I am not sure why sphinx won't pick up inline docstrings where the instance
+    # variables are defined, but I gave up on trying to debug it and put the docs there instead.
 
     _derived_array_registry = {}
 
@@ -67,6 +77,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     # TO DO: This should probably be read in from a config file
     _split_arrays = {'pos': ('x', 'y', 'z'),
                      'vel': ('vx', 'vy', 'vz')}
+
 
     @classmethod
     def _array_name_1D_to_ND(self, name):
@@ -156,37 +167,24 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         # default
         self._shared_arrays = False
 
+        # Ideally these would have docstrings inline but sphinx doesn't pick them up for some reason, so
+        # they are in the class docstring instead.
+
         self.lazy_off = util.ExecutionControl()
-        # use 'with lazy_off :' blocks to disable all hidden/lazy behaviour
-
         self.lazy_derive_off = util.ExecutionControl()
-        # use 'with lazy_derive_off : ' blocks to disable lazy-derivation
-
         self.lazy_load_off = util.ExecutionControl()
-        # use 'with lazy_load_off : ' blocks to disable lazy-loading
-
         self.auto_propagate_off = util.ExecutionControl()
-        # use 'with auto_propagate_off : ' blocks to disable auto-flagging changes
-        # (i.e. prevent lazy-evaluated arrays from auto-re-evaluating when their
-        # dependencies change)
-
         self.immediate_mode = util.ExecutionControl()
-        # use 'with immediate_mode: ' to always return actual numpy arrays, rather
-        # than IndexedSubArrays which point to sub-parts of numpy arrays
+
         self.immediate_mode.on_exit = lambda: self._clear_immediate_mode()
 
         self.delay_promotion = util.ExecutionControl()
-        # use 'with delay_promotion: ' to prevent any family arrays being promoted
-        # into simulation arrays (which can cause confusion because the array returned
-        # from create_family_array might have properties you don't expect)
+        self.delay_promotion.on_exit = lambda: self._delayed_array_promotions()
 
-        self.delay_promotion.on_exit = lambda: self._delayed_array_promotions(
-        )
         self.__delayed_promotions = []
 
-
-
         self.properties = simdict.SimDict({})
+
         self._file_units_system = []
 
     ############################################
