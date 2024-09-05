@@ -33,6 +33,9 @@ There are three distinct ways in which parallelization works in pynbody.
     for which you need the :ref:`the appropriate python module <posix_ipc>`. This
     should be installed automatically if you install pynbody with pip.
 
+.. seealso::
+
+   For more general information about performance in pynbody, see :ref:`this page <performance>`.
 
 Limiting the number of CPUs used by pynbody
 --------------------------------------------
@@ -122,6 +125,8 @@ This specifies 4 processes.
  Many systems limit the amount of shared memory available,
  which can cause problems once you enable parallel-reading. See
  :ref:`our separate note on this issue <pitfall_ramses_sharedmem>`.
+
+.. _using_shared_arrays:
 
 Writing your own parallel code
 ------------------------------

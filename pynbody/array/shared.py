@@ -1,4 +1,10 @@
-"""Support for numpy arrays in shared memory."""
+"""Support for numpy arrays in shared memory.
+
+.. seealso::
+    There is information about using shared arrays to create parallel workflows in
+    :ref:`using_shared_arrays`.
+
+"""
 import atexit
 import functools
 import mmap
@@ -20,6 +26,7 @@ class SharedArrayNotFound(OSError):
     pass
 
 class SharedMemorySimArray(SimArray):
+    """A simulation array that is backed onto shared memory."""
     __slots__ = ['_shared_fname', '_shared_owner']
     _shared_fname: str
     _shared_owner: bool
