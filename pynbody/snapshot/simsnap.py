@@ -220,6 +220,17 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         out.sort(key=start.__getitem__)
         return out
 
+    def enable_shared_arrays(self):
+        """Enable shared arrays for this snapshot.
+
+        Shared arrays are arrays that are backed by shared memory, and can be passed between
+        processes without copying. This is useful for parallel processing, but is disabled by default
+        because there are sometimes limits on shared memory and cleaning it up can be unreliable if
+        python is killed unexpectedly.
+
+        For more information, see :ref:`parallelism`."""
+        self._shared_arrays = True
+
     ############################################
     # THE BASICS: GETTING AND SETTING
     ############################################
