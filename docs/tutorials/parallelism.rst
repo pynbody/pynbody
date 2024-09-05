@@ -104,7 +104,7 @@ with ``pip``. If for some reason you are missing it, you can type ``pip install 
 Second, the optimal number of readers depends on a combination
 of CPU and IO performance, which can be especially subtle on network
 file system machines. (With lustre, the best number of processes may even be
-dependent on how you `striped the data <https://wiki.lustre.org/Configuring_Lustre_File_Striping>`.)
+dependent on how you `striped the data <https://wiki.lustre.org/Configuring_Lustre_File_Striping>`_.)
 You should therefore experiment with the number of
 processes used for the reading process if optimisation is important to you. This can be done using pynbody's
 standard :ref:`configuration <configuration>` system; for instance, create a
