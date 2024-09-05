@@ -21,7 +21,7 @@ However there are a couple of issues which are specific to ``pynbody``.
 
 .. seealso::
 
-   The :ref:`parallelism` section for information on parallelism in ``pynbody``, which can also be
+   A :ref:`separate document <parallelism>` covers parallelism in ``pynbody``, which can also be
    important for performance-critical code.
 
 Overheads of SubSnaps

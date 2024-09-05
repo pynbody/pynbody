@@ -221,6 +221,7 @@ on you. Again, for most purposes, we recommend using a higher-level framework li
     shared memory. However if it is killed with a ``kill -9`` or similar, it is not possible to free
     the shared memory. This is generally not a huge problem because the memory will just get paged out to
     disk and then finally freed on the next reboot. However, on some linux systems there is a limit
-    to the total amount of shared memory that can be allocated, and so e.g. on PBS systems you should
-    really try to avoid letting the process be killed by the scheduler, and/or clear up after yourself
-    if this happens (which can be as simple as ``rm -f /dev/shm/pynbody-*`` on linux systems).
+    to the total amount of shared memory that can be allocated, and so e.g. on PBS systems you may need
+    to clear up after yourself if a job is killed by the scheduler. You can do this by hand
+    using ``rm -f /dev/shm/pynbody-*``. (Even if other users have active shared memory segments,
+    this will only delete your own.)
