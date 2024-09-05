@@ -25,6 +25,8 @@ but if you run into trouble, try the :doc:`installation` guide.
 
 Once installed, we recommend you get started by trying the :ref:`tutorials`.
 
+.. _getting-help:
+
 Support
 -------
 

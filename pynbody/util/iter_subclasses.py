@@ -1,3 +1,5 @@
+"""Provides a mix-in class for iterating over all subclasses of a given class, possibly in a user-specified order."""
+
 from __future__ import annotations
 
 from typing import Iterable

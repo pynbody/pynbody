@@ -220,7 +220,7 @@ def test_issue_485_2():
     np.testing.assert_allclose(rxy, np.array([1136892.125, 1606893.625, 1610494.75]), rtol=1e-6)
 
 def _test_and_alter_shared_value(array_info):
-    array = pynbody.array.shared._shared_array_reconstruct(array_info)
+    array = pynbody.array.shared.unpack(array_info)
     assert (array[:] == np.arange(3)[: , np.newaxis] * np.arange(5)[np.newaxis, :]).all()
     array[:] = np.arange(3)[:, np.newaxis]
 
@@ -240,7 +240,7 @@ def test_shared_arrays():
 
     import multiprocessing as mp
     context = mp.get_context('spawn')
-    p = context.Process(target=_test_and_alter_shared_value, args=(pyn_array.shared._shared_array_deconstruct(ar),))
+    p = context.Process(target=_test_and_alter_shared_value, args=(pyn_array.shared.pack(ar),))
     p.start()
     p.join()
 
@@ -266,8 +266,8 @@ def test_shared_array_ownership():
     ar = pyn_array.array_factory((10,), int, True, True)
     assert pyn_array.shared.get_num_shared_arrays_owned() == 1 + baseline_num_shared_arrays
 
-    array_info = pyn_array.shared._shared_array_deconstruct(ar)
-    ar2 = pynbody.array.shared._shared_array_reconstruct(array_info)
+    array_info = pyn_array.shared.pack(ar)
+    ar2 = pynbody.array.shared.unpack(array_info)
     del ar2
 
     gc.collect()

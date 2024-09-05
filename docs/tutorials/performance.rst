@@ -19,6 +19,10 @@ However there are a couple of issues which are specific to ``pynbody``.
   returned from a :class:`~pynbody.snapshot.subsnap.SubSnap` are not true ``numpy`` arrays but are
   instead :class:`~pynbody.array.IndexedSimArray` objects. This is explained in more detail below.
 
+.. seealso::
+
+   A :ref:`separate document <parallelism>` covers parallelism in ``pynbody``, which can also be
+   important for performance-critical code.
 
 Overheads of SubSnaps
 ------------------------

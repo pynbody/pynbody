@@ -181,8 +181,7 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
 
         logger.info("Finding spheroid/disk angular momentum boundary...")
 
-        j_crit = util.bisect(0., 5.0,
-                             lambda c: np.mean(V[np.where(JzJcirc < c)]))
+        j_crit = util.bisect(0., 5.0, lambda c: np.mean(V[np.where(JzJcirc < c)]))
 
         logger.info("j_crit = %.2e" % j_crit)
 

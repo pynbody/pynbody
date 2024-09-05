@@ -1,3 +1,5 @@
+"""Toolset for creating a virtual dataset from multiple HDF5 files."""
+
 from __future__ import annotations
 
 import os
@@ -8,6 +10,7 @@ import h5py
 
 
 class HdfVdsMaker:
+    """Tool for creating a virtual dataset from multiple HDF5 files."""
     def __init__(self, hdf_files: list[h5py.File | str]):
         self._files = []
         for f in hdf_files:

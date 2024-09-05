@@ -122,7 +122,7 @@ def grid_gen(indices_or_slice,  nx,  ny,  nz, pos=None):
     values). If *pos* is not None, copy the results into the array; otherwise
     create a new array for the results and return it."""
 
-    from . import indexing_length
+    from pynbody.util.indexing_tricks import indexing_length
 
     if pos is None:
         pos = np.empty((indexing_length(indices_or_slice), 3),dtype=float)

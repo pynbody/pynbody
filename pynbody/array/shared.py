@@ -1,4 +1,10 @@
-"""Support for numpy arrays in shared memory."""
+"""Support for numpy arrays in shared memory.
+
+.. seealso::
+    There is information about using shared arrays to create parallel workflows in
+    :ref:`using_shared_arrays`.
+
+"""
 import atexit
 import functools
 import mmap
@@ -20,6 +26,7 @@ class SharedArrayNotFound(OSError):
     pass
 
 class SharedMemorySimArray(SimArray):
+    """A simulation array that is backed onto shared memory."""
     __slots__ = ['_shared_fname', '_shared_owner']
     _shared_fname: str
     _shared_owner: bool
@@ -33,7 +40,10 @@ class SharedMemorySimArray(SimArray):
 
 def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
                       offset = None, strides = None) -> SharedMemorySimArray:
-    """Create an array of dimensions *dims* with the given numpy *dtype*.
+    """Create or reconstruct an array of dimensions *dims* with the given numpy *dtype*, backed on shared memory.
+
+    If *create* is True, a new shared memory array is created. If *create* is False, the shared memory array is opened
+    (and *fname* must be specified).
 
     Parameters
     ----------
@@ -45,11 +55,10 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
     zeros:
         If True, zero the array; otherwise leave uninitialised
     fname: str, optional
-        The shared memory name to use. If None, a random name will be created. This is only
-        valid with create=True.
+        The shared memory name to use. If None, and *create* is True, a random name will be generated.
     create: bool
         Whether to create the shared array, or to open existing shared memory. If the latter,
-        the fname must be specified and the caller is responsible for making sure the dtype
+        the *fname* must be specified and the caller is responsible for making sure the dtype
         and dims match the original array.
     offset: int, optional
         The offset into the shared memory to use. This is only valid with create=False
@@ -150,7 +159,8 @@ def _shared_array_deconstruct(ar, transfer_ownership=False):
     """Deconstruct an array backed onto shared memory into something that can be
     passed between processes efficiently. If *transfer_ownership* is True,
     also transfers responsibility for deleting the underlying memory (if this
-    process has it) to the reconstructing process."""
+    process has it) to the reconstructing process. New code should use
+    :func:`pack` instead."""
 
     assert isinstance(ar, SimArray)
     ar_base = ar
@@ -182,8 +192,11 @@ def _shared_array_reconstruct(X):
 
 def _recursive_shared_array_deconstruct(input, transfer_ownership=False) :
     """Works through items in input, deconstructing any shared memory arrays
-    into transferrable references"""
+    into transferrable references. New code should use :func:`pack` instead."""
     output = []
+    if isinstance(input, SimArray):
+        return _shared_array_deconstruct(input, transfer_ownership)
+
     for item in input:
         if isinstance(item, SimArray):
             item = _shared_array_deconstruct(item, transfer_ownership)
@@ -195,8 +208,13 @@ def _recursive_shared_array_deconstruct(input, transfer_ownership=False) :
 
 def _recursive_shared_array_reconstruct(input):
     """Works through items in input, reconstructing any shared memory arrays
-    from transferrable references"""
+    from transferrable references. New code should use :func:`unpack` instead."""
+
+    if isinstance(input, _deconstructed_shared_array):
+        return _shared_array_reconstruct(input)
+
     output = []
+
     for item in input:
         if isinstance(item, _deconstructed_shared_array):
             item = _shared_array_reconstruct(item)
@@ -213,7 +231,8 @@ class RemoteKeyboardInterrupt(Exception):
 def shared_array_remote(fn):
     """A decorator for functions that are expected to run on a 'remote' process, accepting shared memory inputs.
 
-    The decorator reconstructs any shared memory arrays that have been 'deconstructed' into a reference by remote_map
+    The decorator reconstructs any shared memory arrays that have been packed into a reference by
+    :func:`remote_map`.
     """
 
     @functools.wraps(fn)
@@ -239,7 +258,29 @@ def shared_array_remote(fn):
 def remote_map(pool, fn, *iterables):
     """Equivalent to pool.map, but turns any shared memory arrays into a reference that can be passed between processes.
 
-    The function *fn* must be wrapped with the *shared_array_remote* decorator for this to work correctly."""
+    The function *fn* must be wrapped with the :func:`shared_array_remote` decorator for this to work correctly.
+
+    Parameters
+    ----------
+
+    pool : multiprocessing.Pool
+        The pool to use for parallel processing
+
+    fn : function
+        The function to apply to each element of the iterable. This function must be wrapped with
+        :func:`shared_array_remote` to use shared arrays.
+
+    *iterables : iterable
+        The iterables to pass to the function. If more than one iterable is passed, the function is called with
+        arguments from each iterable in turn.
+
+    Returns
+    -------
+    list
+        The results of applying the function to each element of the iterable. If the function returns shared arrays,
+        these are transferred back to the parent process and returned fully reconstructed.
+
+    """
 
     assert getattr(fn, '__pynbody_remote_array__',
                    False), "Function must be wrapped with shared_array_remote to use shared arrays"
@@ -251,3 +292,44 @@ def remote_map(pool, fn, *iterables):
     except RemoteKeyboardInterrupt:
         raise KeyboardInterrupt
     return _recursive_shared_array_reconstruct(results)
+
+def pack(array, transfer_ownership=False):
+    """Turn an array backed onto shared memory into something that can be passed between processes
+
+    Parameters
+    ----------
+    array : SimArray
+        The array to pack. Note that this must be a shared memory array, created via :func:`make_shared_array`, or
+        a view of such an array. Snapshots load arrays into shared memory only if you have called
+        :func:`pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays` first.
+
+    transfer_ownership : bool
+        If True, the receiving process will take over responsibility for cleaning up the shared memory.
+
+    Returns
+    -------
+
+    array_description : object
+        A description of the array that can be passed between processes (e.g. using pickle to turn it into a short
+        string that can be sent via a pipe).
+    """
+
+    return _recursive_shared_array_deconstruct(array, transfer_ownership)
+
+def unpack(array_description):
+    """Reconstruct an array backed onto shared memory from a deconstructed array (returned by :func:`pack`).
+
+    Parameters
+    ----------
+
+    array_description : object
+        A description of the array that has been passed in from another process, where :func:`pack` was called.
+
+    Returns
+    -------
+
+    array : SimArray
+        A view on the same shared memory array that was passed in to :func:`pack`.
+    """
+
+    return _recursive_shared_array_reconstruct(array_description)

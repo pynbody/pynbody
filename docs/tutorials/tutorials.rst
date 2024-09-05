@@ -76,5 +76,5 @@ Advanced topics
 
    Derived quantities <derived>
    Configuration <configuration>
-   Threading/multiprocessing <threads>
+   Parallelism <parallelism>
    Performance <performance>
