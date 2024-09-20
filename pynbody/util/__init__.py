@@ -343,6 +343,53 @@ class ExecutionControl:
     def __repr__(self):
         return "<ExecutionControl: %s>" % ('True' if self.count > 0 else 'False')
 
+class SettingControl:
+    """Class to control a setting using a with statement.
+
+    This is used by :mod:`pynbody.analysis.luminosity` and :mod:`pynbody.analysis.ionfrac` to control the table
+    used by calculations.
+
+    Given a dictionary, the key to modify, and the value to set the key to, this class will set the key to the value
+    on creation or when entering the with block, and reset it to the original value when exiting the block.
+    """
+    def __init__(self, dictionary, key, value):
+        """Create a new setting control object
+
+        Parameters
+        ----------
+
+        dictionary : dict
+            The dictionary to control; this is modified in place.
+
+        key : str
+            The key to modify
+
+        value : object
+            The value to set the key to when creating or entering the with block.
+        """
+        self._dict = dictionary
+        self._key = key
+        self._value = value
+        self._is_set = False
+        self.__enter__()
+
+    def __enter__(self):
+        if not self._is_set:
+            self._old_value = self._get()
+            self._set(self._value)
+            self._is_set = True
+
+    def __exit__(self, *excp):
+        if self._is_set:
+            self._set(self._old_value)
+            del self._old_value
+            self._is_set = False
+
+    def _set(self, value):
+        self._dict[self._key] = value
+
+    def _get(self):
+        return self._dict[self._key]
 
 #################################################################
 # Code for incomplete gamma function accepting complex arguments
