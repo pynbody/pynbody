@@ -74,7 +74,7 @@ import numpy as np
 
 import pynbody
 
-from .. import filt, snapshot, units
+from .. import filt, snapshot, units, util
 from .interpolate import interpolate2d
 
 _ssp_table = None
@@ -389,20 +389,10 @@ def get_current_ssp_table() -> SSPTable:
         _ssp_table = _load_ssp_table(_default_ssp_file)
     return _ssp_table
 
-class SSPTableContext:
+class SSPTableContext(util.SettingControl):
     """Context manager for temporarily using a custom SSP table"""
     def __init__(self, ssp_table):
-        global _ssp_table
-        self._new_table = ssp_table
-        self._old_table = _ssp_table
-        _ssp_table = self._new_table
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self, *args):
-        global _ssp_table
-        _ssp_table = self._old_table
+        super().__init__(globals(), "_ssp_table", ssp_table)
 
 def use_custom_ssp_table(path_or_table : SSPTable):
     """Specify a custom SSP table for calculating magnitudes.

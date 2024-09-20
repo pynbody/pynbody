@@ -216,3 +216,16 @@ def test_is_sorted():
     assert pynbody.util.is_sorted(np.array([1, 2, 3])) == 1
     assert pynbody.util.is_sorted(np.array([1, 2, 1])) == 0
     assert pynbody.util.is_sorted(np.array([3, 2, 1])) == -1
+
+
+def test_setting_control():
+    global thingy
+    thingy = 1
+    sc = pynbody.util.SettingControl(globals(), "thingy", 2)
+    assert thingy == 2
+    with sc:
+        assert thingy == 2
+    assert thingy == 1
+    with sc:
+        assert thingy == 2
+    assert thingy == 1
