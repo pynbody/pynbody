@@ -9,8 +9,9 @@ New code should use :mod:`pynbody.analysis.ionfrac` instead.
 def calculate(sim, selfshield=False) :
     """Deprecated method for calculating HI fractions with optional self-shielding.
 
-    This method is retained for backward compatibility with pynbody v1 and uses table of HI fractions. Unlike
-    :meth:`pynbody.analysis.ionfrac.calculate`, this method returns HI as a fraction of total gas, not just hydrogen.
+    This method is retained for backward compatibility with pynbody v1 and uses a table of HI fractions. Unlike
+    :meth:`pynbody.analysis.ionfrac.calculate`, this method returns HI as a fraction of *total* gas, meaning the
+    peak value is equal to the mass fraction of hydrogen in the gas.
 
     """
 
