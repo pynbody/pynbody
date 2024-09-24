@@ -313,8 +313,7 @@ class IonFractionTable(IonFractionTableBase):
         import subprocess
 
         logger.warning("Downloading ion fraction table %s" % name)
-
-        url = "https://zenodo.org/TK/" + name + ".npz?download=1"
+        url = f"https://zenodo.org/record/13833051/files/{name}.npz?download=1"
         filename = cls._table_to_path(name)
 
         # ideally we'd use urllib for this but on macos it fails with a certificate error
