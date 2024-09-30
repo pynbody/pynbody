@@ -104,7 +104,8 @@ def test_hi_derivation(subfind):
          5.34312023e-05,   2.55750061e-01,   3.83638138e-04,
          7.96613219e-03,   2.57835498e-03,   5.89219887e-08]
 
-    assert np.allclose(subfind.halos()[0].gas['HI'][::100],HI_answer)
+    # interpolation routine changed so rtol increased to allow for slight deviations
+    npt.assert_allclose(subfind.halos()[0].gas['HI'][::100],HI_answer,rtol=1e-6)
 
 def test_hdf_ordering(snap):
     # HDF files do not intrinsically specify the order in which the particle types occur

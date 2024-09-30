@@ -6,7 +6,7 @@ New code should use :mod:`pynbody.analysis.ionfrac` instead.
 """
 
 
-def calculate(sim, selfshield=False) :
+def calculate(sim, ion='hi', selfshield=False) :
     """Deprecated method for calculating HI fractions with optional self-shielding.
 
     This method is retained for backward compatibility with pynbody v1 and uses a table of HI fractions. Unlike
@@ -22,7 +22,7 @@ def calculate(sim, selfshield=False) :
         table = ionfrac.use_custom_ion_table('v1_duffy')
 
     with table:
-        result_array = ionfrac.calculate(sim, 'hi')
+        result_array = ionfrac.calculate(sim, ion)
 
     # convert to fraction of total gas, not just of hydrogen
     result_array *= sim.gas['hydrogen']

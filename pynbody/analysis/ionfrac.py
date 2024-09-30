@@ -413,11 +413,24 @@ class V1IonFractionTable(IonFractionTableBase):
         vals = self._table[ion + 'if'].view(np.ndarray)
         return self._calculate_with_table(simulation, x_vals, y_vals, z_vals, vals)
 
-    def _calculate_with_table(self, simulation, x_vals, y_vals, z_vals, vals):
-        x = np.zeros(len(simulation.gas))
-        x[:] = simulation.properties['z']
-        y = np.log10(simulation.gas['temp']).view(np.ndarray)
-        z = np.log10(simulation.gas['rho'].in_units('m_p cm^-3')).view(np.ndarray)
+    def _get_sim_values(self, simulation, variable):
+        if variable=='z':
+            result = np.zeros(len(simulation.gas))
+            result[:] = simulation.properties['z']
+        elif variable=='temp':
+            result = np.log10(simulation.gas['temp']).view(np.ndarray)
+        elif variable=='rho':
+            result = np.log10(simulation.gas['rho'].in_units('m_p cm^-3')).view(np.ndarray)
+        else:
+            raise ValueError("Unknown variable: " + variable)
+
+        return result
+
+    def _calculate_with_table(self, simulation, x_vals, y_vals, z_vals, vals,
+                              x_is='z', y_is='temp', z_is='rho'):
+        x = self._get_sim_values(simulation, x_is)
+        y = self._get_sim_values(simulation, y_is)
+        z = self._get_sim_values(simulation, z_is)
 
         self._clamp_values(x, np.min(x_vals), np.max(x_vals))
         self._clamp_values(y, np.min(y_vals), np.max(y_vals))
@@ -451,7 +464,8 @@ class V1DuffyIonFractionTable(V1IonFractionTable):
             raise ValueError("This table only contains HI fractions")
 
         hi = self._calculate_with_table(simulation, np.asarray(self._table['logd']), np.asarray(self._table['logt']),
-                                        np.asarray(self._table['redshift']), np.log10(self._table['ionbal']))
+                                        np.asarray(self._table['redshift']), np.log10(self._table['ionbal']),
+                                        'rho', 'temp', 'z')
 
         if self._selfshield:
             # NB this is currently untested and only retained for (probable) backward compatibility
