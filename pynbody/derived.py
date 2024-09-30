@@ -251,6 +251,7 @@ def _mu_from_electron_frac(sim, Y):
 def p(sim):
     """Pressure"""
     p = sim["u"] * sim["rho"] * (2. / 3)
+    p.sim = sim
     p.convert_units("Pa")
     return p
 
