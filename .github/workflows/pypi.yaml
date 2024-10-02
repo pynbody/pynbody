@@ -21,7 +21,7 @@ jobs:
         # Following numpy's setup
         buildplat:
         - [ubuntu-20.04, manylinux, x86_64, ""]
-        - [ubuntu-22.04, manylinux, aarch64, ""]
+        - [ubuntu-22.04-arm64, manylinux, aarch64, ""]
         - [macos-13, macosx, x86_64, "/usr/local"]
         - [macos-13-xlarge, macosx, arm64, "/opt/homebrew"]
         python: ["cp310", "cp311", "cp312"]
@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install GCC (Ubuntu)
-        if: matrix.buildplat[0] == 'ubuntu-20.04'
+        if: startsWith(matrix.buildplat[0], 'ubuntu')
         shell: bash
         run: |
           sudo apt-get update -qq
