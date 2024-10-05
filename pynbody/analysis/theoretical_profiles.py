@@ -1,5 +1,5 @@
 """
-Implements functional forms of known profiles and code to fit them to simulation data.
+Implements functional forms of known density profiles and code to fit them to simulation data.
 
 At present only the NFW profile is implemented, but the code is designed to be easily extensible to other profiles.
 
@@ -29,38 +29,38 @@ class AbstractBaseProfile(abc.ABC):
     def __init__(self):
         self._parameters = dict()
 
+    @classmethod
+    @abc.abstractmethod
+    def parameter_bounds(self, r_values, rho_values):
+        """Return bounds on the parameter values for the profile fit
+
+        Parameters
+        ----------
+
+        r_values : array_like
+            The radii at which the profile is measured
+
+        rho_values : array_like
+            The density values of the profile
+
+
+        Returns
+        -------
+
+        bounds : tuple[array_like]
+            A 2-tuple containing lower and upper bounds respectively for the parameters of the profile
+
+        """
+        pass
+
     @abc.abstractmethod
     def profile_functional(self, radius):
         """Return the value of the profile at a given radius"""
         pass
 
-    @classmethod
-    @abc.abstractmethod
-    def profile_functional_static(cls, radius, **kwargs):
-        """Return the value of a profile with the specified parameters at a given radius"""
-        pass
-
-    @classmethod
-    @abc.abstractmethod
-    def log_profile_functional_static(cls, radius, **kwargs):
-        """Return the logarithm of the value of the profile with the specified parameters at a given radius"""
-        pass
-
     @abc.abstractmethod
     def get_dlogrho_dlogr(self, radius):
         """Return the logarithmic slope of the profile at a given radius"""
-        pass
-
-    @classmethod
-    @abc.abstractmethod
-    def get_dlogrho_dlogr_static(cls, radius, **kwargs):
-        """Return the logarithmic slope of the profile with the specified parameters at a given radius"""
-        pass
-
-    @classmethod
-    @abc.abstractmethod
-    def jacobian_profile_functional_static(cls, radius, **kwargs):
-        """Return the jacobian of the profile with respect to the parameters"""
         pass
 
     @abc.abstractmethod
@@ -105,22 +105,27 @@ class AbstractBaseProfile(abc.ABC):
             raise RuntimeError("Provided data arrays do not match in shape")
 
         if use_analytical_jac:
-            use_analytical_jac = cls.jacobian_profile_functional_static
+            def jacobian_wrapper(radius, *args):
+                return cls(*args).jacobian(radius)
+            use_analytical_jac = jacobian_wrapper
 
-        profile_lower_bound = np.amin(profile_data)
-        profile_upper_bound = np.amax(profile_data)
 
-        radial_lower_bound = np.amin(radial_data)
-        radial_upper_bound = np.amax(radial_data)
+        lower_bounds, upper_bounds = cls.parameter_bounds(radial_data, profile_data)
+
+        def profile_wrapper(radius, *args):
+            return cls(*args)(radius)
+
+        if guess is None:
+            guess = (np.asarray(upper_bounds) + np.asarray(lower_bounds)) / 2.0
+
 
         try:
-            parameters, cov = so.curve_fit(cls.profile_functional_static,
+            parameters, cov = so.curve_fit(profile_wrapper,
                                            radial_data,
                                            profile_data,
                                            sigma=profile_err,
                                            p0=guess,
-                                           bounds=([profile_lower_bound, radial_lower_bound],
-                                                   [profile_upper_bound, radial_upper_bound]),
+                                           bounds=(lower_bounds, upper_bounds),
                                            check_finite=True,
                                            jac=use_analytical_jac,
                                            method='trf',
@@ -162,21 +167,21 @@ class AbstractBaseProfile(abc.ABC):
 class NFWprofile(AbstractBaseProfile):
     """Represents a Navarro-Frenk-White (NFW) profile."""
 
-    def __init__(self, halo_radius, scale_radius=None, density_scale_radius=None, concentration=None,
-                 halo_mass=None):
+    def __init__(self, scale_radius=None, density_scale_radius=None,
+                 halo_radius=None, concentration=None, halo_mass=None):
         """Represents a Navarro-Frenk-White (NFW) profile.
 
-        The profile can then be initialised either through *scale_radius* and central_density,
-        or *halo_mass* and *concentration*.
+        The profile can then be initialised through one of the following combination of parameters:
+
+        * *scale_radius* and *density_scale_radius*,
+        * *halo_radius*, *concentration* and *density_scale_radius*,
+        * *halo_radius*, *concentration* and *halo_mass*
 
         From one mode of initialisation, the derived parameters of the others are calculated, e.g. if you initialise
         with halo_mass + concentration, the scale_radius and central density will be derived.
 
         Parameters
         ----------
-
-        halo_radius : float
-            The outer boundary of the halo (r200m, r200c, rvir ... depending on definitions)
 
         scale_radius : float, optional
             The radius at which the slope is equal to -2
@@ -187,6 +192,9 @@ class NFWprofile(AbstractBaseProfile):
         halo_mass : float, optional
             The mass enclosed inside the outer halo radius
 
+        halo_radius : float
+            The outer boundary of the halo (r200m, r200c, rvir ... depending on definitions)
+
         concentration : float, optional
             The outer_radius / scale_radius
 
@@ -194,6 +202,10 @@ class NFWprofile(AbstractBaseProfile):
 
         super().__init__()
 
+        self._parameters['scale_radius'] = scale_radius
+        self._parameters['density_scale_radius'] = density_scale_radius
+
+        """
         self._halo_radius = halo_radius
 
         if scale_radius is None or density_scale_radius is None:
@@ -216,6 +228,17 @@ class NFWprofile(AbstractBaseProfile):
 
             self._parameters['concentration'] = self._derive_concentration()
             self._halo_mass = self.get_enclosed_mass(halo_radius)
+        """
+
+    @classmethod
+    def parameter_bounds(cls, r_values, rho_values):
+        profile_lower_bound = np.amin(rho_values)
+        profile_upper_bound = np.amax(rho_values)
+
+        radial_lower_bound = np.amin(r_values)
+        radial_upper_bound = np.amax(r_values)
+
+        return ([profile_lower_bound, radial_lower_bound], [profile_upper_bound, radial_upper_bound])
 
 
     @classmethod
@@ -230,6 +253,10 @@ class NFWprofile(AbstractBaseProfile):
         d_central_density = 1 / ((radius / scale_radius) * (1 + radius / scale_radius) ** 2)
         return np.transpose([d_central_density, d_scale_radius])
 
+    def jacobian(self, radius):
+        return self.jacobian_profile_functional_static(radius, self._parameters['density_scale_radius'],
+                                                       self._parameters['scale_radius'])
+
     @classmethod
     def log_profile_functional_static(cls, radius, density_scale_radius, scale_radius):
         return np.log10(NFWprofile.profile_functional_static(radius, density_scale_radius, scale_radius))
@@ -237,6 +264,10 @@ class NFWprofile(AbstractBaseProfile):
     @classmethod
     def get_dlogrho_dlogr_static(cls, radius, scale_radius):
         return - (1.0 + 3.0 * radius / scale_radius) / (1.0 + radius / scale_radius)
+
+    def __call__(self, radius):
+        return self.profile_functional_static(radius, self._parameters['density_scale_radius'],
+                                              self._parameters['scale_radius'])
 
     def profile_functional(self, radius):
         return NFWprofile.profile_functional_static(radius, self._parameters['density_scale_radius'],

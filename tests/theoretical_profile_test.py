@@ -15,9 +15,8 @@ def setup_module():
     mass = SimArray(3271229711997.4863, units="Msol")
     c = halo_boundary/rs
 
-    NFW1 = pynbody.analysis.theoretical_profiles.NFWprofile(halo_boundary, density_scale_radius=rhos, scale_radius=rs)
-
-    NFW2 = pynbody.analysis.theoretical_profiles.NFWprofile(halo_boundary, halo_mass=mass, concentration=c)
+    NFW1 = pynbody.analysis.theoretical_profiles.NFWprofile(halo_radius=halo_boundary, density_scale_radius=rhos, scale_radius=rs)
+    NFW2 = pynbody.analysis.theoretical_profiles.NFWprofile(halo_radius=halo_boundary, halo_mass=mass, concentration=c)
 
 
 def test_assignement_nfw():
