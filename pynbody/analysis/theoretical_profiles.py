@@ -107,8 +107,9 @@ class AbstractBaseProfile(abc.ABC):
         if use_analytical_jac:
             def jacobian_wrapper(radius, *args):
                 return cls(*args).jacobian(radius)
-            use_analytical_jac = jacobian_wrapper
-
+            jac = jacobian_wrapper
+        else:
+            jac = '3-point'
 
         lower_bounds, upper_bounds = cls.parameter_bounds(radial_data, profile_data)
 
@@ -127,7 +128,7 @@ class AbstractBaseProfile(abc.ABC):
                                            p0=guess,
                                            bounds=(lower_bounds, upper_bounds),
                                            check_finite=True,
-                                           jac=use_analytical_jac,
+                                           jac=jac,
                                            method='trf',
                                            ftol=1e-10,
                                            xtol=1e-10,
@@ -167,7 +168,7 @@ class AbstractBaseProfile(abc.ABC):
 class NFWprofile(AbstractBaseProfile):
     """Represents a Navarro-Frenk-White (NFW) profile."""
 
-    def __init__(self, scale_radius=None, density_scale_radius=None,
+    def __init__(self, density_scale_radius=None, scale_radius=None,
                  halo_radius=None, concentration=None, halo_mass=None):
         """Represents a Navarro-Frenk-White (NFW) profile.
 
