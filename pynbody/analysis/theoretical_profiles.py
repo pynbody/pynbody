@@ -54,22 +54,18 @@ class AbstractBaseProfile(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def profile_functional(self, radius):
-        """Return the value of the profile at a given radius"""
+    def logarithmic_slope(self, radius):
+        """Return the logarithmic slope of the profile, d ln rho / d ln r, at a given radius"""
         pass
 
     @abc.abstractmethod
-    def get_dlogrho_dlogr(self, radius):
-        """Return the logarithmic slope of the profile at a given radius"""
-        pass
-
-    @abc.abstractmethod
-    def get_enclosed_mass(self, radius_of_enclosure):
-        """Return the mass enclosed within a given radius"""
+    def enclosed_mass(self, radius):
+        """Return the mass, M(r), enclosed within a given radius"""
         pass
 
     @classmethod
-    def fit(cls, radial_data, profile_data, profile_err=None, use_analytical_jac=True, guess=None):
+    def fit(cls, radial_data, profile_data, profile_err=None, use_analytical_jac=True, guess=None, verbose=0,
+            return_profile = True):
         """Fit the given profile using a least-squares method.
 
         Parameters
@@ -90,6 +86,22 @@ class AbstractBaseProfile(abc.ABC):
         guess : array_like, optional
             An initial guess for the parameters of the profile. If None, the initial guess is taken to be all ones,
             according to the underlying ``scipy.optimize.curve_fit`` function.
+
+        verbose : int
+            The verbosity level to pass to the underlying ``scipy.optimize.curve_fit`` function.
+
+        return_profile : bool
+            Whether to return the profile object or just the parameters
+
+        Returns
+        -------
+
+        fitted_profile : array_like | AbstractBaseProfile
+            If return_profile is True, the fitted profile object. Otherwise, the fitted parameters.
+
+        cov : array_like
+            The covariance matrix of the fit. The diagonal elements are the variance of the parameters.
+
         """
 
         import scipy.optimize as so
@@ -139,14 +151,17 @@ class AbstractBaseProfile(abc.ABC):
                                            max_nfev=None,
                                            diff_step=None,
                                            tr_solver=None,
-                                           verbose=2)
+                                           verbose=verbose)
         except so.OptimizeWarning as w:
             raise RuntimeError(str(w))
 
         if (guess is None and any(parameters == np.ones(parameters.shape))) or any(parameters == guess):
             raise RuntimeError("Fitted parameters are equal to their initial guess. This is likely a failed fit.")
 
-        return parameters, cov
+        if return_profile:
+            return cls(*parameters), cov
+        else:
+            return parameters, cov
 
     def __getitem__(self, item):
         return self._parameters.__getitem__(item)
@@ -203,8 +218,12 @@ class NFWprofile(AbstractBaseProfile):
 
         super().__init__()
 
-        self._parameters['scale_radius'] = scale_radius
-        self._parameters['density_scale_radius'] = density_scale_radius
+        if scale_radius is not None and density_scale_radius is not None:
+            self._parameters['scale_radius'] = scale_radius
+            self._parameters['density_scale_radius'] = density_scale_radius
+            if halo_radius is not None:
+                self._parameters['halo_radius'] = halo_radius
+                self._parameters['concentration'] = halo_radius / scale_radius
 
         """
         self._halo_radius = halo_radius
@@ -241,58 +260,39 @@ class NFWprofile(AbstractBaseProfile):
 
         return ([profile_lower_bound, radial_lower_bound], [profile_upper_bound, radial_upper_bound])
 
+    def jacobian(self, radius):
+        density_scale_radius = self._parameters['density_scale_radius']
+        scale_radius = self._parameters['scale_radius']
 
-    @classmethod
-    def profile_functional_static(cls, radius, density_scale_radius, scale_radius):
-        # Variable number of argument abstract methods only works because python is lazy with checking.
-        # Is this a problem ?
-        return density_scale_radius / ((radius / scale_radius) * (1.0 + (radius / scale_radius)) ** 2)
-
-    @classmethod
-    def jacobian_profile_functional_static(cls, radius, density_scale_radius, scale_radius):
-        d_scale_radius = density_scale_radius * (3 * radius / scale_radius + 1) / (radius * (1 + radius / scale_radius) ** 3)
+        d_scale_radius = density_scale_radius * (3 * radius / scale_radius + 1) / (
+                    radius * (1 + radius / scale_radius) ** 3)
         d_central_density = 1 / ((radius / scale_radius) * (1 + radius / scale_radius) ** 2)
         return np.transpose([d_central_density, d_scale_radius])
 
-    def jacobian(self, radius):
-        return self.jacobian_profile_functional_static(radius, self._parameters['density_scale_radius'],
-                                                       self._parameters['scale_radius'])
-
-    @classmethod
-    def log_profile_functional_static(cls, radius, density_scale_radius, scale_radius):
-        return np.log10(NFWprofile.profile_functional_static(radius, density_scale_radius, scale_radius))
-
-    @classmethod
-    def get_dlogrho_dlogr_static(cls, radius, scale_radius):
-        return - (1.0 + 3.0 * radius / scale_radius) / (1.0 + radius / scale_radius)
-
     def __call__(self, radius):
-        return self.profile_functional_static(radius, self._parameters['density_scale_radius'],
-                                              self._parameters['scale_radius'])
+        density_scale_radius = self._parameters['density_scale_radius']
+        scale_radius = self._parameters['scale_radius']
+        return density_scale_radius / ((radius / scale_radius) * (1.0 + (radius / scale_radius)) ** 2)
 
-    def profile_functional(self, radius):
-        return NFWprofile.profile_functional_static(radius, self._parameters['density_scale_radius'],
-                                                    self._parameters['scale_radius'])
-
-    def get_enclosed_mass(self, radius_of_enclosure):
+    def enclosed_mass(self, radius):
         # Eq 7.139 in M vdB W
         return self._parameters['density_scale_radius'] * self._parameters['scale_radius'] ** 3 \
-               * NFWprofile._helper_function(self._parameters['concentration'] *
-                                             radius_of_enclosure / self._halo_radius)
+               * NFWprofile._integral(radius / self._parameters['scale_radius'])
 
     def _derive_concentration(self):
-        return self._halo_radius / self._parameters['scale_radius']
+        return self._parameters['halo_radius'] / self._parameters['scale_radius']
 
     def _derive_scale_radius(self):
-        return self._halo_radius / self._parameters['concentration']
+        return self._parameters['halo_radius'] / self._parameters['concentration']
 
-    def _derive_central_overdensity(self):
-        return self._halo_mass / (NFWprofile._helper_function(self._parameters['concentration'])
-                                  * self._parameters['scale_radius'] ** 3)
+    def _derive_central_overdensity(self, mass):
+        return mass / NFWprofile._integral(
+            self._parameters['halo_radius'] * self._parameters['scale_radius'] ** 2)
 
-    def get_dlogrho_dlogr(self, radius):
-        return NFWprofile.get_dlogrho_dlogr_static(radius, self._parameters['scale_radius'])
+    def logarithmic_slope(self, radius):
+        scale_radius = self._parameters['scale_radius']
+        return - (1.0 + 3.0 * radius / scale_radius) / (1.0 + radius / scale_radius)
 
     @staticmethod
-    def _helper_function(x):
+    def _integral(x):
         return 4 * np.pi * (np.log(1.0 + x) - x / (1.0 + x))
