@@ -7,7 +7,7 @@ from pynbody.array import SimArray
 
 
 def setup_module():
-    global halo_boundary, rs, rhos, mass, c, NFW1, NFW2
+    global halo_boundary, rs, rhos, mass, c, NFW1, NFW2, NFW3, NFW4
 
     halo_boundary = SimArray(347., units="kpc")
     rs = SimArray(10, units="kpc")
@@ -15,22 +15,29 @@ def setup_module():
     mass = SimArray(3271229711997.4863, units="Msol")
     c = halo_boundary/rs
 
-    NFW1 = pynbody.analysis.theoretical_profiles.NFWprofile(halo_radius=halo_boundary, density_scale_radius=rhos, scale_radius=rs)
-    NFW2 = pynbody.analysis.theoretical_profiles.NFWprofile(halo_radius=halo_boundary, halo_mass=mass, concentration=c)
+    NFW1 = pynbody.analysis.theoretical_profiles.NFWProfile(halo_radius=halo_boundary, density_scale_radius=rhos, scale_radius=rs)
+    NFW2 = pynbody.analysis.theoretical_profiles.NFWProfile(halo_radius=halo_boundary, halo_mass=mass, concentration=c)
+    NFW3 = pynbody.analysis.theoretical_profiles.NFWProfile(halo_radius=halo_boundary, density_scale_radius=rhos, concentration=c)
+    NFW4 = pynbody.analysis.theoretical_profiles.NFWProfile(scale_radius=rs, density_scale_radius=rhos)
 
 
 def test_assignement_nfw():
     """ There are two ways to initialise an NFW profile. Make sure they are equivalent."""
 
-    assert(NFW1['scale_radius'] == rs)
-    assert(NFW1['density_scale_radius'] == rhos)
-    assert(NFW1['concentration'] == c)
-    assert(NFW1.enclosed_mass(halo_boundary) == mass)
+    for NFW in [NFW1, NFW2, NFW3]:
+        assert(NFW['scale_radius'] == rs)
+        assert(NFW['density_scale_radius'] == rhos)
+        assert(NFW['concentration'] == c)
+        assert 'halo_mass' in NFW
+        assert(NFW['halo_mass'] == mass)
+        assert(NFW.enclosed_mass(halo_boundary) == mass)
 
-    assert(NFW2['scale_radius'] == rs)
-    assert(NFW2['density_scale_radius'] == rhos)
-    assert(NFW2['concentration'] == c)
-    assert(NFW2.enclosed_mass(halo_boundary) == mass)
+    # NFW4 is initialised without a halo boundary, so it doesn't have a pre-calculated mass
+    assert NFW4['scale_radius'] == rs
+    assert NFW4['density_scale_radius'] == rhos
+    assert NFW4.enclosed_mass(halo_boundary) == mass
+    assert 'halo_mass' not in NFW4
+
 
 
 def test_nfw_rho():
@@ -86,14 +93,14 @@ def test_fit_nfw():
 
     easy_fit = truth + noise
 
-    param, cov = pynbody.analysis.theoretical_profiles.NFWprofile.fit(radial_data=r, profile_data=easy_fit,
+    param, cov = pynbody.analysis.theoretical_profiles.NFWProfile.fit(radial_data=r, profile_data=easy_fit,
                                                                       profile_err=np.sqrt(truth),
                                                                       use_analytical_jac=True,
                                                                       return_profile=False)
 
     npt.assert_allclose(param, [rhos, rs], rtol=1e-3)
 
-    prof, cov = pynbody.analysis.theoretical_profiles.NFWprofile.fit(radial_data=r, profile_data=easy_fit,
+    prof, cov = pynbody.analysis.theoretical_profiles.NFWProfile.fit(radial_data=r, profile_data=easy_fit,
                                                                       profile_err=np.sqrt(truth),
                                                                       use_analytical_jac=True,
                                                                       return_profile=True)
@@ -109,3 +116,8 @@ def test_log_slope_nfw():
     assert(np.isclose(slope_from_instance[0], -1.0, rtol=1e-2))
     assert(np.isclose(slope_from_instance[-1], -3.0, rtol=1e-2))
     assert(NFW1.logarithmic_slope(rs) == -2.0)
+
+def test_deprecated_nfw_alias():
+    with pytest.warns(DeprecationWarning):
+        NFW = pynbody.analysis.theoretical_profiles.NFWprofile(halo_radius=halo_boundary, density_scale_radius=rhos, scale_radius=rs)
+    assert NFW['scale_radius'] == rs

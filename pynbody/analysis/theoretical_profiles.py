@@ -9,6 +9,8 @@ import abc
 
 import numpy as np
 
+from .. import util
+
 
 class AbstractBaseProfile(abc.ABC):
     """
@@ -179,76 +181,74 @@ class AbstractBaseProfile(abc.ABC):
         """Return the keys of the profile parameters"""
         return list(self._parameters.keys())
 
+    def __contains__(self, item):
+        return item in self._parameters
 
-class NFWprofile(AbstractBaseProfile):
+
+class NFWProfile(AbstractBaseProfile):
     """Represents a Navarro-Frenk-White (NFW) profile."""
 
-    def __init__(self, density_scale_radius=None, scale_radius=None,
-                 halo_radius=None, concentration=None, halo_mass=None):
+    def __init__(self, density_scale_radius=None, scale_radius=None, halo_radius=None, concentration=None,
+                 halo_mass=None):
         """Represents a Navarro-Frenk-White (NFW) profile.
 
         The profile can then be initialised through one of the following combination of parameters:
 
-        * *scale_radius* and *density_scale_radius*,
-        * *halo_radius*, *concentration* and *density_scale_radius*,
-        * *halo_radius*, *concentration* and *halo_mass*
+        * *scale_radius*, *density_scale_radius* and optionally *halo_radius*;
+        * *halo_radius*, *concentration* and *density_scale_radius*;
+        * *halo_radius*, *concentration* and *halo_mass*.
 
         From one mode of initialisation, the derived parameters of the others are calculated, e.g. if you initialise
-        with halo_mass + concentration, the scale_radius and central density will be derived.
+        with halo_mass + concentration, the scale_radius and central density will be derived. The exception is if
+        you initialise with *scale_radius* + *density_scale_radius* without *halo_radius*.
+
+        Units may be passed into the parameters by using scalar arrays.
 
         Parameters
         ----------
 
-        scale_radius : float, optional
+        scale_radius : float | array-like, optional
             The radius at which the slope is equal to -2
 
-        density_scale_radius : float, optional
+        density_scale_radius : float | array-like, optional
             1/4 of density at r=rs (normalisation).
 
-        halo_mass : float, optional
+        halo_mass : float | array-like, optional
             The mass enclosed inside the outer halo radius
 
-        halo_radius : float
+        halo_radius : float | array-like
             The outer boundary of the halo (r200m, r200c, rvir ... depending on definitions)
 
-        concentration : float, optional
+        concentration : float | array-like, optional
             The outer_radius / scale_radius
 
         """
 
         super().__init__()
 
-        if scale_radius is not None and density_scale_radius is not None:
+        if scale_radius is not None and density_scale_radius is not None and concentration is None and halo_mass is None:
             self._parameters['scale_radius'] = scale_radius
             self._parameters['density_scale_radius'] = density_scale_radius
             if halo_radius is not None:
                 self._parameters['halo_radius'] = halo_radius
                 self._parameters['concentration'] = halo_radius / scale_radius
-
-        """
-        self._halo_radius = halo_radius
-
-        if scale_radius is None or density_scale_radius is None:
-            if concentration is None or halo_mass is None or halo_radius is None:
-                raise ValueError("You must provide concentration, virial mass"
-                                 " if not providing the central density and scale_radius")
-            else:
-                self._parameters['concentration'] = concentration
-                self._halo_mass = halo_mass
-
-                self._parameters['scale_radius'] = self._derive_scale_radius()
-                self._parameters['density_scale_radius'] = self._derive_central_overdensity()
-
-        else:
-            if concentration is not None or halo_mass is not None:
-                raise ValueError("You can't provide both scale_radius+central_overdensity and concentration")
-
-            self._parameters['scale_radius'] = scale_radius
+                self._parameters['halo_mass'] = self.enclosed_mass(halo_radius)
+        elif (halo_radius is not None and concentration is not None and density_scale_radius is not None
+              and halo_mass is None):
+            self._parameters['halo_radius'] = halo_radius
+            self._parameters['concentration'] = concentration
             self._parameters['density_scale_radius'] = density_scale_radius
-
-            self._parameters['concentration'] = self._derive_concentration()
-            self._halo_mass = self.get_enclosed_mass(halo_radius)
-        """
+            self._parameters['scale_radius'] = halo_radius / concentration
+            self._parameters['halo_mass'] = self.enclosed_mass(halo_radius)
+        elif (halo_radius is not None and concentration is not None and halo_mass is not None
+              and density_scale_radius is None):
+            self._parameters['halo_radius'] = halo_radius
+            self._parameters['concentration'] = concentration
+            self._parameters['scale_radius'] = halo_radius / concentration
+            self._parameters['halo_mass'] = halo_mass
+            self._parameters['density_scale_radius'] = self._derive_central_overdensity()
+        else:
+            raise ValueError("Invalid combination of parameters for initializing NFWProfile.")
 
     @classmethod
     def parameter_bounds(cls, r_values, rho_values):
@@ -277,7 +277,7 @@ class NFWprofile(AbstractBaseProfile):
     def enclosed_mass(self, radius):
         # Eq 7.139 in M vdB W
         return self._parameters['density_scale_radius'] * self._parameters['scale_radius'] ** 3 \
-               * NFWprofile._integral(radius / self._parameters['scale_radius'])
+               * self._integral(radius / self._parameters['scale_radius'])
 
     def _derive_concentration(self):
         return self._parameters['halo_radius'] / self._parameters['scale_radius']
@@ -285,9 +285,9 @@ class NFWprofile(AbstractBaseProfile):
     def _derive_scale_radius(self):
         return self._parameters['halo_radius'] / self._parameters['concentration']
 
-    def _derive_central_overdensity(self, mass):
-        return mass / NFWprofile._integral(
-            self._parameters['halo_radius'] * self._parameters['scale_radius'] ** 2)
+    def _derive_central_overdensity(self):
+        return self._parameters['halo_mass'] / (self._parameters['scale_radius']**3 *
+                                                self._integral(self._parameters['concentration']))
 
     def logarithmic_slope(self, radius):
         scale_radius = self._parameters['scale_radius']
@@ -296,3 +296,8 @@ class NFWprofile(AbstractBaseProfile):
     @staticmethod
     def _integral(x):
         return 4 * np.pi * (np.log(1.0 + x) - x / (1.0 + x))
+
+
+@util.deprecated("Deprecated alias for NFWProfile. Use NFWProfile instead.")
+def NFWprofile(*args, **kwargs):
+    return NFWProfile(*args, **kwargs)
