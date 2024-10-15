@@ -22,7 +22,7 @@ def setup_module():
 
 
 def test_assignement_nfw():
-    """ There are two ways to initialise an NFW profile. Make sure they are equivalent."""
+    """There are several ways to initialise an NFW profile. Make sure they are equivalent."""
 
     for NFW in [NFW1, NFW2, NFW3]:
         assert(NFW['scale_radius'] == rs)
