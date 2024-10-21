@@ -1,11 +1,5 @@
 """
-
-profile
-=======
-
-A set of classes and functions for making profiles of simulation
-properties.
-
+Support for creating profiles of various quantities, normally as a function of 2d or 3d radius
 """
 
 import logging
@@ -25,52 +19,15 @@ logger = logging.getLogger('pynbody.analysis.profile')
 
 class Profile:
 
-    """
+    """Generates profiles of specified quantities as a function of radius or other binning quantity.
 
-    A basic profile class for arbitrary profiles. Stores information
-    about bins etc.
+    Any quantity known in the SimSnap can be profiled, meaning that the mean value of that
+    quantity in each bin is calculated.
 
-    Made to work with the pynbody SimSnap instances. The constructor
-    only generates the bins and figures out which particles belong in
-    which bin.  Profiles are generated lazy-loaded when a given
-    property is requested.
+    For more information and example usage, see the :ref:`profile` tutorial.
 
-    **Input**:
-
-    *sim* : a simulation snapshot - this can be any subclass of SimSnap
-
-    **Optional Keywords**:
-
-    *ndim* (default = 2): specifies whether it's a 2D or 3D profile - in the
-                       2D case, the bins are generated in the xy plane
-
-    *type* (default = 'lin'): specifies whether bins should be spaced linearly ('lin'),
-                            logarithmically ('log') or contain equal numbers of
-                            particles ('equaln')
-
-    *rmin* (default = min(x)): minimum radial value to consider
-
-    *rmax* (default = max(x)): maximum radial value to consider
-
-    *nbins* (default = 100): number of bins
-
-    *bins* : array like - predefined bin edges in units of binning quantity. If this
-             keyword is set, the values of the keywords *type*, *nbins*, *rmin* and *rmax*
-             will be ignored
-
-    *calc_x* (default = None): function to use to calculate the value
-     for binning. If None it defaults to the radial distance from
-     origin (in either 2 or 3 dimensions), ut you can specify this
-     function to return any value you want for making profiles along
-     arbitrary axes. Depening on your function, the units of certain
-     profiles (such as density) might not make sense.
-
-    *weight_by* (default = 'mass'): name of the array to use for weighting
-     averages across particles in each bin
-
-    **Output**:
-
-    a Profile object. To find out which profiles are available, use keys().
+    Additional functions should use the profile_property to yield the
+    desired profile.
 
     **Implemented profile functions**:
 
@@ -107,10 +64,6 @@ class Profile:
     *magnitudes* : magnitudes in each bin - default band = 'v'
 
     *sb*         : surface brightness - default band = 'v'
-
-
-    Additional functions should use the profile_property to yield the
-    desired profile.
 
     **Lazy-loading arrays:**
 
@@ -153,6 +106,49 @@ class Profile:
         return ((sim['pos'][:, 0:self.ndim] ** 2).sum(axis=1)) ** (1, 2)
 
     def __init__(self, sim, load_from_file=False, ndim=2, type='lin', calc_x=None, weight_by='mass', **kwargs):
+        """Initialise a profile, determining the binning quantity and bin size.
+
+        The constructor generates the bins without actually calculating any profiles. The profiles are calculated
+        lazily when requested.
+
+        Parameters
+        ----------
+
+        sim : pynbody.snapshot.SimSnap
+            The simulation snapshot to generate a profile for
+
+        ndim : int, optional:
+            Specifies whether it's a 2D or 3D profile - in the 2D case, the bins are generated in the xy plane
+
+        type : str, optional:
+            Specifies whether bins should be spaced linearly ('lin', default), logarithmically ('log') or contain
+            equal numbers of particles ('equaln')
+
+        rmin : float, optional:
+            Minimum value to consider (left-hand-edge of lowest bin). Default is the minimum value of the binning
+            quantity.
+
+        rmax : float, optional:
+            Maximum value to consider (right-hand-edge of highest bin). Default is the maximum value of the binning
+            quantity.
+
+        nbins : int, optional:
+            Number of bins to use. Default is 100.
+
+        bins : array-like, optional:
+            Predefined bin edges in units of the binning quantity. If this keyword is set, the values of the keywords
+            type, nbins, rmin and rmax will be ignored.
+
+        calc_x : function, optional:
+            Function to use to calculate the value for binning. If None it defaults to the radial distance from
+            origin (in either 2 or 3 dimensions), but you can specify this function to return any value you want for
+            making profiles along arbitrary axes. Depending on your function, the units of certain profiles (such as
+            density) might not make sense.
+
+        weight_by : str, optional:
+            Name of the array to use for weighting averages across particles in each bin. Default is 'mass'.
+
+        """
 
         generate_new = True
         if calc_x is None:

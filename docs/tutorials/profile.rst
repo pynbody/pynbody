@@ -1,4 +1,4 @@
-.. profile tutorial
+.. _profile:
 
 
 Profiles
