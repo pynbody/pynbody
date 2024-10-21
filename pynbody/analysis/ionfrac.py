@@ -40,8 +40,6 @@ from .. import util
 
 logger = logging.getLogger('pynbody.analysis.ionfrac')
 
-from .interpolate import interpolate3d
-
 
 def _cloudy_output_line_to_dictionary(line):
     """Process a single line from the cloudy ionisation output.
@@ -437,7 +435,8 @@ class V1IonFractionTable(IonFractionTableBase):
         self._clamp_values(z, np.min(z_vals), np.max(z_vals))
 
         # interpolate
-        result_array = interpolate3d(x, y, z, x_vals, y_vals, z_vals, vals)
+        interpolator = RegularGridInterpolator((x_vals, y_vals, z_vals), vals)
+        result_array = interpolator(np.array([x, y, z]).T)
 
         return 10 ** result_array
 

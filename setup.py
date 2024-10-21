@@ -134,15 +134,8 @@ cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
                                 include_dirs=incdir)
 
 
-interpolate3d_pyx = Extension('pynbody.analysis._interpolate3d',
-                              sources = ['pynbody/analysis/_interpolate3d.pyx'],
-                              include_dirs=incdir,
-                              extra_compile_args=openmp_args,
-                              extra_link_args=openmp_args)
-
-
 ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx, filt_geom_pyx,
-                cython_fortran_file, interpolate3d_pyx, omp_commands]
+                cython_fortran_file, omp_commands]
 
 install_requires = [
     'cython>=0.20',
