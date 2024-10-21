@@ -12,7 +12,6 @@ from . import (
     halo,
     hifrac,
     hmf,
-    interpolate,
     ionfrac,
     luminosity,
     pkdgrav_cosmo,
