@@ -1,6 +1,11 @@
+"""AHF (Amiga Halo Finder) support"""
+
+from __future__ import annotations
+
 import glob
 import gzip
 import os.path
+import pathlib
 import re
 import warnings
 
@@ -16,65 +21,72 @@ from .details.number_mapping import (
 
 
 class AHFCatalogue(HaloCatalogue):
-
     """
     Class to handle catalogues produced by Amiga Halo Finder (AHF).
     """
 
-    def __init__(self, sim, make_grp=None, get_all_parts=None, use_iord=None, ahf_basename=None,
-                 dosort=None, only_stat=None, write_fpos=True, halo_numbers='file-order',
+    def __init__(self, sim, filename=None, make_grp=None, get_all_parts=None, use_iord=None, ahf_basename=None,
+                 dosort=None, only_stat=None, write_fpos=True, halo_numbers='ahf',
                  ignore_missing_substructure=True,
                  **kwargs):
         """Initialize an AHFCatalogue.
 
-        **kwargs** :
+        Parameters
+        ----------
 
-        *use_iord*: if True, the particle IDs in the Amiga catalogue
-                    are taken to refer to the iord array. If False,
-                    they are the particle offsets within the file. If
-                    None, the parameter defaults to True for
-                    GadgetSnap, False otherwise.
+        sim: SimSnap
+          the simulation snapshot to which this catalogue refers
 
-        *ahf_basename*: specify the basename of the AHF halo catalog
-                        files - the code will append 'halos',
-                        'particles', and 'substructure' to this
-                        basename to load the catalog data.
+        filename: str | pathlib.Path
+          specify a path to an AHF halo catalog. Note that AHF actually outputs multiple files; you can specify the
+          path to the ``AHF_halos`` or ``AHF_particles`` file and the code will infer the other filenames from this.
+          Alternatively you can specify the path up to the ``AHF_`` prefix and the code will similarly infer the full
+          set of filenames.
 
-        *halo_numbers*: specify how to number the halos. Options are:
-                             'ahf' (default): use the halo numbers written in the AHF halos file,
-                                              or a zero-based indexing if none is present
-                             'file-order': zero-based indexing of the halos
-                             'v1': one-based indexing of the halos, compatible with pynbody v1.x
-                             'length-order': sort by the number of particles in each halo, with the
-                                             halo with most particles being halo 0
-                             'length-order-v1': as length-order, but indexing from halo 1,
-                                                compatible with dosort=True in pynbody v1
+        halo_numbers: str, optional
+          specify how to number the halos. Options are:
 
-        *ignore_missing_substructure*: if True (default), the code will not
-                            raise an exception if the substructure file is
-                            missing or corrupt. If False, it will raise an exception.
+          * 'ahf' (default): use the halo numbers written in the AHF halos file if present, or a zero-based indexing
+          * 'file-order': zero-based indexing of the halos
+          * 'v1': one-based indexing of the halos, compatible with pynbody v1 default behaviour
+          * 'length-order': sort by the number of particles in each halo, with the halo with most particles being halo 0
+          * 'length-order-v1': as length-order, but indexing from halo 1, compatible with ``dosort=True`` in pynbody v1
 
-        Deprecated kwargs:
+        ignore_missing_substructure : bool, optional
+          If True (default), the code will not raise an exception if the substructure file is missing or corrupt. If
+          False, it will raise an exception.
 
-        *make_grp*: if True a 'grp' array is created in the underlying
-                    snapshot specifying the lowest level halo that any
-                    given particle belongs to. If it is False, no such
-                    array is created; if None, the behaviour is
-                    determined by the configuration system.
+        use_iord : bool, optional
+          if True, the particle IDs in the Amiga catalogue are taken to refer to the iord array. If False,
+          they are the particle offsets within the file. If None, the parameter defaults to True for GadgetSnap,
+          False otherwise.
 
-        *get_all_parts*: if True, the particle file is loaded for all halos.
-                    Suggested to keep this None, as this is memory intensive.
-                    The default function is to load in this data as needed.
+        write_fpos : bool, optional
+            If True (default), the code will attempt to write a file containing the starting positions of each halo's
+            particle information within the AHF_particles file. If False, it will not attempt to write this file. This
+            file is used to speed up loading of particle information for individual halos when :meth:`load_all` is not
+            called. If :meth`load_all` is called, there is no benefit to writing the file and better performance
+            is obtained by using ``write_fpos=False``.
 
-        *dosort*: equivalent to halo_numbers='length-order'
+        ahf_basename : str, optional
+          Deprecated way to specify the location of the catalogue
 
-        *only_stat*: specify that you only wish to collect the halo
-                    properties stored in the AHF_halos file and not
-                    worry about particle information [deprecated, use
-                    get_dummy_halo instead]
+        make_grp :
+          Deprecated. If True a 'grp' array is created in the underlying snapshot specifying the lowest level halo
+          that any given particle belongs to. If it is False, no such array is created; if None, the behaviour is
+          determined by the configuration system.
+
+        get_all_parts :
+          Deprecated; use the :meth:`load_all` method instead.
+
+        dosort :
+          Deprecated; equivalent to ``halo_numbers='length-order'``
+
+        only_stat :
+          Deprecated; this keyword is now ignored. To obtain halo information without loading the particles,
+          use the methods :meth:`get_properties_one_halo` or :meth:`get_properties_all_halos`.
 
         """
-
 
         if use_iord is None:
             use_iord = isinstance(
@@ -89,7 +101,10 @@ class AHFCatalogue(HaloCatalogue):
         if only_stat:
             warnings.warn(DeprecationWarning("only_stat keyword is deprecated; instead, use the catalogue's get_dummy_halo method"))
 
-        if ahf_basename is not None:
+        if filename is not None:
+            self._ahfBasename = str(self._user_specified_filename_to_ahf_basename(filename))
+        elif ahf_basename is not None:
+            warnings.warn(DeprecationWarning("ahf_basename keyword is deprecated; use filename instead"))
             self._ahfBasename = ahf_basename
         else:
             self._ahfBasename = self._infer_ahf_basename(sim)
@@ -114,7 +129,7 @@ class AHFCatalogue(HaloCatalogue):
 
         try:
             self._load_ahf_substructure(self._ahfBasename + 'substructure')
-        except (KeyError, ValueError, FileNotFoundError):
+        except (KeyError, ValueError, FileNotFoundError, IndexError):
             if not ignore_missing_substructure:
                 raise
             logger.error("Unable to load AHF substructure file; continuing without. To expose the underlying problem as an exception, pass ignore_missing_substructure=False to the AHFCatalogue constructor")
@@ -132,7 +147,7 @@ class AHFCatalogue(HaloCatalogue):
 
     def _setup_halo_numbering(self, halo_numbers):
         has_id = 'ID' in self._halo_properties
-        if has_id:
+        if has_id and len(self._halo_properties['ID'])>0:
             self._ahf_own_number_mapper = create_halo_number_mapper(self._halo_properties['ID'])
         else:
             # if no explicit IDs, ahf implicitly numbers starting at 0 in file order
@@ -144,7 +159,7 @@ class AHFCatalogue(HaloCatalogue):
             number_mapper = SimpleHaloNumberMapper(0, self._num_halos)
         elif halo_numbers == 'length-order' or halo_numbers == 'length-order-v1':
             npart = self._halo_properties['npart']
-            osort = np.argsort(-npart)  # this is better than argsort(npart)[::-1], because it's stable
+            osort = np.argsort(-npart, kind='stable')  # this is better than argsort(npart)[::-1], because it's stable
             if halo_numbers.endswith('v1'):
                 number_mapper = NonMonotonicHaloNumberMapper(osort, ordering=True, start_index=1)
             else:
@@ -162,10 +177,22 @@ class AHFCatalogue(HaloCatalogue):
 
         if 'hostHalo' in self._halo_properties:
             host_halo = self._halo_properties['hostHalo']
-            mask = host_halo != -1
-            host_halo[mask] = self.number_mapper.index_to_number(
-                self._ahf_own_number_mapper.number_to_index(host_halo[mask])
-            )
+
+            # Below, we used to use:
+            #   mask = host_halo != -1
+            # but now it seems like specific runs (presumably MPI ones, where IDs are random?) use zero to indicate
+            # 'no host'.
+            #
+            # Of course, in other runs, halo 0 might be a perfectly valid host halo, so we need to deal with this
+            # by saying the mask is wherever host_halo is not a valid halo number. Rather than compare every entry
+            # to all the halo numbers (which would be expensive), we look for the minimum valid
+
+            if len(host_halo) > 0:
+                mask = host_halo >= np.min(self._ahf_own_number_mapper.all_numbers)
+
+                host_halo[mask] = self.number_mapper.index_to_number(
+                    self._ahf_own_number_mapper.number_to_index(host_halo[mask])
+                )
 
     def _determine_format_revision_from_filename(self):
         if self._ahfBasename.split("z")[-2][-1] == ".":
@@ -211,7 +238,7 @@ class AHFCatalogue(HaloCatalogue):
                     nhalo = int(f.readline().strip())
                     assert nhalo == len(self.number_mapper)
                     for hnum in range(nhalo):
-                        npart = int(f.readline().strip())
+                        npart = int(f.readline().split()[0].strip())
                         assert npart == self._halo_properties['npart'][hnum]
                         self._fpos[hnum] = f.tell()
                         for i in range(npart):
@@ -340,10 +367,13 @@ class AHFCatalogue(HaloCatalogue):
         keys = [re.sub(r'\([0-9]*\)', '', field)
                 for field in fields]
 
+        omit_first_column = False
+
         if self._is_new_format:
             # fix for column 0 being a non-column in some versions of the AHF
             # output
             if keys[0] == '':
+                omit_first_column = True
                 keys = keys[1:]
 
         self._halo_properties = {k: [] for k in keys}
@@ -358,7 +388,7 @@ class AHFCatalogue(HaloCatalogue):
             ]
             # XXX Unit issues!  AHF uses distances in Mpc/h, possibly masses as
             # well
-            if not self._is_new_format:
+            if omit_first_column:
                 values = values[1:]
 
             for key, value in zip(keys, values):
@@ -407,9 +437,25 @@ class AHFCatalogue(HaloCatalogue):
         return list(candidates)
 
     @classmethod
-    def _can_load(cls, sim, ahf_basename=None, **kwargs):
-        if ahf_basename:
-            return True
-        candidates = cls._list_candidate_ahf_basenames(sim)
-        number_ahf_file_candidates = len(candidates)
-        return number_ahf_file_candidates > 0
+    def _user_specified_filename_to_ahf_basename(cls, filename: str | pathlib.Path) -> pathlib.Path:
+        allowed_endings = ["AHF_halos", "AHF_particles", "AHF_", "AHF"]
+        filename = util.cutgz(filename)
+        for ending in allowed_endings:
+            if str(filename).endswith(ending):
+                return pathlib.Path(str(filename)[:-len(ending)]+"AHF_")
+        raise ValueError("Filename cannot be understood as an AHF catalogue basename. "
+                         "For information about how to specify an AHF filename, see the class documentation for "
+                         "AHFCatalogue.")
+
+    @classmethod
+    def _can_load(cls, sim, filename=None, **kwargs):
+        if filename is not None:
+            try:
+                cls._user_specified_filename_to_ahf_basename(filename)
+                return True
+            except ValueError:
+                return False
+        else:
+            candidates = cls._list_candidate_ahf_basenames(sim)
+            number_ahf_file_candidates = len(candidates)
+            return number_ahf_file_candidates > 0

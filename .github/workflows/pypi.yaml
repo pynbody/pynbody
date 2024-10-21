@@ -21,14 +21,15 @@ jobs:
         # Following numpy's setup
         buildplat:
         - [ubuntu-20.04, manylinux, x86_64, ""]
+        - [ubuntu-22.04-arm64, manylinux, aarch64, ""]
         - [macos-13, macosx, x86_64, "/usr/local"]
-        - [macos-13-xlarge, macosx, arm64, "/opt/homebrew"]
-        python: ["cp39", "cp310", "cp311", "cp312"]
+        - [macos-14, macosx, arm64, "/opt/homebrew"]
+        python: ["cp310", "cp311", "cp312"]
     steps:
       - uses: actions/checkout@v4
 
       - name: Install GCC (Ubuntu)
-        if: matrix.buildplat[0] == 'ubuntu-20.04'
+        if: startsWith(matrix.buildplat[0], 'ubuntu')
         shell: bash
         run: |
           sudo apt-get update -qq
@@ -63,10 +64,11 @@ jobs:
       #     fi
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
+          CIBW_ARCHS_LINUX: ${{ matrix.buildplat[2] }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -83,10 +85,10 @@ jobs:
       - uses: actions/setup-python@v5
         name: Install Python
         with:
-          python-version: '3.9'
+          python-version: '3.12'
 
       - name: Install numpy and cython
-        run: python -m "pip" install numpy cython
+        run: python -m "pip" install --pre 'numpy>=2.0.0rc1' cython setuptools
 
       - name: Build sdist
         run: python setup.py sdist
@@ -108,7 +110,7 @@ jobs:
           merge-multiple: true
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.8.12
+      - uses: pypa/gh-action-pypi-publish@v1.8.14
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}

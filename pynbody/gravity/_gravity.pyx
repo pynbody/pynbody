@@ -5,9 +5,10 @@ cimport cython
 import numpy as np
 
 from pynbody import array, config, openmp, units
-from pynbody.util import get_eps
 
 cimport numpy as np
+
+np.import_array()
 
 DTYPE = np.double
 
@@ -23,7 +24,6 @@ cdef extern from "math.h" nogil:
 @cython.cdivision(True)
 @cython.boundscheck(False)
 def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
-
     from cython.parallel cimport prange
 
     global config
@@ -41,7 +41,24 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
     openmp.set_threads(num_threads)
 
     if eps is None:
-        eps = get_eps(f)
+        try:
+            eps = f['eps']
+        except KeyError:
+            eps = f.properties['eps']
+
+    if isinstance(eps, str):
+        eps = units.Unit(eps)
+
+    if isinstance(eps, units.UnitBase):
+        eps = eps.in_units(f['pos'].units, **f.conversion_context())
+
+    if np.isscalar(eps):
+        eps = np.repeat(np.array(eps, dtype=ipos.dtype), len(ipos))
+
+    if isinstance(eps, array.SimArray):
+        eps = eps.in_units(f['pos'].units, **f.conversion_context())
+        eps = eps.view(np.ndarray)
+
 
     cdef unsigned int nips = len(ipos)
     cdef np.ndarray[DTYPE_t, ndim=2] m_by_r2 = np.zeros((nips,3), dtype = ipos.dtype)
@@ -69,12 +86,7 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
             m_by_r2[pi,2] += mass_i*dz * drsoft3
 
 
-    m_by_r = m_by_r.view(array.SimArray)
-    m_by_r2 = m_by_r2.view(array.SimArray)
-    m_by_r.units = f['mass'].units/f['pos'].units
-    m_by_r2.units = f['mass'].units/f['pos'].units**2
+    pot = array.SimArray(-m_by_r,units=f['mass'].units/f['pos'].units * units.G)
+    accel = array.SimArray(-m_by_r2,units=f['mass'].units/f['pos'].units**2 * units.G)
 
-    m_by_r*=units.G
-    m_by_r2*=units.G
-
-    return -m_by_r, -m_by_r2
+    return pot, accel

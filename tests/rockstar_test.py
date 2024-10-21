@@ -3,7 +3,12 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
 
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("rockstar")
 
 @pytest.fixture
 def dummy_file():
@@ -46,8 +51,9 @@ def test_load_rockstar(dummy_file):
     assert len(h)==5851
     assert isinstance(h, pynbody.halo.rockstar.RockstarCatalogue)
 
-def test_autodetect_rockstar(dummy_file):
-    h = dummy_file.halos()
+def test_autodetect_rockstar_from_filename(dummy_file):
+    dummy_file._filename = ""
+    h = dummy_file.halos(filename="testdata/rockstar/halos_15.0.bin")
     assert isinstance(h, pynbody.halo.rockstar.RockstarCatalogue)
 
 def test_rockstar_properties(rockstar_halos):

@@ -1,3 +1,10 @@
+"""Implementation of the key simulation snapshot class.
+
+In a sense this is the core of pynbody, as it is the class that manages data and is subclasses to provide
+IO for different simulation formats.
+
+For an introduction, see :doc:`/tutorials/data_access`."""
+
 from __future__ import annotations
 
 import copy
@@ -12,6 +19,7 @@ import typing
 import warnings
 import weakref
 from functools import reduce
+from typing import Iterator
 
 import numpy as np
 
@@ -20,71 +28,43 @@ from .. import (
     dependencytracker,
     family,
     filt,
-    iter_subclasses,
     simdict,
+    transformation,
     units,
     util,
 )
 from ..units import has_units
+from ..util import iter_subclasses
 from .util import ContainerWithPhysicalUnitsOption
 
 if typing.TYPE_CHECKING:
-    from .. import halo
+    from .. import bridge, halo, subsnap, transformation
+
 
 logger = logging.getLogger('pynbody.snapshot.simsnap')
 
-class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclasses):
+class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclasses, transformation.Transformable):
 
     """The class for managing simulation snapshots.
 
-    For most purposes, SimSnaps should be initialized through
-    :func:`~pynbody.load` or :func:`~pynbody.new`.
+    For most purposes, SimSnaps should be initialized through :func:`~pynbody.snapshot.load`
+    or :func:`~pynbody.snapshot.new`.
 
-    For a basic tutorial explaining how to load a file as a SimSnap
-    see :doc:`tutorials/data_access`.
+    For an introduction to using this class, see :doc:`/tutorials/data_access`.
 
-    *Getting arrays or subsnaps*
-
-    Once a :class:`SimSnap` object ``f`` is instantiated, it can
-    be used in various ways. The most common operation is to
-    access something with the code ``f[x]``.  Depending on the
-    type of ``x``, various behaviours result:
-
-    - If ``x`` is a string, the array named by ``x`` is returned. If
-      no such array exists, the framework attempts to load or
-      derive an array of that name (in that order). If this is
-      unsuccessful, a `KeyError` is raised.
-
-    - If ``x`` is a python `slice` (e.g. ``f[5:100:3]``) or an array of
-      integers (e.g. ``f[[1,5,100,200]]``) a subsnap containing only the
-      mentioned particles is returned.
-
-      See :doc:`tutorials/data_access` for more information.
-
-    - If ``x`` is a numpy array of booleans, it is interpreted as a mask and
-      a subsnap containing only those particles for which x[i] is True.
-      This means that f[condition] is a shortcut for f[np.where(condition)].
-
-    - If ``x`` is a :class:`pynbody.filt.Filter` object, a subsnap
-      containing only the particles which pass the filter condition
-      is returned.
-
-      See :doc:`tutorials/data_access` for more information.
-
-    - If ``x`` is a :class:`pynbody.family.Family` object, a subsnap
-      containing only the particles in that family is returned. In practice
-      for most code it is more convenient to write e.g. ``f.dm`` in place of
-      the equivalent syntax f[pynbody.family.dm].
-
-    *Getting metadata*
-
-    The property `filename` gives the filename of a snapshot.
-
-    There is also a `properties` dictionary which
-    contains further metadata about the snapshot. See :ref:`subsnaps`.
+    :ivar util.ExecutionControl lazy_off: used to disable lazy-loading and lazy-derivation
+    :ivar util.ExecutionControl lazy_derive_off: used to disable lazy-derivation
+    :ivar util.ExecutionControl lazy_load_off: used to disable lazy-loading
+    :ivar util.ExecutionControl auto_propagate_off: used to disable auto-flagging changes in derived arrays
+    :ivar util.ExecutionControl immediate_mode: used to return actual numpy arrays, rather than IndexedSubArrays
+    :ivar util.ExecutionControl delay_promotion: used to prevent any family arrays being promoted into simulation arrays
+    :ivar dict properties: a dictionary of properties of the snapshot
     """
 
-    _derived_quantity_registry = {}
+    # Note about the above docstring - I am not sure why sphinx won't pick up inline docstrings where the instance
+    # variables are defined, but I gave up on trying to debug it and put the docs there instead.
+
+    _derived_array_registry = {}
 
     _decorator_registry = {}
 
@@ -97,6 +77,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     # TO DO: This should probably be read in from a config file
     _split_arrays = {'pos': ('x', 'y', 'z'),
                      'vel': ('vx', 'vy', 'vz')}
+
 
     @classmethod
     def _array_name_1D_to_ND(self, name):
@@ -159,9 +140,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     def __init__(self):
         """Initialize an empty, zero-length SimSnap.
 
-        For most purposes SimSnaps should instead be initialized through
-       :func:`~pynbody.load` or :func:`~pynbody.new`.
-       """
+        For most purposes SimSnaps should instead be initialized through :func:`~pynbody.snapshot.load`
+        or :func:`~pynbody.snapshot.new`.
+        """
 
         super().__init__()
 
@@ -171,6 +152,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         self._family_arrays = {}
         self._derived_array_names = []
         self._family_derived_array_names = {}
+        self._get_array_lock = threading.RLock()
         for i in family._registry:
             self._family_derived_array_names[i] = []
 
@@ -185,37 +167,24 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         # default
         self._shared_arrays = False
 
+        # Ideally these would have docstrings inline but sphinx doesn't pick them up for some reason, so
+        # they are in the class docstring instead.
+
         self.lazy_off = util.ExecutionControl()
-        # use 'with lazy_off :' blocks to disable all hidden/lazy behaviour
-
         self.lazy_derive_off = util.ExecutionControl()
-        # use 'with lazy_derive_off : ' blocks to disable lazy-derivation
-
         self.lazy_load_off = util.ExecutionControl()
-        # use 'with lazy_load_off : ' blocks to disable lazy-loading
-
         self.auto_propagate_off = util.ExecutionControl()
-        # use 'with auto_propagate_off : ' blocks to disable auto-flagging changes
-        # (i.e. prevent lazy-evaluated arrays from auto-re-evaluating when their
-        # dependencies change)
-
         self.immediate_mode = util.ExecutionControl()
-        # use 'with immediate_mode: ' to always return actual numpy arrays, rather
-        # than IndexedSubArrays which point to sub-parts of numpy arrays
+
         self.immediate_mode.on_exit = lambda: self._clear_immediate_mode()
 
         self.delay_promotion = util.ExecutionControl()
-        # use 'with delay_promotion: ' to prevent any family arrays being promoted
-        # into simulation arrays (which can cause confusion because the array returned
-        # from create_family_array might have properties you don't expect)
+        self.delay_promotion.on_exit = lambda: self._delayed_array_promotions()
 
-        self.delay_promotion.on_exit = lambda: self._delayed_array_promotions(
-        )
         self.__delayed_promotions = []
 
-
-
         self.properties = simdict.SimDict({})
+
         self._file_units_system = []
 
     ############################################
@@ -224,9 +193,10 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
     @property
     def filename(self):
+        """The filename of the snapshot, if it was loaded from disk."""
         return self._filename
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._num_particles
 
     def __repr__(self):
@@ -235,7 +205,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         else:
             return "<SimSnap len=" + str(len(self)) + ">"
 
-    def families(self):
+    def families(self) -> list[family.Family]:
         """Return the particle families which have representitives in this SimSnap.
         The families are ordered by their appearance in the snapshot."""
         out = []
@@ -248,11 +218,22 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         out.sort(key=start.__getitem__)
         return out
 
+    def enable_shared_arrays(self):
+        """Enable shared arrays for this snapshot.
+
+        Shared arrays are arrays that are backed by shared memory, and can be passed between
+        processes without copying. This is useful for parallel processing, but is disabled by default
+        because there are sometimes limits on shared memory and cleaning it up can be unreliable if
+        python is killed unexpectedly.
+
+        For more information, see :ref:`parallelism`."""
+        self._shared_arrays = True
+
     ############################################
     # THE BASICS: GETTING AND SETTING
     ############################################
 
-    def __getitem__(self, i):
+    def __getitem__(self, i) -> array.SimArray | subsnap.SubSnapBase :
         """Return either a specific array or a subview of this simulation. See
         the class documentation (:class:`SimSnap`) for more information."""
         from . import subsnap
@@ -339,28 +320,44 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             return self[np.where(mask_array)]
 
     def _get_array_with_lazy_actions(self, name):
+        """Get an array by the given name; if it's not available, attempt to load or derive it first"""
 
-        if name in list(self.keys()):
-            self._dependency_tracker.touching(name)
+        # the below is not thread-safe, so we lock
+        with self._get_array_lock:
+            if name in list(self.keys()):
+                self._dependency_tracker.touching(name)
 
-            # Ensure that any underlying dependencies on 1D positions and velocities
-            # are forwarded to 3D dependencies as well
-            nd_name = self._array_name_1D_to_ND(name)
-            if nd_name is not None:
-                self._dependency_tracker.touching(nd_name)
+                # Ensure that any underlying dependencies on 1D positions and velocities
+                # are forwarded to 3D dependencies as well
+                nd_name = self._array_name_1D_to_ND(name)
+                if nd_name is not None:
+                    self._dependency_tracker.touching(nd_name)
 
-            return self._get_array(name)
+            elif not self.lazy_off:
+                # The array is not currently in memory at the level we need it, and there is a possibility
+                # of getting it into memory using lazy derivation or loading. First, if there is a family level
+                # array by the same name, dispose of it. (Note if this is being called on a FamilySubSnap, the below
+                # has no effect, and anyway we wouldn't reach this point in the code if the family array were available.)
+                self.__resolve_obscuring_family_array(name)
 
-        with self._dependency_tracker.calculating(name):
-            self.__resolve_obscuring_family_array(name)
-
-            if not self.lazy_off:
+                # Now, we'll try to load the array...
                 if not self.lazy_load_off:
+                    # Note that we don't want this to be inside _dependency_tracker.calculating(name), because there is a
+                    # small possibility the load will be mapped into a derivation by the loader class. Specifically this
+                    # happens in ramses snapshots for the mass array (which is derived from the density array for gas cells).
                     self.__load_if_required(name)
-                if not self.lazy_derive_off:
-                    self.__derive_if_required(name)
 
-            return self._get_array(name)
+                if name in self:
+                    # We managed to load it. Note the dependency.
+                    self._dependency_tracker.touching(name)
+                elif not self.lazy_derive_off:
+                    # Try deriving instead
+                    with self._dependency_tracker.calculating(name):
+                        self.__derive_if_required(name)
+
+        # At this point we've done everything we can to get the array into memory. If it's still not there, we'll
+        # get a KeyError from the below.
+        return self._get_array(name)
 
 
 
@@ -376,6 +373,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             self._derive_array(name)
 
     def __resolve_obscuring_family_array(self, name):
+        """When a lazy derive or lazy load is about to happen for array given by name, deal with family arrays by the same name
+
+        Note that if this is being called from a family subview, family_keys() returns an empty set by definition, so
+        nothing bad happens. It is when a derivation/lazy-load is attempted across the snapshot that having family arrays
+        of the same name might get in the way.
+        """
         if name in self.family_keys():
             self.__remove_family_array_if_derived(name)
 
@@ -407,7 +410,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         in_fam, out_fam = self.__get_included_and_excluded_families_for_array(name)
         try:
             for fam in out_fam:
-                self.__load_array_and_perform_postprocessing(name, fam=fam)
+                if name not in self[fam]: # (check again, in case it was created in the meantime)
+                    self.__load_array_and_perform_postprocessing(name, fam=fam)
         except OSError:
             pass
 
@@ -479,22 +483,22 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     ############################################
     # DICTIONARY EMULATION FUNCTIONS
     ############################################
-    def keys(self):
+    def keys(self) -> list[str]:
         """Return the directly accessible array names (in memory)"""
         return list(self._arrays.keys())
 
-    def has_key(self, name):
+    def has_key(self, name: str) -> bool:
         """Returns True if the array name is accessible (in memory)"""
-        return name in list(self.keys())
+        return name in self.keys()
 
-    def values(self):
+    def values(self) -> list[array.SimArray]:
         """Returns a list of the actual arrays in memory"""
         x = []
         for k in list(self.keys()):
             x.append(self[k])
         return x
 
-    def items(self):
+    def items(self) -> list[tuple[str, array.SimArray]]:
         """Returns a list of tuples describing the array
         names and their contents in memory"""
         x = []
@@ -502,7 +506,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             x.append((k, self[k]))
         return x
 
-    def get(self, key, alternative=None):
+    def get(self, key, alternative=None) -> array.SimArray | None :
         """Standard python get method, returns self[key] if
         key in self else alternative"""
         try:
@@ -510,16 +514,19 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         except KeyError:
             return alternative
 
-    def iterkeys(self):
+    def iterkeys(self) -> Iterator[str]:
+        """Iterator over the array names in memory"""
         yield from list(self.keys())
 
     __iter__ = iterkeys
 
-    def itervalues(self):
+    def itervalues(self) -> Iterator[array.SimArray]:
+        """Iterator over the arrays in memory"""
         for k in self:
             yield self[k]
 
-    def iteritems(self):
+    def iteritems(self) -> Iterator[tuple[str, array.SimArray]]:
+        """Iterator over the array names and their contents in memory"""
         for k in self:
             yield (k, self[k])
 
@@ -529,29 +536,29 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     # but serving similar purposes)
     ############################################
 
-    def has_family_key(self, name):
+    def has_family_key(self, name: str) -> bool:
         """Returns True if the array name is accessible (in memory) for at least one family"""
         return name in self.family_keys()
 
-    def loadable_keys(self, fam=None):
+    def loadable_keys(self, fam=None) -> list[str]:
         """Returns a list of arrays which can be lazy-loaded from
         an auxiliary file."""
         return []
 
-    def derivable_keys(self):
+    def derivable_keys(self) -> list[str]:
         """Returns a list of arrays which can be lazy-evaluated."""
         res = []
         for cl in type(self).__mro__:
-            if cl in self._derived_quantity_registry:
-                res += list(self._derived_quantity_registry[cl].keys())
+            if cl in self._derived_array_registry:
+                res += list(self._derived_array_registry[cl].keys())
         return res
 
-    def all_keys(self):
+    def all_keys(self) -> list[str]:
         """Returns a list of all arrays that can be either lazy-evaluated
         or lazy loaded from an auxiliary file."""
         return self.derivable_keys() + self.loadable_keys()
 
-    def family_keys(self, fam=None):
+    def family_keys(self, fam=None) -> list[str]:
         """Return list of arrays which are not accessible from this
         view, but can be accessed from family-specific sub-views.
 
@@ -566,7 +573,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     # ANCESTRY FUNCTIONS
     ############################################
 
-    def is_ancestor(self, other):
+    def is_ancestor(self, other) -> bool:
         """Returns true if other is a subview of self"""
 
         if other is self:
@@ -576,21 +583,22 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         else:
             return False
 
-    def is_descendant(self, other):
+    def is_descendant(self, other) -> bool:
         """Returns true if self is a subview of other"""
         return other.is_ancestor(self)
 
     @property
-    def ancestor(self):
+    def ancestor(self) -> SimSnap:
         """The original SimSnap from which this view is derived (potentially self)"""
         if hasattr(self, 'base'):
             return self.base.ancestor
         else:
             return self
 
-    def get_index_list(self, relative_to, of_particles=None):
-        """Get a list specifying the index of the particles in this view relative
-        to the ancestor *relative_to*, such that relative_to[get_index_list(relative_to)]==self."""
+    def get_index_list(self, relative_to, of_particles=None) -> np.ndarray:
+        """Get a list specifying the index of the particles in this view relative to the ancestor *relative_to*
+
+        The returned index list satisfies ``relative_to[get_index_list(relative_to)]==self``."""
 
         # Implementation for base snapshot
 
@@ -604,7 +612,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     ############################################
     # SET-LIKE OPERATIONS FOR SUBSNAPS
     ############################################
-    def intersect(self, other, op=np.intersect1d):
+    def intersect(self, other, op=np.intersect1d) -> SimSnap:
         """Returns the set intersection of this simulation view with another view
         of the same simulation"""
 
@@ -616,13 +624,13 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         b = other.get_index_list(anc)
         return anc[op(a, b)]
 
-    def union(self, other):
+    def union(self, other) -> SimSnap:
         """Returns the set union of this simulation view with another view
         of the same simulation"""
 
         return self.intersect(other, op=np.union1d)
 
-    def setdiff(self, other):
+    def setdiff(self, other) -> SimSnap:
         """Returns the set difference of this simulation view with another view
         of the same simulation"""
 
@@ -631,7 +639,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     ############################################
     # UNIT MANIPULATION
     ############################################
-    def conversion_context(self):
+    def conversion_context(self) -> dict[str, float]:
         """Return a dictionary containing a (scalefactor) and h
         (Hubble constant in canonical units) for this snapshot, ready for
         passing into unit conversion functions."""
@@ -752,8 +760,11 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         """Given a unit (or string) `dimensions`, returns a unit with the same
         physical dimensions which is in the unit schema of the current file."""
         dimensions = units.Unit(dimensions)
-        d = dimensions.dimensional_project(
-            self._file_units_system + ["a", "h"])
+        try:
+            d = dimensions.dimensional_project(
+                self._file_units_system + ["a", "h"])
+        except units.UnitsException:
+            return units.no_unit
         new_unit = reduce(lambda x, y: x * y, [
                           a ** b for a, b in zip(self._file_units_system, d)])
         return new_unit
@@ -771,6 +782,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     def halos(self, *args, **kwargs) -> halo.HaloCatalogue:
         """Tries to instantiate a halo catalogue object for the given snapshot.
 
+        For introductory information about halo catalogues, see :ref:`halo_tutorial`, and the documentation for
+        :py:mod:`pynbody.halo`.
+
         Multiple catalogue classes are available in pynbody, and they are tried in turn until the first which
         accepted the request to load halos for this file.
 
@@ -784,16 +798,19 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         would try to load HOP halos, then AHF halos, then Subfind halos, before finally trying all other
         known halo classes in an arbitrary order.
 
-        Aarguments and keyword arguments other than `priority` are passed onto the individual halo loaders.
+        Arguments and keyword arguments other than `priority` are passed onto the individual halo loaders.
         If a given catalogue class does not accept the args/kwargs that you pass in, by definition it cannot
         be used; this can lead to 'silent' failures. To understand why a given class is not being instantiated
         by this method, the best option is to try _directly_ instantiating that class to reveal the error
-        explicitly."""
+        explicitly.
+        """
 
         from .. import config, halo
 
         priority = kwargs.pop('priority',
                               config['halo-class-priority'])
+
+        priority = [halo._fix_american_spelling(p) for p in priority]
 
         for c in halo.HaloCatalogue.iter_subclasses_with_priority(priority):
             try:
@@ -806,7 +823,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
         raise RuntimeError("No halo catalogue found for %r" % str(self))
 
-    def bridge(self, other):
+    def bridge(self, other) -> bridge.AbstractBridge:
         """Tries to construct a bridge function between this SimSnap
         and another one.
 
@@ -818,7 +835,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         from .. import bridge
         return bridge.bridge_factory(self, other)
 
-    def load_copy(self):
+    def load_copy(self) -> SimSnap:
         """Tries to load a copy of this snapshot, using partial loading to select
         only a subset of particles corresponding to a given SubSnap"""
         from .. import load
@@ -877,90 +894,55 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             for fami in new_fam_keys:
                 new_fam_keys[fami] = new_fam_keys[fami] - pre_fam_keys[fami]
 
-            # If the loader hasn't given units already, try to determine the defaults
-            # Then, attempt to convert what was loaded into friendly units
-            for v in new_keys:
-                if not units.has_units(anc[v]):
-                    anc[v].units = anc._default_units_for(v)
-                anc._autoconvert_array_unit(anc[v])
-            for f, vals in new_fam_keys.items():
-                for v in vals:
-                    if not units.has_units(anc[f][v]):
-                        anc[f][v].units = anc._default_units_for(v)
-                    anc._autoconvert_array_unit(anc[f][v])
+            with self.lazy_off:
+                # If the loader hasn't given units already, try to determine the defaults
+                # Then, attempt to convert what was loaded into friendly units
+                for v in new_keys:
+                    if not units.has_units(anc[v]):
+                        anc[v].units = anc._default_units_for(v)
+                    anc._autoconvert_array_unit(anc[v])
+                for f, vals in new_fam_keys.items():
+                    for v in vals:
+                        if not units.has_units(anc[f][v]):
+                            anc[f][v].units = anc._default_units_for(v)
+                        anc._autoconvert_array_unit(anc[f][v])
 
 
 
     ############################################
     # VECTOR TRANSFORMATIONS OF THE SNAPSHOT
     ############################################
-    def transform(self, matrix):
-        from .. import transformation
-        return transformation.transform(self, matrix)
-
-    def _transform(self, matrix):
-        """Transforms the snapshot according to the 3x3 matrix given."""
-
-        # NB though it might seem more efficient to access _arrays and
-        # _family_arrays directly, this would not work for SubSnaps.
-        snapshot_keys = self.keys()
-
-        for array_name in snapshot_keys:
-            ar = self[array_name]
-            if len(ar.shape) == 2 and ar.shape[1] == 3:
-                ar[:] = np.dot(matrix, ar.transpose()).transpose()
-
-        for fam in self.families():
-            family_keys = self[fam].keys()
-            family_keys_not_in_snapshot = set(family_keys) - set(snapshot_keys)
-            for array_name in family_keys_not_in_snapshot:
-                ar = self[fam][array_name]
-                if len(ar.shape) == 2 and ar.shape[1] == 3:
-                    ar[:] = np.dot(matrix, ar.transpose()).transpose()
-
-    def rotate_x(self, angle):
-        """Rotates the snapshot about the current x-axis by 'angle' degrees."""
-        angle *= np.pi / 180
-        return self.transform(np.array([[1,      0,             0],
-                                        [0, np.cos(angle), -np.sin(angle)],
-                                        [0, np.sin(angle),  np.cos(angle)]]))
-
-    def rotate_y(self, angle):
-        """Rotates the snapshot about the current y-axis by 'angle' degrees."""
-        angle *= np.pi / 180
-        return self.transform(np.array([[np.cos(angle),    0,   np.sin(angle)],
-                                        [0,                1,        0],
-                                        [-np.sin(angle),   0,   np.cos(angle)]]))
-
-    def rotate_z(self, angle):
-        """Rotates the snapshot about the current z-axis by 'angle' degrees."""
-        angle *= np.pi / 180
-        return self.transform(np.array([[np.cos(angle), -np.sin(angle), 0],
-                                        [np.sin(angle),  np.cos(angle), 0],
-                                        [0,             0,        1]]))
 
     def wrap(self, boxsize=None, convention='center'):
-        """Wraps the positions of the particles in the box to lie between
-        [-boxsize/2, boxsize/2].
+        """Wraps the positions of the particles in the box to lie in a chosen fundamental domain.
 
-        If no boxsize is specified, self.properties["boxsize"] is used."""
+        Parameters
+        ----------
+        boxsize : float | units.UnitBase, optional
+            The size of the box to wrap the particles in. If not specified, the boxsize is taken from the snapshot's
+            properties.
+
+        convention : str, optional
+            The convention to use for wrapping the particles. The default is 'center', which wraps the particles to lie
+            in the range [-boxsize/2, boxsize/2). Alternatively, 'upper' wraps the particles to lie in the range
+            [0, boxsize).
+        """
 
 
         if boxsize is None:
             boxsize = self.properties["boxsize"]
 
         if isinstance(boxsize, units.UnitBase):
-            boxsize = float(boxsize.ratio(self[
-                            "pos"].units, **self.conversion_context()))
+            boxsize = float(boxsize.ratio(self["pos"].units, **self.conversion_context()))
 
         if convention=='center':
             for coord in "x", "y", "z":
-                self[coord][np.where(self[coord] < -boxsize / 2)] += boxsize
+                self[coord][np.where(self[coord] <= -boxsize / 2)] += boxsize
                 self[coord][np.where(self[coord] > boxsize / 2)] -= boxsize
         elif convention=='upper':
             for coord in "x", "y", "z":
                 self[coord][np.where(self[coord] < 0)] += boxsize
-                self[coord][np.where(self[coord] > boxsize)] -= boxsize
+                self[coord][np.where(self[coord] >= boxsize)] -= boxsize
         else:
             raise ValueError("Unknown wrapping convention")
 
@@ -985,19 +967,26 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         """
         Write out the array with the specified name.
 
-        Some of the functionality is available via the
-        :func:`pynbody.array.SimArray.write` method, which calls the
-        present function with appropriate arguments.
+        Only a subset of SimSnap subclasses support this operation. If the subclass does not support it, an ``OSError``
+        will be raised.
 
-        **Input**
+        .. seealso:: :meth:`pynbody.array.SimArray.write`
 
-        *array_name* - the name of the array to write
+        Parameters
+        ----------
 
-        **Optional Keywords**
+        array_name : str
+            the name of the array to write
 
-        *fam* (None) - Write out only one family; or provide a list to
-         write out a set of families.
-         """
+        fam : str or list of str, optional
+            Write out only one family; or provide a list to write out a set of families.
+
+        overwrite : bool, optional
+            If True, overwrite the array on disk if it already exists. If False (default), an OSError will be raised
+            if the array already exists.
+
+
+        """
 
         # Determine whether this is a write or an update
         if fam is None:
@@ -1115,7 +1104,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             shared = self._shared_arrays
 
         if source_array is None:
-            source_array = array._array_factory(dims, dtype, zeros, shared)
+            source_array = array.array_factory(dims, dtype, zeros, shared)
         else:
             assert isinstance(source_array, array.SimArray)
             assert source_array.shape == dims
@@ -1212,7 +1201,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             shared = self._shared_arrays
 
         if source_array is None:
-            source_array = array._array_factory(dims, dtype, False, shared)
+            source_array = array.array_factory(dims, dtype, False, shared)
         else:
             assert isinstance(source_array, array.SimArray)
             assert source_array.shape == dims
@@ -1264,12 +1253,14 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         return cache[hx]
 
     def _get_array(self, name, index=None, always_writable=False):
-        """Get the array of the specified *name*, optionally
-        for only the particles specified by *index*.
+        """Get the array of the specified *name*, optionally for only the particles specified by *index*.
 
-        If *always_writable* is True, the returned array is
-        writable. Otherwise, it is still normally writable, but
-        not if the array is flagged as derived by the framework."""
+        If *always_writable* is True, the returned array is writable. Otherwise, it is still normally writable, but
+        not if the array is flagged as derived by the framework.
+
+        Note that this routine never calls any lazy loading/derivation routines, for which one needs to call
+        _get_array_with_lazy_actions.
+        """
 
         x = self._arrays[name]
         if x.derived and not always_writable:
@@ -1296,6 +1287,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         If *always_writable* is True, the returned array is writable. Otherwise
         it is still normally writable, but not if the array is flagged as derived
         by the framework.
+
+        Note that this routine never calls any lazy loading/derivation routines, for which one needs to call
+        _get_array_with_lazy_actions on the FamilySubSnap returned by self[fam].
         """
 
         try:
@@ -1461,27 +1455,94 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     # DERIVED ARRAY SYSTEM
     ############################################
     @classmethod
-    def derived_quantity(cl, fn):
-        if cl not in SimSnap._derived_quantity_registry:
-            SimSnap._derived_quantity_registry[cl] = {}
-        SimSnap._derived_quantity_registry[cl][fn.__name__] = fn
+    def derived_array(cls, fn):
+        """Function decorator to register a derivable quantity for all SimSnaps, or for a specific subclass.
+
+        Example usage:
+
+        >>> @pynbody.derived_array
+        ... def radius_squared(sim):
+        ...     return sim['x']**2 + sim['y']**2 + sim['z']**2
+
+        When a user tries to access the ``radius_squared`` array from any snapshot, the function will be called
+        and the result will be stored then returned. The function should take a single argument, the simulation object,
+        and return a numpy array or SimArray of the same length as the simulation.
+
+        The array will be automatically updated whenever arrays it relies upon for derivation are changed.
+
+        If instead of ``pynbody.derived_array``, a derived array associated with a specific subclass of
+        :class:`~pynbody.snapshot.SimSnap` is desired, one may use the following syntax:
+
+        >>> @MySimSnapSubclass.derived_array
+        ... def radius_squared(sim):
+        ...     return sim['x']**2 + sim['y']**2 + sim['z']**2
+
+        If the function has a docstring, it will be prepended with "Derived: " to indicate that it is a derived
+        quantity. If the derived array is being added for a specific subclass, a list of subclasses is also
+        included in the automatic modifications to the docstring.
+
+        .. versionchanged:: 2.0
+            The function name has been changed from ``derived_quantity`` to ``derived_array``. The old name is
+            still available but will be removed in a future version.
+
+        .. seealso::
+            For introductory information about derived quantities see :ref:`derived`.
+        """
+        if cls not in SimSnap._derived_array_registry:
+            SimSnap._derived_array_registry[cls] = {}
+        SimSnap._derived_array_registry[cls][fn.__name__] = fn
         fn.__stable__ = False
+        cls._add_derived_to_doc(fn)
+
         return fn
 
     @classmethod
-    def stable_derived_quantity(cl, fn):
-        if cl not in SimSnap._derived_quantity_registry:
-            SimSnap._derived_quantity_registry[cl] = {}
-        SimSnap._derived_quantity_registry[cl][fn.__name__] = fn
-        fn.__stable__ = True
+    def _add_derived_to_doc(cls, fn):
+        if fn.__doc__ is None:
+            return
+        if cls is not SimSnap:
+            if fn.__doc__.startswith("Derived ["):
+                fn.__doc__ = f"Derived [{cls.__name__}, " + fn.__doc__[9:]
+            else:
+                fn.__doc__ = f"Derived [{cls.__name__}]: " + fn.__doc__
+        else:
+            if not fn.__doc__.startswith("Derived"):
+                fn.__doc__ = "Derived: " + fn.__doc__
 
+    @classmethod
+    def stable_derived_array(cls, fn):
+        """Function decorator to register a stable derivable quantity for all SimSnaps, or for a specific subclass.
+
+        A stable derived array is one that is not expected to change over the course of a simulation, and so is
+        only ever calculated once. Otherwise, it behaves just like a derived array; see
+        :func:`~pynbody.snapshot.simsnap.SimSnap.derived_array`.
+
+        If the function has a docstring, it will be prepended with "Derived: " to indicate that it is a derived
+        quantity. If the derived array is being added for a specific subclass, a list of subclasses is also
+        included in the automatic modifications to the docstring.
+
+        For more information about derived quantities see :ref:`derived-quantities`, and specifically the
+        subsection :ref:`stable-derived-quantities`.
+
+        .. versionchanged:: 2.0
+            The function name has been changed from ``stable_derived_quantity`` to ``stable_derived_array``. The old
+            name is still available but will be removed in a future version.
+        """
+
+        if cls not in SimSnap._derived_array_registry:
+            SimSnap._derived_array_registry[cls] = {}
+        SimSnap._derived_array_registry[cls][fn.__name__] = fn
+        fn.__stable__ = True
+        cls._add_derived_to_doc(fn)
         return fn
+
+
 
     def _find_deriving_function(self, name):
         for cl in type(self).__mro__:
-            if cl in self._derived_quantity_registry \
-                    and name in self._derived_quantity_registry[cl]:
-                return self._derived_quantity_registry[cl][name]
+            if cl in self._derived_array_registry \
+                    and name in self._derived_array_registry[cl]:
+                return self._derived_array_registry[cl][name]
         else:
             return None
 
@@ -1489,7 +1550,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         """Calculate and store, for this SnapShot, the derivable array 'name'.
         If *fam* is not None, derive only for the specified family.
 
-        This searches the registry of @X.derived_quantity functions
+        This searches the registry of @X.derived_array functions
         for all X in the inheritance path of the current class.
         """
         global config
@@ -1564,7 +1625,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
                         self._dirty(d_ar)
 
 
-    def is_derived_array(self, name, fam=None):
+    def is_derived_array(self, name, fam=None) -> bool:
         """Returns True if the array or family array of given name is
         auto-derived (and therefore read-only)."""
         fam = fam or self._unifamily
@@ -1599,13 +1660,13 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     ############################################
     # CONVENIENCE FUNCTIONS
     ############################################
-    def mean_by_mass(self, name):
+    def mean_by_mass(self, name) -> float | units.UnitBase:
         """Calculate the mean by mass of the specified array."""
-        m = np.asanyarray(self["mass"])
-        ret = array.SimArray(
-            (self[name].transpose() * m).transpose().mean(axis=0) / m.mean(), self[name].units)
-
-        return ret
+        with self.immediate_mode:
+            mass = self['mass']
+            array = self[name]
+            mass_indexing = (slice(None), ) + (np.newaxis, ) * (len(array.shape) - 1)
+            return (mass[mass_indexing] * array).sum(axis=0) / mass.sum(axis=0)
 
     ############################################
     # SNAPSHOT DECORATION
@@ -1613,6 +1674,10 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
     @classmethod
     def decorator(cl, fn):
+        """Register a decorator to be applied to all instances of a given class.
+
+        Decorators are called when a new instance of the class is created, and are passed the new instance as an
+        argument."""
         if cl not in SimSnap._decorator_registry:
             SimSnap._decorator_registry[cl] = []
         SimSnap._decorator_registry[cl].append(fn)
@@ -1628,7 +1693,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     # KD-Tree
     ############################################
 
-    def build_tree(self, num_threads=None, shared_mem=None):
+    def build_tree(self, num_threads=None, shared_mem=None) -> None:
         """Build a kdtree for SPH operations and for accelerating geometrical filters
 
         Parameters
@@ -1656,7 +1721,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
                                         boxsize=boxsize, num_threads=num_threads,
                                         shared_mem=shared_mem)
 
-    def import_tree(self, serialized_tree, num_threads=None):
+    def import_tree(self, serialized_tree, num_threads=None) -> None:
         """Import a precomputed kdtree from a serialized form.
 
         Throws ValueError if the tree is not compatible with the snapshot (though
@@ -1739,7 +1804,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
         return new_snap
 
-    def get_copy_on_access_simsnap(self):
+    def get_copy_on_access_simsnap(self) -> SimSnap:
         """Return a new SimSnap that copies data out of this one when accessed
 
         This provides a degree of isolation (e.g. modifications made to the arrays in the copy-on-access
@@ -1747,3 +1812,13 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         tangos."""
         from .copy_on_access import CopyOnAccessSimSnap
         return CopyOnAccessSimSnap(self)
+
+SimSnap.stable_derived_quantity = util.deprecated(SimSnap.stable_derived_array,
+                                              "stable_derived_quantity has been renamed to stable_derived_array")
+
+SimSnap.stable_derived_quantity.__doc__ = "Deprecated alias for :meth:`stable_derived_array`"
+
+SimSnap.derived_quantity = util.deprecated(SimSnap.derived_array,
+                                           "derived_quantity has been renamed to derived_array")
+
+SimSnap.derived_quantity.__doc__ = "Deprecated alias for :meth:`derived_array`"

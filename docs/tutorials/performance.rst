@@ -6,30 +6,35 @@ Performance optimisation in pynbody
 ===================================
 
 ``Pynbody`` is built on top of ``numpy``, which means that learning how to optimize ``numpy``
-array manipulations is the most important route to writing efficient code; see http://scipy-lectures.github.com/advanced/optimizing/index.html
+array manipulations is the most important route to writing efficient code; see, for example,
+the `Scientific Python lectures <https://lectures.scientific-python.org/advanced/optimizing/index.html>`_
 for an introduction.
 
-However there are a few issues which are specific to ``pynbody``. First, a large
-number of ``pynbody``'s most common operations are parallelized: make sure you
-have set up these routines to behave in a way that matches your needs by reading
-the page on :ref:`threads`.
+However there are a couple of issues which are specific to ``pynbody``.
 
-Other than that, there are some more subtle issues. The most important of these
-that we have come across is the overheads incurred by using ``SubSnap``s
-which are explained
-below.
+* Many of ``pynbody``'s most common operations are parallelized: make sure you have set up
+  these routines to behave in a way that matches your needs by reading the page on :ref:`threads`.
+* Sometimes, manipulating arrays from a :class:`~pynbody.snapshot.subsnap.SubSnap` can be slower than
+  manipulating the equivalent arrays from the parent snapshot. This is because the arrays
+  returned from a :class:`~pynbody.snapshot.subsnap.SubSnap` are not true ``numpy`` arrays but are
+  instead :class:`~pynbody.array.IndexedSimArray` objects. This is explained in more detail below.
 
+.. seealso::
+
+   A :ref:`separate document <parallelism>` covers parallelism in ``pynbody``, which can also be
+   important for performance-critical code.
 
 Overheads of SubSnaps
 ------------------------
 
+.. _template_performance_code:
 
 A template for performance-critical code
 ********************************************
 
 To cut a long story short, if your routine does a lot of array access on an object which might
-be a ``SubSnap`` of a certain flavour (explained further below), you will find that wrapping your
-code as follows speeds it up.
+be a :class:`~pynbody.snapshot.subsnap.SubSnap` of a certain flavour (explained further below),
+you will find that wrapping your code as follows speeds it up.
 
 .. code-block:: python
 
@@ -52,32 +57,44 @@ The remainder of this document unpacks what this does and why it should be neces
 What is a SubSnap, really?
 ****************************
 
-When you construct a ``SubSnap``, the framework records which particles of the underlying
-``SimSnap`` are included and which are not. Thereafter, if you access an array from the ``SubSnap``,
-it is constructed in one of two ways.
+When you construct a sub-view of a simulation, the framework records which
+particles of the underlying :class:`~pynbody.snapshot.simsnap.SimSnap` are included and which are not.
+Thereafter, if you access an array from the sub-view, it is
+constructed in one of two ways.
 
- - If the set of particles indexed by the ``SubSnap`` is expressable a slice, the
-   arrays constructed are still ``numpy`` arrays.  This will be the case if you explicitly
-   slice the simulation (e.g. ``f[2:100:3]``), or if you ask for a specific particle family (e.g. ``f.dm``).
+- If the set of particles in the sub-view is expressible as
+  a slice, the type of the sub-view is :class:`~pynbody.snapshot.subsnap.SubSnap`,
+  and any arrays accessed are still returned as ``numpy`` arrays, albeit with non-contiguous strides.
+  This will be the
+  case if you explicitly slice the simulation (e.g. ``f[2:100:3]``), or if you ask for a
+  specific particle family (e.g. ``f.dm``).
 
- - If the set of particles is not expressable in this way, the arrays constructed are
-   emulating ``numpy`` arrays and this can become expensive (see below). This will
-   be the cae if you ask for a list of particles (e.g. ``f[[2,10,15,22]]``) use a ``numpy``-like
-   indexing trick (e.g. ``f[f['x']>10]`` or ``f[numpy.where(f['x']>10)]``) or use a
-   :py:mod:`filter <pynbody.filt>`.
+- If the set of particles is not expressible in this way, instead of a
+  :class:`~pynbody.snapshot.subsnap.SubSnap`
+  you will get a :class:`~pynbody.snapshot.subsnap.IndexedSubSnap`. In this case,
+  arrays returned from the new view are
+  *emulating* ``numpy`` arrays and this can become expensive (see below). This will
+  be the case if you ask for a list of particles (e.g. ``f[[2,10,15,22]]``) use a ``numpy``-like
+  indexing trick (e.g. ``f[f['x']>10]`` or ``f[numpy.where(f['x']>10)]``) or use a
+  :py:mod:`filter <pynbody.filt>`.
 
-In the first case, the optimization is unchanged from the raw ``SimSnap`` case.
-In the second case, the situation is different.
+In the case of :class:`~pynbody.snapshot.subsnap.IndexedSubSnap`, performance
+can be rather different from that of the parent snapshot.
 To understand how and why, we
 need to look at the difference between an indexed and a sliced ``numpy`` array.
 
 
-Numpy's behaviour
-***********************
+The need for array emulation
+****************************
 
-This section explains why the reason for the slightly awkward design of ``IndexedSubArray``.
-The ``pynbody`` framework requires all sub-arrays to continue pointing to the original data
-but a simple experiment with numpy shows that it does not enable this behaviour in all
+When you get an array from a :class:`~pynbody.snapshot.subsnap.IndexedSubSnap`, it is of
+type :class:`~pynbody.array.IndexedSimArray`.
+This section explains why the reason and implications.
+
+The ``pynbody`` framework is designed to allow users to interact with data without worrying
+too much about whether it is an entire simulation or a small portion of a simulation.
+Consistency then requires all sub-arrays to continue pointing to the original data.
+But a simple experiment with numpy shows that it does not enable this behaviour in all
 cases that we want to cover.
 
 Here's what happens when you use a slice of an existing ``numpy`` array.
@@ -114,10 +131,7 @@ Here changing ``c`` has not updated ``a``. That's because the construction of ``
 the underlying design of ``numpy`` arrays requiring the data to lie in a predictable
 pattern in the memory.
 
-Back to pynbody
-******************
-
-The ``IndexedSubArray`` class fixes this problem:
+The :class:`~pynbody.array.IndexedSimArray` class fixes this problem:
 
 .. ipython ::
 
@@ -154,19 +168,22 @@ This is because of the overheads of continually constructing proxy
 
 
 How to remove this bottleneck
-***************************************
+*****************************
 
 We should emphasize that the example above is quite contrived, since it forces
 re-construction of the ``numpy`` proxy 10000 times. In user code,
 the number of ``numpy`` proxies that have to be constructed will be vastly smaller,
 so the fractional overheads are normally quite small.
 
-Nonetheless, it does sometimes become a problem for performance-critical code.
-For that reason, it's possible to avoid constructing ``IndexedSimArray``s altogether
-and force only ``numpy`` arrays to be returned. This means you must take responsibility
-for understanding which operations copy, as opposed to referencing, data.
+Nonetheless, construction of these proxy arrays does sometimes become a problem for
+performance-critical code. For that reason, it's possible to avoid constructing
+:class:`~pynbody.array.IndexedSimArray` s altogether
+and force only :class:`~pynbody.array.SimArray` to be returned. This is a thin wrapper
+around a ``numpy`` array (see :ref:`overhead_simarray` below) and, as such, is enormously more efficient.
+But it can be less convenient since you have to keep track of when to copy data back.
 
-This is known as ``immediate mode`` and is activated using python's ``with`` mechanism.
+Pynbody refers to this approach as *immediate mode*; it can be activated using a context manager
+(i.e. python's ``with`` keyword).
 Let's create a test snapshot and a subview into that snapshot to try it out.
 
 .. ipython ::
@@ -175,7 +192,8 @@ Let's create a test snapshot and a subview into that snapshot to try it out.
 
  In [25]: sub_f = f[[20,21,22]]
 
-Under normal conditions, the type of arrays returned from ``sub_f`` is ``IndexedSimArray``.
+Under normal conditions, the type of arrays returned from ``sub_f`` is
+:class:`~pynbody.array.IndexedSimArray`.
 Updating one of these arrays will transparently update the main snapshot.
 
 .. ipython ::
@@ -190,8 +208,9 @@ Updating one of these arrays will transparently update the main snapshot.
  [ 3.  3.  3.]
 
 
-Conversely, in ``immediate mode``, the type of arrays returned from ``sub_f`` is ``SimArray`` (so just
-a wrapper round a real ``numpy`` array). But updating that returned ``numpy`` array has *no effect* on the
+Conversely, in ``immediate mode``, the type of arrays returned from ``sub_f`` is
+:class:`~pynbody.array.SimArray`.
+This is faster, but updating the returned ``numpy`` array has *no effect* on the
 parent snapshot.
 
 .. ipython ::
@@ -213,32 +232,33 @@ parent snapshot.
 
 
 So it becomes your responsibility to copy the results back in this case, if required. A template for performance
-critical code which might be operating on a ``SubSnap`` follows.
+critical code which might be operating on a ``SubSnap`` was given above, in
+:ref:`template_performance_code`.
 
+In summary, the template code:
 
+ - stores a *copy* of the data for the subset of particles
+ - works on the copy
+ - (if necessary) updates the main snapshot data explicitly before returning
 
 
 .. note::
 
  ``with f_sub.immediate_mode``
- is equivalent to ``with f.immediate_mode`` where ``f_sub`` is any ``SubSnap`` of ``f``.
+ is equivalent to ``with f.immediate_mode`` where ``f_sub`` is any
+ sub-view of ``f``.
 
-So in summary, the template code at the start of this document advocates:
+.. _overhead_simarray:
 
- - storing a *copy* of the data for the subset of particles
- - working on the copy
- - (if necessary) updating the main snapshot data explicitly before returning
-
-
-Overheads of raw SimArrays
---------------------------
+Overheads of SimArrays
+----------------------
 
 .. note::
 
  This information is provided for interest. We have never come across a realistic use case
  where the following is necessary.
 
-In ``pynbody``, arrays are implemented by the class :class:`~pynbody.array.SimArray`. This is a wrapper
+In ``pynbody``, arrays are implemented by the class :class:`~pynbody.array.SimArray`. This is a thin wrapper
 around a ``numpy`` array. There is a small extra cost associated with every operation to allow
 units to be matched and updated. For long arrays such as those found in typical simulations, this is usually a tiny fraction of the
 actual computation time. We have never found it to be a problem, but if you want to disable the

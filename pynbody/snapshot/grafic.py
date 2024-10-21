@@ -1,9 +1,5 @@
 """
-
-grafic
-======
-
-Support for loading grafIC files
+Support for loading grafIC initial conditions files
 """
 
 import glob
@@ -20,7 +16,7 @@ from . import SimSnap
 _float_data_type = 'f'
 _int_data_type = 'l'
 
-genic_header = dict(
+_header = dict(
     keys=('nx', 'ny', 'nz', 'dx', 'lx', 'ly', 'lz', 'astart', 'omegam', 'omegal', 'h0'),
     dtype='i,i,i,f,f,f,f,f,f,f,f'
 )
@@ -39,17 +35,32 @@ _max_buflen = 1024 ** 2
 
 
 class GrafICSnap(SimSnap):
+    """Class for loading grafIC initial conditions files"""
 
     @staticmethod
     def _can_load(f):
         return os.path.isdir(f) and os.path.exists(os.path.join(f, "ic_velcx"))
 
     def __init__(self, f, take=None, use_pos_file=True):
+        """Load a grafIC initial conditions file
+
+        Parameters
+        ----------
+
+        f : str
+            The directory containing the initial conditions files
+        take : np.ndarray, optional
+            The array of particles to load. If not specified, all particles are loaded.
+        use_pos_file : bool, optional
+            If True, use the displacement field stored in the ic_poscx file to displace particles.
+            If False, use the Zeldovich approximation to reconstruct displacements from velocity information in ic_velx
+            etc.
+        """
         super().__init__()
         with FortranFile(os.path.join(f, "ic_velcx")) as f_cx:
             self._header = {
                 k: v
-                for k, v in zip(genic_header['keys'], f_cx.read_vector(genic_header['dtype'])[0])}
+                for k, v in zip(_header['keys'], f_cx.read_vector(_header['dtype'])[0])}
         h = self._header
         self._dlen = int(h['nx'] * h['ny'])
         self.properties['a'] = float(h['astart'])
@@ -188,7 +199,7 @@ class GrafICSnap(SimSnap):
     def _read_grafic_file(self, filename, target_buffer, data_type):
         with FortranFile(filename) as f:
             h = {k: v for k, v
-                 in zip(genic_header['keys'], f.read_vector(genic_header['dtype'])[0])}
+                 in zip(_header['keys'], f.read_vector(_header['dtype'])[0])}
 
             def dummy_interrupt(pos):
                 pass

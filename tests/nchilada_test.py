@@ -1,7 +1,18 @@
+import pathlib
+import shutil
+
 import numpy as np
 import numpy.testing as npt
+import pytest
 
 import pynbody
+import pynbody.test_utils
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("nchilada")
+
 
 reference_positions = np.array([[4.80664825e+01, -8.99647751e+01,
                                  3.74038162e+01],
@@ -164,6 +175,42 @@ import pytest
 @pytest.fixture
 def nchilada_file():
     yield pynbody.load("testdata/nchilada_test/12M.00001")
+
+@pytest.fixture
+def nchilada_file_new_names():
+    # Since 2020, nchilada files have used 'velocity' instead of 'vel' as the name
+    # of the velocity field. This constructs a new-style file from the one old-style
+    # sample
+
+    def _recursive_build_new(old_dir, new_dir):
+        if not new_dir.exists():
+            new_dir.mkdir()
+            for f in old_dir.iterdir():
+                if f.is_file():
+                    # if the filename is description.xml we need a special handler
+                    if f.name == "description.xml":
+                        with open(f) as old_file:
+                            with open(new_dir/f.name, 'w') as new_file:
+                                for line in old_file:
+                                    new_file.write(line.replace('name="vel"', 'name="velocity"'))
+                    else:
+                        # symlink the old file into the new directory
+                        (new_dir/f.name).symlink_to(f.absolute())
+                elif f.is_dir():
+                    _recursive_build_new(f, new_dir/f.name)
+
+    old_dir = pathlib.Path("testdata/nchilada_test")
+    new_dir = pathlib.Path("testdata/nchilada_test_new_names")
+
+    _recursive_build_new(old_dir, new_dir)
+
+    yield pynbody.load("testdata/nchilada_test_new_names/12M.00001")
+
+    # clean up the new directory
+    shutil.rmtree(new_dir)
+
+def test_vel_naming(nchilada_file, nchilada_file_new_names):
+    assert (nchilada_file['vel'] == nchilada_file_new_names['vel']).all()
 
 
 def test_get(nchilada_file):

@@ -673,9 +673,7 @@ def v_circ(p, grav_sim=None):
     """Circular velocity, i.e. rotation curve. Calculated by computing the gravity
     in the midplane - can be expensive"""
 
-    import pynbody.gravity.calc as gravity
-
-    from .. import config
+    from .. import config, gravity
 
     global config
 
@@ -709,8 +707,7 @@ def E_circ(p):
 @Profile.profile_property
 def pot(p):
     """Calculates the potential in the midplane - can be expensive"""
-    #from . import gravity
-    import pynbody.gravity.calc as gravity
+    from .. import gravity
 
     logger.warning(
         "Profile pot -- this routine assumes the disk is in the x-y plane")

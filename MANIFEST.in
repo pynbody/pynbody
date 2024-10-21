@@ -1,4 +1,4 @@
-recursive-include pynbody *.py *.pyx *.c *.h
+recursive-include pynbody *.py *.pyx *.c *.h *.cpp *.hpp
 recursive-include tests *.py
 recursive-include docs *.rst *.py
 include docs/Makefile

@@ -7,7 +7,13 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.test_utils
 from pynbody.dependencytracker import DependencyError
+
+
+@pytest.fixture(scope='module', autouse=True)
+def get_data():
+    pynbody.test_utils.ensure_test_data_available("gasoline_ahf")
 
 
 def setup_module():
@@ -224,7 +230,7 @@ def test_array_write(snap):
 @pytest.mark.filterwarnings("ignore:Paramfile suggests time is cosmological.*:RuntimeWarning")
 @pytest.mark.filterwarnings("ignore:No readable param file.*:RuntimeWarning")
 def test_isolated_read():
-    s = pynbody.load('testdata/isolated_ics.std')
+    s = pynbody.load('testdata/gasoline_isolated/isolated_ics.std')
 
 
 def test_array_metadata(test_output):
@@ -354,76 +360,6 @@ def test_unit_persistence():
     f1['pos']
     assert f1['pos'].units != 'kpc'
 
-
-@pytest.mark.filterwarnings("ignore:No log file found; reverting to guess-and-check:UserWarning")
-def test_3d_interpolation(snap):
-    # this is the result using scipy.interpolate.interp
-    ref3d = np.array([0.07527991,  0.06456315,  0.08380653,  0.15143689,  0.15568259,
-                      0.09593283,  0.15549068,  0.13407668,  0.15177078,  0.14166734,
-                      0.06554151,  0.13197516,  0.08851156,  0.06210035,  0.09224193,
-                      0.162001,  0.16017458,  0.06572785,  0.16384523,  0.1621215,
-                      0.15005151,  0.15224003,  0.1580059,  0.1606176,  0.16919882,
-                      0.15257504,  0.15542396,  0.15950106,  0.15208175,  0.06277352,
-                      0.16297019,  0.16536367,  0.15913841,  0.16852261,  0.16592073,
-                      0.16994837,  0.13997742,  0.16381589,  0.16592951,  0.16631843,
-                      0.12965855,  0.16823705,  0.16560094,  0.16819444,  0.15564206,
-                      0.15821792,  0.1596779,  0.15242394,  0.16538892,  0.16265422,
-                      0.1698232,  0.16823449,  0.16036913,  0.13258314,  0.16295899,
-                      0.16926536,  0.16349818,  0.07734309,  0.16657909,  0.16847497,
-                      0.16370438,  0.17016328,  0.16424645,  0.14292659,  0.17001509,
-                      0.16708861,  0.17015931,  0.06657929,  0.16794139,  0.16821759,
-                      0.16128866,  0.14454934,  0.16137588,  0.16934885,  0.17008926,
-                      0.16986069,  0.16963654,  0.14639736,  0.16590415,  0.16879675,
-                      0.16349512,  0.16999227,  0.17003994,  0.15351041,  0.16446416,
-                      0.14130995,  0.1636267,  0.17015097,  0.16989277,  0.16982946,
-                      0.17006758,  0.16906539,  0.16315827,  0.17021533,  0.16991691,
-                      0.17006688,  0.17006756,  0.16753875,  0.15553802,  0.15892623])
-
-    arr = pynbody.analysis.ionfrac.calculate(snap, 'ovi')
-    assert(np.allclose(arr[0:100], ref3d))
-
-    ref2d = np.array([-8.43178697, -8.43437937, -8.43515772, -8.43554701, -8.43801415,
-                      -8.44009401, -8.44048422, -
-                      8.4410046, -8.44178542, -8.44204576,
-                      -8.44217594, -8.44217594, -
-                      8.44243633, -8.44269675, -8.4429572,
-                      -8.44334794, -8.4434782, -
-                      8.44412964, -8.44412964, -8.44439027,
-                      -8.4445206, -8.44465094, -
-                      8.44504199, -8.44530274, -8.44530274,
-                      -8.44530274, -8.44543312, -
-                      8.44595474, -8.44608516, -8.44608516,
-                      -8.4462156, -8.4462156, -8.4462156, -
-                      8.44634604, -8.44634604,
-                      -8.44647649, -8.44686789, -
-                      8.44686789, -8.44699837, -8.44712886,
-                      -8.44725936, -8.44738987, -
-                      8.44738987, -8.44752038, -8.44765091,
-                      -8.44765091, -8.44791198, -
-                      8.44830364, -8.44830364, -8.44843421,
-                      -8.44869538, -8.44869538, -
-                      8.4490872, -8.4490872, -8.44934845,
-                      -8.44947909, -8.44960973, -
-                      8.44987105, -8.44987105, -8.45000172,
-                      -8.45000172, -8.4501324, -
-                      8.45052448, -8.45091663, -8.45104737,
-                      -8.45117811, -8.45130886, -
-                      8.45130886, -8.45130886, -8.45157039,
-                      -8.45183196, -8.45196275, -
-                      8.45196275, -8.45209355, -8.45209355,
-                      -8.45235518, -8.45235518, -
-                      8.452486, -8.452486, -8.452486,
-                      -8.45261684, -8.45261684, -
-                      8.45287853, -8.45287853, -8.45300939,
-                      -8.45300939, -8.45300939, -
-                      8.45314025, -8.45340201, -8.4536638,
-                      -8.4536638, -8.4536638, -8.45379471, -
-                      8.45379471, -8.45379471,
-                      -8.45379471, -8.45392562, -8.45392562, -8.45405654, -8.45405654])
-
-    arr = pynbody.analysis.luminosity.calc_mags(snap.s)
-    assert(np.allclose(arr[0:100], ref2d))
-
 def test_alternative_cmd(snap):
     """A very basic test that the alternative cmd path is respected"""
     with pytest.raises(IOError):
@@ -437,7 +373,7 @@ def test_issue_313(snap):
 def test_issue_315(snap):
     assert np.allclose(snap.g['cs'][:3], [ 319.46246429,  359.4923197,   300.13751002])
 
-@pytest.mark.filterwarnings("ignore:No log file found; reverting to guess-and-check:UserWarning")
+@pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
 def test_read_starlog_no_log(snap):
     rhoform = snap.s['rhoform'].in_units('Msol kpc**-3')[:1000:100]
     correct = np.array([ 2472533.42024787,  5336799.91228041, 64992197.77874849,
@@ -446,7 +382,7 @@ def test_read_starlog_no_log(snap):
             10758492.68887316])
     assert np.all(np.abs(rhoform - correct) < 1e-7)
     # h2form should not be in the available starlog keys
-    with pytest.raises(DependencyError):
+    with pytest.raises(KeyError):
         h2form = snap.s['h2form']
 
 def test_read_starlog_with_log(snap):

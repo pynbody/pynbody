@@ -1,42 +1,49 @@
-"""Support for numpy arrays in shared memory."""
+"""Support for numpy arrays in shared memory.
+
+.. seealso::
+    There is information about using shared arrays to create parallel workflows in
+    :ref:`using_shared_arrays`.
+
+"""
 import atexit
 import functools
+import mmap
 import os
 import random
+import signal
 import time
-import weakref
 from functools import reduce
-from multiprocessing import shared_memory as shmem
-from threading import Timer
 
 import numpy as np
+import posix_ipc
 
 from ..configuration import config_parser
 from . import SimArray
 
-DELAY_BEFORE_CLOSING_SHARED_MEM = float(config_parser.get('shared-array', 'cleanup-delay'))
+_owned_shared_memory_names = []
 
-# weakrefs to all buffers created from the shared memory, so we can close the shared memory when they are garbage collected:
-_buf_weakrefs: list[weakref.ref[memoryview]] = []
-_mem_weakrefs_to_unlink: list[weakref.ref[shmem.SharedMemory]] = []
-_pending_cleanups: list[Timer] = [] # a list of timers that are waiting to clean up shared memory
+class SharedArrayNotFound(OSError):
+    pass
 
+class SharedMemorySimArray(SimArray):
+    """A simulation array that is backed onto shared memory."""
+    __slots__ = ['_shared_fname', '_shared_owner']
+    _shared_fname: str
+    _shared_owner: bool
 
-class QuietSharedMemory(shmem.SharedMemory):
-    """A wrapper around SharedMemory that doesn't print an error message if __del__ is called and mem is still mapped"""
     def __del__(self):
-        try:
-            shmem.SharedMemory.__del__(self)
-        except BufferError:
-            # When python exits, there is simply no way to avoid __del__ being called, but the numpy arrays
-            # are still alive and so __del__ generates this exception. We can't do anything about it.
-            # This isn't really such a problem. When python exits, it will eventually close the memory anyway.
-            # The more important thing is that the shared memory gets unlinked, which is handled by our
-            # at exit handler below.
-            pass
+        global _owned_shared_memory_names
+        if hasattr(self, '_shared_fname') and getattr(self, '_shared_owner', False):
+            if self._shared_fname in _owned_shared_memory_names:
+                _owned_shared_memory_names.remove(self._shared_fname)
+                posix_ipc.unlink_shared_memory(self._shared_fname)
 
-def make_shared_array(dims, dtype, zeros=False, fname=None, create=True):
-    """Create an array of dimensions *dims* with the given numpy *dtype*.
+def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
+                      offset = None, strides = None) -> SharedMemorySimArray:
+    """Create or reconstruct an array of dimensions *dims* with the given numpy *dtype*, backed on shared memory.
+
+    If *create* is True, a new shared memory array is created. If *create* is False, the shared memory array is opened
+    (and *fname* must be specified).
 
     Parameters
     ----------
@@ -48,12 +55,15 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True):
     zeros:
         If True, zero the array; otherwise leave uninitialised
     fname: str, optional
-        The shared memory name to use. If None, a random name will be created. This is only
-        valid with create=True.
+        The shared memory name to use. If None, and *create* is True, a random name will be generated.
     create: bool
         Whether to create the shared array, or to open existing shared memory. If the latter,
-        the fname must be specified and the caller is responsible for making sure the dtype
+        the *fname* must be specified and the caller is responsible for making sure the dtype
         and dims match the original array.
+    offset: int, optional
+        The offset into the shared memory to use. This is only valid with create=False
+    strides: tuple, optional
+        The strides to use. This is only valid with create=False
     """
     if fname is None:
         if not create:
@@ -62,8 +72,6 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True):
         fname = "pynbody-" + \
                 ("".join([random.choice('abcdefghijklmnopqrstuvwxyz')
                           for _ in range(10)]))
-
-    _ensure_shared_memory_clean()
 
     if not hasattr(dims, '__len__'):
         dims = (dims,)
@@ -77,14 +85,33 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True):
     else:
         size = dims
 
-    mem = QuietSharedMemory(fname, create=create, size=int(np.dtype(dtype).itemsize*size))
-    _mem_weakrefs_to_unlink.append(weakref.ref(mem))
+    if create:
+        _register_sigterm_handler()
+        if offset is not None:
+            raise ValueError("Offset only valid when opening an existing shared array")
+        if strides is not None:
+            raise ValueError("Strides only valid when opening an existing shared array")
+        mem = posix_ipc.SharedMemory(fname, posix_ipc.O_CREX, size=int(np.dtype(dtype).itemsize*size))
+        _owned_shared_memory_names.append(fname)
 
-    buffer = _get_auto_closing_shared_memory_buffer(mem, unlink=create, dtype=dtype, size=size)
+    else:
+        try:
+            mem = posix_ipc.SharedMemory(fname)
+        except posix_ipc.ExistentialError:
+            raise SharedArrayNotFound(f"No shared memory found with name {fname}") from None
 
-    ret_ar = buffer.reshape(dims).view(SimArray)
+    mapped_mem = mmap.mmap(mem.fd, mem.size)
+    mem.close_fd()
 
+    if offset is None:
+        offset = 0
+
+    ret_ar = np.frombuffer(mapped_mem, dtype=dtype, count=size, offset=offset).reshape(dims).view(SharedMemorySimArray)
     ret_ar._shared_fname = fname
+    ret_ar._shared_owner = create
+
+    if strides:
+        ret_ar.strides = strides
 
     if zero_size:
         ret_ar = ret_ar[1:]
@@ -95,112 +122,52 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True):
     return ret_ar
 
 @atexit.register
-def atex():
-    import gc
-    gc.collect()
+def delete_dangling_shared_memory():
+    """Ensures that all shared memory has been cleaned up."""
+    global _owned_shared_memory_names
 
-    memory_to_unlink = [m() for m in _mem_weakrefs_to_unlink if m() is not None]
-
-    _ensure_shared_memory_clean(stop_tracking=True)
-
-    # if numpy arrays are still alive, the above fails to clean them up.
-    # here is the last line of defence against leaving shared memory in place.
-    # we don't try to close() because that throws an error when the memory is still
-    # 'claimed' by a numpy object
-    for m in memory_to_unlink:
+    for fname in _owned_shared_memory_names:
         try:
-            m.unlink()
-        except FileNotFoundError:
+            posix_ipc.unlink_shared_memory(fname)
+        except posix_ipc.ExistentialError:
             pass
+    _owned_shared_memory_names = []
 
+_sigterm_handler_is_registered = False
 
-def _ensure_shared_memory_clean(stop_tracking=False):
-    """Ensures that all shared memory has been cleaned up. This is called
-    automatically by the shared array code, but can be called manually if
-    required
+def _sigterm_handler(signum, frame):
+    delete_dangling_shared_memory()
 
-    If stop_tracking is True, then we stop tracking the shared memory
-    (used when the shared memory is about to be forcibly cleaned up at exit)"""
-    global _pending_cleanups
+def _register_sigterm_handler():
+    """Registers a handler to clean up shared memory in the event of a SIGTERM signal."""
+    global _sigterm_handler_is_registered
+    if not _sigterm_handler_is_registered:
+        signal.signal(signal.SIGTERM, _sigterm_handler)
+        _sigterm_handler_is_registered = True
 
-    for t in _pending_cleanups:
-        if t.is_alive():
-            t.join()
-    _pending_cleanups = []
+def get_num_shared_arrays_owned():
+    """Returns the number of shared arrays currently owned by this process.
 
-    global _buf_weakrefs
-    if stop_tracking:
-        _buf_weakrefs = []
-    else:
-        _buf_weakrefs = [w for w in _buf_weakrefs if w() is not None]
-
-
-def get_num_shared_arrays():
-    """Returns the number of shared arrays currently in use."""
-    _ensure_shared_memory_clean()
-    global _buf_weakrefs
-    return len(_buf_weakrefs)
-
-
-def _get_auto_closing_shared_memory_buffer(mem: shmem.SharedMemory, unlink=False, dtype=np.float32, size=0, offset=0) -> memoryview:
-    """Returns a buffer object for the shared memory, and sets up a callback so that the shared memory will be closed
-    when the buffer is garbage collected.
-
-    If *unlink* is True, the shared memory will also be unlinked at the same time."""
-    global _buf_weakrefs
-
-    # mem.buf is stored internally to mem, so we won't be able to detect when it's no longer referenced while also
-    # keeping the mem alive. So we create our own buffer that we can keep a weakref to, and then we can close the
-    # shared memory when our own buffer is garbage collected.
-    buf = np.frombuffer(mem.buf, dtype=dtype, count=size, offset=offset)
-
-    def clearup_callback(_):
-        def clearup_after_delay():
-            try:
-                mem.close()
-            except BufferError:
-                # this shouldn't happen, but might do if DELAY_BEFORE_CLOSING_SHARED_MEM is too short.
-                # sleep a while and try again. If it fails again, something is really wrong.
-                time.sleep(DELAY_BEFORE_CLOSING_SHARED_MEM)
-                mem.close()
-            if unlink:
-                mem.unlink()
-
-        # the following "callback" approach is necessitated because at the time when clearup is called, the numpy
-        # reference to the buffer is still alive, and mem.close() will fail with an exception. It is
-        # really ugly, and could in principle fail if the deletion of the numpy object proceeds too slowly.
-        # But have tried very hard to find an alternative approach, and this is the only one that works
-        # reliably. The other alternative would be a C extension that manually detaches the buffer from
-        # the underlying memory, but that would risk segmentation faults if actually the buffer is still in
-        # use.
-        t = Timer(DELAY_BEFORE_CLOSING_SHARED_MEM, clearup_after_delay)
-        t.start()
-        _pending_cleanups.append(t) # a record of the timer is kept just in case we want to verify that it has been called
-
-    _buf_weakrefs.append(weakref.ref(buf, clearup_callback))
-    # nb the closure of clearup_callback keeps the mem alive, so we don't need to keep a reference to it explicitly
-    # (we don't want mem to be garbage collected until the buffer is garbage collected, otherwise
-    # its __del__ method spews an error, for similar reasons to those discussed above)
-
-    return buf
-
+    A shared array is only considered owned if this process is reponsible for unlinking it on exit.
+    """
+    return len(_owned_shared_memory_names)
 
 class _deconstructed_shared_array(tuple):
     pass
-
 
 def _shared_array_deconstruct(ar, transfer_ownership=False):
     """Deconstruct an array backed onto shared memory into something that can be
     passed between processes efficiently. If *transfer_ownership* is True,
     also transfers responsibility for deleting the underlying memory (if this
-    process has it) to the reconstructing process."""
+    process has it) to the reconstructing process. New code should use
+    :func:`pack` instead."""
 
     assert isinstance(ar, SimArray)
     ar_base = ar
     while isinstance(ar_base.base, SimArray):
         ar_base = ar_base.base
 
-    assert hasattr(ar_base,'_shared_fname'), "Cannot prepare an array for shared use unless it was created in shared memory"
+    assert isinstance(ar_base, SharedMemorySimArray), "Cannot prepare an array for shared use unless it was created in shared memory"
 
     ownership_out = transfer_ownership and ar_base._shared_del
     if transfer_ownership:
@@ -214,28 +181,22 @@ def _shared_array_deconstruct(ar, transfer_ownership=False):
 
 
 def _shared_array_reconstruct(X):
-    _ensure_shared_memory_clean()
     dtype, dims, fname, ownership, offset, strides = X
 
     assert not ownership # transferring ownership not actually supported in current implementation
 
-    mem = QuietSharedMemory(fname)
-
-    size = reduce(np.multiply, dims)
-    buf = _get_auto_closing_shared_memory_buffer(mem, unlink=False, dtype=dtype, size=size, offset=offset)
-
-    new_ar = buf.reshape(dims).view(SimArray)
-
-    new_ar.strides = strides
-    new_ar._shared_fname = fname
+    new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides)
 
     return new_ar
 
 
 def _recursive_shared_array_deconstruct(input, transfer_ownership=False) :
     """Works through items in input, deconstructing any shared memory arrays
-    into transferrable references"""
+    into transferrable references. New code should use :func:`pack` instead."""
     output = []
+    if isinstance(input, SimArray):
+        return _shared_array_deconstruct(input, transfer_ownership)
+
     for item in input:
         if isinstance(item, SimArray):
             item = _shared_array_deconstruct(item, transfer_ownership)
@@ -247,8 +208,13 @@ def _recursive_shared_array_deconstruct(input, transfer_ownership=False) :
 
 def _recursive_shared_array_reconstruct(input):
     """Works through items in input, reconstructing any shared memory arrays
-    from transferrable references"""
+    from transferrable references. New code should use :func:`unpack` instead."""
+
+    if isinstance(input, _deconstructed_shared_array):
+        return _shared_array_reconstruct(input)
+
     output = []
+
     for item in input:
         if isinstance(item, _deconstructed_shared_array):
             item = _shared_array_reconstruct(item)
@@ -263,11 +229,11 @@ class RemoteKeyboardInterrupt(Exception):
 
 
 def shared_array_remote(fn):
-    """A decorator for functions returning a new function that is
-    suitable for use remotely. Inputs to and outputs from the function
-    can be transferred efficiently if they are backed onto shared
-    memory. Ownership of any shared memory returned by the function
-    is transferred."""
+    """A decorator for functions that are expected to run on a 'remote' process, accepting shared memory inputs.
+
+    The decorator reconstructs any shared memory arrays that have been packed into a reference by
+    :func:`remote_map`.
+    """
 
     @functools.wraps(fn)
     def new_fn(args, **kwargs):
@@ -290,10 +256,31 @@ def shared_array_remote(fn):
 
 
 def remote_map(pool, fn, *iterables):
-    """A replacement for python's in-built map function, sending out tasks
-    to the pool and performing the magic required to transport shared memory arrays
-    correctly. The function *fn* must be wrapped with the *shared_array_remote*
-    decorator to interface correctly with this magic."""
+    """Equivalent to pool.map, but turns any shared memory arrays into a reference that can be passed between processes.
+
+    The function *fn* must be wrapped with the :func:`shared_array_remote` decorator for this to work correctly.
+
+    Parameters
+    ----------
+
+    pool : multiprocessing.Pool
+        The pool to use for parallel processing
+
+    fn : function
+        The function to apply to each element of the iterable. This function must be wrapped with
+        :func:`shared_array_remote` to use shared arrays.
+
+    *iterables : iterable
+        The iterables to pass to the function. If more than one iterable is passed, the function is called with
+        arguments from each iterable in turn.
+
+    Returns
+    -------
+    list
+        The results of applying the function to each element of the iterable. If the function returns shared arrays,
+        these are transferred back to the parent process and returned fully reconstructed.
+
+    """
 
     assert getattr(fn, '__pynbody_remote_array__',
                    False), "Function must be wrapped with shared_array_remote to use shared arrays"
@@ -305,3 +292,44 @@ def remote_map(pool, fn, *iterables):
     except RemoteKeyboardInterrupt:
         raise KeyboardInterrupt
     return _recursive_shared_array_reconstruct(results)
+
+def pack(array, transfer_ownership=False):
+    """Turn an array backed onto shared memory into something that can be passed between processes
+
+    Parameters
+    ----------
+    array : SimArray
+        The array to pack. Note that this must be a shared memory array, created via :func:`make_shared_array`, or
+        a view of such an array. Snapshots load arrays into shared memory only if you have called
+        :func:`pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays` first.
+
+    transfer_ownership : bool
+        If True, the receiving process will take over responsibility for cleaning up the shared memory.
+
+    Returns
+    -------
+
+    array_description : object
+        A description of the array that can be passed between processes (e.g. using pickle to turn it into a short
+        string that can be sent via a pipe).
+    """
+
+    return _recursive_shared_array_deconstruct(array, transfer_ownership)
+
+def unpack(array_description):
+    """Reconstruct an array backed onto shared memory from a deconstructed array (returned by :func:`pack`).
+
+    Parameters
+    ----------
+
+    array_description : object
+        A description of the array that has been passed in from another process, where :func:`pack` was called.
+
+    Returns
+    -------
+
+    array : SimArray
+        A view on the same shared memory array that was passed in to :func:`pack`.
+    """
+
+    return _recursive_shared_array_reconstruct(array_description)
