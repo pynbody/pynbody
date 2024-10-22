@@ -1,5 +1,11 @@
 """
-Support for creating profiles of various quantities, normally as a function of 2d or 3d radius
+Support for creating profiles of various quantities, normally as a function of 2d or 3d radius.
+
+The functions defined in the module represent profiles that can be access from a
+:class:`~pynbody.analysis.profile.Profile` object.
+
+For more information and example usage, see the :ref:`profile` tutorial and the documentation for the
+:class:`~pynbody.analysis.profile.Profile` class.
 """
 
 import logging
@@ -24,79 +30,39 @@ class Profile:
     Any quantity known in the SimSnap can be profiled, meaning that the mean value of that
     quantity in each bin is calculated.
 
-    For more information and example usage, see the :ref:`profile` tutorial.
+    .. seealso::
+      For more information and example usage, see the :ref:`profile` tutorial.
 
-    Additional functions should use the profile_property to yield the
-    desired profile.
+      To define profiles of new quantities, see :meth:`profile_property`.
 
-    **Implemented profile functions**:
+    **Implicit averaging**: If an array ``ar`` is defined in the underlying ``SimSnap``, then a profile of ``ar``
+    can be accessed as ``p['ar']`` where ``p`` is a ``Profile`` object. For example, ``p['vr']`` gives
+    the radial velocity profile. Implicitly, this is averaged over all particles in each bin,
+    weighted by mass (unless an alternate weighting scheme is passed to the ``weight_by`` keyword argument of the
+    constructor).
 
-    *density*    : density
+    **Dispersions**: One may append ``_rms`` or ``_disp`` to the name of a
+    defined array to get the root-mean-square or dispersion profile, respectively. For example,
+    ``p['vr_rms']`` gives the root-mean-square radial velocity profile, while ``p['vr_disp']`` gives
+    the radial velocity dispersion profile. By definition, ``p['vr_disp']**2`` is the same as
+    ``p['vr_rms']**2 - p['vr']**2``.
 
-    *mass*       : mass in each bin
+    **Derivatives**: One may also prepend ``d_`` to the name of a defined array to get the derivative, e.g.
+    ``p['d_temp']`` gives the radial temperature gradient.
 
-    *mass_enc*   : enclosed mass
+    **Non-array profiles**: Profiles can be defined that do not directly correspond to the average over an
+    array in the snapshot. Examples include ``density``, ``mass`` and ``mass_enc``. These are implemented as
+    functions in the :mod:`pynbody.analysis.profile` module; you can therefore find a list of available
+    profiles by looking at the functions there. These profiles can be accessed in the same way as array profiles,
+    e.g. ``p['density']``. For profiles that take an argument, such as ``sb``, this is passed in with
+    an underscore e.g. ``p['sb_b']`` for b-band surface brightnesses.
 
-    *fourier* : provides fourier coefficients, amplitude and phase for
-     m=0 to m=6.  To access the amplitude profile of m=2 mode, do
-     ``p['fourier']['amp'][2,:]``
-
-    *dyntime*    : dynamical time
-
-    *g_spherical*: GM_enc/r^2
-
-    *rotation_curve_spherical*: rotation curve from vc = sqrt(GM/R) -
-     can be very wrong!
-
-    *j_circ*     : angular momentum of particles on circular orbits
-
-    *v_circ* : circular velocity, aka rotation curve - calculated from
-     the midplane gravity, so this can be expensive
-
-    *E_circ*     : energy of particles on circular orbits in the midplane
-
-    *omega*      : circular orbital frequency
-
-    *kappa*      : radial orbital frequency
-
-    *beta*       : 3-D velocity anisotropy parameter
-
-    *magnitudes* : magnitudes in each bin - default band = 'v'
-
-    *sb*         : surface brightness - default band = 'v'
-
-    **Lazy-loading arrays:**
-
-    The Profile class will automatically compute a mass-weighted
-    profile for any lazy-loadable array of its parent SimSnap object.
-
-    **Dispersions:**
-
-    To obtain a dispersion profile, attach a ``_disp`` after the desired
-    quantity name.
-
-    **RMS:**
-
-    The root-mean-square of a quantity can be obtained by using a ``_rms`` suffix
-
-    **Derivatives:**
-
-    To compute a derivative of a profile, prepend a ``d_`` to the
-    profile string, as in ``p['d_temp']`` to get a temperature gradient.
-
-    **Saving and loading previously generated profiles:**
-
-    Use the :func:`~pynbody.analysis.profile.Profile.write` function
-    to write the current profiles with all the necessary information
-    to a file. Initialize a profile with the load_from_file=True
-    keyword to automatically load a previously saved profile. The
-    filename is chosen automatically and corresponds to a hash
-    generated from the positions of the particles used in the
-    profile. This is to ensure that you are always looking at the same
-    set of particles, centered in the same way. It also means you
-    *must* use the same centering method if you want to reuse a saved
-    profile.
-
+    **Storing profiles**: Use the :func:`~pynbody.analysis.profile.Profile.write` function to write the current
+    profiles with all the necessary information to a file. Initialize a profile with the ``load_from_file=True``
+    keyword to automatically load a previously saved profile. The filename is chosen automatically and corresponds to
+    a hash generated from the positions of the particles used in the profile. This is to ensure that you are always
+    looking at the same set of particles, centered in the same way. It also means you *must* use the same centering
+    method if you want to reuse a saved profile.
 
     """
 
@@ -529,6 +495,19 @@ class Profile:
 
     @staticmethod
     def profile_property(fn):
+        """Function decorator to define a new profile property.
+
+        For example,
+
+        .. code-block:: python
+
+         @Profile.profile_property
+         def x_squared(pro):
+             return pro['x']**2
+
+        would define a new profile property 'x_squared' which is the square of the 'x' profile.
+        This can then be accessed as ``pro['x_squared']`` for any profile object ``pro``.
+        """
         Profile._profile_registry[fn.__name__] = fn
         return fn
 
@@ -696,13 +675,13 @@ def v_circ(p, grav_sim=None):
 
 @Profile.profile_property
 def E_circ(p):
-    """Energy of particles on circular orbits."""
+    """Calculates the energy of particles on circular orbits in the z=0 plane."""
     return 0.5 * (p['v_circ'] ** 2) + p['pot']
 
 
 @Profile.profile_property
 def pot(p):
-    """Calculates the potential in the midplane - can be expensive"""
+    """Calculates the potential in the z=0 plane"""
     from .. import gravity
 
     logger.warning(
@@ -723,7 +702,7 @@ def pot(p):
 
 @Profile.profile_property
 def omega(p):
-    """Circular frequency Omega = v_circ/radius (see Binney & Tremaine Sect. 3.2)"""
+    """Circular frequency Omega = v_circ/radius (see Binney & Tremaine Sect. 3.2) in the z=0 plane"""
     prof = p['v_circ'] / p['rbins']
     prof.set_units_like('km s**-1 kpc**-1')
     return prof
@@ -731,22 +710,27 @@ def omega(p):
 
 @Profile.profile_property
 def kappa(p):
-    """Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney & Tremaine Sect. 3.2)"""
+    """Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney & Tremaine Sect. 3.2) in the z=0 plane"""
     dOmega2dR = np.gradient(p['omega'] ** 2)/np.gradient(p['rbins'])
     return np.sqrt(p['rbins'] * dOmega2dR + 4 * p['omega'] ** 2)
 
 
 @Profile.profile_property
 def beta(p):
-    """3D Anisotropy parameter as defined in Binney and Tremiane"""
+    """3D Anisotropy parameter as defined in Binney and Tremaine"""
     assert p.ndim == 3
     return 1.5 - (p['vx_disp'] ** 2 + p['vy_disp'] ** 2 + p['vz_disp'] ** 2) / p['vr_disp'] ** 2 / 2.
 
 
 @Profile.profile_property
 def magnitudes(self, band='v'):
-    """
-    Calculate magnitudes in each bin
+    """Calculate magnitudes in each bin
+
+    When calling this from a profile object, the band can be specified after an underscore, e.g.
+    ``p['magnitudes_b']`` for b-band magnitudes.
+
+    For important information about the calculation of magnitudes and surface brightnesses, see
+    the module documentation for :mod:`pynbody.analysis.luminosity`.
     """
     from . import luminosity
 
@@ -761,6 +745,14 @@ def magnitudes(self, band='v'):
 
 @Profile.profile_property
 def sb(self, band='v'):
+    """Calculate surface brightness in each bin
+
+    When calling this from a profile object, the band can be specified after an underscore, e.g.
+    ``p['sb_b']`` for b-band surface brightnesses.
+
+    For important information about the calculation of magnitudes and surface brightnesses, see
+    the module documentation for :mod:`pynbody.analysis.luminosity`.
+    """
     # At 10 pc (distance for absolute magnitudes), 1 arcsec is 10 AU=1/2.06e4 pc
     # In [5]: (np.tan(np.pi/180/3600)*10.0)**2
     # Out[5]: 2.3504430539466191e-09
@@ -782,7 +774,8 @@ def Q(self):
 
 @Profile.profile_property
 def X(self):
-    """X parameter defined as kappa^2*R/(2*pi*G*sigma*m)
+    """X parameter defined as kappa^2*R/(2*pi*G*sigma*m), using the rotation curve from the z=0 plane
+
     See Binney & Tremaine 2008, eq. 6.77"""
 
     lambda_crit = 4. * np.pi ** 2 * units.G * \
@@ -793,8 +786,7 @@ def X(self):
 
 @Profile.profile_property
 def jtot(self):
-    """
-    Magnitude of the total angular momentum
+    """Magnitude of the total angular momentum
     """
     jtot = np.zeros(self.nbins)
 
@@ -811,18 +803,14 @@ def jtot(self):
 
 @Profile.profile_property
 def j_theta(self):
-    """
-    Angle that the angular momentum vector of the bin makes with respect to the xy-plane.
-    """
+    """Angle that the angular momentum vector of the bin makes with respect to the xy-plane."""
 
     return np.arccos(self['jz'] / self['jtot'])
 
 
 @Profile.profile_property
 def j_phi(self):
-    """
-    Angle that the angular momentum vector of the bin makes with the x-axis in the xy plane.
-    """
+    """Angle that the angular momentum vector of the bin makes with the x-axis in the xy plane."""
     j_phi = np.zeros(self.nbins)
 
     for i in range(self.nbins):
@@ -835,11 +823,8 @@ def j_phi(self):
 
 
 class InclinedProfile(Profile):
-
     """
-
-    Creates a profile object to be used with a snapshot inclined by
-    some known angle to the xy plane.
+    A profile object to be used with a snapshot inclined by some known angle to the xy plane.
 
     In addition to the SimSnap object, it also requires the angle to
     initialize.
@@ -869,34 +854,38 @@ class InclinedProfile(Profile):
 
 
 class VerticalProfile(Profile):
-
-    """
-
-    Creates a profile object that uses the absolute value of the z-coordinate for binning.
-
-    **Input**:
-
-    *sim*: snapshot to make a profile from
-
-    *rmin*: minimum radius for particle selection in kpc
-
-    *rmax*: maximum radius for particle selection in kpc
-
-    *zmax*: maximum height to consider in kpc
-
-    **Optional Keywords**:
-
-    *ndim*: if ndim=2, an edge-on projected profile is produced,
-     i.e. density is in units of mass/pc^2. If ndim=3 a volume
-     profile is made, i.e. density is in units of mass/pc^3.
-
+    """A profile class that uses the absolute value of the z coordinate for binning instead of a radial coordinate.
     """
 
     def _calculate_x(self, sim):
         return array.SimArray(np.abs(sim['z']), sim['z'].units)
 
     def __init__(self, sim, rmin, rmax, zmax, load_from_file=False, ndim=3, type='lin', **kwargs):
+        """Creates a profile object that uses the absolute value of the z-coordinate for binning.
 
+        Parameters
+        ----------
+
+        sim : pynbody.snapshot.simsnap.SimSnap
+            The snapshot to make a profile from.
+
+        rmin : str, float or pynbody.units.Unit
+            Minimum radius for particle selection.
+
+        rmax : str, float or pynbody.units.Unit
+            Maximum radius for particle selection.
+
+        zmax : str, float or pynbody.units.Unit
+            Maximum height to consider (the upper edge of the binning range)
+
+        ndim : int, optional
+            If ndim=2, an edge-on projected profile is produced, i.e. density is in units of mass/length^2.
+            If ndim=3 (default) a volume profile is made, i.e. density is in units of mass/length^3.
+
+        type : str, optional
+            The type of binning to use. Can be 'lin' (default), 'log', or 'equaln'.
+
+        """
         if isinstance(rmin, str):
             rmin = units.Unit(rmin)
         if isinstance(rmax, str):
@@ -937,37 +926,30 @@ class VerticalProfile(Profile):
 
 
 class QuantileProfile(Profile):
-
-    """
-
-    Creates a profile object that returns the requested quantiles
-    for a given array in a given bin.  The quantiles may be mass weighted.
-
-    **Input**:
-
-    *sim*: snapshot to make a profile from
-
-    *q (default: (0.16,0.5,0.84))*:
-             The quantiles that will be returned.
-             Default is median with 1-sigma on either side.
-             q can be of arbitrary length allowing the user to select
-             any quantiles they desire.
-
-    *weights (default:None)*:
-             What should be used to weight the quantile.  You will usually
-             want to use particle mass: sim['mass'].
-             The default is to not weight by anything, weights=None.
-
-    **Optional Keywords**:
-
-    *ndim*: if ndim=2, an edge-on projected profile is produced,
-     i.e. density is in units of mass/pc^2. If ndim=3 a volume
-     profile is made, i.e. density is in units of mass/pc^3.
-
+    """A profile object that returns requested quantiles instead of means in each bin.
     """
 
     def __init__(self, sim, q=(0.16, 0.50, 0.84), weights=None, load_from_file = False, ndim = 3, type = 'lin', **kwargs):
+        """Creates a profile object that returns the requested quantiles for a given array in a given bin.
 
+        Parameters
+        ----------
+
+        sim : pynbody.snapshot.simsnap.SimSnap
+            The snapshot to make a profile from.
+
+        q : list of floats, optional
+            The quantiles that will be returned. Default is median with 1-sigma on either side.
+            q can be of arbitrary length allowing the user to select any quantiles they desire.
+
+        weights : pynbody.array.SimArray, optional
+            What should be used to weight the quantile. A likely possibility is to use particle mass: ``sim['mass']``.
+            The default is to weight by particle number, weights=None.
+
+        **kwargs :
+            Additional keyword arguments are passed onto the underlying :class:`Profile` constructor.
+
+        """
         # create a snapshot that only includes the section of disk we're
         # interested in
         self.quantiles = q
