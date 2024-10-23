@@ -1,15 +1,11 @@
-"""
+"""RAMSES-specific analysis utilities
 
-ramses_util
-===========
-
-Handy utilities for using RAMSES outputs in pynbody. For a complete
-demo on how to use RAMSES outputs with pynbody, have a look at the
-`ipython notebook demo
-<http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/notebooks/pynbody_demo-ramses.ipynb>`_
+This module provides utilities for working with RAMSES simulations, in two main areas as below.
 
 File Conversion
 ---------------
+
+For running AHF or pkdgrav, you can convert ramses files to tipsy format using
 
 >>> pynbody.analysis.ramses_util.convert_to_tipsy_fullbox('output_00101') # will convert the whole output
 
@@ -29,29 +25,10 @@ Now we've got a file called `output_00101.tipsy` which holds only the
 Generating tform
 ----------------
 
-A problem with RAMSES outputs in pynbody is that the `tform` array is
-in funny units that aren't easily usable. To generate a new `tform`
-array (in Gyr) you can use the :func:`get_tform` defined here. It's
-very easy:
+Raw RAMSES outputs write the ``tform`` array in unusual units. In pynbody v2, when the user requests
+the ``tform`` array, it is converted to physical units using this module's routine :func:`get_tform`.
+This happens transparently and for most users it will not be necessary to call this function directly.
 
->>> s = pynbody.load('output_00101')
->>> pynbody.analysis.ramses_util.get_tform(s)
-
-By default, this will simply convert in-place the formation times.
-If you want the changes to be persistent, you can use
-
->>> pynbody.analysis.ramses_util.get_tform(s, use_part2birth=True)
-
-This now generates for each `partXXXX.outYYYYY` file a corresponding
-`birthXXXXX.outYYYYY` file containing the formation time in physical units.
-This uses the routine `part2birth` located in the
-RAMSES utils (see the `bitbucket repository
-<https://bitbucket.org/rteyssie/ramses>`_).
-
-:func:`get_tform` also deletes the previous `tform` array (not from disk, just
-from the currently loaded snapshot). The next time you call :func:`get_tform`,
-the data will be loaded from the disk and `part2birth` won't need to
-be run again.
 """
 
 import os
@@ -76,26 +53,29 @@ part2birth_path = os.path.join(ramses_utils, "f90", "part2birth")
 
 def convert_to_tipsy_simple(output, halo=0, filt=None):
     """
-    Convert RAMSES output to tipsy format readable by
-    e.g. pkdgrav. This is a quick and dirty conversion, meant to be
-    used for quick visualization or other simple post
-    processing. Importantly, none of the cosmologically-relevant
-    information is carried forward. For a more complete conversion for
-    e.g. running through pkdgrav or Amiga Halo Finder, see
-    :func:`convert_to_tipsy_fullbox`.
+    Convert RAMSES output to tipsy format readable by e.g. pkdgrav or AHF.
+
+    .. warning::
+
+      This is a quick and dirty conversion, meant to be used for simple post-processing. Importantly, none of the
+      cosmologically-relevant information is carried forward. For a more complete conversion for e.g. running through
+      pkdgrav or Amiga Halo Finder, see :func:`convert_to_tipsy_fullbox`.
 
     The snapshot is put into units where G=1, time unit = 1 Gyr and
     mass unit = 2.222286e5 Msol.
 
-    **Input**:
+    Parameters
+    ----------
 
-    *output* : path to RAMSES output directory
+    output : str
+        Path to RAMSES output directory
 
-    **Optional Keywords**:
+    halo : int, optional
+        Which halo to center on (default = 0)
 
-    *filt* : a filter to apply to the box before writing out the tipsy file
+    filt : pynbody.filt, optional
+        A filter to apply to the box before writing out the tipsy file
 
-    *halo* : which hop halo to center on -- default = 0
 
     """
 
@@ -146,19 +126,19 @@ def convert_to_tipsy_simple(output, halo=0, filt=None):
 
 
 def get_tipsy_units(sim):
-    """
-    Returns snapshot `sim` units in the pkdgrav/gasoline unit
-    system.  This is probably not a function to be called by users,
-    but it is used instead by other routines for file conversion.
+    """Return the units in the pkdgrav/gasoline unit system for a RAMSES snapshot `sim`.
 
-    **Input**:
+    Parameters
+    ----------
 
-    *sim*: RAMSES simulation snapshot
+    sim : RamsesSnap
+        RAMSES simulation snapshot
 
-    **Return values**:
+    Returns
+    -------
 
-    *lenunit, massunit, timeunit* : tuple specifying the units in kpc, Msol, and Gyr
-
+    lenunit, massunit, timeunit, velunit, potentialunit : tuple
+        Units in kpc, Msol, Gyr, km/s, and kpc^2 Gyr^-2 a^-1
     """
 
     # figure out the units starting with mass
@@ -175,18 +155,20 @@ def get_tipsy_units(sim):
 
 
 def convert_to_tipsy_fullbox(s, write_param=True):
-    """
-    Convert RAMSES file `output` to tipsy format readable by pkdgrav
-    and Amiga Halo Finder. Does all unit conversions etc. into the
-    pkdgrav unit system. Creates a file called `output_fullbox.tipsy`.
+    """Convert RAMSES file `output` to tipsy format readable by pkdgrav and AHF.
 
-    **Input**:
+    This routine automatically performs all required conversions into the pkdgrav unit system.
 
-    *output*: name of RAMSES output
+    Creates a file called `output_fullbox.tipsy`.
 
-    **Optional Keywords**:
+    Parameters
+    ----------
 
-    *write_param*: whether or not to write the parameter file (default = True)
+    s : RamsesSnap
+        RAMSES snapshot
+
+    write_param : bool, optional
+        Whether or not to write a parameter file for pkdgrav (default = True)
 
     """
 
@@ -236,8 +218,21 @@ def convert_to_tipsy_fullbox(s, write_param=True):
 
 
 def write_tipsy_param(sim, tipsyfile):
-    """Write a pkdgrav-readable parameter file for RAMSES snapshot
-    `sim` with the prefix `filename`
+    """Write a pkdgrav-readable parameter file for the given RAMSES snapshot
+
+    Parameters
+    ----------
+
+    sim : RamsesSnap
+        RAMSES snapshot
+
+    tipsyfile : str
+        Path to the tipsy file that has been converted from the RAMSES snapshot `sim`
+
+    Notes
+    -----
+
+    pkdgrav may be downloaded `here <https://bitbucket.org/dpotter/pkdgrav3/src/master/>`_.
     """
 
     # determine units
@@ -254,9 +249,22 @@ def write_tipsy_param(sim, tipsyfile):
         f.write('bComove = 1\n')
 
 def write_ahf_input(sim, tipsyfile):
-    """Write an input file that can be used by the `Amiga Halo Finder
-    <http://popia.ft.uam.es/AHF/Download.html>`_ with the
-    corresponding `tipsyfile` which is the `sim` in tipsy format.
+    """Write an input file for AHF for the RAMSES snapshot `sim` and the converted tipsy file `tipsyfile`
+
+    Parameters
+    ----------
+
+    sim : RamsesSnap
+        RAMSES snapshot
+
+    tipsyfile : str
+        Path to the tipsy file that has been converted from the RAMSES snapshot `sim`
+
+    Notes
+    -----
+
+    Amiga Halo Finder may be downloaded `here <http://popia.ft.uam.es/AHF/Download.html>`_.
+
     """
 
     # determine units
@@ -288,7 +296,7 @@ def write_ahf_input(sim, tipsyfile):
             (pynbody.units.k / pynbody.units.m_p).in_units('km^2 s^-2 K^-1') * 5. / 3.))
 
 
-def get_tform_using_part2birth(sim, part2birth_path):
+def _get_tform_using_part2birth(sim, part2birth_path):
     from scipy.io import FortranFile
 
     if hasattr(sim, 'base'):
@@ -362,29 +370,33 @@ def get_tform(sim, *, times_are_proper: bool, use_part2birth: Optional[bool]=Non
     -----
     The behaviour of the function can be customized in the configuration file.
 
-    The value `use_part2birth_by_default` controls whether the conversion should
-    be made using `part2birth` or in Python. It can be set as follows
+    The value ``use_part2birth_by_default`` controls whether the conversion should
+    be made using ``part2birth`` or in Python. It can be set as follows
+
+    .. code-block:: ini
 
         [ramses]
         use_part2birth_by_default = True  # will use part2birth to convert times
         use_part2birth_by_default = False  # will use internal Python routine
 
-    The default path to `part2birth` is obtained by joining the RAMSES utils
-    path (as read from configuration) and `f90/part2birth`.
+    The default path to ``part2birth`` is obtained by joining the RAMSES utils
+    path (as read from configuration) and ``f90/part2birth``.
 
     For example, with the following configuration,
+
+    .. code-block:: ini
 
         [ramses]
         ramses_utils = /home/user/ramses/utils
 
-    the default path would be `/home/user/ramses/utils/f90/part2birth`.
+    the default path would be ``/home/user/ramses/utils/f90/part2birth``.
 
     """
     if use_part2birth is None:
         use_part2birth = config_parser.getboolean('ramses', 'use_part2birth_by_default')
 
     if use_part2birth:
-        return get_tform_using_part2birth(sim, part2birth_path=part2birth_path)
+        return _get_tform_using_part2birth(sim, part2birth_path=part2birth_path)
 
     if hasattr(sim, 'base'):
         top = sim.base
