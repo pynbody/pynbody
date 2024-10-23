@@ -47,7 +47,9 @@ for analysis in this way. We can now plot the density profile:
   In [4]: plt.plot(p['rbins'].in_units('kpc'),p['density'].in_units('Msol kpc^-2'),'k')
 
   @savefig profile_stellar_den.png width=5in
-  In [5]: plt.xlabel('$R$ [kpc]'); plt.ylabel(r'$\Sigma_{\star}$ [M$_{\odot}$ kpc$^{-2}$]'); plt.semilogy()
+  In [5]: plt.xlabel('$R$ [kpc]')
+     ...: plt.ylabel(r'$\Sigma_{\star}$ [M$_{\odot}$ kpc$^{-2}$]')
+     ...: plt.semilogy()
 
 
 The binning is linear by default, but we can see here that the profile is not well-sampled
