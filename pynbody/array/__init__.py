@@ -273,6 +273,12 @@ class SimArray(np.ndarray):
             return inputs
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        out_sim = None
+        for input in inputs:
+            if hasattr(input, 'sim'):
+                out_sim = input.sim
+                break
+
         units_func = SimArray._ufunc_registry.get(ufunc, None)
         if units_func is None:
             out_units = units.NoUnit()
@@ -332,6 +338,7 @@ class SimArray(np.ndarray):
             # reinstate units in output
             result = result.view(SimArray)
             result.units = out_units
+            result.sim = out_sim
             return result
         else:
             return result
