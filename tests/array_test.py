@@ -36,6 +36,26 @@ def test_issue255() :
     assert float(r**2)==0.25
     assert str((r**2).units)=="au**2"
 
+def test_sim_attachment():
+    f = pynbody.new(dm=10)
+    f['test'] = SA(np.arange(10), 'kpc')
+    f['test2'] = SA(np.arange(10), 'kpc')
+    assert f['test'].sim is f
+    assert f['test2'].sim is f
+
+    # sim ownership should be propagated through arithmetic operations
+    assert (f['test'] + f['test2']).sim is f
+
+    f['pos'] = SA(np.random.rand(10, 3), 'kpc')
+    assert f['pos'].sim is f
+    assert np.linalg.norm(f['pos'], axis=1).sim is f
+
+    f2 = pynbody.new(dm=10)
+    f2['test_other'] = SA(np.arange(10), 'kpc')
+    assert f2['test_other'].sim is f2
+
+    assert (f['test'] + f2['test_other']).sim is f
+
 
 def test_return_types():
 
