@@ -464,41 +464,41 @@ class Profile:
 
 
 @Profile.profile_property
-def weight_fn(self, weight_by=None):
+def weight_fn(pro, weight_by=None):
     """
     Calculate mass in each bin
     """
     if weight_by is None:
-        weight_by = self._weight_by
-    mass = array.SimArray(np.zeros(self.nbins), self.sim[weight_by].units)
+        weight_by = pro._weight_by
+    mass = array.SimArray(np.zeros(pro.nbins), pro.sim[weight_by].units)
 
-    with self.sim.immediate_mode:
-        pmass = self.sim[weight_by].view(np.ndarray)
+    with pro.sim.immediate_mode:
+        pmass = pro.sim[weight_by].view(np.ndarray)
 
-    for i in range(self.nbins):
-        mass[i] = (pmass[self.binind[i]]).sum()
+    for i in range(pro.nbins):
+        mass[i] = (pmass[pro.binind[i]]).sum()
 
-    mass.sim = self.sim
-    mass.units = self.sim[weight_by].units
+    mass.sim = pro.sim
+    mass.units = pro.sim[weight_by].units
 
     return mass
 
 @Profile.profile_property
-def mass(self):
-    return weight_fn(self, 'mass')
+def mass(pro):
+    return weight_fn(pro, 'mass')
 
 
 
 @Profile.profile_property
-def density(self):
+def density(pro):
     """
     Generate a radial density profile for the current type of profile
     """
-    return self['mass'] / self._binsize
+    return pro['mass'] / pro._binsize
 
 
 @Profile.profile_property
-def fourier(self, delta_t = "0.1 Myr", phi_bins=100):
+def fourier(pro, delta_t ="0.1 Myr", phi_bins=100):
     """
     Generate a profile of fourier coefficients, amplitudes and phases
     """
@@ -506,20 +506,20 @@ def fourier(self, delta_t = "0.1 Myr", phi_bins=100):
     delta_t = pynbody.units.Unit(delta_t)
 
 
-    f = {'c': np.zeros((7, self.nbins), dtype=complex),
-         'c_delta': np.zeros((7, self.nbins), dtype=complex),
-         'amp': np.zeros((7, self.nbins)),
-         'phi': np.zeros((7, self.nbins)),
-         'dphi_dt': np.zeros((7, self.nbins))}
+    f = {'c': np.zeros((7, pro.nbins), dtype=complex),
+         'c_delta': np.zeros((7, pro.nbins), dtype=complex),
+         'amp': np.zeros((7, pro.nbins)),
+         'phi': np.zeros((7, pro.nbins)),
+         'dphi_dt': np.zeros((7, pro.nbins))}
 
-    for i in range(self.nbins):
-        if self._profiles['n'][i] > 100:
+    for i in range(pro.nbins):
+        if pro._profiles['n'][i] > 100:
             phi = np.arctan2(
-                self.sim['y'][self.binind[i]], self.sim['x'][self.binind[i]])
-            mass = self.sim['mass'][self.binind[i]]
+                pro.sim['y'][pro.binind[i]], pro.sim['x'][pro.binind[i]])
+            mass = pro.sim['mass'][pro.binind[i]]
 
-            x1 = self.sim['x'][self.binind[i]] + self.sim['vx'][self.binind[i]] * delta_t
-            y1 = self.sim['y'][self.binind[i]] + self.sim['vy'][self.binind[i]] * delta_t
+            x1 = pro.sim['x'][pro.binind[i]] + pro.sim['vx'][pro.binind[i]] * delta_t
+            y1 = pro.sim['y'][pro.binind[i]] + pro.sim['vy'][pro.binind[i]] * delta_t
             phi1 = np.arctan2(y1,x1)
 
             hist_range = (-np.pi, np.pi)
@@ -530,7 +530,7 @@ def fourier(self, delta_t = "0.1 Myr", phi_bins=100):
                 f['c'][m, i] = np.sum(hist * np.exp(-1j * m * binphi))
                 f['c_delta'][m, i] = np.sum(hist1 * np.exp(-1j * m * binphi))
 
-    f['c'][:, self['mass'] > 0] /= self['mass'][self['mass'] > 0]
+    f['c'][:, pro['mass'] > 0] /= pro['mass'][pro['mass'] > 0]
     f['amp'] = np.sqrt(np.imag(f['c']) ** 2 + np.real(f['c']) ** 2)
     f['phi'] = np.arctan2(np.imag(f['c']), np.real(f['c']))
 
@@ -538,7 +538,7 @@ def fourier(self, delta_t = "0.1 Myr", phi_bins=100):
     dphi[dphi>np.pi] = dphi[dphi>np.pi]-2*np.pi
     dphi[dphi<-np.pi] = dphi[dphi<-np.pi]+2*np.pi
     dphi = array.SimArray(dphi,"1")
-    f['dphi_dt'] = (dphi / delta_t).in_units(self.sim['vx'].units/self.sim['x'].units)
+    f['dphi_dt'] = (dphi / delta_t).in_units(pro.sim['vx'].units / pro.sim['x'].units)
 
     return f
 
@@ -548,54 +548,54 @@ def pattern_frequency(pro):
     return pro['fourier']['dphi_dt'][2,:]/2
 
 @Profile.profile_property
-def mass_enc(self):
+def mass_enc(pro):
     """
     Generate the enclosed mass profile
     """
-    return self['mass'].cumsum()
+    return pro['mass'].cumsum()
 
 
 @Profile.profile_property
-def density_enc(self):
+def density_enc(pro):
     """
     Generate the mean enclosed density profile
     """
-    return self['mass_enc'] / ((4. * math.pi / 3) * self['rbins'] ** 3)
+    return pro['mass_enc'] / ((4. * math.pi / 3) * pro['rbins'] ** 3)
 
 
 @Profile.profile_property
-def dyntime(self):
+def dyntime(pro):
     """The dynamical time of the bin, sqrt(R^3/2GM)."""
-    dyntime = (self['rbins'] ** 3 / (2 * units.G * self['mass_enc'])) ** (1, 2)
+    dyntime = (pro['rbins'] ** 3 / (2 * units.G * pro['mass_enc'])) ** (1, 2)
     return dyntime
 
 
 @Profile.profile_property
-def g_spherical(self):
+def g_spherical(pro):
     """The naive gravitational acceleration assuming spherical
     symmetry = GM_enc/r^2"""
 
-    return (units.G * self['mass_enc'] / self['rbins'] ** 2)
+    return (units.G * pro['mass_enc'] / pro['rbins'] ** 2)
 
 
 @Profile.profile_property
-def rotation_curve_spherical(self):
+def rotation_curve_spherical(pro):
     """
     The naive rotation curve assuming spherical symmetry: vc = sqrt(G M_enc/r)
     """
 
     # .in_units('km s**-1')
-    return ((units.G * self['mass_enc'] / self['rbins']) ** (1, 2))
+    return ((units.G * pro['mass_enc'] / pro['rbins']) ** (1, 2))
 
 
 @Profile.profile_property
-def j_circ(p):
+def j_circ(pro):
     """Angular momentum of particles on circular orbits."""
-    return p['v_circ'] * p['rbins']
+    return pro['v_circ'] * pro['rbins']
 
 
 @Profile.profile_property
-def v_circ(p, grav_sim=None):
+def v_circ(pro, grav_sim=None):
     """Circular velocity, i.e. rotation curve. Calculated by computing the gravity
     in the midplane - can be expensive"""
 
@@ -603,7 +603,7 @@ def v_circ(p, grav_sim=None):
 
     global config
 
-    grav_sim = grav_sim or p.sim
+    grav_sim = grav_sim or pro.sim
 
     logger.warning(
         "Profile v_circ -- this routine assumes the disk is in the x-y plane")
@@ -618,63 +618,63 @@ def v_circ(p, grav_sim=None):
 
     start = process_time()
     rc = gravity.midplane_rot_curve(
-        grav_sim, p['rbins']).in_units(p.sim['vel'].units)
+        grav_sim, pro['rbins']).in_units(pro.sim['vel'].units)
     end = process_time()
     logger.info("Rotation curve calculated in %5.3g s" % (end - start))
     return rc
 
 
 @Profile.profile_property
-def E_circ(p):
+def E_circ(pro):
     """Calculates the energy of particles on circular orbits in the z=0 plane."""
-    return 0.5 * (p['v_circ'] ** 2) + p['pot']
+    return 0.5 * (pro['v_circ'] ** 2) + pro['pot']
 
 
 @Profile.profile_property
-def pot(p):
+def pot(pro):
     """Calculates the potential in the z=0 plane"""
     from .. import gravity
 
     logger.warning(
         "Profile pot -- this routine assumes the disk is in the x-y plane")
 
-    grav_sim = p.sim
+    grav_sim = pro.sim
     # Go up to the halo level
     while hasattr(grav_sim, 'base') and "halo_number" in grav_sim.base.properties:
         grav_sim = grav_sim.base
 
     start = process_time()
     pot = gravity.midplane_potential(
-        grav_sim, p['rbins']).in_units(p.sim['vel'].units ** 2)
+        grav_sim, pro['rbins']).in_units(pro.sim['vel'].units ** 2)
     end = process_time()
     logger.info("Potential calculated in %5.3g s" % (end - start))
     return pot
 
 
 @Profile.profile_property
-def omega(p):
+def omega(pro):
     """Circular frequency Omega = v_circ/radius (see Binney & Tremaine Sect. 3.2) in the z=0 plane"""
-    prof = p['v_circ'] / p['rbins']
+    prof = pro['v_circ'] / pro['rbins']
     prof.set_units_like('km s**-1 kpc**-1')
     return prof
 
 
 @Profile.profile_property
-def kappa(p):
+def kappa(pro):
     """Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney & Tremaine Sect. 3.2) in the z=0 plane"""
-    dOmega2dR = np.gradient(p['omega'] ** 2)/np.gradient(p['rbins'])
-    return np.sqrt(p['rbins'] * dOmega2dR + 4 * p['omega'] ** 2)
+    dOmega2dR = np.gradient(pro['omega'] ** 2) / np.gradient(pro['rbins'])
+    return np.sqrt(pro['rbins'] * dOmega2dR + 4 * pro['omega'] ** 2)
 
 
 @Profile.profile_property
-def beta(p):
+def beta(pro):
     """3D Anisotropy parameter as defined in Binney and Tremaine"""
-    assert p.ndim == 3
-    return 1.5 - (p['vx_disp'] ** 2 + p['vy_disp'] ** 2 + p['vz_disp'] ** 2) / p['vr_disp'] ** 2 / 2.
+    assert pro.ndim == 3
+    return 1.5 - (pro['vx_disp'] ** 2 + pro['vy_disp'] ** 2 + pro['vz_disp'] ** 2) / pro['vr_disp'] ** 2 / 2.
 
 
 @Profile.profile_property
-def magnitudes(self, band='v'):
+def magnitudes(pro, band='v'):
     """Calculate magnitudes in each bin
 
     When calling this from a profile object, the band can be specified after an underscore, e.g.
@@ -685,17 +685,17 @@ def magnitudes(self, band='v'):
     """
     from . import luminosity
 
-    magnitudes = np.zeros(self.nbins)
-    for i in range(self.nbins):
+    magnitudes = np.zeros(pro.nbins)
+    for i in range(pro.nbins):
         magnitudes[i] = luminosity.halo_mag(
-            self.sim[self.binind[i]], band=band)
+            pro.sim[pro.binind[i]], band=band)
     magnitudes = array.SimArray(magnitudes, units.Unit('1'))
-    magnitudes.sim = self.sim
+    magnitudes.sim = pro.sim
     return magnitudes
 
 
 @Profile.profile_property
-def sb(self, band='v'):
+def sb(pro, band='v'):
     """Calculate surface brightness in each bin
 
     When calling this from a profile object, the band can be specified after an underscore, e.g.
@@ -708,44 +708,44 @@ def sb(self, band='v'):
     # In [5]: (np.tan(np.pi/180/3600)*10.0)**2
     # Out[5]: 2.3504430539466191e-09
     # 1 square arcsecond is thus 2.35e-9 pc^2
-    sqarcsec_in_bin = self._binsize.in_units('pc^2') / 2.3504430539466191e-09
-    bin_luminosity = 10.0 ** (-0.4 * self['magnitudes,' + band])
+    sqarcsec_in_bin = pro._binsize.in_units('pc^2') / 2.3504430539466191e-09
+    bin_luminosity = 10.0 ** (-0.4 * pro['magnitudes,' + band])
     #import pdb; pdb.set_trace()
     surfb = -2.5 * np.log10(bin_luminosity / sqarcsec_in_bin)
     surfb = array.SimArray(surfb, units.Unit('1'))
-    surfb.sim = self.sim
+    surfb.sim = pro.sim
     return surfb
 
 
 @Profile.profile_property
-def Q(self):
+def Q(pro):
     """Toomre Q parameter"""
-    return (self['vr_disp'] * self['kappa'] / (3.36 * self['density'] * units.G)).in_units("")
+    return (pro['vr_disp'] * pro['kappa'] / (3.36 * pro['density'] * units.G)).in_units("")
 
 
 @Profile.profile_property
-def X(self):
+def X(pro):
     """X parameter defined as kappa^2*R/(2*pi*G*sigma*m), using the rotation curve from the z=0 plane
 
     See Binney & Tremaine 2008, eq. 6.77"""
 
     lambda_crit = 4. * np.pi ** 2 * units.G * \
-        self['density'] / (self['kappa'] ** 2)
+                  pro['density'] / (pro['kappa'] ** 2)
     kcrit = 2. * np.pi / lambda_crit
-    return (kcrit * self['rbins'] / 2).in_units("")
+    return (kcrit * pro['rbins'] / 2).in_units("")
 
 
 @Profile.profile_property
-def jtot(self):
+def jtot(pro):
     """Magnitude of the total angular momentum
     """
-    jtot = np.zeros(self.nbins)
+    jtot = np.zeros(pro.nbins)
 
-    for i in range(self.nbins):
-        subs = self.sim[self.binind[i]]
-        jx = (subs['j'][:, 0] * subs['mass']).sum() / self['mass'][i]
-        jy = (subs['j'][:, 1] * subs['mass']).sum() / self['mass'][i]
-        jz = (subs['j'][:, 2] * subs['mass']).sum() / self['mass'][i]
+    for i in range(pro.nbins):
+        subs = pro.sim[pro.binind[i]]
+        jx = (subs['j'][:, 0] * subs['mass']).sum() / pro['mass'][i]
+        jy = (subs['j'][:, 1] * subs['mass']).sum() / pro['mass'][i]
+        jz = (subs['j'][:, 2] * subs['mass']).sum() / pro['mass'][i]
 
         jtot[i] = np.sqrt(jx ** 2 + jy ** 2 + jz ** 2)
 
@@ -753,21 +753,21 @@ def jtot(self):
 
 
 @Profile.profile_property
-def j_theta(self):
+def j_theta(pro):
     """Angle that the angular momentum vector of the bin makes with respect to the xy-plane."""
 
-    return np.arccos(self['jz'] / self['jtot'])
+    return np.arccos(pro['jz'] / pro['jtot'])
 
 
 @Profile.profile_property
-def j_phi(self):
+def j_phi(pro):
     """Angle that the angular momentum vector of the bin makes with the x-axis in the xy plane."""
-    j_phi = np.zeros(self.nbins)
+    j_phi = np.zeros(pro.nbins)
 
-    for i in range(self.nbins):
-        subs = self.sim[self.binind[i]]
-        jx = (subs['j'][:, 0] * subs['mass']).sum() / self['mass'][i]
-        jy = (subs['j'][:, 1] * subs['mass']).sum() / self['mass'][i]
+    for i in range(pro.nbins):
+        subs = pro.sim[pro.binind[i]]
+        jx = (subs['j'][:, 0] * subs['mass']).sum() / pro['mass'][i]
+        jy = (subs['j'][:, 1] * subs['mass']).sum() / pro['mass'][i]
         j_phi[i] = np.arctan(jy, jx)
 
     return j_phi
