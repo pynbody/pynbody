@@ -9,7 +9,7 @@ The :mod:`~pynbody.bridge` module has tools for connecting different
 outputs which allows you to trace particles from one snapshot of the
 simulation to another.
 
-In pynbody, a :class:`~pynbody.bridge.Bridge` is an object that links two snapshots
+In pynbody, a :class:`~pynbody.bridge.AbstractBridge` is an object that links two snapshots
 together. Once connected, a bridge object called on a specific subset
 of particles in one snapshot will trace these particles back (or
 forward) to the second snapshot. Constructing bridges is also very straight-forward
@@ -59,7 +59,7 @@ Create the bridge object:
    In [11]: b = f2.bridge(f1)
 
 
-``b`` is now an :class:`~pynbody.bridge.Bridge` object that links
+``b`` is now an :class:`~pynbody.bridge.AbstractBridge` object that links
 the two outputs ``f1`` and ``f2`` together. Note that you can either
 bridge from ``f2`` to ``f1`` (as here) or from ``f1`` to ``f2``and it makes no difference at all to basic
 functionality: the bridge can be traversed in either direction.
@@ -67,7 +67,7 @@ functionality: the bridge can be traversed in either direction.
 .. note::
 
     There are different subclasses of bridge that implement the mapping back and forth in different ways, and by default
-    the:func:`~pynbody.snapshot.SimSnap.bridge` method will attempt to choose the best possible option, by inspecting the
+    the :func:`~pynbody.snapshot.simsnap.SimSnap.bridge` method will attempt to choose the best possible option, by inspecting the
     file formats. However, if you prefer, you can explicitly instantiate the bridge for yourself (see below).
 
 
@@ -245,17 +245,17 @@ Which class to use?
 -------------------
 
 There is a built-in-logic which selects the best possible subclass of
-:class:`~pynbody.bridge.Bridge` when you call the method
-:func:`~pynbody.snapshot.SimSnap.bridge`.
+:class:`~pynbody.bridge.AbstractBridge` when you call the method
+:func:`~pynbody.snapshot.simsnap.SimSnap.bridge`.
 However, you can equally well choose the bridge and its options
-for yourself, and sometimes :func:`~pynbody.snapshot.SimSnap.bridge` will tell you it can't decide what kind of bridge
+for yourself, and sometimes :func:`~pynbody.snapshot.simsnap.SimSnap.bridge` will tell you it can't decide what kind of bridge
 to generate.
 
 For files where the particle ordering is static, so that the particle
 with index i in the first snapshot also has index i in the second
-snapshot, use the :class:`~pynbody.bridge.Bridge` class, as follows: ::
+snapshot, use the :class:`~pynbody.bridge.AbstractBridge` class, as follows: ::
 
-   b = pynbody.bridge.Bridge(f1, f2)
+   b = pynbody.bridge.AbstractBridge(f1, f2)
 
 For files which can spawn new particles, and therefore have a monotonically
 increasing particle ordering array (e.g. "iord" in gasoline), use the
