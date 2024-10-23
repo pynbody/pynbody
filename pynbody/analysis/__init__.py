@@ -14,7 +14,6 @@ from . import (
     hmf,
     ionfrac,
     luminosity,
-    pkdgrav_cosmo,
     profile,
     ramses_util,
     theoretical_profiles,

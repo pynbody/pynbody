@@ -13,7 +13,7 @@ import numpy as np
 import pynbody.analysis.luminosity
 
 from .. import array, filt, units, units as _units
-from ..analysis import angmom, profile
+from ..analysis import angmom, cosmology, profile
 from ..sph import kernels, render_spherical_image, renderers
 from . import sph as plot_sph
 
@@ -730,14 +730,11 @@ def sfh(sim, filename=None, massform=True, clear=False, legend=False,
 
 
 	# add a z axis on top if it has not been already done by an earlier plot:
-	from pynbody.analysis import pkdgrav_cosmo as cosmo
-	c = cosmo.Cosmology(sim=sim)
-
 	old_axis = pyplot.gca()
 
 	pz = plt.twiny()
 	labelzs = np.arange(5, int(sim.properties['z']) - 1, -1)
-	times = [13.7 * c.Exp2Time(1.0 / (1 + z)) / c.Exp2Time(1) for z in labelzs]
+	times = cosmology.age(sim, labelzs, unit='Gyr')
 	pz.set_xticks(times)
 	pz.set_xticklabels([str(x) for x in labelzs])
 	pz.set_xlim(x0, x1)
