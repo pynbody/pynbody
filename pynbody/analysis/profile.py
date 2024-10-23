@@ -64,6 +64,11 @@ class Profile:
     looking at the same set of particles, centered in the same way. It also means you *must* use the same centering
     method if you want to reuse a saved profile.
 
+    .. versionchanged:: 2.0
+
+      The method ``create_particle_array`` has been removed. Its behaviour was poorly defined in v1, and not believed
+      to be widely used.
+
     """
 
     _profile_registry = {}
@@ -383,56 +388,6 @@ class Profile:
         """Returns the family of particles used"""
         return self.sim.families()
 
-    def create_particle_array(self, profile_name, particle_name=None, out_sim=None):
-        """Create a particle array with the results of the profile
-        calculation.
-
-        After calling this function, sim[particle_name][i] ==
-        profile[profile_name][bin_in_which_particle_i_sits]
-
-        If particle_name is not specified, it defaults to the same as
-        profile_name.
-        """
-        import scipy
-        import scipy.interpolate
-
-        if particle_name is None:
-            particle_name = profile_name
-
-        if out_sim is None:
-            out_sim = self.sim
-            out_x = self._x
-        else:
-            out_x = self._calculate_x(out_sim)
-
-        # nearest-neighbour version if interpolation unavailable
-        #px = np.digitize(out_x, self.bins)-1
-        #ok = np.where((px>=0) * (px<len(self)))
-        #out_sim[particle_name, ok[0]] = self[profile_name][px[ok]]
-
-        in_y = self[profile_name]
-
-        if in_y.min() > 0:
-            use_log = True
-            in_y = np.log(in_y)
-        else:
-            use_log = False
-
-        interp = scipy.interpolate.interp1d(np.log10(self.r), in_y, 'linear', copy=False,
-                                            bounds_error=False)
-        rep = interp(np.log10(out_x))
-
-        if use_log:
-            out_sim[particle_name] = np.exp(rep)
-        else:
-            out_sim[particle_name] = rep
-
-        rep[np.where(out_x > math.log10(self.r.max()))] = self[
-            profile_name][-1]
-        rep[np.where(out_x < math.log10(self.r.min()))] = self[profile_name][0]
-
-        out_sim[particle_name].units = self[profile_name].units
-
     def _generate_hash_filename_from_particles(self):
         """Create a filename for the saved profile from a hash using the binning data"""
 
@@ -460,15 +415,11 @@ class Profile:
         """
         Writes all the vital information of the profile to a file.
 
-        To recover the profile, initialize a profile with the
-        load_from_file=True keyword to automatically load a previously
-        saved profile. The filename is chosen automatically and
-        corresponds to a hash generated from the positions of the
-        particles used in the profile. This is to ensure that you are
-        always looking at the same set of particles, centered in the
-        same way. It also means you *must* use the same centering
+        To recover the profile, initialize a profile with the ``load_from_file=True`` keyword to automatically
+        load a previously saved profile. The filename is chosen automatically and corresponds to a hash generated
+        from the positions of the particles used in the profile. This is to ensure that you are always looking at
+        the same set of particles, centered in the same way. It also means you *must* use the same centering
         method if you want to reuse a saved profile.
-
 
         """
 
