@@ -34,6 +34,9 @@ The final command here centres the origin on the main halo and puts the disk in 
 
 .. ipython::
 
+  @suppress
+  In [4]: plt.clf()
+
   In [3]: p = profile.Profile( h[0].star, rmin = '.05 kpc', rmax = '50 kpc')
 
 .. note:: You can pass either floating point values or unit strings to ``rmin`` and ``rmax``.
