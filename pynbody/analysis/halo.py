@@ -1,9 +1,7 @@
 """
+Functions for calculating crucial properties of halos, such as their center, shape, and virial radius.
 
-halo
-====
-
-Functions for dealing with and manipulating halos in simulations.
+Also contains functions for transforming the simulation so that a given halo is centered.
 
 
 """
