@@ -130,6 +130,34 @@ def test_derived_family_array_update():
     f.dm['input']*=2
     assert (f.dm['_test_quantity']==np.arange(2,22,2)).all()
 
+
+
+def test_derived_quantity_class_override():
+    """tests that the right subclass is selected for a derived quantity, whether
+    or not we use the deprecated method"""
+
+    with pytest.warns(DeprecationWarning):
+        @ExampleSnap.derived_quantity
+        def test_override_quantity(sim):
+            return sim['input'] * 3
+
+        @ExampleSnap.derived_array
+        def test_override_array(sim):
+            return sim['input'] * 5
+
+        @pynbody.snapshot.SimSnap.derived_quantity
+        def test_override_quantity(sim):
+            return sim['input'] * 2
+
+        @pynbody.snapshot.SimSnap.derived_array
+        def test_override_array(sim):
+            return sim['input'] * 4
+
+    f = pynbody.new(dm=10, star=10, class_=ExampleSnap)
+    f.dm['input'] = input = np.arange(0, 10)
+    assert (f.dm['test_override_quantity'] == input * 3).all()
+    assert (f.dm['test_override_array'] == input * 5).all()
+
 def test_derived_family_array_with_nonderived_partner_update():
     f = pynbody.new(dm=10,star=10, gas=10, class_=ExampleSnap)
 

@@ -1778,12 +1778,14 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         from .copy_on_access import CopyOnAccessSimSnap
         return CopyOnAccessSimSnap(self)
 
-SimSnap.stable_derived_quantity = util.deprecated(SimSnap.stable_derived_array,
-                                              "stable_derived_quantity has been renamed to stable_derived_array")
+    @classmethod
+    @util.deprecated("stable_derived_quantity has been renamed to stable_derived_array")
+    def stable_derived_quantity(cls, fn):
+        """Deprecated alias for :meth:`stable_derived_array`"""
+        return cls.stable_derived_array(fn)
 
-SimSnap.stable_derived_quantity.__doc__ = "Deprecated alias for :meth:`stable_derived_array`"
-
-SimSnap.derived_quantity = util.deprecated(SimSnap.derived_array,
-                                           "derived_quantity has been renamed to derived_array")
-
-SimSnap.derived_quantity.__doc__ = "Deprecated alias for :meth:`derived_array`"
+    @classmethod
+    @util.deprecated("derived_quantity has been renamed to derived_array")
+    def derived_quantity(cls, fn):
+        """Deprecated alias for :meth:`derived_array`"""
+        return cls.derived_array(fn)
