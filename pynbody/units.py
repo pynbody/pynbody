@@ -1,15 +1,5 @@
 """
-
-units
-=====
-
-The pynbody units module consists of a set of classes for tracking units.
-
-It relates closely to the :mod:`~pynbody.array` module, which defines
-an extension to numpy arrays which carries unit information.
-
-Making units
-------------
+A set of classes for tracking units.
 
 Units are generated and used at various points through the pynbody
 framework. Quite often the functions where users interact with units
@@ -34,7 +24,7 @@ acceptable.
 Getting conversion ratios
 -------------------------
 
-To convert one unit to another, use the ``ratio`` member function:
+To convert one unit to another, use :meth:`~Unit.ratio`. For example:
 
 >>> units.Msol.ratio(units.kg)
 1.99e30
@@ -108,6 +98,7 @@ You can even define completely new dimensions.
 
 """
 
+import abc
 import fractions
 import functools
 import keyword
@@ -126,13 +117,15 @@ class UnitsException(Exception):
     pass
 
 
-class UnitBase:
+class UnitBase(abc.ABC):
 
-    """Base class for units. To instantiate a unit, call the :func:`pynbody.units.Unit`
-    factory function."""
+    """Abstract base class for units.
 
+    To instantiate a unit, use instead class :class:`Unit`, which will return an object of an appropriate subclass.
+    """
+
+    @abc.abstractmethod
     def __init__(self):
-        raise ValueError("Cannot directly initialize abstract base class")
         pass
 
     def __pow__(self, p):
@@ -230,6 +223,11 @@ class UnitBase:
     def __hash__(self):
         return id(self)
 
+    def copy(self):
+        """Shortcut for ``copy.copy(unit)`` using python's copy module"""
+        import copy
+        return copy.copy(self)
+
     def _dimension_state(self):
         state = defaultdict(int)
         for base, power in zip(self._bases, self._powers):
@@ -256,19 +254,39 @@ class UnitBase:
         )
 
     def simplify(self):
+        """Return a simplified version of the unit."""
         return self
 
+    @abc.abstractmethod
+    def latex(self):
+        r"""Returns a LaTeX representation of this unit.
+
+        Prefactors are converted into exponent notation. Named units by default
+        are represented by the string '\mathrm{unit_name}', although this can
+        be overriden in the pynbody configuration files or by setting
+        unit_name._latex."""
+
     def is_dimensionless(self):
+        """Returns True if the unit is dimensionless, False otherwise."""
         return False
 
     def ratio(self, other, **substitutions):
-        """Get the conversion ratio between this Unit and another
-        specified unit.
+        """Get the conversion ratio between this Unit and another specified unit.
 
-        Keyword arguments, if specified, give numerical substitutions
-        for the named unit. This is most useful for specifying values
-        for cosmological quantities like 'a' and 'h', but can also
-        be used for any IrreducibleUnit.
+        Parameters
+        ----------
+
+        other : Unit or str
+            The other unit to convert to.
+
+        substitutions : dict
+            Substitutions to make for units in the conversion. For example, if the unit is a comoving distance, you can
+            specify the scale factor a. More generally, you can specify a valuable for any IrreducibleUnit.
+
+        Notes
+        -----
+
+        Usage examples:
 
         >>> Unit("1 Mpc a").ratio("kpc", a=0.25)
         250.0
@@ -294,11 +312,24 @@ class UnitBase:
 
         return self.ratio(*a, **kw)
 
+    @abc.abstractmethod
+    def dimensionless_constant(self, **substitutions):
+        """If this unit is dimensionless, return its scalar quantity.
+
+        Direct use of this function is not recommended. It is generally
+        better to use the ratio function instead.
+
+        Provide keyword arguments to set values for named IrreducibleUnits --
+        see the :meth:`ratio` function for more information."""
+        pass
+
+    @abc.abstractmethod
     def irrep(self):
-        """Return a unit equivalent to this one (may be identical) but
-        expressed in terms of the currently defined IrreducibleUnit
-        instances."""
-        return self
+        """Return a unit equivalent to this one in terms of the currently defined :class:`IrreducibleUnit`s
+
+        Two units are equivalent if they have the same ``irrep``.
+        """
+        pass
 
     def _register_unit(self, st):
         if st in _registry:
@@ -314,8 +345,92 @@ class UnitBase:
         # physical unit corresponds to only one instance
         return self
 
+    def dimensional_project(self, basis_units):
+        """Work out how to express the dimensions of this unit relative to the
+        specified list of basis units.
+
+        This is used by the framework when making inferences about sensible units to
+        use in various situations.
+
+        For example, you can represent a length as an energy divided by a force:
+
+           >>> Unit("23 kpc").dimensional_project(["J", "N"])
+           array([1, -1], dtype=object)
+
+        However it's not possible to represent a length by energy alone:
+
+           >>> Unit("23 kpc").dimensional_project(["J"])
+           UnitsException: Basis units do not span dimensions of specified unit
+
+        This function also doesn't know what to do if the result is ambiguous:
+
+           >>> Unit("23 kpc").dimensional_project(["J", "N", "kpc"])
+           UnitsException: Basis units are not linearly independent
+
+        """
+
+        vec_irrep = [Unit(x).irrep() for x in basis_units]
+        me_irrep = self.irrep()
+        bases = set(me_irrep._bases)
+        for vec in vec_irrep:
+            bases.update(vec._bases)
+
+        bases = list(bases)
+
+        matrix = np.zeros((len(bases), len(vec_irrep)), dtype=Fraction)
+
+        for base_i, base in enumerate(bases):
+            for vec_i, vec in enumerate(vec_irrep):
+                matrix[base_i, vec_i] = vec._power_of(base)
+
+        # The matrix calculated above describes the transformation M
+        # such that v = M.d where d is the sought-after powers of the
+        # specified base vectors, and v is the powers in terms of the
+        # base units in the list bases.
+        #
+        # To invert, since M is possibly rectangular, we use the
+        # solution to the least-squares problem [minimize (v-M.d)^2]
+        # which is d = (M^T M)^(-1) M^T v.
+        #
+        # If the solution to that does not solve v = M.d, there is no
+        # admissable solution to v=M.d, i.e. the supplied base vectors do not
+        # span the required space.
+        #
+        # If (M^T M) is singular, the vectors are not linearly independent, so
+        # any
+        # solution would not be unique.
+        M_T_M = np.dot(matrix.transpose(), matrix)
+
+        from . import util
+
+        try:
+            M_T_M_inv = util.rational_matrix_inv(M_T_M)
+        except np.linalg.linalg.LinAlgError:
+            raise UnitsException("Basis units are not linearly independent")
+
+        my_powers = [me_irrep._power_of(base) for base in bases]
+
+        candidate = np.dot(M_T_M_inv, np.dot(matrix.transpose(), my_powers))
+
+        # Because our method involves a loss of information (multiplying
+        # by M^T), we could get a spurious solution. Check this is not the
+        # case...
+
+        if any(np.dot(matrix, candidate) != my_powers):
+            # Spurious solution, meaning the base vectors did not span the
+            # units required in the first place.
+            raise UnitsException(
+                "Basis units do not span dimensions of specified unit")
+
+        return candidate
+
 
 class NoUnit(UnitBase):
+    """Represents a state of units being unknown.
+
+    Note that this is not the same as dimensionless units, which are known but have no physical dimensions.
+    Dimensionless units are represented by ``Unit(1)``.
+    """
 
     def __init__(self):
         self._no_unit = True
@@ -334,6 +449,9 @@ class NoUnit(UnitBase):
 
     def is_dimensionless(self):
         return True
+
+    def irrep(self):
+        return self
 
     def simplify(self):
         return self
@@ -362,6 +480,9 @@ class NoUnit(UnitBase):
     def irrep(self):
         return self
 
+    def dimensionless_constant(self, **substitutions):
+        raise UnitsException("Unknown units")
+
 no_unit = NoUnit()
 
 
@@ -378,6 +499,7 @@ def _resurrect_named_unit(unit_name, unit_latex, represents):
 
 
 class IrreducibleUnit(UnitBase):
+    """Represents a unit which cannot be further simplified."""
 
     def __init__(self, st):
         self._st_rep = st
@@ -397,9 +519,12 @@ class IrreducibleUnit(UnitBase):
     def irrep(self):
         return CompositeUnit(1, [self], [1])
 
+    def dimensionless_constant(self, **substitutions):
+        return 1.0
+
 
 class NamedUnit(UnitBase):
-
+    """Represents a unit which has a name but can also be expressed as a composite of :class:`IrreducibleUnit`s."""
     def __init__(self, st, represents):
         self._st_rep = st
         if isinstance(represents, str):
@@ -425,14 +550,17 @@ class NamedUnit(UnitBase):
     def irrep(self):
         return self._represents.irrep()
 
+    def dimensionless_constant(self, **substitutions):
+        return 1.0
+
 
 class CompositeUnit(UnitBase):
+    """Represents a unit which is a composite of other units."""
 
     def __init__(self, scale, bases, powers):
         """Initialize a composite unit.
 
-        Direct use of this function is not recommended. Instead use the
-        factory function Unit(...)."""
+        Direct use of this initializer is not recommended. Instead use :class:`Unit` to create a unit object."""
 
         if scale == 1.:
             scale = 1
@@ -442,13 +570,6 @@ class CompositeUnit(UnitBase):
         self._powers = powers
 
     def latex(self):
-        r"""Returns a LaTeX representation of this unit.
-
-        Prefactors are converted into exponent notation. Named units by default
-        are represented by the string '\mathrm{unit_name}', although this can
-        be overriden in the pynbody configuration files or by setting
-        unit_name._latex."""
-
         if self._scale != 1:
             log10_scale = np.log10(abs(self._scale))
 
@@ -563,15 +684,8 @@ class CompositeUnit(UnitBase):
         else:
             self._powers, self._bases = [], []
 
-    def copy(self):
-        """Create a copy which is 'shallow' in the sense that it
-        references exactly the same underlying base units, but where
-        the list of those units can be manipulated separately."""
-        return CompositeUnit(self._scale, self._bases[:], self._powers[:])
-
     def __copy__(self):
-        """For compatibility with python copy module"""
-        return self.copy()
+        return CompositeUnit(self._scale, self._bases[:], self._powers[:])
 
     def simplify(self):
         self._expand()
@@ -579,29 +693,17 @@ class CompositeUnit(UnitBase):
         return self
 
     def irrep(self):
-        """Return a new unit which represents this unit expressed
-        solely in terms of IrreducibleUnit bases."""
         x = self.copy()
         x._expand(True)
         x._gather()
         return x
 
     def is_dimensionless(self):
-        """Returns true if this unit actually translates into a scalar
-        quantity."""
         x = self.irrep()
         if len(x._powers) == 0:
             return True
 
     def dimensionless_constant(self, **substitutions):
-        """If this unit is dimensionless, return its scalar quantity.
-
-        Direct use of this function is not recommended. It is generally
-        better to use the ratio function instead.
-
-        Provide keyword arguments to set values for named IrreducibleUnits --
-        see the ratio function for more information."""
-
         x = self.irrep()
         c = x._scale
         for xb, xp in zip(x._bases, x._powers):
@@ -618,141 +720,62 @@ class CompositeUnit(UnitBase):
         else:
             return 0
 
-    def dimensional_project(self, basis_units):
-        """Work out how to express the dimensions of this unit relative to the
-        specified list of basis units.
 
-        This is used by the framework when making inferences about sensible units to
-        use in various situations.
+class Unit(UnitBase):
+    """
+    Class factory for units.
+    """
 
-        For example, you can represent a length as an energy divided by a force:
+    def __new__(cls, s):
+        if isinstance(s, UnitBase):
+            return s
+        elif isinstance(s, numbers.Number):
+            scale = float(s)
+            units = []
+            powers = []
+        else:
+            s = str(s)
 
-           >>> Unit("23 kpc").dimensional_project(["J", "N"])
-           array([1, -1], dtype=object)
+            x = s.split()
+            try:
+                scale = float(x[0])
+                del x[0]
+            except (ValueError, IndexError):
+                scale = 1.0
 
-        However it's not possible to represent a length by energy alone:
+            units = []
+            powers = []
 
-           >>> Unit("23 kpc").dimensional_project(["J"])
-           UnitsException: Basis units do not span dimensions of specified unit
+            for com in x:
+                if "**" in com or "^" in com:
+                    s = com.split("**" if "**" in com else "^")
+                    try:
+                        u = _registry[s[0]]
+                    except KeyError:
+                        raise ValueError("Unknown unit " + s[0])
+                    p = Fraction(s[1])
+                    if p.denominator == 1:
+                        p = p.numerator
+                else:
+                    u = _registry[com]
+                    p = 1
 
-        This function also doesn't know what to do if the result is ambiguous:
+                units.append(u)
+                powers.append(p)
 
-           >>> Unit("23 kpc").dimensional_project(["J", "N", "kpc"])
-           UnitsException: Basis units are not linearly independent
+        return CompositeUnit(scale, units, powers)
 
+    def __init__(self, s):
+        """Given a string s, creates an appropriate Unit object.
+
+        The string format is ``[<scale>] [<unit_name>][**<rational_power>] [[<unit_name>] ... ]``
+
+        Examples: ``1.e30 kg``, ``kpc**2``, ``26.2 m s**-1``, ``15 m**1/2 s**-1/2``.
+
+        Note that the actual class returned depends on the string provided. Generally
+        you should not need to worry about this, as the class returned will be a
+        subclass of :class:`UnitBase` and will behave as expected.
         """
-
-        vec_irrep = [Unit(x).irrep() for x in basis_units]
-        me_irrep = self.irrep()
-        bases = set(me_irrep._bases)
-        for vec in vec_irrep:
-            bases.update(vec._bases)
-
-        bases = list(bases)
-
-        matrix = np.zeros((len(bases), len(vec_irrep)), dtype=Fraction)
-
-        for base_i, base in enumerate(bases):
-            for vec_i, vec in enumerate(vec_irrep):
-                matrix[base_i, vec_i] = vec._power_of(base)
-
-        # The matrix calculated above describes the transformation M
-        # such that v = M.d where d is the sought-after powers of the
-        # specified base vectors, and v is the powers in terms of the
-        # base units in the list bases.
-        #
-        # To invert, since M is possibly rectangular, we use the
-        # solution to the least-squares problem [minimize (v-M.d)^2]
-        # which is d = (M^T M)^(-1) M^T v.
-        #
-        # If the solution to that does not solve v = M.d, there is no
-        # admissable solution to v=M.d, i.e. the supplied base vectors do not
-        # span
-        # the requires space.
-        #
-        # If (M^T M) is singular, the vectors are not linearly independent, so
-        # any
-        # solution would not be unique.
-        M_T_M = np.dot(matrix.transpose(), matrix)
-
-        from . import util
-
-        try:
-            M_T_M_inv = util.rational_matrix_inv(M_T_M)
-        except np.linalg.linalg.LinAlgError:
-            raise UnitsException("Basis units are not linearly independent")
-
-        my_powers = [me_irrep._power_of(base) for base in bases]
-
-        candidate = np.dot(M_T_M_inv, np.dot(matrix.transpose(), my_powers))
-
-        # Because our method involves a loss of information (multiplying
-        # by M^T), we could get a spurious solution. Check this is not the
-        # case...
-
-        if any(np.dot(matrix, candidate) != my_powers):
-            # Spurious solution, meaning the base vectors did not span the
-            # units required in the first place.
-            raise UnitsException(
-                "Basis units do not span dimensions of specified unit")
-
-        return candidate
-
-
-def Unit(s):
-    """
-    Class factory for units. Given a string s, creates
-    a Unit object.
-
-    The string format is:
-      [<scale>] [<unit_name>][**<rational_power>] [[<unit_name>] ... ]
-
-    for example:
-
-      "1.e30 kg"
-
-      "kpc**2"
-
-      "26.2 m s**-1"
-    """
-
-    if isinstance(s, UnitBase):
-        return s
-    elif isinstance(s, numbers.Number):
-        scale = float(s)
-        units = []
-        powers = []
-    else:
-        s = str(s)
-
-        x = s.split()
-        try:
-            scale = float(x[0])
-            del x[0]
-        except (ValueError, IndexError):
-            scale = 1.0
-
-        units = []
-        powers = []
-
-        for com in x:
-            if "**" in com or "^" in com:
-                s = com.split("**" if "**" in com else "^")
-                try:
-                    u = _registry[s[0]]
-                except KeyError:
-                    raise ValueError("Unknown unit " + s[0])
-                p = Fraction(s[1])
-                if p.denominator == 1:
-                    p = p.numerator
-            else:
-                u = _registry[com]
-                p = 1
-
-            units.append(u)
-            powers.append(p)
-
-    return CompositeUnit(scale, units, powers)
 
 
 def takes_arg_in_units(*args, **orig_kwargs):
