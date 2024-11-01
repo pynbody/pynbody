@@ -98,13 +98,13 @@ You can even define completely new dimensions.
 
 """
 
+import abc
 import fractions
 import functools
 import keyword
 import numbers
 import re
 from collections import defaultdict
-import abc
 
 import numpy as np
 
