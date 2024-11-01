@@ -33,6 +33,7 @@ class HdfVdsMaker:
         return ['SnapshotId']
 
     def make_hdf_vfile(self, filepath: str) -> h5py.File:
+        """Create an HDF file with virtual datasets combining the datasets in the input files."""
         with h5py.File(name=filepath, mode='w') as hdf_vfile:
             for k in self.concatenation_keys():
                 self.write_single_vds(k, hdf_vfile)
@@ -43,6 +44,7 @@ class HdfVdsMaker:
         return hdf_vfile
 
     def write_single_vds(self, key: str, target_hdf_file: h5py.File, first_only: bool=False):
+        """Write a single virtual dataset to the target HDF file."""
         shape = None
         sources = []
         slices = []

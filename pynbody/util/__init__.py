@@ -278,7 +278,17 @@ def rational_matrix_inv(matrix):
 def random_rotation_matrix():
     """Return a random rotation matrix (Haar measure for 3x3 case), using fast algorithm from Graphics Gems III
 
-    (http://tog.acm.org/resources/GraphicsGems/gemsiii/rand_rotation.c)
+    Returns
+    -------
+    array-like
+        A 3x3 rotation matrix
+
+    Notes
+    -----
+    This is a Python implementation of the algorithm from Graphics Gems III, by Ken Shoemake. The original code was
+    available at http://tog.acm.org/resources/GraphicsGems/gemsiii/rand_rotation.c, but was removed.
+    An archived version is available at
+    https://web.archive.org/web/20120621201232/http://tog.acm.org/resources/GraphicsGems/gemsiii/rand_rotation.c
     """
 
     x = np.random.uniform(size=3)
@@ -455,7 +465,9 @@ def gamma_inc(a, z, eps=3.e-7):
 def thread_map(func, *args):
     """Run func in separate threads, mapping over the arguments in the same way as map(...)
 
-    There is no thread pool here: a new thread is created for each function call. This is used by the kdtree code.
+    This does not use a thread pool. A new thread is created for each function call.
+
+    This routine is used by :mod:`pynbody.kdtree`.
     """
 
     def r_func(*afunc):
@@ -488,7 +500,7 @@ def thread_map(func, *args):
 
 
 def deprecated(func, message=None):
-    """Mark a method or function as deprecated"""
+    """Mark a method or function as deprecated, optionally with a custom message."""
     if isinstance(func, str):
         return functools.partial(deprecated, message=func)
 
