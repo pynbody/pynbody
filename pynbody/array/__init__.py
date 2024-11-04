@@ -1,24 +1,27 @@
 """
-Arrays for simulation data
-==========================
+Defines arrays for simulation snapshots.
 
-The main class defined in this module is the `SimArray` class, which defines a shallow wrapper around ``numpy.ndarray``
-for extra functionality like unit-tracking.
+There are two distinct types of array used in pynbody.
 
-For most purposes, the differences between numpy.ndarray and
-array.SimArray are not important. However, when units are specified
-(by setting the ``units`` attribute), the behaviour is slightly
+* :class:`SimArray` defines a subclass of ``numpy.ndarray`` for extra functionality like unit tracking
+* :class:`IndexedSimArray` defines a distinct type of array, which does not subclass ``numpy.ndarray`` but behaves
+  like one. It points to a parent array and a set of indices, and can be used to represent a subset of elements
+  within an array.
+
+For most purposes, the differences between ``numpy.ndarray`` and
+:class:`SimArray` are not important. However, when units are specified
+(by setting the :attr:`SimArray.units` attribute), the behaviour is slightly
 different. In particular,
 
 * it becomes impossible to add or subtract arrays with incompatible dimensions
 
->>> SimArray([1,2], "Mpc") + SimArray([1,2], "Msol"))
-ValueError
+  >>> SimArray([1,2], "Mpc") + SimArray([1,2], "Msol"))
+  ValueError
 
 * addition or subtraction causes auto-unit conversion. For example
 
->>> SimArray([1,2], "Mpc") + SimArray([1,2], "kpc")
-SimArray([1.001, 1.002], "Mpc")
+  >>> SimArray([1,2], "Mpc") + SimArray([1,2], "kpc")
+  SimArray([1.001, 1.002], "Mpc")
 
 * Note that in this context the left value takes precedence in
   specifying the return units, so that reversing the order of the
@@ -32,16 +35,17 @@ SimArray([1.001, 1.002], "Mpc")
   tracking.  Powers to float or other powers will not be able to do
   so.
 
->>> SimArray([1,2],"Msol Mpc**-3")**2
-SimArray([1, 4], 'Msol**2 Mpc**-6')
->>> SimArray([1,2],"Msol Mpc**-3")**(1,3)
-SimArray([ 1.,1.26], 'Msol**1/3 Mpc**-1')
+  >>> SimArray([1,2],"Msol Mpc**-3")**2
+  SimArray([1, 4], 'Msol**2 Mpc**-6')
+  >>> SimArray([1,2],"Msol Mpc**-3")**(1,3)
+  SimArray([ 1.,1.26], 'Msol**1/3 Mpc**-1')
 
-Syntax above mirrors syntax in units module, where a length-two tuple
-can represent a rational number, in this case one third.
+* The syntax is similar to that used by :class:`pynbody.units.Unit`, where a length-two tuple
+  can represent a rational number, in this case one third. If a floating point number is used,
+  the unit tracking is lost:
 
->>> SimArray([1.,2], "Msol Mpc**-3")**0.333
-SimArray([ 1.,1.26])  # Lost track of units
+  >>> SimArray([1.,2], "Msol Mpc**-3")**0.333
+  SimArray([ 1.,1.26])  # Lost track of units
 
 
 
@@ -65,7 +69,7 @@ SimArray([  1.99e+30,   3.98e+30], 'kg')
 >>> print(x)
 SimArray([1,2], "Msol")
 
-If the SimArray was created by a SimSnap (which is most likely), it
+If the :class:`SimArray` (or :class:`IndexedSimArray`) was created by a SimSnap (which is most likely), it
 has a pointer into the SimSnap's properties so that the cosmological
 context is automatically fetched. For example, comoving -> physical
 conversions are correctly achieved:
@@ -91,52 +95,37 @@ SimArray([[ 1548.51403101, -1847.2525312 , -4485.71463308],
          [ 2047.2214441 , -2133.87693163, -2291.59406997]], 'kpc')
 
 
-Specifying rules for ufunc's
------------------------------
+Specifying rules for ufuncs
+----------------------------
 
 In general, it's not possible to infer what the output units from a given
 ufunc should be. While numpy built-in ufuncs should be handled OK, other
-ufuncs will need their output units defined (otherwise a numpy.ndarray
+ufuncs will need their output units defined (otherwise a `numpy.ndarray`
 will be returned instead of our custom type.)
 
-To do this, decorate a function with SimArray.ufunc_rule(ufunc). The function
+To do this, decorate a function with :meth:`SimArray.ufunc_rule`. The function
 you define should take the same number of parameters as the ufunc. These will
 be the input parameters of the ufunc. You should return the correct units for
 the output, or raise units.UnitsException (in the latter case, the return
 array will be made into a numpy.ndarray.)
 
-For example, here is the code for the correct addition/subtraction
-handler:
+For example, here is the code for the standard numpy sqrt. (You don't need this because it's already
+built in, but it shows you how to do it.)
 
 .. code-block:: python
 
-    @SimArray.ufunc_rule(np.add)
-    @SimArray.ufunc_rule(np.subtract)
-    def _consistent_units(a,b) :
+    @SimArray.ufunc_rule(np.sqrt)
+    def sqrt_units(a):
+        if a.units is not None:
+            return a.units ** (1, 2)
+        else:
+            return None
 
-        # This will be called whenever the standard numpy ufuncs np.add
-        # or np.subtract are called with parameters a,b.
+Shared memory arrays
+--------------------
 
-        # You should always be ready for the inputs to have no units.
-
-        a_units = a.units if hasattr(a, 'units') else None
-        b_units = b.units if hasattr(b, 'units') else None
-
-        # Now do the logic. If we're adding incompatible units,
-        # we want just to get a plain numpy array out. If we only
-        # know the units of one of the arrays, we assume the output
-        # is in those units.
-
-        if a_units is not None and b_units is not None :
-            if a_units==b_units :
-                return a_units
-            else :
-                raise units.UnitsException("Incompatible units")
-
-        elif a_units is not None :
-            return a_units
-        else :
-            return b_units
+The array package also provides mechanisms for creating arrays that back onto shared memory. These can be easily
+created using :func:`array_factory` with ``shared=True``. For implementation details see :mod:`pynbody.array.shared`.
 
 """
 
@@ -160,11 +149,48 @@ _units = units
 logger = logging.getLogger('pynbody.array')
 
 
+def _copy_docstring_from(source_class):
+    def wrapper(target_class):
+        for attr in dir(target_class):
+            if attr.startswith('_'):
+                continue
+            if hasattr(source_class, attr) and hasattr(getattr(source_class, attr), '__doc__'):
+                docstring = getattr(source_class, attr).__doc__
+                if docstring is not None:
+                    setattr(getattr(target_class, attr), '__doc__', docstring)
 
+
+        return target_class
+
+    return wrapper
 
 
 class SimArray(np.ndarray):
-    """A shallow wrapper around numpy.ndarray for extra functionality like unit-tracking."""
+    """A shallow wrapper around numpy.ndarray for extra functionality like unit-tracking.
+
+    .. note::
+
+       This class inherits from ``numpy.ndarray``. Most of the methods are inherited from the parent class.
+       The documentation is also inherited; in particular note that version information therefore refers to
+       the version of numpy, not pynbody.
+
+       The methods specific to this child class (and therefore documented for pynbody specifically) are:
+
+       * :meth:`conversion_context`
+       * :meth:`convert_units`
+       * :meth:`in_units`
+       * :meth:`ufunc_rule`
+
+       The attributes specific to this class are:
+
+       * :attr:`ancestor`
+       * :attr:`derived`
+       * :attr:`family`
+       * :attr:`name`
+       * :attr:`sim`
+       * :attr:`units`
+
+    """
 
     _ufunc_registry = {}
 
@@ -207,7 +233,26 @@ class SimArray(np.ndarray):
     def __init__(self, data, units = None, sim = None, **kwargs):
         """Initialise a SimArray with the specified units and simulation context.
 
-        Other arguments are as for numpy.ndarray. If the data argument is a SimArray, the units and sim arguments are ignored."""
+        Arguments
+        ---------
+
+        data : array-like
+            The data to be stored in the array. If a :class:`SimArray` is passed in, it is copied and the *units* and
+            *sim* arguments below are ignored.
+
+        units : str or :class:`pynbody.units.UnitBase`
+            The units of the data. If None, the data is assumed to be dimensionless. This argument is not used if
+            *data* is a :class:`SimArray`.
+
+        sim : :class:`pynbody.snapshot.simsnap.SimSnap`
+            The simulation snapshot that the array belongs to. This is used to obtain context when performing
+            unit conversions.  If None, the array is not associated with any simulation. This argument is not used if
+            *data* is a :class:`SimArray`.
+
+        **kwargs : dict
+            Other arguments are passed to ``numpy.ndarray.__init__``.
+
+        """
 
         # The actual initialisation is done by __new__ (it's actually unclear to me now why that should be the case,
         # but it's been like this for a long time and so changing it would need to be handled with care.)
@@ -528,6 +573,7 @@ class SimArray(np.ndarray):
         self.__setitem__(slice(a, b), to)
 
     def abs(self, *args, **kwargs):
+        """Return the absolute value of the array."""
         x = np.abs(self, *args, **kwargs)
         if hasattr(x, 'units') and self.units is not None:
             x.units = self.units
@@ -908,16 +954,72 @@ def _norm_units(a, *args, **kwargs):
     return a.units
 
 
+def _implement_array_functionality(class_):
+    """Implement all the standard numpy array functionality on the given class.
+
+    A function is automatically generated for each SimArray method, ensuring that class_ also implements them.
+    The implementation is obtained simply by creating a SimArray when the method is called."""
+
+    def _wrap_fn(w):
+        @functools.wraps(w)
+        def q(s, *y,  **kw):
+            return w(SimArray(s), *y, **kw)
+
+        #q.__name__ = w.__name__
+        return q
+
+    # functions we definitely want to wrap, even though there's an existing
+    # implementation
+    _override = "__eq__", "__ne__", "__gt__", "__ge__", "__lt__", "__le__"
+
+    for x in set(np.ndarray.__dict__).union(SimArray.__dict__):
+        _w = getattr(SimArray, x)
+        if 'array' not in x and ((not hasattr(class_, x)) or x in _override) and hasattr(_w, '__call__') and x!="__buffer__":
+            setattr(class_, x, _wrap_fn(_w))
+    return class_
+
+
+@_copy_docstring_from(SimArray)
+@_copy_docstring_from(np.ndarray)
+@_implement_array_functionality
 class IndexedSimArray:
     """A view into a SimArray that allows for indexing and slicing.
 
-    Unlike numpy arrays, IndexedSimArrays do not copy data when indexed. Instead, they provide a view into the original
-    data. This is used by pynbody to provide a view into a subset of a simulation snapshot without copying the data,
-    while making sure any changes to the data are reflected in the original snapshot.
+    Unlike a numpy array constructed from indexing a parent, IndexedSimArrays do not hold a copy of the underlying data.
 
-    For most purposes, an IndexedSimArray should behave exactly like a SimArray. However, advanced users may want to
-    understand more about performance implications and ways to optimize code. This can be found in the
+    For example:
+
+    >>> a = pynbody.array.SimArray([1, 2, 3, 4])
+    >>> b = a[[1, 3]]
+
+    In this case, ``b`` copies the relevant part of ``a`` into a new array. Updating the elements of ``b`` leave
+    ``a`` untouched.
+
+    >>> b[:] = 0
+    >>> a
+    SimArray([1, 2, 3, 4])
+
+    By contrast,
+
+    >>> a = pynbody.array.SimArray([1, 2, 3, 4])
+    >>> b = pynbody.array.IndexedSimArray(a, [1, 3])
+
+    In this case, ``b`` provides a view into ``a``. Changes to ``b`` are reflected in ``a``. However, ``b`` is not a
+    genuine numpy array.
+
+    >>> b[:] = 0
+    >>> a
+    SimArray([1, 0, 3, 0])
+
+    For most purposes, an IndexedSimArray should behave exactly like a SimArray/numpy array. However, advanced users may
+    want to understand more about performance implications and ways to optimize code. This can be found in the
     :ref:`performance` section of the documentation.
+
+    .. note::
+
+      The methods of this class are the same as those of :class:`SimArray`, and mainly therefore correspond to the
+      equivalents within ``numpy.ndarray``. See also the note on function documentation for :class:`SimArray`.
+
     """
     @property
     def derived(self):
@@ -930,7 +1032,18 @@ class IndexedSimArray:
     def __init__(self, array: SimArray, ptr: slice | np.ndarray):
         """Initialise an IndexedSimArray based on an underlying SimArray and a pointer into that array.
 
-        The pointer can be a slice or an array of indexes."""
+        The pointer can be a slice or an array of indexes.
+
+        Parameters
+        ----------
+
+        array : SimArray
+            The underlying :class:`SimArray`.
+
+        ptr : slice or numpy.ndarray
+            The slice or array of indexes into the underlying array.
+
+        """
         self.base = array
         self._ptr = ptr
 
@@ -1015,31 +1128,7 @@ class IndexedSimArray:
     def write(self, **kwargs):
         self.base.write(**kwargs)
 
-    def prod(self):
-        return np.array(self).prod()
 
-
-# The IndexedSimArray class is now supplemented by wrapping all the
-# standard numpy methods with a generated function which extracts an
-# array realization of the subview before calling the underlying
-# method.
-
-def _wrap_fn(w):
-    @functools.wraps(w)
-    def q(s, *y,  **kw):
-        return w(SimArray(s), *y, **kw)
-
-    q.__name__ = w.__name__
-    return q
-
-# functions we definitely want to wrap, even though there's an existing
-# implementation
-_override = "__eq__", "__ne__", "__gt__", "__ge__", "__lt__", "__le__"
-
-for x in set(np.ndarray.__dict__).union(SimArray.__dict__):
-    _w = getattr(SimArray, x)
-    if 'array' not in x and ((not hasattr(IndexedSimArray, x)) or x in _override) and hasattr(_w, '__call__') and x!="__buffer__":
-        setattr(IndexedSimArray, x, _wrap_fn(_w))
 
 
 def array_factory(dims: int | tuple, dtype: np.dtype, zeros: bool, shared: bool) -> SimArray:
