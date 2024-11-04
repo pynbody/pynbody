@@ -295,17 +295,6 @@ copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.{3,5}: | {5,8}:
 copybutton_prompt_is_regexp = True
 copybutton_only_copy_prompt_lines = True
 
-def hide_numpy_methods(app, what, name, obj, skip, options):
-    if hasattr(obj, "__qualname__"):
-        qname = obj.__qualname__
-        if "SimArray" in qname:
-            method_name = qname.split(".")[-1]
-            if method_name in np.ndarray.__dict__:
-                print("Skipping ", qname)
-                return True
-def setup(app):
-    app.connect('autodoc-skip-member', hide_numpy_methods)
-
 import matplotlib
 
 matplotlib.rcParams['savefig.dpi'] = 200
