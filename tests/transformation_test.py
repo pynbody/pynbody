@@ -176,3 +176,56 @@ def test_derived_3d_array(family):
 
     with f.ancestor.rotate_y(90):
         _ = f['test_derived_3d_array_transformation']
+
+@pytest.fixture
+def loadable_3d_arrays():
+    source = pynbody.new(dm=10)
+    source['pos'] = np.zeros((10, 3))
+    source['pos'][:, 0] = np.ones(10)
+    source['another3d'] = np.zeros((10, 3))
+    source['another3d'][:, 0] = np.ones(10)
+
+    destination = source.get_copy_on_access_simsnap()
+    return destination
+
+def test_persistent_transform(loadable_3d_arrays):
+    f = loadable_3d_arrays
+    f['pos'] # noqa - force 'load'
+
+    with f.rotate_z(90):
+        npt.assert_allclose(f['pos'][:,1], np.ones(10))
+
+        # test that the array that was unloaded at the time of the transformation is  transformed
+        npt.assert_allclose(f['another3d'][:, 1], np.ones(10))
+
+    # check everything is transformed back
+    npt.assert_allclose(f['pos'][:, 0], np.ones(10))
+    npt.assert_allclose(f['another3d'][:, 0], np.ones(10))
+
+def test_persistent_chained_transform(loadable_3d_arrays):
+    f = loadable_3d_arrays
+
+    with f.translate([1,0,0]).rotate_z(90):
+        npt.assert_allclose(f['pos'][:, 1], np.repeat(2.0, 10))
+        npt.assert_allclose(f['pos'][:, [0,2]], 0, atol=1e-10)
+
+        # test that the array that was unloaded at the time of the transformation is  transformed
+        npt.assert_allclose(f['another3d'][:, 1], np.ones(10))
+
+    # check everything is transformed back
+    npt.assert_allclose(f['pos'][:, 0], np.ones(10))
+    npt.assert_allclose(f['another3d'][:, 0], np.ones(10))
+
+    npt.assert_allclose(f['pos'][:, 1], np.zeros(10), atol=1e-10)
+
+def test_revert_transform_out_of_order(loadable_3d_arrays):
+    f = loadable_3d_arrays
+
+    translate = f.translate([1,0,0])
+    rotate = f.rotate_z(90)
+
+    with npt.assert_raises(pynbody.transformation.TransformationException):
+        translate.revert()
+
+    rotate.revert()
+    translate.revert()
