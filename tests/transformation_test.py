@@ -141,7 +141,7 @@ def test_null(test_simulation_with_copy):
         assert tx.sim is not None
 
     with tx.rotate_x(90) as tx2:
-        assert tx2.next_transformation is None
+        assert tx2._previous_transformation is None
         assert str(tx2) == "rotate_x(90)"
         npt.assert_almost_equal(f['y'], -original['z'])
 
@@ -229,3 +229,5 @@ def test_revert_transform_out_of_order(loadable_3d_arrays):
 
     rotate.revert()
     translate.revert()
+
+    npt.assert_allclose(f['pos'][:, 0], np.ones(10))
