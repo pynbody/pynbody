@@ -42,6 +42,7 @@ of course undone in the opposite order.
 
 from __future__ import annotations
 
+import abc
 import typing
 import weakref
 
@@ -62,28 +63,20 @@ class TransformationException(Exception):
 class Transformable:
     """A mixin class for objects that can generate a Transformation object"""
     def __init__(self):
-        self._current_transformation = None
+        self._transformations = []
 
     def current_transformation(self) -> Transformation | None:
         """Return the transformation that has been applied to this object, if any."""
-        return self._current_transformation
+        return self._transformations[-1] if self._transformations else None
 
     def _register_transformation(self, t: Transformation):
-        if self._current_transformation is not None:
-            self._current_transformation._register_transformation(t)
-        else:
-            self._current_transformation = t
+        self._transformations.append(t)
 
     def _deregister_transformation(self, t: Transformation):
-        if self._current_transformation is t:
-            if self.current_transformation().current_transformation() is not None:
-                raise TransformationException("This transformation cannot be reverted as it is not the most recent transformation")
-            else:
-                self._current_transformation = None
-        elif self._current_transformation is not None:
-            self._current_transformation._deregister_transformation(t)
+        if self.current_transformation() is t:
+            self._transformations.pop()
         else:
-            raise TransformationException("This transformation cannot be reverted as it cannot be found in the transformation chain")
+            raise TransformationException("It is not possible to revert a transformation that is not the most recent")
 
     def translate(self, offset):
         """Translate by the given offset.
@@ -166,8 +159,23 @@ class Transformable:
         """Deprecated alias for :meth:`rotate`."""
         return self.rotate(matrix)
 
+    def apply_transformation_to_array(self, array):
+        """Apply the current transformation to an array.
 
-class Transformation(Transformable):
+        This is used internally by the snapshot class to ensure that arrays are transformed
+        when they are loaded.
+
+        Parameters
+        ----------
+        array : SimArray
+            The array to transform
+        """
+
+        for transform in self._transformations:
+            transform.apply_transformation_to_array(array)
+
+
+class Transformation(Transformable, abc.ABC):
     """The base class for all transformations.
 
     Note that this class inherits from :class:`Transformable`, so all transformations are themselves
@@ -202,6 +210,11 @@ class Transformation(Transformable):
             self.sim = f
             self._previous_transformation = None
         elif isinstance(f, Transformation):
+            sim = f.sim
+            if sim.current_transformation() is not f:
+                raise TransformationException("Attempting to make a compound transformation from a transformation that is not the most recent")
+
+
             self.sim = f.sim
             self._previous_transformation = f
         else:
@@ -210,8 +223,11 @@ class Transformation(Transformable):
         self._description = description
         self._entered = False
 
-        self._apply(self.sim)
+        self._apply_to_snapshot(self.sim)
         # not apply_to as we don't want to chain -- any underlying transformations will be applied already
+
+        if isinstance(f, Transformation):
+            self.sim._deregister_transformation(f)
 
         self.sim._register_transformation(self)
 
@@ -265,7 +281,7 @@ class Transformation(Transformable):
             # from the level below
             f = self._previous_transformation.apply_to(f)
 
-        self._apply(f)
+        self._apply_to_snapshot(f)
 
         return f
 
@@ -284,26 +300,27 @@ class Transformation(Transformable):
         SimSnap
             The input simulation (not a copy)
         """
-        self._revert(f)
+        self._unapply_to_snapshot(f)
 
         if self._previous_transformation is not None:
             self._previous_transformation.apply_inverse_to(f)
 
 
     def revert(self):
-        """Revert the transformation. If it has not been applied, a RuntimeError is raised."""
+        """Revert the transformation. If it has not been applied, a TransformationException is raised."""
 
         self.sim._deregister_transformation(self)
-        self._revert(self.sim)
 
+        transformation = self
+
+        while transformation is not None:
+            transformation._unapply_to_snapshot(self.sim)
+            transformation = transformation._previous_transformation
+
+    def apply_transformation_to_array(self, array):
         if self._previous_transformation is not None:
-            self._previous_transformation.revert()
-
-    def _apply(self, f):
-        pass
-
-    def _revert(self, f):
-        pass
+            self._previous_transformation.apply_transformation_to_array(array)
+        self._apply_to_array(array)
 
     def __enter__(self):
         if self._entered:
@@ -314,6 +331,18 @@ class Transformation(Transformable):
     def __exit__(self, *args):
         self.revert()
 
+    @abc.abstractmethod
+    def _apply_to_snapshot(self, f):
+        pass
+
+    @abc.abstractmethod
+    def _apply_to_array(self, array):
+        pass
+
+    @abc.abstractmethod
+    def _unapply_to_snapshot(self, f):
+        pass
+
 
 class NullTransformation(Transformation):
     """A transformation that does nothing, provided for convenience where a transformation is expected."""
@@ -321,9 +350,13 @@ class NullTransformation(Transformation):
     def __init__(self, f):
         super().__init__(f, description="null")
 
-    def _apply(self, f):
+    def _apply_to_snapshot(self, f):
         pass
-    def _revert(self, f):
+
+    def _apply_to_array(self, array):
+        pass
+
+    def _unapply_to_snapshot(self, f):
         pass
 
 
@@ -348,11 +381,15 @@ class GenericTranslation(Transformation):
         self.arname = arname
         super().__init__(f, description=description)
 
-    def _apply(self, f):
-        f[self.arname] += self.shift
+    def _apply_to_snapshot(self, f):
+        self._apply_to_array(f[self.arname])
 
-    def _revert(self, f):
+    def _unapply_to_snapshot(self, f):
         f[self.arname] -= self.shift
+
+    def _apply_to_array(self, array):
+        if array.name == self.arname:
+            array += self.shift
 
 
 class Rotation(Transformation):
@@ -390,10 +427,10 @@ class Rotation(Transformation):
             description = "rotate"
         super().__init__(f, description=description)
 
-    def _apply(self, f):
+    def _apply_to_snapshot(self, f):
         self._transform(self.matrix)
 
-    def _revert(self, f):
+    def _unapply_to_snapshot(self, f):
         self._transform(self.matrix.T)
 
     def _transform(self, matrix):
@@ -417,6 +454,10 @@ class Rotation(Transformation):
                 ar = sim[fam][array_name]
                 if (not ar.derived) and len(ar.shape) == 2 and ar.shape[1] == 3:
                     ar[:] = np.dot(matrix, ar.transpose()).transpose()
+
+    def _apply_to_array(self, array):
+        if len(array.shape) == 2 and array.shape[1] == 3:
+            array[:] = np.dot(self.matrix, array.transpose()).transpose()
 
 
 GenericRotation = Rotation # name from pynbody v1

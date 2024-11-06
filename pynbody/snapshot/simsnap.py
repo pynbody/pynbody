@@ -881,12 +881,14 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             # see the gadget unit test, test_unit_persistence
             if fam is not None:
                 self._load_array(array_name, fam)
+                self.apply_transformation_to_array(self._get_family_array(array_name, fam))
             else:
                 try:
                     self._load_array(array_name, fam)
                 except OSError:
                     for fam_x in self.families():
                         self._load_array(array_name, fam_x)
+                self.apply_transformation_to_array(self._get_array(array_name))
 
             # Find out what was loaded
             new_keys = set(anc.keys()) - pre_keys

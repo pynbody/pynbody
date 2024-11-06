@@ -218,6 +218,23 @@ def test_persistent_chained_transform(loadable_3d_arrays):
 
     npt.assert_allclose(f['pos'][:, 1], np.zeros(10), atol=1e-10)
 
+def test_persistent_nested_transform(loadable_3d_arrays):
+    f = loadable_3d_arrays
+
+    with f.translate([1, 0, 0]):
+        with f.rotate_z(90):
+            npt.assert_allclose(f['pos'][:, 1], np.repeat(2.0, 10))
+            npt.assert_allclose(f['pos'][:, [0, 2]], 0, atol=1e-10)
+
+            # test that the array that was unloaded at the time of the transformation is  transformed
+            npt.assert_allclose(f['another3d'][:, 1], np.ones(10))
+
+    # check everything is transformed back
+    npt.assert_allclose(f['pos'][:, 0], np.ones(10))
+    npt.assert_allclose(f['another3d'][:, 0], np.ones(10))
+
+    npt.assert_allclose(f['pos'][:, 1], np.zeros(10), atol=1e-10)
+
 def test_revert_transform_out_of_order(loadable_3d_arrays):
     f = loadable_3d_arrays
 

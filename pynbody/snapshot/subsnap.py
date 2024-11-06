@@ -27,6 +27,7 @@ class ExposedBaseSnapshotMixin:
 class SubSnapBase(SimSnap):
     def __init__(self, base):
         self._subsnap_base = base
+        super().__init__()
 
     def _get_array(self, name, index=None, always_writable=False):
         if self.immediate_mode:
