@@ -179,11 +179,13 @@ def test_derived_3d_array(family):
 
 @pytest.fixture
 def loadable_3d_arrays():
-    source = pynbody.new(dm=10)
+    source = pynbody.new(dm=5, star=5)
     source['pos'] = np.zeros((10, 3))
     source['pos'][:, 0] = np.ones(10)
     source['another3d'] = np.zeros((10, 3))
     source['another3d'][:, 0] = np.ones(10)
+    source.st['star_only_3d'] = np.zeros((5,3))
+    source.st['star_only_3d'][:, 0] = np.ones(5)
 
     destination = source.get_copy_on_access_simsnap()
     return destination
@@ -198,9 +200,12 @@ def test_persistent_transform(loadable_3d_arrays):
         # test that the array that was unloaded at the time of the transformation is  transformed
         npt.assert_allclose(f['another3d'][:, 1], np.ones(10))
 
+        npt.assert_allclose(f.st['star_only_3d'][:, 1], np.ones(5))
+
     # check everything is transformed back
     npt.assert_allclose(f['pos'][:, 0], np.ones(10))
     npt.assert_allclose(f['another3d'][:, 0], np.ones(10))
+    npt.assert_allclose(f.st['star_only_3d'][:, 0], np.ones(5))
 
 def test_persistent_chained_transform(loadable_3d_arrays):
     f = loadable_3d_arrays
@@ -225,9 +230,9 @@ def test_persistent_nested_transform(loadable_3d_arrays):
         with f.rotate_z(90):
             npt.assert_allclose(f['pos'][:, 1], np.repeat(2.0, 10))
             npt.assert_allclose(f['pos'][:, [0, 2]], 0, atol=1e-10)
-
-            # test that the array that was unloaded at the time of the transformation is  transformed
             npt.assert_allclose(f['another3d'][:, 1], np.ones(10))
+        npt.assert_allclose(f['pos'][:, 0], np.repeat(2.0, 10))
+        npt.assert_allclose(f['another3d'][:, 0], np.repeat(1.0, 10))
 
     # check everything is transformed back
     npt.assert_allclose(f['pos'][:, 0], np.ones(10))
@@ -248,3 +253,24 @@ def test_revert_transform_out_of_order(loadable_3d_arrays):
     translate.revert()
 
     npt.assert_allclose(f['pos'][:, 0], np.ones(10))
+
+def test_persistent_array_with_derived(loadable_3d_arrays):
+    f = loadable_3d_arrays
+
+    @pynbody.derived_array
+    def derived_pos(sim):
+        return sim['pos']
+
+    @pynbody.derived_array
+    def derived_another3d(sim):
+        return sim['another3d']
+
+    f['pos']
+
+    with f.rotate_z(90):
+        npt.assert_allclose(f['derived_pos'][:, 1], np.ones(10))
+
+        t = f['derived_another3d']
+        npt.assert_allclose(f['derived_another3d'][:, 1], np.ones(10))
+
+    npt.assert_allclose(f['derived_pos'][:,0], np.ones(10))
