@@ -159,7 +159,7 @@ class Transformable:
         """Deprecated alias for :meth:`rotate`."""
         return self.rotate(matrix)
 
-    def apply_transformation_to_array(self, array_name, family):
+    def apply_transformation_to_array(self, array_name, family = None):
         """Apply the current transformation to an array.
 
         This is used internally by the snapshot class to ensure that arrays are transformed
@@ -171,7 +171,7 @@ class Transformable:
             The name of the array to transform
 
         family : pynbody.family.Family | None
-            The family to which the array belongs, or None if it is a snapshot-level array
+            The family to which the array belongs, or None if it is a snapshot-level array (default)
         """
 
         for transform in self._transformations:
@@ -320,11 +320,9 @@ class Transformation(Transformable, abc.ABC):
             array = self.sim._get_family_array(array_name, family)
         else:
             array = self.sim._get_array(array_name)
-        print("atta", array)
 
         self._apply_to_array(array)
 
-        print("atta result", array)
 
     def __enter__(self):
         if self._entered:
