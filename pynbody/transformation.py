@@ -28,23 +28,56 @@ You can also chain transformations together, like this:
 
 This implies a translation followed by a rotation. When reverting the transformation, they are
 of course undone in the opposite order.
+
+.. versionchanged:: 2.0
+
+   The transformation system has been changed in version 2.0. While transformations are active they are now
+   applied to newly loaded data. In particular, if a simulation is rotated and then a 3d array is loaded,
+   the array will be rotated to match the simulation. This is a change from previous versions where transformations
+   were only applied to arrays instantaneously in RAM, which could lead to inconsistent behaviour.
+
+   As a consequence of this change, the system is also more strict about the order in which transformations are reverted.
+   One cannot revert a transformation when another transformation has been applied after it (and not yet reverted).
 """
 
 from __future__ import annotations
 
+import abc
 import typing
 import weakref
 
 if typing.TYPE_CHECKING:
     from . import snapshot
+    from typing import Optional
 
 import numpy as np
 
 from . import util
 
 
+class TransformationException(Exception):
+    """Exception raised when a transformation fails"""
+
+    pass
+
 class Transformable:
     """A mixin class for objects that can generate a Transformation object"""
+    def __init__(self):
+        self._transformations = []
+
+    def current_transformation(self) -> Transformation | None:
+        """Return the transformation that has been applied to this object, if any."""
+        return self._transformations[-1] if self._transformations else None
+
+    def _register_transformation(self, t: Transformation):
+        self._transformations.append(t)
+
+    def _deregister_transformation(self, t: Transformation):
+        if self.current_transformation() is t:
+            self._transformations.pop()
+        else:
+            raise TransformationException("""It is not possible to revert this transformation because it is not the most recent applied transformation.
+Possible reasons include that the transformation has already been reverted, or that another transformation has been applied after it.""")
 
     def translate(self, offset):
         """Translate by the given offset.
@@ -59,7 +92,7 @@ class Transformable:
         """Shift the velocity by the given offset.
 
         Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
-        as a context manager to ensure that the translation is undone.
+        as a context manager to ensure that the velocity shift is undone.
 
         For more information, see the :mod:`pynbody.transformation` documentation."""
         return GenericTranslation(self, 'vel', offset, description = "offset_velocity")
@@ -67,8 +100,8 @@ class Transformable:
     def rotate_x(self, angle):
         """Rotates about the current x-axis by 'angle' degrees.
 
-        Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
-        as a context manager to ensure that the translation is undone.
+        Returns a :class:`pynbody.transformation.Rotation` object which can be used
+        as a context manager to ensure that the rotation is undone.
 
         For more information, see the :mod:`pynbody.transformation` documentation."""
         angle_rad = angle * np.pi / 180
@@ -80,8 +113,8 @@ class Transformable:
     def rotate_y(self, angle):
         """Rotates about the current y-axis by 'angle' degrees.
 
-        Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
-        as a context manager to ensure that the translation is undone.
+        Returns a :class:`pynbody.transformation.Rotation` object which can be used
+        as a context manager to ensure that the rotation is undone.
 
         For more information, see the :mod:`pynbody.transformation` documentation."""
         angle_rad = angle * np.pi / 180
@@ -93,8 +126,8 @@ class Transformable:
     def rotate_z(self, angle):
         """Rotates about the current z-axis by 'angle' degrees.
 
-        Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
-        as a context manager to ensure that the translation is undone.
+        Returns a :class:`pynbody.transformation.Rotation` object which can be used
+        as a context manager to ensure that the rotation is undone.
 
         For more information, see the :mod:`pynbody.transformation` documentation."""
         angle_rad = angle * np.pi / 180
@@ -106,7 +139,7 @@ class Transformable:
     def rotate(self, matrix, description = None):
         """Rotates using a specified matrix.
 
-        Returns a :class:`pynbody.transformation.GenericTranslation` object which can be used
+        Returns a :class:`pynbody.transformation.Rotation` object which can be used
         as a context manager to ensure that the translation is undone.
 
         For more information, see the :mod:`pynbody.transformation` documentation.
@@ -127,8 +160,26 @@ class Transformable:
         """Deprecated alias for :meth:`rotate`."""
         return self.rotate(matrix)
 
+    def apply_transformation_to_array(self, array_name, family = None):
+        """Apply the current transformation to an array.
 
-class Transformation(Transformable):
+        This is used internally by the snapshot class to ensure that arrays are transformed
+        when they are loaded.
+
+        Parameters
+        ----------
+        array_name : str
+            The name of the array to transform
+
+        family : pynbody.family.Family | None
+            The family to which the array belongs, or None if it is a snapshot-level array (default)
+        """
+
+        for transform in self._transformations:
+            transform.apply_transformation_to_array(array_name, family)
+
+
+class Transformation(Transformable, abc.ABC):
     """The base class for all transformations.
 
     Note that this class inherits from :class:`Transformable`, so all transformations are themselves
@@ -139,59 +190,62 @@ class Transformation(Transformable):
     >>>    ...
     """
 
-    def __init__(self, f, defer = False, description = None):
+    def __init__(self, f, description = None):
         """Initialise a transformation, and apply it if not explicitly deferred
 
         Parameters
         ----------
-        f : SimSnap or Transformation
+        f : Transformable
             The simulation or transformation to act on. If a transformation is given, this
             transformation will be chained to it, i.e. the result will represent the composed
             transformation.
-        defer : bool
-            If True, the transformation is not applied immediately. Otherwise, as soon as the object
-            is constructed the transformation is applied to the simulation
+
         description : str
             A description of the transformation to be returned from str() and repr()
         """
         from . import snapshot
 
+        super().__init__()
+
+        self._description = description
+        self._reverted = False
+
         if isinstance(f, NullTransformation):
             f = f.sim # as though we are starting from the simulation itself
 
+        # self.sim used to be stored as a weakref, but this made undoing transformations unreliable (e.g. if they
+        # were applied to a family). We now store a strong reference and hope users don't keep them around too long.
+
         if isinstance(f, snapshot.SimSnap):
             self.sim = f
-            self.next_transformation = None
+            self._previous_transformation = None
         elif isinstance(f, Transformation):
+            sim = f.sim
+            if sim.current_transformation() is not f:
+                self._previous_transformation = None # to make a repr possible
+                raise TransformationException(f"It is not possible to make a compound transformation starting from {self} because it is not the most recent transformation to be applied to {sim}")
+
             self.sim = f.sim
-            self.next_transformation = f
+            self._previous_transformation = f
         else:
             raise TypeError("Transformation must either act on another Transformation or on a SimSnap")
 
-        self._description = description
 
-        self.applied = False
-        if not defer:
-            self.apply(force=False)
+        self._apply_to_snapshot(self.sim)
+        # not apply_to as we don't want to chain -- any underlying transformations will be applied already
 
-    @property
-    def sim(self) -> snapshot.SimSnap | None:
-        """The simulation to which this transformation applies"""
-        return self._sim()
+        if isinstance(f, Transformation):
+            self.sim._deregister_transformation(f)
 
-    @sim.setter
-    def sim(self, sim):
-        if sim is None:
-            self._sim = lambda: None
-        else:
-            self._sim = weakref.ref(sim)
+        self.sim._register_transformation(self)
+
 
     def __repr__(self):
         return "<Transformation " + str(self) + ">"
 
     def __str__(self):
-        if self.next_transformation is not None:
-            s = str(self.next_transformation)+", "
+        if self._previous_transformation is not None:
+            s = str(self._previous_transformation) + ", "
         else:
             s = ""
 
@@ -219,12 +273,12 @@ class Transformation(Transformable):
         SimSnap
             The input simulation (not a copy)
         """
-        if self.next_transformation is not None:
+        if self._previous_transformation is not None:
             # this is a chained transformation, get the SimSnap to operate on
             # from the level below
-            f = self.next_transformation.apply_to(f)
+            f = self._previous_transformation.apply_to(f)
 
-        self._apply(f)
+        self._apply_to_snapshot(f)
 
         return f
 
@@ -243,72 +297,57 @@ class Transformation(Transformable):
         SimSnap
             The input simulation (not a copy)
         """
-        self._revert(f)
+        self._unapply_to_snapshot(f)
 
-        if self.next_transformation is not None:
-            self.next_transformation.apply_inverse_to(f)
+        if self._previous_transformation is not None:
+            self._previous_transformation.apply_inverse_to(f)
 
-
-
-    def apply(self, force=True):
-        """Apply the transformation to the simulation it is associated with.
-
-        This is either the simulation passed to the constructor or the one passed to the last
-        transformation in the chain. If the transformation has already been applied, a RuntimeError
-        is raised unless *force* is True, in which case the transformation is applied again.
-
-        Parameters
-        ----------
-
-        force : bool
-            If True, the transformation is applied even if it has already been applied. Otherwise,
-            a RuntimeError is raised if the transformation has already been applied.
-
-        Returns
-        -------
-
-        SimSnap
-            The simulation after the transformation has been applied
-        """
-
-        if self.next_transformation is not None:
-            # this is a chained transformation, get the SimSnap to operate on
-            # from the level below
-            f = self.next_transformation.apply(force=force)
-        else:
-            f = self.sim
-
-        if self.applied and force:
-            raise RuntimeError("Transformation has already been applied")
-
-        if not self.applied:
-            self._apply(f)
-            self.applied = True
-            self.sim = f
-
-        return f
 
     def revert(self):
-        """Revert the transformation. If it has not been applied, a RuntimeError is raised."""
-        if not self.applied:
-            raise RuntimeError("Transformation has not been applied")
-        self._revert(self.sim)
-        self.applied = False
-        if self.next_transformation is not None:
-            self.next_transformation.revert()
+        """Revert the transformation. If it has not been applied, a TransformationException is raised."""
+        if self._reverted:
+            raise TransformationException("Transformation has already been reverted")
 
-    def _apply(self, f):
-        pass
+        self.sim._deregister_transformation(self)
 
-    def _revert(self, f):
-        pass
+        transformation = self
+
+        while transformation is not None:
+            transformation._unapply_to_snapshot(self.sim)
+            transformation._reverted = True
+            transformation = transformation._previous_transformation
+
+    def apply_transformation_to_array(self, array_name, family):
+        if self._previous_transformation is not None:
+            self._previous_transformation.apply_transformation_to_array(array_name, family)
+
+        if family is not None:
+            array = self.sim._get_family_array(array_name, family)
+        else:
+            array = self.sim._get_array(array_name)
+
+        self._apply_to_array(array)
+
 
     def __enter__(self):
-        self.apply(force=False)
+        if self._reverted:
+            raise TransformationException("Transformations cannot be reapplied after they have been reverted")
         return self
 
     def __exit__(self, *args):
         self.revert()
+
+    @abc.abstractmethod
+    def _apply_to_snapshot(self, f):
+        pass
+
+    @abc.abstractmethod
+    def _apply_to_array(self, array):
+        pass
+
+    @abc.abstractmethod
+    def _unapply_to_snapshot(self, f):
+        pass
 
 
 class NullTransformation(Transformation):
@@ -317,9 +356,13 @@ class NullTransformation(Transformation):
     def __init__(self, f):
         super().__init__(f, description="null")
 
-    def _apply(self, f):
+    def _apply_to_snapshot(self, f):
         pass
-    def _revert(self, f):
+
+    def _apply_to_array(self, array):
+        pass
+
+    def _unapply_to_snapshot(self, f):
         pass
 
 
@@ -344,11 +387,15 @@ class GenericTranslation(Transformation):
         self.arname = arname
         super().__init__(f, description=description)
 
-    def _apply(self, f):
-        f[self.arname] += self.shift
+    def _apply_to_snapshot(self, f):
+        self._apply_to_array(f[self.arname])
 
-    def _revert(self, f):
+    def _unapply_to_snapshot(self, f):
         f[self.arname] -= self.shift
+
+    def _apply_to_array(self, array):
+        if array.name == self.arname:
+            array += self.shift
 
 
 class Rotation(Transformation):
@@ -386,10 +433,10 @@ class Rotation(Transformation):
             description = "rotate"
         super().__init__(f, description=description)
 
-    def _apply(self, f):
+    def _apply_to_snapshot(self, f):
         self._transform(self.matrix)
 
-    def _revert(self, f):
+    def _unapply_to_snapshot(self, f):
         self._transform(self.matrix.T)
 
     def _transform(self, matrix):
@@ -413,6 +460,10 @@ class Rotation(Transformation):
                 ar = sim[fam][array_name]
                 if (not ar.derived) and len(ar.shape) == 2 and ar.shape[1] == 3:
                     ar[:] = np.dot(matrix, ar.transpose()).transpose()
+
+    def _apply_to_array(self, array):
+        if len(array.shape) == 2 and array.shape[1] == 3:
+            array[:] = np.dot(self.matrix, array.transpose()).transpose()
 
 
 GenericRotation = Rotation # name from pynbody v1

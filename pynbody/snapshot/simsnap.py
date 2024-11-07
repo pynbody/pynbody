@@ -901,11 +901,14 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
                     if not units.has_units(anc[v]):
                         anc[v].units = anc._default_units_for(v)
                     anc._autoconvert_array_unit(anc[v])
+                    anc.apply_transformation_to_array(v)
                 for f, vals in new_fam_keys.items():
                     for v in vals:
                         if not units.has_units(anc[f][v]):
                             anc[f][v].units = anc._default_units_for(v)
                         anc._autoconvert_array_unit(anc[f][v])
+                        anc.apply_transformation_to_array(v, f)
+
 
 
 
