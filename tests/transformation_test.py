@@ -148,7 +148,19 @@ def test_null(test_simulation_with_copy):
 
     npt.assert_almost_equal(f['pos'], original['pos'])
 
+@pytest.mark.skip(reason="Simulations are no longer stored as weakrefs")
 def test_weakref():
+    """Simulations used to be stored as weakrefs in a transformation object, to avoid problems
+    with garbage collection. However this caused issues with reverting transformations reliably,
+    esp if a user did something like
+
+    with f.dm.rotate_x(90):
+        ...
+
+    f.dm would have been GCed by the time the block exited.
+
+    This test is therefore disabled for now
+    """
     f = pynbody.new(dm=10)
 
     tx1 = f.rotate_y(90)
@@ -274,3 +286,23 @@ def test_persistent_array_with_derived(loadable_3d_arrays):
         npt.assert_allclose(f['derived_another3d'][:, 1], np.ones(10))
 
     npt.assert_allclose(f['derived_pos'][:,0], np.ones(10))
+
+@pytest.mark.parametrize('preload', ['preload-before-rotate', 'preload-after-rotate', 'family-load'])
+def test_transform_subarray(loadable_3d_arrays, preload):
+    f = loadable_3d_arrays
+
+    if preload == 'preload-before-rotate':
+        f['pos'] # noqa - just force a load
+
+    with f.dm.rotate_z(90):
+        if preload == 'preload-after-rotate':
+            f['pos'] # noqa - just force a load
+
+        npt.assert_allclose(f.dm['pos'][:, 1], np.ones(5))
+        npt.assert_allclose(f.dm['pos'][:, 0], np.zeros(5), atol=1e-8)
+
+        npt.assert_allclose(f.st['pos'][:,0], np.ones(5))
+        npt.assert_allclose(f.st['pos'][:,1], np.zeros(5))
+
+    npt.assert_allclose(f['pos'][:, 0], np.ones(10))
+    npt.assert_allclose(f['pos'][:, 1:], np.zeros((10, 2)))

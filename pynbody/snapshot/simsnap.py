@@ -909,16 +909,10 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
         # finally, apply any required transformations
         try:
-            if fam is None:
-                array = self._get_array(array_name)
-            else:
-                array = self._get_family_array(array_name, fam)
-        except KeyError:
-            array = None
-
-        if array is not None:
-            self.ancestor.apply_transformation_to_array(array)
-
+            print("at",array_name,fam)
+            self.ancestor.apply_transformation_to_array(array_name, fam)
+        except KeyboardInterrupt:
+            pass
 
 
 

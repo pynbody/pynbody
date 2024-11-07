@@ -159,7 +159,7 @@ class Transformable:
         """Deprecated alias for :meth:`rotate`."""
         return self.rotate(matrix)
 
-    def apply_transformation_to_array(self, array):
+    def apply_transformation_to_array(self, array_name, family):
         """Apply the current transformation to an array.
 
         This is used internally by the snapshot class to ensure that arrays are transformed
@@ -167,12 +167,15 @@ class Transformable:
 
         Parameters
         ----------
-        array : SimArray
-            The array to transform
+        array_name : str
+            The name of the array to transform
+
+        family : pynbody.family.Family | None
+            The family to which the array belongs, or None if it is a snapshot-level array
         """
 
         for transform in self._transformations:
-            transform.apply_transformation_to_array(array)
+            transform.apply_transformation_to_array(array_name, family)
 
 
 class Transformation(Transformable, abc.ABC):
@@ -206,6 +209,9 @@ class Transformation(Transformable, abc.ABC):
         if isinstance(f, NullTransformation):
             f = f.sim # as though we are starting from the simulation itself
 
+        # self.sim used to be stored as a weakref, but this made undoing transformations unreliable (e.g. if they
+        # were applied to a family). We now store a strong reference and hope users don't keep them around too long.
+
         if isinstance(f, snapshot.SimSnap):
             self.sim = f
             self._previous_transformation = None
@@ -231,17 +237,6 @@ class Transformation(Transformable, abc.ABC):
 
         self.sim._register_transformation(self)
 
-    @property
-    def sim(self) -> snapshot.SimSnap | None:
-        """The simulation to which this transformation applies"""
-        return self._sim()
-
-    @sim.setter
-    def sim(self, sim):
-        if sim is None:
-            self._sim = lambda: None
-        else:
-            self._sim = weakref.ref(sim)
 
     def __repr__(self):
         return "<Transformation " + str(self) + ">"
@@ -317,10 +312,19 @@ class Transformation(Transformable, abc.ABC):
             transformation._unapply_to_snapshot(self.sim)
             transformation = transformation._previous_transformation
 
-    def apply_transformation_to_array(self, array):
+    def apply_transformation_to_array(self, array_name, family):
         if self._previous_transformation is not None:
-            self._previous_transformation.apply_transformation_to_array(array)
+            self._previous_transformation.apply_transformation_to_array(array_name, family)
+
+        if family is not None:
+            array = self.sim._get_family_array(array_name, family)
+        else:
+            array = self.sim._get_array(array_name)
+        print("atta", array)
+
         self._apply_to_array(array)
+
+        print("atta result", array)
 
     def __enter__(self):
         if self._entered:
