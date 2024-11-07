@@ -306,3 +306,25 @@ def test_transform_subarray(loadable_3d_arrays, preload):
 
     npt.assert_allclose(f['pos'][:, 0], np.ones(10))
     npt.assert_allclose(f['pos'][:, 1:], np.zeros((10, 2)))
+
+
+def test_impossible_compound_transform():
+    f = pynbody.new()
+
+    rot = f.rotate_x(90)
+
+    with npt.assert_raises(pynbody.transformation.TransformationException):
+        with f.rotate_y(90):
+            rot.rotate_x(90)
+
+def test_multiple_reversions():
+    f = pynbody.new()
+    rot = f.rotate_x(90)
+    rot.revert()
+
+    with npt.assert_raises(pynbody.transformation.TransformationException):
+        rot.revert()
+
+    with npt.assert_raises(pynbody.transformation.TransformationException):
+        with rot:
+            pass

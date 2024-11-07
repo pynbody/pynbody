@@ -76,7 +76,8 @@ class Transformable:
         if self.current_transformation() is t:
             self._transformations.pop()
         else:
-            raise TransformationException("It is not possible to revert a transformation that is not the most recent")
+            raise TransformationException("""It is not possible to revert this transformation because it is not the most recent applied transformation.
+Possible reasons include that the transformation has already been reverted, or that another transformation has been applied after it.""")
 
     def translate(self, offset):
         """Translate by the given offset.
@@ -206,6 +207,9 @@ class Transformation(Transformable, abc.ABC):
 
         super().__init__()
 
+        self._description = description
+        self._reverted = False
+
         if isinstance(f, NullTransformation):
             f = f.sim # as though we are starting from the simulation itself
 
@@ -218,16 +222,14 @@ class Transformation(Transformable, abc.ABC):
         elif isinstance(f, Transformation):
             sim = f.sim
             if sim.current_transformation() is not f:
-                raise TransformationException("Attempting to make a compound transformation from a transformation that is not the most recent")
-
+                self._previous_transformation = None # to make a repr possible
+                raise TransformationException(f"It is not possible to make a compound transformation starting from {self} because it is not the most recent transformation to be applied to {sim}")
 
             self.sim = f.sim
             self._previous_transformation = f
         else:
             raise TypeError("Transformation must either act on another Transformation or on a SimSnap")
 
-        self._description = description
-        self._entered = False
 
         self._apply_to_snapshot(self.sim)
         # not apply_to as we don't want to chain -- any underlying transformations will be applied already
@@ -303,6 +305,8 @@ class Transformation(Transformable, abc.ABC):
 
     def revert(self):
         """Revert the transformation. If it has not been applied, a TransformationException is raised."""
+        if self._reverted:
+            raise TransformationException("Transformation has already been reverted")
 
         self.sim._deregister_transformation(self)
 
@@ -310,6 +314,7 @@ class Transformation(Transformable, abc.ABC):
 
         while transformation is not None:
             transformation._unapply_to_snapshot(self.sim)
+            transformation._reverted = True
             transformation = transformation._previous_transformation
 
     def apply_transformation_to_array(self, array_name, family):
@@ -325,9 +330,8 @@ class Transformation(Transformable, abc.ABC):
 
 
     def __enter__(self):
-        if self._entered:
-            raise TransformationException("Transformation cannot be reapplied")
-        self._entered = True
+        if self._reverted:
+            raise TransformationException("Transformations cannot be reapplied after they have been reverted")
         return self
 
     def __exit__(self, *args):
