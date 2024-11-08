@@ -206,3 +206,17 @@ def test_multifile_multipart_tng_halos():
     # another test that PartType2 lumped into DM particles get picked up OK
 
     assert (h[1].subhalos[0].dm['iord'][-5:] == [5477082,  5477081,  5476835,  5346238,  5346239]).all()
+
+def test_inconsistent_dtype_loading(snap_arepo):
+    # this looks like an artificial example but can arise e.g. if rho is written float32
+
+    snap_arepo.dm['rho'] = np.zeros(len(snap_arepo.dm), dtype='f4')
+
+    assert snap_arepo.dm['rho'].dtype == np.dtype('float32')
+
+    assert snap_arepo.gas['rho'].dtype == np.dtype('float64')
+
+    with pytest.warns(RuntimeWarning, match="Data types of family arrays do not match"):
+        assert snap_arepo.star['rho'].dtype == np.dtype('float32')
+
+    assert snap_arepo['rho'].dtype == np.dtype('float32')
