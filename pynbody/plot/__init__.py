@@ -1,3 +1,6 @@
+"""Useful plotting routines, using matplotlib to display pynbody's calculations
+"""
+
 import importlib
 
 from . import gas, generic, metals, profile, stars, util
@@ -9,7 +12,7 @@ importlib.reload(gas)
 importlib.reload(metals)
 importlib.reload(util)
 
-from .gas import rho_T, temp_profile
+from .gas import rho_T
 from .generic import fourier_map, gauss_kde, hist2d, qprof
 from .metals import mdf, ofefeh
 from .profile import density_profile, fourier_profile, rotation_curve
