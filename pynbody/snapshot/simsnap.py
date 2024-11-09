@@ -1145,21 +1145,27 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
         # Determine what families already have an array of this name
         fams = []
-        dtx = None
+        previous_dtype = None
         try:
             fams = list(self._family_arrays[array_name].keys())
-            dtx = self._family_arrays[array_name][fams[0]].dtype
+            previous_dtype = self._family_arrays[array_name][fams[0]].dtype
         except KeyError:
             pass
 
         fams.append(family)
 
-        if dtype is not None and dtx is not None and dtype != dtx:
+        if dtype is not None and previous_dtype is not None and np.dtype(dtype).kind != np.dtype(previous_dtype).kind:
 
-            # We insist on the data types being the same for, e.g. sim.gas['my_prop'] and sim.star['my_prop']
+            # We insist on the data types being the same kind for, e.g. sim.gas['my_prop'] and sim.star['my_prop']
             # This makes promotion to simulation-level arrays possible.
-            raise ValueError("Requested data type {!r} is not consistent with existing data type {!r} for family array {!r}".format(
-                str(dtype), str(dtx), array_name))
+            #
+            # Note that previously we disallowed even different dtypes of the same kind (e.g. float32 vs float64) but
+            # this generated issues where behaviour dependeded on arbitrary order of user operations, (see tests
+            # simsnap_test.py:test_float32_float64_compatibility).
+
+            raise ValueError("Requested data type {dtype} is not consistent with existing data type {previous_dtype} for family array {array_name}")
+
+
 
         if all([x in fams for x in self_families]):
             # If, once we created this array, *all* families would have

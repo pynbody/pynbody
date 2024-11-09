@@ -1,9 +1,10 @@
 """
-
-gas
-===
-
 Functions for plotting gas quantities
+
+.. versionchanged :: 2.0
+
+    ``temp_profile`` has been removed. Use the :mod:`pynbody.analysis.profile` module instead.
+    For examples, see the :ref:`profile` tutorial.
 
 """
 
@@ -13,6 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ..analysis import angmom, profile
+from ..transformation import NullTransformation
 from ..units import Unit
 from .generic import hist2d
 
@@ -21,22 +23,29 @@ logger = logging.getLogger('pynbody.plot.gas')
 
 def rho_T(sim, rho_units=None, rho_range=None, t_range=None, two_phase='split', **kwargs):
     """
-    Plot Temperature vs. Density for the gas particles in the snapshot.
+    Plot a 2d histogram of temperature vs density for the gas in the snapshot
 
-    **Optional keywords:**
+    Parameters
+    ----------
 
-       *rho_units*: specify the density units (default is the same units as the current 'rho' array)
+    sim: pynbody.snapshot.simsnap.SimSnap
+         The snapshot or subsnap to plot
 
-       *t_range*: list, array, or tuple
-          ``size(t_range)`` must be 2. Specifies the temperature range.
+    rho_units: str | pynbody.units.Unit | None
+        The units to use for the density. If None, the current snapshot units are used.
 
-       *rho_range:* tuple
-          ``size(rho_range)`` must be 2. Specifies the density range.
+    rho_range: tuple | None
+        The range of densities to plot, in the same units as rho_units. If None, the full range is used.
 
-       *two_phase*: if two-phase particles are detected, either plot each phase separately ('split'), or merge them ('merge')
+    t_range: tuple | None
+        The range of temperatures to plot. If None, the full range is used.
 
-    See :func:`~pynbody.plot.generic.hist2d` for other plotting keyword options
+    two_phase: str
+        If two-phase particles are detected, either plot each phase separately ('split'), or merge them ('merge').
+        Default is 'split'.
 
+    **kwargs:
+        Additional keyword arguments are passed to :func:`~pynbody.plot.generic.hist2d`
 
     """
     if rho_units is None:
@@ -82,43 +91,3 @@ def rho_T(sim, rho_units=None, rho_range=None, t_range=None, two_phase='split', 
     return hist2d(sim.gas['rho'].in_units(rho_units),sim.gas['temp'],
                   xlogrange=True,ylogrange=True,xlabel=xlabel,
                   ylabel=ylabel, **kwargs)
-
-
-
-def temp_profile(sim, center=True, r_units='kpc', bin_spacing='equaln',
-                 clear=True, filename=None, **kwargs):
-    """
-
-    Centre on potential minimum, align so that the disk is in the
-    x-y plane, then plot the temperature profile as a
-    function of radius.
-
-    """
-
-    if center:
-        angmom.sideon(sim)
-
-    if 'min' in kwargs:
-        min_r = kwargs['min']
-    else:
-        min_r = sim['r'].min()
-    if 'max' in kwargs:
-        max_r = kwargs['max']
-    else:
-        max_r = sim['r'].max()
-
-    pro = profile.Profile(sim.gas, type=bin_spacing, rmin =min_r, rmax =max_r)
-
-    r = pro['rbins'].in_units(r_units)
-    tempprof = pro['temp']
-
-    if clear:
-        plt.clf()
-
-    plt.semilogy(r, tempprof)
-
-    plt.xlabel("r / $" + r.units.latex() + "$")
-    plt.ylabel("Temperature [K]")
-    if (filename):
-        logger.info("Saving %s", filename)
-        plt.savefig(filename)
