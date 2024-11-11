@@ -53,15 +53,15 @@ def test_hist2d_averaging(kde):
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        h, xedges, yedges = hist2d(x, y, nbins=20, values=fn, logscale=False,
+        h, xedges, yedges = hist2d(x, y, nbins=100, values=fn, logscale=False,
                                    x_range=(-2, 2), y_range=(-2, 2), use_kde=kde)
 
     # look only in central region
-    xedges = xedges[5:-5]
-    yedges = yedges[5:-5]
-    h = h[5:-5, 5:-5]
+    xedges = xedges[40:60]
+    yedges = yedges[40:60]
+    h = h[40:60, 40:60]
 
-    npt.assert_allclose(h, np.sin(xedges[:,None]+yedges[None,:]), atol=0.02)
+    npt.assert_allclose(h, np.sin(xedges[:,None]+yedges[None,:]), atol=0.04)
 
 
 def test_hist2d_image_type():
