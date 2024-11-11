@@ -13,7 +13,7 @@ importlib.reload(metals)
 importlib.reload(util)
 
 from .gas import rho_T
-from .generic import fourier_map, gauss_kde, hist2d, qprof
+from .generic import fourier_map, gauss_kde, hist2d
 from .metals import mdf, ofefeh
 from .profile import density_profile, fourier_profile, rotation_curve
 from .sph import faceon_image, image, sideon_image
