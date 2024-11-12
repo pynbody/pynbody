@@ -220,6 +220,7 @@ def align(h, vec_to_xform, disk_size="5 kpc", move_all=True, already_centered = 
 
     except:
         tx.revert()
+        raise
 
 
 def sideon(h, **kwargs):

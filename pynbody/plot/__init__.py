@@ -24,6 +24,6 @@ importlib.reload(util)
 
 from .gas import rho_T
 from .generic import fourier_map, gauss_kde, hist2d
-from .profile import density_profile, fourier_profile, rotation_curve
+from .profile import density_profile, rotation_curve
 from .sph import faceon_image, image, sideon_image
 from .stars import guo, satlf, sbprofile, schmidtlaw, sfh

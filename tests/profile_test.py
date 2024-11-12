@@ -97,3 +97,10 @@ def test_write_profile():
     npt.assert_allclose(read_profile.nbins, p.nbins)
     npt.assert_allclose(read_profile['rbins'], p['rbins'])
     npt.assert_allclose(read_profile['density'], p['density'])
+
+
+def test_plot_density_profile():
+    # very minimal test to check if the plot function runs without errors
+    f = make_fake_bar()
+    pynbody.plot.profile.density_profile(f)
+    pynbody.plot.profile.rotation_curve(f, center=False)
