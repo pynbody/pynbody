@@ -15,13 +15,13 @@ class UnderlyingClassMixin:
         super().__init__(*args, **kwargs)
         self._underlying_class = underlying_class
 
-    def _find_deriving_function(self, name):
+    def find_deriving_function(self, name):
         cl = self._underlying_class
         if cl in self._derived_array_registry \
                 and name in self._derived_array_registry[cl]:
             return self._derived_array_registry[cl][name]
         else:
-            return super()._find_deriving_function(name)
+            return super().find_deriving_function(name)
 
 class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
     """SimSnap that copies data from another SimSnap when that data is needed.
