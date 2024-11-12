@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -102,5 +104,7 @@ def test_write_profile():
 def test_plot_density_profile():
     # very minimal test to check if the plot function runs without errors
     f = make_fake_bar()
-    pynbody.plot.profile.density_profile(f)
-    pynbody.plot.profile.rotation_curve(f, center=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pynbody.plot.profile.density_profile(f)
+        pynbody.plot.profile.rotation_curve(f, center=False)
