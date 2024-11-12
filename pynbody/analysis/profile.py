@@ -76,7 +76,7 @@ class Profile:
     def _calculate_x(self, sim):
         return ((sim['pos'][:, 0:self.ndim] ** 2).sum(axis=1)) ** (1, 2)
 
-    def __init__(self, sim, load_from_file=False, ndim=2, type='log', calc_x=None, weight_by='mass', **kwargs):
+    def __init__(self, sim, load_from_file=False, ndim=2, type='lin', calc_x=None, weight_by='mass', **kwargs):
         """Initialise a profile, determining the binning quantity and bin size.
 
         The constructor generates the bins without actually calculating any profiles. The profiles are calculated
