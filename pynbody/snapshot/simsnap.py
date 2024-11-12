@@ -234,7 +234,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     ############################################
     def _ipython_key_completions_(self):
         """Adds ipython autocomplete"""
-        if not hasattr(self, "_autokeys") or self._auto_keys is None:
+        if not hasattr(self, "_auto_keys") or self._auto_keys is None:
             """Seems smoother if precalculated. 
             Could extend, modify for unifamily arrayrs ect..."""
             self._auto_keys = self.all_keys()
