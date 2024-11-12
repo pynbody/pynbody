@@ -131,6 +131,12 @@ This specifies 4 processes.
 Writing your own parallel code
 ------------------------------
 
+.. versionadded:: 2.0
+
+  Previously, pynbody had a hidden shared memory system that was used internally and by
+  `tangos <https://pynbody.github.io/tangos/>`_ to share arrays between processes. This has
+  been exposed for general use in pynbody 2.0.
+
 If you want to write parallel processing of large arrays, you can do so using
 `Cython <http://cython.org>`_ and OpenMP parallelisation. Since pynbody arrays are
 just wrappers around arrays, you can use standard techniques here. The possible complication

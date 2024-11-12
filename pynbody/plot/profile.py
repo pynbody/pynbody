@@ -1,7 +1,6 @@
-"""
+"""Plots for radial profiles
 
-profile
-=======
+For more information, see the :ref:`profile` tutorial.
 
 """
 
@@ -10,92 +9,141 @@ import logging
 import numpy as np
 import pylab as p
 
-from .. import config, filt, units
+from .. import config, filt, transformation, units
 from ..analysis import angmom, halo, profile
 
 logger = logging.getLogger('pynbody.plot.profile')
 
 
 def rotation_curve(sim, center=True, r_units='kpc',
-                   v_units='km s^-1', disk_height='100 pc', nbins=50,
-                   bin_spacing='equaln', clear=True, quick=False,
-                   filename=None, min=False, max=False, yrange=False,
-                   legend=False, parts=False, axes=False, **kwargs):
+                   v_units='km s^-1', nbins=50, bin_spacing='equaln', quick=False,
+                   rmin=None, rmax=None, parts=False, **kwargs):
+    """Generate and plot a rotation curve.
+
+    This routine centres and aligns the disk into the x-y plane, then uses
+    the potential in that plane to generate and plot a rotation curve.
+
+    The transformation of the simulation is then reverted to its original
+    state.
+
+    .. versionchanged :: 2.0
+
+       The transformation of the simulation is now reverted when the routine exits. Previously,
+       the transformation was left in place.
+
+       The *clear*, *axes*, *legend*, *filename* and *yrange* keywords have been removed for consistency with
+       the rest of the plotting routines. Use the matplotlib functions directly to save the figure
+       or modify the axes.
+
+    Parameters
+    ----------
+
+    sim : pynbody.snapshot.SimSnap
+        The simulation snapshot to be used.
+
+    center : bool, optional
+        If True (default), the simulation is centered and rotated so that the disk is in the x-y plane. If False,
+        the simulation is assumed to be pre-centred and already aligned.
+
+    quick : bool, optional
+        If True, the rotation curve is calculated using a spherical approximation to the circular velocity.
+        If False (default), the rotation curve is calculated using 3D forces.
+
+    bin_spacing : str, optional
+        The type of bin spacing to use in the profile. See :class:`~pynbody.analysis.profile.Profile` for details.
+
+    rmin : float, optional
+        The minimum radius to use in the profile. Default is the minimum radius in the simulation.
+
+    rmax : float, optional
+        The maximum radius to use in the profile. Default is the maximum radius in the simulation.
+
+    nbins : int, optional
+        The number of bins to use in the profile. Default is 50.
+
+    r_units : str, optional
+        The units in which to plot the radial axis. Default is 'kpc'.
+
+    v_units : str, optional
+        The units in which to plot the velocity axis. Default is 'km s^-1'.
+
+    parts : bool, optional
+        If True, the rotation curve is calculated and plotted for each particle type separately. Default is False.
+
+    min : float, optional
+        Deprecated. Use rmin instead.
+
+    max : float, optional
+        Deprecated. Use rmax instead.
+
+    Returns
+    -------
+
+    r : pynbody.array.SimArray
+        The radial bins used in the profile.
+
+    v : pynbody.array.SimArray
+        The circular velocity profile
+
     """
 
-    Centre on potential minimum, align so that the disk is in the
-    x-y plane, then use the potential in that plane to generate and
-    plot a rotation curve.
+    if 'min' in kwargs:
+        rmin = kwargs.pop('min')
+        logger.warning("The 'min' keyword is deprecated. Use 'rmin' instead.", DeprecationWarning)
 
-    **needs documentation/description of the keyword arguments**
+    if 'max' in kwargs:
+        rmax = kwargs.pop('max')
+        logger.warning("The 'max' keyword is deprecated. Use 'rmax' instead.", DeprecationWarning)
 
-    """
-    import pylab as p
 
     if center:
-        angmom.faceon(sim)
-
-    if min:
-        min_r = min
+        trans = angmom.faceon(sim)
     else:
-        min_r = sim['rxy'].min()
-    if max:
-        max_r = max
-    else:
-        max_r = sim['rxy'].max()
+        trans = transformation.NullTransformation(sim)
 
-    pro = profile.Profile(sim, type=bin_spacing, nbins=nbins,
-                          rmin =min_r, rmax =max_r)
+    with trans:
 
-    r = pro['rbins'].in_units(r_units)
-    if quick:
-        v = pro['rotation_curve_spherical'].in_units(v_units)
-    else:
-        v = pro['v_circ'].in_units(v_units)
+        if rmin is None:
+            rmin = sim['rxy'].min()
+        if rmax is None:
+            rmax = sim['rxy'].max()
 
-    if axes:
-        p = axes
-    else:
-        import pylab as p
-        if clear:
-            p.clf()
+        pro = profile.Profile(sim, type=bin_spacing, nbins=nbins,
+                              rmin =rmin, rmax =rmax)
 
-    if parts:
-        p.plot(r, v, label='total', **kwargs)
-        gpro = profile.Profile(sim.gas, type=bin_spacing, nbins=nbins,
-                               rmin =min_r, rmax =max_r)
-        dpro = profile.Profile(sim.dark, type=bin_spacing, nbins=nbins,
-                               rmin =min_r, rmax =max_r)
-        spro = profile.Profile(sim.star, type=bin_spacing, nbins=nbins,
-                               rmin =min_r, rmax =max_r)
+        r = pro['rbins'].in_units(r_units)
         if quick:
-            gv = gpro['rotation_curve_spherical'].in_units(v_units)
-            dv = dpro['rotation_curve_spherical'].in_units(v_units)
-            sv = spro['rotation_curve_spherical'].in_units(v_units)
+            v = pro['rotation_curve_spherical'].in_units(v_units)
         else:
-            gv = gpro['v_circ'].in_units(v_units)
-            dv = dpro['v_circ'].in_units(v_units)
-            sv = spro['v_circ'].in_units(v_units)
-        p.plot(r, gv, "--", label="gas")
-        p.plot(r, dv, label="dark")
-        p.plot(r, sv, linestyle="dotted", label="star")
-    else:
-        p.plot(r, v, **kwargs)
+            v = pro['v_circ'].in_units(v_units)
 
-    if yrange:
-        p.axis(
-            [min_r, units.Unit(max_r).in_units(r.units), yrange[0], yrange[1]])
+        import pylab as p
 
-    if not axes:
+        if parts:
+            p.plot(r, v, label='total', **kwargs)
+            gpro = profile.Profile(sim.gas, type=bin_spacing, nbins=nbins,
+                                   rmin =rmin, rmax =rmax)
+            dpro = profile.Profile(sim.dark, type=bin_spacing, nbins=nbins,
+                                   rmin =rmin, rmax =rmax)
+            spro = profile.Profile(sim.star, type=bin_spacing, nbins=nbins,
+                                   rmin =rmin, rmax =rmax)
+            if quick:
+                gv = gpro['rotation_curve_spherical'].in_units(v_units)
+                dv = dpro['rotation_curve_spherical'].in_units(v_units)
+                sv = spro['rotation_curve_spherical'].in_units(v_units)
+            else:
+                gv = gpro['v_circ'].in_units(v_units)
+                dv = dpro['v_circ'].in_units(v_units)
+                sv = spro['v_circ'].in_units(v_units)
+            p.plot(gpro['rbins'].in_units(r_units), gv, "--", label="gas")
+            p.plot(dpro['rbins'].in_units(r_units), dv, label="dark")
+            p.plot(spro['rbins'].in_units(r_units), sv, linestyle="dotted", label="star")
+        else:
+            p.plot(r, v, **kwargs)
+
+
         p.xlabel("r / $" + r.units.latex() + "$", fontsize='large')
         p.ylabel("v$_c / " + v.units.latex() + '$', fontsize='large')
-
-    if legend:
-        p.legend(loc=0)
-
-    if (filename):
-        logger.info("Saving %s", filename)
-        p.savefig(filename)
 
     return r, v
 

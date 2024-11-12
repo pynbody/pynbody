@@ -1517,7 +1517,26 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
 
 
-    def _find_deriving_function(self, name):
+    def find_deriving_function(self, name):
+        """Return the function that derives the named array, or None if no such function is registered.
+
+        This searches the registry of @X.derived_array functions for all X in the inheritance path of the current class.
+
+        .. versionadded:: 2.0
+
+
+        Parameters
+        ----------
+
+        name : str
+            The name of the array to derive.
+
+        Returns
+        -------
+
+        function or None
+            The function that derives the named array, or None if no such function is registered.
+        """
         for cl in type(self).__mro__:
             if cl in self._derived_array_registry \
                     and name in self._derived_array_registry[cl]:
@@ -1535,7 +1554,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         global config
 
         calculated = False
-        fn = self._find_deriving_function(name)
+        fn = self.find_deriving_function(name)
         if fn:
             logger.info("Deriving array %s" % name)
             with self.auto_propagate_off:

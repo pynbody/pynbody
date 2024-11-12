@@ -83,9 +83,9 @@ def hist2d(x, y, weights=None, values=None, gridsize=(100, 100), nbins = None,
         gridsize is set to (nbins,nbins).
 
     plot_type : str, optional
-        If 'contour' or 'contourf' use matplotlib to make a contour/filled contour (default).
-        If 'image', use matplotlib imshow. If 'none' (or, for backward compatibility, False), return
-        the histogram data.
+        If 'contour' or 'contourf' use matplotlib to make a contour/filled contour.
+        If 'image', use matplotlib imshow (default).
+        If 'none' (or, for backward compatibility, False), return the histogram data.
 
     vmin: float, optional
         Minimum value for the color scale.
@@ -242,7 +242,7 @@ def hist2d(x, y, weights=None, values=None, gridsize=(100, 100), nbins = None,
         xs = .5 * (xs[:-1] + xs[1:])
         ys = .5 * (ys[:-1] + ys[1:])
 
-    plot_type = kwargs.get('plot_type', 'contour')
+    plot_type = kwargs.get('plot_type', 'image')
     if plot_type != 'none' and plot_type is not False:
         make_contour_plot(hist, xs, ys,
                           xlabel_display_log = x_logscale, ylabel_display_log = y_logscale,
