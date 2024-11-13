@@ -35,6 +35,8 @@ def make_fake_bar(npart=100000, max=1, min=-1, barlength=.8, barwidth=0.05, phi=
     s['mass'].units = 'Msol'
     s['vel'] = 1.0
     s['vel'].units = 'km s^-1'
+    s['eps'] = (max-min)/np.sqrt(npart)
+    s['eps'].units = 'kpc'
     s.rotate_z(phi)
     return s
 
