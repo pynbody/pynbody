@@ -6,7 +6,7 @@ import pytest
 
 import pynbody
 import pynbody.test_utils
-from pynbody.sph import renderers
+from pynbody.sph import kernels, renderers
 
 test_folder = Path(__file__).parent
 
@@ -170,3 +170,16 @@ def intentional_circular_reference(sim):
 def test_exception_propagation(snap):
     with pytest.raises(RuntimeError):
         pynbody.plot.sph.image(snap.gas, qty='intentional_circular_reference')
+
+def test_spherical_render():
+    n_part = 10000
+    f = pynbody.new(n_part)
+    f['pos'] = np.random.normal(size=(n_part, 3))
+    f['pos'].units='kpc'
+    f['mass'] = np.ones(n_part)/n_part
+    f['mass'].units='Msol'
+
+    im = pynbody.sph.render_spherical_image(f, qty='rho', nside=16)
+
+    assert abs(4*np.pi*im.sum() / len(im) - 1.0) < 0.01
+    assert im.units == "Msol sr^-1"

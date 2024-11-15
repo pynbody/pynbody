@@ -88,8 +88,8 @@ size_t ring_and_phi_index_to_pixel_index(size_t nside, size_t iring, size_t iphi
     return ipix;
 }
 
-/* Query_disc function using the ring-based approach */
-size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix) {
+/* Query_disc function using the ring-based approach. Also returns an angular distance to the centre */
+size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix, double *distpix) {
 
 
     double vecnorm = sqrt(vec0[0]*vec0[0] + vec0[1]*vec0[1] + vec0[2]*vec0[2]);
@@ -110,18 +110,8 @@ size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix) 
     double zmax = cos(thetamin);
     double zmin = cos(thetamax);
 
-    //printf("zmin: %f, zmax: %f\n", zmin, zmax);
-
     size_t irmin = ring_num_from_z(nside, zmax);
     size_t irmax = ring_num_from_z(nside, zmin);
-
-    //printf("irmin: %ld, irmax: %ld\n", irmin, irmax);
-
-    if (irmin > irmax) {
-        size_t temp = irmin;
-        irmin = irmax;
-        irmax = temp;
-    }
 
     size_t npix_alloc = 4 * nside * nside;  // Estimate maximum number of pixels
 
@@ -182,10 +172,6 @@ size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix) 
             ip_hi = n_in_ring;
         }
 
-
-        //ip_lo = 1;
-        // ip_hi = n_in_ring; // TEMPORARY
-
         for (size_t iphi = ip_lo  ; iphi <= ip_hi  ; iphi++) {
             size_t ip = iphi;
             if (ip > n_in_ring) ip -= n_in_ring;
@@ -205,8 +191,8 @@ size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix) 
 
             // printf("ipix: %ld, z: %f, theta: %f, phi: %f, dist: %f\n", ipix, z, theta, phi, dist);
 
-
             if (dist <= radius) {
+                distpix[count] = dist;
                 listpix[count++] = ipix;
             }
         }

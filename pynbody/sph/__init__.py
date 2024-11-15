@@ -91,8 +91,8 @@ def rho(sim):
     logger.info('Density calculation done in %5.3g s' % (end - start))
 
     return rho
-def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=None,
-                           kstep=0.5, denoise=None, out_units=None, threaded=False):
+
+def render_spherical_image(snap, qty='rho', nside=8, kernel=None, denoise=None, out_units=None, threaded=False):
     """Render an SPH image on a spherical surface. Requires healpy libraries to be installed.
 
     Parameters
@@ -113,9 +113,6 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=None,
     kernel : str, kernels.KernelBase, optional
         The Kernel object to use (defaults to 3D spline kernel)
 
-    kstep : float
-        The sampling distance when projecting onto the spherical surface in units of the smoothing length
-
     denoise : bool, optional
         if True, divide through by an estimate of the discreteness noise. The returned image is then not strictly an
         SPH estimate, but this option can be useful to reduce noise.
@@ -131,8 +128,11 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=None,
 
     kernel = kernels.create_kernel(kernel)
 
+    if kernel.h_power == 3:
+        kernel = kernel.projection()
+
     if denoise is None:
-        denoise = _auto_denoise(snap, kernel)
+        denoise = renderers._auto_denoise(snap, kernel)
 
     if denoise and not _kernel_suitable_for_denoise(kernel):
         raise ValueError("Denoising not supported with this kernel type. Re-run with denoise=False")
@@ -145,12 +145,11 @@ def render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=None,
     if threaded:
         raise RuntimeError("Threading is not supported for spherical images, because healpy does not release the gil")
 
-    im = renderer(snap, qty, nside, distance, kernel, kstep, denoise, out_units)
+    im = renderer(snap, qty, nside, kernel, denoise, out_units)
     return im
 
 
-def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=None,
-                            kstep=0.5, denoise=None, out_units=None, __threaded=False, snap_slice=None):
+def _render_spherical_image(snap, qty='rho', nside=8, kernel=None, denoise=None, out_units=None, __threaded=False, snap_slice=None):
 
     kernel = kernels.create_kernel(kernel)
 
@@ -161,55 +160,20 @@ def _render_spherical_image(snap, qty='rho', nside=8, distance=10.0, kernel=None
         raise ValueError("Denoising not supported with this kernel type. Re-run with denoise=False")
 
     if out_units is not None:
-        conv_ratio = (snap[qty].units * snap['mass'].units / (snap['rho'].units * snap['smooth'].units ** kernel.h_power)).ratio(out_units,
-                                                                                                                                 **snap.conversion_context())
+        conv_ratio = (snap[qty].units * snap['mass'].units / (snap['rho'].units * units.sr)).ratio(out_units, **snap.conversion_context())
 
     if snap_slice is None:
         snap_slice = slice(len(snap))
     with snap.immediate_mode:
-        D, h, pos, mass, rho, qtyar = (snap[x].view(
-            np.ndarray)[snap_slice] for x in ('r', 'smooth', 'pos', 'mass', 'rho', qty))
+        h, pos, mass, rho, qtyar = (snap[x].view(
+            np.ndarray)[snap_slice] for x in ('smooth', 'pos', 'mass', 'rho', qty))
 
-    ds = np.arange(kstep, kernel.max_d + kstep / 2, kstep)
-    weights = np.zeros_like(ds)
-
-    for i, d1 in enumerate(ds):
-        d0 = d1 - kstep
-        # work out int_d0^d1 x K(x), then set our discretized kernel to
-        # match that
-        dvals = np.arange(d0, d1, 0.05)
-        ivals = list(map(kernel.get_value, dvals))
-        ivals *= dvals
-        integ = ivals.sum() * 0.05
-        weights[i] = 2 * integ / (d1 ** 2 - d0 ** 2)
-
-    weights[:-1] -= weights[1:]
-
-    if kernel.h_power == 3:
-        ind = np.where(np.abs(D - distance) < h * kernel.max_d)[0]
-
-        # angular radius subtended by the intersection of the boundary
-        # of the SPH particle with the boundary surface of the calculation:
-        rad = np.arctan(np.sqrt(
-            h[ind, np.newaxis] ** 2 - (D[ind, np.newaxis] - distance) ** 2) / distance)
-
-    elif kernel.h_power == 2:
-        ind = np.where(D < distance)[0]
-
-        # angular radius taken at distance of particle:
-        rad = np.arctan(
-            h[ind, np.newaxis] * ds[np.newaxis, :] / D[ind, np.newaxis])
-    else:
-        raise ValueError("render_spherical_image doesn't know how to handle this kernel")
-
-    im, im2 = _render.render_spherical_image_core(
-        rho, mass, qtyar, pos, D, h, ind, ds, weights, nside)
+    im = _render.render_spherical_image_core(rho, mass, qtyar, pos,  h, nside, kernel)
 
     im = im.view(array.SimArray)
-    if denoise:
-        im /= im2
+
     im.units = snap[qty].units * snap["mass"].units / \
-        snap["rho"].units / snap["smooth"].units ** (kernel.h_power)
+        snap["rho"].units / units.sr
     im.sim = snap
 
     if out_units is not None:
