@@ -147,7 +147,7 @@ install_requires = [
 ]
 
 tests_require = [
-    'pytest','pandas','camb','extinction'
+    'pytest','pandas','camb','extinction','healpy'
 ]
 
 docs_require = [

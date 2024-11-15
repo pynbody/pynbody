@@ -22,7 +22,7 @@ double angdist(double *vec1, double *vec2) {
 }
 
 /* Compute the ring number corresponding to a given z */
-size_t ring_num(size_t nside, double z) {
+size_t ring_num_from_z(size_t nside, double z) {
     size_t nring = 4 * nside;
     size_t iring;
     double nside_double = (double)nside;
@@ -32,7 +32,7 @@ size_t ring_num(size_t nside, double z) {
     } else if (z >= -2.0 / 3.0) {  // Equatorial region
         iring = (size_t)(nside_double * (2.0 - 1.5 * z) + 0.5);
     } else {  // South Polar cap
-        iring = (size_t)(nring + 1 - nside_double * sqrt(3.0 * (1.0 + z)) + 0.5);
+        iring = (size_t)(nring - nside_double * sqrt(3.0 * (1.0 + z)) + 0.5);
     }
 
     if (iring < 1) iring = 1;
@@ -41,7 +41,7 @@ size_t ring_num(size_t nside, double z) {
 }
 
 /* Convert ring number to z coordinate */
-double ring2z(size_t nside, size_t iring) {
+double z_from_ring_num(size_t nside, size_t iring) {
     size_t nl4 = 4 * nside;
     if (iring < 1 || iring > nl4) {
         fprintf(stderr, "Error: Ring number out of bounds.\n");
@@ -55,14 +55,14 @@ double ring2z(size_t nside, size_t iring) {
     } else if (iring <= 3 * nside) {  // Equatorial region
         z = (2 * (double) nside - (double) iring ) / (1.5 * nside);
     } else {  // South Polar cap
-        double tmp = nl4 - iring + 1;
+        double tmp = nl4 - iring;
         z = -1.0 + (tmp * tmp) / (3.0 * nside * nside);
     }
     return z;
 }
 
 /* Convert ring number and phi index to pixel index in RING scheme */
-size_t ring_phi_to_pix(size_t nside, size_t iring, size_t iphi) {
+size_t ring_and_phi_index_to_pixel_index(size_t nside, size_t iring, size_t iphi) {
     size_t npix = 12 * nside * nside;
     size_t ncap = 2 * nside * (nside + 1);
     size_t ipix;
@@ -80,7 +80,7 @@ size_t ring_phi_to_pix(size_t nside, size_t iring, size_t iphi) {
         nr = nside;
         ipix = ncap + (iring - nside - 1) * 4 * nside + iphi - 1;
     } else {  // South Polar cap
-        nr = 4 * nside - iring + 1;
+        nr = 4 * nside - iring;
         ipix = npix - nr * (nr - 1) * 2 + iphi - 1 - 4*nr;
     }
 
@@ -110,12 +110,12 @@ size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix) 
     double zmax = cos(thetamin);
     double zmin = cos(thetamax);
 
-    printf("zmin: %f, zmax: %f\n", zmin, zmax);
+    //printf("zmin: %f, zmax: %f\n", zmin, zmax);
 
-    size_t irmin = ring_num(nside, zmax);
-    size_t irmax = ring_num(nside, zmin);
+    size_t irmin = ring_num_from_z(nside, zmax);
+    size_t irmax = ring_num_from_z(nside, zmin);
 
-    printf("irmin: %ld, irmax: %ld\n", irmin, irmax);
+    //printf("irmin: %ld, irmax: %ld\n", irmin, irmax);
 
     if (irmin > irmax) {
         size_t temp = irmin;
@@ -129,7 +129,7 @@ size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix) 
     double twopi = TWOPI;
 
     for (size_t iring = irmin; iring <= irmax; iring++) {
-        double z = ring2z(nside, iring);
+        double z = z_from_ring_num(nside, iring);
         double sin_theta = sqrt(1.0 - z * z);
         double cos_dphi = (cos(radius) - z * z0) / (sin_theta * sin_theta0);
 
@@ -142,11 +142,7 @@ size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix) 
             dphi = acos(cos_dphi);
         }
 
-        double phi_low = phi0 - dphi;
-        double phi_high = phi0 + dphi;
-
-        if (phi_low < 0.0) phi_low += twopi;
-        if (phi_high >= twopi) phi_high -= twopi;
+        size_t ip_lo, ip_hi;
 
         size_t n_in_ring;
         size_t shift;
@@ -157,25 +153,44 @@ size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix) 
             n_in_ring = 4 * nside;
             shift = 2 - (iring - nside + 1) % 2;
         } else {
-            n_in_ring = 4 * (4 * nside - iring + 1);
+            n_in_ring = 4 * (4 * nside - iring);
             shift = 1;
         }
 
-        double phi_factor = n_in_ring / twopi;
+        if(dphi>HALFPI) {
+            ip_lo = 1;
+            ip_hi = n_in_ring;
+        } else {
 
-        size_t ip_lo = (size_t)(phi_low * phi_factor + 0.5 * shift + 1.5);
-        size_t ip_hi = (size_t)(phi_high * phi_factor + 0.5 * shift + 0.5);
+            double phi_low = phi0 - dphi;
+            double phi_high = phi0 + dphi;
+
+            if (phi_low < 0.0) phi_low += twopi;
+            if (phi_high >= twopi) phi_high -= twopi;
+
+            double phi_factor = n_in_ring / twopi;
+
+            ip_lo = (size_t)(phi_low * phi_factor + 0.5 * shift);
+            ip_hi = (size_t)(phi_high * phi_factor + 0.5 * shift+1);
+        }
+
 
         if (ip_hi < ip_lo) ip_hi += n_in_ring;
 
-        ip_lo = 1;
-        ip_hi = n_in_ring; // TEMPORARY
+        if (ip_hi - ip_lo > n_in_ring) {
+            ip_lo = 1;
+            ip_hi = n_in_ring;
+        }
+
+
+        //ip_lo = 1;
+        // ip_hi = n_in_ring; // TEMPORARY
 
         for (size_t iphi = ip_lo  ; iphi <= ip_hi  ; iphi++) {
             size_t ip = iphi;
             if (ip > n_in_ring) ip -= n_in_ring;
 
-            size_t ipix = ring_phi_to_pix(nside, iring, ip);
+            size_t ipix = ring_and_phi_index_to_pixel_index(nside, iring, ip);
 
             // Compute angular distance to the center
             double theta = acos(z);
@@ -188,7 +203,7 @@ size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix) 
 
             double dist = angdist(vec0, vec);
 
-            printf("ipix: %ld, z: %f, theta: %f, phi: %f, dist: %f\n", ipix, z, theta, phi, dist);
+            // printf("ipix: %ld, z: %f, theta: %f, phi: %f, dist: %f\n", ipix, z, theta, phi, dist);
 
 
             if (dist <= radius) {
