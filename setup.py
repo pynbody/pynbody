@@ -103,7 +103,7 @@ chunkscan = Extension('pynbody.chunk.scan',
                   include_dirs=incdir)
 
 sph_render = Extension('pynbody.sph._render',
-                  sources=['pynbody/sph/_render.pyx'],
+                  sources=['pynbody/sph/_render.pyx', 'pynbody/sph/healpix.c'],
                   include_dirs=incdir)
 
 halo_pyx = Extension('pynbody.analysis._com',
