@@ -117,7 +117,7 @@ bridge_pyx = Extension('pynbody.bridge._bridge',
                      include_dirs=incdir)
 
 util_pyx = Extension('pynbody.util._util',
-                     sources=['pynbody/util/_util.pyx'],
+                     sources=['pynbody/util/_util.pyx', 'pynbody/sph/healpix.c'],
                      include_dirs=incdir,
                      extra_compile_args=openmp_args,
                      extra_link_args=extra_link_args)
