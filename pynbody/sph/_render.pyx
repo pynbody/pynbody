@@ -48,8 +48,10 @@ cdef extern size_t query_disc_c(size_t nside, double* vec0, double radius, size_
 def render_spherical_image_core(np.ndarray[fused_input_type_1, ndim=1] rho, # array of particle densities
                                 np.ndarray[fused_input_type_2, ndim=1] mass, # array of particle masses
                                 np.ndarray[fused_input_type_3, ndim=1] qtyar, # array of quantity to make image of
-                                np.ndarray[fused_input_type_2, ndim=2] pos, # array of particle positions
-                                np.ndarray[fused_input_type_4, ndim=1] h, # particle smoothing length
+                                np.ndarray[fused_input_type_4, ndim=1] x, # arrays of positions
+                                np.ndarray[fused_input_type_4, ndim=1] y,
+                                np.ndarray[fused_input_type_4, ndim=1] z,
+                                np.ndarray[fused_input_type_5, ndim=1] h, # particle smoothing length
                                 unsigned int nside,
                                 kernel) :
 
@@ -86,13 +88,13 @@ def render_spherical_image_core(np.ndarray[fused_input_type_1, ndim=1] rho, # ar
 
     cdef image_output_type kern
 
-    cdef size_t n_part = len(pos)
+    cdef size_t n_part = len(x)
 
     with nogil:
         for i in range(n_part):
-            pos_i[0] = pos[i,0]
-            pos_i[1] = pos[i,1]
-            pos_i[2] = pos[i,2]
+            pos_i[0] = x[i]
+            pos_i[1] = y[i]
+            pos_i[2] = z[i]
             distance2 = pos_i[0]*pos_i[0] + pos_i[1]*pos_i[1] + pos_i[2]*pos_i[2]
             distance = sqrt(distance2)
             angular_size = max_d_over_h * h[i] / distance

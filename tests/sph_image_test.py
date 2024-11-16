@@ -173,6 +173,7 @@ def test_exception_propagation(snap):
 
 def test_spherical_render():
     n_part = 10000
+    np.random.seed(1337)
     f = pynbody.new(n_part)
     f['pos'] = np.random.normal(size=(n_part, 3))
     f['pos'].units='kpc'
@@ -183,3 +184,9 @@ def test_spherical_render():
 
     assert abs(4*np.pi*im.sum() / len(im) - 1.0) < 0.01
     assert im.units == "Msol sr^-1"
+
+    im2 = pynbody.sph.render_spherical_image(f, qty='rho', nside=32, out_units="Msol arcsec^-2")
+
+
+    assert im2.units == "Msol arcsec^-2"
+    # TODO: check value too

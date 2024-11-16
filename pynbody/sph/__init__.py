@@ -92,7 +92,7 @@ def rho(sim):
 
     return rho
 
-def render_spherical_image(snap, qty='rho', nside=8, kernel=None, denoise=None, out_units=None, threaded=False):
+def render_spherical_image(snap, qty='rho', nside=8, kernel=None, denoise=None, out_units=None, threaded=None):
     """Render an SPH image on a spherical surface. Requires healpy libraries to be installed.
 
     Parameters
@@ -128,58 +128,12 @@ def render_spherical_image(snap, qty='rho', nside=8, kernel=None, denoise=None, 
 
     kernel = kernels.create_kernel(kernel)
 
-    if kernel.h_power == 3:
-        kernel = kernel.projection()
+    renderer = renderers.make_render_pipeline(snap, qty, nside=nside, target='healpix', kernel=kernel,
+                                              out_units=out_units, threaded=threaded,
+                                              approximate_fast=False)
 
-    if denoise is None:
-        denoise = renderers._auto_denoise(snap, kernel)
+    return renderer.render()
 
-    if denoise and not _kernel_suitable_for_denoise(kernel):
-        raise ValueError("Denoising not supported with this kernel type. Re-run with denoise=False")
-
-    renderer = _render_spherical_image
-
-    if threaded is None:
-        threaded = config_parser.getboolean('sph', 'threaded-image')
-
-    if threaded:
-        raise RuntimeError("Threading is not supported for spherical images, because healpy does not release the gil")
-
-    im = renderer(snap, qty, nside, kernel, denoise, out_units)
-    return im
-
-
-def _render_spherical_image(snap, qty='rho', nside=8, kernel=None, denoise=None, out_units=None, __threaded=False, snap_slice=None):
-
-    kernel = kernels.create_kernel(kernel)
-
-    if denoise is None:
-        denoise = _auto_denoise(snap, kernel)
-
-    if denoise and not _kernel_suitable_for_denoise(kernel):
-        raise ValueError("Denoising not supported with this kernel type. Re-run with denoise=False")
-
-    if out_units is not None:
-        conv_ratio = (snap[qty].units * snap['mass'].units / (snap['rho'].units * units.sr)).ratio(out_units, **snap.conversion_context())
-
-    if snap_slice is None:
-        snap_slice = slice(len(snap))
-    with snap.immediate_mode:
-        h, pos, mass, rho, qtyar = (snap[x].view(
-            np.ndarray)[snap_slice] for x in ('smooth', 'pos', 'mass', 'rho', qty))
-
-    im = _render.render_spherical_image_core(rho, mass, qtyar, pos,  h, nside, kernel)
-
-    im = im.view(array.SimArray)
-
-    im.units = snap[qty].units * snap["mass"].units / \
-        snap["rho"].units / units.sr
-    im.sim = snap
-
-    if out_units is not None:
-        im.convert_units(out_units)
-
-    return im
 
 def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, width="10 kpc",
                x2=None, out_units=None, kernel=None, approximate_fast=None,
@@ -241,7 +195,7 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, width="10 kpc",
     renderer = renderers.make_render_pipeline(snap, quantity=qty, resolution=nx, width=width,
                                               out_units = out_units, kernel = kernel,
                                               approximate_fast=approximate_fast, threaded=threaded,
-                                              denoise=denoise, grid_3d=True, nx=nx, ny=ny, nz=nz)
+                                              denoise=denoise, target='volume', nx=nx, ny=ny, nz=nz)
     return renderer.render()
 
 def render_image(*args, **kwargs):
