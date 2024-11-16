@@ -26,7 +26,8 @@ instructions](http://pynbody.github.io/pynbody/installation.html). Once
 you have the package installed, try the introductory
 [tutorials](http://pynbody.github.io/pynbody/tutorials/tutorials.html).
 The full documentation can be found
-[here](http://pynbody.github.io/pynbody/).
+[here](http://pynbody.github.io/pynbody/) — or for version 2 (currently in beta), 
+much better documentation is available [here](http://pynbody.readthedocs.io/). 
 
 ### Contributing
 
