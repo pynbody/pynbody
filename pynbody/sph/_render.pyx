@@ -85,6 +85,7 @@ def render_spherical_image_core(np.ndarray[fused_input_type_1, ndim=1] rho, # ar
     cdef double smooth_2
     cdef double kernel_max_2
     cdef double physical_offset
+    cdef fused_input_type_3 qty_i
 
     cdef image_output_type kern
 
@@ -92,6 +93,9 @@ def render_spherical_image_core(np.ndarray[fused_input_type_1, ndim=1] rho, # ar
 
     with nogil:
         for i in range(n_part):
+            qty_i = qtyar[i]
+            if qty_i != qty_i:
+                continue
             pos_i[0] = x[i]
             pos_i[1] = y[i]
             pos_i[2] = z[i]
@@ -107,7 +111,7 @@ def render_spherical_image_core(np.ndarray[fused_input_type_1, ndim=1] rho, # ar
                 physical_offset = distance * angle_buffer[j]
                 kern = get_kernel(physical_offset*physical_offset, kernel_max_2,
                                   smooth_2/distance2, num_samples, samples_c)
-                im[index_buffer[j]] += qtyar[i] * kern * mass[i] / rho[i]
+                im[index_buffer[j]] += qty_i * kern * mass[i] / rho[i]
 
     return im
 

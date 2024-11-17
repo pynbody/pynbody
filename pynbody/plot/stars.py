@@ -37,7 +37,7 @@ def _nw_arcsinh_fit(r, g, b, nonlinearity=3):
 	return r * val, g * val, b * val
 
 
-def _combine(r, g, b, magnitude_range, brightest_mag=None, mollview=False):
+def _combine(r, g, b, magnitude_range, brightest_mag=None, masked=False):
 	# flip sign so that brightest pixels have biggest value
 	r = -r
 	g = -g
@@ -48,7 +48,7 @@ def _combine(r, g, b, magnitude_range, brightest_mag=None, mollview=False):
 
 		# find something close to the maximum that is not quite the maximum
 		for x in r, g, b:
-			if mollview:
+			if masked:
 				x_tmp = x.flatten()[x.flatten()<0]
 				ordered = np.sort(x_tmp.data)
 			else:
@@ -59,15 +59,16 @@ def _combine(r, g, b, magnitude_range, brightest_mag=None, mollview=False):
 	else:
 		brightest_mag = -brightest_mag
 
-	rgbim = np.zeros((r.shape[0], r.shape[1], 3))
-	rgbim[:, :, 0] = _bytscl(r, brightest_mag - magnitude_range, brightest_mag)
-	rgbim[:, :, 1] = _bytscl(g, brightest_mag - magnitude_range, brightest_mag)
-	rgbim[:, :, 2] = _bytscl(b, brightest_mag - magnitude_range, brightest_mag)
+	rgbim = np.concat([np.expand_dims(_bytscl(channel, brightest_mag - magnitude_range, brightest_mag),-1)
+					   for channel in (r, g, b)], axis=-1)
 	return rgbim, -brightest_mag
 
-def _convert_to_mag_arcsec2(image, mollview=False):
-	if not mollview:
+def _convert_to_mag_arcsec2(image, angular=False):
+	if not angular:
 		assert image.units=="pc^-2"
+	else:
+		assert image.units=='pc^-2 sr^-1'
+
 	pc2_to_sqarcsec = 2.3504430539466191e-09
 	return -2.5*np.log10(image*pc2_to_sqarcsec)
 
@@ -240,20 +241,7 @@ def render(sim,
 				"plaese install the extinction package from here: http://extinction.readthedocs.io/en/latest/"
 				"or <via pip install extinction> or <conda install -c conda-forge extinction>") from None
 
-		ssp_table = pynbody.analysis.luminosity.get_current_ssp_table()
-		wavelengths = np.array([ssp_table.get_central_wavelength(band) for band in (b_band, g_band, r_band)])
-
-		ext_r = np.empty(a_v.shape)
-		ext_g = np.empty(a_v.shape)
-		ext_b = np.empty(a_v.shape)
-
-		for i in range(len(a_v)):
-			for j in range(len(a_v[0])):
-				ext = extinction.calzetti00(wavelengths.astype(np.float_), a_v[i][j].astype(np.float_), 3.1,
-											unit='aa', out=None)
-				ext_r[i][j] = ext[2]
-				ext_g[i][j] = ext[1]
-				ext_b[i][j] = ext[0]
+		ext_b, ext_g, ext_r = _a_v_to_band_extinctions(a_v, b_band, g_band, r_band)
 
 		r = r+ext_r
 		g = g+ext_g
@@ -286,8 +274,30 @@ def render(sim,
 		return mag_max, mag_min
 
 
+def _a_v_to_band_extinctions(a_v, b_band, g_band, r_band):
+	try:
+		import extinction
+	except ImportError:
+		raise ImportError("Could not load extinction package. If you want to use this feature, "
+						  "plaese install the extinction package from here: http://extinction.readthedocs.io/en/latest/"
+						  "or <via pip install extinction> or <conda install -c conda-forge extinction>") from None
+	ssp_table = pynbody.analysis.luminosity.get_current_ssp_table()
+	wavelengths = np.array([ssp_table.get_central_wavelength(band) for band in (b_band, g_band, r_band)], dtype=np.float64)
+	ext_r = np.empty(a_v.shape)
+	ext_g = np.empty(a_v.shape)
+	ext_b = np.empty(a_v.shape)
 
-def _dust_Av_image(sim, width, resolution):
+	for i in range(len(a_v.flat)):
+		ext = extinction.calzetti00(wavelengths, a_v.flat[i].astype(np.float64), 3.1,
+									unit='aa', out=None)
+		ext_r.flat[i] = ext[2]
+		ext_g.flat[i] = ext[1]
+		ext_b.flat[i] = ext[0]
+
+	return ext_b, ext_g, ext_r
+
+
+def _dust_Av_image(sim, width, resolution, healpix=False):
 	"""Produce a map of the extinction Av for the given simulation, using the gas content.
 
 	Note that the dust model is very simple and naive! See comments inline.
@@ -300,9 +310,20 @@ def _dust_Av_image(sim, width, resolution):
 	rho_metals = gas['rho'] * gas['metals']
 	rho_metals.units = gas['rho'].units
 
-	renderer = renderers.make_render_pipeline(gas, quantity=rho_metals, width=width, out_units="m_p cm^-2",
-											  restrict_depth = True, resolution=resolution)
+	if healpix:
+		# healpix output is in units of X sr^-1 where the input quantity is in X kpc^-3. If X is the number of
+		# absorbing grains, we get the number of absorbing grains per steradian; what we actually wanted was the
+		# projected number density of absorbing grains along a pencil beam (X cm^-2) in that direction.
+		# Since Ntot = int r^2 n(r) dr x omega, we need to divide by r^2 to get the projected density in cm^-2.
+		rho_metals /= gas['r']**2
+		renderer = renderers.make_render_pipeline(gas, quantity=rho_metals, out_units="m_p sr^-1 cm^-2",
+												  nside=resolution, target='healpix')
+	else:
+		renderer = renderers.make_render_pipeline(gas, quantity=rho_metals, width=width, out_units="m_p cm^-2",
+												  resolution=resolution)
 	column_den = renderer.render()
+
+	print(f"column_den: mean {column_den.mean()}, max {column_den.max()}, min {column_den.min()}, meanlog {np.log10(column_den).mean()}")
 
 	# From Draine & Lee (1984, ApJ, 285, 89) in the V band (lambda^-1 ~= 2 micron^-1), the optical
 	# depth is 0.5 for an H column density of 10^21 cm^2. That scaling in turn is based on data in
@@ -324,314 +345,113 @@ def _dust_Av_image(sim, width, resolution):
 	return a_v
 
 
-def mollview(map=None,fig=None,plot=False,filenme=None,
-			 rot=None,coord=None,unit='',
-			 xsize=800,title='Mollweide view',nest=False,
-			 min=None,max=None,flip='astro',
-			 remove_dip=False,remove_mono=False,
-			 gal_cut=0,
-			 format='%g',format2='%g',
-			 cbar=True,cmap=None, notext=False,
-			 norm=None,hold=False,margins=None,sub=None,
-			 return_projected_map=False):
-	"""Plot an healpix map (given as an array) in Mollweide projection.
-	   Requires the healpy package.
-
-	   This function is taken from the Healpy package and slightly modified.
+def render_mollweide(sim,
+					 r_band='I', g_band='V', b_band='U',
+					 r_scale=0.5, g_scale=1.0, b_scale=1.0,
+					 mag_range=None, dynamic_range=2.0, nside=None,
+					 with_dust = False, noplot=False, return_image=False, return_range=False, xsize=1600):
+	'''
+	Make a 3-color all-sky image of stars in a mollweide projection, i.e. a projection of all angles around the origin.
 
 	Parameters
 	----------
-	map : float, array-like or None
-	  An array containing the map, supports masked maps, see the `ma` function.
-	  If None, will display a blank map, useful for overplotting.
-	fig : figure object or None, optional
-	  The figure to use. Default: create a new figure
-	plot : bool (default: False)
-	  if True the image is plotted
-	filename : string (default: None)
-		 Filename to be written to (if a filename is specified)
-	rot : scalar or sequence, optional
-	  Describe the rotation to apply.
-	  In the form (lon, lat, psi) (unit: degrees) : the point at
-	  longitude *lon* and latitude *lat* will be at the center. An additional rotation
-	  of angle *psi* around this direction is applied.
-	coord : sequence of character, optional
-	  Either one of 'G', 'E' or 'C' to describe the coordinate
-	  system of the map, or a sequence of 2 of these to rotate
-	  the map from the first to the second coordinate system.
-	unit : str, optional
-	  A text describing the unit of the data. Default: ''
-	xsize : int, optional
-	  The size of the image. Default: 800
-	title : str, optional
-	  The title of the plot. Default: 'Mollweide view'
-	nest : bool, optional
-	  If True, ordering scheme is NESTED. Default: False (RING)
-	min : float, optional
-	  The minimum range value
-	max : float, optional
-	  The maximum range value
-	flip : {'astro', 'geo'}, optional
-	  Defines the convention of projection : 'astro' (default, east towards left, west towards right)
-	  or 'geo' (east towards right, west towards left)
-	remove_dip : bool, optional
-	  If :const:`True`, remove the dipole+monopole
-	remove_mono : bool, optional
-	  If :const:`True`, remove the monopole
-	gal_cut : float, scalar, optional
-	  Symmetric galactic cut for the dipole/monopole fit.
-	  Removes points in latitude range [-gal_cut, +gal_cut]
-	format : str, optional
-	  The format of the scale label. Default: '%g'
-	format2 : str, optional
-	  Format of the pixel value under mouse. Default: '%g'
-	cbar : bool, optional
-	  Display the colorbar. Default: True
-	notext : bool, optional
-	  If True, no text is printed around the map
-	norm : {'hist', 'log', None}
-	  Color normalization, hist= histogram equalized color mapping,
-	  log= logarithmic color mapping, default: None (linear color mapping)
-	hold : bool, optional
-	  If True, replace the current Axes by a MollweideAxes.
-	  use this if you want to have multiple maps on the same
-	  figure. Default: False
-	sub : int, scalar or sequence, optional
-	  Use only a zone of the current figure (same syntax as subplot).
-	  Default: None
-	margins : None or sequence, optional
-	  Either None, or a sequence (left,bottom,right,top)
-	  giving the margins on left,bottom,right and top
-	  of the axes. Values are relative to figure (0-1).
-	  Default: None
-	return_projected_map : bool
-	  if True returns the projected map in a 2d numpy array
-	See Also
-	--------
-	gnomview, cartview, orthview, azeqview
-	"""
-	try:
-		from healpy import pixelfunc, projaxes as PA
-	except ImportError:
-		warnings.warn(
-			"Could not load healpy package. If you want to use this feature, "
-			"plaese install the healpy package from here: http://healpy.readthedocs.io/en/latest/"
-			"or via pip or conda.", RuntimeWarning)
-		return
 
-	# Create the figure
+	sim : SimSnap
+		The simulation snapshot to plot.
 
-	if not (hold or sub):
-		if fig is None:
-			f=plt.figure(figsize=(8.5,5.4))
-			extent = (0.02,0.05,0.96,0.9)
-		else:
-			f=fig
-			extent = (0.02,0.05,0.96,0.9)
-	elif hold:
-		f=plt.gcf()
-		left,bottom,right,top = np.array(f.gca().get_position()).ravel()
-		extent = (left,bottom,right-left,top-bottom)
-		f.delaxes(f.gca())
-	else: # using subplot syntax
-		f=plt.gcf()
-		if hasattr(sub,'__len__'):
-			nrows, ncols, idx = sub
-		else:
-			nrows, ncols, idx = sub//100, (sub%100)//10, (sub%10)
-		if idx < 1 or idx > ncols*nrows:
-			raise ValueError('Wrong values for sub: %d, %d, %d'%(nrows,
-															 ncols,
-															 idx))
-		c,r = (idx-1)%ncols,(idx-1)//ncols
-		if not margins:
-			margins = (0.01,0.0,0.0,0.02)
-		extent = (c*1./ncols+margins[0],
-			  1.-(r+1)*1./nrows+margins[1],
-			  1./ncols-margins[2]-margins[0],
-			  1./nrows-margins[3]-margins[1])
-		extent = (extent[0]+margins[0],
-			  extent[1]+margins[1],
-			  extent[2]-margins[2]-margins[0],
-			  extent[3]-margins[3]-margins[1])
+	r_band, g_band, b_band : str
+		The filter bands to use for R, G and B image channels. Default is 'I', 'V', 'U'. These bands
+		are as defined in :mod:`pynbody.analysis.luminosity`, or overriden using the
+		:func:`pynbody.analysis.luminosity.use_custom_ssp_table` function.
 
-	# Starting to draw : turn interactive off
-	wasinteractive = plt.isinteractive()
-	plt.ioff()
-	try:
-		if map is None:
-			map = np.zeros(12)+np.inf
-			cbar=False
-		map = pixelfunc.ma_to_array(map)
-		ax=PA.HpxMollweideAxes(f,extent,coord=coord,rot=rot,
-						   format=format2,flipconv=flip)
-		f.add_axes(ax)
-		if remove_dip:
-			map=pixelfunc.remove_dipole(map,gal_cut=gal_cut,
-									nest=nest,copy=True,
-									verbose=True)
-		elif remove_mono:
-			map=pixelfunc.remove_monopole(map,gal_cut=gal_cut,nest=nest,
-									  copy=True,verbose=True)
-		img = ax.projmap(map,nest=nest,xsize=xsize,coord=coord,vmin=min,vmax=max,
-			   cmap=cmap,norm=norm)
-		if cbar:
-			im = ax.get_images()[0]
-			b = im.norm.inverse(np.linspace(0,1,im.cmap.N+1))
-			v = np.linspace(im.norm.vmin,im.norm.vmax,im.cmap.N)
-			if matplotlib.__version__ >= '0.91.0':
-				cb=f.colorbar(im,ax=ax,
-						  orientation='horizontal',
-						  shrink=0.5,aspect=25,ticks=PA.BoundaryLocator(),
-						  pad=0.05,fraction=0.1,boundaries=b,values=v,
-						  format=format)
-			else:
-				# for older matplotlib versions, no ax kwarg
-				cb=f.colorbar(im,orientation='horizontal',
-						  shrink=0.5,aspect=25,ticks=PA.BoundaryLocator(),
-						  pad=0.05,fraction=0.1,boundaries=b,values=v,
-						  format=format)
-			cb.solids.set_rasterized(True)
-		ax.set_title(title)
-		if not notext:
-			ax.text(0.86,0.05,ax.proj.coordsysstr,fontsize=14,
-				fontweight='bold',transform=ax.transAxes)
-		if cbar:
-			cb.ax.text(0.5,-1.0,unit,fontsize=14,
-				   transform=cb.ax.transAxes,ha='center',va='center')
-		f.sca(ax)
-	finally:
-		if plot:
-			plt.draw()
-		if wasinteractive:
-			plt.ion()
-			#plt.show()
-	if return_projected_map:
-		return img
+	r_scale, g_scale, b_scale : float, optional
+		The scaling of the red, green and blue channels before they are combined.
 
+	mag_range : tuple, optional
+		The brightest and faintest surface brightnesses in the final image, in mag arcsec^-2.
 
+	dynamic_range : float, optional
+		The number of dex in luminosity over which the image brightness ranges, if
+		``mag_range`` is not provided.
 
-def render_mollweide(sim, filename=None,
-		   r_band='i', g_band='v', b_band='u',
-		   r_scale=0.5, g_scale=1.0, b_scale=1.0,
-		   dynamic_range=2.0,
-		   mag_range=None,
-		   width=25,
-		   nside=128,
-		   starsize=None,
-		   plot=True, axes=None, ret_im=False, clear=True,
-		   ret_range=False):
-	'''
-	Make a 3-color all-sky image of stars in a mollweide projection.
-	Adapted from the function pynbody.plot.stars.render
+	nside : int, optional
+		The healpix nside resolution to use (must be power of 2). Default is determined by pynbody config file.
 
-	The colors are based on magnitudes found using stellar Marigo
-	stellar population code.  However there is no radiative transfer
-	to account for dust.
+	xsize : int, default 1600
+		The *xsize* parameter for healpy.mollview, which determines the resolution of the projection (i.e. does not
+		affect the resolution of the actual image, but the presentation.) Default is 1600.
 
-	Returns: If ret_im=True, an NxNx3 array representing an RGB image
+	with_dust : bool, default False
+		If True, the image is rendered with a simple dust screening model. See important notes on dust screening
+		in :func:`~pynbody.plot.stars.render`. These are even more important in the case of rendering
+		a full-sky image from within a galaxy, to the point where the results may carry little physical meaning.
 
-	**Optional keyword arguments:**
+	noplot : bool, optional
+		If True, the image is not plotted; most useful alongside ``return_image``, if you want to save the
+		image to a file.
 
-	   *filename*: string (default: None)
-		 Filename to be written to (if a filename is specified)
+	return_image : bool, optional
+		If True, the image is returned as an array (N x N x 3) for the RGB channels. Default is False.
 
-	   *r_band*: string (default: 'i')
-		 Determines which Johnston filter will go into the image red channel
+	return_range : bool, optional
+		If True, a tuple with the range of the image in mag arcsec^-2 is returned. Default is False.
 
-	   *g_band*: string (default: 'v')
-		 Determines which Johnston filter will go into the image green channel
+	Returns
+	-------
 
-	   *b_band*: string (default: 'b')
-		 Determines which Johnston filter will go into the image blue channel
+	If ``return_image`` is True, an array (N x N x 3) representing the RGB image is returned.
 
-	   *r_scale*: float (default: 0.5)
-		 The scaling of the red channel before channels are combined
+	If ``return_range`` is True, a tuple with the range of the image in mag arcsec^-2 is returned.
 
-	   *g_scale*: float (default: 1.0)
-		 The scaling of the green channel before channels are combined
-
-	   *b_scale*: float (default: 1.0)
-		 The scaling of the blue channel before channels are combined
-
-	   *width*: float in kpc (default:50)
-		 Sets the size of the image field in kpc
-
-	   *starsize*: float in kpc (default: None)
-		 If not None, sets the maximum size of stars in the image
-
-	   *ret_im*: bool (default: False)
-		 if True, the NxNx3 image array is returned
-
-	   *ret_range*: bool (default: False)
-		 if True, the range of the image in mag arcsec^-2 is returned.
-
-	   *plot*: bool (default: True)
-		 if True, the image is plotted
-
-	   *axes*: matplotlib axes object (deault: None)
-		 if not None, the axes object to plot to
-
-	   *dynamic_range*: float (default: 2.0)
-		 The number of dex in luminosity over which the image brightness ranges
-
-	   *mag_range*: float, float (default: None)
-		 If provided, the brightest and faintest surface brightnesses in the range,
-		 in mag arcsec^-2. Takes precedence over dynamic_range.
 	'''
 
-	if isinstance(width, str) or issubclass(width.__class__, _units.UnitBase):
-		if isinstance(width, str):
-			width = _units.Unit(width)
-		width = width.in_units(sim['pos'].units, **sim.conversion_context())
 
-	if starsize is not None:
-		smf = filt.HighPass('smooth', str(starsize) + ' kpc')
-		sim.s[smf]['smooth'] = array.SimArray(starsize, 'kpc', sim=sim)
+	def _get_channel(band, scale):
+		renderer = renderers.make_render_pipeline(sim.s, quantity=sim.s[band + '_lum_den']/sim.s['r']**2,
+												  nside=nside, target='healpix', out_units="pc^-2 sr^-1")
+		return _convert_to_mag_arcsec2(renderer.render() * scale, angular=True)
 
+	def _project_channel(result_healpix):
+		from healpy import projaxes
+		ax = projaxes.HpxMollweideAxes(plt.gcf(), (0.02, 0.05, 0.96, 0.9))
+		result = ax.projmap(result_healpix, nest=False, xsize=xsize)
+		return result
 
-	kernel = kernels.create_kernel(None).projection()
+	r = _get_channel(r_band, r_scale)
+	g = _get_channel(g_band, g_scale)
+	b = _get_channel(b_band, b_scale)
 
-	r = render_spherical_image(sim.s, qty=r_band + '_lum_den', nside=nside, distance=width, kernel=kernel,kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * r_scale
-	r = mollview(r,return_projected_map=True) * r_scale
-	f=plt.gcf()
-	g = render_spherical_image(sim.s, qty=g_band + '_lum_den', nside=nside, distance=width, kernel=kernel,kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * g_scale
-	g = mollview(g,return_projected_map=True,fig=f) * g_scale
-	f=plt.gcf()
-	b = render_spherical_image(sim.s, qty=b_band + '_lum_den', nside=nside, distance=width, kernel=kernel,kstep=0.5, denoise=None, out_units="pc^-2", threaded=False)# * b_scale
-	b = mollview(b,return_projected_map=True,fig=f) * b_scale
-	# convert all channels to mag arcsec^-2
+	if with_dust is True:
+		# render image with a simple dust absorption correction based on Calzetti's law using the gas content.
 
-	r=_convert_to_mag_arcsec2(r, mollview=True)
-	g=_convert_to_mag_arcsec2(g, mollview=True)
-	b=_convert_to_mag_arcsec2(b, mollview=True)
+		a_v = _dust_Av_image(sim, None, nside, healpix=True)
+
+		ext_b, ext_g, ext_r = _a_v_to_band_extinctions(a_v, b_band, g_band, r_band)
+
+		r = r+ext_r
+		g = g+ext_g
+		b = b+ext_b
 
 	if mag_range is None:
-		rgbim, mag_max = _combine(r, g, b, dynamic_range * 2.5, mollview=True)
+		rgbim, mag_max = _combine(r, g, b, dynamic_range * 2.5)
 		mag_min = mag_max + 2.5*dynamic_range
 	else:
 		mag_max, mag_min = mag_range
-		rgbim, mag_max = _combine(r, g, b, mag_min - mag_max, mag_max, mollview=True)
+		rgbim, mag_max = _combine(r, g, b, mag_min - mag_max, mag_max)
 
-	if plot:
-		if clear:
-			plt.clf()
-		if axes is None:
-			axes = plt.gca()
+	rgbim_projected = np.concat([np.expand_dims(_project_channel(x),-1) for x in rgbim.T], axis=-1)
+	rgbim_projected[rgbim_projected < 0] = 1.0
 
-		if axes:
-			axes.imshow(
-				rgbim[::-1, :])#, extent=(-width / 2, width / 2, -width / 2, width / 2)
-			axes.axis('off')
-			plt.draw()
+	if not noplot:
+		axes = plt.gca()
+		axes.imshow(rgbim_projected[::-1, :])
+		axes.axis('off')
 
-	if filename:
-		plt.savefig(filename)
-
-	if ret_im:
+	if return_image and return_range:
+		return rgbim, (mag_max, mag_min)
+	elif return_image:
 		return rgbim
-
-	if ret_range:
+	elif return_range:
 		return mag_max, mag_min
 
 

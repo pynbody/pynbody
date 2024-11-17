@@ -427,7 +427,7 @@ def _units_imply_projection(sim, qty, units):
         return True
 
 def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, units=None,
-                    weight=False, log=True, vmin=None, vmax=None, cmap=None):
+                    weight=False, log=True, vmin=None, vmax=None, cmap=None, xsize=1600):
     """Make an SPH image on the sky around the origin.
 
     .. note::
@@ -478,6 +478,10 @@ def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, unit
     cmap : matplotlib.colors.Colormap or str, optional
         Colormap to use. If None, the default colormap is used.
 
+    xsize : int, optional
+        The *xsize* parameter for healpy.mollview, which determines the resolution of the projection (i.e. does not
+        affect the resolution of the actual image, but the presentation.) Default is 1600.
+
     """
     import healpy as hp
     image = sph.render_spherical_image(sim, quantity=qty, nside=nside, kernel=kernel, out_units=units,
@@ -488,13 +492,13 @@ def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, unit
         unit = f'${unit.latex()}$'
     else:
         unit = ''
-    hp.mollview(image, title=None, hold=True, norm='log' if log else None, unit=unit, cmap=cmap, min=vmin, max=vmax)
+    hp.mollview(image, title=None, hold=True, norm='log' if log else None, unit=unit, cmap=cmap, min=vmin, max=vmax,
+                xsize=xsize)
 
 def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
           vmin=None, vmax=None, weight=False, z_camera=None, clear=True, cmap=None,
           title=None, colorbar_label=None, qtytitle=None, show_cbar=True, axes=None,
-          noplot=False, filename=None,
-          return_image=False, return_array=False,
+          noplot=False, return_image=False, return_array=False,
           fill_nan=True, fill_val=0.0, linthresh=None,
           restrict_depth = False, threaded=True, approximate_fast=None, denoise=None,
           kernel=None,
@@ -571,9 +575,6 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
     noplot : bool, optional
         If True, the image is not displayed, only the image array is returned. This option therefore
         implies return_array = True.
-
-    filename : str, optional
-        If set, the image will be saved in a file.
 
     return_image : bool, optional
         If True, the image instance returned by imshow is returned. (Default is False)
@@ -730,8 +731,6 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
             else:
                 p.set_title(title)
 
-        if filename is not None:
-            p.savefig(filename)
 
 
     if return_image and return_array:
