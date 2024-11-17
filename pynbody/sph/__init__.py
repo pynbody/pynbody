@@ -92,8 +92,16 @@ def rho(sim):
 
     return rho
 
-def render_spherical_image(snap, qty='rho', nside=8, kernel=None, denoise=None, out_units=None, threaded=None):
-    """Render an SPH image on a spherical surface. Requires healpy libraries to be installed.
+def render_spherical_image(snap, quantity='rho', nside=None, kernel=None, denoise=None, out_units=None, threaded=None,
+                           weight=None, qty=None):
+    """Render an SPH image projected onto the sky around the origin.
+
+    At present, only projection is supported (i.e., there is no implementation for rendering on a spherical
+    shell). For example, if rendering density, the results are in units of mass per solid angle. The image is
+    returned in healpix format, with the specified nside.
+
+    Weighted projections are supported, e.g. one may look at the projected temperature, weighted by density, by
+    passing 'temp' as the qty and 'rho' as the weight.
 
     Parameters
     ----------
@@ -101,14 +109,15 @@ def render_spherical_image(snap, qty='rho', nside=8, kernel=None, denoise=None, 
     snap : snapshot.simsnap.SimSnap
         The snapshot to render
 
-    qty : str
-        The name of the array within the simulation to render
+    quantity : str | np.ndarray
+        The name of the array within the simulation to render, or an actual array. Default 'rho'
+
+    weight : str, bool, optional
+        The name of the array within the simulation to use as a weight for averaging down the line of sight; or
+        True to use volume weighting.
 
     nside : int
         The healpix nside resolution to use (must be power of 2)
-
-    distance : float
-        The distance of the shell (for 3D kernels) or maximum distance of the skewers (2D kernels)
 
     kernel : str, kernels.KernelBase, optional
         The Kernel object to use (defaults to 3D spline kernel)
@@ -121,23 +130,30 @@ def render_spherical_image(snap, qty='rho', nside=8, kernel=None, denoise=None, 
         The units to convert the output image into
 
     threaded : bool, optional
-        if False, render on a single core. *Currently threading is not supported for spherical images, because
-        healpy does not release the gil*.
+        Whether to render the image across multiple threads. Yes if true; no if false. The number of threads to be
+        used is determined by the configuration file. If None, the use of threading is also determined by the
+        configuration file.
+
+    qty : str, optional
+        Deprecated - use 'quantity' instead
+
 
     """
 
-    kernel = kernels.create_kernel(kernel)
+    if qty is not None:
+        warnings.warn("The 'qty' parameter is deprecated; use 'quantity' instead", DeprecationWarning)
+        quantity = qty
 
-    renderer = renderers.make_render_pipeline(snap, qty, nside=nside, target='healpix', kernel=kernel,
+    renderer = renderers.make_render_pipeline(snap, quantity, nside=nside, target='healpix', kernel=kernel,
                                               out_units=out_units, threaded=threaded,
-                                              approximate_fast=False)
+                                              approximate_fast=False, weight=weight)
 
     return renderer.render()
 
 
-def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, width="10 kpc",
-               x2=None, out_units=None, kernel=None, approximate_fast=None,
-               threaded=None,  denoise=None):
+def render_3d_grid(snap, quantity='rho', nx=None, ny=None, nz=None, width="10 kpc",
+                   x2=None, out_units=None, kernel=None, approximate_fast=None,
+                   threaded=None,  denoise=None, qty=None):
     """Create a 3d grid via SPH interpolation
 
     Parameters
@@ -146,8 +162,8 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, width="10 kpc",
     snap : snapshot.simsnap.SimSnap
         The snapshot to render
 
-    qty : str
-        The name of the array within the simulation to render
+    quantity : str | np.ndarray
+        The name of the array within the simulation to render, or an actual array. Default 'rho'
 
     nx : int, optional
         The number of pixels wide to make the grid. If not specified, the default is to use the resolution
@@ -187,16 +203,28 @@ def to_3d_grid(snap, qty='rho', nx=None, ny=None, nz=None, width="10 kpc",
         is likely to benefit from it. If True, denoising is to be forced on the image; if that is actually
         impossible, this routine raises an exception. If False, denoising is never applied.
 
+    qty : str, optional
+        Deprecated - use 'quantity' instead
+
     """
 
     if x2 is not None:
         width = x2*2
 
-    renderer = renderers.make_render_pipeline(snap, quantity=qty, resolution=nx, width=width,
+    if qty is not None:
+        warnings.warn("The 'qty' parameter is deprecated; use 'quantity' instead", DeprecationWarning)
+        quantity = qty
+
+    renderer = renderers.make_render_pipeline(snap, quantity=quantity, resolution=nx, width=width,
                                               out_units = out_units, kernel = kernel,
                                               approximate_fast=approximate_fast, threaded=threaded,
                                               denoise=denoise, target='volume', nx=nx, ny=ny, nz=nz)
     return renderer.render()
+
+@util.deprecated("to_3d_grid is deprecated; use render_3d_grid instead")
+def to_3d_grid(*args, **kwargs):
+    """Deprecated alias for :func:`render_3d_grid`"""
+    return render_3d_grid(*args, **kwargs)
 
 def render_image(*args, **kwargs):
     """Render an SPH image. This is a wrapper around the :mod:`renderers` module for convenience.

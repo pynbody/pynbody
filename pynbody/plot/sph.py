@@ -426,6 +426,69 @@ def _units_imply_projection(sim, qty, units):
             units / (sim['x'].units), **sim.conversion_context())
         return True
 
+def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, units=None,
+                    weight=False, log=True, vmin=None, vmax=None, cmap=None):
+    """Make an SPH image on the sky around the origin.
+
+    .. note::
+
+      While pynbody does not require the healpy module to be installed, this function requires healpy to render
+      the healpix image onto a Mollweide projection.
+
+      To install healpy, use ``pip install healpy``.
+
+    Parameters
+    ----------
+
+    sim : pynbody.snapshot.simsnap.SimSnap
+        The simulation snapshot to plot. The output will be a projected spherical image centred on the origin of the
+        particles in the snapshot.
+
+    qty : str | pynbody.array.SimArray
+        The name of the array to interpolate. Default is 'rho', which gives a density image. Alternatively, an array
+        can be passed in.
+
+    nside : int
+        The healpix nside resolution to use (must be power of 2)
+
+    kernel : str, optional
+        SPH kernel to use for smoothing; see :func:`~pynbody.sph.kernels.create_kernel` for options.
+
+    units : str or pynbody.units.Unit, optional
+        The units of the output. Default is None, in which case the units of the input quantity are used. Note that
+        unless using *weight*, the output is a projected angular image. For example, for density, the output unit
+        is mass per solid angle.
+
+    threaded : bool, optional
+        If True, use threads to parallelise the rendering. (Default is set in the config file).
+
+    weight : bool or str, optional
+        If True, the requested quantity is volume-averaged down the line of sight. If a string, the requested quantity
+        is averaged down the line of sight weighted by the named array (e.g. use 'rho' for density-weighted quantity).
+
+    log : bool, optional
+        If True, the image is log-scaled. (Default is True)
+
+    vmin : float, optional
+        The minimum value for the color scale. If None, the minimum value of the image.
+
+    vmax : float, optional
+        The maximum value for the color scale. If None, the maximum value of the image.
+
+    cmap : matplotlib.colors.Colormap or str, optional
+        Colormap to use. If None, the default colormap is used.
+
+    """
+    import healpy as hp
+    image = sph.render_spherical_image(sim, quantity=qty, nside=nside, kernel=kernel, out_units=units,
+                                       weight=weight, threaded=threaded)
+
+    unit = image.units
+    if unit is not None:
+        unit = f'${unit.latex()}$'
+    else:
+        unit = ''
+    hp.mollview(image, title=None, hold=True, norm='log' if log else None, unit=unit, cmap=cmap, min=vmin, max=vmax)
 
 def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
           vmin=None, vmax=None, weight=False, z_camera=None, clear=True, cmap=None,

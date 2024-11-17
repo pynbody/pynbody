@@ -309,6 +309,12 @@ class ImageRendererBase:
 
         return smooth.units**kernel_h_power
 
+    def _get_native_units_with_projection(self, input_array_units=None):
+        if input_array_units is None:
+            input_array_units = self._array.units
+        return (input_array_units *  (self._snapshot['x'].units)**3
+                               / self._get_native_area_unit(self._snapshot['smooth'], 2))
+
     def _units_imply_projection(self, units_):
         self._check_quantity_set()
         if units_ is None:
@@ -320,8 +326,7 @@ class ImageRendererBase:
         except units.UnitsException:
             # if the following fails, there's no interpretation this routine
             # can cope with. The error will be allowed to propagate.
-            projected_units = (self._array.units *  (self._snapshot['x'].units)**3
-                               / self._get_native_area_unit(self._snapshot['smooth'], 2))
+            projected_units = self._get_native_units_with_projection()
             projected_units.ratio(units_, **self._snapshot.conversion_context())
             return True
 
@@ -471,6 +476,10 @@ class MultipassImageRenderer(ImageRendererBase):
         for r in self._subrenderers:
             r.set_particle_array_slice(slice)
 
+    def _get_native_area_unit(self, smooth, kernel_h_power=None):
+        # assumes that all subrenderers have the same area units
+        return self._subrenderers[0]._get_native_area_unit(smooth, kernel_h_power)
+
 
 class DenoisedImageRenderer(MultipassImageRenderer):
     """A class to render images with denoising applied."""
@@ -497,8 +506,9 @@ class ProjectionAverageImageRenderer(MultipassImageRenderer):
     def __init__(self, base: ImageRendererBase, weighting_array: np.ndarray):
         if base._is_projected:
             raise RenderPipelineLogicError("Cannot take a projected average of an already projected image.")
-        super().__init__(base, 2)
 
+        super().__init__(base, 2)
+        self._is_projected = True
         self._weight_array = weighting_array
         self.set_quantity(base._array)
         self.set_output_units(base._out_units)
@@ -515,11 +525,17 @@ class ProjectionAverageImageRenderer(MultipassImageRenderer):
         self._subrenderers[1].set_projection(True)
 
     def set_output_units(self, units_: str | units.UnitBase | None):
-        if units.is_unit(units_) and hasattr(self._weight_array, 'units'):
-            units_ *= self._weight_array.units
-        ImageRendererBase.set_output_units(self, units_)
+        if isinstance(units_, str):
+            units_ = units.Unit(units_)
+
+        if units.is_unit(units_):
+            if hasattr(self._weight_array, 'units'):
+                units_ *= self._weight_array.units
+            units_ = self._get_native_units_with_projection(units_)
+
         self._subrenderers[0].set_output_units(units_)
         self._subrenderers[1].set_output_units(None)
+
 
     def render(self):
         result_source_field, result_weight_field = super().render()
@@ -527,7 +543,7 @@ class ProjectionAverageImageRenderer(MultipassImageRenderer):
         # note that we erradicate any unit information in the weight field, in case it is NoUnit, by casting to np.ndarray
         result = result_source_field / result_weight_field.view(np.ndarray)
 
-        # now manually fix up the units:
+        # now manually fix up the units, for the case where result_weight_field does have units:
         if hasattr(result_source_field, 'units') and hasattr(result_weight_field, 'units'):
             result.units = result_source_field.units / result_weight_field.units
 
@@ -702,12 +718,14 @@ class HealpixRenderer(ImageRenderer):
 
     def __init__(self, snap: snapshot.SimSnap):
         super().__init__(snap)
-        self.set_projection(True)
 
     def _get_native_area_unit(self, smooth, kernel_h_power=None):
-        if kernel_h_power is not None and kernel_h_power != 2:
-            raise ValueError("Healpix can only render projected images")
-        return units.sr
+        if kernel_h_power is None:
+            kernel_h_power = 2 if self.is_projected else 3
+        if kernel_h_power == 2:
+            return units.sr
+        else:
+            return super()._get_native_area_unit(smooth, kernel_h_power)
 
     def _call_c_renderer(self, array, geometry, kernel, mass_array, rho_array, smooth_array, x_array, y_array, z_array):
         return _render.render_spherical_image_core(rho_array, mass_array, array,
@@ -831,6 +849,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
     if resolution is None:
         resolution = config['image-default-resolution']
 
+
     if approximate_fast is None:
         approximate_fast = config_parser.getboolean('sph', 'approximate-fast-images')
 
@@ -855,6 +874,9 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
             renderer = Grid3dRenderer(sim)
         case 'healpix':
             renderer = HealpixRenderer(sim)
+            if nside is None:
+                nside = config['image-default-nside']
+            renderer.geometry.set_nside(nside)
         case _:
             raise ValueError("Unknown render target; options are 'image', 'volume' or 'healpix'")
 
@@ -876,13 +898,20 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         renderer.geometry.nz = nz
         renderer.geometry.z1 *= nz/nx
         renderer.geometry.z2 *= nz/nx
-    if nside is not None:
-        if target != 'healpix':
-            raise ValueError("nside is only valid in combination with target='healpix'")
-        renderer.geometry.set_nside(nside)
+
+    if nside is not None and target != 'healpix':
+        raise ValueError("nside is only valid in combination with target='healpix'")
+
 
     renderer.set_quantity(quantity)
-    renderer.set_output_units(out_units)
+
+    if out_units is not None:
+        renderer.set_output_units(out_units)
+        # this may change the projection status of the image
+    elif target == 'healpix' and not weight:
+        # by _default_, spherical images are projected. In fact, right now, there is no other option
+        # but in future we could implement a distance argument that would enable volume rendering too
+        renderer.set_projection(True)
 
     if z_camera is not None:
         renderer.geometry.set_camera_z(z_camera)
@@ -899,5 +928,6 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         renderer = renderer.with_volume_weighted_projection()
     elif weight is not None and weight is not False:
         renderer = renderer.with_weighted_projection(weight)
+
 
     return renderer

@@ -71,7 +71,7 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
     im2d = pynbody.plot.sph.image(
         snap.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, resolution=500)
 
-    im_grid = pynbody.sph.to_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=False)[::50]
+    im_grid = pynbody.sph.render_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=False)[::50]
 
 
     np.save("result_im_2d.npy",im2d)
@@ -171,22 +171,59 @@ def test_exception_propagation(snap):
     with pytest.raises(RuntimeError):
         pynbody.plot.sph.image(snap.gas, qty='intentional_circular_reference')
 
-def test_spherical_render():
+@pytest.fixture
+def simple_test_file():
     n_part = 10000
     np.random.seed(1337)
     f = pynbody.new(n_part)
     f['pos'] = np.random.normal(size=(n_part, 3))
-    f['pos'].units='kpc'
-    f['mass'] = np.ones(n_part)/n_part
-    f['mass'].units='Msol'
+    f['pos'].units = 'kpc'
+    f['mass'] = np.ones(n_part) / n_part
+    f['mass'].units = 'Msol'
+    f['temp'] = f['x']
+    f['temp'].units = 'K'
+    return f
 
-    im = pynbody.sph.render_spherical_image(f, qty='rho', nside=16)
+def test_projection_average(simple_test_file):
+    f = simple_test_file
+    im = pynbody.sph.render_image(f, quantity='temp', weight='rho', width=1)
+    im_collapsed = np.mean(im, axis=0)
+    answer = np.linspace(-0.5,0.5, len(im_collapsed))
+    npt.assert_allclose(im_collapsed, answer, atol=0.01)
+
+    # check it also works to provide custom units
+    im = pynbody.sph.render_image(f, quantity='temp', weight='rho', width=1, out_units='0.1 K')
+    im_collapsed = np.mean(im, axis=0)
+    answer = np.linspace(-5.0, 5.0, len(im_collapsed))
+    npt.assert_allclose(im_collapsed, answer, atol=0.1)
+
+    # check it also works with volume weighting
+    im = pynbody.sph.render_image(f, quantity='temp', weight=True, width=1, out_units='0.1 K')
+    im_collapsed = np.mean(im, axis=0)
+    npt.assert_allclose(im_collapsed, answer, atol=0.3)
+
+
+def test_spherical_render(simple_test_file):
+    f = simple_test_file
+
+
+    im = pynbody.sph.render_spherical_image(f, 'rho', nside=16)
 
     assert abs(4*np.pi*im.sum() / len(im) - 1.0) < 0.01
     assert im.units == "Msol sr^-1"
 
-    im2 = pynbody.sph.render_spherical_image(f, qty='rho', nside=32, out_units="Msol arcsec^-2")
+    im2 = pynbody.sph.render_spherical_image(f, 'rho', nside=32, out_units="Msol arcsec^-2")
 
 
     assert im2.units == "Msol arcsec^-2"
-    # TODO: check value too
+    assert abs((im2.sum() / len(im2))*((60*60*360)**2/np.pi) - 1.0) < 0.01
+
+    im3 = pynbody.sph.render_spherical_image(f, 'temp', weight='rho', nside=16)
+    assert im3.units == "K"
+
+    npt.assert_allclose(im3[::100], [0.04377608, -0.45156163, -0.7651039, 0.05943527, -0.63053423, -0.48430285,
+                         0.88853973, -1.3249904, 1.3553275, -1.4115001, 0.928761, -0.57776105,
+                         0.00862964, 0.67627704, -1.0972726, 1.5024354, -1.6889306, 1.551655,
+                        -1.0651828, 0.5519766, 0.01219654, -0.5527712, 1.0270984, -1.2735034,
+                         1.3647351, -1.1056445, 0.6303438, 0.70591617, 0.53802025, 0.04858056,
+                        -0.46617195], rtol=0.01)
