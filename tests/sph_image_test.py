@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -230,6 +231,7 @@ def test_spherical_render(simple_test_file):
 
 @pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
 def test_render_stars_spherical(snap):
+    plt.clf()
     res = pynbody.plot.stars.render_mollweide(snap, return_image=True)
     npt.assert_allclose(res[::1000], [[0.2158741, 0.13837814, 0.],
                                  [0.27598915, 0.20095405, 0.],

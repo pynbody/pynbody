@@ -24,8 +24,8 @@ import os
 import sys
 import threading
 import time
-from time import process_time
 import warnings
+from time import process_time
 
 import numpy as np
 import scipy

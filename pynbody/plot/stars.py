@@ -323,8 +323,6 @@ def _dust_Av_image(sim, width, resolution, healpix=False):
 												  resolution=resolution)
 	column_den = renderer.render()
 
-	print(f"column_den: mean {column_den.mean()}, max {column_den.max()}, min {column_den.min()}, meanlog {np.log10(column_den).mean()}")
-
 	# From Draine & Lee (1984, ApJ, 285, 89) in the V band (lambda^-1 ~= 2 micron^-1), the optical
 	# depth is 0.5 for an H column density of 10^21 cm^2. That scaling in turn is based on data in
 	# the review of Savage and Mathis (1979, ARA&A, 17, 73). Amazingly, this is the most up-to-date
