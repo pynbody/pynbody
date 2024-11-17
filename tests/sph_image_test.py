@@ -116,7 +116,7 @@ def test_approximate_images(compare2d, compare3d, compare_grid, snap):
         snap.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True, resolution=500)
     im2d = pynbody.plot.sph.image(
         snap.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, resolution=500)
-    im_grid = pynbody.sph.to_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=True)[::50]
+    im_grid = pynbody.sph.render_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=True)[::50]
 
     np.save("result_approx_im_2d.npy", im2d)
     np.save("result_approx_im_3d.npy", im3d)
