@@ -129,6 +129,9 @@ class SubSnapBase(SimSnap):
         fam = fam or self._unifamily
         return self._subsnap_base.is_derived_array(v, fam)
 
+    def find_deriving_function(self, name):
+        return self._subsnap_base.find_deriving_function(name)
+
     def unlink_array(self, name):
         self._subsnap_base.unlink_array(name)
 

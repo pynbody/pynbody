@@ -102,6 +102,31 @@ Some derived arrays are specific to certain simulation formats. For example, ram
 need to derive masses for their gas cells and as such :func:`~pynbody.snapshot.ramses.mass` is registered
 as a derived array specifically for the :class:`~pynbody.snapshot.ramses.RamsesSnap` class.
 
+If you need to know whether an array is derived, and how it is derived, you can use the
+pair of methods :meth:`~pynbody.snapshot.simsnap.SimSnap.is_derived_array` and
+:meth:`~pynbody.snapshot.simsnap.SimSnap.find_deriving_function`:
+
+.. ipython::
+
+  In [5]: s.is_derived_array('pos')
+
+  In [6]: s.is_derived_array('r')
+
+  In [7]: s.find_deriving_function('r')
+
+  In [8]: s.find_deriving_function('feh')
+
+In the last case, we can see the ``feh`` array is derived by the function
+:func:`~pynbody.snapshot.tipsy.feh` which is specific to the :class:`~pynbody.snapshot.tipsy.TipsySnap` class.
+Derived functions typically describe their operation through docstrings:
+
+.. ipython::
+
+  In [8]: help(s.find_deriving_function('feh'))
+
+.. versionchanged:: 2.0
+
+    The method :meth:`~pynbody.snapshot.simsnap.SimSnap.find_deriving_function` is new.
 
 Defining your own deriving functions
 ------------------------------------

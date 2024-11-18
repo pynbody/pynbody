@@ -388,7 +388,7 @@ class GenericTranslation(Transformation):
         super().__init__(f, description=description)
 
     def _apply_to_snapshot(self, f):
-        self._apply_to_array(f[self.arname])
+        f[self.arname] += self.shift
 
     def _unapply_to_snapshot(self, f):
         f[self.arname] -= self.shift

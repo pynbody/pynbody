@@ -1,4 +1,4 @@
-# distutils: language = c++
+# distutils: language = c
 
 import numpy as np
 
@@ -339,6 +339,44 @@ cpdef int is_sorted(int_or_float[:] A):
             if A[i] > A[i-1]:
                 return 0
         return -1
+
+
+cdef extern size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix, double *listdist) nogil
+
+def query_healpix_disc(unsigned int nside, np.ndarray[double, ndim=1] vec0, double radius):
+    """For healpix ring ordering, return the list of pixels within a disc of radius.
+
+    This function is exposed for testing pynbody's implementation of healpix, which is independent of
+    the official healpy implementation for performance reasons. Specifically, in
+    :mod:`pynbody.sph` we need to release the GIL and return distance information for each pixel.
+
+    This function is provided only for testing purposes.
+
+    Parameters
+    ----------
+
+    nside : int
+        The healpix nside parameter.
+
+    vec0 : array
+        The center of the disc in cartesian coordinates.
+
+    radius : float
+        The radius of the disc in radians.
+
+    """
+    cdef np.ndarray[size_t, ndim=1] listpix = np.empty(12*nside*nside, dtype=np.uintp)
+    cdef np.ndarray[double, ndim=1] distpix = np.empty(12*nside*nside, dtype=np.float64)
+
+    cdef double *vec0_ptr = <double*>vec0.data
+    cdef size_t n_pix
+    cdef size_t *listpix_ptr = <size_t*>listpix.data
+    cdef double *distpix_ptr = <double*>distpix.data
+
+    with nogil:
+        n_pix = query_disc_c(nside, vec0_ptr, radius, listpix_ptr, distpix_ptr)
+    return listpix[:n_pix]
+
 
 __all__ = ['grid_gen','find_boundaries', 'sum', 'sum_if_gt', 'sum_if_lt',
            'binary_search', 'is_sorted']

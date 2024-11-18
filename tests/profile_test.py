@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -33,6 +35,8 @@ def make_fake_bar(npart=100000, max=1, min=-1, barlength=.8, barwidth=0.05, phi=
     s['mass'].units = 'Msol'
     s['vel'] = 1.0
     s['vel'].units = 'km s^-1'
+    s['eps'] = (max-min)/np.sqrt(npart)
+    s['eps'].units = 'kpc'
     s.rotate_z(phi)
     return s
 
@@ -97,3 +101,12 @@ def test_write_profile():
     npt.assert_allclose(read_profile.nbins, p.nbins)
     npt.assert_allclose(read_profile['rbins'], p['rbins'])
     npt.assert_allclose(read_profile['density'], p['density'])
+
+
+def test_plot_density_profile():
+    # very minimal test to check if the plot function runs without errors
+    f = make_fake_bar()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pynbody.plot.profile.density_profile(f)
+        pynbody.plot.profile.rotation_curve(f, center=False)

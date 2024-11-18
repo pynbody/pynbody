@@ -5,7 +5,7 @@ cimport libc.math as cmath
 cimport numpy as np
 
 np.import_array()
-from libc.math cimport atan, pow
+from libc.math cimport atan, pow, sqrt
 from libc.stdlib cimport free, malloc
 
 # The following slightly odd repetitiveness is to force Cython to generate
@@ -40,8 +40,7 @@ np_image_output_type = np.float32
 
 ctypedef np.float64_t fixed_input_type
 
-
-
+cdef extern size_t query_disc_c(size_t nside, double* vec0, double radius, size_t *listpix, double *listdist) nogil
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -49,52 +48,72 @@ ctypedef np.float64_t fixed_input_type
 def render_spherical_image_core(np.ndarray[fused_input_type_1, ndim=1] rho, # array of particle densities
                                 np.ndarray[fused_input_type_2, ndim=1] mass, # array of particle masses
                                 np.ndarray[fused_input_type_3, ndim=1] qtyar, # array of quantity to make image of
-                                np.ndarray[fused_input_type_2, ndim=2] pos, # array of particle positions
-                                np.ndarray[fused_input_type_4, ndim=1] r, # particle radius
-                                np.ndarray[fused_input_type_4, ndim=1] h, # particle smoothing length
-                                np.ndarray[np.int64_t, ndim=1] ind, # which of the above particles to use
-                                np.ndarray[fused_input_type_5, ndim=1] ds, # what distances to sample at (in units of smoothing)
-                                np.ndarray[fused_input_type_5, ndim=1] weights, # what kernel weighting to use at these samples
-                                unsigned int nside) :
+                                np.ndarray[fused_input_type_4, ndim=1] x, # arrays of positions
+                                np.ndarray[fused_input_type_4, ndim=1] y,
+                                np.ndarray[fused_input_type_4, ndim=1] z,
+                                np.ndarray[fused_input_type_5, ndim=1] h, # particle smoothing length
+                                unsigned int nside,
+                                kernel) :
 
-    cdef unsigned int i,i0,j,n=len(ind),m=len(ds),num_pix
-    cdef long k
-    cdef float angle, norm, den
-    cdef unsigned int h_power = 2 # to update
-    cdef np.ndarray[np.int64_t,ndim=1] healpix_pixels, buff
-    cdef np.ndarray[image_output_type,ndim=1] im, im_norm
+    cdef np.ndarray[image_output_type,ndim=1] im
 
-    import healpy as hp
-    n = len(ind)
-    im = np.zeros(hp.nside2npix(nside), dtype=np_image_output_type)
-    im_norm = np.zeros_like(im)
-    buff = np.empty(len(im), dtype=np.int64)
+    if nside & (nside - 1) != 0:
+        raise ValueError('nside value must be a power of 2')
 
-    if not hp.isnsideok(nside):
-        raise ValueError('Wrong nside value, must be a power of 2')
+    if kernel.h_power != 2:
+        raise ValueError('Only kernels of dimension 2 (i.e. projected kernels) are currently supported for healpix maps')
 
-    # go through each particle
-    for i0 in range(n) :
-        i = ind[i0]
-        # go through each kernel step
-        for j in range(m) :
+    cdef fixed_input_type max_d_over_h = kernel.max_d
 
-            angle = atan(h[i]*ds[j]/r[i])
-            norm = weights[j]*mass[i]/rho[i]/h[i]**h_power
-            den = qtyar[i]*norm
+    cdef np.ndarray[image_output_type, ndim=1] samples = kernel.get_samples(dtype=np_image_output_type)
+    cdef int num_samples = len(samples)
+    cdef image_output_type * samples_c = <image_output_type *> samples.data
 
-            # find the pixels affected
-            healpix_pixels = hp.query_disc(nside, pos[i], angle , inclusive=False, buff=buff)
-            num_pix = len(healpix_pixels)
+    cdef size_t npix = 12 * nside * nside
 
-            with nogil :
-                # add the required amount to those particles
-                for k in range(num_pix) :
-                    im[healpix_pixels[k]]+=den
-                    im_norm[healpix_pixels[k]]+=norm
+    im = np.zeros(npix, dtype=np_image_output_type)
 
+    # these numpy arrays are being created just for temporary memory management and will be discarded
+    cdef np.ndarray[size_t, ndim=1] index = np.empty(npix, dtype=np.uintp)
+    cdef np.ndarray[double, ndim=1] angle = np.empty(npix, dtype=np.float64)
 
-    return im, im_norm
+    cdef size_t* index_buffer = <size_t*>index.data
+    cdef double* angle_buffer = <double*>angle.data
+    cdef size_t num_pixels
+    cdef double[3] pos_i
+    cdef double angular_size
+    cdef double smooth_2
+    cdef double kernel_max_2
+    cdef double physical_offset
+    cdef fused_input_type_3 qty_i
+
+    cdef image_output_type kern
+
+    cdef size_t n_part = len(x)
+
+    with nogil:
+        for i in range(n_part):
+            qty_i = qtyar[i]
+            if qty_i != qty_i:
+                continue
+            pos_i[0] = x[i]
+            pos_i[1] = y[i]
+            pos_i[2] = z[i]
+            distance2 = pos_i[0]*pos_i[0] + pos_i[1]*pos_i[1] + pos_i[2]*pos_i[2]
+            distance = sqrt(distance2)
+            angular_size = max_d_over_h * h[i] / distance
+            smooth_2 = h[i]*h[i]
+            kernel_max_2 = smooth_2*max_d_over_h*max_d_over_h
+
+            num_pixels = query_disc_c(nside, pos_i, angular_size, index_buffer, angle_buffer)
+
+            for j in range(num_pixels):
+                physical_offset = distance * angle_buffer[j]
+                kern = get_kernel(physical_offset*physical_offset, kernel_max_2,
+                                  smooth_2/distance2, num_samples, samples_c)
+                im[index_buffer[j]] += qty_i * kern * mass[i] / rho[i]
+
+    return im
 
 
 

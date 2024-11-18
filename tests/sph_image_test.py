@@ -1,12 +1,13 @@
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.testing as npt
 import pytest
 
 import pynbody
 import pynbody.test_utils
-from pynbody.sph import renderers
+from pynbody.sph import kernels, renderers
 
 test_folder = Path(__file__).parent
 
@@ -71,7 +72,7 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
     im2d = pynbody.plot.sph.image(
         snap.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, resolution=500)
 
-    im_grid = pynbody.sph.to_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=False)[::50]
+    im_grid = pynbody.sph.render_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=False)[::50]
 
 
     np.save("result_im_2d.npy",im2d)
@@ -116,7 +117,7 @@ def test_approximate_images(compare2d, compare3d, compare_grid, snap):
         snap.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True, resolution=500)
     im2d = pynbody.plot.sph.image(
         snap.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, resolution=500)
-    im_grid = pynbody.sph.to_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=True)[::50]
+    im_grid = pynbody.sph.render_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=True)[::50]
 
     np.save("result_approx_im_2d.npy", im2d)
     np.save("result_approx_im_3d.npy", im3d)
@@ -149,7 +150,7 @@ def test_render_stars(stars_2d, stars_dust_2d, snap):
 
     npt.assert_allclose(stars_2d,im[40:60],atol=0.01)
 
-@pytest.mark.xfail(condition=int(np.__version__.split('.')[0])  == 2,
+@pytest.mark.skipif(condition=int(np.__version__.split('.')[0])  == 2,
                    reason="Extinction is not currently compatible with numpy 2.0",
                    strict=True)
 @pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
@@ -170,3 +171,116 @@ def intentional_circular_reference(sim):
 def test_exception_propagation(snap):
     with pytest.raises(RuntimeError):
         pynbody.plot.sph.image(snap.gas, qty='intentional_circular_reference')
+
+@pytest.fixture
+def simple_test_file():
+    n_part = 10000
+    np.random.seed(1337)
+    f = pynbody.new(n_part)
+    f['pos'] = np.random.normal(size=(n_part, 3))
+    f['pos'].units = 'kpc'
+    f['mass'] = np.ones(n_part) / n_part
+    f['mass'].units = 'Msol'
+    f['temp'] = f['x']
+    f['temp'].units = 'K'
+    return f
+
+def test_projection_average(simple_test_file):
+    f = simple_test_file
+    im = pynbody.sph.render_image(f, quantity='temp', weight='rho', width=1)
+    im_collapsed = np.mean(im, axis=0)
+    answer = np.linspace(-0.5,0.5, len(im_collapsed))
+    npt.assert_allclose(im_collapsed, answer, atol=0.01)
+
+    # check it also works to provide custom units
+    im = pynbody.sph.render_image(f, quantity='temp', weight='rho', width=1, out_units='0.1 K')
+    im_collapsed = np.mean(im, axis=0)
+    answer = np.linspace(-5.0, 5.0, len(im_collapsed))
+    npt.assert_allclose(im_collapsed, answer, atol=0.1)
+
+    # check it also works with volume weighting
+    im = pynbody.sph.render_image(f, quantity='temp', weight=True, width=1, out_units='0.1 K')
+    im_collapsed = np.mean(im, axis=0)
+    npt.assert_allclose(im_collapsed, answer, atol=0.3)
+
+
+def test_spherical_render(simple_test_file):
+    f = simple_test_file
+
+
+    im = pynbody.sph.render_spherical_image(f, 'rho', nside=16)
+
+    assert abs(4*np.pi*im.sum() / len(im) - 1.0) < 0.01
+    assert im.units == "Msol sr^-1"
+
+    im2 = pynbody.sph.render_spherical_image(f, 'rho', nside=32, out_units="Msol arcsec^-2")
+
+
+    assert im2.units == "Msol arcsec^-2"
+    assert abs((im2.sum() / len(im2))*((60*60*360)**2/np.pi) - 1.0) < 0.01
+
+    im3 = pynbody.sph.render_spherical_image(f, 'temp', weight='rho', nside=16)
+    assert im3.units == "K"
+
+    npt.assert_allclose(im3[::100], [0.04377608, -0.45156163, -0.7651039, 0.05943527, -0.63053423, -0.48430285,
+                         0.88853973, -1.3249904, 1.3553275, -1.4115001, 0.928761, -0.57776105,
+                         0.00862964, 0.67627704, -1.0972726, 1.5024354, -1.6889306, 1.551655,
+                        -1.0651828, 0.5519766, 0.01219654, -0.5527712, 1.0270984, -1.2735034,
+                         1.3647351, -1.1056445, 0.6303438, 0.70591617, 0.53802025, 0.04858056,
+                        -0.46617195], rtol=0.01)
+
+@pytest.mark.filterwarnings("ignore::UserWarning")
+def test_render_stars_spherical(snap):
+    plt.clf()
+    res = pynbody.plot.stars.render_mollweide(snap, return_image=True)
+    npt.assert_allclose(res[::1000], [[0.2158741, 0.13837814, 0.],
+                                 [0.27598915, 0.20095405, 0.],
+                                 [0.22899131, 0.16107063, 0.],
+                                 [0.26585045, 0.19161034, 0.],
+                                 [0.25475198, 0.18265152, 0.],
+                                 [0.26186714, 0.19246177, 0.],
+                                 [0.2895748, 0.22256851, 0.02087402],
+                                 [0.2629215, 0.1937046, 0.],
+                                 [0.29285353, 0.22283287, 0.012397],
+                                 [0.34632796, 0.29408723, 0.12458153],
+                                 [0.46969643, 0.47156182, 0.5308735],
+                                 [0.3660347, 0.31326026, 0.14758568],
+                                 [0.37119332, 0.3108948, 0.12590408],
+                                 [0.35345078, 0.32170448, 0.19717637],
+                                 [0.53826296, 0.53094447, 0.56197226],
+                                 [0.36239165, 0.2919399, 0.07837562],
+                                 [0.37456322, 0.31442222, 0.12232742],
+                                 [0.35317573, 0.29436034, 0.11823387],
+                                 [0.48886603, 0.4683048, 0.38486785],
+                                 [0.59726584, 0.5737755, 0.4664154],
+                                 [0.62946856, 0.6194912, 0.53192216],
+                                 [0.62166405, 0.599037, 0.59090996],
+                                 [0.54687995, 0.53192294, 0.44742966],
+                                 [0.5402582, 0.5180721, 0.42749405],
+                                 [0.69918764, 0.76421547, 0.888315],
+                                 [0.65987283, 0.6458607, 0.5548245],
+                                 [0.64007986, 0.6128222, 0.4971203],
+                                 [0.5336639, 0.4971096, 0.3965332],
+                                 [0.5932957, 0.57914084, 0.5544201],
+                                 [0.5504688, 0.52398264, 0.41228446],
+                                 [0.54369104, 0.53339136, 0.46228752],
+                                 [0.5129448, 0.51816064, 0.47853774],
+                                 [0.38571054, 0.3376709, 0.20089912],
+                                 [0.35486984, 0.2799797, 0.06326218],
+                                 [0.3700363, 0.3130932, 0.12754746],
+                                 [0.36907578, 0.31540948, 0.13778381],
+                                 [0.43266717, 0.3860607, 0.22645263],
+                                 [0.38154602, 0.32660943, 0.16114426],
+                                 [0.39782637, 0.3714714, 0.35722312],
+                                 [0.417334, 0.38936806, 0.3729435],
+                                 [0.38239974, 0.3711525, 0.30398408],
+                                 [0.44534835, 0.44895783, 0.41125488],
+                                 [0.44165152, 0.45368958, 0.4311821],
+                                 [0.29969826, 0.258197, 0.12207337],
+                                 [0.35284424, 0.33971292, 0.27164268],
+                                 [0.31118774, 0.2614273, 0.16981545],
+                                 [0.30190963, 0.26069984, 0.14900322],
+                                 [0.34189034, 0.32610703, 0.2380909],
+                                 [0.31345788, 0.2856903, 0.18001786],
+                                 [0.27264443, 0.22463608, 0.07668419]],
+                        atol = 1e-3)

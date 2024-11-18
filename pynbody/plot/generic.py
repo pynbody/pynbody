@@ -1,136 +1,195 @@
 """
+Flexible plotting functions
 
-generic
-=======
+.. versionchanged :: 2.0
 
-Flexible and general plotting functions
+    The ``qprof`` function has been removed. Use the :mod:`pynbody.analysis.profile` module instead. For
+    examples, see the :ref:`profile` tutorial (section on :ref:`prof_deriv_disp`).
 
+    Significant changes to the :func:`~pynbody.plot.generic.hist2d` function have been made. See the
+    function documentation for more information.
+
+    The :func:`~pynbody.plot.generic.gauss_kde` function is deprecated. Use :func:`~pynbody.plot.generic.hist2d`
+    with the *use_kde* keyword set to ``True`` instead.
 """
+
+import warnings
 
 import numpy as np
 import pylab as plt
 
 import pynbody
 
-from .. import config
 from ..array import SimArray
 from ..units import NoUnit
+from ..util import deprecated
 
 
-def qprof(sim, qty='metals', weights=None, q=(0.16, 0.5, 0.84),
-          ax=False, ylabel=None, xlog=False, ylog=False, xlabel=None,
-          facecolor='#BBBBBB', color='#BBBBBB', medcolor='black', filename=False):
-    if ax:
-        p = ax
-        f = plt.gca()
-    else:
-        f, p = plt.subplots(1)
-
-    qp = pynbody.analysis.profile.QuantileProfile(sim, q=q, weights=weights)
-    p.fill_between(qp['rbins'].in_units('kpc'), qp[qty][:, 0], y2=qp[qty][:, 2],
-                   facecolor=facecolor, color=color,
-                   where=np.isfinite(qp[qty][:, 0]))
-    p.plot(qp['rbins'].in_units('kpc'), qp[qty][:, 1], color=medcolor)
-    if xlabel is None:
-        p.set_xlabel('r [kpc]')
-    else:
-        p.set_xlabel(xlabel)
-    if ylabel is not None:
-        p.set_ylabel(ylabel)
-    if xlog:
-        p.semilogx()
-    if ylog:
-        p.semilogy()
-
-    if filename:
-        f.savefig(filename)
-
-
-def hist2d(xo, yo, weights=None, mass=None, gridsize=(100, 100), nbins = None, make_plot = True, **kwargs):
+def hist2d(x, y, weights=None, values=None, gridsize=(100, 100), nbins = None,
+           x_logscale = False, y_logscale = False, x_range = None, y_range = None,
+           use_kde = False, kde_kwargs=None, **kwargs):
     """
-    Plot 2D histogram for arbitrary arrays that get passed in.
+    Plot 2D histogram for arbitrary arrays *x* and *y*.
 
-    **Input:**
+    If *use_kde* is True, instead of a binned histogram, a Gaussian kernel density estimate is used.
 
-       *x*: array
+    It is also possible to obtain an average of specified *values* which are sampled at the *x* and *y*.
+    These can be weighted by *weights* (e.g. mass) if desired. If *weights* are provided without *values*,
+    the result is a simple weighted histogram.
 
-       *y*: array
 
-    **Optional keywords:**
+    .. versionchanged :: 2.0
 
-       *x_range*: list, array, or tuple
-         size(x_range) must be 2. Specifies the X range.
+        The *scalemin* and *scalemax* keywords have been deprecated in favor of *vmin* and *vmax*
+        for consistency with matplotlib and other pynbody plotting functions.
 
-       *y_range*: tuple
-         size(y_range) must be 2. Specifies the Y range.
+        The *make_plot* keyword has been deprecated. Use *plot_type* instead.
 
-       *gridsize*: (int, int) (default (100,100))
-         number of bins to use for the 2D histogram
+        The *ret_im* keyword has been deprecated. If you want to use ``imshow`` instead of ``contourf``,
+        set *plot_type* to 'image'.
 
-       *nbins*: int
-         number of bins for the histogram - if specified, gridsize is set to (nbins,nbins)
+        The *mass* keyword was confusing and has been deprecated. When *mass* was provided previously,
+        it was used as the weight, while the weight array was used as the quantity to obtain a
+        mass-weighted average of. So, where previously you would pass
+        *weights* and *mass* you now pass *values* and *weights* respectively.
 
-       *nlevels*: int
-         number of levels to use for the contours
+        The *draw_contours* keyword has been removed. If you want to overplot mass contours, call
+        the function again using the mass array, with *plot_type* set to 'contour'.
 
-       *logscale*: boolean
-         whether to use log or linear spaced contours
 
-       *weights*: numpy array of same length as x and y
-         if weights is passed, color corresponds to
-         the mean value of weights in each cell
 
-       *mass*: numpy array of masses same length as x andy
-         must also have weights passed in.  If you just
-         want to weight by mass, pass the masses to weights
+    Parameters
+    ----------
 
-       *colorbar*: boolean
-         draw a colorbar
+    x : array-like
+        x-coordinates of points
 
-       *scalemin*: float
-         minimum value to use for the color scale
+    y : array-like
+        y-coordinates of points
 
-       *scalemax*: float
-         maximum value to use for the color scale
+    weights : array-like, optional
+        weights of points; if not provided, all points are given equal weight. If combined with *values*,
+        each pixel is a weighted average of the values in that pixel. If only *weights* is provided, you
+        get back a
+
+    values : array-like, optional
+        values to assign to each point; if provided, a weighted mean of the value in each pixel is computed
+
+    gridsize : tuple, optional
+        number of bins in each dimension. Default is (100,100).
+
+    nbins : int, optional
+        An alternative way to specify number of bins for the histogram - if specified,
+        gridsize is set to (nbins,nbins).
+
+    plot_type : str, optional
+        If 'contour' or 'contourf' use matplotlib to make a contour/filled contour.
+        If 'image', use matplotlib imshow (default).
+        If 'none' (or, for backward compatibility, False), return the histogram data.
+
+    vmin: float, optional
+        Minimum value for the color scale.
+
+    vmax: float, optional
+        Maximum value for the color scale.
+
+    x_range: array-like, optional
+        Length-2 array specifies the x range. Default is None, in which case the range is set to the min and max of x.
+
+    y_range: array-like, optional
+        Length-2 array specifies the y range. Default is None, in which case the range is set to the min and max of y.
+
+    x_logscale: bool, optional
+        If True, the histogram will be made in log x space. Default False.
+
+    y_logscale: bool, optional
+        If True, the histogram will be made in log y space. Default False.
+
+    nlevels : int | array-like, optional
+        Number of levels to use for contours (if plot_type is 'contour'). Default is 20.
+
+    colorbar: bool, optional
+        Draw a colorbar if True. Default is False.
+
+    make_plot: str, optional
+        Deprecated alias for *plot_type*.
+
+    use_kde: bool, optional
+        If True, use a gaussian kernel density estimate instead of a histogram.
+
+    kde_kwargs: dict, optional
+        Dictionary of keyword arguments to pass to :func:`~pynbody.plot.util.fast_kde` if
+        *use_kde* is True.
+
+    ret_im: bool, optional
+        Deprecated. If True, plot_type is set to 'image'.
+
+    scalemin: float, optional
+        Deprecated alias for *vmin*.
+
+    scalemax: float, optional
+        Deprecated alias for *vmax*.
+
+    xlogrange: bool, optional
+        Deprecated alias for *x_logscale*.
+
+    ylogrange: bool, optional
+        Deprecated alias for *y_logscale*.
+
+
     """
     global config
 
     # process keywords
-    x_range = kwargs.get('x_range', None)
-    y_range = kwargs.get('y_range', None)
-    xlogrange = kwargs.get('xlogrange', False)
-    ylogrange = kwargs.get('ylogrange', False)
-    ret_im = kwargs.get('ret_im', False)
+    if 'make_plot' in kwargs:
+        warnings.warn("The 'make_plot' keyword is deprecated. Use 'plot_type' instead.", DeprecationWarning)
+        kwargs['plot_type'] = kwargs.pop('make_plot')
+
+    if 'ret_im' in kwargs:
+        warnings.warn("The 'ret_im' keyword is deprecated. Use 'plot_type' instead.", DeprecationWarning)
+        if kwargs.pop('ret_im'):
+            kwargs['plot_type'] = 'image'
+
+    if 'mass' in kwargs:
+        warnings.warn("The 'mass' keyword is deprecated. Where previously you would pass 'weights' and 'mass', you now pass 'values' and 'weights' respectively.", DeprecationWarning)
+        values = weights
+        weights = kwargs.pop('mass')
+
+    if 'xlogrange' in kwargs:
+        warnings.warn("The 'xlogrange' keyword is deprecated. Use 'x_logscale' instead.", DeprecationWarning)
+        x_logscale = kwargs.pop('xlogrange')
+
+    if 'ylogrange' in kwargs:
+        warnings.warn("The 'ylogrange' keyword is deprecated. Use 'y_logscale' instead.", DeprecationWarning)
+        y_logscale = kwargs.pop('ylogrange')
 
     if y_range is not None:
         if len(y_range) != 2:
             raise RuntimeError("Range must be a length 2 list or array")
     else:
-        if ylogrange:
-            y_range = [np.log10(np.min(yo)), np.log10(np.max(yo))]
+        if y_logscale:
+            y_range = [np.log10(np.min(y)), np.log10(np.max(y))]
         else:
-            y_range = [np.min(yo), np.max(yo)]
-        kwargs['y_range'] = y_range
+            y_range = [np.min(y), np.max(y)]
 
     if x_range is not None:
         if len(x_range) != 2:
             raise RuntimeError("Range must be a length 2 list or array")
     else:
-        if xlogrange:
-            x_range = [np.log10(np.min(xo)), np.log10(np.max(xo))]
+        if x_logscale:
+            x_range = [np.log10(np.min(x)), np.log10(np.max(x))]
         else:
-            x_range = [np.min(xo), np.max(xo)]
-        kwargs['x_range'] = x_range
+            x_range = [np.min(x), np.max(x)]
 
-    if (xlogrange):
-        x = np.log10(xo)
+    if x_logscale:
+        x = np.log10(x)
     else:
-        x = xo
+        x = x
 
-    if (ylogrange):
-        y = np.log10(yo)
+    if y_logscale:
+        y = np.log10(y)
     else:
-        y = yo
+        y = y
 
     if nbins is not None:
         gridsize = (nbins, nbins)
@@ -141,34 +200,38 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100, 100), nbins = None, m
     x = x[ind[0]]
     y = y[ind[0]]
 
-    draw_contours = False
-    if weights is not None and mass is not None:
-        draw_contours = True
+    if weights is not None:
         weights = weights[ind[0]]
-        mass = mass[ind[0]]
 
-        # produce a mass-weighted histogram of average weight values at each
-        # bin
-        hist, ys, xs = np.histogram2d(
-            y, x, weights=weights * mass, bins=gridsize, range=[y_range, x_range])
-        hist_mass, ys, xs = np.histogram2d(
-            y, x, weights=mass, bins=gridsize, range=[y_range, x_range])
-        good = np.where(hist_mass > 0)
-        hist[good] = hist[good] / hist_mass[good]
+    if values is not None:
+        values = values[ind[0]]
+        if weights is None:
+            weights = np.ones_like(values)
 
+    if use_kde:
+        if kde_kwargs is None:
+            kde_kwargs = {}
+        def _histogram_generator(weights):
+            from .util import fast_kde
+            extents = [x_range[0], x_range[1], y_range[0], y_range[1]]
+            hist = fast_kde(x, y, weights=weights, gridsize=gridsize, extents=extents, **kde_kwargs)
+            xs = np.linspace(x_range[0], x_range[1], gridsize[0] + 1)
+            ys = np.linspace(y_range[0], y_range[1], gridsize[1] + 1)
+            return hist, ys, xs
     else:
-        if weights is not None:
-            # produce a weighted histogram
-            weights = weights[ind[0]]
-        elif mass is not None:
-            # produce a mass histogram
-            weights = mass[ind[0]]
+        def _histogram_generator(weights):
+            return np.histogram2d(y, x, weights=weights, bins=gridsize, range=[y_range, x_range])
 
-        hist, ys, xs = np.histogram2d(
-            y, x, weights=weights, bins=gridsize, range=[y_range, x_range])
+    if values is not None:
+        hist, ys, xs = _histogram_generator(weights * values)
+        hist_norm, _, _ = _histogram_generator(weights)
+        valid = hist_norm > 0
+        hist[valid] /= hist_norm[valid]
+    else:
+        hist, ys, xs = _histogram_generator(weights)
 
     try:
-        hist = SimArray(hist, weights.units)
+        hist = SimArray(hist, values.units)
     except AttributeError:
         hist = SimArray(hist)
 
@@ -179,325 +242,190 @@ def hist2d(xo, yo, weights=None, mass=None, gridsize=(100, 100), nbins = None, m
         xs = .5 * (xs[:-1] + xs[1:])
         ys = .5 * (ys[:-1] + ys[1:])
 
-    if ret_im:
-        return make_contour_plot(hist, xs, ys, **kwargs)
-
-    if make_plot:
-        make_contour_plot(hist, xs, ys, **kwargs)
-        if draw_contours:
-            make_contour_plot(SimArray(density_mass, mass.units), xs, ys, filled=False,
-                              clear=False, colorbar=False, colors='black', scalemin=nmin, nlevels=10)
+    plot_type = kwargs.get('plot_type', 'image')
+    if plot_type != 'none' and plot_type is not False:
+        make_contour_plot(hist, xs, ys,
+                          xlabel_display_log = x_logscale, ylabel_display_log = y_logscale,
+                          x_range = x_range, y_range = y_range,
+                          **kwargs)
 
     return hist, xs, ys
 
 
-def gauss_kde(xo, yo, weights=None, mass=None, gridsize=(100, 100), nbins = None,
-              make_plot = True, nmin = None, nmax = None, **kwargs):
+@deprecated("This function is deprecated. Use pynbody.plot.generic.hist2d instead, with use_kde=True.")
+def gauss_kde(*args, **kwargs):
     """
-    Plot 2D gaussian kernel density estimate (KDE) given values at points (*x*, *y*).
+    Deprecated: plot 2D gaussian kernel density estimate (KDE) given values at points (*x*, *y*).
 
-    Behavior changes depending on which keywords are passed:
+    .. versionchanged :: 2.0
 
-    If a *weights* array is supplied, produce a weighted KDE.
+        This function is deprecated. Use :func:`~pynbody.plot.generic.hist2d` with the *use_kde* keyword set to
+        ``True`` instead.
 
-    If a *mass* array is supplied, a mass density is computed.
+    Arguments and keyword arguments are passed to :func:`~pynbody.plot.generic.hist2d`, with
+    *use_kde* set to ``True``. Two keywords are given special treatment and passed
+    to :func:`~pynbody.plot.util.fast_kde`:
 
-    If both *weights* and *mass* are supplied, a mass-averaged KDE of the weights is
-    computed.
+    * *norm*: boolean (default: False)
+      If False, the output is only corrected for the kernel. If True,
+      the result is normalized such that the integral over the area
+      yields 1.
 
-    By default, norm=False is passed to :func:`~pynbody.plot.util.fast_kde` meaning
-    that the result returned *is not* normalized such that the integral over the area
-    equals one.
+    * *nocorrelation*: (default: False) If True, the correlation
+      between the x and y coords will be ignored when preforming
+      the KDE.
 
-Since this function produces a density estimate, the units of the
-    output grid are different than for the output of
-    :func:`~pynbody.plot.generic.hist2d`. To get to the same units,
-    you must multiply by the size of the cells.
-
-
-    **Input:**
-
-       *xo*: array
-
-       *yo*: array
-
-    **Optional keywords:**
-
-       *mass*: numpy array of same length as x and y
-         particle masses to be used for weighting
-
-       *weights*: numpy array of same length as x and y
-         if weights is passed, color corresponds to
-         the mean value of weights in each cell
-
-       *nmin*: float (default None)
-         if *weights* and *mass* are both specified, the mass-weighted
-         contours are only drawn where the mass exceeds *nmin*.
-
-       *gridsize*: (int, int) (default: 100,100)
-         size of grid for computing the density estimate
-
-       *nbins*: int
-         number of bins for the histogram - if specified, gridsize is set to (nbins,nbins)
-
-       *make_plot*: boolean (default: True)
-         whether or not to produce a plot
-
-    **Keywords passed to** :func:`~pynbody.plot.util.fast_kde`:
-
-       *norm*: boolean (default: False)
-         If False, the output is only corrected for the kernel. If True,
-         the result is normalized such that the integral over the area
-         yields 1.
-
-       *nocorrelation*: (default: False) If True, the correlation
-         between the x and y coords will be ignored when preforming
-         the KDE.
-
-    **Keywords passed to** :func:`~pynbody.plot.generic.make_contour_plot`:
-
-       *x_range*: list, array, or tuple
-         size(x_range) must be 2. Specifies the X range.
-
-       *y_range*: tuple
-         size(y_range) must be 2. Specifies the Y range.
-
-       *nlevels*: int
-         number of levels to use for the contours
-
-       *logscale*: boolean
-         whether to use log or linear spaced contours
-
-       *colorbar*: boolean
-         draw a colorbar
-
-       *scalemin*: float
-         minimum value to use for the color scale
-
-       *scalemax*: float
-         maximum value to use for the color scale
     """
+    kde_kwargs = {}
+    if 'norm' in kwargs:
+        kde_kwargs['norm'] = kwargs.pop('norm')
+    if 'nocorrelation' in kwargs:
+        kde_kwargs['nocorrelation'] = kwargs.pop('nocorrelation')
 
-    from .util import fast_kde
-
-    global config
-
-    # process keywords
-    x_range = kwargs.get('x_range', None)
-    y_range = kwargs.get('y_range', None)
-    xlogrange = kwargs.get('xlogrange', False)
-    ylogrange = kwargs.get('ylogrange', False)
-    ret_im = kwargs.get('ret_im', False)
-
-    if y_range is not None:
-        if len(y_range) != 2:
-            raise RuntimeError("Range must be a length 2 list or array")
-    else:
-        if ylogrange:
-            y_range = [np.log10(np.min(yo)), np.log10(np.max(yo))]
-        else:
-            y_range = [np.min(yo), np.max(yo)]
-
-    if x_range is not None:
-        if len(x_range) != 2:
-            raise RuntimeError("Range must be a length 2 list or array")
-    else:
-        if xlogrange:
-            x_range = [np.log10(np.min(xo)), np.log10(np.max(xo))]
-        else:
-            x_range = [np.min(xo), np.max(xo)]
-
-    if (xlogrange):
-        x = np.log10(xo)
-    else:
-        x = xo
-    if (ylogrange):
-        y = np.log10(yo)
-    else:
-        y = yo
-
-    if nbins is not None:
-        gridsize = (nbins, nbins)
-
-    ind = np.where((x > x_range[0]) & (x < x_range[1]) &
-                   (y > y_range[0]) & (y < y_range[1]))
-
-    x = x[ind[0]]
-    y = y[ind[0]]
-
-    try:
-        xs = SimArray(
-            np.linspace(x_range[0], x_range[1], gridsize[0] + 1), x.units)
-    except AttributeError:
-        xs = np.linspace(x_range[0], x_range[1], gridsize[0] + 1)
-    xs = .5 * (xs[:-1] + xs[1:])
-    try:
-        ys = SimArray(
-            np.linspace(y_range[0], y_range[1], gridsize[1] + 1), y.units)
-    except AttributeError:
-        ys = np.linspace(y_range[0], y_range[1], gridsize[1] + 1)
-    ys = .5 * (ys[:-1] + ys[1:])
-
-    extents = [x_range[0], x_range[1], y_range[0], y_range[1]]
-
-    draw_contours = False
-    if weights is not None and mass is not None:
-        draw_contours = True
-        weights = weights[ind[0]]
-        mass = mass[ind[0]]
-
-        # produce a mass-weighted gaussian KDE of average weight values at each
-        # bin
-        density = fast_kde(
-            x, y, weights=weights * mass, gridsize=gridsize, extents=extents, **kwargs)
-        density_mass = fast_kde(
-            x, y, weights=mass, gridsize=gridsize, extents=extents, **kwargs)
-        good = np.where(density_mass > 0)
-        density[good] = density[good] / density_mass[good]
-
-        if nmin is not None:
-            density *= density_mass > nmin
-
-    else:
-        # produce a weighted gaussian KDE
-        if weights is not None:
-            weights = weights[ind[0]]
-        elif mass is not None:
-            weights = mass[ind[0]]
-
-        density = fast_kde(x, y, weights=weights, gridsize=gridsize,
-                           extents=extents, **kwargs)
-
-    try:
-        density = SimArray(density, weights.units)
-    except AttributeError:
-        density = SimArray(density)
-
-    if ret_im:
-        return make_contour_plot(density, xs, ys, **kwargs)
-
-    if make_plot:
-        make_contour_plot(density, xs, ys, **kwargs)
-        if draw_contours:
-            make_contour_plot(SimArray(density_mass, mass.units), xs, ys, filled=False,
-                              clear=False, colorbar=False, colors='black', scalemin=nmin, nlevels=10)
-
-    return density, xs, ys
+    return hist2d(*args, use_kde=True, kde_kwargs=kde_kwargs,
+                  **kwargs)
 
 
 def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
-                      logscale=True, xlogrange=False, ylogrange=False,
-                      subplot=False, colorbar=False, ret_im=False, cmap=None,
-                      clear=True, legend=False, scalemin=None,levels=None,
-                      scalemax=None, filename=None, **kwargs):
+                      logscale=True, xlabel_display_log=False, ylabel_display_log=False,
+                      colorbar=False, cmap=None, vmin=None, vmax=None, plot_type='contourf', **kwargs):
     """
-    Plot a contour plot of grid *arr* corresponding to bin centers
-    specified by *xs* and *ys*.  Labels the axes and colobar with
-    proper units taken from x
+    Plot a contour plot of grid *arr* corresponding to bin centers specified by *xs* and *ys*.
 
-    Called by :func:`~pynbody.plot.generic.hist2d` and
-    :func:`~pynbody.plot.generic.gauss_density`.
+    Labels the axes and colobar with units taken from x, if available.
 
-    **Input**:
+    Called by :func:`~pynbody.plot.generic.hist2d`.
 
-       *arr*: 2D array to plot
+    .. versionchanged :: 2.0
 
-       *xs*: x-coordinates of bins
+        To simplify the plot interfaces and make them more coherent, the following changes have been made:
 
-       *ys*: y-coordinates of bins
+        * It is no longer possible to pass in a *filename*; instead use the matplotlib ``savefig`` function.
 
-    **Optional Keywords**:
+        * The *legend* keyword has been removed; instead use matplotlib ``legend``
 
-       *x_range*: list, array, or tuple (default = None)
-         size(x_range) must be 2. Specifies the X range.
+        * The *subplot* keyword has been removed; instead ensure that the current matplotlib axes are the
+          ones you want to plot in.
 
-       *y_range*: tuple (default = None)
-         size(y_range) must be 2. Specifies the Y range.
+        * The *clear* keyword has been removed; instead use the matplotlib ``clf`` function before calling
+          this function.
 
-       *xlogrange*: boolean (default = False)
-         whether the x-axis should have a log scale
+        * The *scalemin* and *scalemax* keywords have been deprecated in favor of *vmin* and *vmax*, for
+          consistency with matplotlib and with other pynbody plotting functions.
 
-       *ylogrange*: boolean (default = False)
-         whether the y-axis should have a log scale
+        * The *ret_im* keyword has been deprecated. If you want to use ``imshow`` instead of ``contour``,
+          set *plot_type* to 'image'.
 
-       *nlevels*: int (default = 20)
-         number of levels to use for the contours
 
-       *logscale*: boolean (default = True)
-         whether to use log or linear spaced contours
 
-       *colorbar*: boolean (default = False)
-         draw a colorbar
+    Parameters
+    ----------
 
-       *scalemin*: float (default = arr.min())
-         minimum value to use for the color scale
+    arr : array-like
+        2D array to plot
 
-       *scalemax*: float (default = arr.max())
-         maximum value to use for the color scale
+    xs : array-like
+        x-coordinates of bin centres
+
+    ys : array-like
+        y-coordinates of bin centres
+
+    x_range : array-like
+        Length-2 array specifies the x range. Default is None, in which case the range is set to the min and max of x.
+
+    y_range : array-like
+        Length-2 array specifies the y range. Default is None, in which case the range is set to the min and max of y.
+
+    xlabel_display_log : boolean, optional
+        If True, the x-axis label will indicate that the x values are log-scaled. Other than the axis labelling,
+        this keyword has no effect on the plot.
+
+    ylabel_display_log : boolean, optional
+        If True, the y-axis label will indicate that the y values are log-scaled. Other than the axis labelling,
+        this keyword has no effect on the plot.
+
+    nlevels : int, optional
+        Number of levels to use for contours. Default is 20.
+
+    logscale : boolean, optional
+        If True, use a log-scaled colorbar and log-spaced contours. Default is True.
+
+    colorbar : boolean, optional
+        If True, draw a colorbar. Default is False.
+
+    vmin : float, optional
+        Minimum value to use for the color scale. Default is arr.min().
+
+    vmax : float, optional
+        Maximum value to use for the color scale. Default is arr.max().
+
+    cmap : str, optional
+        Colormap to use. Default is None, which uses the default colormap.
+
+    scalemin : float, optional
+        Deprecated. Use *vmin* instead.
+
+    scalemax : float, optional
+        Deprecated. Use *vmax* instead.
+
+    ret_im : boolean, optional
+        Deprecated. If True, plot_type is set to 'image'.
+
     """
 
+    import matplotlib.pyplot as plt
     from matplotlib import colors
 
-    if not subplot:
-        import matplotlib.pyplot as plt
-    else:
-        plt = subplot
+    if kwargs.get('ret_im', None) is not None:
+        warnings.warn("The 'ret_im' keyword is deprecated. Use 'plot_type' instead.", DeprecationWarning)
+        plot_type = 'image'
 
-    if scalemin is None:
-        scalemin = np.min(arr[arr > 0])
-    if scalemax is None:
-        scalemax = np.max(arr[arr > 0])
-    arr[arr < scalemin] = scalemin
-    arr[arr > scalemax] = scalemax
 
     if 'norm' in kwargs:
         del(kwargs['norm'])
 
-    if logscale:
-        try:
-            levels = np.logspace(np.log10(scalemin),
-                                 np.log10(scalemax), nlevels)
-            cont_color = colors.LogNorm()
-        except ValueError:
-            raise ValueError(
-                'crazy contour levels -- try specifying the *levels* keyword or use a linear scale')
-
-            return
-
-        if arr.units != NoUnit() and arr.units != 1:
-            cb_label = '$log_{10}(' + arr.units.latex() + ')$'
-        else:
-            cb_label = '$log_{10}(N)$'
+    if arr.units != NoUnit() and arr.units != 1:
+        cb_label = '$' + arr.units.latex() + '$'
     else:
-        levels = np.linspace(scalemin,
-                             scalemax, nlevels)
-        cont_color = None
+        cb_label = '$N$'
 
-        if arr.units != NoUnit() and arr.units != 1:
-            cb_label = '$' + arr.units.latex() + '$'
-        else:
-            cb_label = '$N$'
+    if logscale:
+        if vmin is None:
+            vmin = np.min(arr[arr > 0])
+        if vmax is None:
+            vmax = np.max(arr[arr > 0])
 
-    if not subplot and clear:
-        plt.clf()
+        levels = np.logspace(np.log10(vmin), np.log10(vmax), nlevels)
+        cont_color = colors.LogNorm(vmin = vmin, vmax = vmax)
+    else:
+        if vmin is None:
+            vmin = np.min(arr)
+        if vmax is None:
+            vmax = np.max(arr)
+        levels = np.linspace(vmin, vmax, nlevels)
+        cont_color = colors.Normalize(vmin = vmin, vmax = vmax)
 
-    if ret_im:
-        if logscale:
-            arr = np.log10(arr)
-        scalemin, scalemax = np.log10((scalemin, scalemax))
-        return plt.imshow(arr, origin='down', vmin=scalemin, vmax=scalemax,
-                          aspect='auto', cmap=cmap, axes=subplot,
-                          # aspect =
-                          # np.diff(x_range)/np.diff(y_range),cmap=cmap,
+    arr[arr < vmin] = vmin
+    arr[arr > vmax] = vmax
+
+    if plot_type == 'image':
+        plot_artist = plt.imshow(arr, origin='lower',
+                          aspect='auto', cmap=cmap, norm=cont_color,
                           extent=[x_range[0], x_range[1], y_range[0], y_range[1]])
-    cs = plt.contourf(
-        xs, ys, arr, levels, norm=cont_color, cmap=cmap, **kwargs)
+    elif plot_type == 'contourf':
+        plot_artist = plt.contourf(
+            xs, ys, arr, levels, norm=cont_color, cmap=cmap, **kwargs)
+    elif plot_type == 'contour':
+        plot_artist = plt.contour(
+            xs, ys, arr, levels, norm=cont_color, cmap=cmap, **kwargs)
+    else:
+        raise ValueError("Unknown plot_type: %s" % plot_type)
 
     if 'xlabel' in kwargs:
         xlabel = kwargs['xlabel']
     else:
         try:
-            if xlogrange:
+            if xlabel_display_log:
                 xlabel = r'' + '$log_{10}(' + xs.units.latex() + ')$'
             else:
                 xlabel = r'' + '$x/' + xs.units.latex() + '$'
@@ -506,10 +434,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
 
     if xlabel:
         try:
-            if subplot:
-                plt.set_xlabel(xlabel)
-            else:
-                plt.xlabel(xlabel)
+            plt.xlabel(xlabel)
         except Exception:
             pass
 
@@ -517,7 +442,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
         ylabel = kwargs['ylabel']
     else:
         try:
-            if ylogrange:
+            if ylabel_display_log:
                 ylabel = '$log_{10}(' + ys.units.latex() + ')$'
             else:
                 ylabel = r'' + '$y/' + ys.units.latex() + '$'
@@ -526,71 +451,111 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
 
     if ylabel:
         try:
-            if subplot:
-                plt.set_ylabel(ylabel)
-            else:
-                plt.ylabel(ylabel)
+            plt.ylabel(ylabel)
         except Exception:
             pass
 
-
-#    if not subplot:
-#        plt.xlim((x_range[0],x_range[1]))
-#        plt.ylim((y_range[0],y_range[1]))
-
     if colorbar:
-        cb = plt.colorbar(cs, format="%.2e").set_label(r'' + cb_label)
+        plt.colorbar(plot_artist, format="%.2e").set_label(r'' + cb_label)
 
-    if legend:
-        plt.legend(loc=2)
+    return plot_artist
 
-    if filename:
-        plt.savefig(filename)
-
-
-def fourier_map(sim, nbins=100, nmin=1000, nphi=100, mmin=1, mmax=7, rmax=10,
-                levels=[.01, .05, .1, .2], subplot=None, ret=False, **kwargs):
+def _inv_fourier(p, nmin=1000, mmin=1, mmax=7, nphi=100):
     """
 
-    Plot an overdensity map generated from a Fourier expansion of the
-    particle distribution. A :func:`~pynbody.analysis.profile.Profile`
-    is made and passed to :func:`~pynbody.plot.util.inv_fourier` to
-    obtain an overdensity map. The map is plotted using the usual
-    matplotlib.contour.
+    Invert a profile with fourier coefficients to yield an overdensity
+    map.
 
-    **Input**:
+    **Inputs:**
 
-    *sim* :  a :func:`~pynbody.snapshot.SimSnap` object
+    *p* : a :func:`~pynbody.analysis.profile.Profile` object
 
-    **Optional Keywords**:
-
-    *nbins* (100) : number of radial bins to use for the profile
+    **Optional Keywords:**
 
     *nmin* (1000) : minimum number of particles required per bin
-
-    *nphi* (100)  : number of azimuthal bins to use for the map
 
     *mmin* (1)    : lowest multiplicity Fourier component
 
     *mmax* (7)    : highest multiplicity Fourier component
 
-    *rmax* (10)   : maximum radius to use when generating the profile
-
-    *levels* [0.01,0.05,0.1,0.2] : tuple of levels for plotting contours
-
-    *subplot* (None) : Axes object on which to plot the contours
+    *nphi* (100)  : number of azimuthal bins to use for the map
 
     """
+
+    phi_hist = np.zeros((len(p['rbins']), nphi))
+    phi = np.linspace(-np.pi, np.pi, nphi)
+    rbins = p['rbins']
+
+    for i in range(len(rbins)):
+        if p['n'][i] > nmin:
+            for m in range(mmin, mmax):
+                phi_hist[i, :] = phi_hist[i,:] + p['fourier']['c'][m, i]*np.exp(1j*m*phi)
+
+    return phi, phi_hist
+
+
+def fourier_map(sim, nbins=100, nmin=1000, nphi=100, mmin=1, mmax=7, rmax=10,
+                levels=[.01, .05, .1, .2], return_array=False, **kwargs):
+    """Plot an overdensity map generated from a Fourier expansion of the particle distribution.
+
+    A :func:`~pynbody.analysis.profile.Profile` is made and passed to :func:`~pynbody.plot.util.inv_fourier` to
+    obtain an overdensity map. The map is plotted using ``matplotlib.contour``.
+
+    .. versionchanged :: 2.0
+
+        The *subplot* keyword has been removed for consistency with other plotting functions. If you want to plot
+        on a specific subplot, select that subplot first using the matplotlib interface.
+
+        The *ret* keyword has been renamed to *return_values* for consistency with other plotting functions.
+
+    Parameters
+    ----------
+
+    sim : :class:`~pynbody.snapshot.SimSnap`
+        The simulation snapshot to analyze.
+
+    nbins : int, optional
+        Number of radial bins to use for the profile. Default is 100.
+
+    nmin : int, optional
+        Minimum number of particles required per bin. Default is 1000.
+
+    nphi : int, optional
+        Number of azimuthal bins to use for the map. Default is 100.
+
+    mmin : int, optional
+        Lowest multiplicity Fourier component. Default is 1.
+
+    mmax : int, optional
+        Highest multiplicity Fourier component. Default is 7.
+
+    rmax : float, optional
+        Maximum radius to use when generating the profile. Default is 10.
+
+    levels : list, optional
+        List of levels for plotting contours. Default is [0.01, 0.05, 0.1, 0.2].
+
+    return_array : bool, optional
+        If True, return the arrays used to make the plot.
+
+    Returns
+    -------
+
+    If *return_array* is True, return the x, y, and value arrays used to make the plot.
+    Otherwise, returns None.
+
+
+    """
+    import matplotlib.pylab as plt
+
     from . import util
 
-    if subplot is None:
-        import matplotlib.pylab as plt
-
-    else:
-        plt = subplot
+    if 'ret' in kwargs:
+        warnings.warn("The 'ret' keyword is deprecated. Use 'return_values' instead.", DeprecationWarning)
+        return_array = kwargs.pop('ret')
 
     p = pynbody.analysis.profile.Profile(sim, max=rmax, nbins=nbins)
-    phi, phi_inv = util.inv_fourier(p, nmin, mmin, mmax, nphi)
+    phi, phi_inv = _inv_fourier(p, nmin, mmin, mmax, nphi)
 
     rr, pp = np.meshgrid(p['rbins'], phi)
 
@@ -599,33 +564,54 @@ def fourier_map(sim, nbins=100, nmin=1000, nphi=100, mmin=1, mmax=7, rmax=10,
 
     plt.contour(xx, yy, phi_inv, levels, **kwargs)
 
-    if ret:
+    if return_array:
         return xx, yy, phi_inv
 
 
-def prob_plot(x, y, weight, nbins=(100, 100), extent=None, axes=None, **kwargs):
-    """
+def prob_plot(x, y, weight, nbins=(100, 100), extent=None, return_array=False, **kwargs):
+    """Make a plot of the probability of y given x, i.e. p(y|x).
 
-    Make a plot of the probability of y given x, i.e. p(y|x). The
-    values are normalized such that the integral along each column is
-    one.
+    The values are normalized such that the integral along each column is one.
 
-    **Input**:
+    .. versionchanged :: 2.0
 
-    *x*: primary binning axis
+      The axes keyword has been removed for consistency with other functions. If you want to plot on
+      specific axes, select those axes first using the matplotlib interface.
 
-    *y*: secondary binning axis
+      This routine no longer returns the arrays used for plotting unless specifically requested
+      using the *return_array* keyword.
 
-    *weight*: weights array
+    Parameters
+    ----------
 
-    *nbins*: tuple of length 2 specifying the number of bins in each direction
+    x : array-like
+        primary binning axis
 
-    *extent*: tuple of length 4 speciphysical extent of the axes
-     (xmin,xmax,ymin,ymax)
+    y : array-like
+        secondary binning axis
 
-    **Optional Keywords**:
+    weight : array-like
+        weights array
 
-    all optional keywords are passed on to the imshow() command
+    nbins : tuple of length 2
+        number of bins in each direction
+
+    extent : tuple of length 4
+        physical extent of the axes (xmin,xmax,ymin,ymax)
+
+    return_array : bool
+        If True, return the array used to make the plot.
+
+    **kwargs :
+        all optional keywords are passed on to the imshow() command
+
+    Returns
+    -------
+
+    If *return_array* is True, return the arrays used to make the plot in the order
+    *grid*, *xbinedges*, *ybinedges*. Otherwise, returns None.
+
+
 
     """
 
@@ -647,13 +633,11 @@ def prob_plot(x, y, weight, nbins=(100, 100), extent=None, axes=None, **kwargs):
             y[ind], weights=weight[ind], bins=ybinedges, density=True)
         grid[:, i] = h
 
-    if axes is None:
-        im = plt.imshow(grid, extent=extent, origin='lower', **kwargs)
 
-    else:
-        im = axes.imshow(grid, extent=extent, origin='lower', **kwargs)
+    im = plt.imshow(grid, extent=extent, origin='lower', **kwargs)
 
     cb = plt.colorbar(im, format='%.2f')
     cb.set_label(r'$P(y|x)$')
 
-    return grid, xbinedges, ybinedges
+    if return_array:
+        return grid, xbinedges, ybinedges
