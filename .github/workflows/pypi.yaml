@@ -24,7 +24,7 @@ jobs:
         - [ubuntu-22.04-arm64, manylinux, aarch64, ""]
         - [macos-13, macosx, x86_64, "/usr/local"]
         - [macos-14, macosx, arm64, "/opt/homebrew"]
-        python: ["cp310", "cp311", "cp312"]
+        python: ["cp310", "cp311", "cp312", "cp313"]
     steps:
       - uses: actions/checkout@v4
 
