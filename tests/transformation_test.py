@@ -328,3 +328,15 @@ def test_multiple_reversions():
     with npt.assert_raises(pynbody.transformation.TransformationException):
         with rot:
             pass
+
+def test_apply_move_to_subsnap():
+    # due to indexedsimarrays not having a name, there was a bug that stopped this from working
+    f = pynbody.new(dm=50000)
+    f['pos'] = np.random.normal(size=(50000, 3))
+    f['vel'] = np.random.normal(size=(50000, 3))
+    f['mass'] = np.ones(50000)
+
+    subindex = np.arange(0,20000)
+
+    # the following would fail
+    tx = f[subindex].translate([1,0,0])
