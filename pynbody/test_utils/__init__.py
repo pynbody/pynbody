@@ -1,3 +1,5 @@
+"""Utilities for downloading and unpacking test data packages"""
+
 import os
 import pathlib
 import shutil

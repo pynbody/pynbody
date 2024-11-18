@@ -10,7 +10,7 @@
  v1 remains available at https://pynbody.github.io/pynbody/ .
 
 Welcome to the documentation for `pynbody
-<http://pynbody.github.io>`_ -- an analysis package for
+<http://pynbody.readthedocs.io>`_ -- an analysis package for
 astrophysical N-body and Smooth Particle Hydrodynamics
 simulations, supporting Python 3 with minor version support
 adhering roughly to the `SPEC0 <https://scientific-python.org/specs/spec-0000/>`_ policy.
@@ -19,7 +19,7 @@ Installation should be as simple as
 
 .. code-block:: bash
 
-   pip install pynbody
+   pip install --pre pynbody
 
 but if you run into trouble, try the :doc:`installation` guide.
 

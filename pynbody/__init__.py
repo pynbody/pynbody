@@ -1,13 +1,7 @@
 """
-pynbody
-=======
+N-body and hydro analysis tools for Python
 
-A light-weight, portable, format-transparent analysis framework
-for N-body and SPH astrophysical simulations.
-
-For more information, either build the latest documentation included
-in our git repository, or view the online version here:
-http://pynbody.github.io/pynbody/
+For more information, see https://pynbody.readthedocs.io/
 
 """
 

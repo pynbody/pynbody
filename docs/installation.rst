@@ -18,6 +18,13 @@ which provides a Linux compatibility layer. To use the latest release of
 `numpy <http://www.numpy.org>`_ and `scipy <http://www.scipy.org>`_. The standardized
 `SPEC0 <https://scientific-python.org/specs/spec-0000/>`_ policy describes the versions of numpy, scipy and Python we aim to support.
 
+To install the latest pre-release version of *pynbody*, use:
+
+.. code-block :: bash
+
+  $ pip install --pre pynbody
+
+
 To install the latest release version of *pynbody*, use:
 
 .. code-block :: bash
