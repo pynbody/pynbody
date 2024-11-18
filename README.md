@@ -39,7 +39,5 @@ When using pynbody, please acknowledge it by citing the [Astrophysics Source Cod
 
 ### Support and Contact
 
-If you have trouble with Pynbody or you have feature
-requests/suggestions you can [submit an issue](https://github.com/pynbody/pynbody/issues),
-and/or send us an email on the [Usergroup mailing
-list](https://groups.google.com/forum/?fromgroups#!forum/pynbody-users).
+If you have trouble with Pynbody or you have feature requests/suggestions you can [submit an issue](https://github.com/pynbody/pynbody/issues),
+and/or send us an email on the [Usergroup mailing list](https://groups.google.com/forum/?fromgroups#!forum/pynbody-users).
