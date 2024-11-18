@@ -59,7 +59,7 @@ def _combine(r, g, b, magnitude_range, brightest_mag=None, masked=False):
 	else:
 		brightest_mag = -brightest_mag
 
-	rgbim = np.concat([np.expand_dims(_bytscl(channel, brightest_mag - magnitude_range, brightest_mag),-1)
+	rgbim = np.stack([_bytscl(channel, brightest_mag - magnitude_range, brightest_mag)
 					   for channel in (r, g, b)], axis=-1)
 	return rgbim, -brightest_mag
 
@@ -437,7 +437,7 @@ def render_mollweide(sim,
 		mag_max, mag_min = mag_range
 		rgbim, mag_max = _combine(r, g, b, mag_min - mag_max, mag_max)
 
-	rgbim_projected = np.concat([np.expand_dims(_project_channel(x),-1) for x in rgbim.T], axis=-1)
+	rgbim_projected = np.stack([_project_channel(x) for x in rgbim.T], axis=-1)
 	rgbim_projected[rgbim_projected < 0] = 1.0
 
 	if not noplot:
