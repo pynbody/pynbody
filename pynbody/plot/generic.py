@@ -460,6 +460,39 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
 
     return plot_artist
 
+def _inv_fourier(p, nmin=1000, mmin=1, mmax=7, nphi=100):
+    """
+
+    Invert a profile with fourier coefficients to yield an overdensity
+    map.
+
+    **Inputs:**
+
+    *p* : a :func:`~pynbody.analysis.profile.Profile` object
+
+    **Optional Keywords:**
+
+    *nmin* (1000) : minimum number of particles required per bin
+
+    *mmin* (1)    : lowest multiplicity Fourier component
+
+    *mmax* (7)    : highest multiplicity Fourier component
+
+    *nphi* (100)  : number of azimuthal bins to use for the map
+
+    """
+
+    phi_hist = np.zeros((len(p['rbins']), nphi))
+    phi = np.linspace(-np.pi, np.pi, nphi)
+    rbins = p['rbins']
+
+    for i in range(len(rbins)):
+        if p['n'][i] > nmin:
+            for m in range(mmin, mmax):
+                phi_hist[i, :] = phi_hist[i,:] + p['fourier']['c'][m, i]*np.exp(1j*m*phi)
+
+    return phi, phi_hist
+
 
 def fourier_map(sim, nbins=100, nmin=1000, nphi=100, mmin=1, mmax=7, rmax=10,
                 levels=[.01, .05, .1, .2], return_array=False, **kwargs):
@@ -522,7 +555,7 @@ def fourier_map(sim, nbins=100, nmin=1000, nphi=100, mmin=1, mmax=7, rmax=10,
         return_array = kwargs.pop('ret')
 
     p = pynbody.analysis.profile.Profile(sim, max=rmax, nbins=nbins)
-    phi, phi_inv = util.inv_fourier(p, nmin, mmin, mmax, nphi)
+    phi, phi_inv = _inv_fourier(p, nmin, mmin, mmax, nphi)
 
     rr, pp = np.meshgrid(p['rbins'], phi)
 

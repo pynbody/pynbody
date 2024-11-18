@@ -286,8 +286,8 @@ def velocity_image(sim, qty='rho', vector_qty='vel', width="10 kpc", mode='quive
             Q = axes.quiver(X, Y, vx, vy, scale=vector_scale, color=vector_color,
                          edgecolor=vector_edgecolor)
         if key:
-            from . import quiverkey
-            qk = quiverkey.PynbodyQuiverKey(Q, key_x, key_y,
+            from . import util
+            qk = util.PynbodyQuiverKey(Q, key_x, key_y,
                                       key_unit.in_units(sim['vel'].units, **sim.conversion_context()),
                                             "$" + key_unit.latex() + "$",
                                       color=key_color, labelcolor=key_color,

@@ -229,7 +229,7 @@ def test_spherical_render(simple_test_file):
                          1.3647351, -1.1056445, 0.6303438, 0.70591617, 0.53802025, 0.04858056,
                         -0.46617195], rtol=0.01)
 
-@pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
+@pytest.mark.filterwarnings("ignore::UserWarning")
 def test_render_stars_spherical(snap):
     plt.clf()
     res = pynbody.plot.stars.render_mollweide(snap, return_image=True)

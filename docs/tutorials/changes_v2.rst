@@ -19,7 +19,8 @@ increment like this. We hope that the changes will make the codebase more sustai
 Key changes
 -----------
 
-- The documentation, including tutorials, has been completely overhauled and updated.
+- By far the biggest improvement is the documentation, including tutorials; these have been completely
+  overhauled and updated.
 - The :mod:`~pynbody.halo` subpackage has been completely re-implemented, for greater consistency across
   formats. For many simple uses, old code will continue to work. However, please read the change notice
   in :mod:`~pynbody.halo` for important changes. This especially affects certain AHF catalogues which used
@@ -32,4 +33,12 @@ Key changes
 - The :mod:`~pynbody.array` subpackage now publishes a number of functions that were previously hidden,
   specifically enabling the use of shared memory in complex analysis pipelines across multiple processors. For
   more information see :ref:`using_shared_arrays`.
-- INCOMPLETE - MORE TO COME HERE
+- The implementation of bridges, and particularly halo matching, has been improved. Methods
+  :meth:`~pynbody.bridge.Bridge.match_catalog` and :meth:`~pynbody.bridge.Bridge.fuzzy_match_catalog`
+  have been deprecated in favour of more robust alternatives
+  :meth:`~pynbody.bridge.Bridge.match_halos` and :meth:`~pynbody.bridge.Bridge.fuzzy_match_halos`.
+- There is improved support for various flavours of GadgetHDF files, including Swift, Arepo and TNG.
+- The :mod:`~pynbody.transformation` subpackage has been overhauled, with improved consistency e.g.
+  if one loads data after a transformation has been applied (it will now be correctly transformed).
+- The implementation of healpix rendering has been improved, by using our own healpix pixelization
+  implementation that enables faster, parallel rendering.
