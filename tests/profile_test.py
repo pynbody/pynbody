@@ -72,6 +72,7 @@ def test_potential_profile_fp32():
     p = pynbody.analysis.profile.Profile(f, nbins=50)
     p['pot']
 
+@pytest.mark.filterwarnings("ignore:RuntimeWarning")
 def test_angmom_profile():
     f = pynbody.new(100)
     coords = np.random.normal(size=(100,3))
