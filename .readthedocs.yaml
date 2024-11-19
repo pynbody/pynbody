@@ -6,4 +6,4 @@ build:
       python: "3.11"
     commands: 
       - mkdir --parents _readthedocs/html/
-      - rsync -av --exclude 'readthedocs' --exclude '.git' ./ _readthedocs/html/
+      - cp -r $(find . -maxdepth 1 -mindepth 1 | grep -v readthedocs) _readthedocs/html/
