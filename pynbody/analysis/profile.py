@@ -768,7 +768,7 @@ def j_phi(pro):
         subs = pro.sim[pro.binind[i]]
         jx = (subs['j'][:, 0] * subs['mass']).sum() / pro['mass'][i]
         jy = (subs['j'][:, 1] * subs['mass']).sum() / pro['mass'][i]
-        j_phi[i] = np.arctan(jy, jx)
+        j_phi[i] = np.arctan2(jy, jx)
 
     return j_phi
 
