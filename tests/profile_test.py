@@ -83,7 +83,7 @@ def test_angmom_profile():
     f['j'] = np.array(rand_j, dtype=np.float64)
     p = pynbody.analysis.profile.Profile(f, nbins=50)
     assert(np.nanmin(p['j_phi'])<np.pi/2)
-    assert(np.nanmin(p['j_phi'])>np.pi/2)
+    assert(np.nanmax(p['j_phi'])>np.pi/2)
 
 
 
