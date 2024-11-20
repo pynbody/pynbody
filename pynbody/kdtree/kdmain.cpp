@@ -18,6 +18,12 @@
 #include "kd.h"
 #include "smooth.h"
 
+// For Numpy < 2.0, if build isolation does not work 
+// To be tested!
+#if NPY_ABI_VERSION < 0x02000000
+  #define PyDataType_ELSIZE(descr) ((descr)->elsize)
+#endif
+
 /*==========================================================================*/
 /* Prototypes.                                                              */
 /*==========================================================================*/
