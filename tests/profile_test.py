@@ -72,6 +72,20 @@ def test_potential_profile_fp32():
     p = pynbody.analysis.profile.Profile(f, nbins=50)
     p['pot']
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in divide:RuntimeWarning")
+def test_angmom_profile():
+    f = pynbody.new(100)
+    coords = np.random.normal(size=(100,3))
+    f['pos'] = np.array(coords, dtype=np.float64)
+    f['mass'] = np.ones(100)
+    rand_j = np.random.normal(size=(100,3))
+    rand_j[:,1]*=0.001
+    f['j'] = np.array(rand_j, dtype=np.float64)
+    p = pynbody.analysis.profile.Profile(f, nbins=50)
+    assert(np.nanmin(p['j_phi'])<np.pi/2)
+    assert(np.nanmax(p['j_phi'])>np.pi/2)
+
+
 
 def test_unique_hash_generation():
     f1 = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
