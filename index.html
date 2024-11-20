@@ -5,18 +5,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pynbody Documentation &#8212; pynbody 1.0.0 documentation</title>
+    <title>Pynbody Documentation has moved</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Pynbody Installation" href="installation.html" />
 
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
@@ -26,18 +18,6 @@
 
 <link href="https://fonts.googleapis.com/css?family=Quicksand" rel="stylesheet">
 <link href="_static/customise.css" rel="stylesheet">
-<script type="text/javascript">
-
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-38063425-1']);
-  _gaq.push(['_trackPageview']);
-
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
-</script>
 
   </head><body>
   
@@ -50,82 +30,11 @@
           <div class="body" role="main">
             
   <div class="section" id="pynbody-documentation">
-<h1>Pynbody Documentation<a class="headerlink" href="#pynbody-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Welcome to the documentation for <a class="reference external" href="http://pynbody.github.io">pynbody</a> – an analysis package for
-astrophysical N-body and Smooth Particle Hydrodynamics
-simulations, supporting Python 3.5+. (Old versions are
-available, prior to 1.0, that support Python 2.5, 2.6 and 2.7).</p>
-<p>We recommend you get started by reading about
-<a class="reference internal" href="installation.html#pynbody-installation"><span class="std std-ref">Pynbody Installation</span></a> and trying the <a class="reference internal" href="tutorials/tutorials.html#tutorials"><span class="std std-ref">Pynbody Tutorials</span></a>. We are
-happy to provide further assistance via our
-<a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-users">user group email list</a>.</p>
-<div class="section" id="where-next">
-<h2>Where next?<a class="headerlink" href="#where-next" title="Permalink to this headline">¶</a></h2>
-<p>Consult the <a class="reference internal" href="installation.html"><span class="doc">Pynbody Installation</span></a> documentation for instructions on how
-to get going. Then you might like to download some <a class="reference external" href="https://github.com/pynbody/pynbody/releases">test data</a> and try out the
-<a class="reference internal" href="tutorials/snapshot_manipulation.html#snapshot-manipulation"><span class="std std-ref">first steps tutorial</span></a> which gets straight
-to some of pynbody’s analysis features. Or, if you prefer to learn
-a little more of how your data is organized, we also provide a <a class="reference internal" href="tutorials/data_access.html#data-access"><span class="std std-ref">data
-access walkthrough</span></a>.</p>
-<p>Our full documentation is organized into three sections:</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
-</ul>
-</div>
-<p>All of the information in the reference guide is also available
-through the interactive python help system. In ipython or Jupyter, this is as
-easy as putting a <cite>?</cite> at the end of a command:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">pynbody</span>
-
-<span class="gp">In [2]: </span>pynbody.load<span class="o">?</span>
-<span class="go">Signature: pynbody.load(filename, *args, **kwargs)</span>
-<span class="go">Docstring:</span>
-<span class="go">Loads a file using the appropriate class, returning a SimSnap</span>
-<span class="go">instance.</span>
-<span class="go">File:      ~/Science/pynbody/pynbody/snapshot/__init__.py</span>
-<span class="go">Type:      function</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="seeking-further-assistance">
-<span id="getting-help"></span><h2>Seeking Further Assistance<a class="headerlink" href="#seeking-further-assistance" title="Permalink to this headline">¶</a></h2>
-<p>If the tutorials and reference documentation don’t answer your question,
-any problem might be described in <a class="reference internal" href="pitfalls.html"><span class="doc">Common Pitfalls</span></a>.</p>
-<p>If you still find yourself stuck, don’t hesitate to post a message to the
-<a class="reference external" href="https://groups.google.com/forum/?fromgroups#!forum/pynbody-users">users group</a>.
-If you have a Google account you can join the groups
-easily, but if you don’t have one please click on the <cite>About</cite> button
-of the group you are interested in and contact the owner.</p>
-<p>We have found that most development discussion takes place within our
-<a class="reference external" href="https://github.com/pynbody/pynbody/issues">github issue tracker</a> – if you
-encounter a problem, feel free to create an issue there.
-We greatly value feedback from users, especially when things are not
-working correctly because this is the best way for us to correct
-bugs.  This includes any problems you encounter with documentation.</p>
-<p>Please note that we adhere to a  <a class="reference external" href="https://github.com/pynbody/pynbody/blob/master/CODE_OF_CONDUCT.md">community code of conduct</a>,
-which you should read and understand before posting to the users list or in a github issue.</p>
-<p>If you use the code regularly for your projects, please consider contributing
-your code back using a <a class="reference external" href="https://help.github.com/articles/using-pull-requests">pull request</a>.</p>
-</div>
-<div class="section" id="acknowledging-pynbody-in-scientific-publications">
-<span id="acknowledging-pynbody"></span><h2>Acknowledging Pynbody in Scientific Publications<a class="headerlink" href="#acknowledging-pynbody-in-scientific-publications" title="Permalink to this headline">¶</a></h2>
-<p>Pynbody development is an open-source, community effort. The only way
-to make it as robust as possible is to have a wide user-base and this
-is only possible by spreading the word. We ask that if you use pynbody
-in preparing a scientific publication, you cite it via its
-<a class="reference external" href="http://ascl.net/1305.002">Astrophysics Source Code Library</a> entry
-using the following BibTex:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@misc</span><span class="p">{</span><span class="n">pynbody</span><span class="p">,</span>
-  <span class="n">author</span> <span class="o">=</span> <span class="p">{{</span><span class="n">Pontzen</span><span class="p">},</span> <span class="n">A</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Ro</span><span class="p">{</span>\<span class="n">v</span> <span class="n">s</span><span class="p">}</span><span class="n">kar</span><span class="p">},</span> <span class="n">R</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Stinson</span><span class="p">},</span> <span class="n">G</span><span class="o">.~</span><span class="n">S</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Woods</span><span class="p">},</span>
-     <span class="n">R</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Reed</span><span class="p">},</span> <span class="n">D</span><span class="o">.~</span><span class="n">M</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Coles</span><span class="p">},</span> <span class="n">J</span><span class="o">.</span> <span class="ow">and</span> <span class="p">{</span><span class="n">Quinn</span><span class="p">},</span> <span class="n">T</span><span class="o">.~</span><span class="n">R</span><span class="o">.</span><span class="p">},</span>
-  <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;{pynbody: Astrophysics Simulation Analysis for Python}&quot;</span><span class="p">,</span>
-  <span class="n">note</span> <span class="o">=</span> <span class="p">{</span><span class="n">Astrophysics</span> <span class="n">Source</span> <span class="n">Code</span> <span class="n">Library</span><span class="p">,</span> <span class="n">ascl</span><span class="p">:</span><span class="mf">1305.002</span><span class="p">},</span>
-  <span class="n">year</span> <span class="o">=</span> <span class="mi">2013</span>
-<span class="p">}</span>
-</pre></div>
+<h1>Pynbody Documentation has moved<a class="headerlink" href="#pynbody-documentation" title="Permalink to this headline">¶</a></h1>
+<p>
+Pynbody documentation may now be found at <a href="https://pynbody.readthedocs.io/latest/">pynbody.readthedocs.io</a>. If you are still using v1.x, the documentation is archived at 
+<a href="https://pynbody.readthedocs.io/v1-docs/">pynbody.readthedocs.io/v1-docs</a>.
+  </p>
 </div>
 </div>
 </div>
@@ -151,31 +60,7 @@ using the following BibTex:</p>
 
 
 
-<h3>Navigation</h3>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/tutorials.html">Tutorials &amp; walkthroughs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
-</ul>
-
 <div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="#">Documentation overview</a><ul>
-      <li>Next: <a href="installation.html" title="next chapter">Pynbody Installation</a></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>$('#searchbox').show(0);</script>
 
 
 
@@ -189,15 +74,7 @@ using the following BibTex:</p>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2011-20, pynbody team.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
-      
-      |
-      <a href="_sources/index.rst.txt"
-          rel="nofollow">Page source</a>
+    
     </div>
 
     
