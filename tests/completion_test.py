@@ -1,6 +1,6 @@
 import IPython
-from packaging import version
 from IPython.core.completer import provisionalcompleter
+from packaging import version
 
 if version.parse(IPython.__version__) >= version.parse("7.0.0"):
     from IPython.core.interactiveshell import InteractiveShell
@@ -8,8 +8,9 @@ else:
     # For older versions, import accordingly
     from IPython.frontend.terminal.interactiveshell import InteractiveShell
 
-import pynbody
 import numpy as np
+
+import pynbody
 
 
 def test_ipython_key_completions():
