@@ -7,47 +7,30 @@ Pynbody reference documentation
 ===============================
 
 The reference documentation for pynbody is largely generated automatically
-from the source code. It is split into the following sections:
+from the source code. It is split into sections by subpackage, as follows.
 
-
-Core functionality
-^^^^^^^^^^^^^^^^^^
-.. autosummary::
-   :toctree: _autosummary
-   :recursive:
-
-   pynbody.array
-   pynbody.bridge
-   pynbody.configuration
-   pynbody.derived
-   pynbody.filt
-   pynbody.halo
-   pynbody.snapshot
-   pynbody.transformation
-   pynbody.units
-
-Scientific analysis
-^^^^^^^^^^^^^^^^^^^
 .. autosummary::
    :toctree: _autosummary
    :recursive:
 
    pynbody.analysis
-   pynbody.gravity
-   pynbody.plot
-
-Low-level detail
-^^^^^^^^^^^^^^^^
-.. autosummary::
-   :toctree: _autosummary
-   :recursive:
-
+   pynbody.array
+   pynbody.bridge
    pynbody.chunk
+   pynbody.configuration
    pynbody.dependencytracker
+   pynbody.derived
    pynbody.family
+   pynbody.filt
+   pynbody.gravity
+   pynbody.halo
    pynbody.kdtree
    pynbody.openmp
+   pynbody.plot
    pynbody.simdict
+   pynbody.snapshot
    pynbody.sph
    pynbody.test_utils
+   pynbody.transformation
+   pynbody.units
    pynbody.util

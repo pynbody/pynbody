@@ -18,8 +18,8 @@ def load(filename, *args, **kwargs) -> SimSnap:
     This routine is the main entry point for loading snapshots. It will try to load the file using the appropriate
     class, based on inspection by the candidate subclasses. If no class can load the file, an OSError is raised.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     filename : str
         The filename to load
 

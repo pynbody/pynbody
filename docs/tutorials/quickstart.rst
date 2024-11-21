@@ -317,6 +317,76 @@ Let's now plot the profiles:
  @savefig snapshot_manipulation_denpro.png width=5in
  pylab.legend()
 
+.. _metals_histogram_tutorial:
+
+Histograms, 2D histograms, and derived arrays
+---------------------------------------------
+
+Pynbody doesn't make specific provision for plotting 1d histograms since this is
+well-supported by ``matplotlib`` and ``numpy``. However, it is worth mentioning
+that there are often derived arrays that can be used to make calculating the right
+quantity easier.
+
+For example, for many file formats pynbody is able to calculate the metallicity
+relative to solar, simply by requesting the ``'feh'`` array.
+
+.. ipython::
+
+ @suppress
+ In [1]: pylab.clf()
+
+ @savefig snapshot_manipulation_feh.png width=5in
+ In [2]: pylab.hist(main_halo.s['feh'], bins=100, histtype='step', color='r', label='Stars', range=(-3.0, 0.2), density=True)
+    ...: pylab.hist(main_halo.g['feh'], bins=100, histtype='step', color='b', label='Gas', range=(-3.0, 0.2), density=True)
+    ...: pylab.xlabel("[Fe/H]")
+    ...: pylab.legend()
+
+Pynbody also provides a convenient :func:`~pynbody.plot.generic.hist2d` plotting routine, which can be used to
+make 2d histograms in a variety of ways.
+
+.. ipython::
+
+ @suppress
+ In [1]: pylab.clf()
+
+ @savefig snapshot_manipulation_ofefeh.png width=5in
+ In [2]: pynbody.plot.hist2d(main_halo.s['feh'], main_halo.s['ofe'], logscale=True, cmap='Blues', nbins=128,
+    ...:                     x_range=(-3, 0.2), y_range=(-1, 1))
+    ...: pylab.xlabel("[Fe/H]")
+    ...: pylab.ylabel("[O/Fe]")
+
+
+Note that the arrays ``'feh'`` and ``'ofe'`` are not stored in the snapshot file, but are derived on demand.
+To check whether an array is derived you can use the :meth:`~pynbody.snapshot.simsnap.SimSnap.is_derived_array` method:
+
+.. ipython::
+
+     In [1]: main_halo.s.is_derived_array('feh')
+
+To find out how an array was derived, you can get the deriving function
+using :meth:`~pynbody.snapshot.simsnap.SimSnap.find_deriving_function`:
+
+.. ipython::
+
+     In [1]: help(main_halo.s.find_deriving_function('feh'))
+
+Here we used python's built-in ``help`` function to display information about the deriving function.
+You can see here that the derivation is made specifically for tipsy files.
+
+.. seealso::
+
+    For more information about derived arrays, see the :ref:`derived` tutorial.
+
+There is also a special function, :func:`~pynbody.plot.gas.rho_T`, for making histograms of density-temperature
+relations, which handles supported multiphase ISM models:
+
+.. ipython::
+
+ @suppress
+ In [1]: pylab.clf()
+
+ @savefig snapshot_manipulation_rho_T.png width=5in
+ In [2]: pynbody.plot.gas.rho_T(main_halo.g)
 
 Where next?
 -----------

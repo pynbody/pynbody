@@ -8,18 +8,9 @@ Pynbody Tutorials
 =================
 
 Here you will find tutorials that illustrate the use of pynbody. The
-:ref:`walkthroughs` demonstrate pynbody functionality through an
-interactive session in the ipython shell that you can follow along
-using either one of the outputs from the bundled test-data or one of
-your own simulations. To complement the walkthroughs, we also provide
-a quick-start `Jupyter notebook
-<https://github.com/pynbody/pynbody/blob/master/examples/pynbody_demo.ipynb>`_. The
-:ref:`cookbook` tutorials are more goal-oriented: they provide a
-script that can be used with only minor modifications to immediately
-produce a result (i.e. make an image). They also include, however, a
-somewhat more involved discussion of more advanced options and common
-pitfalls. Finally, the :ref:`advanced_topics` section is meant to
-provide a more in-depth look at the inner-workings of the code.
+:ref:`walkthroughs` demonstrate pynbody's most important functionality. Then there
+are :ref:`deeper-dives` with some more detail of how pynbody's core
+library works. Finally, some :ref:`advanced_topics` are covered.
 
 .. _obtaining_testdata:
 
@@ -48,22 +39,22 @@ Walkthroughs
    :maxdepth: 1
 
    Quick-start <quickstart>
-   Reading snapshots <data_access>
-   Sub-views & filters <filters>
-   Halos & groups <halos>
-   Linking snapshots <bridge>
+   Images <images>
+   Profiles <profile>
 
-.. _cookbook:
+.. _deeper-dives:
 
-Cookbook/Recipes
-----------------
+Deeper dives
+------------
 
 .. toctree::
    :maxdepth: 1
 
-   Profiles <profile>
-   Images <images>
+   Reading snapshots <data_access>
+   Sub-views & filters <filters>
+   Halos & groups <halos>
    Halo mass function <hmf>
+   Linking snapshots <bridge>
 
 
 .. _advanced_topics:
@@ -78,3 +69,4 @@ Advanced topics
    Configuration <configuration>
    Parallelism <parallelism>
    Performance <performance>
+   Changes in version 2 <changes_v2.rst>

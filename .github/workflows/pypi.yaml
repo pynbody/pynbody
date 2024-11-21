@@ -20,11 +20,11 @@ jobs:
       matrix:
         # Following numpy's setup
         buildplat:
-        - [ubuntu-20.04, manylinux, x86_64, ""]
-        - [ubuntu-22.04-arm64, manylinux, aarch64, ""]
-        - [macos-13, macosx, x86_64, "/usr/local"]
-        - [macos-14, macosx, arm64, "/opt/homebrew"]
-        python: ["cp310", "cp311", "cp312"]
+        - [ubuntu-20.04, manylinux, x86_64, "", ""]
+        - [ubuntu-22.04-arm64, manylinux, aarch64, "", ""]
+        - [macos-13, macosx, x86_64, "/usr/local", "13.0"]
+        - [macos-14, macosx, arm64, "/opt/homebrew", "14.0"]
+        python: ["cp310", "cp311", "cp312", "cp313"]
     steps:
       - uses: actions/checkout@v4
 
@@ -64,11 +64,13 @@ jobs:
       #     fi
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.17.0
+        uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
           CIBW_ARCHS_LINUX: ${{ matrix.buildplat[2] }}
+          CIBW_ENVIRONMENT: >-
+            MACOSX_DEPLOYMENT_TARGET=${{ matrix.buildplat[4] }}
 
       - uses: actions/upload-artifact@v4
         with:

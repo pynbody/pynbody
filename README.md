@@ -4,13 +4,14 @@ pynbody
 
 [Pynbody](https://github.com/pynbody/pynbody) is an analysis framework for
 N-body and hydrodynamic astrophysical simulations supporting PKDGRAV/Gasoline,
-Gadget, Gadget4/Arepo, N-Chilada and RAMSES AMR outputs. It supports Python 3
-only (versions prior to 1.0 are still available on PyPI for Python 2).
-Minor version support adheres roughly to [SPEC0](https://scientific-python.org/specs/spec-0000/).
+Gadget, Gadget4/Arepo, N-Chilada and RAMSES AMR outputs. 
+Python version support adheres roughly to [SPEC0](https://scientific-python.org/specs/spec-0000/).
 
-Written in Python, the core tools are accompanied by a library of
-publication-level analysis routines. For a quick tour of some of
-the features, have a look at this [IPython notebook](http://nbviewer.ipython.org/github/pynbody/pynbody/blob/master/examples/pynbody_demo.ipynb).
+### Documentation
+
+The documentation is at [readthedocs](https://pynbody.readthedocs.io). To get a first sense of what pynbody
+can do, try the [quick-start tutorial](https://pynbody.readthedocs.io/latest/tutorials/quickstart.html) or
+[images tutorial](https://pynbody.readthedocs.io/latest/tutorials/images.html).
 
 
 ### Getting started
@@ -18,19 +19,22 @@ the features, have a look at this [IPython notebook](http://nbviewer.ipython.org
 If python and the standard pip package manager is installed and properly configured, you can simply do:
 
 ```
-$ pip install pynbody
+$ pip install --pre pynbody
 ```
 
+At the moment, we encourage new users to use pynbody version 2 release candidate, which is why the `--pre`
+flag is applied. If you need strict backwards compatibility, omit `--pre`. Version 2 will soon become
+the default (likely by the end of 2024).
+
 If this fails, you may need some more detailed [installation
-instructions](http://pynbody.github.io/pynbody/installation.html). Once
-you have the package installed, try the introductory
-[tutorials](http://pynbody.github.io/pynbody/tutorials/tutorials.html).
-The full documentation can be found
-[here](http://pynbody.github.io/pynbody/).
+instructions](https://pynbody.readthedocs.io/latest/installation.html). 
 
 ### Contributing
 
-Help us make *pynbody* better! As you develop analysis for your science with pynbody, consider making your code available for everyone else to use. You can do this by creating a [tutorial](http://pynbody.github.io/pynbody/tutorials/tutorials.html) or [cookbook](http://pynbody.github.io/pynbody/tutorials/tutorials.html#cookbook-recipes) or by adding your code to the relevant sub-module and submitting a pull request (make a fork first -- see https://help.github.com/articles/using-pull-requests).
+Help us make *pynbody* better! As you develop analysis for your science with pynbody, consider making your code available 
+for everyone else to use. You can do this by creating a [tutorial](https://pynbody.readthedocs.io/latest/tutorials/tutorials.html) 
+or by adding your code to the relevant sub-module and submitting a pull request (make a fork first — see 
+https://help.github.com/articles/using-pull-requests).
 
 
 ### Acknowledging the code
@@ -39,7 +43,5 @@ When using pynbody, please acknowledge it by citing the [Astrophysics Source Cod
 
 ### Support and Contact
 
-If you have trouble with Pynbody or you have feature
-requests/suggestions you can [submit an issue](https://github.com/pynbody/pynbody/issues),
-and/or send us an email on the [Usergroup mailing
-list](https://groups.google.com/forum/?fromgroups#!forum/pynbody-users).
+If you have trouble with Pynbody or you have feature requests/suggestions you can [submit an issue](https://github.com/pynbody/pynbody/issues),
+and/or send us an email on the [Usergroup mailing list](https://groups.google.com/forum/?fromgroups#!forum/pynbody-users).

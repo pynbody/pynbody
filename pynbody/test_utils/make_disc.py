@@ -27,4 +27,8 @@ def make_disc(size=8**5):
     s['y'] *= 20
     s['z'] *= 3
 
+    s['vel'] = 0.0
+    s['vx'] = -s['y']
+    s['vy'] = s['x']
+
     return s

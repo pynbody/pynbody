@@ -165,7 +165,7 @@ class Profile:
                 kwargs['rmin'] = kwargs.pop('min')
                 warnings.warn("Use of min as a keyword argument is deprecated. Use rmin instead.", DeprecationWarning)
 
-            if 'rmax' in kwargs:
+            if 'rmax' in kwargs and kwargs['rmax'] is not None:
                 if isinstance(kwargs['rmax'], str):
                     self.max = units.Unit(kwargs['rmax']).ratio(x.units,
                                                                **sim.conversion_context())
@@ -180,7 +180,7 @@ class Profile:
             else:
                 self.nbins = 100
 
-            if 'rmin' in kwargs:
+            if 'rmin' in kwargs and kwargs['rmin'] is not None:
                 if isinstance(kwargs['rmin'], str):
                     self.min = units.Unit(kwargs['rmin']).ratio(x.units,
                                                                **sim.conversion_context())
@@ -768,7 +768,7 @@ def j_phi(pro):
         subs = pro.sim[pro.binind[i]]
         jx = (subs['j'][:, 0] * subs['mass']).sum() / pro['mass'][i]
         jy = (subs['j'][:, 1] * subs['mass']).sum() / pro['mass'][i]
-        j_phi[i] = np.arctan(jy, jx)
+        j_phi[i] = np.arctan2(jy, jx)
 
     return j_phi
 

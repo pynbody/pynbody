@@ -78,7 +78,7 @@ def _get_basic_config_from_parser(config_parser):
     config['disk-fit-function'] = config_parser.get('general', 'disk-fit-function')
 
     config['image-default-resolution'] = int(config_parser.get('general', 'image-default-resolution'))
-
+    config['image-default-nside'] = int(config_parser.get('general', 'image-default-nside'))
     return config
 
 def _setup_logger(config):

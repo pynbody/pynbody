@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -33,6 +35,8 @@ def make_fake_bar(npart=100000, max=1, min=-1, barlength=.8, barwidth=0.05, phi=
     s['mass'].units = 'Msol'
     s['vel'] = 1.0
     s['vel'].units = 'km s^-1'
+    s['eps'] = (max-min)/np.sqrt(npart)
+    s['eps'].units = 'kpc'
     s.rotate_z(phi)
     return s
 
@@ -68,6 +72,20 @@ def test_potential_profile_fp32():
     p = pynbody.analysis.profile.Profile(f, nbins=50)
     p['pot']
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in divide:RuntimeWarning")
+def test_angmom_profile():
+    f = pynbody.new(100)
+    coords = np.random.normal(size=(100,3))
+    f['pos'] = np.array(coords, dtype=np.float64)
+    f['mass'] = np.ones(100)
+    rand_j = np.random.normal(size=(100,3))
+    rand_j[:,1]*=0.001
+    f['j'] = np.array(rand_j, dtype=np.float64)
+    p = pynbody.analysis.profile.Profile(f, nbins=50)
+    assert(np.nanmin(p['j_phi'])<np.pi/2)
+    assert(np.nanmax(p['j_phi'])>np.pi/2)
+
+
 
 def test_unique_hash_generation():
     f1 = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
@@ -97,3 +115,12 @@ def test_write_profile():
     npt.assert_allclose(read_profile.nbins, p.nbins)
     npt.assert_allclose(read_profile['rbins'], p['rbins'])
     npt.assert_allclose(read_profile['density'], p['density'])
+
+
+def test_plot_density_profile():
+    # very minimal test to check if the plot function runs without errors
+    f = make_fake_bar()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pynbody.plot.profile.density_profile(f)
+        pynbody.plot.profile.rotation_curve(f, center=False)
