@@ -233,6 +233,15 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     # THE BASICS: GETTING AND SETTING
     ############################################
 
+    def _ipython_key_completions_(self):
+        """Adds ipython autocomplete"""
+        if not hasattr(self, "_auto_keys") or self._auto_keys is None:
+            """Seems smoother if precalculated.
+            Could extend, modify for unifamily arrayrs ect..."""
+            self._auto_keys = self.all_keys()
+        return self._auto_keys
+
+
     def __getitem__(self, i) -> array.SimArray | subsnap.SubSnapBase :
         """Return either a specific array or a subview of this simulation. See
         the class documentation (:class:`SimSnap`) for more information."""
