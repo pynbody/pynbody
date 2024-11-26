@@ -334,14 +334,21 @@ class AHFCatalogue(HaloCatalogue):
         return ids
 
     def _get_all_particle_indices(self):
+        fpos = self._get_file_positions()
         boundaries = np.cumsum(np.concatenate(([0], self._halo_properties['npart'])))
         boundaries = np.vstack((boundaries[:-1], boundaries[1:])).T
         particle_ids = np.empty(boundaries[-1,1], dtype=int)
         with util.open_(self._ahfBasename + 'particles') as f:
-            f.readline()
-            for nparts, (start, end) in zip(self._halo_properties['npart'], boundaries):
-                f.readline()
+            for i in range(len(self._halo_properties['npart'])):
+                nparts = self._halo_properties['npart'][i]
+                f.seek(fpos[i])
                 particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=nparts)
+            #for nparts, (start, end) in zip(self._halo_properties['npart'], boundaries):
+            #    new_halo_start = f.readline().split().strip()
+            #    if new_halo_start[0] != nparts: #this means we hit another header from a concatenated MPI file
+            #        new_halo_start = f.readline().split().strip()
+            #    assert new_halo_start[0] == nparts
+            #    particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=nparts)
 
 
         return HaloParticleIndices(particle_ids=particle_ids, boundaries=boundaries)
