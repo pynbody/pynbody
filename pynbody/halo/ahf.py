@@ -342,6 +342,8 @@ class AHFCatalogue(HaloCatalogue):
             for i in range(len(self._halo_properties['npart'])):
                 nparts = self._halo_properties['npart'][i]
                 f.seek(fpos[i])
+                start = boundaries[i,0]
+                end = boundaries[i,1]
                 particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=nparts)
             #for nparts, (start, end) in zip(self._halo_properties['npart'], boundaries):
             #    new_halo_start = f.readline().split().strip()
