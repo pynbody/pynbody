@@ -236,7 +236,7 @@ class AHFCatalogue(HaloCatalogue):
                 hnum = 0
                 self._fpos = np.empty(len(self.number_mapper), dtype=int)
                 with util.open_(self._ahfBasename + 'particles') as f:
-                    while hnum<h._num_halos:
+                    while hnum<self._num_halos:
                         nhalo = int(f.readline().split()) #the first line, or one after a block is another number of halos (MPI AHF)
                         assert len(nhalo)==1
                         assert int(nhalo[0])+hnum<=self._num_halos
