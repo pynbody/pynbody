@@ -237,16 +237,17 @@ class AHFCatalogue(HaloCatalogue):
                 self._fpos = np.empty(len(self.number_mapper), dtype=int)
                 with util.open_(self._ahfBasename + 'particles') as f:
                     while hnum<self._num_halos:
-                        nhalo = int(f.readline().split()) #the first line, or one after a block is another number of halos (MPI AHF)
+                        nhalo = f.readline().split() #the first line, or one after a block is another number of halos (MPI AHF)
                         assert len(nhalo)==1
-                        assert int(nhalo[0])+hnum<=self._num_halos
+                        nhalo = int(nhalo[0])
+                        assert nhalo+hnum<=self._num_halos
                         for hnum_part in range(nhalo): #loop through halos in the current part
                             hnum+=1
                             assert hnum<=self._num_halos
                             firstline  = f.readline().split() #read new halo information
                             npart = int(firstline[0].strip())
                             assert npart == self._halo_properties['npart'][hnum-1]
-                            self._fpos[hnum] = f.tell()
+                            self._fpos[hnum-1] = f.tell()
                             for i in range(npart):
                                 f.readline()
                 if self._try_writing_fpos:
