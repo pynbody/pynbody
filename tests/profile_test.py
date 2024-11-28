@@ -48,6 +48,20 @@ def test_fourier_profile():
     assert(np.all(p['fourier']['amp'][2,4:20] > 0.1))
     assert(np.allclose(np.abs(p['fourier']['phi'][2,4:20]/2), np.pi/4.0, rtol=0.05))
 
+def test_create_particle_array():
+    np.random.seed(1337)
+    Npart = 10000
+    f = pynbody.new(Npart)
+    f['pos'] = np.random.normal(size=(Npart,3))
+    f['mass'] = np.ones(Npart)/Npart
+    p = pynbody.analysis.profile.Profile(f, nbins=50, ndim=3)
+
+    p.create_particle_array('density', 'pt_density')
+
+    npt.assert_allclose(f['pt_density'], np.exp(-f['r']**2/2)/np.sqrt(2*np.pi)**3, atol=1e-2, rtol=0)
+
+
+
 
 def test_potential_profile_fp64():
     f = pynbody.new(100)

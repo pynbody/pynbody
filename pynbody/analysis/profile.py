@@ -388,6 +388,64 @@ class Profile:
         """Returns the family of particles used"""
         return self.sim.families()
 
+    def create_particle_array(self, profile_name, particle_name=None, log_x_interpolation = None,
+                              log_y_interpolation = None):
+        """Interpolate the profile back onto the particles
+
+        For example, calling ``create_particle_array('density')`` will create a new array in the simulation
+        called `'density'` which is the density of each particle according to the profile.
+
+        Parameters
+        ----------
+        profile_name : str
+            The name of the profile to interpolate
+
+        particle_name : str, optional
+            The name of the new array to create. If not specified, it will be the same as the profile_name.
+
+        log_x_interpolation : bool, optional
+            If True, interpolate in log space for the x-axis; if False, don't. If None, perform log interpolation
+            if all bin centres are positive.
+
+        log_y_interpolation : bool, optional
+            If True, interpolate in log space for the y-axis; if False, don't. If None, perform log interpolation
+            if all profile values are positive.
+
+
+        """
+        if particle_name is None:
+            particle_name = profile_name
+
+        out_sim = self.sim
+
+        particle_x = self._x
+        binned_x = self['rbins']
+        binned_y = self[profile_name]
+
+        if log_x_interpolation is None:
+            log_x_interpolation = np.all(binned_x > 0)
+
+        if log_y_interpolation is None:
+            log_y_interpolation = np.all(binned_y > 0)
+
+
+        if log_x_interpolation:
+            particle_x = np.log(particle_x)
+            binned_x = np.log(binned_x)
+
+        if log_y_interpolation:
+            binned_y = np.log(binned_y)
+
+        rep = np.interp(particle_x, binned_x, binned_y)
+
+        if log_y_interpolation:
+            out_sim[particle_name] = np.exp(rep)
+        else:
+            out_sim[particle_name] = rep
+
+        out_sim[particle_name].units = self[profile_name].units
+
+
     def _generate_hash_filename_from_particles(self):
         """Create a filename for the saved profile from a hash using the binning data"""
 
