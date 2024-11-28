@@ -200,10 +200,11 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         return self._num_particles
 
     def __repr__(self):
+        class_name = self.__class__.__name__
         if self._filename != "":
-            return "<SimSnap \"" + str(self._filename) + "\" len=" + str(len(self)) + ">"
+            return f'<{class_name} "{self._filename}" len={len(self)}>'
         else:
-            return "<SimSnap len=" + str(len(self)) + ">"
+            return f"<{class_name} len={len(self)}>"
 
     def families(self) -> list[family.Family]:
         """Return the particle families which have representitives in this SimSnap.

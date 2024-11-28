@@ -220,3 +220,9 @@ def test_inconsistent_dtype_loading(snap_arepo):
         assert snap_arepo.star['rho'].dtype == np.dtype('float32')
 
     assert snap_arepo['rho'].dtype == np.dtype('float32')
+
+def test_eps_array(snap_arepo, snap):
+    assert np.allclose(snap['eps'], 0.002)
+    assert np.allclose(snap_arepo['eps'][[0,-1000,-1]],[0.0025, 0.0005, 0.04])
+    assert snap['eps'].units == '3.085678e+24 cm a h^-1'
+    assert snap_arepo['eps'].units == '3.085678e+24 cm a h^-1'
