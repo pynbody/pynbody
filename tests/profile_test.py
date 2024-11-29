@@ -60,6 +60,24 @@ def test_create_particle_array():
 
     npt.assert_allclose(f['pt_density'], np.exp(-f['r']**2/2)/np.sqrt(2*np.pi)**3, atol=1e-2, rtol=0)
 
+@pytest.mark.parametrize("perform_align", [True, False])
+@pytest.mark.parametrize("profile_quantity", ['v_circ', 'pot'])
+def test_plane_warnings(perform_align, profile_quantity):
+    bar = make_fake_bar(phi=45)
+
+    if perform_align:
+        pynbody.analysis.angmom.faceon(bar)
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        p = pynbody.analysis.profile.Profile(bar, nbins=50)
+        p[profile_quantity] # noqa - just want to access it
+
+    if perform_align:
+        assert len(w) == 0
+    else:
+        assert len(w) == 1
+        assert "this routine assumes the disk is in the x-y plane" in str(w[0])
 
 
 

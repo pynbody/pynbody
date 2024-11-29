@@ -227,6 +227,8 @@ class Transformation(Transformable, abc.ABC):
 
             self.sim = f.sim
             self._previous_transformation = f
+
+            self._description = str(self._previous_transformation) + ", " + self._description
         else:
             raise TypeError("Transformation must either act on another Transformation or on a SimSnap")
 
@@ -244,18 +246,24 @@ class Transformation(Transformable, abc.ABC):
         return "<Transformation " + str(self) + ">"
 
     def __str__(self):
-        if self._previous_transformation is not None:
-            s = str(self._previous_transformation) + ", "
-        else:
-            s = ""
-
-        return s + self._describe()
+        return self._describe()
 
     def _describe(self):
         if self._description:
             return self._description
         else:
             return self.__class__.__name__
+
+    def set_description(self, description: str):
+        """Set a description for this transformation, including any chained transformations.
+
+        Parameters
+        ----------
+        description : str
+            The description to set
+        """
+        self._description = description
+        return self
 
     def apply_to(self, f: snapshot.SimSnap) -> snapshot.SimSnap:
         """Apply this transformation to a specified simulation.

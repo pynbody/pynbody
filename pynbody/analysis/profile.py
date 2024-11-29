@@ -663,8 +663,8 @@ def v_circ(pro, grav_sim=None):
 
     grav_sim = grav_sim or pro.sim
 
-    logger.warning(
-        "Profile v_circ -- this routine assumes the disk is in the x-y plane")
+    if str(grav_sim.current_transformation()) != 'faceon':
+        warnings.warn("Profile v_circ -- this routine assumes the disk is in the x-y plane")
 
     # If this is a cosmological run, go up to the halo level
     # if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_number") :
@@ -693,13 +693,13 @@ def pot(pro):
     """Calculates the potential in the z=0 plane"""
     from .. import gravity
 
-    logger.warning(
-        "Profile pot -- this routine assumes the disk is in the x-y plane")
-
     grav_sim = pro.sim
     # Go up to the halo level
     while hasattr(grav_sim, 'base') and "halo_number" in grav_sim.base.properties:
         grav_sim = grav_sim.base
+
+    if str(grav_sim.current_transformation()) != 'faceon':
+        warnings.warn("Profile pot -- this routine assumes the disk is in the x-y plane")
 
     start = process_time()
     pot = gravity.midplane_potential(
