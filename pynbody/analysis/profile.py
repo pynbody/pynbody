@@ -74,7 +74,10 @@ class Profile:
     _profile_registry = {}
 
     def _calculate_x(self, sim):
-        return ((sim['pos'][:, 0:self.ndim] ** 2).sum(axis=1)) ** (1, 2)
+        if self._x_calculator is not None:
+            return self._x_calculator(sim)
+        else:
+            return ((sim['pos'][:, 0:self.ndim] ** 2).sum(axis=1)) ** (1, 2)
 
     def __init__(self, sim, load_from_file=False, ndim=2, type='lin', calc_x=None, weight_by='mass', **kwargs):
         """Initialise a profile, determining the binning quantity and bin size.
@@ -122,13 +125,14 @@ class Profile:
         """
 
         generate_new = True
-        if calc_x is None:
-            calc_x = self._calculate_x
+
+        self._x_calculator = calc_x
+
         self.sim = sim
         self.type = type
         self.ndim = ndim
         self._weight_by = weight_by
-        self._x = calc_x(sim)
+        self._x = self._calculate_x(sim)
         x = self._x
 
         if load_from_file:
@@ -1009,7 +1013,7 @@ class QuantileProfile(Profile):
             subs = self.sim[self.binind[i]]
             with self.sim.immediate_mode:
                 name_array = subs[name].view(np.ndarray)
-                sorted_array = sorted(name_array)
+                sorted_array = np.sort(name_array)
                 topind = len(name_array) - 1
                 if self.qweights is not None:
                     sorted_weights = self.qweights[np.argsort(name_array)]

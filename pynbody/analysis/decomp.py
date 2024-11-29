@@ -12,12 +12,13 @@ from . import angmom, profile
 
 logger = logging.getLogger('pynbody.analysis.decomp')
 
-def estimate_jcirc_from_energy(h, particles_per_bin=500, quantile=0.99):
+def estimate_jcirc_from_energy(h, particles_per_bin=1000, quantile=0.99):
     """Estimate the circular angular momentum as a function of energy.
 
     This routine calculates the circular angular momentum as a function of energy
     for the stars in the simulation, using a profile with a fixed number of particles
-    per bin.
+    per bin. It then estimates a circular angular momentum for each individual particle
+    by interpolating the profile.
 
     Arguments
     ---------
@@ -29,18 +30,50 @@ def estimate_jcirc_from_energy(h, particles_per_bin=500, quantile=0.99):
         The circular angular momentum will be estimated as the specified quantile of the scalar angular momentum
 
     particles_per_bin : int
-        The approximate number of particles per bin in the profile. Default is 500.
+        The approximate number of particles per bin in the profile. Default is 1000.
 
     """
     nbins = len(h) // particles_per_bin
 
     pro_d = profile.QuantileProfile(h, q=(quantile,), nbins=nbins, type='equaln', calc_x = lambda sim : sim['te'])
+    pro_d.create_particle_array("j2", particle_name='j_circ2', target_simulation=h)
 
-    pro_d.create_particle_array("j2", particle_name='jcirc2', target_simulation=h)
-    h['jcirc'] = np.sqrt(h['jcirc2'])
+    h['j_circ'] = np.sqrt(h['j_circ2'])
+    del h.ancestor['j_circ2']
 
     return pro_d
 
+def estimate_jcirc_from_rotation_curve(h, particles_per_bin=1000):
+    """Estimate the circular angular momentum as a function of radius in the disk (x-y) plane.
+
+    This routine calculates the circular velocity as a function of radius for the disk, using a profile with a fixed
+    number of particles per radial bin. It then estimates a circular angular momentum for each individual particle by
+    interpolating the profile.
+
+    .. warning::
+
+        This routine is only valid for simulations where all the stars are anyway in quite a narrow disc. Otherwise
+        the interpolation back onto the individual particles carries limited meaning.
+
+        For more general cases, use :func:`estimate_jcirc_from_energy` instead.
+
+    Arguments
+    ---------
+
+    h : SimSnap
+        The simulation snapshot to analyze
+
+    particles_per_bin : int
+        The approximate number of particles per bin in the profile. Default is 1000.
+
+    """
+    d = h[filt.Disc('1 Mpc', h['eps'].min() * 3)]
+
+    nbins = len(d) // particles_per_bin
+
+    pro_d = profile.Profile(d, nbins=nbins, type='equaln')
+
+    pro_d.create_particle_array("j_circ", target_simulation=h)
 
 
 def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_from_r=False,
@@ -83,8 +116,9 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
         The energy boundary between bulge and spheroid. If None, this is taken to be the median energy of the stars.
 
     j_circ_from_r : bool
-        If True, the maximum angular momentum is determined as a function of radius, rather than as a function of
-        orbital energy. Default False (determine as function of energy).
+        If True, the maximum angular momentum is determined as a function of disc radius, rather than as a function of
+        energy. Default False (determine as function of energy). This option is only valid for simulations where
+        all the stars are anyway in quite a narrow disc.
 
     angmom_size : str
         The size of the disk to use for calculating the angular momentum vector. Default is "3 kpc".
@@ -106,66 +140,11 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
 
     with tx:
 
-        # Find KE, PE and TE
-        ke = h['ke']
-        pe = h['phi']
-
-        h['phi'].convert_units(ke.units)  # put PE and TE into same unit system
-
-        te = ke + pe
-        h['te'] = te
-        te_star = h.star['te']
-
-        te_max = te_star.max()
-
-        # Add an arbitrary offset to the PE to reflect the idea that
-        # the group is 'fully bound'.
-        te -= te_max
-        logger.info("te_max = %.2e" % te_max)
-
-        h['te'] -= te_max
-
-        logger.info("Making disk rotation curve...")
-
-        # Now make a rotation curve for the disk. We'll take everything
-        # inside a vertical height of eps*3
-
-        d = h[filt.Disc('1 Mpc', h['eps'].min() * 3)]
-
-        nbins = len(d) // particles_per_bin
-
-        pro_d = profile.Profile(d, nbins=nbins, type='equaln')
-
-        pro_phi = pro_d['phi']
-        pro_phi -= te_max
-
-        # (will automatically be reflected in E_circ etc)
-        # calculating v_circ for j_circ and E_circ is slow
-
         if j_circ_from_r:
-            pro_d.create_particle_array("j_circ", target_simulation=h)
-            pro_d.create_particle_array("E_circ", target_simulation=h)
+            estimate_jcirc_from_rotation_curve(h, particles_per_bin=particles_per_bin)
         else:
+            estimate_jcirc_from_energy(h, particles_per_bin=particles_per_bin)
 
-            if log_interp:
-                j_from_E = interp.interp1d(
-                    np.log10(-pro_d['E_circ'].in_units(ke.units))[::-1], np.log10(pro_d['j_circ'])[::-1], bounds_error=False)
-                h['j_circ'] = 10 ** j_from_E(np.log10(-h['te']))
-            else:
-                #            j_from_E  = interp.interp1d(-pro_d['E_circ'][::-1], (pro_d['j_circ'])[::-1], bounds_error=False)
-                j_from_E = interp.interp1d(
-                    pro_d['E_circ'].in_units(ke.units), pro_d['j_circ'], bounds_error=False)
-                h['j_circ'] = j_from_E(h['te'])
-
-            # The next line forces everything close-to-unbound into the
-            # spheroid, as per CB's original script ('get rid of weird
-            # outputs', it says).
-            h['j_circ'][np.where(h['te'] > pro_d['E_circ'].max())] = np.inf
-
-            # There are only a handful of particles falling into the following
-            # category:
-            h['j_circ'][np.where(h['te'] < pro_d['E_circ'].min())] = pro_d[
-                'j_circ'][0]
 
         h['jz_by_jzcirc'] = h['j'][:, 2] / h['j_circ']
         h_star = h.star
@@ -187,7 +166,7 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
 
         logger.info("Finding spheroid/disk angular momentum boundary...")
 
-        j_crit = util.bisect(0., 5.0, lambda c: np.mean(V[np.where(JzJcirc < c)]))
+        j_crit = util.bisect(-2.0, 2.0, lambda c: np.mean(V[np.where(JzJcirc < c)]))
 
         logger.info("j_crit = %.2e" % j_crit)
 
@@ -215,6 +194,3 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
         h_star['decomp', bulge] = 3
         h_star['decomp', thick] = 4
         h_star['decomp', pbulge] = 5
-
-    # Return profile object for informational purposes
-    return pro_d

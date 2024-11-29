@@ -874,6 +874,19 @@ def _consistent_units(*arrays, catch=None):
     if len(array_units)==1:
         return array_units[0]
     else:
+        sim = None
+        allow_context = True
+        for a in arrays:
+            if getattr(a, 'sim', None) is not None:
+                if sim is None:
+                    sim = a.sim
+                elif sim is not a.sim:
+                    allow_context = False # don't allow context-based conversions if we have multiple sims (ambiguous)
+
+        if allow_context and sim is not None :
+            conversion_context = sim.conversion_context()
+        else:
+            conversion_context = {}
         output_unit = None
         for i, (unit, numpy_array) in enumerate(zip(array_units, numpy_arrays)):
             if unit is None or isinstance(unit, units.NoUnit):
@@ -883,7 +896,7 @@ def _consistent_units(*arrays, catch=None):
                 continue
             else:
                 if unit != output_unit:
-                    conversion_ratio = unit.ratio(output_unit)
+                    conversion_ratio = unit.ratio(output_unit, **conversion_context)
                     numpy_arrays[i] = numpy_array * conversion_ratio
 
         return output_unit, numpy_arrays

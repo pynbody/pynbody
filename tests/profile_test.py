@@ -99,7 +99,8 @@ def test_potential_profile_fp64():
     f['eps'] = np.ones(100,dtype=np.float64)
     f['mass'] = np.ones(100,dtype=np.float64)
     p = pynbody.analysis.profile.Profile(f, nbins=50)
-    p['pot']
+    with pytest.warns(UserWarning):
+        p['pot']
 
 
 def test_potential_profile_fp32():
@@ -111,7 +112,8 @@ def test_potential_profile_fp32():
     f['eps'] = np.ones(100,dtype=np.float32)
     f['mass'] = np.ones(100,dtype=np.float32)
     p = pynbody.analysis.profile.Profile(f, nbins=50)
-    p['pot']
+    with pytest.warns(UserWarning):
+        p['pot']
 
 @pytest.mark.filterwarnings("ignore:invalid value encountered in divide:RuntimeWarning")
 def test_angmom_profile():

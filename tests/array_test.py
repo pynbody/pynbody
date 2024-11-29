@@ -81,6 +81,16 @@ def test_add_iop_to_plain_array():
     x+=y
     assert (x == [2,4,6]).all()
 
+def test_add_iop_with_conversion_context():
+    f = pynbody.new(dm=10)
+    f.properties['a'] = 0.5
+    f['pos'] = SA(np.random.rand(10, 3), 'kpc a')
+    f['pos2'] = SA(np.random.rand(10, 3), 'kpc')
+
+    pos3 = f['pos'] + f['pos2']
+    assert pos3.units == 'kpc a'
+    npt.assert_allclose(pos3, f['pos'] + f['pos2'].in_units('kpc a'))
+
 def test_unit_tracking():
 
     x = SA([1, 2, 3, 4])
