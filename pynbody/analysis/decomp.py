@@ -12,9 +12,39 @@ from . import angmom, profile
 
 logger = logging.getLogger('pynbody.analysis.decomp')
 
+def estimate_jcirc_from_energy(h, particles_per_bin=500, quantile=0.99):
+    """Estimate the circular angular momentum as a function of energy.
+
+    This routine calculates the circular angular momentum as a function of energy
+    for the stars in the simulation, using a profile with a fixed number of particles
+    per bin.
+
+    Arguments
+    ---------
+
+    h : SimSnap
+        The simulation snapshot to analyze
+
+    quantile : float
+        The circular angular momentum will be estimated as the specified quantile of the scalar angular momentum
+
+    particles_per_bin : int
+        The approximate number of particles per bin in the profile. Default is 500.
+
+    """
+    nbins = len(h) // particles_per_bin
+
+    pro_d = profile.QuantileProfile(h, q=(quantile,), nbins=nbins, type='equaln', calc_x = lambda sim : sim['te'])
+
+    pro_d.create_particle_array("j2", particle_name='jcirc2', target_simulation=h)
+    h['jcirc'] = np.sqrt(h['jcirc2'])
+
+    return pro_d
+
+
 
 def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_from_r=False,
-           log_interp=False, angmom_size="3 kpc"):
+           log_interp=False, angmom_size="3 kpc", particles_per_bin = 500):
     """Creates an array 'decomp' for star particles in the simulation, with an integer specifying components.
 
     The possible values of the components are:
@@ -59,6 +89,9 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
     angmom_size : str
         The size of the disk to use for calculating the angular momentum vector. Default is "3 kpc".
 
+    particles_per_bin : int
+        The approximate number of particles per bin in the profile. Default is 500.
+
     """
 
     import scipy.interpolate as interp
@@ -99,46 +132,19 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
 
         d = h[filt.Disc('1 Mpc', h['eps'].min() * 3)]
 
-        try:
+        nbins = len(d) // particles_per_bin
 
-            # attempt to load rotation curve off disk
-            r, v_c = np.loadtxt(h.ancestor.filename + ".rot." +
-                                str(h.properties["halo_number"]), skiprows=1, unpack=True)
-
-            pro_d = profile.Profile(d, nbins=100, type='log')
-            r_me = pro_d["rbins"].in_units("kpc")
-            r_x = np.concatenate(([0], r, [r.max() * 2]))
-            v_c = np.concatenate(([v_c[0]], v_c, [v_c[-1]]))
-            v_c = interp.interp1d(r_x, v_c, bounds_error=False)(r_me)
-
-            logger.info(" - found existing rotation curve on disk, using that")
-
-            v_c = v_c.view(array.SimArray)
-            v_c.units = "km s^-1"
-            v_c.sim = d
-
-            v_c.convert_units(h['vel'].units)
-
-            pro_d._profiles['v_circ'] = v_c
-            pro_d.v_circ_loaded = True
-
-        except Exception:
-            pro_d = profile.Profile(d, nbins=100, type='log')  # .D()
-            # Nasty hack follows to force the full halo to be used in calculating the
-            # gravity (otherwise get incorrect rotation curves)
-            pro_d._profiles['v_circ'] = profile.v_circ(pro_d, h)
+        pro_d = profile.Profile(d, nbins=nbins, type='equaln')
 
         pro_phi = pro_d['phi']
-        #import pdb; pdb.set_trace()
-        # offset the potential as for the te array
         pro_phi -= te_max
 
         # (will automatically be reflected in E_circ etc)
         # calculating v_circ for j_circ and E_circ is slow
 
         if j_circ_from_r:
-            pro_d.create_particle_array("j_circ", out_sim=h)
-            pro_d.create_particle_array("E_circ", out_sim=h)
+            pro_d.create_particle_array("j_circ", target_simulation=h)
+            pro_d.create_particle_array("E_circ", target_simulation=h)
         else:
 
             if log_interp:

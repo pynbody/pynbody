@@ -60,6 +60,15 @@ def test_create_particle_array():
 
     npt.assert_allclose(f['pt_density'], np.exp(-f['r']**2/2)/np.sqrt(2*np.pi)**3, atol=1e-2, rtol=0)
 
+    # test on a different simulation
+    f2 = pynbody.new(Npart)
+    np.random.seed(1338)
+    f2['pos'] = np.random.normal(size=(Npart,3))
+    f2['mass'] = np.ones(Npart)/Npart
+
+    p.create_particle_array('density', 'pt_density', target_simulation=f2)
+    npt.assert_allclose(f2['pt_density'], np.exp(-f2['r'] ** 2 / 2) / np.sqrt(2 * np.pi) ** 3, atol=1e-2, rtol=0)
+
 @pytest.mark.parametrize("perform_align", [True, False])
 @pytest.mark.parametrize("profile_quantity", ['v_circ', 'pot'])
 def test_plane_warnings(perform_align, profile_quantity):

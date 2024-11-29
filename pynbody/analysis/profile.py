@@ -187,7 +187,10 @@ class Profile:
                 else:
                     self.min = kwargs['rmin']
             else:
-                self.min = np.min(x[x > 0])
+                if type == 'log':
+                    self.min = np.min(x[x > 0])
+                else:
+                    self.min = np.min(x)
 
             if 'bins' in kwargs:
                 self._properties['bin_edges'] = kwargs['bins']
@@ -389,7 +392,7 @@ class Profile:
         return self.sim.families()
 
     def create_particle_array(self, profile_name, particle_name=None, log_x_interpolation = None,
-                              log_y_interpolation = None):
+                              log_y_interpolation = None, target_simulation=None):
         """Interpolate the profile back onto the particles
 
         For example, calling ``create_particle_array('density')`` will create a new array in the simulation
@@ -411,16 +414,27 @@ class Profile:
             If True, interpolate in log space for the y-axis; if False, don't. If None, perform log interpolation
             if all profile values are positive.
 
+        target_simulation : pynbody.SimSnap, optional
+            The simulation to create the new array in. If not specified, the array will be created in the
+            current simulation. Specifying another simulation is helpful e.g. if you want to interpolate the
+            profile onto a different set of particles.
 
         """
         if particle_name is None:
             particle_name = profile_name
 
-        out_sim = self.sim
+        if target_simulation is None:
+            target_simulation = self.sim
+            particle_x = self._x
+        else:
+            particle_x = self._calculate_x(target_simulation)
 
-        particle_x = self._x
         binned_x = self['rbins']
         binned_y = self[profile_name]
+
+        # this lets us use a quantile profile with a single quantile return
+        if len(binned_y.shape) == 2 and binned_y.shape[1] == 1:
+            binned_y = binned_y[:,0]
 
         if log_x_interpolation is None:
             log_x_interpolation = np.all(binned_x > 0)
@@ -439,11 +453,11 @@ class Profile:
         rep = np.interp(particle_x, binned_x, binned_y)
 
         if log_y_interpolation:
-            out_sim[particle_name] = np.exp(rep)
+            target_simulation[particle_name] = np.exp(rep)
         else:
-            out_sim[particle_name] = rep
+            target_simulation[particle_name] = rep
 
-        out_sim[particle_name].units = self[profile_name].units
+        target_simulation[particle_name].units = self[profile_name].units
 
 
     def _generate_hash_filename_from_particles(self):
@@ -649,15 +663,14 @@ def rotation_curve_spherical(pro):
 @Profile.profile_property
 def j_circ(pro):
     """Angular momentum of particles on circular orbits."""
-    return pro['v_circ'] * pro['rbins']
+    return pro['v_circ_total'] * pro['rbins']
 
 
 @Profile.profile_property
 def v_circ(pro, grav_sim=None):
-    """Circular velocity, i.e. rotation curve. Calculated by computing the gravity
-    in the midplane - can be expensive"""
+    """Circular velocity, i.e. rotation curve. Calculated by computing the gravity in the midplane"""
 
-    from .. import config, gravity
+    from .. import gravity
 
     global config
 
@@ -681,11 +694,20 @@ def v_circ(pro, grav_sim=None):
     logger.info("Rotation curve calculated in %5.3g s" % (end - start))
     return rc
 
+@Profile.profile_property
+def v_circ_total(pro):
+    """Circular velocity using all particles, not just those in the profile, to source gravity.
+
+    In reality, only particles out to 3 times the maximum profile radius are used, for speed."""
+
+    sim = pro.sim.ancestor[pynbody.filt.Sphere(3 * pro['rbins'].max())]
+    return v_circ(pro, sim)
+
 
 @Profile.profile_property
 def E_circ(pro):
     """Calculates the energy of particles on circular orbits in the z=0 plane."""
-    return 0.5 * (pro['v_circ'] ** 2) + pro['pot']
+    return 0.5 * (pro['v_circ_total'] ** 2) + pro['pot']
 
 
 @Profile.profile_property
