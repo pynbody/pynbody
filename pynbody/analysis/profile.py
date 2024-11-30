@@ -222,26 +222,24 @@ class Profile:
             self._profiles = {'n': n}
 
     def _setup_bins(self):
+
         # middle of the bins for convenience
-
-        self._properties['rbins'] = 0.5 * (self['bin_edges'][:-1] +
-                                           self['bin_edges'][1:])
-
-        # no idea why this next line was there... for conversion_context
-        # self['rbins'].sim = self.sim
+        self._properties['rbins'] = (0.5 * (self['bin_edges'][:-1] + self['bin_edges'][1:])).view(array.SimArray)
+        self._properties['rbins'].units = self['bin_edges'].units
+        self._properties['rbins'].sim = self.sim # important to have this relationship e.g. for comoving unit conversions
 
         # Width of the bins
-        self._properties['dr'] = np.gradient(
-            self['rbins']).view(array.SimArray)
-        # be extra cautious carrying over stuff because sometimes fails
+        self._properties['dr'] = np.gradient(self['rbins']).view(array.SimArray)
         self._properties['dr'].units = self['rbins'].units
         self._properties['dr'].sim = self.sim
 
         self.binind = []
         if len(self._x) > 0:
-            self.partbin = np.digitize(self._x, self['bin_edges'])
+            self.partbin = np.digitize(self._x, self['bin_edges']) - 1
         else:
             self.partbin = np.array([])
+
+        self._properties['npart_bins'] = np.zeros(self.nbins, dtype=int)
 
         assert self.ndim in [2, 3]
         if self.ndim == 2:
@@ -257,10 +255,11 @@ class Profile:
         sort_pind = self.partbin[sortind]
 
         # create the bin index arrays
-        prev_index = bisect(sort_pind, 0)
+        prev_index = bisect(sort_pind, -1)
         for i in range(self.nbins):
-            new_index = bisect(sort_pind, i + 1)
+            new_index = bisect(sort_pind, i)
             self.binind.append(np.sort(sortind[prev_index:new_index]))
+            self._properties['npart_bins'][i] = len(self.binind[i])
             prev_index = new_index
 
     def __len__(self):

@@ -6,6 +6,7 @@ import pytest
 
 import pynbody
 import pynbody.test_utils
+from pynbody.test_utils import make_blob
 
 np.random.seed(1)
 
@@ -167,3 +168,16 @@ def test_plot_density_profile():
         warnings.simplefilter("ignore")
         pynbody.plot.profile.density_profile(f)
         pynbody.plot.profile.rotation_curve(f, center=False)
+
+def test_quantile_profile():
+    Npart = 100000
+    f = make_blob.make_uniform_blob(Npart)
+    np.random.seed(1337)
+    f['testquantity'] = np.random.normal(size=Npart)*0.2 + f['r']
+
+    pro = pynbody.analysis.profile.QuantileProfile(f, q=(0.16,0.84), nbins=50, type='equaln')
+
+    # +/- 1 sigma should get us 0.2 on either side of the rbin value.
+
+    npt.assert_allclose(np.mean(pro['testquantity'], axis=1)[1:], pro['rbins'][1:], atol=2e-2)
+    npt.assert_allclose(np.diff(pro['testquantity'], axis=1), 0.4, atol=2.5e-2)
