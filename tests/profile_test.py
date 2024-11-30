@@ -169,15 +169,28 @@ def test_plot_density_profile():
         pynbody.plot.profile.density_profile(f)
         pynbody.plot.profile.rotation_curve(f, center=False)
 
-def test_quantile_profile():
-    Npart = 100000
+@pytest.mark.parametrize("weight", [False, True])
+def test_quantile_profile(weight):
+    Npart = 500000
     f = make_blob.make_uniform_blob(Npart)
     np.random.seed(1337)
     f['testquantity'] = np.random.normal(size=Npart)*0.2 + f['r']
+    if weight:
+        # intentionally bias things to have fatter tails
+        weights = (f['testquantity'] - f['r'])**2
+    else:
+        weights = None
 
-    pro = pynbody.analysis.profile.QuantileProfile(f, q=(0.16,0.84), nbins=50, type='equaln')
+    pro = pynbody.analysis.profile.QuantileProfile(f, q=(0.16,0.84), weights=weights, nbins=50, type='equaln')
 
-    # +/- 1 sigma should get us 0.2 on either side of the rbin value.
+    # +/- 1 sigma should average to the rbin value.
 
     npt.assert_allclose(np.mean(pro['testquantity'], axis=1)[1:], pro['rbins'][1:], atol=2e-2)
-    npt.assert_allclose(np.diff(pro['testquantity'], axis=1), 0.4, atol=2.5e-2)
+
+    # the width, if normally distributed, should be 0.4
+    expected_width = 0.4
+    if weight:
+        # this correction comes from getting the cdf for the fat-tailed distribution x^2 e^(-x^2/2), then solving
+        # for where the cdf is 0.16 and 0.84
+        expected_width *= 1.8724
+    npt.assert_allclose(np.diff(pro['testquantity'], axis=1), expected_width, atol=2.5e-2)

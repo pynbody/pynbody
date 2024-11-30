@@ -1008,44 +1008,24 @@ class QuantileProfile(Profile):
 
     def _auto_profile(self, name, dispersion=False, rms=False, median=False):
         result = np.zeros((self.nbins, len(self.quantiles)))
+        with self.sim.immediate_mode:
+            source_array = self.sim[name].view(np.ndarray)
+
         for i in range(self.nbins):
-            subs = self.sim[self.binind[i]]
-            with self.sim.immediate_mode:
-                name_array = subs[name].view(np.ndarray)
-                sorted_array = np.sort(name_array)
-                topind = len(name_array) - 1
-                if self.qweights is not None:
-                    sorted_weights = self.qweights[np.argsort(name_array)]
+            array_this_bin = source_array[self.binind[i]]
+            if self.qweights is None:
+                array_this_bin_sorted = np.sort(array_this_bin)
+                quantiles_this_bin = np.linspace(0, 1, len(array_this_bin))
+            else:
+                sorter = np.argsort(array_this_bin)
+                array_this_bin_sorted = array_this_bin[sorter]
+                quantiles_this_bin = np.cumsum(self.qweights[self.binind[i]][sorter])
+                quantiles_this_bin -= quantiles_this_bin[0]
+                quantiles_this_bin /= quantiles_this_bin[-1]
 
-            for iq, q in enumerate(self.quantiles):
-                #import pdb; pdb.set_trace()
-                if len(name_array) > 0:
-                    if self.qweights is None:
-                        ilow = int(np.floor(q * topind))
-                        inc = q * topind - ilow
-                        lowval = sorted_array[ilow]
-                        hival = sorted_array[ilow + 1]
-                        result[i, iq] = lowval + inc * (hival - lowval)
-                    else:
-                        cumw = np.cumsum(
-                            sorted_weights) / np.sum(sorted_weights)
-                        imin = min(
-                            np.arange(len(sorted_array)), key=lambda x: abs(cumw[x] - q))
-                        inc = q - cumw[imin]
-                        lowval = sorted_array[imin]
-                        if inc > 0:
-                            nextval = sorted_array[imin + 1]
-                        else:
-                            if imin == 0:
-                                nextval = lowval
-                            else:
-                                nextval = sorted_array[imin - 1]
+            result[i] = np.interp(self.quantiles, quantiles_this_bin, array_this_bin_sorted)
 
-                        result[i, iq] = lowval + inc * (nextval - lowval)
-                        #if (result[i,iq] < 1e-6) : import pdb; pdb.set_trace()
-                else:
-                    result[i, iq] = np.nan
-                    self['rbins'][i] = np.nan
+
 
         result = result.view(array.SimArray)
         result.units = self.sim[name].units
