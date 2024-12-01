@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pynbody
-import pynbody.analysis.decomp
+import pynbody.analysis.morphology as morph
 import pynbody.test_utils
 
 
@@ -26,7 +26,7 @@ def agora():
 def test_jcirc(gasoline_h0, agora):
     for f in (gasoline_h0, agora):
         pynbody.analysis.faceon(f)
-        pynbody.analysis.decomp.estimate_jcirc_from_energy(f)
+        morph.estimate_jcirc_from_energy(f)
         star_ratio = f.s['jz'] / f.s['j_circ']
         assert (star_ratio>-1.1).all()
         assert (star_ratio>1.1).sum() < 0.01 * len(star_ratio)
@@ -42,7 +42,7 @@ def test_jcirc_from_r(agora):
     f = agora
 
     pynbody.analysis.faceon(f)
-    pynbody.analysis.decomp.estimate_jcirc_from_rotation_curve(f)
+    morph.estimate_jcirc_from_rotation_curve(f)
 
     star_ratio = f.s['jz'] / f.s['j_circ']
 

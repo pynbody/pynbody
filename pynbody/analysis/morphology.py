@@ -1,5 +1,11 @@
 """
-Galactic bulge/disk/halo decomposition
+Calculations relevant to galactic morphology
+
+.. versionadded :: 2.0
+
+    This module was added in version 2.0.
+
+    Previously, only the :func:`decomp` function was available, in its own module within :mod:`pynbody.analysis`.
 
 """
 
@@ -7,10 +13,10 @@ import logging
 
 import numpy as np
 
-from .. import array, config, filt, transformation, util
+from .. import filt, transformation, util
 from . import angmom, profile
 
-logger = logging.getLogger('pynbody.analysis.decomp')
+logger = logging.getLogger('pynbody.analysis.morphology')
 
 def estimate_jcirc_from_energy(h, particles_per_bin=1000, quantile=0.99):
     """Estimate the circular angular momentum as a function of energy.
@@ -77,22 +83,44 @@ def estimate_jcirc_from_rotation_curve(h, particles_per_bin=1000):
 
 
 def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_from_r=False,
-           log_interp=False, angmom_size="3 kpc", particles_per_bin = 500):
+           angmom_size="3 kpc", particles_per_bin = 500):
     """Creates an array 'decomp' for star particles in the simulation, with an integer specifying components.
 
     The possible values of the components are:
 
-    1 -- thin disk
+    1. thin disk
+    2. halo
+    3. bulge
+    4. thick disk
+    5. pseudo bulge
 
-    2 -- halo
+    First, the simulation is aligned so that the disk is in the xy plane. Then, the maximum angular momentum of
+    stars as a function of energy is estimated, by default using the routine :func:`estimate_jcirc_from_energy`.
+    The stars are then classified into the components based on their energy and disk-aligned angular momentum component.
 
-    3 -- bulge
+    * The thin disk is defined as stars with angular momentum between j_disk_min and j_disk_max.
+    * From the remaining stars, a critical angular momentum j_crit is then calculated that separates rotating from
+      non-rotating components. By definition, this is chosen such that the mean rotaiton velocity of the non-rotating
+      part is zero
+    * The most tightly bound rotating component is labelled as the pseudo bulge, while less tightly bound rotating
+      stars are labelled as the thick disk, based on E_cut.
+    * The non-rotating stars are then separated into bulge and halo components based on their binding energy, again
+      based on E_cut.
 
-    4 -- thick disk
-
-    5 -- pseudo bulge
 
     This routine is based on an original IDL procedure by Chris Brook.
+
+    .. versionchanged :: 2.0
+
+      The routine now defaults to using a new method to estimate the circular angular momentum as a function of energy;
+      see :func:`estimate_jcirc_from_energy`.
+
+      The critical angular momentum for the spheroid is now determined by insisting the mean angular momentum of the
+      spheroid should be zero.
+
+      The above changes lead to different, but probably better, classifications compared with pynbody version 1.
+
+      Additionally, this routine is now inside the :mod:`pynbody.analysis.morphology` module.
 
     Arguments
     ---------
@@ -113,7 +141,8 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
         part of the 'disk'.
 
     E_cut : float
-        The energy boundary between bulge and spheroid. If None, this is taken to be the median energy of the stars.
+        The energy boundary between bulge and halo. If None, this is taken to be the median energy of the stars.  Note
+        that the distinction between bulge and halo is somewhat arbitrary and may not be physically meaningful.
 
     j_circ_from_r : bool
         If True, the maximum angular momentum is determined as a function of disc radius, rather than as a function of
@@ -128,11 +157,6 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
 
     """
 
-    import scipy.interpolate as interp
-    global config
-
-    # Center, eliminate proper motion, rotate so that
-    # gas disk is in X-Y plane
     if aligned:
         tx = transformation.NullTransformation(h)
     else:
@@ -158,15 +182,14 @@ def decomp(h, aligned=False, j_disk_min=0.8, j_disk_max=1.1, E_cut=None, j_circ_
         # h_star = h_star[np.where(h_star['decomp']!=1)]
 
         # Find disk/spheroid angular momentum cut-off to make spheroid
-        # rotational velocity exactly zero.
+        # angular momentum exactly zero
 
-        V = h_star['vcxy']
         JzJcirc = h_star['jz_by_jzcirc']
         te = h_star['te']
 
         logger.info("Finding spheroid/disk angular momentum boundary...")
 
-        j_crit = util.bisect(-2.0, 2.0, lambda c: np.mean(V[np.where(JzJcirc < c)]))
+        j_crit = util.bisect(-2.0, 2.0, lambda c: np.mean(JzJcirc[JzJcirc < c]))
 
         logger.info("j_crit = %.2e" % j_crit)
 
