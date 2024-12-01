@@ -52,3 +52,22 @@ def test_jcirc_from_r(agora):
 
     #p.hist(star_ratio, bins=100, histtype='step', density=True, range=(-1.5, 4.5))
     #p.savefig('test.png')
+
+def test_decomp(gasoline_h0):
+    """This checks that decomp at least runs and produces some output. Whether the output is sensible or not
+    is a physics question that is not addressed here and could do with looking at again in the future."""
+
+    morph.decomp(gasoline_h0)
+    assert (gasoline_h0.s['decomp'][::1000] == [3, 2, 2, 2, 2, 2, 3, 3, 2, 3, 3, 2, 3, 4, 3, 3, 3, 2, 5, 3, 2,
+          2, 3, 3, 3, 2, 2, 5, 2, 1, 2, 1, 2, 4, 3, 3, 3, 3, 2, 4, 2, 3,
+          2, 4, 3, 3, 1, 3, 2, 3, 5, 3, 2, 4, 2, 3, 2, 4, 5, 3, 5, 3, 2,
+          5, 4, 3, 2, 2, 2, 2, 3, 2, 4, 3, 1, 3, 2, 5, 5, 3, 5, 4, 3, 3,
+          5, 5, 3, 5, 3, 5, 4, 2, 4, 3, 3, 2, 3, 2, 3, 3, 2, 1, 2, 2, 3,
+          3, 3, 2, 4, 2, 3, 5, 3, 3, 3, 3, 3, 2, 5, 2, 2, 2, 4, 5, 3, 2,
+          2, 4, 5, 3, 2, 2, 4, 5, 3, 3, 2, 1, 1, 4, 2, 2, 3, 4, 3, 5, 2,
+          4, 5, 1, 4, 1, 2, 2, 2, 3, 2, 5, 3, 5, 4, 2, 5, 5, 3, 3, 5, 2,
+          1, 4, 4, 4, 4, 3, 5, 1, 5, 1, 1, 3, 4, 3, 2, 1, 2, 2, 4, 2, 1,
+          4, 3, 4, 1, 2, 1, 1, 2, 5, 5, 4, 2, 2, 1, 5, 3, 4, 4, 4, 1, 3,
+          4, 4, 5, 3, 4, 1, 3, 1, 1, 4, 3, 1, 1, 4, 3, 3, 3, 4, 4, 1, 3,
+          5, 3, 1, 1, 1, 1, 5, 5, 3, 2, 1, 2, 1, 3, 1, 1, 1, 1, 1, 1, 1,
+          1, 1, 5, 1, 1, 1, 1, 1, 1, 1, 1]).all()
