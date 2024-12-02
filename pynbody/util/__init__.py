@@ -119,9 +119,12 @@ def equipartition(ar, nbins, vmin=None, vmax=None):
     if vmax is not None:
         a_s = a_s[a_s <= vmax]
     if vmin is not None:
-        a_s = a_s[a_s > vmin]
+        a_s = a_s[a_s >= vmin]
 
-    return a_s[np.array(np.linspace(0, len(a_s) - 1, nbins + 1), dtype='int')]
+    boundaries = a_s[np.array(np.linspace(0, len(a_s) - 1, nbins + 1), dtype='int')]
+    boundaries[0] = np.nextafter(boundaries[0], -np.inf)
+    boundaries[-1] = np.nextafter(boundaries[-1], np.inf)
+    return boundaries
 
 
 def bisect(left, right, f, epsilon=None, eta=0, niter_max=200):

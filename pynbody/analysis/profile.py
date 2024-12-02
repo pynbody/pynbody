@@ -74,7 +74,10 @@ class Profile:
     _profile_registry = {}
 
     def _calculate_x(self, sim):
-        return ((sim['pos'][:, 0:self.ndim] ** 2).sum(axis=1)) ** (1, 2)
+        if self._x_calculator is not None:
+            return self._x_calculator(sim)
+        else:
+            return ((sim['pos'][:, 0:self.ndim] ** 2).sum(axis=1)) ** (1, 2)
 
     def __init__(self, sim, load_from_file=False, ndim=2, type='lin', calc_x=None, weight_by='mass', **kwargs):
         """Initialise a profile, determining the binning quantity and bin size.
@@ -122,13 +125,14 @@ class Profile:
         """
 
         generate_new = True
-        if calc_x is None:
-            calc_x = self._calculate_x
+
+        self._x_calculator = calc_x
+
         self.sim = sim
         self.type = type
         self.ndim = ndim
         self._weight_by = weight_by
-        self._x = calc_x(sim)
+        self._x = self._calculate_x(sim)
         x = self._x
 
         if load_from_file:
@@ -187,7 +191,10 @@ class Profile:
                 else:
                     self.min = kwargs['rmin']
             else:
-                self.min = np.min(x[x > 0])
+                if type == 'log':
+                    self.min = np.min(x[x > 0])
+                else:
+                    self.min = np.min(x)
 
             if 'bins' in kwargs:
                 self._properties['bin_edges'] = kwargs['bins']
@@ -215,26 +222,24 @@ class Profile:
             self._profiles = {'n': n}
 
     def _setup_bins(self):
+
         # middle of the bins for convenience
-
-        self._properties['rbins'] = 0.5 * (self['bin_edges'][:-1] +
-                                           self['bin_edges'][1:])
-
-        # no idea why this next line was there... for conversion_context
-        # self['rbins'].sim = self.sim
+        self._properties['rbins'] = (0.5 * (self['bin_edges'][:-1] + self['bin_edges'][1:])).view(array.SimArray)
+        self._properties['rbins'].units = self['bin_edges'].units
+        self._properties['rbins'].sim = self.sim # important to have this relationship e.g. for comoving unit conversions
 
         # Width of the bins
-        self._properties['dr'] = np.gradient(
-            self['rbins']).view(array.SimArray)
-        # be extra cautious carrying over stuff because sometimes fails
+        self._properties['dr'] = np.gradient(self['rbins']).view(array.SimArray)
         self._properties['dr'].units = self['rbins'].units
         self._properties['dr'].sim = self.sim
 
         self.binind = []
         if len(self._x) > 0:
-            self.partbin = np.digitize(self._x, self['bin_edges'])
+            self.partbin = np.digitize(self._x, self['bin_edges']) - 1
         else:
             self.partbin = np.array([])
+
+        self._properties['npart_bins'] = np.zeros(self.nbins, dtype=int)
 
         assert self.ndim in [2, 3]
         if self.ndim == 2:
@@ -250,10 +255,11 @@ class Profile:
         sort_pind = self.partbin[sortind]
 
         # create the bin index arrays
-        prev_index = bisect(sort_pind, 0)
+        prev_index = bisect(sort_pind, -1)
         for i in range(self.nbins):
-            new_index = bisect(sort_pind, i + 1)
+            new_index = bisect(sort_pind, i)
             self.binind.append(np.sort(sortind[prev_index:new_index]))
+            self._properties['npart_bins'][i] = len(self.binind[i])
             prev_index = new_index
 
     def __len__(self):
@@ -387,6 +393,75 @@ class Profile:
     def families(self):
         """Returns the family of particles used"""
         return self.sim.families()
+
+    def create_particle_array(self, profile_name, particle_name=None, log_x_interpolation = None,
+                              log_y_interpolation = None, target_simulation=None):
+        """Interpolate the profile back onto the particles
+
+        For example, calling ``create_particle_array('density')`` will create a new array in the simulation
+        called `'density'` which is the density of each particle according to the profile.
+
+        Parameters
+        ----------
+        profile_name : str
+            The name of the profile to interpolate
+
+        particle_name : str, optional
+            The name of the new array to create. If not specified, it will be the same as the profile_name.
+
+        log_x_interpolation : bool, optional
+            If True, interpolate in log space for the x-axis; if False, don't. If None, perform log interpolation
+            if all bin centres are positive.
+
+        log_y_interpolation : bool, optional
+            If True, interpolate in log space for the y-axis; if False, don't. If None, perform log interpolation
+            if all profile values are positive.
+
+        target_simulation : pynbody.SimSnap, optional
+            The simulation to create the new array in. If not specified, the array will be created in the
+            current simulation. Specifying another simulation is helpful e.g. if you want to interpolate the
+            profile onto a different set of particles.
+
+        """
+        if particle_name is None:
+            particle_name = profile_name
+
+        if target_simulation is None:
+            target_simulation = self.sim
+            particle_x = self._x
+        else:
+            particle_x = self._calculate_x(target_simulation)
+
+        binned_x = self['rbins']
+        binned_y = self[profile_name]
+
+        # this lets us use a quantile profile with a single quantile return
+        if len(binned_y.shape) == 2 and binned_y.shape[1] == 1:
+            binned_y = binned_y[:,0]
+
+        if log_x_interpolation is None:
+            log_x_interpolation = np.all(binned_x > 0)
+
+        if log_y_interpolation is None:
+            log_y_interpolation = np.all(binned_y > 0)
+
+
+        if log_x_interpolation:
+            particle_x = np.log(particle_x)
+            binned_x = np.log(binned_x)
+
+        if log_y_interpolation:
+            binned_y = np.log(binned_y)
+
+        rep = np.interp(particle_x, binned_x, binned_y)
+
+        if log_y_interpolation:
+            target_simulation[particle_name] = np.exp(rep)
+        else:
+            target_simulation[particle_name] = rep
+
+        target_simulation[particle_name].units = self[profile_name].units
+
 
     def _generate_hash_filename_from_particles(self):
         """Create a filename for the saved profile from a hash using the binning data"""
@@ -591,22 +666,21 @@ def rotation_curve_spherical(pro):
 @Profile.profile_property
 def j_circ(pro):
     """Angular momentum of particles on circular orbits."""
-    return pro['v_circ'] * pro['rbins']
+    return pro['v_circ_total'] * pro['rbins']
 
 
 @Profile.profile_property
 def v_circ(pro, grav_sim=None):
-    """Circular velocity, i.e. rotation curve. Calculated by computing the gravity
-    in the midplane - can be expensive"""
+    """Circular velocity, i.e. rotation curve. Calculated by computing the gravity in the midplane"""
 
-    from .. import config, gravity
+    from .. import gravity
 
     global config
 
     grav_sim = grav_sim or pro.sim
 
-    logger.warning(
-        "Profile v_circ -- this routine assumes the disk is in the x-y plane")
+    if str(grav_sim.current_transformation()) != 'faceon':
+        warnings.warn("Profile v_circ -- this routine assumes the disk is in the x-y plane")
 
     # If this is a cosmological run, go up to the halo level
     # if hasattr(grav_sim,'base') and grav_sim.base.properties.has_key("halo_number") :
@@ -623,11 +697,20 @@ def v_circ(pro, grav_sim=None):
     logger.info("Rotation curve calculated in %5.3g s" % (end - start))
     return rc
 
+@Profile.profile_property
+def v_circ_total(pro):
+    """Circular velocity using all particles, not just those in the profile, to source gravity.
+
+    In reality, only particles out to 3 times the maximum profile radius are used, for speed."""
+
+    sim = pro.sim.ancestor[pynbody.filt.Sphere(3 * pro['rbins'].max())]
+    return v_circ(pro, sim)
+
 
 @Profile.profile_property
 def E_circ(pro):
     """Calculates the energy of particles on circular orbits in the z=0 plane."""
-    return 0.5 * (pro['v_circ'] ** 2) + pro['pot']
+    return 0.5 * (pro['v_circ_total'] ** 2) + pro['pot']
 
 
 @Profile.profile_property
@@ -635,13 +718,13 @@ def pot(pro):
     """Calculates the potential in the z=0 plane"""
     from .. import gravity
 
-    logger.warning(
-        "Profile pot -- this routine assumes the disk is in the x-y plane")
-
     grav_sim = pro.sim
     # Go up to the halo level
     while hasattr(grav_sim, 'base') and "halo_number" in grav_sim.base.properties:
         grav_sim = grav_sim.base
+
+    if str(grav_sim.current_transformation()) != 'faceon':
+        warnings.warn("Profile pot -- this routine assumes the disk is in the x-y plane")
 
     start = process_time()
     pot = gravity.midplane_potential(
@@ -925,44 +1008,24 @@ class QuantileProfile(Profile):
 
     def _auto_profile(self, name, dispersion=False, rms=False, median=False):
         result = np.zeros((self.nbins, len(self.quantiles)))
+        with self.sim.immediate_mode:
+            source_array = self.sim[name].view(np.ndarray)
+
         for i in range(self.nbins):
-            subs = self.sim[self.binind[i]]
-            with self.sim.immediate_mode:
-                name_array = subs[name].view(np.ndarray)
-                sorted_array = sorted(name_array)
-                topind = len(name_array) - 1
-                if self.qweights is not None:
-                    sorted_weights = self.qweights[np.argsort(name_array)]
+            array_this_bin = source_array[self.binind[i]]
+            if self.qweights is None:
+                array_this_bin_sorted = np.sort(array_this_bin)
+                quantiles_this_bin = np.linspace(0, 1, len(array_this_bin))
+            else:
+                sorter = np.argsort(array_this_bin)
+                array_this_bin_sorted = array_this_bin[sorter]
+                quantiles_this_bin = np.cumsum(self.qweights[self.binind[i]][sorter])
+                quantiles_this_bin -= quantiles_this_bin[0]
+                quantiles_this_bin /= quantiles_this_bin[-1]
 
-            for iq, q in enumerate(self.quantiles):
-                #import pdb; pdb.set_trace()
-                if len(name_array) > 0:
-                    if self.qweights is None:
-                        ilow = int(np.floor(q * topind))
-                        inc = q * topind - ilow
-                        lowval = sorted_array[ilow]
-                        hival = sorted_array[ilow + 1]
-                        result[i, iq] = lowval + inc * (hival - lowval)
-                    else:
-                        cumw = np.cumsum(
-                            sorted_weights) / np.sum(sorted_weights)
-                        imin = min(
-                            np.arange(len(sorted_array)), key=lambda x: abs(cumw[x] - q))
-                        inc = q - cumw[imin]
-                        lowval = sorted_array[imin]
-                        if inc > 0:
-                            nextval = sorted_array[imin + 1]
-                        else:
-                            if imin == 0:
-                                nextval = lowval
-                            else:
-                                nextval = sorted_array[imin - 1]
+            result[i] = np.interp(self.quantiles, quantiles_this_bin, array_this_bin_sorted)
 
-                        result[i, iq] = lowval + inc * (nextval - lowval)
-                        #if (result[i,iq] < 1e-6) : import pdb; pdb.set_trace()
-                else:
-                    result[i, iq] = np.nan
-                    self['rbins'][i] = np.nan
+
 
         result = result.view(array.SimArray)
         result.units = self.sim[name].units

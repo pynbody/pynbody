@@ -6,6 +6,7 @@ import pytest
 
 import pynbody
 import pynbody.test_utils
+from pynbody.test_utils import make_blob
 
 np.random.seed(1)
 
@@ -48,6 +49,47 @@ def test_fourier_profile():
     assert(np.all(p['fourier']['amp'][2,4:20] > 0.1))
     assert(np.allclose(np.abs(p['fourier']['phi'][2,4:20]/2), np.pi/4.0, rtol=0.05))
 
+def test_create_particle_array():
+    np.random.seed(1337)
+    Npart = 10000
+    f = pynbody.new(Npart)
+    f['pos'] = np.random.normal(size=(Npart,3))
+    f['mass'] = np.ones(Npart)/Npart
+    p = pynbody.analysis.profile.Profile(f, nbins=50, ndim=3)
+
+    p.create_particle_array('density', 'pt_density')
+
+    npt.assert_allclose(f['pt_density'], np.exp(-f['r']**2/2)/np.sqrt(2*np.pi)**3, atol=1e-2, rtol=0)
+
+    # test on a different simulation
+    f2 = pynbody.new(Npart)
+    np.random.seed(1338)
+    f2['pos'] = np.random.normal(size=(Npart,3))
+    f2['mass'] = np.ones(Npart)/Npart
+
+    p.create_particle_array('density', 'pt_density', target_simulation=f2)
+    npt.assert_allclose(f2['pt_density'], np.exp(-f2['r'] ** 2 / 2) / np.sqrt(2 * np.pi) ** 3, atol=1e-2, rtol=0)
+
+@pytest.mark.parametrize("perform_align", [True, False])
+@pytest.mark.parametrize("profile_quantity", ['v_circ', 'pot'])
+def test_plane_warnings(perform_align, profile_quantity):
+    bar = make_fake_bar(phi=45)
+
+    if perform_align:
+        pynbody.analysis.angmom.faceon(bar)
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        p = pynbody.analysis.profile.Profile(bar, nbins=50)
+        p[profile_quantity] # noqa - just want to access it
+
+    if perform_align:
+        assert len(w) == 0
+    else:
+        assert len(w) == 1
+        assert "this routine assumes the disk is in the x-y plane" in str(w[0])
+
+
 
 def test_potential_profile_fp64():
     f = pynbody.new(100)
@@ -58,7 +100,8 @@ def test_potential_profile_fp64():
     f['eps'] = np.ones(100,dtype=np.float64)
     f['mass'] = np.ones(100,dtype=np.float64)
     p = pynbody.analysis.profile.Profile(f, nbins=50)
-    p['pot']
+    with pytest.warns(UserWarning):
+        p['pot']
 
 
 def test_potential_profile_fp32():
@@ -70,7 +113,8 @@ def test_potential_profile_fp32():
     f['eps'] = np.ones(100,dtype=np.float32)
     f['mass'] = np.ones(100,dtype=np.float32)
     p = pynbody.analysis.profile.Profile(f, nbins=50)
-    p['pot']
+    with pytest.warns(UserWarning):
+        p['pot']
 
 @pytest.mark.filterwarnings("ignore:invalid value encountered in divide:RuntimeWarning")
 def test_angmom_profile():
@@ -124,3 +168,29 @@ def test_plot_density_profile():
         warnings.simplefilter("ignore")
         pynbody.plot.profile.density_profile(f)
         pynbody.plot.profile.rotation_curve(f, center=False)
+
+@pytest.mark.parametrize("weight", [False, True])
+def test_quantile_profile(weight):
+    Npart = 500000
+    f = make_blob.make_uniform_blob(Npart)
+    np.random.seed(1337)
+    f['testquantity'] = np.random.normal(size=Npart)*0.2 + f['r']
+    if weight:
+        # intentionally bias things to have fatter tails
+        weights = (f['testquantity'] - f['r'])**2
+    else:
+        weights = None
+
+    pro = pynbody.analysis.profile.QuantileProfile(f, q=(0.16,0.84), weights=weights, nbins=50, type='equaln')
+
+    # +/- 1 sigma should average to the rbin value.
+
+    npt.assert_allclose(np.mean(pro['testquantity'], axis=1)[1:], pro['rbins'][1:], atol=2e-2)
+
+    # the width, if normally distributed, should be 0.4
+    expected_width = 0.4
+    if weight:
+        # this correction comes from getting the cdf for the fat-tailed distribution x^2 e^(-x^2/2), then solving
+        # for where the cdf is 0.16 and 0.84
+        expected_width *= 1.8724
+    npt.assert_allclose(np.diff(pro['testquantity'], axis=1), expected_width, atol=2.5e-2)

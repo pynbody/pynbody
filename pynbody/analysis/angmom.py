@@ -253,7 +253,7 @@ def sideon(h, **kwargs):
 
     kwargs.update({'vec_to_xform': calc_sideon_matrix})
 
-    return align(h, **kwargs)
+    return align(h, **kwargs).set_description('sideon')
 
 
 def faceon(h, **kwargs):
@@ -287,4 +287,4 @@ def faceon(h, **kwargs):
 
     kwargs.update({'vec_to_xform': calc_faceon_matrix})
 
-    return align(h, **kwargs)
+    return align(h, **kwargs).set_description('faceon')

@@ -162,8 +162,15 @@ class GadgetHDFSnap(SimSnap):
 
     _multifile_manager_class = _GadgetHdfMultiFileManager
     _readable_hdf5_test_key = "PartType?"
+    _readable_hdf5_test_attr = None # if None, no attribute is checked
     _size_from_hdf5_key = "ParticleIDs"
     _namemapper_config_section = "gadgethdf-name-mapping"
+    _softening_class_key = "SofteningClassOfPartType"
+    _softening_comoving_key = "SofteningComovingClass"
+    _softening_max_phys_key = "SofteningMaxPhysClass"
+
+    _mass_pynbody_name = "mass"
+    _eps_pynbody_name = "eps"
 
     def __init__(self, filename):
         """Initialise a Gadget HDF snapshot.
@@ -188,6 +195,35 @@ class GadgetHDFSnap(SimSnap):
         self._init_properties()
         self._decorate()
 
+    def _have_softening_for_particle_type(self, particle_type):
+        attrs = self._get_hdf_parameter_attrs()
+        class_name = self._softening_class_key + str(particle_type)
+        return class_name in attrs
+
+    def _get_softening_for_particle_type(self, particle_type):
+        attrs = self._get_hdf_parameter_attrs()
+
+        class_name = self._softening_class_key + str(particle_type)
+        if class_name not in attrs:
+            return None
+
+        class_number = attrs[class_name]
+
+        comoving_softening = attrs[self._softening_comoving_key + str(class_number)]
+        max_physical_softening = attrs[self._softening_max_phys_key + str(class_number)]
+
+        if comoving_softening > max_physical_softening / self.properties['a']:
+            comoving_softening = max_physical_softening / self.properties['a']
+
+        return comoving_softening
+
+    def _have_softening_for_particle_group(self, particle_group):
+        return self._have_softening_for_particle_type(int(particle_group.name[-1]))
+
+    def _get_softening_for_particle_group(self, particle_group):
+        return self._get_softening_for_particle_type(int(particle_group.name[-1]))
+
+
     def _get_hdf_header_attrs(self):
         return self._hdf_files.get_header_attrs()
 
@@ -208,11 +244,17 @@ class GadgetHDFSnap(SimSnap):
             return
 
         for fam in all_fams:
-            self._loadable_family_keys[fam] = {"mass"}
+            self._loadable_family_keys[fam] = {self._mass_pynbody_name}
+            can_get_eps = True
             for hdf_group in self._all_hdf_groups_in_family(fam):
                 for this_key in self._get_hdf_allarray_keys(hdf_group):
                     ar_name = self._translate_array_name(this_key, reverse=True)
                     self._loadable_family_keys[fam].add(ar_name)
+
+                can_get_eps &= self._have_softening_for_particle_group(hdf_group)
+
+            if can_get_eps:
+                self._loadable_family_keys[fam].add(self._eps_pynbody_name)
             self._loadable_family_keys[fam] = list(self._loadable_family_keys[fam])
 
         self._loadable_keys = set(self._loadable_family_keys[all_fams[0]])
@@ -364,7 +406,7 @@ class GadgetHDFSnap(SimSnap):
         return keys
 
     def _get_or_create_hdf_dataset(self, particle_group, hdf_name, shape, dtype):
-        if self._translate_array_name(hdf_name,reverse=True)=='mass':
+        if self._translate_array_name(hdf_name,reverse=True) == self._mass_pynbody_name:
             raise OSError("Unable to write the mass block due to Gadget header format")
 
         ret = particle_group
@@ -378,8 +420,7 @@ class GadgetHDFSnap(SimSnap):
     def _get_hdf_dataset(self, particle_group, hdf_name):
         """Return the HDF dataset resolving /'s into nested groups, and returning
         an apparent Mass array even if the mass is actually stored in the header"""
-
-        if self._translate_array_name(hdf_name,reverse=True)=='mass':
+        if self._translate_array_name(hdf_name,reverse=True) == self._mass_pynbody_name:
             try:
                 pgid = int(particle_group.name[-1])
                 mtab = particle_group.parent['Header'].attrs['MassTable'][pgid]
@@ -388,6 +429,11 @@ class GadgetHDFSnap(SimSnap):
                                          self._mass_dtype)
             except (IndexError, KeyError):
                 pass
+        elif self._translate_array_name(hdf_name,reverse=True) == self._eps_pynbody_name:
+            eps = self._get_softening_for_particle_group(particle_group)
+            if eps is not None:
+                return _DummyHDFData(eps, particle_group[self._size_from_hdf5_key].size, self._mass_dtype)
+
 
         ret = particle_group
         for tpart in hdf_name.split("/"):
@@ -419,14 +465,10 @@ class GadgetHDFSnap(SimSnap):
 
     def _get_units_from_hdf_attr(self, hdfattrs) :
         """Return the units based on HDF attributes VarDescription"""
-        if 'VarDescription' in hdfattrs:
-            return self._get_units_from_hdf_attr_gadget_style(hdfattrs)
-        elif 'length_scaling' in hdfattrs:
-            return self._get_units_from_hdf_attr_arepo_style(hdfattrs)
-        else:
+        if 'VarDescription' not in hdfattrs:
             warnings.warn("Unable to infer units from HDF attributes")
             return units.NoUnit()
-    def _get_units_from_hdf_attr_gadget_style(self, hdfattrs):
+
         VarDescription = str(hdfattrs['VarDescription'])
         CGSConversionFactor = float(hdfattrs['CGSConversionFactor'])
         aexp = hdfattrs['aexp-scale-exponent']
@@ -438,18 +480,6 @@ class GadgetHDFSnap(SimSnap):
             arr_units *= (units.h) ** util.fractions.Fraction.from_float(float(hexp)).limit_denominator()
         return arr_units
 
-    def _get_units_from_hdf_attr_arepo_style(self, hdfattrs):
-        l, m, v, a, h = (float(hdfattrs[x]) for x in ['length_scaling', 'mass_scaling', 'velocity_scaling', 'a_scaling', 'h_scaling'])
-        base_units = [units.cm, units.g, units.cm/units.s, units.a, units.h]
-        if float(hdfattrs['to_cgs'])==0.0:
-            # 0.0 is used in dimensionless cases
-            arr_units = units.Unit(1.0)
-        else:
-            arr_units = units.Unit(float(hdfattrs['to_cgs']))
-        for exponent, base_unit in zip([l, m, v, a, h], base_units):
-            if not np.allclose(exponent, 0.0):
-                arr_units *= base_unit ** util.fractions.Fraction.from_float(float(exponent)).limit_denominator()
-        return arr_units
 
     def _get_units_from_description(self, description, expectedCgsConversionFactor=None):
         arr_units = units.Unit('1.0')
@@ -496,7 +526,7 @@ class GadgetHDFSnap(SimSnap):
             translated_names = self._translate_array_name(array_name)
             dtype, dy, units = self.__get_dtype_dims_and_units(fam, translated_names)
 
-            if array_name=='mass':
+            if array_name == self._mass_pynbody_name:
                 dtype = self._mass_dtype
                 # always load mass with this dtype, even if not the one in the file. This
                 # is to cope with cases where it's partly in the header and partly not.
@@ -672,19 +702,31 @@ class GadgetHDFSnap(SimSnap):
     def _test_for_hdf5_key(cls, f):
         with h5py.File(f, "r") as h5test:
             test_key = cls._readable_hdf5_test_key
+            found = False
             if test_key[-1]=="?":
                 # try all particle numbers in turn
                 for p in range(6):
                     test_key = test_key[:-1]+str(p)
                     if test_key in h5test:
-                        return True
-                return False
+                        found = True
+
             else:
-                return test_key in h5test
+                found = test_key in h5test
+
+            if not found:
+                return False
+
+            if cls._readable_hdf5_test_attr is not None:
+                location, attrname = cls._readable_hdf5_test_attr
+                if location in h5test:
+                    found = attrname in h5test[location].attrs
+                else:
+                    found = False
+        return found
+
 
     @classmethod
     def _can_load(cls, f):
-
         if hasattr(h5py, "is_hdf5"):
             if h5py.is_hdf5(f):
                 return cls._test_for_hdf5_key(f)
@@ -738,9 +780,31 @@ class GadgetHDFSnap(SimSnap):
             if s not in ['ExpansionFactor', 'Time_GYR', 'Time', 'Omega0', 'OmegaBaryon', 'OmegaLambda', 'BoxSize', 'HubbleParam']:
                 self.properties[s] = value
 
-###################
-# SubFindHDF class
-###################
+class ArepoHDFSnap(GadgetHDFSnap):
+    """
+    Reads Arepo HDF snapshots.
+    """
+    _readable_hdf5_test_attr = "Config", "VORONOI"
+    _softening_class_key = "SofteningTypeOfPartType"
+    _softening_comoving_key = "SofteningComovingType"
+    _softening_max_phys_key = "SofteningMaxPhysType"
+
+    def _get_units_from_hdf_attr(self, hdfattrs):
+        if 'length_scaling' not in hdfattrs:
+            warnings.warn("Unable to infer units from HDF attributes")
+            return units.NoUnit()
+        l, m, v, a, h = (float(hdfattrs[x]) for x in ['length_scaling', 'mass_scaling', 'velocity_scaling', 'a_scaling', 'h_scaling'])
+        base_units = [units.cm, units.g, units.cm/units.s, units.a, units.h]
+        if float(hdfattrs['to_cgs'])==0.0:
+            # 0.0 is used in dimensionless cases
+            arr_units = units.Unit(1.0)
+        else:
+            arr_units = units.Unit(float(hdfattrs['to_cgs']))
+        for exponent, base_unit in zip([l, m, v, a, h], base_units):
+            if not np.allclose(exponent, 0.0):
+                arr_units *= base_unit ** util.fractions.Fraction.from_float(float(exponent)).limit_denominator()
+        return arr_units
+
 
 class SubFindHDFSnap(GadgetHDFSnap) :
     """
