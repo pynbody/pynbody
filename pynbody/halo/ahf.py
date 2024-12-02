@@ -188,8 +188,8 @@ class AHFCatalogue(HaloCatalogue):
             # to all the halo numbers (which would be expensive), we look for the minimum valid
 
             if len(host_halo) > 0:
-                mask = host_halo >= np.min(self._ahf_own_number_mapper.all_numbers)
-
+                #mask = host_halo >= np.min(self._ahf_own_number_mapper.all_numbers)
+                mask = np.in1d(host_halo, self._ahf_own_number_mapper.all_numbers)
                 host_halo[mask] = self.number_mapper.index_to_number(
                     self._ahf_own_number_mapper.number_to_index(host_halo[mask])
                 )
