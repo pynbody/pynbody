@@ -416,8 +416,8 @@ def use_custom_ssp_table(path_or_table : SSPTable):
     use a custom table, i.e.
 
     >>> with use_custom_ssp_table('mytable.npz'):
-    >>>     print(pynbody.analysis.luminosity.calc_mags(s, 'v'))
-    >>> print(pynbody.analysis.luminosity.calc_mags(s, 'v'))
+    >>>     print(pynbody.analysis.luminosity.calc_mags(s, 'V'))
+    >>> print(pynbody.analysis.luminosity.calc_mags(s, 'V'))
 
     Here, the first call to calc_mags will use 'mytable.npz', and the second call will use the default
     table again.
@@ -425,7 +425,7 @@ def use_custom_ssp_table(path_or_table : SSPTable):
     However, you do not need to enter the context manager if you want to permanently change the table, i.e.
 
     >>> use_custom_ssp_table('mytable.npz')
-    >>> print(pynbody.analysis.luminosity.calc_mags(s, 'v'))
+    >>> print(pynbody.analysis.luminosity.calc_mags(s, 'V'))
 
     Here, the call to calc_mags will use 'mytable.npz' until the table is changed again.
 
@@ -459,7 +459,7 @@ def use_custom_cmd(path):
     warnings.warn("use_custom_cmd is deprecated; use use_custom_ssp_table instead", DeprecationWarning)
     use_custom_ssp_table(path)
 
-def calc_mags(simstars, band='v', cmd_path=None):
+def calc_mags(simstars, band='V', cmd_path=None):
     """Calculate the magnitude of stars in a simulation
 
     This makes use of SSP tables, as described in the module documentation (see :mod:`pynbody.analysis.luminosity`).
