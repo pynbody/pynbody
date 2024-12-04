@@ -130,9 +130,8 @@ def test_ahf_unwritable(snap_in_unwritable_folder):
         warnings.simplefilter("error")
         _ = h[2]
 
-    # check if we use load_all there is no warning
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
+    # check that load_all still works with the warning (since it reads fpos too)
+    with pytest.warns(UserWarning, match="Unable to write AHF_fpos file;.*"):
         h = f.halos()
         h.load_all()
         _ = h[1]

@@ -184,12 +184,13 @@ class AHFCatalogue(HaloCatalogue):
             # 'no host'.
             #
             # Of course, in other runs, halo 0 might be a perfectly valid host halo, so we need to deal with this
-            # by saying the mask is wherever host_halo is not a valid halo number. Rather than compare every entry
-            # to all the halo numbers (which would be expensive), we look for the minimum valid
+            # by saying the mask is wherever host_halo is not a valid halo number. Moreover, sometimes MPI-AHF generates
+            # parent IDs that are >0 simply don't exist. We don't quite know why, but this might be some kind of
+            # domain decomposition issue. Anyway, we need to filter out any host halo number that simply doesn't correspond
+            # to a valid halo.
 
             if len(host_halo) > 0:
-                mask = host_halo >= np.min(self._ahf_own_number_mapper.all_numbers)
-
+                mask = np.isin(host_halo, self._ahf_own_number_mapper.all_numbers)
                 host_halo[mask] = self.number_mapper.index_to_number(
                     self._ahf_own_number_mapper.number_to_index(host_halo[mask])
                 )
@@ -233,16 +234,23 @@ class AHFCatalogue(HaloCatalogue):
             if os.path.exists(self._ahfBasename + 'fpos'):
                 self._fpos = np.loadtxt(self._ahfBasename+'fpos', dtype=int)
             else:
+                hnum = 0
                 self._fpos = np.empty(len(self.number_mapper), dtype=int)
                 with util.open_(self._ahfBasename + 'particles') as f:
-                    nhalo = int(f.readline().strip())
-                    assert nhalo == len(self.number_mapper)
-                    for hnum in range(nhalo):
-                        npart = int(f.readline().split()[0].strip())
-                        assert npart == self._halo_properties['npart'][hnum]
-                        self._fpos[hnum] = f.tell()
-                        for i in range(npart):
-                            f.readline()
+                    while hnum<self._num_halos:
+                        nhalo = f.readline().split() #the first line, or one after a block is another number of halos (MPI AHF)
+                        assert len(nhalo)==1
+                        nhalo = int(nhalo[0])
+                        assert nhalo+hnum<=self._num_halos
+                        for hnum_part in range(nhalo): #loop through halos in the current part
+                            hnum+=1
+                            assert hnum<=self._num_halos
+                            firstline  = f.readline().split() #read new halo information
+                            npart = int(firstline[0].strip())
+                            assert npart == self._halo_properties['npart'][hnum-1]
+                            self._fpos[hnum-1] = f.tell()
+                            for i in range(npart):
+                                f.readline()
                 if self._try_writing_fpos:
                     if not os.path.exists(self._ahfBasename + 'fpos'):
                         self._write_fpos()
@@ -334,16 +342,17 @@ class AHFCatalogue(HaloCatalogue):
         return ids
 
     def _get_all_particle_indices(self):
+        fpos = self._get_file_positions()
         boundaries = np.cumsum(np.concatenate(([0], self._halo_properties['npart'])))
         boundaries = np.vstack((boundaries[:-1], boundaries[1:])).T
         particle_ids = np.empty(boundaries[-1,1], dtype=int)
         with util.open_(self._ahfBasename + 'particles') as f:
-            f.readline()
-            for nparts, (start, end) in zip(self._halo_properties['npart'], boundaries):
-                f.readline()
-                particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=nparts)
-
-
+            for i in range(len(self._halo_properties['npart'])):
+                nparts = self._halo_properties['npart'][i]
+                f.seek(fpos[i])
+                start = boundaries[i,0]
+                end = boundaries[i,1]
+                particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=nparts)        
         return HaloParticleIndices(particle_ids=particle_ids, boundaries=boundaries)
 
 
