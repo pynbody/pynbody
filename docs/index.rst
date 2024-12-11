@@ -3,12 +3,6 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root ``toctree`` directive.
 
-.. warning::
-
- You are looking at the documentation for pynbody v2, which is currently in beta.
- To install pynbody v2 beta, use ``pip install --pre pynbody``.  Documentation for
- v1 remains available at https://pynbody.github.io/pynbody/ .
-
 Welcome to the documentation for `pynbody
 <http://pynbody.readthedocs.io>`_ -- an analysis package for
 astrophysical N-body and Smooth Particle Hydrodynamics
@@ -19,7 +13,7 @@ Installation should be as simple as
 
 .. code-block:: bash
 
-   pip install --pre pynbody
+   pip install pynbody
 
 but if you run into trouble, try the :doc:`installation` guide.
 

@@ -90,7 +90,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install numpy and cython
-        run: python -m "pip" install --pre 'numpy>=2.0.0rc1' cython setuptools
+        run: python -m "pip" install 'numpy>=2.0.0' cython setuptools
 
       - name: Build sdist
         run: python setup.py sdist
