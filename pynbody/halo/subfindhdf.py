@@ -214,13 +214,11 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         self._fof_group_first_subhalo = np.empty(self._ngroups, dtype=int)
         for h in self._hdf_files.iterroot():
             parent_groups = h[self._subfind_name].get(self._subfind_grnr_name, np.array([]))
-            # .astype(int)[:] stopgap until h5py support numpy 2.0
-            self._subfind_halo_parent_groups[nsub:nsub + len(parent_groups)] = parent_groups.astype(int)[:]
+            self._subfind_halo_parent_groups[nsub:nsub + len(parent_groups)] = parent_groups
             nsub += len(parent_groups)
 
             first_groups = h.get(self._subfind_first_gr_name, np.array([]))
-            # .astype(int)[:] stopgap until h5py support numpy 2.0
-            self._fof_group_first_subhalo[nfof:nfof + len(first_groups)] = first_groups.astype(int)[:]
+            self._fof_group_first_subhalo[nfof:nfof + len(first_groups)] = first_groups
             nfof += len(first_groups)
 
     def __get_length(self):
