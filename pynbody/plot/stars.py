@@ -214,7 +214,7 @@ def render(sim,
 	The model assumes that the dust is proportional to the metal density. It estimates a V-band
 	extinction A_V using empirical data from Draine & Lee (1984, ApJ, 285, 89) and Savage and Mathis
 	(1979, ARA&A, 17, 73). This is then converted to extinction in the given bands using the
-	Calzetti law.
+	Calzetti law (2000, ApJ, 533, 682) with an R_V of 3.1.
 
 	The model furthermore assumes that half the dust is in front of the stars and half behind, because
 	there is no radiative transfer to account for the actual distribution of dust in the 3d space.
@@ -244,13 +244,6 @@ def render(sim,
 
 		a_v = _dust_Av_image(sim, width, resolution)
 
-		try:
-			import extinction
-		except ImportError:
-			raise ImportError("Could not load extinction package. If you want to use this feature, "
-				"plaese install the extinction package from here: http://extinction.readthedocs.io/en/latest/"
-				"or <via pip install extinction> or <conda install -c conda-forge extinction>") from None
-
 		ext_b, ext_g, ext_r = _a_v_to_band_extinctions(a_v, b_band, g_band, r_band)
 
 		r = r+ext_r
@@ -278,27 +271,31 @@ def render(sim,
 		return mag_max, mag_min
 
 
-def _a_v_to_band_extinctions(a_v, b_band, g_band, r_band):
-	try:
-		import extinction
-	except ImportError:
-		raise ImportError("Could not load extinction package. If you want to use this feature, "
-						  "plaese install the extinction package from here: http://extinction.readthedocs.io/en/latest/"
-						  "or <via pip install extinction> or <conda install -c conda-forge extinction>") from None
+def _aa_to_invum(wavelengths):
+	return 1e4 / wavelengths
+
+def _calzetti00_invum(x, r_v):
+	"""Calzetti extinction law in inverse microns, for specified r_v"""
+	if x > 1.5873015873015872:
+		k = 2.659 * (((0.011 * x - 0.198) * x + 1.509) * x - 2.156)
+	else:
+		k = 2.659 * (1.040*x - 1.857)
+
+	return 1.0 + k / r_v
+
+def _calzetti00(wavelengths, r_v):
+	"""Calzetti extinction law, for specified r_v"""
+	return _calzetti00_invum(_aa_to_invum(wavelengths), r_v)
+
+def _a_v_to_band_extinctions(a_v, b_band, g_band, r_band, r_v=3.1):
 	ssp_table = pynbody.analysis.luminosity.get_current_ssp_table()
-	wavelengths = np.array([ssp_table.get_central_wavelength(band) for band in (b_band, g_band, r_band)], dtype=np.float64)
-	ext_r = np.empty(a_v.shape)
-	ext_g = np.empty(a_v.shape)
-	ext_b = np.empty(a_v.shape)
+	wavelengths = [ssp_table.get_central_wavelength(band) for band in (b_band, g_band, r_band)]
 
-	for i in range(len(a_v.flat)):
-		ext = extinction.calzetti00(wavelengths, a_v.flat[i].astype(np.float64), 3.1,
-									unit='aa', out=None)
-		ext_r.flat[i] = ext[2]
-		ext_g.flat[i] = ext[1]
-		ext_b.flat[i] = ext[0]
+	extinction_per_av = [_calzetti00(wavelength, r_v) for wavelength in wavelengths]
 
-	return ext_b, ext_g, ext_r
+	results = [a_v * ext for ext in extinction_per_av]
+
+	return results
 
 
 def _dust_Av_image(sim, width, resolution, healpix=False):

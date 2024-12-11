@@ -147,7 +147,7 @@ install_requires = [
 ]
 
 tests_require = [
-    'pytest','pandas','camb','extinction',"IPython",'healpy'
+    'pytest','pandas','camb',"IPython",'healpy'
 ]
 
 docs_require = [
@@ -156,7 +156,6 @@ docs_require = [
     'sphinx-book-theme',
     'sphinx-copybutton',
     'numpydoc',
-    'extinction',
     'nbsphinx',
     'camb'
 ],
