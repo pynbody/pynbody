@@ -150,9 +150,7 @@ def test_render_stars(stars_2d, stars_dust_2d, snap):
 
     npt.assert_allclose(stars_2d,im[40:60],atol=0.01)
 
-@pytest.mark.skipif(condition=int(np.__version__.split('.')[0])  == 2,
-                   reason="Extinction is not currently compatible with numpy 2.0",
-                   strict=True)
+
 @pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
 def test_render_stars_with_dust(stars_dust_2d, snap):
     im = pynbody.plot.stars.render(snap, width=10.0, resolution=100, return_image=True, noplot=True, with_dust=True)

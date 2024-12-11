@@ -19,12 +19,8 @@ can do, try the [quick-start tutorial](https://pynbody.readthedocs.io/latest/tut
 If python and the standard pip package manager is installed and properly configured, you can simply do:
 
 ```
-$ pip install --pre pynbody
+$ pip install pynbody
 ```
-
-At the moment, we encourage new users to use pynbody version 2 release candidate, which is why the `--pre`
-flag is applied. If you need strict backwards compatibility, omit `--pre`. Version 2 will soon become
-the default (likely by the end of 2024).
 
 If this fails, you may need some more detailed [installation
 instructions](https://pynbody.readthedocs.io/latest/installation.html). 

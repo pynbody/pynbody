@@ -30,6 +30,16 @@ Key changes
 - The :mod:`~pynbody.plot` subpackage has been streamlined, with a number of trivial routines removed, and
   options to save files etc removed. These are much better handled by matplotlib directly.
   See the :mod:`~pynbody.plot` documentation for details.
+- The :mod:`~pynbody.analysis` package has been rationalised, with unnecessary routines removed (including the
+  ``pkdgrav_cosmo`` module). Major improvements have been made to :mod:`~pynbody.analysis.luminosity` and
+  :mod:`~pynbody.analysis.ionfrac` to bring their estimates up to date and explain more clearly how to
+  introduce new tables for interpolation. The :mod:`~pynbody.analysis.profile` module has been improved. The
+  ``decomp`` module has been renamed to :mod:`~pynbody.analysis.morphology`.
+- The :mod:`~pynbody.sph` subpackage has been overhauled to improve efficiency and robustness of SPH
+  operations. The implementation of healpix rendering has been improved, by using our own healpix pixelization
+  implementation that enables faster, parallel rendering.  KD-tree operations are now found in :mod:`~pynbody.kdtree`
+  and KD-tree information can be accessed directly from python as a numpy record array (e.g. for saving or
+  manipulating KD-trees directly).
 - The :mod:`~pynbody.array` subpackage now publishes a number of functions that were previously hidden,
   specifically enabling the use of shared memory in complex analysis pipelines across multiple processors. For
   more information see :ref:`using_shared_arrays`.
@@ -40,5 +50,8 @@ Key changes
 - There is improved support for various flavours of GadgetHDF files, including Swift, Arepo and TNG.
 - The :mod:`~pynbody.transformation` subpackage has been overhauled, with improved consistency e.g.
   if one loads data after a transformation has been applied (it will now be correctly transformed).
-- The implementation of healpix rendering has been improved, by using our own healpix pixelization
-  implementation that enables faster, parallel rendering.
+- Test data is now stored as a series of separate tars on Zenodo, rather than as a single large tarball.
+  Accessing test data can be accomplished automatically via the :mod:`pynbody.test_utils` function. When
+  running tests, the required data will be downloaded automatically if needed.
+- A number of external dependencies have changed; this should be taken care of automatically by pip. Numpy
+  2.0 is now supported.

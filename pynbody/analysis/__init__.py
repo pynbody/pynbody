@@ -14,6 +14,7 @@ from . import (
     hmf,
     ionfrac,
     luminosity,
+    morphology,
     profile,
     ramses_util,
     theoretical_profiles,

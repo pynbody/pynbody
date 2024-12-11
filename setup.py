@@ -147,7 +147,7 @@ install_requires = [
 ]
 
 tests_require = [
-    'pytest','pandas','camb','extinction',"IPython",'healpy'
+    'pytest','pandas','camb',"IPython",'healpy'
 ]
 
 docs_require = [
@@ -156,7 +156,6 @@ docs_require = [
     'sphinx-book-theme',
     'sphinx-copybutton',
     'numpydoc',
-    'extinction',
     'nbsphinx',
     'camb'
 ],
@@ -195,7 +194,7 @@ setup(name = 'pynbody',
                                          'cambtemplate.ini'],
                     'pynbody/plot': ['tollerud2008mw']},
       ext_modules = ext_modules,
-      classifiers = ["Development Status :: 4 - Beta",
+      classifiers = ["Development Status :: 5 - Production/Stable",
                      "Intended Audience :: Developers",
                      "Intended Audience :: Science/Research",
                      "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
