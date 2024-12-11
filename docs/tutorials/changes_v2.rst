@@ -31,10 +31,10 @@ Key changes
   options to save files etc removed. These are much better handled by matplotlib directly.
   See the :mod:`~pynbody.plot` documentation for details.
 - The :mod:`~pynbody.analysis` package has been rationalised, with unnecessary routines removed (including the
-  `pkdgrav_cosmo` module). Major improvements have been made to :mod:`~pynbody.analysis.luminosity` and
+  ``pkdgrav_cosmo`` module). Major improvements have been made to :mod:`~pynbody.analysis.luminosity` and
   :mod:`~pynbody.analysis.ionfrac` to bring their estimates up to date and explain more clearly how to
   introduce new tables for interpolation. The :mod:`~pynbody.analysis.profile` module has been improved. The
-  `decomp` module has been renamed to :mod:`~pynbody.analysis.morphology`.
+  ``decomp`` module has been renamed to :mod:`~pynbody.analysis.morphology`.
 - The :mod:`~pynbody.sph` subpackage has been overhauled to improve efficiency and robustness of SPH
   operations. The implementation of healpix rendering has been improved, by using our own healpix pixelization
   implementation that enables faster, parallel rendering.  KD-tree operations are now found in :mod:`~pynbody.kdtree`
