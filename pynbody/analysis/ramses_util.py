@@ -17,7 +17,7 @@ Now you can run AHF or pkdgrav using the file named
 You can also just output a part of the simulation :
 
 >>> s = pynbody.analysis.ramses_util.load_center('output_00101', align=False) # centered on halo 0
->>> pynbody.analysis.ramses_util.convert_to_tipsy_simple('output_00101', file = pynbody.filt.Sphere('200 kpc')
+>>> pynbody.analysis.ramses_util.convert_to_tipsy_simple('output_00101', filt = pynbody.filt.Sphere('200 kpc'))
 
 Now we've got a file called `output_00101.tipsy` which holds only the
 200 kpc sphere centered on halo 0.
@@ -164,7 +164,7 @@ def convert_to_tipsy_fullbox(s, write_param=True):
     Parameters
     ----------
 
-    s : RamsesSnap
+    s : RamsesSnap | str
         RAMSES snapshot
 
     write_param : bool, optional
@@ -172,8 +172,11 @@ def convert_to_tipsy_fullbox(s, write_param=True):
 
     """
 
+    if isinstance(s, str):
+        s = pynbody.load(s)
+
     if type(s) is not RamsesSnap:
-        raise ValueError("This routine can only be used for Ramses snapshots but you are calling with " + str(type(s)))
+        raise TypeError("This routine can only be used for Ramses snapshots but you are calling with " + str(type(s)))
 
     warnings.warn("This routine currently makes the assumption that the ramses snapshot is cosmological\n"
                   "when converting units. Beware if converting isolated runs.")
