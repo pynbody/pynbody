@@ -465,12 +465,19 @@ def array_by_array_test_tipsy_converter(ramses_snap, tipsy_snap):
 
 
 @pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
-def test_tipsy_conversion_for_dmo():
+@pytest.mark.parametrize("pass_as_str", [True, False])
+def test_tipsy_conversion_for_dmo(pass_as_str):
     path = "testdata/ramses/ramses_dmo_partial_output_00051"
-    f_dmo = pynbody.load(path)
+    if pass_as_str:
+        f_dmo = path
+    else:
+        f_dmo = pynbody.load(path)
 
     with pytest.warns(UserWarning, match=r"This routine currently makes the assumption that the ramses snapshot is cosmological.*"):
         pynbody.analysis.ramses_util.convert_to_tipsy_fullbox(f_dmo, write_param=True)
+
+    if pass_as_str:
+        f_dmo = pynbody.load(path)
 
     # There are many tipsy parameter files that are automatically detected by the loader
     # in the testdata folder, make sure we point the right one
