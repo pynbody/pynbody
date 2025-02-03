@@ -5,11 +5,11 @@ ci:
 
 repos:
 -   repo: https://github.com/asottile/setup-cfg-fmt
-    rev: v2.5.0
+    rev: v2.7.0
     hooks:
     -   id: setup-cfg-fmt
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
     - id: end-of-file-fixer
     - id: no-commit-to-branch
@@ -18,7 +18,7 @@ repos:
     - id: check-executables-have-shebangs
     - id: check-yaml
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.2
+    rev: v3.19.1
     hooks:
     - id: pyupgrade
       args: [--py37-plus]
@@ -27,14 +27,14 @@ repos:
     hooks:
     -   id: rst-backticks
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 1.8.5
+  rev: 1.9.1
   hooks:
     - id: nbqa-pyupgrade
       args: [--py37-plus]
     - id: nbqa-isort
 
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
+    rev: 6.0.0
     hooks:
     - id: isort
       name: isort (python)
