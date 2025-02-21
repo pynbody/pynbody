@@ -385,7 +385,11 @@ class TipsySnap(SimSnap):
             os.system("mv " + self.filename + ".tmp " + self.filename)
 
     @staticmethod
-    def _write(self, filename=None, double_pos=None, double_vel=None, binary_aux_arrays=None, cosmological=True):
+    def _infer_cosmological_from_properties(snapshot):
+        return 'a' in snapshot.properties
+
+    @staticmethod
+    def _write(snapshot, filename=None, double_pos=None, double_vel=None, binary_aux_arrays=None, cosmological=None):
         """
 
         Write a TIPSY (standard) formatted file.
@@ -411,52 +415,56 @@ class TipsySnap(SimSnap):
                                     arrays in binary format; if left 'None', the preference is
                                     taken from the param file
 
-        *cosmological* (True): if True (default), the header will store the self.properties['a'];
-                               otherwise it will store self.properties['time']
+        *cosmological* (None): if True, the header will store the self.properties['a'];
+                               if False, it will store self.properties['time'];
+                               if None (default), an attempt will be made to infer which is more appropriate
 
         """
 
         global config
 
         if filename is None:
-            filename = self._filename
+            filename = snapshot._filename
 
         logger.info("Writing main file %s", filename)
 
-        f = util.open_(filename, 'wb')
+        output_file = util.open_(filename, 'wb')
 
         t = 0.0
         try:
+            if cosmological is None:
+                cosmological = TipsySnap._infer_cosmological_from_properties(snapshot)
+
             if cosmological:
-                t = self.properties['a']
+                t = snapshot.properties['a']
             else:
-                t = self.properties['time']
+                t = snapshot.properties['time']
         except KeyError:
             warnings.warn(
                 "Time is unknown: writing zero in header", RuntimeWarning)
 
-        n = len(self)
+        n = len(snapshot)
         ndim = 3
-        ng = len(self.gas)
-        nd = len(self.dark)
-        ns = len(self.star)
+        ng = len(snapshot.gas)
+        nd = len(snapshot.dark)
+        ns = len(snapshot.star)
         if n != ng + nd + ns:
             warnings.warn("Snapshot contains extra particles than DM, stars and gas (extra families?). "
                           "Tipsy writing is not set up to handle those. Reverting Tipsy header ntot to ng + nd + ns")
             n = ng + nd + ns
 
-        byteswap = getattr(self, "_byteswap", sys.byteorder == "little")
+        byteswap = getattr(snapshot, "_byteswap", sys.byteorder == "little")
 
         if byteswap:
-            f.write(struct.pack(">diiiiii", t, n, ndim, ng, nd, ns, 0))
+            output_file.write(struct.pack(">diiiiii", t, n, ndim, ng, nd, ns, 0))
         else:
-            f.write(struct.pack("diiiiii", t, n, ndim, ng, nd, ns, 0))
+            output_file.write(struct.pack("diiiiii", t, n, ndim, ng, nd, ns, 0))
 
         # needs to be done in blocks like reading
         # describe the file structure as list of (num_parts,
         # [list_of_properties])
 
-        if type(self) is not TipsySnap:
+        if type(snapshot) is not TipsySnap:
             if double_pos is None:
                 double_pos = False
             if double_vel is None:
@@ -465,8 +473,8 @@ class TipsySnap(SimSnap):
             vtype = 'd' if double_vel else 'f'
 
         else:
-            dpos_param = self._paramfile.get('bDoublePos', False)
-            dvel_param = self._paramfile.get('bDoubleVel', False)
+            dpos_param = snapshot._paramfile.get('bDoublePos', False)
+            dvel_param = snapshot._paramfile.get('bDoubleVel', False)
 
             if double_pos:
                 ptype = 'd'
@@ -495,10 +503,10 @@ class TipsySnap(SimSnap):
 
         max_block_size = 1024 ** 2  # particles
 
-        with self.lazy_derive_off:
+        with snapshot.lazy_derive_off:
             for n_left, fam, dtype in file_structure:
                 n_done = 0
-                self_type = self[fam]
+                self_type = snapshot[fam]
                 while n_left > 0:
                     n_block = min(n_left, max_block_size)
 
@@ -518,26 +526,26 @@ class TipsySnap(SimSnap):
 
                     # Write out the block
                     if byteswap:
-                        g.byteswap().tofile(f)
+                        g.byteswap().tofile(output_file)
                     else:
-                        g.tofile(f)
+                        g.tofile(output_file)
 
                     # Increment total ptcls written, decrement ptcls left of
                     # this type
                     n_left -= n_block
                     n_done += n_block
 
-        f.close()
+        output_file.close()
 
         logger.info("Writing auxiliary arrays")
 
-        with self.lazy_off:  # prevent any lazy reading or evaluation
+        with snapshot.lazy_off:  # prevent any lazy reading or evaluation
 
-            for x in set(self.keys()).union(self.family_keys()):
-                if not self.is_derived_array(x) and x not in ["mass", "pos", "x", "y", "z", "vel", "vx", "vy", "vz", "rho", "temp",
+            for x in set(snapshot.keys()).union(snapshot.family_keys()):
+                if not snapshot.is_derived_array(x) and x not in ["mass", "pos", "x", "y", "z", "vel", "vx", "vy", "vz", "rho", "temp",
                                                               "eps", "metals", "phi", "tform"]:
                     TipsySnap._write_array(
-                        self, x, filename=filename + "." + x, binary=binary_aux_arrays)
+                        snapshot, x, filename=filename + "." + x, binary=binary_aux_arrays)
 
 
     @staticmethod
