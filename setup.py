@@ -152,7 +152,7 @@ tests_require = [
 
 docs_require = [
     'ipython>=3',
-    'Sphinx>=7',
+    'Sphinx>=7,<8.2.0', #<8.2.0 due to nbsphinx compatibility issue (cf https://github.com/rapidsai/build-planning/issues/155)
     'sphinx-book-theme',
     'sphinx-copybutton',
     'numpydoc',
