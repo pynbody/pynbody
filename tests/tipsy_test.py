@@ -166,21 +166,16 @@ def test_halo_unit_conversion(snap):
     h[1].gas['rho'].convert_units('m_p cm^-3')
     assert str(h[1].gas['rho'].units) == 'm_p cm**-3'
 
-@pytest.fixture
-def test_output():
-    f2 = pynbody.new(gas=20, star=11, dm=9, order='gas,dm,star')
-    f2.dm['test_array'] = np.ones(9)
-    f2['x'] = np.arange(0, 40)
-    f2['vx'] = np.arange(40, 80)
-    f2.properties['a'] = 0.5
-    f2.properties['time'] = 12.0
-    f2.write(fmt=pynbody.snapshot.tipsy.TipsySnap, filename="testdata/gasoline_ahf/test_out.tipsy")
-    yield "testdata/gasoline_ahf/test_out.tipsy"
-    # unlink anything matching testdata/gasoline_ahf/test_out.tipsy*
-    for f in glob.glob("testdata/gasoline_ahf/test_out.tipsy*"):
-        os.unlink(f)
+def test_infer_cosmo_output():
+    f = pynbody.new(gas=20)
+    f.properties['a'] = 1.0
+    assert pynbody.snapshot.tipsy.TipsySnap._infer_cosmological_from_properties(f)
+    f = pynbody.new(gas=20)
+    f.properties['time'] = 1.0
+    assert not pynbody.snapshot.tipsy.TipsySnap._infer_cosmological_from_properties(f)
 
 def gen_output(cosmological):
+    """Write a sample output."""
     f2 = pynbody.new(gas=20, star=11, dm=9, order='gas,dm,star')
     f2.dm['test_array'] = np.ones(9)
     f2['x'] = np.arange(0, 40)
@@ -193,6 +188,7 @@ def gen_output(cosmological):
     # unlink anything matching testdata/gasoline_ahf/test_out.tipsy*
     for f in glob.glob("testdata/gasoline_ahf/test_out.tipsy*"):
         os.unlink(f)
+
 @pytest.fixture
 def test_noncosmo_output():
     yield from gen_output(False)
