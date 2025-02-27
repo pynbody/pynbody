@@ -205,7 +205,7 @@ setup(name = 'pynbody',
       install_requires=install_requires,
       tests_require=tests_require,
       extras_require=extras_require,
-      python_requires='>=3.10',
+      python_requires='>=3.11',
       long_description=long_description,
       long_description_content_type='text/markdown'
       )
