@@ -16,7 +16,7 @@ Flexible plotting functions
 import warnings
 
 import numpy as np
-import pylab as plt
+import numpy.ma as ma
 
 import pynbody
 
@@ -27,7 +27,7 @@ from ..util import deprecated
 
 def hist2d(x, y, weights=None, values=None, gridsize=(100, 100), nbins = None,
            x_logscale = False, y_logscale = False, x_range = None, y_range = None,
-           use_kde = False, kde_kwargs=None, **kwargs):
+           use_kde = False, kde_kwargs=None, fill_value=None, **kwargs):
     """
     Plot 2D histogram for arbitrary arrays *x* and *y*.
 
@@ -120,6 +120,10 @@ def hist2d(x, y, weights=None, values=None, gridsize=(100, 100), nbins = None,
     kde_kwargs: dict, optional
         Dictionary of keyword arguments to pass to :func:`~pynbody.plot.util.fast_kde` if
         *use_kde* is True.
+
+    fill_value: float, optional
+        If provided, fill empty bins with this value when making a histogram of mean values
+        (i.e. only when *values* is provided). Default is None, in which case empty bins are filled with NaN.
 
     ret_im: bool, optional
         Deprecated. If True, plot_type is set to 'image'.
@@ -227,13 +231,21 @@ def hist2d(x, y, weights=None, values=None, gridsize=(100, 100), nbins = None,
         hist_norm, _, _ = _histogram_generator(weights)
         valid = hist_norm > 0
         hist[valid] /= hist_norm[valid]
+
+        hist = hist.view(SimArray)
+
+        if fill_value:
+            hist[~valid] = fill_value
+        else:
+            hist[~valid] = np.nan
+
+        try:
+            hist.units = values.units
+        except AttributeError:
+            hist.units = NoUnit()
+
     else:
         hist, ys, xs = _histogram_generator(weights)
-
-    try:
-        hist = SimArray(hist, values.units)
-    except AttributeError:
-        hist = SimArray(hist)
 
     try:
         xs = SimArray(.5 * (xs[:-1] + xs[1:]), x.units)
