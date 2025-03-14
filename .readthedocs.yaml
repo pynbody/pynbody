@@ -19,7 +19,7 @@ build:
        - cd docs && wget -q https://zenodo.org/records/10825178/files/tutorial_gadget.tar.gz?download=1 -O tutorial_gadget.tar.gz && tar -xvzf tutorial_gadget.tar.gz
      post_build:
        - mkdir $READTHEDOCS_OUTPUT/html/tutorials/plots/
-       - cp -r docs/*.png $READTHEDOCS_OUTPUT/html/tutorials/plots/
+       - cp -r docs/plots/*.png $READTHEDOCS_OUTPUT/html/tutorials/plots/
        # totally unclear why the above should be necessary - in my own setup, sphinx puts everything in sensible places
        - find $READTHEDOCS_OUTPUT/html  # for debugging
        - find docs/ # for debugging
