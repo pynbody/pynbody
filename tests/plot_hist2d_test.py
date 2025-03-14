@@ -1,5 +1,6 @@
 import warnings
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -65,7 +66,7 @@ def test_hist2d_image_type():
     x = np.random.randn(10000)
     y = np.random.randn(10000)
 
-    import matplotlib.pyplot as plt
+
 
     plt.clf()
     hist2d(x, y, nbins=100, plot_type='image')
@@ -82,3 +83,39 @@ def test_hist2d_image_type():
     hist2d(x, y, nbins=100, plot_type='contourf')
 
     assert len(plt.gca().collections) > 0
+
+def test_hist2d_with_nan():
+    np.random.seed(13136)
+    x = np.random.normal(size=10000)
+    y = np.random.normal(size=10000)
+    v = np.random.normal(size=10000)
+
+    plt.clf()
+    hist2d(x, y, values=v, nbins=100, x_range=(-3, 3), y_range=(-3, 3), logscale=False, colorbar=True)
+
+    # Now inspect the figure, and check the color range is sensible
+    clim = plt.gcf().get_axes()[0].collections[0].get_clim()
+    npt.assert_allclose(clim, (-3.8336727348072435, 3.3284910138060635))
+
+def test_hist2d_colorbar_control():
+    np.random.seed(13136)
+    x = np.random.normal(size=10000)
+    y = np.random.normal(size=10000)
+    v = np.random.normal(size=10000)
+
+    plt.clf()
+    hist2d(x, y, values=v, nbins=100, x_range=(-3, 3), y_range=(-3, 3), logscale=False, colorbar=False)
+
+    assert len(plt.gcf().get_axes()) == 1
+
+    plt.clf()
+    hist2d(x, y, values=v, nbins=100, x_range=(-3, 3), y_range=(-3, 3), logscale=False, colorbar=True)
+
+    assert len(plt.gcf().get_axes()) == 2
+
+    plt.clf()
+    hist2d(x, y, values=v, nbins=100, x_range=(-3, 3), y_range=(-3, 3), logscale=False, colorbar=True,
+            colorbar_label='test_label', colorbar_format="%.1f")
+
+    assert plt.gcf().get_axes()[1].get_ylabel() == 'test_label'
+    assert plt.gcf().get_axes()[1].get_yticklabels()[0].get_text() == '-3.8'

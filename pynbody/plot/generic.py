@@ -38,6 +38,15 @@ def hist2d(x, y, weights=None, values=None, gridsize=(100, 100), nbins = None,
     the result is a simple weighted histogram.
 
 
+    .. versionchanged :: 2.1
+
+        * Added *fill_value* keyword. If provided, empty bins are filled with this value when making a histogram of
+          mean values. Default is None, in which case empty bins are filled with NaN which will typically be rendered
+          as transparent. Versions prior to 2.1 implicitly had fill_value set to 0.
+
+        * Added *colorbar_label* and *colorbar_format* keywords.
+
+
     .. versionchanged :: 2.0
 
         The *scalemin* and *scalemax* keywords have been deprecated in favor of *vmin* and *vmax*
@@ -108,8 +117,26 @@ def hist2d(x, y, weights=None, values=None, gridsize=(100, 100), nbins = None,
     nlevels : int | array-like, optional
         Number of levels to use for contours (if plot_type is 'contour'). Default is 20.
 
-    colorbar: bool, optional
-        Draw a colorbar if True. Default is False.
+    logscale : boolean, optional
+        If True, use a log-scaled colorbar and log-spaced contours. Default is True.
+
+    colorbar : boolean, optional
+        If True, draw a colorbar. Default is False.
+
+    colorbar_label : str, optional
+        If *colorbar* is True, this string will be used as the label for the colorbar.
+
+    colorbar_format : str, optional
+        If *colorbar* is True, this string will be used as the format string for the colorbar.
+
+    vmin : float, optional
+        Minimum value to use for the color scale.
+
+    vmax : float, optional
+        Maximum value to use for the color scale.
+
+    cmap : str, optional
+        Colormap to use. Default is None, which uses the default colormap.
 
     make_plot: str, optional
         Deprecated alias for *plot_type*.
@@ -300,13 +327,21 @@ def gauss_kde(*args, **kwargs):
 
 def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
                       logscale=True, xlabel_display_log=False, ylabel_display_log=False,
-                      colorbar=False, cmap=None, vmin=None, vmax=None, plot_type='contourf', **kwargs):
+                      colorbar=False, cmap=None, vmin=None, vmax=None, plot_type='contourf',
+                      colorbar_label=None, colorbar_format=None, **kwargs):
     """
     Plot a contour plot of grid *arr* corresponding to bin centers specified by *xs* and *ys*.
 
     Labels the axes and colobar with units taken from x, if available.
 
     Called by :func:`~pynbody.plot.generic.hist2d`.
+
+    .. versionchanged :: 2.1
+
+        * Added *colorbar_label* keyword
+
+        * Added *colorbar_format* keyword. If provided, this string will be used as the format string for the colorbar.
+          Formerly, the format string was set to '%.2e'.
 
     .. versionchanged :: 2.0
 
@@ -327,7 +362,6 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
 
         * The *ret_im* keyword has been deprecated. If you want to use ``imshow`` instead of ``contour``,
           set *plot_type* to 'image'.
-
 
 
     Parameters
@@ -365,6 +399,12 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
     colorbar : boolean, optional
         If True, draw a colorbar. Default is False.
 
+    colorbar_label : str, optional
+        If *colorbar* is True, this string will be used as the label for the colorbar.
+
+    colorbar_format : str, optional
+        If *colorbar* is True, this string will be used as the format string for the colorbar.
+
     vmin : float, optional
         Minimum value to use for the color scale. Default is arr.min().
 
@@ -396,10 +436,11 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
     if 'norm' in kwargs:
         del(kwargs['norm'])
 
-    if arr.units != NoUnit() and arr.units != 1:
-        cb_label = '$' + arr.units.latex() + '$'
-    else:
-        cb_label = '$N$'
+    if colorbar_label is None:
+        if hasattr(arr,'units') and arr.units != NoUnit() and arr.units != 1:
+            colorbar_label = '$' + arr.units.latex() + '$'
+        else:
+            colorbar_label = '$N$'
 
     if logscale:
         if vmin is None:
@@ -411,9 +452,9 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
         cont_color = colors.LogNorm(vmin = vmin, vmax = vmax)
     else:
         if vmin is None:
-            vmin = np.min(arr)
+            vmin = np.min(arr[~np.isnan(arr)])
         if vmax is None:
-            vmax = np.max(arr)
+            vmax = np.max(arr[~np.isnan(arr)])
         levels = np.linspace(vmin, vmax, nlevels)
         cont_color = colors.Normalize(vmin = vmin, vmax = vmax)
 
@@ -468,7 +509,7 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
             pass
 
     if colorbar:
-        plt.colorbar(plot_artist, format="%.2e").set_label(r'' + cb_label)
+        plt.colorbar(plot_artist, format=colorbar_format).set_label(colorbar_label)
 
     return plot_artist
 
