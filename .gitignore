@@ -8,3 +8,14 @@ testdata*
 docs/_static/*png
 docs/*png
 .DS_Store
+*.so
+pynbody/analysis/_com.c
+pynbody/bridge/_bridge.c
+pynbody/chunk/scan.c
+pynbody/extern/_cython_fortran_utils.c
+pynbody/filt/geometry_selection.cpp
+pynbody/gravity/_gravity.c
+pynbody/openmp/openmp_real.c
+pynbody/sph/_render.c
+pynbody/util/_util.c
+pynbody.egg-info/
