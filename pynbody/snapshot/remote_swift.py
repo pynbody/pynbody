@@ -3,6 +3,7 @@ import numpy as np
 
 from .swift import SwiftSnap
 from .gadgethdf import _GadgetHdfMultiFileManager
+from ..util import slice_dataset
 
 try:
     import hdfstream
