@@ -1,8 +1,8 @@
 #!/bin/env python
 #
 # Contains classes to wrap h5py.Datasets to provide views which return only
-# a subset of elements identified by a list of slices to apply in the first
-# dimension.
+# a subset of elements. These elements are identified by a list of slices to
+# apply in the first dimension.
 #
 
 import numpy as np
@@ -81,8 +81,11 @@ class SlicedDataset(BaseWrapper):
         if slices:
             slices = _join_slices(slices)
         self._slices = slices
-        self.data = None
         super(SlicedDataset, self).__init__(obj)
+        # Compute total number of elements after slicing
+        self.size = len(self)
+        for s in obj.shape[1:]:
+            self.size *= s
 
     def _load(self):
         """
@@ -154,8 +157,9 @@ class SlicedGroup(BaseWrapper):
         obj = self.obj[key]
         if self._is_dataset_like(obj):
             # If it's a dataset, check if we need to slice it
-            if self._slices is not None and self.obj.name in self._slices:
-                slices = self._slices[self.obj.name]
+            name = self.obj.name.lstrip("/")
+            if self._slices is not None and name in self._slices:
+                slices = self._slices[name]
             else:
                 slices = None
             result = SlicedDataset(obj, slices)

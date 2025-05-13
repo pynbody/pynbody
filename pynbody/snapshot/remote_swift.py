@@ -23,17 +23,17 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
         # Determine number of files and open the first file
         if self._rootdir.is_hdf5(filename):
             # Single file snapshot
-            self._open_files = {0 : self._rootdir[filename]}
+            file0 = self._rootdir[filename]
             self._filenames = [filename]
             self._fileindex = [0,]
             self._numfiles = 1
         else:
             # Multi file snapshot
-            self._open_files = {0 : self._rootdir[filename+".0.hdf5"]}
-            self._numfiles = self._open_files[0]["Header"].attrs["NumFilesPerSnapshot"][0]
+            file0 = self._rootdir[filename+".0.hdf5"]
+            self._numfiles = file0["Header"].attrs["NumFilesPerSnapshot"][0]
             self._filenames = [f"{filename}.{i}.hdf5" for i in range(self._numfiles)]
             self._fileindex = list(range(self._numfiles))
-        self._slices = None
+        self._open_files = {}
 
         # Determine which cells we need
         if take_cells is not None and take_region is not None:
@@ -52,8 +52,7 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
             # dicts of the form slices_in_file[file_nr][particle_type] = list_of_slices.
             slices_in_file = {}
             all_files = set()
-            file0 = self[0]
-            for ptype in self._all_group_names():
+            for ptype in list(file0["Cells/Counts"]):
                 # Read cells for this particle type
                 counts = file0["Cells"]["Counts"][ptype][...][self._take_cells]
                 offsets = file0["Cells"]["OffsetsInFile"][ptype][...][self._take_cells]
@@ -80,11 +79,8 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
                     filenames.append(name)
                     fileindex.append(index)
             self._filenames = filenames
-            self.fileindex = fileindex
+            self._fileindex = fileindex
             self._numfiles = len(self._filenames)
-            # Close file 0 if we don't need it
-            if 0 not in all_files:
-                del self._open_files[0]
 
     def _identify_cells_to_take(self, take):
         centres = self[0]['Cells/Centres'][:]
@@ -106,9 +102,11 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
     def _ensure_file_open(self, i):
         if i not in self._open_files:
-            self._open_files[i] = self._rootdir[self._filenames[i]]
-            if self._subgroup_name is not None:
-                self._open_files[i] = self._open_files[i][self._subgroup_name]
+            f = self._rootdir[self._filenames[i]]
+            if self._take_cells is not None:
+                index = self._fileindex[i]
+                f = slice_dataset.SlicedGroup(f["/"], slices=self._slices_in_file[index])
+            self._open_files[i] = f
 
     def __iter__(self) :
         for i in range(self._numfiles) :
