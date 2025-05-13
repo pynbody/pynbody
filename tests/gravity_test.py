@@ -73,3 +73,19 @@ def test_eps_retrieval_number():
                             -0.06739005, -0.06748439, -0.0695245,
                             -0.06803885, -0.0679833,  -0.07277965, -0.07189107])
     npt.assert_allclose(f['phi'][:10], true_phi_10)
+
+
+@pytest.mark.filterwarnings("ignore:no unit")
+@pytest.mark.filterwarnings("ignore:assuming default value")
+@pytest.mark.filterwarnings("ignore:unable to infer units")
+def test_direct_gravity_large_snapshot_no_segfault():
+    # Load data with more than a few million particles
+    snapshot = pynbody.load("testdata/gizmo/snapshot_000.hdf5")
+
+    # Set softening length
+    snapshot.properties["eps"] = "0.05 kpc"
+
+    # Calculate rotation curve
+    pos = np.linspace(4, 10, 20)
+    result = pynbody.gravity.midplane_rot_curve(snapshot.dm, pos)
+    assert result is not None
