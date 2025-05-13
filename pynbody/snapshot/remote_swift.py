@@ -33,6 +33,7 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
             self._numfiles = self._open_files[0]["Header"].attrs["NumFilesPerSnapshot"][0]
             self._filenames = [f"{filename}.{i}.hdf5" for i in range(self._numfiles)]
             self._fileindex = list(range(self._numfiles))
+        self._slices = None
 
         # Determine which cells we need
         if take_cells is not None and take_region is not None:
@@ -42,27 +43,47 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
             self._take_cells = self._identify_cells_to_take(take_region)
 
         if self._take_cells is not None:
-            # If we're reading only specific cells we may not need all of the files.
-            # Determine which files the required cells are in.
+
+            # Avoid unwanted conversion of counts, offsets to scalar if _take_cells is a list
+            # with only one element
+            self._take_cells = np.asarray(self._take_cells, dtype=int)
+
+            # Read the cell information for each particle type and make nested
+            # dicts of the form slices_in_file[file_nr][particle_type] = list_of_slices.
+            slices_in_file = {}
+            all_files = set()
             file0 = self[0]
-            self._files_needed = set()
-            for groupname in self._all_group_names():
-                cell_file_nr = file0[f"Cells/Files/{groupname}"][...]
-                self._files_needed |= set(cell_file_nr[np.asarray(self._take_cells, dtype=int)])
-            # Should not have opened all of the files yet
-            assert len(self._open_files) == 1
+            for ptype in self._all_group_names():
+                # Read cells for this particle type
+                counts = file0["Cells"]["Counts"][ptype][...][self._take_cells]
+                offsets = file0["Cells"]["OffsetsInFile"][ptype][...][self._take_cells]
+                files = file0["Cells"]["Files"][ptype][...][self._take_cells]
+                # Find slices for each particle type in each file
+                for count, offset, file in zip(counts, offsets, files):
+                    if count > 0:
+                        if file not in slices_in_file:
+                            slices_in_file[file] = {}
+                        if ptype not in slices_in_file[file]:
+                            slices_in_file[file][ptype] = []
+                        slices_in_file[file][ptype].append(slice(offset, offset+count))
+                        all_files.add(file)
+                # Sort the list of slices by starting offset
+                slices_in_file[file][ptype].sort(key=lambda x: x.start)
+            self._slices_in_file = slices_in_file
+
+            # If we're reading only specific cells we may not need all of the files.
             # Prune the list of required files and store index of files we're keeping
             filenames = []
             fileindex = []
             for name, index in zip(self._filenames, self._fileindex):
-                if index in self._files_needed:
+                if index in all_files:
                     filenames.append(name)
                     fileindex.append(index)
             self._filenames = filenames
             self.fileindex = fileindex
             self._numfiles = len(self._filenames)
             # Close file 0 if we don't need it
-            if 0 not in self._files_needed:
+            if 0 not in all_files:
                 del self._open_files[0]
 
     def _identify_cells_to_take(self, take):
