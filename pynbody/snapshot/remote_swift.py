@@ -13,21 +13,33 @@ except ImportError:
 
 class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
+    def _connect(self):
+        if self._rootdir is None:
+            # TODO: mechanism to specify URL, user, password
+            server = "https://dataweb.cosma.dur.ac.uk:8443/hdfstream"
+            self._rootdir = hdfstream.open(server, "/")
+
+    def _open_hdf5_file(self, filename):
+        self._connect()
+        return self._rootdir[filename]
+
+    def _is_hdf5(self, filename):
+        self._connect()
+        return self._rootdir.is_hdf5(filename)
+
     def __init__(self, filename: pathlib.Path, take_cells, take_region, mode='r'):
 
         filename = str(filename)
-        # TODO: mechanism to specify URL, user, password
-        server = "https://dataweb.cosma.dur.ac.uk:8443/hdfstream"
-        self._rootdir = hdfstream.open(server, "/")
+        self._rootdir = None
 
         # Determine number of files and open the first file
-        if self._rootdir.is_hdf5(filename):
+        if self._is_hdf5(filename):
             # We've been given the name of a single snapshot file. This might
             # be a "virtual" snapshot which includes all sub-files, a complete
             # single file snapshot, or one of the sub-files in a multi file
             # snapshot. In the latter case we don't allow extracting regions
             # because they would be incomplete.
-            file0 = self._rootdir[filename]
+            file0 = self._open_hdf5_file(filename)
             if file0["Header"].attrs["NumFilesPerSnapshot"][0] > 1:
                 if take_cells or take_region:
                     raise ValueError("Unable to extract regions from a SWIFT snapshot sub-file")
@@ -37,7 +49,7 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
             self._numfiles = 1
         else:
             # We're reading all files from a multi file snapshot
-            file0 = self._rootdir[filename+".0.hdf5"]
+            file0 = self._open_hdf5_file(filename+".0.hdf5")
             self._numfiles = file0["Header"].attrs["NumFilesPerSnapshot"][0]
             self._filenames = [f"{filename}.{i}.hdf5" for i in range(self._numfiles)]
             self._fileindex = list(range(self._numfiles))
@@ -115,7 +127,7 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
     def _ensure_file_open(self, i):
         if i not in self._open_files:
-            f = self._rootdir[self._filenames[i]]
+            f = self._open_hdf5_file(self._filenames[i])
             if self._take_cells is not None:
                 index = self._fileindex[i]
                 f = dataset_view.GroupView(f["/"], slices=self._slices_in_file[index])
