@@ -78,8 +78,11 @@ class SlicedDatasetView(BaseView):
     This wraps a h5py.Dataset or similar object.
     """
     def __init__(self, obj, slices=None):
-        if slices:
-            slices = _join_slices(slices)
+        if slices is not None:
+            if len(slices) == 0:
+                slices = [slice(0,0),] # empty list indicates zero selected elements
+            else:
+                slices = _join_slices(slices)
         self._slices = slices
         super(SlicedDatasetView, self).__init__(obj)
         # Compute total number of elements after slicing
