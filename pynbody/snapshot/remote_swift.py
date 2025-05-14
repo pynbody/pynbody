@@ -60,7 +60,8 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
             # dicts of the form slices_in_file[file_nr][particle_type] = list_of_slices.
             slices_in_file = {}
             all_files = set()
-            for ptype in list(file0["Cells/Counts"]):
+            all_type_names = list(file0["Cells/Counts"])
+            for ptype in all_type_names:
                 # Read cells for this particle type
                 counts = file0["Cells"]["Counts"][ptype][...][self._take_cells]
                 offsets = file0["Cells"]["OffsetsInFile"][ptype][...][self._take_cells]
@@ -69,9 +70,9 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
                 for count, offset, file in zip(counts, offsets, files):
                     if count > 0:
                         if file not in slices_in_file:
-                            slices_in_file[file] = {}
-                        if ptype not in slices_in_file[file]:
-                            slices_in_file[file][ptype] = []
+                            # This is the first slice in this file. Set an empty list of
+                            # slices for all particle types.
+                            slices_in_file[file] = {name : [] for name in all_type_names}
                         slices_in_file[file][ptype].append(slice(offset, offset+count))
                         all_files.add(file)
                 # Sort the list of slices by starting offset
