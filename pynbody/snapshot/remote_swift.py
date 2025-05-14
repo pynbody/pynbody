@@ -3,7 +3,7 @@ import numpy as np
 
 from .swift import SwiftSnap
 from .gadgethdf import _GadgetHdfMultiFileManager
-from ..util import slice_dataset
+from ..util import dataset_view
 
 try:
     import hdfstream
@@ -105,7 +105,7 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
             f = self._rootdir[self._filenames[i]]
             if self._take_cells is not None:
                 index = self._fileindex[i]
-                f = slice_dataset.SlicedGroup(f["/"], slices=self._slices_in_file[index])
+                f = dataset_view.GroupView(f["/"], slices=self._slices_in_file[index])
             self._open_files[i] = f
 
     def __iter__(self) :

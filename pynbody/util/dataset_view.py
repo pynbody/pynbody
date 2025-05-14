@@ -49,7 +49,7 @@ def _join_slices(slices):
     return slices_out
 
 
-class BaseWrapper(Mapping):
+class BaseView(Mapping):
     """
     Base class for the sliced Group, Dataset and File objects.
     Implements the (immutable) Mapping interface.
@@ -73,7 +73,7 @@ class BaseWrapper(Mapping):
         return self.obj.__len__()
 
 
-class SlicedDataset(BaseWrapper):
+class SlicedDatasetView(BaseView):
     """
     This wraps a h5py.Dataset or similar object.
     """
@@ -81,7 +81,7 @@ class SlicedDataset(BaseWrapper):
         if slices:
             slices = _join_slices(slices)
         self._slices = slices
-        super(SlicedDataset, self).__init__(obj)
+        super(SlicedDatasetView, self).__init__(obj)
         # Compute total number of elements after slicing
         self.size = len(self)
         for s in obj.shape[1:]:
@@ -123,7 +123,7 @@ class SlicedDataset(BaseWrapper):
         target[...] = self[...]
 
 
-class SlicedGroup(BaseWrapper):
+class GroupView(BaseView):
     """
     Class to wrap a h5py.Group or similar. This needs to ensure that if
     we open a sub-group or dataset we return a wrapped group or dataset
@@ -138,7 +138,7 @@ class SlicedGroup(BaseWrapper):
     """
     def __init__(self, obj, slices=None):
         self._slices = slices
-        super(SlicedGroup, self).__init__(obj)
+        super(GroupView, self).__init__(obj)
 
     def _is_dataset_like(self, obj):
         return hasattr(obj, "shape")
@@ -162,10 +162,10 @@ class SlicedGroup(BaseWrapper):
                 slices = self._slices[name]
             else:
                 slices = None
-            result = SlicedDataset(obj, slices)
+            result = SlicedDatasetView(obj, slices)
         elif self._is_group_like(obj):
             # If it's a group, pass on the dict of slices
-            result = SlicedGroup(obj, self._slices)
+            result = GroupView(obj, self._slices)
         else:
             # And if it's anything else, return the underlying object
             result = obj
