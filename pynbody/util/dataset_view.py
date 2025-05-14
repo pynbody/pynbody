@@ -115,7 +115,7 @@ class SlicedDatasetView(BaseView):
         if self._slices and name == "shape":
             shape = list(self.obj.shape)
             shape[0] = len(self)
-            return shape
+            return tuple(shape)
         else:
             return getattr(self.obj, name)
 
