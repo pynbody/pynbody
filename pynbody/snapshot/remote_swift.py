@@ -139,7 +139,9 @@ class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
         if self._rootdir is None:
             # TODO: mechanism to specify URL, user, password
             server = "https://dataweb.cosma.dur.ac.uk:8443/hdfstream"
-            self._rootdir = hdfstream.open(server, "/")
+            # Set lazy loading parameters such that we're likely to fetch the
+            # cell metadata with the initial request.
+            self._rootdir = hdfstream.open(server, "/", max_depth=3, data_size_limit=1048576)
 
     def _open_hdf5_file(self, filename):
         self._connect()
