@@ -22,13 +22,21 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
         # Determine number of files and open the first file
         if self._rootdir.is_hdf5(filename):
-            # Single file snapshot
+            # We've been given the name of a single snapshot file. This might
+            # be a "virtual" snapshot which includes all sub-files, a complete
+            # single file snapshot, or one of the sub-files in a multi file
+            # snapshot. In the latter case we don't allow extracting regions
+            # because they would be incomplete.
             file0 = self._rootdir[filename]
-            self._filenames = [filename]
-            self._fileindex = [0,]
+            if file0["Header"].attrs["NumFilesPerSnapshot"][0] > 1:
+                if take_cells or take_region:
+                    raise ValueError("Unable to extract regions from a SWIFT snapshot sub-file")
+            # Store the name and index of the requested file
+            self._filenames = [filename,]
+            self._fileindex = [int(file0["Header"].attrs["ThisFile"][0]),]
             self._numfiles = 1
         else:
-            # Multi file snapshot
+            # We're reading all files from a multi file snapshot
             file0 = self._rootdir[filename+".0.hdf5"]
             self._numfiles = file0["Header"].attrs["NumFilesPerSnapshot"][0]
             self._filenames = [f"{filename}.{i}.hdf5" for i in range(self._numfiles)]
@@ -40,7 +48,7 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
             raise ValueError("Either take_cells or take_region must be specified, not both")
         self._take_cells = take_cells
         if take_region is not None:
-            self._take_cells = self._identify_cells_to_take(take_region)
+            self._take_cells = self._identify_cells_to_take(file0, take_region)
 
         if self._take_cells is not None:
 
@@ -78,12 +86,16 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
                 if index in all_files:
                     filenames.append(name)
                     fileindex.append(index)
-            self._filenames = filenames
-            self._fileindex = fileindex
-            self._numfiles = len(self._filenames)
+            if len(filenames) > 0:
+                self._filenames = filenames
+                self._fileindex = fileindex
+                self._numfiles = len(self._filenames)
+            else:
+                # This can happen if using take_region or take_cells and reading a single sub-file
+                raise ValueError("Snapshot file does not contain any part of the requested region")
 
-    def _identify_cells_to_take(self, take):
-        centres = self[0]['Cells/Centres'][...]
+    def _identify_cells_to_take(self, file0, take):
+        centres = file0['Cells/Centres'][...]
         return np.where(take.cubic_cell_intersection(centres))[0]
 
     def get_unit_attrs(self):
