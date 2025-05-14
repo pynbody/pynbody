@@ -14,6 +14,10 @@ def create_test_file():
     for ptype in range(2):
         g = f.create_group(f"PartType{ptype}")
         g["ParticleIDs"] = np.arange(nmax, dtype=int) + nmax*ptype
+        pos = np.ndarray((nmax,3), dtype=float)
+        for i in range(3):
+            pos[:,i] = 3*np.arange(nmax, dtype=float)+i
+        g["Coordinates"] = pos
     return f
 
 
@@ -136,7 +140,7 @@ def test_dataset_view_slice_empty_list():
     assert dataset1_view[...].shape == (0,)
 
 
-def slicing_test_1d(testfile, slices):
+def slicing_test(testfile, slices):
 
     # Create the view
     file_view = dataset_view.GroupView(testfile, slices=slices)
@@ -144,52 +148,57 @@ def slicing_test_1d(testfile, slices):
     # Check that the view contains the expected data
     for group_name in slices.keys():
 
-        # Find the real HDF5 dataset
-        dset = testfile[group_name]["ParticleIDs"]
+        for dataset_name in ("ParticleIDs", "Coordinates"):
 
-        # Find the sliced view of the same dataset
-        dset_view = file_view[group_name]["ParticleIDs"]
+            # Find the real HDF5 dataset
+            dset = testfile[group_name][dataset_name]
 
-        # Find the expected number of elements in the view
-        ntot = sum([s.stop-s.start for s in slices[group_name]])
-        assert dset_view.shape == (ntot,)
-        assert dset_view.size == ntot
+            # Find the sliced view of the same dataset
+            dset_view = file_view[group_name][dataset_name]
 
-        # Check that the dataset elements have the expected values
-        offset = 0
-        for sl in slices[group_name]:
-            n = sl.stop-sl.start
-            real_data = dset[sl]
-            view_data = dset_view[offset:offset+n]
-            assert np.all(real_data==view_data)
-            offset += n
+            # Find the expected number of elements in the view
+            ntot = sum([s.stop-s.start for s in slices[group_name]])
+            assert dset_view.shape[0] == ntot
+            assert dset_view.shape[1:] == dset.shape[1:]
+            for s in dset.shape[1:]:
+                ntot *= s
+            assert dset_view.size == ntot
+
+            # Check that the dataset elements have the expected values
+            offset = 0
+            for sl in slices[group_name]:
+                n = sl.stop-sl.start
+                real_data = dset[sl,...]
+                view_data = dset_view[offset:offset+n,...]
+                assert np.all(real_data==view_data)
+                offset += n
 
 
-def test_dataset_view_1d_contiguous():
+def test_dataset_view_contiguous():
 
     testfile = create_test_file()
     slices = {
         "PartType0" : [slice(0,100), slice(100,200)],
         "PartType1" : [slice(5000,5100), slice(5100,5200)],
         }
-    slicing_test_1d(testfile, slices)
+    slicing_test(testfile, slices)
 
 
-def test_dataset_view_1d_noncontiguous():
+def test_dataset_view_noncontiguous():
 
     testfile = create_test_file()
     slices = {
         "PartType0" : [slice(0,100), slice(1100,1200)],
         "PartType1" : [slice(5000,5100), slice(6100,6200)],
         }
-    slicing_test_1d(testfile, slices)
+    slicing_test(testfile, slices)
 
 
-def test_dataset_view_1d_all():
+def test_dataset_view_all():
 
     testfile = create_test_file()
     slices = {
         "PartType0" : [slice(i*1000,(i+1)*1000) for i in range(10)],
         "PartType1" : [slice(i*100,(i+1)*100) for i in range(100)]
         }
-    slicing_test_1d(testfile, slices)
+    slicing_test(testfile, slices)
