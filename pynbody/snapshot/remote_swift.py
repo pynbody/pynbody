@@ -1,5 +1,6 @@
 import pathlib
 import numpy as np
+import h5py
 
 from .swift import SwiftSnap
 from .gadgethdf import _GadgetHdfMultiFileManager
@@ -11,21 +12,7 @@ except ImportError:
     hdfstream = None
 
 
-class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
-
-    def _connect(self):
-        if self._rootdir is None:
-            # TODO: mechanism to specify URL, user, password
-            server = "https://dataweb.cosma.dur.ac.uk:8443/hdfstream"
-            self._rootdir = hdfstream.open(server, "/")
-
-    def _open_hdf5_file(self, filename):
-        self._connect()
-        return self._rootdir[filename]
-
-    def _is_hdf5(self, filename):
-        self._connect()
-        return self._rootdir.is_hdf5(filename)
+class _BaseSwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
     def __init__(self, filename: pathlib.Path, take_cells, take_region, mode='r'):
 
@@ -117,11 +104,6 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
     def get_header_attrs(self):
         return self[0].parent['Parameters'].attrs
 
-    def iter_particle_groups_with_name(self, hdf_family_name):
-        if hdf_family_name in self._open_files[0]:
-            if self._size_from_hdf5_key in self._open_files[0][hdf_family_name]:
-                yield self._open_files[0][hdf_family_name]
-
     def _all_group_names(self):
         return self[0]['Cells/Counts'].keys()
 
@@ -148,6 +130,38 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
                 if self._size_from_hdf5_key in hdf[hdf_family_name]:
                     yield hdf[hdf_family_name]
 
+#
+# Class for reading remote snapshots using the hdfstream service
+#
+class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
+
+    def _connect(self):
+        if self._rootdir is None:
+            # TODO: mechanism to specify URL, user, password
+            server = "https://dataweb.cosma.dur.ac.uk:8443/hdfstream"
+            self._rootdir = hdfstream.open(server, "/")
+
+    def _open_hdf5_file(self, filename):
+        self._connect()
+        return self._rootdir[filename]
+
+    def _is_hdf5(self, filename):
+        self._connect()
+        return self._rootdir.is_hdf5(filename)
 
 class RemoteSwiftSnap(SwiftSnap):
     _multifile_manager_class = _RemoteSwiftMultiFileManager
+
+#
+# Class for reading local snapshots using h5py (e.g. to test _BaseSwiftMultiFileManager)
+#
+class _LocalSwiftMultiFileManager(_BaseSwiftMultiFileManager):
+
+    def _open_hdf5_file(self, filename):
+        return h5py.File(filename, "r")
+
+    def _is_hdf5(self, filename):
+        return h5py.is_hdf5(filename)
+
+class LocalSwiftSnap(SwiftSnap):
+    _multifile_manager_class = _LocalSwiftMultiFileManager
