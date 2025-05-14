@@ -52,8 +52,8 @@ class _BaseSwiftMultiFileManager(_GadgetHdfMultiFileManager):
         if self._take_cells is not None:
 
             # Avoid unwanted conversion of counts, offsets to scalar if _take_cells is a list
-            # with only one element
-            self._take_cells = np.asarray(self._take_cells, dtype=int)
+            # with only one element. Also ensure cell indexes are in ascending order.
+            self._take_cells = np.sort(np.asarray(self._take_cells, dtype=int))
 
             # Read the cell information for each particle type and make nested
             # dicts of the form slices_in_file[file_nr][particle_type] = list_of_slices.
