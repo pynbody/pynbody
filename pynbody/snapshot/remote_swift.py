@@ -83,7 +83,7 @@ class _RemoteSwiftMultiFileManager(_GadgetHdfMultiFileManager):
             self._numfiles = len(self._filenames)
 
     def _identify_cells_to_take(self, take):
-        centres = self[0]['Cells/Centres'][:]
+        centres = self[0]['Cells/Centres'][...]
         return np.where(take.cubic_cell_intersection(centres))[0]
 
     def get_unit_attrs(self):
