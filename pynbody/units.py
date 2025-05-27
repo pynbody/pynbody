@@ -702,6 +702,8 @@ class CompositeUnit(UnitBase):
         x = self.irrep()
         if len(x._powers) == 0:
             return True
+        else:
+            return False
 
     def dimensionless_constant(self, **substitutions):
         x = self.irrep()
