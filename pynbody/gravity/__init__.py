@@ -22,7 +22,7 @@ def direct(f: SimSnap, ipos: np.ndarray, eps: float | SimArray | None = None, nu
 
     The gravitational softening length is determined by (in order of preference):
 
-    1. The parameter ``eps`` (scalar, unit or array)
+    1. The parameter ``eps`` (scalar, unit or array of length len(f))
 
     2. The array ``f['eps']``
 

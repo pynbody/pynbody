@@ -53,7 +53,7 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
         eps = eps.in_units(f['pos'].units, **f.conversion_context())
 
     if np.isscalar(eps):
-        eps = np.repeat(np.array(eps, dtype=ipos.dtype), len(ipos))
+        eps = np.repeat(np.array(eps, dtype=ipos.dtype), len(f))
 
     if isinstance(eps, array.SimArray):
         eps = eps.in_units(f['pos'].units, **f.conversion_context())
@@ -74,7 +74,7 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
     for pi in prange(nips, nogil=True, schedule='static'):
         for i in range(n):
             mass_i = mass[i]
-            epssq_i = epssq[pi]
+            epssq_i = epssq[i]
             dx = ipos[pi,0] - pos[i,0]
             dy = ipos[pi,1] - pos[i,1]
             dz = ipos[pi,2] - pos[i,2]
