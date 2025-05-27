@@ -74,7 +74,7 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
     for pi in prange(nips, nogil=True, schedule='static'):
         for i in range(n):
             mass_i = mass[i]
-            epssq_i = epssq[i]
+            epssq_i = epssq[pi]
             dx = ipos[pi,0] - pos[i,0]
             dy = ipos[pi,1] - pos[i,1]
             dz = ipos[pi,2] - pos[i,2]
