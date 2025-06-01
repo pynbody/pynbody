@@ -200,7 +200,7 @@ class SSPTable:
             masses = snapshot['mass'].in_units('Msol')
 
         with np.errstate(invalid='ignore'):
-            output_mags = self.interpolate(np.log10(age_star), metals, band)
+            output_mags = self.interpolate(np.log10(age_star), np.log10(metals), band)
 
 
         vals = output_mags - 2.5 * np.log10(masses)

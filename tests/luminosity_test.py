@@ -1,5 +1,6 @@
 import warnings
 
+import numpy as np
 import numpy.testing as npt
 import pytest
 
@@ -131,3 +132,19 @@ def test_halo_half_light(testfile):
     pynbody.analysis.faceon(h[0])
     for (band, cylindrical), expected in expected_results.items():
         npt.assert_allclose(pynbody.analysis.luminosity.half_light_r(h[0], band, cylindrical=cylindrical), expected)
+
+def test_ssp_table_recovers_input_from_file():
+
+    # Define a controlled snapshot and fill it up with first numbers from default_ssp file
+    ssp_tester = pynbody.new(stars=1)
+    default_ssp_file = np.loadtxt("../../pynbody/pynbody/analysis/default_ssp.txt")
+
+    ssp_tester.st['age'] = pynbody.array.SimArray(default_ssp_file[0, 0], units="yr")
+    ssp_tester.st['metals'] = pynbody.array.SimArray(default_ssp_file[0, 1], units="1")
+    ssp_tester.st['mass'] = pynbody.array.SimArray(1.0, units="Msol")
+
+    # Check that the pynbody-defined table actually recovers the magnitude number from the same row
+    # See Issue #900
+    table = pynbody.analysis.luminosity.get_current_ssp_table()
+    npt.assert_allclose(default_ssp_file[0, 5], table(ssp_tester, 'V'))
+    npt.assert_allclose(default_ssp_file[0, 6], table(ssp_tester, 'R'))
