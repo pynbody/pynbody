@@ -110,9 +110,6 @@ def testfile():
     return f
 
 
-@pytest.mark.filterwarnings('ignore::RuntimeWarning')
-# Necessary otherwise pytest crashes with RuntimeWarning: divide by zero encountered in log10
-# due to zero-metallicity star in test snapshot
 def test_luminosity(testfile):
     for ssp_name, tests in results.items():
         with pynbody.analysis.luminosity.use_custom_ssp_table(ssp_name):

@@ -199,7 +199,8 @@ class SSPTable:
         except KeyError:
             masses = snapshot['mass'].in_units('Msol')
 
-        with np.errstate(invalid='ignore'):
+        with np.errstate(invalid='ignore', divide='ignore'):
+            # Remove warning for division by zero as this is commonly triggered by logging zero-metallicity cells
             output_mags = self.interpolate(np.log10(age_star), np.log10(metals), band)
 
 
