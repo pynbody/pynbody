@@ -2,6 +2,7 @@
 Routines and derived arrays for calculating luminosities and magnitudes.
 
 .. versionchanged:: 2.0
+.. versionchanged:: 2.1.3
 
   Luminosity tables are now generated directly from the output of the STEV/CMD web interface.
   The default tables are updated to more modern stellar population tracks (May 2024). This
@@ -199,8 +200,9 @@ class SSPTable:
         except KeyError:
             masses = snapshot['mass'].in_units('Msol')
 
-        with np.errstate(invalid='ignore'):
-            output_mags = self.interpolate(np.log10(age_star), metals, band)
+        with np.errstate(invalid='ignore', divide='ignore'):
+            # Remove warning for division by zero as this is commonly triggered by logging zero-metallicity cells
+            output_mags = self.interpolate(np.log10(age_star), np.log10(metals), band)
 
 
         vals = output_mags - 2.5 * np.log10(masses)
