@@ -169,6 +169,7 @@ class SwiftSnap(GadgetHDFSnap):
     def _is_cosmological(self):
         cosmo = ExtractScalarWrapper(self._hdf_files[0]['Cosmology'].attrs)
         return cosmo['Cosmological run'] == 1
+
     def _init_properties(self):
         params = ExtractScalarWrapper(self._hdf_files[0]['Parameters'].attrs)
         header = ExtractScalarWrapper(self._hdf_files[0]['Header'].attrs)
@@ -198,9 +199,13 @@ class SwiftSnap(GadgetHDFSnap):
 
 
     def _get_units_from_hdf_attr(self, hdfattrs):
+        cosmological = self._is_cosmological()
         this_unit = units.Unit("1")
+
         for k in hdfattrs.keys():
             if k.endswith('exponent'):
+                if (k.startswith('a-scale') or k.startswith('h-scale')) and not cosmological:
+                    continue
                 unitname = k.split(" ")[0]
                 exponent = util.fractions.Fraction.from_float(float(ExtractScalarWrapper(hdfattrs)[k])).limit_denominator()
 

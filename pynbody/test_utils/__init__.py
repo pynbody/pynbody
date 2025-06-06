@@ -8,37 +8,40 @@ import tarfile
 import urllib.request
 
 test_data_packages = {
-    'swift': {'path': 'SWIFT',
+    'swift': {'verify_path': 'SWIFT',
               'archive_name': 'swift.tar.gz'},
-    'adaptahop_longint': {'path': 'adaptahop_longint',
+    'swift_isolated': {'verify_path': 'SWIFT/isolated_0008.hdf5',
+                       'extract_path': 'SWIFT',
+                       'archive_name': 'swift_isolated.tar.gz'},
+    'adaptahop_longint': {'verify_path': 'adaptahop_longint',
                        'archive_name': 'adaptahop_longint.tar.gz'},
-    'arepo': {'path': 'arepo',
+    'arepo': {'verify_path': 'arepo',
               'archive_name': 'arepo.tar.gz'},
-    'gadget': {'path': 'gadget2',
+    'gadget': {'verify_path': 'gadget2',
                'archive_name': 'gadget.tar.gz'},
-    'hbt': {'path': 'gadget4_subfind_HBT',
+    'hbt': {'verify_path': 'gadget4_subfind_HBT',
             'archive_name': 'gadget4_subfind_HBT.tar.gz'},
-    'gasoline_ahf': {'path': 'gasoline_ahf',
+    'gasoline_ahf': {'verify_path': 'gasoline_ahf',
                      'archive_name': 'gasoline.tar.gz'},
-    'gizmo': {'path': 'gizmo',
+    'gizmo': {'verify_path': 'gizmo',
                 'archive_name': 'gizmo.tar.gz'},
-    'grafic': {'path': 'grafic_test',
+    'grafic': {'verify_path': 'grafic_test',
                 'archive_name': 'grafic.tar.gz'},
-    'lpicola': {'path': 'lpicola',
+    'lpicola': {'verify_path': 'lpicola',
                 'archive_name': 'lpicola.tar.gz'},
-    'nchilada': {'path': 'nchilada_test',
+    'nchilada': {'verify_path': 'nchilada_test',
                  'archive_name': 'nchilada.tar.gz'},
-    'ramses': {'path': 'ramses',
+    'ramses': {'verify_path': 'ramses',
                'archive_name': 'ramses.tar.gz'},
-    'rockstar': {'path': 'rockstar',
+    'rockstar': {'verify_path': 'rockstar',
                  'archive_name': 'rockstar.tar.gz'},
-    'subfind': {'path': 'subfind',
+    'subfind': {'verify_path': 'subfind',
                 'archive_name': 'subfind.tar.gz'},
-    'tng_subfind': {'path': 'arepo/tng',
+    'tng_subfind': {'verify_path': 'arepo/tng',
                     'archive_name': 'tng_subfind.tar.gz'},
 }
 
-test_data_url = "https://zenodo.org/record/12687409/files/{archive_name}?download=1"
+test_data_url = "https://zenodo.org/record/15528615/files/{archive_name}?download=1"
 
 def precache_test_data():
     """Download and unpack all test data packages."""
@@ -55,7 +58,7 @@ def test_data_hash():
     m.update(test_data_url.encode())
     return m.hexdigest()
 
-def download_and_unpack_test_data(archive_name):
+def download_and_unpack_test_data(archive_name, unpack_path=""):
     """Download and unpack test data with the given archive name and unpack path.
 
     Equivalent to running:
@@ -65,10 +68,10 @@ def download_and_unpack_test_data(archive_name):
     """
 
     url = test_data_url.format(archive_name=archive_name)
-    unpack_path = f"testdata/"
+    unpack_path = f"testdata/{unpack_path}"
 
-    if not os.path.exists("testdata"):
-        os.mkdir("testdata")
+    if not os.path.exists(unpack_path):
+        os.mkdir(unpack_path)
 
     # Wanted to do the following, but it fails with a certificate error on macos
     #
@@ -96,5 +99,5 @@ def ensure_test_data_available(*package_names):
 
 
 def _download_and_unpack_test_data_if_not_present(package):
-    if not pathlib.Path(f"testdata/{package['path']}").exists():
-        download_and_unpack_test_data(package['archive_name'])
+    if not pathlib.Path(f"testdata/{package['verify_path']}").exists():
+        download_and_unpack_test_data(package['archive_name'], package.get('extract_path', ''))

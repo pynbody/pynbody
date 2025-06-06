@@ -9,6 +9,7 @@ import pynbody.test_utils
 @pytest.fixture(scope='module', autouse=True)
 def get_data():
     pynbody.test_utils.ensure_test_data_available("gasoline_ahf")
+    pynbody.test_utils.ensure_test_data_available("gizmo")
 
 
 def test_gravity():
@@ -73,3 +74,29 @@ def test_eps_retrieval_number():
                             -0.06739005, -0.06748439, -0.0695245,
                             -0.06803885, -0.0679833,  -0.07277965, -0.07189107])
     npt.assert_allclose(f['phi'][:10], true_phi_10)
+
+def test_varying_eps():
+    f = pynbody.new(dm = 2)
+    f['pos'] = np.array([[0, 0, 0], [1, 1, 1]])
+    f['mass'] = np.array([1, 1])
+    f['eps'] = np.array([0.0, 1000.0])
+    pot, accel = pynbody.gravity.direct(f, np.array([[0.5, 0.0, 0.0]]))
+
+    # test that the second particle doesn't contribute, due to its large softening length
+    npt.assert_allclose(accel, np.array([[-4.0, 0.0, 0.0]]), atol=1e-8, rtol=0)
+
+
+@pytest.mark.filterwarnings("ignore:no unit")
+@pytest.mark.filterwarnings("ignore:assuming default value")
+@pytest.mark.filterwarnings("ignore:unable to infer units")
+def test_direct_gravity_large_snapshot_no_segfault():
+    # Load data with more than a few million particles
+    snapshot = pynbody.load("testdata/gizmo/snapshot_000.hdf5")
+
+    # Set softening length
+    snapshot.properties["eps"] = "0.05 kpc"
+
+    # Calculate rotation curve
+    pos = np.linspace(4, 10, 20)
+    result = pynbody.gravity.midplane_rot_curve(snapshot.dm, pos)
+    assert result is not None

@@ -53,7 +53,7 @@ def direct(f, np.ndarray[DTYPE_t, ndim=2] ipos, eps=None, int num_threads = 0):
         eps = eps.in_units(f['pos'].units, **f.conversion_context())
 
     if np.isscalar(eps):
-        eps = np.repeat(np.array(eps, dtype=ipos.dtype), len(ipos))
+        eps = np.repeat(np.array(eps, dtype=ipos.dtype), len(f))
 
     if isinstance(eps, array.SimArray):
         eps = eps.in_units(f['pos'].units, **f.conversion_context())

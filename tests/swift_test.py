@@ -16,6 +16,7 @@ import pynbody.test_utils
 @pytest.fixture(scope='module', autouse=True)
 def get_data():
     pynbody.test_utils.ensure_test_data_available("swift")
+    pynbody.test_utils.ensure_test_data_available("swift_isolated")
 
 def test_load_identifies_swift():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
@@ -31,6 +32,13 @@ def test_swift_properties():
     assert np.allclose(f.properties['omegaM0'], 0.276)
     assert np.allclose(f.properties['omegaL0'], 0.724)
     assert np.allclose(f.properties['omegaNu0'], 0.0)
+
+def test_swift_noncosmological():
+    f = pynbody.load("testdata/SWIFT/isolated_0008.hdf5")
+    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+    assert (f['pos'].units / pynbody.units.Unit("cm")).is_dimensionless()
+
+
 
 def test_swift_arrays():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
