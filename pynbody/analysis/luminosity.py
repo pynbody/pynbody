@@ -2,6 +2,7 @@
 Routines and derived arrays for calculating luminosities and magnitudes.
 
 .. versionchanged:: 2.0
+.. versionchanged:: 2.1.3
 
   Luminosity tables are now generated directly from the output of the STEV/CMD web interface.
   The default tables are updated to more modern stellar population tracks (May 2024). This
