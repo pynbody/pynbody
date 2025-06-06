@@ -15,9 +15,12 @@ def is_macos():
     return platform.system() == 'Darwin'
 
 def get_xcode_version():
-    result = subprocess.run(['xcodebuild', '-version'], capture_output=True, text=True)
-    version_line = result.stdout.split('\n')[0]
-    version = version_line.split(' ')[1]
+    result = subprocess.run(['pkgutil', '--pkg-info=com.apple.pkg.CLTools_Executables'], capture_output=True, text=True)
+    try:
+        version_line = result.stdout.split('\n')[1]
+        version = version_line.split(' ')[1]
+    except IndexError:
+        return 0 # looks like xcode-cltools not installed? try to proceed anyway
     return version
 
 def xcode_fix_needed():
