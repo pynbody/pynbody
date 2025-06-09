@@ -1,8 +1,13 @@
 """
 Routines and derived arrays for calculating luminosities and magnitudes.
 
-.. versionchanged:: 2.0
+
 .. versionchanged:: 2.1.3
+
+    * Fixing the interpolation of metallicities that is now done in log space as expected
+    by the CMD tables (see Issue #900). Impacts all luminosity calculations (half-light radius, star rendering etc).
+
+.. versionchanged:: 2.0
 
   Luminosity tables are now generated directly from the output of the STEV/CMD web interface.
   The default tables are updated to more modern stellar population tracks (May 2024). This
