@@ -4,12 +4,12 @@ Routines and derived arrays for calculating luminosities and magnitudes.
 
 .. versionchanged:: 2.1.3
 
-    * Versions >=2.0 and <=2.1.2 contained a bug in the new interpolation tables, where due to a missing log
-    all star particles were essentially assumed to have super-solar metallicity (see Issue #900). This was not caught
+    Versions >=2.0 and <=2.1.2 contained a bug in the new interpolation tables, where due to a missing log,
+    all star particles were essentially assumed to have super-solar metallicity. This was not caught
     by our regression tests because it was introduced at the same time as updating the SSP tables.
     It is fixed in version 2.1.3. The size of the resulting changes is around 10% for old star particles,
     but can be up to a factor of 3 in luminosity (up to 1.2 magnitudes) for star particles less than 30 Myr old.
-    Impacts all luminosity calculations (half-light radius, star rendering etc).
+    Impacts all luminosity calculations (e.g. :func:`half_light_r`, :func:`~pynbody.plot.stars.render`).
 
 .. versionchanged:: 2.0
 
