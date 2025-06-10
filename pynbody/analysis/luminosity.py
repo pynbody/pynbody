@@ -330,6 +330,12 @@ class ArchivedSSPTable(SSPTable):
                          {k: data[k] for k in data.files if k not in ['ages', 'mets']},
                          case_insensitive=True)
 
+    def interpolate(self, ages, metallicities, band):
+        # metallicities interpolated in linear space in v1 code, but keep call signature the same
+        # so we can use this class as a drop-in replacement
+        return super().interpolate(ages, 10**metallicities, band)
+
+
 class StevSSPTable(SSPTable):
     """An SSP table from the output of the STEV/CMD web interface"""
 
