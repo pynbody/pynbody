@@ -104,7 +104,6 @@ jobs:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     environment: PyPI
-    if: github.event_name != 'pull_request'
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -112,7 +111,7 @@ jobs:
           merge-multiple: true
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1
+      - uses: pypa/gh-action-pypi-publish@release/v1.12.4
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
