@@ -1,6 +1,16 @@
 """
 Routines and derived arrays for calculating luminosities and magnitudes.
 
+
+.. versionchanged:: 2.1.3
+
+    Versions >=2.0 and <=2.1.2 contained a bug in the new interpolation tables, where due to a missing log,
+    all star particles were essentially assumed to have super-solar metallicity. This was not caught
+    by our regression tests because it was introduced at the same time as updating the SSP tables.
+    It is fixed in version 2.1.3. The size of the resulting changes is around 10% for old star particles,
+    but can be up to a factor of 3 in luminosity (up to 1.2 magnitudes) for star particles less than 30 Myr old.
+    Impacts all luminosity calculations (e.g. :func:`half_light_r`, :func:`~pynbody.plot.stars.render`).
+
 .. versionchanged:: 2.0
 
   Luminosity tables are now generated directly from the output of the STEV/CMD web interface.
@@ -199,8 +209,9 @@ class SSPTable:
         except KeyError:
             masses = snapshot['mass'].in_units('Msol')
 
-        with np.errstate(invalid='ignore'):
-            output_mags = self.interpolate(np.log10(age_star), metals, band)
+        with np.errstate(invalid='ignore', divide='ignore'):
+            # Remove warning for division by zero as this is commonly triggered by logging zero-metallicity cells
+            output_mags = self.interpolate(np.log10(age_star), np.log10(metals), band)
 
 
         vals = output_mags - 2.5 * np.log10(masses)
