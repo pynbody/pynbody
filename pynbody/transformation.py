@@ -210,9 +210,6 @@ class Transformation(Transformable, abc.ABC):
         self._description = description
         self._reverted = False
 
-        if isinstance(f, NullTransformation):
-            f = f.sim # as though we are starting from the simulation itself
-
         # self.sim used to be stored as a weakref, but this made undoing transformations unreliable (e.g. if they
         # were applied to a family). We now store a strong reference and hope users don't keep them around too long.
 
@@ -223,7 +220,9 @@ class Transformation(Transformable, abc.ABC):
             sim = f.sim
             if sim.current_transformation() is not f:
                 self._previous_transformation = None # to make a repr possible
-                raise TransformationException(f"It is not possible to make a compound transformation starting from {self} because it is not the most recent transformation to be applied to {sim}")
+                raise TransformationException(f"It is not possible to make a compound transformation starting from "
+                                              f"{repr(f)} because it is not the most recent transformation to be applied "
+                                              f"to {sim}")
 
             self.sim = f.sim
             self._previous_transformation = f
