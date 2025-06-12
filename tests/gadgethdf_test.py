@@ -152,3 +152,9 @@ def test_arepo_style_units():
     with pytest.warns(UserWarning, match="Unable to infer units from HDF attributes"):
         assert f.st['EMP_BirthTemperature'].units == units.NoUnit()
     # here is a case where no unit information is recorded in the file (who knows why)
+
+def test_load_copy(subfind):
+    h = subfind.halos()[0]
+    hcopy = h.load_copy()
+    assert (hcopy['iord'][::10000] == h['iord'][::10000]).all()
+    assert hcopy.ancestor is not h.ancestor
