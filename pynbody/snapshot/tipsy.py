@@ -1344,6 +1344,9 @@ class StarLog(SimSnap):
             self._create_arrays(["h2form"])
         if bigstarlog:
             self._create_arrays(["phiform", "nsmooth"])
+        if "tcoolform" in file_structure.names:
+            warnings.warn('creating tcoolform array')
+            self._create_arrays(["tcoolform"])
 
         self._decorate()
 
