@@ -172,7 +172,7 @@ class GadgetHDFSnap(SimSnap):
     _mass_pynbody_name = "mass"
     _eps_pynbody_name = "eps"
 
-    def __init__(self, filename):
+    def __init__(self, filename, **kwargs):
         """Initialise a Gadget HDF snapshot.
 
         Spanned files are supported. To load a range of files ``snap.0.hdf5``, ``snap.1.hdf5``, ... ``snap.n.hdf5``,
@@ -194,6 +194,11 @@ class GadgetHDFSnap(SimSnap):
         self.__infer_mass_dtype()
         self._init_properties()
         self._decorate()
+        take = kwargs.get('take', None)
+        self.partial_load = take is not None
+        if self.partial_load:
+            self._set_local_ptype_slices(take)
+            self._update_local_slice()
 
     def _have_softening_for_particle_type(self, particle_type):
         attrs = self._get_hdf_parameter_attrs()
@@ -524,51 +529,184 @@ class GadgetHDFSnap(SimSnap):
     def _load_array(self, array_name, fam=None):
         if not self._family_has_loadable_array(fam, array_name):
             raise OSError("No such array on disk")
+        
+        if self.partial_load:
+            self._partial_load(array_name, fam=fam)
+            return
+
+        translated_names = self._translate_array_name(array_name)
+        dtype, dy, units = self.__get_dtype_dims_and_units(fam, translated_names)
+
+        if array_name == self._mass_pynbody_name:
+            dtype = self._mass_dtype
+            # always load mass with this dtype, even if not the one in the file. This
+            # is to cope with cases where it's partly in the header and partly not.
+            # It also forces masses to the same dtype as the positions, which
+            # is important for the KDtree code.
+
+        if fam is None:
+            target = self
+            all_fams_to_load = self.families()
         else:
+            target = self[fam]
+            all_fams_to_load = [fam]
 
-            translated_names = self._translate_array_name(array_name)
-            dtype, dy, units = self.__get_dtype_dims_and_units(fam, translated_names)
+        target._create_array(array_name, dy, dtype=dtype)
 
-            if array_name == self._mass_pynbody_name:
-                dtype = self._mass_dtype
-                # always load mass with this dtype, even if not the one in the file. This
-                # is to cope with cases where it's partly in the header and partly not.
-                # It also forces masses to the same dtype as the positions, which
-                # is important for the KDtree code.
+        if units is not None:
+            target[array_name].units = units
+        else:
+            target[array_name].set_default_units()
 
-            if fam is None:
-                target = self
-                all_fams_to_load = self.families()
-            else:
-                target = self[fam]
-                all_fams_to_load = [fam]
+        for loading_fam in all_fams_to_load:
+            i0 = 0
+            for hdf in self._all_hdf_groups_in_family(loading_fam):
+                npart = hdf['ParticleIDs'].size
+                if npart == 0:
+                    continue
+                i1 = i0+npart
 
-            target._create_array(array_name, dy, dtype=dtype)
+                for translated_name in translated_names:
+                    try:
+                        dataset = self._get_hdf_dataset(hdf, translated_name)
+                    except KeyError:
+                        continue
+                target_array = self[loading_fam][array_name][i0:i1]
+                assert target_array.size == dataset.size
 
-            if units is not None:
-                target[array_name].units = units
-            else:
-                target[array_name].set_default_units()
+                dataset.read_direct(target_array.reshape(dataset.shape))
 
-            for loading_fam in all_fams_to_load:
-                i0 = 0
-                for hdf in self._all_hdf_groups_in_family(loading_fam):
+                i0 = i1
+    
+    def _partial_load(self, array_name, fam=None):
+
+        translated_names = self._translate_array_name(array_name)
+        dtype, dy, units = self.__get_dtype_dims_and_units(fam, translated_names)
+
+        if array_name == self._mass_pynbody_name:
+            dtype = self._mass_dtype
+
+        if fam is None:
+            target = self
+            all_fams_to_load = self.families()
+        else:
+            target = self[fam]
+            all_fams_to_load = [fam]
+
+        target._create_array(array_name, dy, dtype=dtype)
+
+        if units is not None:
+            target[array_name].units = units
+        else:
+            target[array_name].set_default_units()
+
+        for loading_fam in all_fams_to_load:
+            num_total = self._family_slice[loading_fam].stop - self._family_slice[loading_fam].start
+            if num_total == 0:
+                continue
+            if num_total < 0:
+                raise ValueError(f"Negative particle count {num_total} for {loading_fam}")
+
+            i_load_start = 0  # recording already loaded loading_fam index
+            for hdf_family_name in self._family_to_group_map[loading_fam]:
+                hdf_family_count = self._local_ptype_slice[hdf_family_name].stop - self._local_ptype_slice[hdf_family_name].start
+                if hdf_family_count == 0:
+                    continue
+                i_start = self._local_gadget_ptype_slice[hdf_family_name].start # start index for this ParticleType in file
+                i_stop = self._local_gadget_ptype_slice[hdf_family_name].stop   # stop index for this ParticleType in file
+
+                i0 = 0 # already loaded index
+                for hdf in self._hdf_files.iter_particle_groups_with_name(hdf_family_name):
                     npart = hdf['ParticleIDs'].size
                     if npart == 0:
                         continue
-                    i1 = i0+npart
+                    i1 = i0 + npart
+                    if max(i0, i_start) < min(i1, i_stop):
+                        cover_min = max(i0, i_start)
+                        cover_max = min(i1, i_stop)
+                        for translated_name in translated_names:
+                            try:
+                                dataset = self._get_hdf_dataset(hdf, translated_name)
+                            except KeyError:
+                                continue
 
-                    for translated_name in translated_names:
-                        try:
-                            dataset = self._get_hdf_dataset(hdf, translated_name)
-                        except KeyError:
-                            continue
-                    target_array = self[loading_fam][array_name][i0:i1]
-                    assert target_array.size == dataset.size
-
-                    dataset.read_direct(target_array.reshape(dataset.shape))
+                        target_array = self[loading_fam][array_name][i_load_start:(i_load_start+cover_max-cover_min)]
+                        # Reshape target_array to match the shape of the data slice
+                        target_array_reshaped = target_array.reshape(dataset[cover_min-i0:cover_max-i0].shape)
+                        # Call read_direct on the dataset object, not on the read data
+                        dataset.read_direct(target_array_reshaped, source_sel=np.s_[cover_min-i0:cover_max-i0])
+                        i_load_start = i_load_start + cover_max - cover_min
 
                     i0 = i1
+                    if i0 >= i_stop:
+                        break
+    
+    def _set_local_ptype_slices(self, take):
+        if not isinstance(take, np.ndarray):
+            raise TypeError(f"index_array must be a NumPy array. Got {type(take)} instead.")
+        if take.ndim != 1:
+            raise ValueError(f"index_array must be one-dimensional. Got {take.ndim} dimensions instead.")
+        # Sort the array to ensure we can check continuity properly
+        # index_array = np.sort(index_array) # assume all indices are unique and sorted
+        
+        self._local_ptype_slice = {}
+        self._local_gadget_ptype_slice = {}
+        
+        for ptype_name, global_slice in  self._gadget_ptype_slice.items():
+            global_min = global_slice.start
+            global_max = global_slice.stop
+
+            # Find particles in this range
+            mask = (take >= global_min) & (take < global_max)
+            particles_in_range = take[mask]
+
+            if particles_in_range.size > 0:
+                min_id = particles_in_range[0]
+                max_id = particles_in_range[-1]
+
+                # Check if indices form a continuous sequence
+                expected_count = max_id - min_id + 1
+                if particles_in_range.size != expected_count:
+                    # Find missing indices
+                    expected_indices = np.arange(min_id, max_id + 1)
+                    missing_indices = np.setdiff1d(expected_indices, particles_in_range, assume_unique=True)
+                    raise ValueError(f"Non-continuous indices detected in {ptype_name}. "
+                                    f"Missing indices: {missing_indices}")
+
+                self._local_ptype_slice[ptype_name] = slice(int(min_id), int(max_id) + 1)
+            else:
+                # No particles of this type, use empty slice at start of range
+                self._local_ptype_slice[ptype_name] = slice(int(global_min), int(global_min))
+            
+            self._local_gadget_ptype_slice[ptype_name] = slice(
+                self._local_ptype_slice[ptype_name].start - self._gadget_ptype_slice[ptype_name].start,
+                self._local_ptype_slice[ptype_name].stop - self._gadget_ptype_slice[ptype_name].start
+            )
+
+    def _update_local_slice(self):
+        
+        family_slice_start = 0
+
+        all_families_sorted = self._families_ordered()
+
+        for fam in all_families_sorted:
+            family_length = 0
+
+            ptype_slice_start = family_slice_start
+
+            for particle_type in self._family_to_group_map[fam]:
+
+                ptype_slice_len = 0
+
+                ptype_slice_len = self._local_ptype_slice[particle_type].stop - self._local_ptype_slice[particle_type].start
+
+                family_length += ptype_slice_len
+                ptype_slice_start += ptype_slice_len
+
+            self._family_slice[fam] = slice(family_slice_start, family_slice_start + family_length)
+            family_slice_start += family_length
+            
+        self._num_particles = family_slice_start
 
     def __get_dtype_dims_and_units(self, fam, translated_names):
         if fam is None:
