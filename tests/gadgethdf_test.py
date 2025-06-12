@@ -158,3 +158,35 @@ def test_load_copy(subfind):
     hcopy = h.load_copy()
     assert (hcopy['iord'][::10000] == h['iord'][::10000]).all()
     assert hcopy.ancestor is not h.ancestor
+    
+def test_load_copy_halo(subfind):
+    
+    halos = subfind.halos()
+    halo = halos[len(halos)-1] # contains 10 gas, 10 dm, no star
+    
+    halo_copy = halo.load_copy()
+    assert (halo_copy['iord']==halo['iord']).all()
+    
+    halo_star_copy = halo.s.load_copy()
+    assert (len(halo_star_copy) == len(halo.s)) and (len(halo.s) == 0)
+
+    halo_gas_copy = halo.g.load_copy()
+    assert (halo_gas_copy['iord'] == halo.g['iord']).all()
+
+    halo_dm_copy = halo.dm.load_copy()
+    assert (halo_dm_copy['iord'] == halo.dm['iord']).all()
+
+def test_load_copy_family(subfind):
+    star_copy = subfind.s.load_copy()
+    assert (star_copy['iord']==subfind.s['iord']).all()
+
+    gas_copy = subfind.g.load_copy()
+    assert (gas_copy['iord']==subfind.g['iord']).all()
+
+    dm_copy = subfind.dm.load_copy()
+    assert (dm_copy['iord']==subfind.dm['iord']).all()
+
+def test_load_copy_indexsnap(subfind):
+    indexsnap = subfind[1000:]
+    indexsnap_copy = indexsnap.load_copy()
+    assert (indexsnap_copy['iord']==indexsnap['iord']).all()
