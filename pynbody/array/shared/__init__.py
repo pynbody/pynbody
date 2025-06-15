@@ -7,18 +7,26 @@
 """
 import atexit
 import functools
-import mmap
 import os
+import platform
 import random
 import signal
 import time
+import weakref
 from functools import reduce
 
 import numpy as np
-#import posix_ipc
 
-from ..configuration import config_parser
-from . import SimArray
+# Platform detection and imports
+_IS_WINDOWS = platform.system() == 'Windows'
+
+if _IS_WINDOWS:
+    from . import win_detail as _platform_detail
+else:
+    from . import posix_detail as _platform_detail
+
+from ...configuration import config_parser
+from .. import SimArray
 
 _owned_shared_memory_names = []
 
@@ -27,16 +35,20 @@ class SharedArrayNotFound(OSError):
 
 class SharedMemorySimArray(SimArray):
     """A simulation array that is backed onto shared memory."""
-    __slots__ = ['_shared_fname', '_shared_owner']
+    __slots__ = ['_shared_fname', '_shared_owner', '_shared_mem_ref']
     _shared_fname: str
     _shared_owner: bool
+    _shared_mem_ref: object
 
     def __del__(self):
         global _owned_shared_memory_names
         if hasattr(self, '_shared_fname') and getattr(self, '_shared_owner', False):
             if self._shared_fname in _owned_shared_memory_names:
                 _owned_shared_memory_names.remove(self._shared_fname)
-                posix_ipc.unlink_shared_memory(self._shared_fname)
+                try:
+                    _platform_detail.unlink_shared_memory(self._shared_fname)
+                except:
+                    pass
 
 def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
                       offset = None, strides = None) -> SharedMemorySimArray:
@@ -80,10 +92,10 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
     if dims[0] == 0:
         zero_size = True
         dims = (1,) + dims[1:]
-    if hasattr(dims, '__len__'):
-        size = reduce(np.multiply, dims)
-    else:
-        size = dims
+    
+    # Calculate the total size as an integer
+    size = int(reduce(np.multiply, dims))
+    total_size = int(np.dtype(dtype).itemsize * size)
 
     if create:
         _register_sigterm_handler()
@@ -91,17 +103,16 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
             raise ValueError("Offset only valid when opening an existing shared array")
         if strides is not None:
             raise ValueError("Strides only valid when opening an existing shared array")
-        mem = posix_ipc.SharedMemory(fname, posix_ipc.O_CREX, size=int(np.dtype(dtype).itemsize*size))
+        
+        # Platform-specific shared memory creation
+        mapped_mem = _platform_detail.create_shared_memory(fname, total_size)
         _owned_shared_memory_names.append(fname)
-
     else:
-        try:
-            mem = posix_ipc.SharedMemory(fname)
-        except posix_ipc.ExistentialError:
-            raise SharedArrayNotFound(f"No shared memory found with name {fname}") from None
-
-    mapped_mem = mmap.mmap(mem.fd, mem.size)
-    mem.close_fd()
+        # Platform-specific shared memory opening
+        if _IS_WINDOWS:
+            mapped_mem = _platform_detail.open_shared_memory(fname, total_size)
+        else:
+            mapped_mem = _platform_detail.open_shared_memory(fname)
 
     if offset is None:
         offset = 0
@@ -109,6 +120,12 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
     ret_ar = np.frombuffer(mapped_mem, dtype=dtype, count=size, offset=offset).reshape(dims).view(SharedMemorySimArray)
     ret_ar._shared_fname = fname
     ret_ar._shared_owner = create
+    
+    # Keep a reference to the shared memory object to prevent cleanup while array exists
+    if _IS_WINDOWS:
+        mem_info = _platform_detail.get_shared_memory_info(fname)
+        if mem_info:
+            ret_ar._shared_mem_ref = mem_info['memory']
 
     if strides:
         ret_ar.strides = strides
@@ -128,10 +145,11 @@ def delete_dangling_shared_memory():
 
     for fname in _owned_shared_memory_names:
         try:
-            posix_ipc.unlink_shared_memory(fname)
-        except posix_ipc.ExistentialError:
+            _platform_detail.unlink_shared_memory(fname)
+        except:
             pass
     _owned_shared_memory_names = []
+    _platform_detail.cleanup_all_shared_memory()
 
 _sigterm_handler_is_registered = False
 
@@ -142,6 +160,7 @@ def _register_sigterm_handler():
     """Registers a handler to clean up shared memory in the event of a SIGTERM signal."""
     global _sigterm_handler_is_registered
     if not _sigterm_handler_is_registered:
+        # On Windows, SIGTERM handling is limited, but we'll still register it
         signal.signal(signal.SIGTERM, _sigterm_handler)
         _sigterm_handler_is_registered = True
 
@@ -169,9 +188,9 @@ def _shared_array_deconstruct(ar, transfer_ownership=False):
 
     assert isinstance(ar_base, SharedMemorySimArray), "Cannot prepare an array for shared use unless it was created in shared memory"
 
-    ownership_out = transfer_ownership and ar_base._shared_del
+    ownership_out = transfer_ownership and ar_base._shared_owner
     if transfer_ownership:
-        ar_base._shared_del = False
+        ar_base._shared_owner = False
 
     offset = ar.__array_interface__['data'][0] - \
               ar_base.__array_interface__['data'][0]
@@ -185,7 +204,17 @@ def _shared_array_reconstruct(X):
 
     assert not ownership # transferring ownership not actually supported in current implementation
 
-    new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides)
+    # Platform-specific reconstruction
+    if _IS_WINDOWS:
+        # For Windows, we need to calculate the size when reconstructing
+        try:
+            new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides)
+        except SharedArrayNotFound:
+            # If not in cache, try to reconstruct with calculated size
+            mapped_mem = _platform_detail.reconstruct_shared_memory(fname, dims, dtype)
+            new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides)
+    else:
+        new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides)
 
     return new_ar
 

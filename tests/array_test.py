@@ -309,16 +309,30 @@ def test_shared_array_ownership():
 
 @pytest.fixture
 def clean_up_test_protection():
-    import posix_ipc
-    try:
-        posix_ipc.unlink_shared_memory("pynbody-test-cleanup")
-    except posix_ipc.ExistentialError:
+    import platform
+    if platform.system() == 'Windows':
+        # On Windows, shared memory is automatically cleaned up when all handles are closed
+        # We don't need to explicitly unlink like on POSIX systems
         pass
+    else:
+        try:
+            import posix_ipc
+            try:
+                posix_ipc.unlink_shared_memory("pynbody-test-cleanup")
+            except posix_ipc.ExistentialError:
+                pass
+        except ImportError:
+            pass
     yield
-    try:
-        posix_ipc.unlink_shared_memory("pynbody-test-cleanup")
-    except posix_ipc.ExistentialError:
-        pass
+    if platform.system() != 'Windows':
+        try:
+            import posix_ipc
+            try:
+                posix_ipc.unlink_shared_memory("pynbody-test-cleanup")
+            except posix_ipc.ExistentialError:
+                pass
+        except ImportError:
+            pass
 
 def _test_shared_arrays_cleaned_on_exit():
     global ar
