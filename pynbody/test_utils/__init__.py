@@ -1,12 +1,13 @@
 """Utilities for downloading and unpacking test data packages"""
 
-import certifi
 import os
 import pathlib
 import shutil
 import ssl
 import tarfile
 import urllib.request
+
+import certifi
 
 test_data_packages = {
     'swift': {'verify_path': 'SWIFT',

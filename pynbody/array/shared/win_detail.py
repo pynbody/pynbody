@@ -4,6 +4,7 @@ import ctypes
 import ctypes.wintypes
 from ctypes import wintypes
 from functools import reduce
+
 import numpy as np
 
 # Windows API constants

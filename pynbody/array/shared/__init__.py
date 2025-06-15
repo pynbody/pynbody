@@ -51,7 +51,7 @@ class SharedMemorySimArray(SimArray):
                     pass
 
 def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
-                      offset = None, strides = None) -> SharedMemorySimArray:
+                      offset = None, strides = None, num_bytes=None) -> SharedMemorySimArray:
     """Create or reconstruct an array of dimensions *dims* with the given numpy *dtype*, backed on shared memory.
 
     If *create* is True, a new shared memory array is created. If *create* is False, the shared memory array is opened
@@ -76,6 +76,9 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
         The offset into the shared memory to use. This is only valid with create=False
     strides: tuple, optional
         The strides to use. This is only valid with create=False
+    num_bytes: int, optional
+        The number of bytes to allocate for / reference from the shared memory. If not specified, 
+        it is calculated as the product of the dimensions and the size of the dtype. 
     """
     if fname is None:
         if not create:
@@ -94,8 +97,10 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
         dims = (1,) + dims[1:]
     
     # Calculate the total size as an integer
-    size = int(reduce(np.multiply, dims))
-    total_size = int(np.dtype(dtype).itemsize * size)
+    
+    size = int(reduce(np.multiply, dims)) 
+    if num_bytes is None:
+        num_bytes = size * np.dtype(dtype).itemsize
 
     if create:
         _register_sigterm_handler()
@@ -105,15 +110,11 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
             raise ValueError("Strides only valid when opening an existing shared array")
         
         # Platform-specific shared memory creation
-        mapped_mem = _platform_detail.create_shared_memory(fname, total_size)
+        mapped_mem = _platform_detail.create_shared_memory(fname, num_bytes)
         _owned_shared_memory_names.append(fname)
     else:
-        # Platform-specific shared memory opening
-        if _IS_WINDOWS:
-            mapped_mem = _platform_detail.open_shared_memory(fname, total_size)
-        else:
-            mapped_mem = _platform_detail.open_shared_memory(fname)
-
+        mapped_mem = _platform_detail.open_shared_memory(fname, num_bytes)
+        
     if offset is None:
         offset = 0
 
@@ -195,26 +196,18 @@ def _shared_array_deconstruct(ar, transfer_ownership=False):
     offset = ar.__array_interface__['data'][0] - \
               ar_base.__array_interface__['data'][0]
 
+    num_bytes_in_underlying_buffer = ar_base.nbytes
+
     return _deconstructed_shared_array((ar.dtype, ar.shape, ar_base._shared_fname, ownership_out,
-                                        offset, ar.strides))
+                                        offset, ar.strides, num_bytes_in_underlying_buffer))
 
 
 def _shared_array_reconstruct(X):
-    dtype, dims, fname, ownership, offset, strides = X
+    dtype, dims, fname, ownership, offset, strides, num_bytes = X
 
     assert not ownership # transferring ownership not actually supported in current implementation
 
-    # Platform-specific reconstruction
-    if _IS_WINDOWS:
-        # For Windows, we need to calculate the size when reconstructing
-        try:
-            new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides)
-        except SharedArrayNotFound:
-            # If not in cache, try to reconstruct with calculated size
-            mapped_mem = _platform_detail.reconstruct_shared_memory(fname, dims, dtype)
-            new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides)
-    else:
-        new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides)
+    new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides, num_bytes=num_bytes)
 
     return new_ar
 
