@@ -37,7 +37,7 @@ cdef class FortranFile:
     cdef bint _closed
 
     def __cinit__(self, str fname):
-        self.cfile = fopen(fname.encode('utf-8'), 'r')
+        self.cfile = fopen(fname.encode('utf-8'), 'rb')
         self._closed = False
         if self.cfile == NULL:
             raise IOError("Cannot open '%s'" % fname)
