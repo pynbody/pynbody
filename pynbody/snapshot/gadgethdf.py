@@ -370,28 +370,31 @@ class GadgetHDFSnap(SimSnap):
 
         self._hdf_files.reopen_in_mode('r+')
 
-        if fam is None:
-            target = self
-            all_fams_to_write = self.families()
-        else:
-            target = self[fam]
-            all_fams_to_write = [fam]
-
-        for writing_fam in all_fams_to_write:
-            i0 = 0
-            target_array = self[writing_fam][array_name]
-            for hdf in self._all_hdf_groups_in_family(writing_fam):
-                npart = hdf['ParticleIDs'].size
-                i1 = i0 + npart
-                target_array_this = target_array[i0:i1]
-
-                dataset = self._get_or_create_hdf_dataset(hdf, translated_name,
-                                                          target_array_this.shape,
-                                                          target_array_this.dtype)
-
-                dataset.write_direct(target_array_this.reshape(dataset.shape))
-
-                i0 = i1
+        try:
+            if fam is None:
+                target = self
+                all_fams_to_write = self.families()
+            else:
+                target = self[fam]
+                all_fams_to_write = [fam]
+    
+            for writing_fam in all_fams_to_write:
+                i0 = 0
+                target_array = self[writing_fam][array_name]
+                for hdf in self._all_hdf_groups_in_family(writing_fam):
+                    npart = hdf['ParticleIDs'].size
+                    i1 = i0 + npart
+                    target_array_this = target_array[i0:i1]
+    
+                    dataset = self._get_or_create_hdf_dataset(hdf, translated_name,
+                                                              target_array_this.shape,
+                                                              target_array_this.dtype)
+    
+                    dataset.write_direct(target_array_this.reshape(dataset.shape))
+    
+                    i0 = i1
+        finally:
+            self._hdf_files.reopen_in_mode('r')
 
     @staticmethod
     def _get_hdf_allarray_keys(group):
