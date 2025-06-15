@@ -393,6 +393,8 @@ class GadgetHDFSnap(SimSnap):
 
                 i0 = i1
 
+        self._hdf_files.reopen_in_mode('r')
+
     @staticmethod
     def _get_hdf_allarray_keys(group):
         """Return all HDF array keys underneath group (includes nested groups)"""

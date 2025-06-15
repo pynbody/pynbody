@@ -1,9 +1,10 @@
 """Utilities for downloading and unpacking test data packages"""
 
+import certifi
 import os
 import pathlib
 import shutil
-import subprocess
+import ssl
 import tarfile
 import urllib.request
 
@@ -58,35 +59,39 @@ def test_data_hash():
     m.update(test_data_url.encode())
     return m.hexdigest()
 
+
 def download_and_unpack_test_data(archive_name, unpack_path=""):
     """Download and unpack test data with the given archive name and unpack path.
 
     Equivalent to running:
 
-     wget https://zenodo.org/record/.../files/{archive_name}?download=1
-     tar -xzf {archive_name}
+        wget https://zenodo.org/record/.../files/{archive_name}?download=1
+        tar -xzf {archive_name}
     """
 
     url = test_data_url.format(archive_name=archive_name)
     unpack_path = f"testdata/{unpack_path}"
 
     if not os.path.exists(unpack_path):
-        os.mkdir(unpack_path)
+        os.makedirs(unpack_path, exist_ok=True)
 
-    # Wanted to do the following, but it fails with a certificate error on macos
-    #
-    #with urllib.request.urlopen(url) as data_file:
-    #    with tarfile.open(fileobj=data_file) as tar:
-    #        tar.extractall(unpack_path)
-
-    subprocess.run(["wget", "-O", archive_name, url], check=True)
-
-    # Unpack the tar file
-    with tarfile.open(archive_name) as tar:
-        tar.extractall(unpack_path, filter='data')
-
-    # Remove the downloaded tar file
-    os.remove(archive_name)
+    # use certifi to get the CA bundle for SSL verification
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    
+    # Download to a temporary file first
+    temp_file = f"{archive_name}.tmp"
+    try:
+        with urllib.request.urlopen(url, context=ssl_context) as response:
+            with open(temp_file, 'wb') as f:
+                shutil.copyfileobj(response, f)
+        
+        # Extract from the downloaded file
+        with tarfile.open(temp_file) as tar:
+            tar.extractall(unpack_path, filter='data')
+    finally:
+        # Clean up temporary file
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
 
 
 def ensure_test_data_available(*package_names):

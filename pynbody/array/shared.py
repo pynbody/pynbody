@@ -15,7 +15,7 @@ import time
 from functools import reduce
 
 import numpy as np
-import posix_ipc
+#import posix_ipc
 
 from ..configuration import config_parser
 from . import SimArray
