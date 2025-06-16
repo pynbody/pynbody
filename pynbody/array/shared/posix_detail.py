@@ -1,39 +1,30 @@
-"""POSIX-specific shared memory implementation using libc POSIX shared memory routines."""
+"""POSIX-specific shared memory implementation.
 
-import ctypes
-import errno
+Uses Python's internal _posixshmem module instead of ctypes calling libc directly.
+This is necessary because on macOS, ctypes has issues with shm_open permission handling
+that cause "Permission denied" errors when opening existing shared memory segments.
+The reason for this is unclear. However, the _posixshmem module (used internally by 
+multiprocessing.shared_memory) handles the system calls correctly on all POSIX platforms.
+"""
+
 import mmap
 import os
-import sys
 
-try:
-    if sys.platform == "darwin":
-        libc = ctypes.CDLL(None, use_errno=True)  # Load the default C library on macOS
-    else:
-        libc = ctypes.CDLL("libc.so.6", use_errno = True)  # Linux
-except OSError:
-    # Fallback to loading the default C library
-    libc = ctypes.CDLL(None, use_errno=True)
+import _posixshmem
+
 
 def create_shared_memory(name, size):
-    """Create POSIX shared memory segment"""
+    """Create POSIX shared memory segment using _posixshmem module."""
     
-    print("create:", name, size)
-    
-    # Set error return type for shm_open
-    libc.shm_open.restype = ctypes.c_int
-    libc.shm_open.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_uint]
-    
-    # shm_open(name, oflag, mode)
-    fd = libc.shm_open(
-        ctypes.c_char_p(name.encode('utf-8')),
-        ctypes.c_int(os.O_RDWR | os.O_CREAT | os.O_EXCL),  # Use os module constants
-        ctypes.c_uint(0o600)
-    )
-    
-    if fd == -1:
-        err = ctypes.get_errno()
-        raise OSError(err, f"Failed to create shared memory segment {name}: {os.strerror(err)}")
+    # Use Python's internal _posixshmem module
+    try:
+        fd = _posixshmem.shm_open(
+            name,
+            os.O_RDWR | os.O_CREAT | os.O_EXCL,
+            mode=0o600
+        )
+    except OSError as e:
+        raise OSError(e.errno, f"Failed to create shared memory segment {name}: {e.strerror}")
     
     # Set the size of the shared memory object
     try:
@@ -50,23 +41,17 @@ def create_shared_memory(name, size):
 
 
 def open_shared_memory(name, size=None):
-    """Open existing POSIX shared memory segment"""
-    print("open:", name, size)
-    # Set error return type for shm_open
-    libc.shm_open.restype = ctypes.c_int
-    libc.shm_open.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_uint]
+    """Open existing POSIX shared memory segment using _posixshmem module."""
     
-    # shm_open(name, oflag, mode) - open existing without O_CREAT
-    fd = libc.shm_open(
-        ctypes.c_char_p(name.encode('utf-8')),
-        ctypes.c_int(os.O_RDWR),  # Just read/write, no create
-        ctypes.c_uint(0o600)
-    )
-    
-    if fd == -1:
-        err = ctypes.get_errno()
+    try:
+        fd = _posixshmem.shm_open(
+            name,
+            os.O_RDWR,
+            mode=0o600
+        )
+    except OSError as e:
         from . import SharedArrayNotFound
-        raise SharedArrayNotFound(f"No shared memory found with name {name}: {os.strerror(err)}") from None
+        raise SharedArrayNotFound(f"No shared memory found with name {name}: {e.strerror}") from None
     
     # Get the size if not provided
     if size is None:
@@ -81,19 +66,13 @@ def open_shared_memory(name, size=None):
 
 
 def unlink_shared_memory(name):
-    """Unlink POSIX shared memory segment"""
-    # Set error return type for shm_unlink
-    libc.shm_unlink.restype = ctypes.c_int
-    libc.shm_unlink.argtypes = [ctypes.c_char_p]
-    
-    # shm_unlink(name)
-    result = libc.shm_unlink(ctypes.c_char_p(name.encode('utf-8')))
-    
-    if result == -1:
-        err = ctypes.get_errno()
+    """Unlink POSIX shared memory segment using _posixshmem module."""
+    try:
+        _posixshmem.shm_unlink(name)
+    except OSError as e:
         # Don't raise error if the shared memory doesn't exist
-        if err != errno.ENOENT:
-            raise OSError(err, f"Failed to unlink shared memory segment {name}: {os.strerror(err)}")
+        if e.errno != 2:  # ENOENT
+            raise OSError(e.errno, f"Failed to unlink shared memory segment {name}: {e.strerror}")
 
 
 def cleanup_all_shared_memory():
