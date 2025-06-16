@@ -8,12 +8,12 @@ import sys
 
 try:
     if sys.platform == "darwin":
-        libc = ctypes.CDLL(None)  # Load the default C library on macOS
+        libc = ctypes.CDLL(None, use_errno=True)  # Load the default C library on macOS
     else:
-        libc = ctypes.CDLL("libc.so.6")  # Linux
+        libc = ctypes.CDLL("libc.so.6", use_errno = True)  # Linux
 except OSError:
     # Fallback to loading the default C library
-    libc = ctypes.CDLL(None)
+    libc = ctypes.CDLL(None, use_errno=True)
 
 def create_shared_memory(name, size):
     """Create POSIX shared memory segment"""
