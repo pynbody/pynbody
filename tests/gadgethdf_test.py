@@ -190,3 +190,21 @@ def test_load_copy_indexsnap(subfind):
     indexsnap = subfind[1000:]
     indexsnap_copy = indexsnap.load_copy()
     assert (indexsnap_copy['iord']==indexsnap['iord']).all()
+
+def test_noncontiguous_selection_slicing(subfind):
+    # Test loading a non-contiguous selection of particles
+    noncontig = subfind[::2]
+    noncontig_copy = noncontig.load_copy()
+    assert (noncontig_copy['iord']==noncontig['iord']).all()
+
+def test_noncontiguous_selection_indexing(subfind):
+    # Test loading a non-contiguous selection of particles using indexing
+    halos = subfind.halos()
+    halo_0 = halos[0]
+    halo = halos[len(halos)-1] # contains 10 gas, 10 dm, no star
+    indices = np.concatenate([halo_0.get_index_list(subfind),halo.get_index_list(subfind)])  # situation: not contiguous indices for some PartType
+    indices = np.sort(indices)
+    
+    copy = subfind[indices].load_copy()
+    
+    assert (copy['iord']==subfind[indices]['iord']).all()
