@@ -30,10 +30,12 @@ multiprocess = (multiprocess_num > 1)
 
 if multiprocess:
     import multiprocessing
+    import atexit
 
     remote_exec = pynbody.array.shared.shared_array_remote
     remote_map = pynbody.array.shared.remote_map
 else:
+    multiprocessing = None
     def remote_exec(fn):
         return fn
 
@@ -476,6 +478,15 @@ class RamsesSnap(SimSnap):
             self._shared_arrays = True
             if (RamsesSnap.reader_pool is None):
                 RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
+                atexit.register(self._cleanup_reader_pool)
+    
+    @classmethod
+    def _cleanup_reader_pool(cls):
+        """Clean up the multiprocessing pool when the process exits"""
+        if cls.reader_pool is not None:
+            cls.reader_pool.close()
+            cls.reader_pool.join()
+            cls.reader_pool = None
 
     def _load_fluid_descriptors(self):
         types = ["hydro", "grav"]
