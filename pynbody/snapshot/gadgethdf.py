@@ -401,17 +401,50 @@ class HDFArrayLoader:
             
     def _fill_array_from_hdf_dataset(self, sim_array_to_fill, hdf_dataset, source_sel):
         """Fill a simulation array from an HDF5 dataset."""
-        if source_sel is not None:
-            dataset_read = hdf_dataset[source_sel]
-        else:
-            dataset_read = hdf_dataset
         
-        # Shape of the data chunk that will be read from HDF5
-        assert sim_array_to_fill.size == dataset_read.size
-        data_chunk_shape = dataset_read.shape
-        # Reshape the target slice to match the shape of the data being read
-        sim_array_reshaped = sim_array_to_fill.reshape(data_chunk_shape)
-        hdf_dataset.read_direct(sim_array_reshaped, source_sel=source_sel) 
+        # Determine if source_sel represents a fancy index array (for non-continuous selection)
+        # _get_selection_size returns either a 1D numpy array of indices or a slice object.
+        is_fancy_index_array = isinstance(source_sel, np.ndarray)
+
+        if is_fancy_index_array:
+
+            # Optimization for non-continuous reads:
+            # Read a single contiguous chunk from HDF5 that spans all requested indices
+            # for this file, then select the specific indices from this in-memory chunk.
+            min_idx_in_file_dataset = source_sel[0]
+            max_idx_in_file_dataset = source_sel[-1]
+
+            # Define the slice for the contiguous read from the HDF5 dataset
+            contiguous_hdf_slice = np.s_[min_idx_in_file_dataset : max_idx_in_file_dataset + 1]
+            data_chunk_from_hdf = hdf_dataset[contiguous_hdf_slice]
+
+            # Adjust the original source_sel (which are indices local to the hdf_dataset)
+            # to be indices local to the data_chunk_from_hdf we just read.
+            indices_within_read_chunk = source_sel - min_idx_in_file_dataset
+            
+            final_data_to_fill = data_chunk_from_hdf[indices_within_read_chunk]
+
+            # Reshape and fill the target simulation array
+            if sim_array_to_fill.shape == final_data_to_fill.shape:
+                sim_array_to_fill[:] = final_data_to_fill
+            else:
+                sim_array_to_fill[:] = final_data_to_fill.reshape(sim_array_to_fill.shape)
+
+        elif isinstance(source_sel, slice) or source_sel is None:
+            # for continuous selections (slices) or reading all data (source_sel is None)
+            # This uses hdf_dataset.read_direct, which is efficient for contiguous data.
+            
+            # Determine the shape of the data chunk that will be read from HDF5
+            expected_chunk_shape = hdf_dataset[source_sel].shape if source_sel is not None else hdf_dataset.shape
+            
+            assert sim_array_to_fill.size == np.prod(expected_chunk_shape)
+
+            # Reshape the target slice to match the shape of the data being read
+            sim_array_reshaped = sim_array_to_fill.reshape(expected_chunk_shape)
+            hdf_dataset.read_direct(sim_array_reshaped, source_sel=source_sel)
+        else:
+            raise TypeError(f"Unsupported source_sel type: {type(source_sel)}. "
+                            "Expected numpy.ndarray, slice, or None.")
 
 class GadgetHDFSnap(SimSnap):
     """
