@@ -385,6 +385,11 @@ class HDFArrayLoader:
             num = source_sel.size
             if num>0:
                 source_sel = source_sel - i0_offset_in_ptype    # Rebase ptype-local indices to be local to this HDF file's dataset.
+                
+                # Check if this specific segment of ptype-local indices is itself contiguous.
+                if (source_sel[-1]-source_sel[0]+1) == num:
+                    # This segment is contiguous. source_sel can be a slice
+                    source_sel = np.s_[source_sel[0]:source_sel[-1]+1]
             else:
                 source_sel = None
 
