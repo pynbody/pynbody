@@ -63,7 +63,7 @@ class _DummyHDFData:
     def __len__(self):
         return self.length
 
-    def read_direct(self, target):
+    def read_direct(self, target, source_sel=None): # follow h5py read_direct add source_sel keyword
         target[:] = self.value
 
 
@@ -294,15 +294,10 @@ class HDFArrayLoader:
                     continue
                 i1 = i0+npart
 
-                for translated_name in translated_names:
-                    try:
-                        dataset = sim._get_hdf_dataset(hdf, translated_name)
-                    except KeyError:
-                        continue
+                dataset = self._get_dataset_from_translated_names(sim, hdf, translated_names)
                 target_array = sim[loading_fam][array_name][i0:i1]
-                assert target_array.size == dataset.size
-
-                dataset.read_direct(target_array.reshape(dataset.shape))
+                
+                self._fill_array_from_hdf_dataset(target_array, dataset, source_sel=None)
 
                 i0 = i1
 
@@ -314,7 +309,7 @@ class HDFArrayLoader:
             if num_total == 0:
                 continue
 
-            i_load_start = 0  # recording already loaded loading_fam index
+            i_load_start = 0  # current write position in sim[loading_fam][array_name]
             for hdf_family_name in self._family_to_group_map[loading_fam]:
                 hdf_family_count = self._partial_ptype_slice[hdf_family_name].stop - self._partial_ptype_slice[hdf_family_name].start
                 if hdf_family_count == 0:
@@ -323,7 +318,7 @@ class HDFArrayLoader:
                 i_stop = self._partial_ptype_slice[hdf_family_name].stop - self._file_ptype_slice[hdf_family_name].start  # stop index for this ParticleType in file
 
                 i0 = 0 # already loaded index
-                for hdf in self._hdf_files.iter_particle_groups_with_name(hdf_family_name):
+                for hdf in self._hdf_files.iter_particle_groups_with_name(hdf_family_name): # e.g., DM: "PartType1","PartType2"
                     npart = hdf['ParticleIDs'].size
                     if npart == 0:
                         continue
@@ -331,23 +326,41 @@ class HDFArrayLoader:
                     if max(i0, i_start) < min(i1, i_stop):
                         cover_min = max(i0, i_start)
                         cover_max = min(i1, i_stop)
-                        for translated_name in translated_names:
-                            try:
-                                dataset = sim._get_hdf_dataset(hdf, translated_name)
-                            except KeyError:
-                                continue
+                        
+                        dataset = self._get_dataset_from_translated_names(sim, hdf, translated_names)
 
                         target_array = sim[loading_fam][array_name][i_load_start:(i_load_start+cover_max-cover_min)]
-                        
-                        # Reshape target_array to match the shape of the data slice
-                        target_array_reshaped = target_array.reshape(dataset[cover_min-i0:cover_max-i0].shape)
 
-                        dataset.read_direct(target_array_reshaped, source_sel=np.s_[cover_min-i0:cover_max-i0])
+                        self._fill_array_from_hdf_dataset(target_array, dataset, source_sel=np.s_[cover_min-i0:cover_max-i0])
+
                         i_load_start = i_load_start + cover_max - cover_min
 
                     i0 = i1
-                    if i0 >= i_stop:
+                    if i0 >= i_stop:    # region Slice[i_start:i_stop]
                         break
+                    
+    def _get_dataset_from_translated_names(self, sim_obj, hdf_particle_group, translated_names):
+        """Retrieve an HDF5 dataset from translated_names."""
+        for translated_name in translated_names:
+            try:
+                dataset = sim_obj._get_hdf_dataset(hdf_particle_group, translated_name)
+                return dataset
+            except KeyError:
+                continue
+            
+    def _fill_array_from_hdf_dataset(self, sim_array_to_fill, hdf_dataset, source_sel):
+        """Fill a simulation array from an HDF5 dataset."""
+        if source_sel is not None:
+            dataset_read = hdf_dataset[source_sel]
+        else:
+            dataset_read = hdf_dataset
+        
+        # Shape of the data chunk that will be read from HDF5
+        assert sim_array_to_fill.size == dataset_read.size
+        data_chunk_shape = dataset_read.shape
+        # Reshape the target slice to match the shape of the data being read
+        sim_array_reshaped = sim_array_to_fill.reshape(data_chunk_shape)
+        hdf_dataset.read_direct(sim_array_reshaped, source_sel=source_sel) 
 
 class GadgetHDFSnap(SimSnap):
     """
