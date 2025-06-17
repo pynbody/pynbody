@@ -8,7 +8,40 @@ defaults:
 
 jobs:
 
+  fetch-testdata:
+    runs-on: ubuntu-latest
+    outputs:
+      testdata-key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - name: Get testdata hash
+      id: get-testdata-hash
+      run: |
+        echo "testdatahash=$(python pynbody/test_utils/__init__.py)" >> $GITHUB_OUTPUT
+    - name: Restore testdata cache
+      uses: actions/cache/restore@v3
+      id: cache-testdata
+      with:
+        path: tests/testdata
+        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
+    - name: Fetch and unpack test data
+      if: steps.cache-testdata.outputs.cache-hit != 'true'
+      working-directory: tests
+      run: |
+        python ../pynbody/test_utils/__init__.py --fetch
+    - name: Save testdata cache
+      uses: actions/cache/save@v3
+      if: always() && steps.cache-testdata.outputs.cache-hit != 'true'
+      with:
+        path: tests/testdata
+        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
+
   build:
+    needs: fetch-testdata
     strategy:
       fail-fast: false
       matrix:
@@ -53,33 +86,14 @@ jobs:
         echo "[ramses]" >> ~/.pynbodyrc
         echo "parallel-read=2" >> ~/.pynbodyrc
 
-    - name: Get testdata hash
-      id: get-testdata-hash
-      working-directory: tests
-      run: |
-        echo "testdatahash=$(python -c 'import pynbody.test_utils as tu; print(tu.test_data_hash())')" >> $GITHUB_OUTPUT
-      shell: bash
-
     - name: Restore testdata cache
       uses: actions/cache/restore@v3
-      id: cache-testdata
       with:
         path: tests/testdata
-        key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
-    - name: Fetch and unpack test data
-      if: steps.cache-testdata.outputs.cache-hit != 'true'
-      working-directory: tests
-      run: |
-        python -c "import pynbody.test_utils as tu; tu.precache_test_data()"
+        key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
     - name: Run all tests
       working-directory: tests
       run: python -m pytest --ignore=testdata/
-    - name: Save testdata cache
-      uses: actions/cache/save@v3
-      if: always() && steps.cache-testdata.outputs.cache-hit != 'true'
-      with:
-        path: tests/testdata
-        key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
     # Following is temporarily necessary because of the >2.0.0rc1 numpy version
     - name: sanitize artifact name
       if: always()
