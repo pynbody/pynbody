@@ -22,6 +22,9 @@ jobs:
             numpy-version: "1.25.2"
           - python-version: "3.13"
             numpy-version: "2.0.2"
+          # Temporarily exclude Python 3.13 on Windows due to setuptools/library linking issues
+          - os: windows-latest
+            python-version: "3.13"
 
     runs-on: ${{ matrix.os }}
     env:
@@ -57,8 +60,8 @@ jobs:
         echo "testdatahash=$(python -c 'import pynbody.test_utils as tu; print(tu.test_data_hash())')" >> $GITHUB_OUTPUT
       shell: bash
 
-    - name: Cache testdata
-      uses: actions/cache@v3
+    - name: Restore testdata cache
+      uses: actions/cache/restore@v3
       id: cache-testdata
       with:
         path: tests/testdata
@@ -71,6 +74,12 @@ jobs:
     - name: Run all tests
       working-directory: tests
       run: python -m pytest --ignore=testdata/
+    - name: Save testdata cache
+      uses: actions/cache/save@v3
+      if: always() && steps.cache-testdata.outputs.cache-hit != 'true'
+      with:
+        path: tests/testdata
+        key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
     # Following is temporarily necessary because of the >2.0.0rc1 numpy version
     - name: sanitize artifact name
       if: always()
