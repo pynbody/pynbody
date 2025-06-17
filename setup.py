@@ -150,8 +150,12 @@ install_requires = [
 ]
 
 tests_require = [
-    'pytest','pandas','camb',"IPython",'healpy','certifi'
+    'pytest','pandas','camb',"IPython",'certifi'
 ]
+
+# Add healpy only on non-Windows platforms
+if platform.system() != 'Windows':
+    tests_require.append('healpy')
 
 docs_require = [
     'ipython>=3',
