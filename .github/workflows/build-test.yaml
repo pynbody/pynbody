@@ -26,22 +26,24 @@ jobs:
       run: |
         echo "testdatahash=$(python pynbody/test_utils/__init__.py)" >> $GITHUB_OUTPUT
     - name: Restore testdata cache
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       id: cache-testdata
       with:
         path: tests/testdata
         key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
+        enableCrossOsArchive: true
     - name: Fetch and unpack test data
       if: steps.cache-testdata.outputs.cache-hit != 'true'
       working-directory: tests
       run: |
         python ../pynbody/test_utils/__init__.py --fetch
     - name: Save testdata cache
-      uses: actions/cache/save@v3
+      uses: actions/cache/save@v4
       if: always() && steps.cache-testdata.outputs.cache-hit != 'true'
       with:
         path: tests/testdata
         key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
+        enableCrossOsArchive: true
 
   build:
     needs: fetch-testdata
@@ -90,10 +92,11 @@ jobs:
         echo "parallel-read=2" >> ~/.pynbodyrc
 
     - name: Restore testdata cache
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       with:
         path: tests/testdata
         key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
+        enableCrossOsArchive: true
     - name: Run all tests
       working-directory: tests
       run: python -m pytest --ignore=testdata/
