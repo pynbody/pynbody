@@ -406,7 +406,12 @@ class HDFArrayLoader:
             
     def _fill_array_from_hdf_dataset(self, sim_array_to_fill, hdf_dataset, source_sel):
         """Fill a simulation array from an HDF5 dataset."""
-        
+
+        # for _DummyHDFData read directly
+        if isinstance(hdf_dataset,_DummyHDFData):
+            sim_array_to_fill[:] = hdf_dataset.value
+            return
+
         # Determine if source_sel represents a fancy index array (for non-continuous selection)
         # _get_selection_size returns either a 1D numpy array of indices or a slice object.
         is_fancy_index_array = isinstance(source_sel, np.ndarray)
