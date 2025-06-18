@@ -208,3 +208,12 @@ def test_noncontiguous_selection_indexing(subfind):
     copy = subfind[indices].load_copy()
     
     assert (copy['iord']==subfind[indices]['iord']).all()
+
+def test_partial_load_mass_in_header():
+    f = pynbody.load("testdata/gadget3/snap_028_z000p000.0.hdf5")
+
+    f_slice = f[::2].load_copy()
+    f.physical_units()
+    f_slice.physical_units()
+    f['mass'] # load all masses
+    assert np.allclose(f_slice['mass'],f[::2]['mass'])
