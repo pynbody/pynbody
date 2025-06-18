@@ -183,7 +183,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         for key, count, dtype in original_headers:
             if dtype == "i8b":
                 if longint:
-                    dtype = "l"
+                    dtype = "q"
                 else:
                     dtype = "i"
             headers.append((key, count, dtype))
