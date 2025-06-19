@@ -343,7 +343,7 @@ ramses_rt_header = (
 )
 
 TYPE_MAP = {'i4': 'i',
-            'i8': 'l',
+            'i8': 'q',
             'f4': 'f',
             'f8': 'd'}
 particle_blocks = list(map(
