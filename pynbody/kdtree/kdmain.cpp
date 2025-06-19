@@ -173,7 +173,8 @@ template <typename T> int checkArray(PyObject *check, const char *name, npy_intp
   if (actual_bytes != expected_bytes) {
     PyErr_Format(PyExc_ValueError,
                  "Array '%s' has %zd bytes, but %zd bytes are required for type %s",
-                 name, (ssize_t)actual_bytes, (ssize_t)expected_bytes, c_name<T>());
+                 name, static_cast<Py_ssize_t>(actual_bytes),
+                 static_cast<Py_ssize_t>(expected_bytes), c_name<T>());
     return 1;
   }
   
