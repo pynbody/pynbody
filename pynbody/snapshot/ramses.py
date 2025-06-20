@@ -29,8 +29,8 @@ multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
 multiprocess = (multiprocess_num > 1)
 
 if multiprocess:
-    import multiprocessing
     import atexit
+    import multiprocessing
 
     remote_exec = pynbody.array.shared.shared_array_remote
     remote_map = pynbody.array.shared.remote_map

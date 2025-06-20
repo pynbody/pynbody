@@ -6,8 +6,9 @@ related to Cython's C integration.
 """
 
 import struct
+from typing import Any, Dict, List, Tuple, Union
+
 import numpy as np
-from typing import Union, List, Tuple, Any, Dict
 
 
 class FortranFile:
@@ -35,8 +36,8 @@ class FortranFile:
         try:
             self._file = open(fname, 'rb')
             self._closed = False
-        except IOError as e:
-            raise IOError(f"Cannot open '{fname}': {e}")
+        except OSError as e:
+            raise OSError(f"Cannot open '{fname}': {e}")
     
     def __enter__(self):
         return self
@@ -112,7 +113,7 @@ class FortranFile:
             # Read record header
             header_data = self._file.read(4)
             if len(header_data) != 4:
-                raise IOError("Failed to read record header")
+                raise OSError("Failed to read record header")
             
             s1 = struct.unpack('<i', header_data)[0]
             
@@ -122,12 +123,12 @@ class FortranFile:
             # Read record footer
             footer_data = self._file.read(4)
             if len(footer_data) != 4:
-                raise IOError("Failed to read record footer")
+                raise OSError("Failed to read record footer")
             
             s2 = struct.unpack('<i', footer_data)[0]
             
             if s1 != s2:
-                raise IOError(f'Sizes do not agree in the header and footer for '
+                raise OSError(f'Sizes do not agree in the header and footer for '
                              f'this record - check header dtype. Got {s1} and {s2}')
         
         return 0
@@ -156,8 +157,10 @@ class FortranFile:
             return 8
         elif dtype == 'f':
             return 4
-        elif dtype == 'l':
+        elif dtype == 'q':
             return 8
+        elif dtype == 'l':
+            raise ValueError("FortranFile does not support 'l' (long) as it is not platform-independent. Use 'i' for int32 or 'q' for int64.")
         else:
             # Fallback to numpy to compute the size
             return np.dtype(dtype).itemsize
@@ -180,7 +183,7 @@ class FortranFile:
         # Read record header
         header_data = self._file.read(4)
         if len(header_data) != 4:
-            raise IOError("Failed to read record header")
+            raise OSError("Failed to read record header")
         
         s1 = struct.unpack('<i', header_data)[0]
         
@@ -197,7 +200,7 @@ class FortranFile:
         # Read the data
         data_bytes = self._file.read(s1)
         if len(data_bytes) != s1:
-            raise IOError("Failed to read record data")
+            raise OSError("Failed to read record data")
         
         # Convert to numpy array
         if dtype == 'i':
@@ -206,7 +209,7 @@ class FortranFile:
             fmt = f'<{count}d'
         elif dtype == 'f':
             fmt = f'<{count}f'
-        elif dtype == 'l':
+        elif dtype == 'q':
             fmt = f'<{count}q'  # 'q' is 8-byte signed int
         else:
             # For other dtypes, use numpy directly
@@ -214,10 +217,10 @@ class FortranFile:
             # Read footer after creating array
             footer_data = self._file.read(4)
             if len(footer_data) != 4:
-                raise IOError("Failed to read record footer")
+                raise OSError("Failed to read record footer")
             s2 = struct.unpack('<i', footer_data)[0]
             if s1 != s2:
-                raise IOError('Sizes do not agree in the header and footer for '
+                raise OSError('Sizes do not agree in the header and footer for '
                              'this record - check header dtype')
             return data
         
@@ -228,12 +231,12 @@ class FortranFile:
         # Read record footer
         footer_data = self._file.read(4)
         if len(footer_data) != 4:
-            raise IOError("Failed to read record footer")
+            raise OSError("Failed to read record footer")
         
         s2 = struct.unpack('<i', footer_data)[0]
         
         if s1 != s2:
-            raise IOError('Sizes do not agree in the header and footer for '
+            raise OSError('Sizes do not agree in the header and footer for '
                          'this record - check header dtype')
         
         return data
@@ -254,7 +257,7 @@ class FortranFile:
         # Read record size
         header_data = self._file.read(4)
         if len(header_data) != 4:
-            raise IOError("Failed to read record size")
+            raise OSError("Failed to read record size")
         
         s1 = struct.unpack('<i', header_data)[0]
         
@@ -276,7 +279,7 @@ class FortranFile:
         # Read record header
         header_data = self._file.read(4)
         if len(header_data) != 4:
-            raise IOError("Failed to read record header")
+            raise OSError("Failed to read record header")
         
         s1 = struct.unpack('<i', header_data)[0]
         
@@ -287,19 +290,19 @@ class FortranFile:
         # Read the int32 data
         data_bytes = self._file.read(4)
         if len(data_bytes) != 4:
-            raise IOError("Failed to read record data")
+            raise OSError("Failed to read record data")
         
         data = struct.unpack('<i', data_bytes)[0]
         
         # Read record footer
         footer_data = self._file.read(4)
         if len(footer_data) != 4:
-            raise IOError("Failed to read record footer")
+            raise OSError("Failed to read record footer")
         
         s2 = struct.unpack('<i', footer_data)[0]
         
         if s1 != s2:
-            raise IOError('Sizes do not agree in the header and footer for '
+            raise OSError('Sizes do not agree in the header and footer for '
                          'this record - check header dtype')
         
         return data
@@ -317,7 +320,7 @@ class FortranFile:
         # Read record header
         header_data = self._file.read(4)
         if len(header_data) != 4:
-            raise IOError("Failed to read record header")
+            raise OSError("Failed to read record header")
         
         s1 = struct.unpack('<i', header_data)[0]
         
@@ -328,19 +331,19 @@ class FortranFile:
         # Read the int64 data
         data_bytes = self._file.read(8)
         if len(data_bytes) != 8:
-            raise IOError("Failed to read record data")
+            raise OSError("Failed to read record data")
         
         data = struct.unpack('<q', data_bytes)[0]
         
         # Read record footer
         footer_data = self._file.read(4)
         if len(footer_data) != 4:
-            raise IOError("Failed to read record footer")
+            raise OSError("Failed to read record footer")
         
         s2 = struct.unpack('<i', footer_data)[0]
         
         if s1 != s2:
-            raise IOError('Sizes do not agree in the header and footer for '
+            raise OSError('Sizes do not agree in the header and footer for '
                          'this record - check header dtype')
         
         return data
@@ -359,19 +362,19 @@ class FortranFile:
         # Read record header
         header_data = self._file.read(4)
         if len(header_data) != 4:
-            raise IOError("Failed to read record header")
+            raise OSError("Failed to read record header")
         
         s1 = struct.unpack('<i', header_data)[0]
         
         if s1 == 4:  # int32
             data_bytes = self._file.read(4)
             if len(data_bytes) != 4:
-                raise IOError("Failed to read int32 data")
+                raise OSError("Failed to read int32 data")
             data = struct.unpack('<i', data_bytes)[0]
         elif s1 == 8:  # int64
             data_bytes = self._file.read(8)
             if len(data_bytes) != 8:
-                raise IOError("Failed to read int64 data")
+                raise OSError("Failed to read int64 data")
             data = struct.unpack('<q', data_bytes)[0]
         else:
             raise ValueError(f'Size obtained ({s1}) does not match with the expected '
@@ -380,12 +383,12 @@ class FortranFile:
         # Read record footer
         footer_data = self._file.read(4)
         if len(footer_data) != 4:
-            raise IOError("Failed to read record footer")
+            raise OSError("Failed to read record footer")
         
         s2 = struct.unpack('<i', footer_data)[0]
         
         if s1 != s2:
-            raise IOError('Sizes do not agree in the header and footer for '
+            raise OSError('Sizes do not agree in the header and footer for '
                          'this record - check header dtype')
         
         return data
@@ -474,7 +477,7 @@ class FortranFile:
         # Read data directly without Fortran record headers/footers
         data_bytes = self._file.read(total_bytes)
         if len(data_bytes) != total_bytes:
-            raise IOError("Failed to read the requested number of elements")
+            raise OSError("Failed to read the requested number of elements")
         
         # Convert to numpy array
         if dtype == 'i':
@@ -489,7 +492,7 @@ class FortranFile:
             fmt = f'<{count}f'
             values = struct.unpack(fmt, data_bytes)
             data = np.array(values, dtype=np.float32)
-        elif dtype == 'l':
+        elif dtype == 'q':
             fmt = f'<{count}q'
             values = struct.unpack(fmt, data_bytes)
             data = np.array(values, dtype=np.int64)
