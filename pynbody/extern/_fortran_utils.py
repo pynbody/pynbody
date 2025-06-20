@@ -33,10 +33,14 @@ class FortranFile:
         self._file = None
         self._closed = True
         
+        print(f"[DEBUG_FORTRAN] FortranFile.__init__ called with fname='{fname}'")  # DEBUG_IORD_DIAGNOSTIC
+        
         try:
             self._file = open(fname, 'rb')
             self._closed = False
+            print(f"[DEBUG_FORTRAN] Successfully opened file '{fname}'")  # DEBUG_IORD_DIAGNOSTIC
         except OSError as e:
+            print(f"[DEBUG_FORTRAN] Failed to open file '{fname}': {e}")  # DEBUG_IORD_DIAGNOSTIC
             raise OSError(f"Cannot open '{fname}': {e}")
     
     def __enter__(self):
@@ -180,15 +184,19 @@ class FortranFile:
         """
         self._check_open()
         
+        print(f"[DEBUG_FORTRAN] read_vector called with dtype={dtype}, file position={self.tell()}")  # DEBUG_IORD_DIAGNOSTIC
+        
         # Read record header
         header_data = self._file.read(4)
         if len(header_data) != 4:
             raise OSError("Failed to read record header")
         
         s1 = struct.unpack('<i', header_data)[0]
+        print(f"[DEBUG_FORTRAN] Record header size: {s1} bytes")  # DEBUG_IORD_DIAGNOSTIC
         
         # Determine element size and count
         size = self.get_size(dtype)
+        print(f"[DEBUG_FORTRAN] Element size for dtype {dtype}: {size} bytes")  # DEBUG_IORD_DIAGNOSTIC
         
         # Check record is compatible with data type
         if s1 % size != 0:
@@ -196,13 +204,16 @@ class FortranFile:
                            f'size ({size}) of multi-item record')
         
         count = s1 // size
+        print(f"[DEBUG_FORTRAN] Will read {count} elements of dtype {dtype}")  # DEBUG_IORD_DIAGNOSTIC
         
         # Read the data
         data_bytes = self._file.read(s1)
         if len(data_bytes) != s1:
             raise OSError("Failed to read record data")
+        print(f"[DEBUG_FORTRAN] Read {len(data_bytes)} bytes of data, first few bytes as hex: {data_bytes[:min(20, len(data_bytes))].hex()}")  # DEBUG_IORD_DIAGNOSTIC
         
         # Convert to numpy array
+        print(f"[DEBUG_FORTRAN] Converting to numpy array, dtype={dtype}")  # DEBUG_IORD_DIAGNOSTIC
         if dtype == 'i':
             fmt = f'<{count}i'
         elif dtype == 'd':
@@ -214,6 +225,7 @@ class FortranFile:
         else:
             # For other dtypes, use numpy directly
             data = np.frombuffer(data_bytes, dtype=np.dtype(dtype))
+            print(f"[DEBUG_FORTRAN] numpy frombuffer conversion: first few values = {data[:min(5, len(data))]}")  # DEBUG_IORD_DIAGNOSTIC
             # Read footer after creating array
             footer_data = self._file.read(4)
             if len(footer_data) != 4:
@@ -222,11 +234,13 @@ class FortranFile:
             if s1 != s2:
                 raise OSError('Sizes do not agree in the header and footer for '
                              'this record - check header dtype')
+            print(f"[DEBUG_FORTRAN] Returning array with shape {data.shape}, dtype {data.dtype}, first few values = {data[:min(5, len(data))]}")  # DEBUG_IORD_DIAGNOSTIC
             return data
         
         # Unpack using struct for standard types
         values = struct.unpack(fmt, data_bytes)
         data = np.array(values, dtype=dtype)
+        print(f"[DEBUG_FORTRAN] struct.unpack conversion: first few values = {values[:min(5, len(values))]}")  # DEBUG_IORD_DIAGNOSTIC
         
         # Read record footer
         footer_data = self._file.read(4)
@@ -239,6 +253,7 @@ class FortranFile:
             raise OSError('Sizes do not agree in the header and footer for '
                          'this record - check header dtype')
         
+        print(f"[DEBUG_FORTRAN] Returning array with shape {data.shape}, dtype {data.dtype}, first few values = {data[:min(5, len(data))]}")  # DEBUG_IORD_DIAGNOSTIC
         return data
     
     def peek_record_size(self) -> int:
