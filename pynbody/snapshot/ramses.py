@@ -59,7 +59,6 @@ def _cpu_id(i):
 
 @remote_exec
 def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
-    print(f"[DEBUG_RAMSES] _cpui_count_particles_with_implicit_families: {filename}, field={distinguisher_field}, type={distinguisher_type}")  # DEBUG_IORD_DIAGNOSTIC
 
     with FortranFile(filename) as f:
         f.seek(0, 2)
@@ -67,43 +66,33 @@ def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, 
         f.seek(0, 0)
         header = f.read_attrs(ramses_particle_header)
         npart_this = header['npart']
-        print(f"[DEBUG_RAMSES] Particle header: {header}")  # DEBUG_IORD_DIAGNOSTIC
         f.skip(distinguisher_field)
-        print(f"[DEBUG_RAMSES] Skipped {distinguisher_field} fields, position now: {f.tell()}")  # DEBUG_IORD_DIAGNOSTIC
         # Avoid end-of-file issues
         if f.tell() == eof_fpos:
             data = np.array([])
-            print(f"[DEBUG_RAMSES] At EOF, creating empty array")  # DEBUG_IORD_DIAGNOSTIC
         else:
             data = f.read_vector(distinguisher_type)
-            print(f"[DEBUG_RAMSES] Read distinguisher data: shape={data.shape}, first few values={data[:min(10, len(data))]}")  # DEBUG_IORD_DIAGNOSTIC
 
         if len(data)>0:
             my_mask = np.array((data != 0), dtype=np.int8) # -> 0 for dm, 1 for star
         else:
             my_mask = np.zeros(npart_this, dtype=np.int8)
         nstar_this = (data != 0).sum()
-        print(f"[DEBUG_RAMSES] Found {npart_this} total particles, {nstar_this} stars")  # DEBUG_IORD_DIAGNOSTIC
         return npart_this, nstar_this, my_mask
 
 @remote_exec
 def _cpui_count_particles_with_explicit_families(filename, family_field, family_type):
-    print(f"[DEBUG_RAMSES] _cpui_count_particles_with_explicit_families: {filename}, field={family_field}, type={family_type}")  # DEBUG_IORD_DIAGNOSTIC
     assert np.issubdtype(family_type, np.int8)
     counts_array = np.zeros(256,dtype=np.int64)
     with FortranFile(filename) as f:
         header = f.read_attrs(ramses_particle_header)
         npart_this = header['npart']
-        print(f"[DEBUG_RAMSES] Particle header: {header}")  # DEBUG_IORD_DIAGNOSTIC
 
         f.skip(family_field)
-        print(f"[DEBUG_RAMSES] Skipped {family_field} fields, position now: {f.tell()}")  # DEBUG_IORD_DIAGNOSTIC
         my_mask = f.read_vector(family_type)
-        print(f"[DEBUG_RAMSES] Read family mask: shape={my_mask.shape}, unique values={np.unique(my_mask)}")  # DEBUG_IORD_DIAGNOSTIC
 
         unique_mask_ids, counts = np.unique(my_mask, return_counts=True)
         counts_array[unique_mask_ids]=counts
-        print(f"[DEBUG_RAMSES] Family counts: {dict(zip(unique_mask_ids, counts))}")  # DEBUG_IORD_DIAGNOSTIC
 
         assert sum(counts)==npart_this
 
@@ -111,21 +100,14 @@ def _cpui_count_particles_with_explicit_families(filename, family_field, family_
 
 @remote_exec
 def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, family_mask):
-    print(f"[DEBUG_RAMSES] _cpui_load_particle_block called: filename={filename}, offset={offset}, type_={type_}")  # DEBUG_IORD_DIAGNOSTIC
     with FortranFile(filename) as f:
         _header = f.read_attrs(ramses_particle_header)
-        print(f"[DEBUG_RAMSES] Header: {_header}")  # DEBUG_IORD_DIAGNOSTIC
         f.skip(offset)
-        print(f"[DEBUG_RAMSES] Skipped {offset} records, now at position {f.tell()}")  # DEBUG_IORD_DIAGNOSTIC
         data = f.read_vector(type_)
-        print(f"[DEBUG_RAMSES] Loaded data array: shape={data.shape}, dtype={data.dtype}, first few values={data[:min(10, len(data))]}")  # DEBUG_IORD_DIAGNOSTIC
         for fam_id, ar in enumerate(arrays):
             data_this_family = data[family_mask == fam_id]
             ind0 = first_index[fam_id]
             ind1 = ind0 + len(data_this_family)
-            print(f"[DEBUG_RAMSES] Family {fam_id}: copying {len(data_this_family)} values to indices {ind0}:{ind1}")  # DEBUG_IORD_DIAGNOSTIC
-            if len(data_this_family) > 0:
-                print(f"[DEBUG_RAMSES] Family {fam_id} data: {data_this_family[:min(5, len(data_this_family))]}")  # DEBUG_IORD_DIAGNOSTIC
             ar[ind0:ind1] = data_this_family
 
 
@@ -965,25 +947,16 @@ class RamsesSnap(SimSnap):
 
 
     def _load_particle_block(self, blockname):
-        print(f"[DEBUG_RAMSES] _load_particle_block called with blockname='{blockname}'")  # DEBUG_IORD_DIAGNOSTIC
         offset = self._particle_blocks.index(blockname)
         _type = self._particle_types[offset]
-        print(f"[DEBUG_RAMSES] Block '{blockname}' is at offset {offset}, type {_type}")  # DEBUG_IORD_DIAGNOSTIC
-        print(f"[DEBUG_RAMSES] Particle blocks: {self._particle_blocks}")  # DEBUG_IORD_DIAGNOSTIC
-        print(f"[DEBUG_RAMSES] Particle types: {self._particle_types}")  # DEBUG_IORD_DIAGNOSTIC
 
         self._create_array_for_particles(blockname, _type)
 
         arrays = []
         for f in self._iter_particle_families():
             arrays.append(self[f][blockname])
-        print(f"[DEBUG_RAMSES] Created arrays for {len(arrays)} families")  # DEBUG_IORD_DIAGNOSTIC
 
 
-        print(f"[DEBUG_RAMSES] About to load particle block '{blockname}' from {len(self._cpus)} CPUs")  # DEBUG_IORD_DIAGNOSTIC
-        print(f"[DEBUG_RAMSES] CPU files: {[self._particle_filename(i) for i in self._cpus]}")  # DEBUG_IORD_DIAGNOSTIC
-        print(f"[DEBUG_RAMSES] Start indices: {self._particle_file_start_indices}")  # DEBUG_IORD_DIAGNOSTIC
-        
         try:
             remote_map(self.reader_pool,
                        _cpui_load_particle_block,
@@ -994,11 +967,6 @@ class RamsesSnap(SimSnap):
                        [_type] * len(self._cpus),
                        self._particle_family_ids_on_disk
                        )
-            print(f"[DEBUG_RAMSES] Successfully loaded particle block '{blockname}'")  # DEBUG_IORD_DIAGNOSTIC
-            # Print the final array values for debugging
-            for f in self._iter_particle_families():
-                if blockname in self[f] and len(self[f][blockname]) > 0:
-                    print(f"[DEBUG_RAMSES] Final {f} {blockname} array: first few values = {self[f][blockname][:min(10, len(self[f][blockname]))]}")  # DEBUG_IORD_DIAGNOSTIC
         except Exception:
             warnings.warn("Exception encountered while reading %r; is there an incompatibility in your Ramses configuration?"%blockname)
             del self[blockname]
