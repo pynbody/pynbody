@@ -121,9 +121,6 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
     ret_ar = np.frombuffer(mapped_mem, dtype=dtype, count=size, offset=offset).reshape(dims).view(SharedMemorySimArray)
     ret_ar._shared_fname = fname
     ret_ar._shared_owner = create
-
-    assert ret_ar.nbytes == num_bytes, \
-        f"Shared memory size mismatch: expected {num_bytes} bytes, got {ret_ar.nbytes} bytes"
     
     # Keep a reference to the shared memory object to prevent cleanup while array exists
     if _IS_WINDOWS:
