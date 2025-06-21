@@ -99,7 +99,7 @@ jobs:
         enableCrossOsArchive: true
     - name: Run all tests
       working-directory: tests
-      run: python -m pytest --ignore=testdata/ --tb=short --maxfail=3
+      run: python -m pytest -s --ignore=testdata/ --tb=short --maxfail=3
     # Following is temporarily necessary because of the >2.0.0rc1 numpy version
     - name: sanitize artifact name
       if: always()
