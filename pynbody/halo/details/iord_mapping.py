@@ -83,6 +83,7 @@ def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToOffset:
     max_iord = int(iord.max())
     if iord.min() < 0:
         # TEMPORARY print diagnostic info:
+        print("len(iord):", len(iord))
         print("iord values:", iord)
         print("every 100th:", iord[::100])
         print("max iord:", max_iord)
