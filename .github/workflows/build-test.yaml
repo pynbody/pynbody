@@ -7,9 +7,11 @@ defaults:
     shell: bash
 
 jobs:
-
   fetch-testdata:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     outputs:
       testdata-key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
     steps:
@@ -30,8 +32,7 @@ jobs:
       id: cache-testdata
       with:
         path: tests/testdata
-        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
-        enableCrossOsArchive: true
+        key: testdata-${{ matrix.os }}-${{ steps.get-testdata-hash.outputs.testdatahash }}
     - name: Fetch and unpack test data
       if: steps.cache-testdata.outputs.cache-hit != 'true'
       working-directory: tests
@@ -42,8 +43,7 @@ jobs:
       if: always() && steps.cache-testdata.outputs.cache-hit != 'true'
       with:
         path: tests/testdata
-        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
-        enableCrossOsArchive: true
+        key: testdata-${{ matrix.os }}-${{ steps.get-testdata-hash.outputs.testdatahash }}
 
   build:
     needs: fetch-testdata
@@ -93,8 +93,7 @@ jobs:
       uses: actions/cache/restore@v4
       with:
         path: tests/testdata
-        key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
-        enableCrossOsArchive: true
+        key: testdata-${{ matrix.os }}-${{ needs.fetch-testdata.outputs.testdata-key }}
     - name: Run all tests
       working-directory: tests
       run: python -m pytest -s --ignore=testdata/ --tb=short --maxfail=3
