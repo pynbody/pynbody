@@ -26,7 +26,7 @@ from . import SimSnap, namemapper
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
 multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
-multiprocess = (multiprocess_num > 1)
+multiprocess = (multiprocess_num > 1) 
 
 if multiprocess:
     import atexit
@@ -34,6 +34,8 @@ if multiprocess:
 
     remote_exec = pynbody.array.shared.shared_array_remote
     remote_map = pynbody.array.shared.remote_map
+
+    debug_mutex = multiprocessing.Lock()
 else:
     multiprocessing = None
     def remote_exec(fn):
@@ -100,6 +102,7 @@ def _cpui_count_particles_with_explicit_families(filename, family_field, family_
 
 @remote_exec
 def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, family_mask):
+    print(f"Entering _cpui_load_particle_block for {filename} with arrays={arrays}, offset={offset}, first_index={first_index}, type_={type_}, family_mask={family_mask}")
     with FortranFile(filename) as f:
         _header = f.read_attrs(ramses_particle_header)
         f.skip(offset)
