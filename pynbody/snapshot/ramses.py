@@ -34,8 +34,6 @@ if multiprocess:
 
     remote_exec = pynbody.array.shared.shared_array_remote
     remote_map = pynbody.array.shared.remote_map
-
-    debug_mutex = multiprocessing.Lock()
 else:
     multiprocessing = None
     def remote_exec(fn):
@@ -61,7 +59,7 @@ def _cpu_id(i):
 
 @remote_exec
 def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
-
+    print(f"Entering _cpui_count_particles_with_implicit_families for {filename} with distinguisher_field={distinguisher_field}, distinguisher_type={distinguisher_type}")
     with FortranFile(filename) as f:
         f.seek(0, 2)
         eof_fpos = f.tell()
@@ -69,6 +67,7 @@ def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, 
         header = f.read_attrs(ramses_particle_header)
         npart_this = header['npart']
         f.skip(distinguisher_field)
+        print(f"Reading distinguisher field at position {f.tell()} in {filename}")
         # Avoid end-of-file issues
         if f.tell() == eof_fpos:
             data = np.array([])
@@ -80,10 +79,12 @@ def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, 
         else:
             my_mask = np.zeros(npart_this, dtype=np.int8)
         nstar_this = (data != 0).sum()
+        print(f"Found {nstar_this} star particles and {npart_this-nstar_this} dark matter particles in {filename}")
         return npart_this, nstar_this, my_mask
 
 @remote_exec
 def _cpui_count_particles_with_explicit_families(filename, family_field, family_type):
+    print(f"Entering _cpui_count_particles_with_explicit_families for {filename} with family_field={family_field}, family_type={family_type}")
     assert np.issubdtype(family_type, np.int8)
     counts_array = np.zeros(256,dtype=np.int64)
     with FortranFile(filename) as f:
