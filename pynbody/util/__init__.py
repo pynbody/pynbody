@@ -20,7 +20,7 @@ logger = logging.getLogger('pynbody.util')
 from ._util import *
 
 
-def open_(filename: str | pathlib.Path, *args):
+def open_(filename: str | pathlib.Path, *args, **kwargs):
     """Open a file, enabling use of gzip decompression
 
     If the filename ends with .gz, the file is assumed to be gzipped. If the file does not exist, but a file
@@ -40,9 +40,9 @@ def open_(filename: str | pathlib.Path, *args):
     is_gzipped = filename.name.endswith('.gz')
 
     if is_gzipped:
-        return gzip.open(filename, *args)
+        return gzip.open(filename, *args, **kwargs)
     else:
-        return open(filename, *args)
+        return open(filename, *args, **kwargs)
 
 def cutgz(x: str | pathlib.Path):
     """Strip the .gz ending off a string or path"""

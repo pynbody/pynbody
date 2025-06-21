@@ -483,7 +483,10 @@ def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, unit
         affect the resolution of the actual image, but the presentation.) Default is 1600.
 
     """
-    import healpy as hp
+    try:
+        import healpy as hp
+    except ImportError:
+        raise ImportError("healpy is required for spherical_image function. Install with: pip install healpy")
     image = sph.render_spherical_image(sim, quantity=qty, nside=nside, kernel=kernel, out_units=units,
                                        weight=weight, threaded=threaded)
 

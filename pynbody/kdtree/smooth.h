@@ -521,7 +521,7 @@ PyObject *getReturnParticleList(SmoothingContext<T> * smx) {
   PyObject *numpy_result = PyArray_SimpleNew(1, dims, NPY_INTP);
 
   std::copy(smx->result->begin(), smx->result->end(),
-            static_cast<long *>(
+            static_cast<npy_intp *>(
                 PyArray_DATA(reinterpret_cast<PyArrayObject *>(numpy_result))));
   smx->result.reset(nullptr);
 

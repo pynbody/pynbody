@@ -44,8 +44,8 @@ def selection(np.ndarray[fused_float, ndim=2] pos_ar, region, parameters, fused_
         The size of the box to wrap around. If <0, no wrapping is done.
     """
 
-    cdef long i
-    cdef long N=len(pos_ar)
+    cdef Py_ssize_t i
+    cdef Py_ssize_t N=len(pos_ar)
     cdef fused_float cx,cy,cz,x,y,z,r2
     cdef fused_float r_max_2
     cdef np.ndarray[np.uint8_t, ndim=1] output = np.empty(len(pos_ar),dtype=np.uint8)

@@ -168,6 +168,16 @@ template <typename T> int checkArray(PyObject *check, const char *name, npy_intp
     return 1;
   }
 
+  npy_intp expected_bytes = PyArray_SIZE((PyArrayObject *)check) * sizeof(T);
+  npy_intp actual_bytes = PyArray_NBYTES((PyArrayObject *)check);
+  if (actual_bytes != expected_bytes) {
+    PyErr_Format(PyExc_ValueError,
+                 "Array '%s' has %zd bytes, but %zd bytes are required for type %s",
+                 name, static_cast<Py_ssize_t>(actual_bytes),
+                 static_cast<Py_ssize_t>(expected_bytes), c_name<T>());
+    return 1;
+  }
+  
   return 0;
 }
 
@@ -183,7 +193,7 @@ PyObject *kdinit(PyObject *self, PyObject *args) {
   PyObject *pos;  // Nx3 Numpy array of positions
   PyObject *mass; // Nx1 Numpy array of masses
 
-  if (!PyArg_ParseTuple(args, "OOl", &pos, &mass, &nBucket))
+  if (!PyArg_ParseTuple(args, "OOn", &pos, &mass, &nBucket))
     return NULL;
 
   int bitdepth = getBitDepth(pos);
@@ -234,7 +244,7 @@ PyObject * get_node_count(PyObject *self, PyObject *args) {
   if(!PyArg_ParseTuple(args, "O", &kdobj))
     return NULL;
   KDContext *kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
-  return PyLong_FromLong(kd->nNodes);
+  return PyLong_FromSsize_t(kd->nNodes);
 }
 
 PyObject * build_or_import(PyObject *self, PyObject *args, bool import_mode) {
@@ -379,7 +389,7 @@ template<typename T> struct typed_nn_start {
 /*==========================================================================*/
 template<typename T> struct typed_nn_next {
   static PyObject *call(PyObject *self, PyObject *args) {
-    long nCnt, i, pj;
+    npy_intp nCnt, i, pj;
 
     KDContext* kd;
     SmoothingContext<T> * smx;
@@ -412,11 +422,11 @@ template<typename T> struct typed_nn_next {
 
       for (i = 0; i < nCnt; i++) {
         pj = smx->pList[i];
-        PyList_SetItem(nnList, i, PyLong_FromLong(smx->kd->particleOffsets[pj]));
+        PyList_SetItem(nnList, i, PyLong_FromSsize_t(smx->kd->particleOffsets[pj]));
         PyList_SetItem(nnDist, i, PyFloat_FromDouble(smx->fList[i]));
       }
 
-      PyList_SetItem(retList, 0, PyLong_FromLong(smx->kd->particleOffsets[smx->pi]));
+      PyList_SetItem(retList, 0, PyLong_FromSsize_t(smx->kd->particleOffsets[smx->pi]));
       PyList_SetItem(retList, 1, PyFloat_FromDouble(GETSMOOTH(T, smx->pi)));
       PyList_SetItem(retList, 2, nnList);
       PyList_SetItem(retList, 3, nnDist);
@@ -671,7 +681,7 @@ template <typename Tf, typename Tq> struct typed_particles_in_sphere {
 template <typename Tf, typename Tq> struct typed_populate {
   static PyObject *call(PyObject *self, PyObject *args) {
 
-    long i, nCnt;
+    npy_intp i, nCnt;
     int procid;
     KDContext* kd;
     SmoothingContext<Tf> *smx_global, *smx_local;
@@ -691,7 +701,7 @@ template <typename Tf, typename Tq> struct typed_populate {
 
     smx_global->setupKernel(kernel_id);
 
-    long nbodies = PyArray_DIM(kd->pNumpyPos, 0);
+    npy_intp nbodies = PyArray_DIM(kd->pNumpyPos, 0);
 
     if (checkArray<Tf>((PyObject *) kd->pNumpySmooth, "smooth"))
       return NULL;
