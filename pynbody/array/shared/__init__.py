@@ -83,7 +83,7 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
     if fname is None:
         if not create:
             raise ValueError("When opening an existing shared array, fname must be specified")
-        random.seed(os.getpid() * time.time())
+        # random.seed(os.getpid() * time.time())
         fname = "pynbody-" + \
                 ("".join([random.choice('abcdefghijklmnopqrstuvwxyz')
                           for _ in range(10)]))
