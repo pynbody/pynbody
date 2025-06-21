@@ -115,6 +115,7 @@ def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, fami
             ind0 = first_index[fam_id]
             ind1 = ind0 + len(data_this_family)
             ar[ind0:ind1] = data_this_family
+            print(f"{filename[-10:]}: After loading {fam_id} starting at {ind0}, the first few values of the two loading arrays are {arrays[0][:10]} and {arrays[1][:10]}")
 
 
 def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
