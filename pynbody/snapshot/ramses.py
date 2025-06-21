@@ -59,9 +59,6 @@ def _cpu_id(i):
 
 @remote_exec
 def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
-    import os 
-    pid = os.getpid()
-    print(f"Entering _cpui_count_particles_with_implicit_families for {filename} with distinguisher_field={distinguisher_field}, distinguisher_type={distinguisher_type}; PID={pid}")
     with FortranFile(filename) as f:
         f.seek(0, 2)
         eof_fpos = f.tell()
@@ -69,7 +66,6 @@ def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, 
         header = f.read_attrs(ramses_particle_header)
         npart_this = header['npart']
         f.skip(distinguisher_field)
-        print(f"Reading distinguisher field at position {f.tell()} in {filename}")
         # Avoid end-of-file issues
         if f.tell() == eof_fpos:
             data = np.array([])
@@ -81,12 +77,10 @@ def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, 
         else:
             my_mask = np.zeros(npart_this, dtype=np.int8)
         nstar_this = (data != 0).sum()
-        print(f"Found {nstar_this} star particles and {npart_this-nstar_this} dark matter particles in {filename}")
         return npart_this, nstar_this, my_mask
 
 @remote_exec
 def _cpui_count_particles_with_explicit_families(filename, family_field, family_type):
-    print(f"Entering _cpui_count_particles_with_explicit_families for {filename} with family_field={family_field}, family_type={family_type}")
     assert np.issubdtype(family_type, np.int8)
     counts_array = np.zeros(256,dtype=np.int64)
     with FortranFile(filename) as f:
@@ -105,7 +99,6 @@ def _cpui_count_particles_with_explicit_families(filename, family_field, family_
 
 @remote_exec
 def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, family_mask):
-    print(f"Entering _cpui_load_particle_block for {filename} with arrays={arrays}, offset={offset}, first_index={first_index}, type_={type_}, family_mask={family_mask}")
     with FortranFile(filename) as f:
         _header = f.read_attrs(ramses_particle_header)
         f.skip(offset)
@@ -115,7 +108,6 @@ def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, fami
             ind0 = first_index[fam_id]
             ind1 = ind0 + len(data_this_family)
             ar[ind0:ind1] = data_this_family
-            print(f"{filename[-10:]}: After loading {fam_id} starting at {ind0}, the first few values of the two loading arrays are {arrays[0][:10]} and {arrays[1][:10]}")
 
 
 def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
@@ -483,7 +475,6 @@ class RamsesSnap(SimSnap):
     def __setup_parallel_reading(self):
         if multiprocess:
             self._shared_arrays = True
-            print(f"* Multiprocess, setting up reader pool with {multiprocess_num} processes")
             if (RamsesSnap.reader_pool is None):
                 RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
                 atexit.register(self._cleanup_reader_pool)
@@ -650,9 +641,7 @@ class RamsesSnap(SimSnap):
         if self._has_explicit_particle_families:
             return self._count_particles_using_explicit_families()
         else:
-            print("* Counting particles in RAMSES snapshot via implicit method...")
             ndm, nstar = self._count_particles_using_implicit_families()
-            print("* Done counting particles in RAMSES snapshot; result = %d dark matter, %d stars" % (ndm, nstar))
             return {family.dm: ndm, family.star: nstar}
     
     def _has_particle_file(self):
@@ -968,7 +957,6 @@ class RamsesSnap(SimSnap):
 
 
         try:
-            print(f"* Loading particle block {blockname}...")
             remote_map(self.reader_pool,
                        _cpui_load_particle_block,
                        [self._particle_filename(i) for i in self._cpus],
@@ -978,7 +966,6 @@ class RamsesSnap(SimSnap):
                        [_type] * len(self._cpus),
                        self._particle_family_ids_on_disk
                        )
-            print(f"* Done loading particle block {blockname}")
         except Exception:
             warnings.warn("Exception encountered while reading %r; is there an incompatibility in your Ramses configuration?"%blockname)
             del self[blockname]

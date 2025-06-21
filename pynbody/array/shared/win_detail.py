@@ -8,6 +8,7 @@ from functools import reduce
 import numpy as np
 
 # Windows API constants
+FILE_MAP_READ = 0x0004
 FILE_MAP_ALL_ACCESS = 0x000F001F
 PAGE_READWRITE = 0x04
 INVALID_HANDLE_VALUE = -1
@@ -40,6 +41,47 @@ CloseHandle.restype = wintypes.BOOL
 GetLastError = kernel32.GetLastError
 GetLastError.restype = wintypes.DWORD
 
+GetLastError = kernel32.GetLastError
+GetLastError.argtypes = []
+GetLastError.restype = wintypes.DWORD
+
+FormatMessageW = kernel32.FormatMessageW
+FormatMessageW.argtypes = [wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD,
+                          wintypes.DWORD, wintypes.LPWSTR, wintypes.DWORD, ctypes.c_void_p]
+FormatMessageW.restype = wintypes.DWORD
+
+# Constants for FormatMessage
+FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000
+FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100
+FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200
+
+ERROR_ALREADY_EXISTS = 183  # Error code for "already exists"
+
+def get_error_string(error_code):
+    """Get a human-readable string for the last Windows error."""
+    if error_code == 0:
+        return "No error"
+    
+    # Buffer to hold the error message
+    buffer = ctypes.create_unicode_buffer(256)
+    
+    # Format the error message
+    length = FormatMessageW(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        None,  # lpSource
+        error_code,  # dwMessageId
+        0,  # dwLanguageId (0 = default)
+        buffer,  # lpBuffer
+        len(buffer),  # nSize
+        None  # Arguments
+    )
+    
+    if length == 0:
+        return f"Unknown error (code: {error_code})"
+    
+    # Remove trailing newlines and return
+    return buffer.value.rstrip('\r\n')
+
 # Windows-specific: store references to SharedMemory objects
 _windows_shared_memory_objects = {}
 
@@ -56,6 +98,7 @@ class WindowsSharedMemory:
         if create:
             if size is None:
                 raise ValueError("Size must be specified when creating shared memory")
+
             # Create new shared memory
             self._handle = CreateFileMappingW(
                 INVALID_HANDLE_VALUE,  # Use paging file
@@ -65,9 +108,17 @@ class WindowsSharedMemory:
                 size,                  # Low-order DWORD of size
                 name                   # Name
             )
+
+            print(f"Creating shared memory '{name}' with size {size}")
+
+            if self._handle !=0 and GetLastError() == ERROR_ALREADY_EXISTS:
+                CloseHandle(self._handle)
+                raise OSError(f"Shared memory '{name}' already exists.")
+            
             if not self._handle:
                 error = GetLastError()
-                raise OSError(f"Failed to create shared memory '{name}': Error {error}")
+                
+                raise OSError(f"Failed to create shared memory '{name}': Error {get_error_string(error)}")
         else:
             # Open existing shared memory
             self._handle = OpenFileMappingW(
@@ -77,7 +128,7 @@ class WindowsSharedMemory:
             )
             if not self._handle:
                 error = GetLastError()
-                raise FileNotFoundError(f"Failed to open shared memory '{name}': Error {error}")
+                raise FileNotFoundError(f"Failed to open shared memory '{name}': Error {get_error_string(error)}")
         
         # Map the view
         self._view = MapViewOfFile(

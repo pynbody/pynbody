@@ -30,6 +30,12 @@ from .. import SimArray
 
 _owned_shared_memory_names = []
 
+# previously the RNG was seeded within the make_shared_array function each time, but if called
+# in quick succession on Windows (which has a low resolution timer), this led to non-unique
+# names.
+_rng = random.Random()
+_rng.seed(os.getpid() + int(time.time() * 1000))
+
 class SharedArrayNotFound(OSError):
     pass
 
@@ -83,9 +89,8 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
     if fname is None:
         if not create:
             raise ValueError("When opening an existing shared array, fname must be specified")
-        # random.seed(os.getpid() * time.time())
         fname = "pynbody-" + \
-                ("".join([random.choice('abcdefghijklmnopqrstuvwxyz')
+                ("".join([_rng.choice('abcdefghijklmnopqrstuvwxyz')
                           for _ in range(10)]))
 
     if not hasattr(dims, '__len__'):

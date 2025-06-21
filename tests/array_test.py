@@ -385,3 +385,9 @@ def test_ufunc_multi_input():
     np.concatenate([SA([1, 2, 3]), SA([4, 5, 6])])
     np.vstack([SA([1, 2, 3]), SA([4, 5, 6])])
     np.hstack([SA([1, 2, 3]), SA([4, 5, 6])])
+
+
+def test_shared_name_collision_raises(clean_up_test_protection):
+    myar = shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")
+    with pytest.raises(OSError):
+        shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")
