@@ -59,7 +59,9 @@ def _cpu_id(i):
 
 @remote_exec
 def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
-    print(f"Entering _cpui_count_particles_with_implicit_families for {filename} with distinguisher_field={distinguisher_field}, distinguisher_type={distinguisher_type}")
+    import os 
+    pid = os.getpid()
+    print(f"Entering _cpui_count_particles_with_implicit_families for {filename} with distinguisher_field={distinguisher_field}, distinguisher_type={distinguisher_type}; PID={pid}")
     with FortranFile(filename) as f:
         f.seek(0, 2)
         eof_fpos = f.tell()
@@ -480,6 +482,7 @@ class RamsesSnap(SimSnap):
     def __setup_parallel_reading(self):
         if multiprocess:
             self._shared_arrays = True
+            print(f"* Multiprocess, setting up reader pool with {multiprocess_num} processes")
             if (RamsesSnap.reader_pool is None):
                 RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
                 atexit.register(self._cleanup_reader_pool)
@@ -646,9 +649,11 @@ class RamsesSnap(SimSnap):
         if self._has_explicit_particle_families:
             return self._count_particles_using_explicit_families()
         else:
+            print("* Counting particles in RAMSES snapshot via implicit method...")
             ndm, nstar = self._count_particles_using_implicit_families()
+            print("* Done counting particles in RAMSES snapshot; result = %d dark matter, %d stars" % (ndm, nstar))
             return {family.dm: ndm, family.star: nstar}
-
+    
     def _has_particle_file(self):
         """Check whether the output has a particle file available"""
         if len(self._cpus)>0 :
@@ -962,6 +967,7 @@ class RamsesSnap(SimSnap):
 
 
         try:
+            print(f"* Loading particle block {blockname}...")
             remote_map(self.reader_pool,
                        _cpui_load_particle_block,
                        [self._particle_filename(i) for i in self._cpus],
@@ -971,6 +977,7 @@ class RamsesSnap(SimSnap):
                        [_type] * len(self._cpus),
                        self._particle_family_ids_on_disk
                        )
+            print(f"* Done loading particle block {blockname}")
         except Exception:
             warnings.warn("Exception encountered while reading %r; is there an incompatibility in your Ramses configuration?"%blockname)
             del self[blockname]
