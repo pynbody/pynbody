@@ -13,4 +13,4 @@ def test_load_empty_folder():
 
     with pytest.raises(IOError) as excinfo:
         f = pynbody.load("testdata/empty_folder_0001")
-    assert "Is a directory" in str(excinfo.value)
+    assert "Is a directory" in str(excinfo.value) or "Permission denied" in str(excinfo.value) # latter is the windows error
