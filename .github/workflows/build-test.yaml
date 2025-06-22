@@ -51,12 +51,12 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         python-version: ["3.11", "3.12", "3.13"]
-        numpy-version: ["1.25.2", "2.0.2", "2.2.0"]
+        numpy-version: ["1.26.4", "2.0.2", "2.2.0"]
         exclude:
           - python-version: "3.12"
-            numpy-version: "1.25.2"
+            numpy-version: "1.26.4"
           - python-version: "3.13"
-            numpy-version: "1.25.2"
+            numpy-version: "1.26.4"
           - python-version: "3.13"
             numpy-version: "2.0.2"
           # Temporarily exclude Python 3.13 on Windows due to setuptools/library linking issues
