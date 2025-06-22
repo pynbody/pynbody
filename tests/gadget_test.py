@@ -18,7 +18,7 @@ def test_construct(snap):
     """Check the basic properties of the snapshot"""
     assert np.size(snap._files) == 2
     assert snap.header.num_files == 2
-    assert snap.filename == "testdata/gadget2/test_g2_snap" or snap.filename == r"testdata\gadget2\test_g2_snap.0"
+    assert snap.filename == "testdata/gadget2/test_g2_snap" or snap.filename == r"testdata\gadget2\test_g2_snap"
     assert snap._num_particles == 8192
     for f in snap._files:
         assert f.format2
@@ -208,7 +208,7 @@ def test_issue321():
 
 def test_units_override():
     f = pynbody.load("testdata/gadget2/test_g2_snap.0")
-    assert f.filename == "testdata/gadget2/test_g2_snap" or f.filename == r"testdata\gadget2\test_g2_snap.0"
+    assert f.filename == "testdata/gadget2/test_g2_snap" or f.filename == r"testdata\gadget2\test_g2_snap"
     assert f['pos'].units == "kpc a h^-1"
 
     # In this case the unit override system is not effective because
