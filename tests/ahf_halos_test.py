@@ -254,7 +254,7 @@ def snap_with_non_sequential_halos():
         base_folder.mkdir()
         for fname in base_folder.parent.glob("gasoline_ahf/*"):
             if "AHF" not in fname.name:
-                (base_folder/fname.name).symlink_to(fname.absolute())
+                shutil.copy2(fname, base_folder/fname.name)
 
         # copy AHF_halos line by line, incorporating random IDs
         np.random.seed(0)
