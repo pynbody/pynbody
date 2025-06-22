@@ -9,6 +9,9 @@ from pynbody.plot.generic import hist2d
 
 
 def test_hist2d():
+    import matplotlib
+    matplotlib.use('Agg')  # Use a non-interactive backend for testing
+    
     np.random.seed(1337)
     x = np.random.randn(10000)
     y = np.random.randn(10000)
