@@ -85,7 +85,7 @@ class LoadControl:
 
         # generate simulation-level ID list
         if hasattr(clauses, "__len__"):
-            self._ids = np.asarray(clauses)
+            self._ids = np.asarray(clauses, dtype=np.int64) 
         else:
             self._ids = None  # no partial loading!
 
