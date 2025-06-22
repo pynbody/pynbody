@@ -1,3 +1,4 @@
+import pathlib
 import warnings
 
 import numpy as np
@@ -142,7 +143,7 @@ def test_halo_half_light(testfile):
 def test_ssp_table_recovers_input_from_file():
     # Define a controlled snapshot and fill it up with first numbers from default_ssp file
     ssp_tester = pynbody.new(stars=1)
-    default_ssp_file = np.loadtxt("../../pynbody/pynbody/analysis/default_ssp.txt")
+    default_ssp_file = np.loadtxt(str(pathlib.Path(pynbody.__path__[0]) / "analysis" / "default_ssp.txt"))
 
     ssp_tester.st['age'] = pynbody.array.SimArray(default_ssp_file[0, 0], units="yr")
     ssp_tester.st['metals'] = pynbody.array.SimArray(default_ssp_file[0, 1], units="1")
