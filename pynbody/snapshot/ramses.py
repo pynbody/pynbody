@@ -137,9 +137,6 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
 
             # loop through those CPUs with grid data (includes ghost regions)
             for cpuf in 1 + np.where(n_per_level[level, :] != 0)[0]:
-                # print "CPU=",cpu,"CPU on
-                # disk=",cpuf,"npl=",n_per_level[level,cpuf-1]
-
                 if cpuf == cpu:
 
                     # this is the data we want

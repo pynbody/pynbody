@@ -109,8 +109,6 @@ class WindowsSharedMemory:
                 name                   # Name
             )
 
-            print(f"Creating shared memory '{name}' with size {size}")
-
             if self._handle !=0 and GetLastError() == ERROR_ALREADY_EXISTS:
                 CloseHandle(self._handle)
                 raise OSError(f"Shared memory '{name}' already exists.")

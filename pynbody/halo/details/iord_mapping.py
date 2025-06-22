@@ -81,15 +81,6 @@ def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToOffset:
     """
 
     max_iord = int(iord.max())
-    if iord.min() < 0:
-        # TEMPORARY print diagnostic info:
-        print("len(iord):", len(iord))
-        print("iord values:", iord)
-        print("every 100th:", iord[::100])
-        print("max iord:", max_iord)
-        print("min iord:", iord.min())
-        print("num negative:" + str((iord < 0).sum()))
-        print("index of negative iord values:", np.where(iord < 0)[0])
 
     assert iord.min() >= 0, "Can't handle negative iord values"
 
