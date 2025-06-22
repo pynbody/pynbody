@@ -1,6 +1,7 @@
 import glob
 import os
 import pathlib
+import shutil
 
 import numpy as np
 import pytest
@@ -45,11 +46,13 @@ def _no_bh_family_present(f):
 
 @pytest.fixture
 def backup_sinkfile():
+    os.rename(sink_filename, sink_filename_moved)
+    yield sink_filename
     try:
-        os.rename(sink_filename, sink_filename_moved)
-        yield sink_filename
-    finally:
-        os.rename(sink_filename_moved, sink_filename)
+        os.remove(sink_filename)
+    except OSError:
+        pass
+    os.rename(sink_filename_moved, sink_filename)
 
 
 def test_no_sink_file(backup_sinkfile):
@@ -118,10 +121,18 @@ def _make_virtual_output_with_no_ptcls():
     if os.path.exists("testdata/ramses/ramses_new_format_partial_no_ptcls_output_00001"):
         return
 
-    os.mkdir("testdata/ramses/ramses_new_format_partial_no_ptcls_output_00001")
-    for i in glob.glob("testdata/ramses/ramses_new_format_partial_output_00001/*"):
-        if "part_00001" not in i and '.csv' not in i:
-            os.symlink("../../../"+i, i.replace("ramses_new_format_partial_output","ramses_new_format_partial_no_ptcls_output"))
+    test_dir = pathlib.Path("testdata/ramses/ramses_new_format_partial_no_ptcls_output_00001")
+    source_dir = pathlib.Path("testdata/ramses/ramses_new_format_partial_output_00001")
+    if not test_dir.exists():
+        test_dir.mkdir(parents=True)
+
+    for i in source_dir.iterdir():
+        if ".csv" in i.name or "part_00001" in i.name:
+            # skip the sink file
+            continue
+        else:
+            # copy files
+            shutil.copy(i, test_dir / i.name)
 
 def test_load_no_ptcls():
     _make_virtual_output_with_no_ptcls()
@@ -152,7 +163,7 @@ def snap_for_issue_771(request):
 
             # Iterate over all files in the source directory
             for src_file in src_dir.iterdir():
-                tgt_file = tgt_dir / src_file.name
+                tgt_file : pathlib.Path = tgt_dir / src_file.name
 
                 # If the file is 'sink_00001.csv', copy and modify its contents
                 if src_file.name == 'sink_00001.csv':
@@ -160,8 +171,7 @@ def snap_for_issue_771(request):
                         for line in f_in:
                             f_out.write(line.replace('msink', 'mass'))
                 else:
-                    # Create a symbolic link for all other files
-                    tgt_file.symlink_to(src_file.absolute())
+                    shutil.copy(src_file, tgt_file)
 
         yield pynbody.load(tgt_dir)
 
