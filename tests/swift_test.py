@@ -232,6 +232,9 @@ def swift_snap_with_alternate_mass_naming():
 
     yield str(tempfilename)
 
+    import gc
+    gc.collect() # otherwise hdf5 files may remain open and rmtree will fail on windows
+
     # clean up
     shutil.rmtree(tempdir)
 
@@ -240,3 +243,4 @@ def test_alternate_mass_file(swift_snap_with_alternate_mass_naming):
     f1 = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
 
     assert np.allclose(f['mass'], f1['mass'])
+
