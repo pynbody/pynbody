@@ -62,27 +62,29 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
         return self[0]['Cells/Counts'].keys()
 
     def _make_hdf_vfile(self, take_cells):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            tmpfile_path = os.path.join(tmpdirname,"nofile.hdf5")
-            with h5py.File(name=tmpfile_path, mode='w') as hdf_vfile:
-                # ideally one would simply use  backing_store=False, to File but then there doesn't seem to be a way
-                # to actually use the file (the VDS views just returns zeros).
-                # Instead we write then re-read it, which presumably carries minimal overhead but is a bit ugly.
+        temp_fd, temp_path = tempfile.mkstemp(suffix='.h5')
+        os.close(temp_fd)
 
-                for group_name in self._all_group_names():
+        from ..util.hdf_vds import TempHDF5File
 
-                    if take_cells is None:
-                        source_groups, source_slices = self._generate_groups_and_slices_for_full_file(group_name)
-                    else:
-                        source_groups, source_slices = self._generate_groups_and_slices_from_cells(group_name,
-                                                                                                   take_cells)
+        with h5py.File(name=temp_path, mode='w') as hdf_vfile:
+            # ideally one would simply use  backing_store=False, to File but then there doesn't seem to be a way
+            # to actually use the file (the VDS views just returns zeros).
+            # Instead we write then re-read it, which presumably carries minimal overhead but is a bit ugly.
 
-                    target_group = hdf_vfile.create_group(group_name)
-                    self._make_hdf_group_with_slicing(source_groups, source_slices, target_group)
+            for group_name in self._all_group_names():
 
-            self._hdf_vfile = h5py.File(name=tmpfile_path, mode='r')
-            # on exiting the temporarydirectory context, the file/folder will be unlinked but we should
-            # be able to retain access for the lifetime of the hdf_vfile object
+                if take_cells is None:
+                    source_groups, source_slices = self._generate_groups_and_slices_for_full_file(group_name)
+                else:
+                    source_groups, source_slices = self._generate_groups_and_slices_from_cells(group_name,
+                                                                                                take_cells)
+
+                target_group = hdf_vfile.create_group(group_name)
+                self._make_hdf_group_with_slicing(source_groups, source_slices, target_group)
+
+        self._hdf_vfile = TempHDF5File(temp_path, mode='r')
+
 
     def _generate_groups_and_slices_for_full_file(self, group_name):
         source_groups = [hdf_file[group_name] for hdf_file in self]
