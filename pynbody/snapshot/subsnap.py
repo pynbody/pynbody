@@ -137,7 +137,7 @@ class SubSnapBase(SimSnap):
 
     def get_index_list(self, relative_to, of_particles=None):
         if of_particles is None:
-            of_particles = np.arange(len(self))
+            of_particles = np.arange(len(self), dtype=np.int64)
 
         if relative_to is self:
             return of_particles

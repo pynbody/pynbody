@@ -240,7 +240,7 @@ def concatenate_indexing(i1, i2):
     elif isinstance(i1, slice) and isinstance(i2, (np.ndarray, list)):
         return index_before_slice(i1, i2)
     elif isinstance(i1, (np.ndarray, list)) and isinstance(i2, (slice, np.ndarray)):
-        return np.asarray(i1)[i2]
+        return np.asarray(i1, dtype=np.int64)[i2]
     else:
         raise TypeError("Don't know how to chain these index types")
 
