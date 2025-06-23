@@ -153,16 +153,16 @@ ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx, 
                 cython_fortran_file, omp_commands]
 
 install_requires = [
-    'cython>=0.20',
-    'h5py>=3.0.0',
-    'matplotlib>=3.0.0',
+    'cython>=3.0.0',
+    'h5py>=3.8.0',
+    'matplotlib>=3.8.0',
     'numpy>=1.26.0',
-    'scipy>=1.0.0',
-    #'posix-ipc>=1.1.0'
+    'scipy>=1.12.0',
+    'certifi'
 ]
 
 tests_require = [
-    'pytest','pandas','camb',"IPython",'certifi'
+    'pytest','pandas','camb',"IPython",
 ]
 
 # Add healpy only on non-Windows platforms
