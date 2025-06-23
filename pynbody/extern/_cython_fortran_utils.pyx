@@ -400,6 +400,12 @@ cdef class FortranFile:
         >>> rv = f.read_attrs(header)
         """
 
+        cdef str dtype
+        cdef int n
+        cdef dict data
+        cdef key
+        cdef np.ndarray tmp
+        cdef bint optional
 
         if self._closed:
             raise ValueError("I/O operation on closed file.")
@@ -460,7 +466,6 @@ cdef class FortranFile:
         """
         cdef INT32_t size
         cdef np.ndarray data
-        cdef size_t items_read
 
         if self._closed:
             raise ValueError("I/O operation on closed file.")
