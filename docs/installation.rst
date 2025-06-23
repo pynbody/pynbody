@@ -1,4 +1,4 @@
-.. Last checked by AP: 18 Mar 2024
+.. Last checked by AP: 23 June 2025
 
 .. summary How to install pynbody
 
@@ -11,10 +11,11 @@ Pynbody Installation
 In brief
 --------
 
-Pynbody provides binary distributions for Mac and Linux. Windows is not supported currently,
-except via `WSL (Windows Subsystem for Linux) <https://learn.microsoft.com/en-us/windows/wsl/install>`_
-which provides a Linux compatibility layer. To use the latest release of
-*pynbody*, you must be using a recent version of Python 3, as supported by
+Pynbody provides binary distributions for Mac, Linux and (since version 2.2) Windows.
+The distributions include support for 64-bit x86 and ARM processors on all three systems.
+(However see a special note below about :ref:`windows-on-arm`).
+
+To use the latest release of *pynbody*, you must be using a recent version of Python 3, as supported by
 `numpy <http://www.numpy.org>`_ and `scipy <http://www.scipy.org>`_. The standardized
 `SPEC0 <https://scientific-python.org/specs/spec-0000/>`_ policy describes the versions of numpy, scipy and Python we aim to support.
 
@@ -172,6 +173,17 @@ follows:
   $ export CXX=g++-mp-13
   $ pip install -e .[all]
 
+
+.. _windows-on-arm:
+
+Windows on ARM
+^^^^^^^^^^^^^^
+
+Windows-on-ARM is supported, and binary wheels of pynbody are available, but some upstream packages
+such as scipy are not providing binary wheels at the time of writing. As such, installation on
+Windows-on-ARM requires building some upstream packages from source. Alternatively, you may have
+luck installing unofficial pre-built wheels from
+`Christoph Gohlke's repository <https://github.com/cgohlke/win_arm64-wheels/releases>`_.
 
 
 Open your simulation and start analyzing

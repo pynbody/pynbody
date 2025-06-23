@@ -16,6 +16,8 @@ can do, try the [quick-start tutorial](https://pynbody.readthedocs.io/latest/tut
 
 ### Getting started
 
+Binary wheels are provided for Linux, MacOS and, from version 2.2, Windows. 
+
 If python and the standard pip package manager is installed and properly configured, you can simply do:
 
 ```
