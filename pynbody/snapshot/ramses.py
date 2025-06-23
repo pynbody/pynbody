@@ -26,14 +26,16 @@ from . import SimSnap, namemapper
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
 multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
-multiprocess = (multiprocess_num > 1)
+multiprocess = (multiprocess_num > 1) 
 
 if multiprocess:
+    import atexit
     import multiprocessing
 
     remote_exec = pynbody.array.shared.shared_array_remote
     remote_map = pynbody.array.shared.remote_map
 else:
+    multiprocessing = None
     def remote_exec(fn):
         return fn
 
@@ -57,7 +59,6 @@ def _cpu_id(i):
 
 @remote_exec
 def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
-
     with FortranFile(filename) as f:
         f.seek(0, 2)
         eof_fpos = f.tell()
@@ -136,9 +137,6 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
 
             # loop through those CPUs with grid data (includes ghost regions)
             for cpuf in 1 + np.where(n_per_level[level, :] != 0)[0]:
-                # print "CPU=",cpu,"CPU on
-                # disk=",cpuf,"npl=",n_per_level[level,cpuf-1]
-
                 if cpuf == cpu:
 
                     # this is the data we want
@@ -341,7 +339,7 @@ ramses_rt_header = (
 )
 
 TYPE_MAP = {'i4': 'i',
-            'i8': 'l',
+            'i8': 'q',
             'f4': 'f',
             'f8': 'd'}
 particle_blocks = list(map(
@@ -476,6 +474,15 @@ class RamsesSnap(SimSnap):
             self._shared_arrays = True
             if (RamsesSnap.reader_pool is None):
                 RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
+                atexit.register(self._cleanup_reader_pool)
+    
+    @classmethod
+    def _cleanup_reader_pool(cls):
+        """Clean up the multiprocessing pool when the process exits"""
+        if cls.reader_pool is not None:
+            cls.reader_pool.close()
+            cls.reader_pool.join()
+            cls.reader_pool = None
 
     def _load_fluid_descriptors(self):
         types = ["hydro", "grav"]
@@ -633,7 +640,7 @@ class RamsesSnap(SimSnap):
         else:
             ndm, nstar = self._count_particles_using_implicit_families()
             return {family.dm: ndm, family.star: nstar}
-
+    
     def _has_particle_file(self):
         """Check whether the output has a particle file available"""
         if len(self._cpus)>0 :

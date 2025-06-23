@@ -1,3 +1,4 @@
+import platform
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -234,6 +235,7 @@ def test_spherical_render(simple_test_file):
 
 
 @pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Healpy not supported on Windows")
 def test_render_stars_spherical(snap):
     plt.clf()
     res = pynbody.plot.stars.render_mollweide(snap, return_image=True)

@@ -7,26 +7,63 @@ defaults:
     shell: bash
 
 jobs:
+  fetch-testdata:
+    runs-on: ubuntu-latest
+    outputs:
+      testdata-key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - name: Install certifi
+      run: |
+        python -m pip install certifi
+    - name: Get testdata hash
+      id: get-testdata-hash
+      run: |
+        echo "testdatahash=$(python pynbody/test_utils/__init__.py)" >> $GITHUB_OUTPUT
+    - name: Restore testdata cache
+      uses: actions/cache/restore@v4
+      id: cache-testdata
+      with:
+        path: tests/testdata
+        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
+        enableCrossOsArchive: true
+    - name: Fetch and unpack test data
+      if: steps.cache-testdata.outputs.cache-hit != 'true'
+      working-directory: tests
+      run: |
+        python ../pynbody/test_utils/__init__.py --fetch
+    - name: Save testdata cache
+      uses: actions/cache/save@v4
+      if: always() && steps.cache-testdata.outputs.cache-hit != 'true'
+      with:
+        path: tests/testdata
+        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
+        enableCrossOsArchive: true
 
   build:
+    needs: fetch-testdata
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.11", "3.12", "3.13"]
-        numpy-version: ["1.25.2", "2.0.2", "2.2.0"]
+        numpy-version: ["1.26.4", "2.0.2", "2.2.0"]
         exclude:
           - python-version: "3.12"
-            numpy-version: "1.25.2"
+            numpy-version: "1.26.4"
           - python-version: "3.13"
-            numpy-version: "1.25.2"
+            numpy-version: "1.26.4"
           - python-version: "3.13"
             numpy-version: "2.0.2"
 
     runs-on: ${{ matrix.os }}
     env:
-      C: gcc-10
-      CXX: g++-10
+      C: ${{ matrix.os == 'ubuntu-latest' && 'gcc-10' || '' }}
+      CXX: ${{ matrix.os == 'ubuntu-latest' && 'g++-10' || '' }}
     steps:
     - name: Install Python
       uses: actions/setup-python@v5
@@ -34,7 +71,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
     - uses: actions/checkout@v4
-    - name: Install gcc
+    - name: Install gcc (Ubuntu only)
+      if: matrix.os == 'ubuntu-latest'
       run: |
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
         sudo apt-get update -qq
@@ -46,35 +84,21 @@ jobs:
     - name: Build and install pynbody
       run: |
         python -m pip install -v .[tests]
-        echo "[ramses]" >> ~/.pynbodyrc
-        echo "parallel-read=2" >> ~/.pynbodyrc
 
-    - name: Get testdata hash
-      id: get-testdata-hash
-      working-directory: tests
-      run: |
-        echo "testdatahash=$(python -c 'import pynbody.test_utils as tu; print(tu.test_data_hash())')" >> $GITHUB_OUTPUT
-      shell: bash
-
-    - name: Cache testdata
-      uses: actions/cache@v3
-      id: cache-testdata
+    - name: Restore testdata cache
+      uses: actions/cache/restore@v4
       with:
         path: tests/testdata
-        key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
-    - name: Fetch and unpack test data
-      if: steps.cache-testdata.outputs.cache-hit != 'true'
-      working-directory: tests
-      run: |
-        python -c "import pynbody.test_utils as tu; tu.precache_test_data()"
+        key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
+        enableCrossOsArchive: true
     - name: Run all tests
       working-directory: tests
-      run: python -m pytest
+      run: python -m pytest --ignore=testdata/ --tb=short
     # Following is temporarily necessary because of the >2.0.0rc1 numpy version
     - name: sanitize artifact name
       if: always()
       run: |
-        TARGET_SANI=$(echo "images-${{ matrix.python-version }}-${{ matrix.numpy-version }}" | tr ">" "_")
+        TARGET_SANI=$(echo "images-${{ matrix.python-version }}-${{ matrix.numpy-version }}-${{ matrix.os }}" | tr ">" "_")
         echo "TARGET_SANI=${TARGET_SANI}" >> "$GITHUB_ENV"
     - name: Upload test images
       uses: actions/upload-artifact@v4

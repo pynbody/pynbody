@@ -287,6 +287,20 @@ def test_shared_arrays():
 
     assert pyn_array.shared.get_num_shared_arrays_owned() == baseline_num_shared_arrays
 
+def test_shared_array_with_stride():
+    ar = pyn_array.array_factory((9, 3), dtype=np.float32, zeros=True, shared=True)
+
+    decon = shared._recursive_shared_array_deconstruct(ar[::2])
+    recon = shared._recursive_shared_array_reconstruct(decon)
+    assert recon.shape == (5, 3)
+
+    recon[0, :] = 1.0
+    recon[1, :] = 2.0
+    assert (ar[0, :] == 1.0).all()
+    assert (ar[2, :] == 2.0).all()
+    assert (ar[1, :] == 0.0).all()
+    
+
 def test_shared_array_ownership():
     """Test that we can have two copies of a shared array in a process, but that only the 'owner' cleans up the memory"""
 
@@ -309,17 +323,17 @@ def test_shared_array_ownership():
 
 @pytest.fixture
 def clean_up_test_protection():
-    import posix_ipc
-    try:
-        posix_ipc.unlink_shared_memory("pynbody-test-cleanup")
-    except posix_ipc.ExistentialError:
-        pass
-    yield
-    try:
-        posix_ipc.unlink_shared_memory("pynbody-test-cleanup")
-    except posix_ipc.ExistentialError:
-        pass
-
+    import platform
+    if platform.system() == 'Windows':
+        # On Windows, shared memory is automatically cleaned up when all handles are closed
+        # We don't need to explicitly unlink like on POSIX systems
+        yield
+    else:
+        from pynbody.array.shared.posix_detail import unlink_shared_memory
+        unlink_shared_memory("pynbody-test-cleanup")
+        yield
+        unlink_shared_memory("pynbody-test-cleanup")
+ 
 def _test_shared_arrays_cleaned_on_exit():
     global ar
     ar = shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")
@@ -371,3 +385,9 @@ def test_ufunc_multi_input():
     np.concatenate([SA([1, 2, 3]), SA([4, 5, 6])])
     np.vstack([SA([1, 2, 3]), SA([4, 5, 6])])
     np.hstack([SA([1, 2, 3]), SA([4, 5, 6])])
+
+
+def test_shared_name_collision_raises(clean_up_test_protection):
+    myar = shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")
+    with pytest.raises(OSError):
+        shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")

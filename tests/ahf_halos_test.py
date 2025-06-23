@@ -1,4 +1,5 @@
 import glob
+import gzip
 import os.path
 import pathlib
 import shutil
@@ -67,10 +68,26 @@ def test_load_copy():
     assert (hcopy['iord'][::10000] == h0_sample_iords).all()
     assert hcopy.ancestor is not f
 
+def _gunzip_file(filename):
+    """Helper function to gunzip a file in place."""
+    assert filename.endswith('.gz'), "Filename must end with .gz"
+    with gzip.open(filename, 'rb') as f_in:
+        with open(filename[:-3], 'wb') as f_out:  # Remove .gz extension
+            shutil.copyfileobj(f_in, f_out)
+    os.remove(filename)  # Remove the original gzipped file
+
+def _gzip_file(filename):
+    """Helper function to gzip a file in place."""
+    assert not filename.endswith('.gz'), "Filename must not end with .gz"
+    with open(filename, 'rb') as f_in:
+        with gzip.open(filename + '.gz', 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    os.remove(filename)  # Remove the original file
+
 @pytest.mark.parametrize("do_load_all", [True, False])
 def test_load_ahf_catalogue_non_gzipped(do_load_all):
     for extension in ["halos", "particles", "substructure"]:
-        subprocess.call(["gunzip",f"testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_{extension}.gz"])
+        _gunzip_file(f"testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_{extension}.gz")
     try:
         f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
         h = pynbody.halo.ahf.AHFCatalogue(f)
@@ -79,7 +96,7 @@ def test_load_ahf_catalogue_non_gzipped(do_load_all):
         assert len(h)==1411
     finally:
         for extension in ["halos", "particles", "substructure"]:
-            subprocess.call(["gzip", f"testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_{extension}"])
+            _gzip_file(f"testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_{extension}")
 
 
 def test_ahf_properties():
@@ -107,12 +124,20 @@ def snap_in_unwritable_folder():
     os.mkdir("testdata/test_unwritable/")
     for fname in glob.glob("testdata/gasoline_ahf/*"):
         if "AHF_fpos" not in fname:
-            os.symlink("../"+fname[9:], "testdata/test_unwritable/"+fname[22:])
-    os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR)
+            shutil.copy2(fname, "testdata/test_unwritable/"+fname[22:])
+
+    if os.name == 'nt':  # Windows
+        subprocess.run(['icacls', 'testdata/test_unwritable', '/deny', 'Everyone:(W)'], check=True)
+    else:  # Unix/Linux/macOS
+        os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR)
 
     yield "testdata/test_unwritable/g15784.lr.01024"
 
-    os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR)
+    # Restore write permissions and cleanup
+    if os.name == 'nt':  # Windows
+        subprocess.run(['icacls', 'testdata/test_unwritable', '/remove:d', 'Everyone'], check=True)
+    else:  # Unix/Linux/macOS
+        os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR)
     shutil.rmtree("testdata/test_unwritable")
 
 
@@ -229,7 +254,7 @@ def snap_with_non_sequential_halos():
         base_folder.mkdir()
         for fname in base_folder.parent.glob("gasoline_ahf/*"):
             if "AHF" not in fname.name:
-                (base_folder/fname.name).symlink_to(fname.absolute())
+                shutil.copy2(fname, base_folder/fname.name)
 
         # copy AHF_halos line by line, incorporating random IDs
         np.random.seed(0)

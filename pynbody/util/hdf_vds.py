@@ -2,11 +2,49 @@
 
 from __future__ import annotations
 
+import atexit
 import os
 import tempfile
+import weakref
 from typing import Iterable
 
 import h5py
+
+
+class TempHDF5File(h5py.File):
+    """HDF5 file that auto-deletes on close or program exit."""
+    
+    def __init__(self, path, *args, **kwargs):
+        # Create temporary file
+        self._temp_path = path
+        
+        # Initialize h5py.File with temp path
+        super().__init__(self._temp_path, *args, **kwargs)
+        
+        # Register cleanup handlers
+        self._cleanup_registered = True
+        atexit.register(self._cleanup)
+        self._weakref = weakref.ref(self, lambda ref: self._cleanup())
+    
+    def _cleanup(self):
+        """Remove temporary file if it exists."""
+        if hasattr(self, '_cleanup_registered') and self._cleanup_registered:
+            self._cleanup_registered = False
+            if os.path.exists(self._temp_path):
+                try:
+                    os.unlink(self._temp_path)
+                except OSError:
+                    pass  # File might already be deleted
+    
+    def close(self):
+        """Close file and delete temp file."""
+        super().close()
+        self._cleanup()
+    
+    @property
+    def temp_path(self):
+        """Get the temporary file path."""
+        return self._temp_path
 
 
 class HdfVdsMaker:
@@ -78,15 +116,22 @@ class HdfVdsMaker:
     def get_temporary_hdf_vfile(self) -> h5py.File:
         """Create the HDF file with virtual datasets in a temporary directory, such that it is deleted on closure"""
 
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            filepath = os.path.join(tmpdirname, "nofile.hdf5")
-            # ideally one would simply use  backing_store=False, to File but then there doesn't seem to be a way
-            # to actually use the file (the VDS views just returns zeros).
-            # Instead we write then re-read it, which presumably carries minimal overhead but is a bit ugly.
+        # An ideal solution is to make a file then unlink it while keep it open, but Windows doesn't like that.
+        # Instead, we create a temporary file then use a wrapper around HDF5 that deletes it on closure.
+        self._temp_fd, self._temp_path = tempfile.mkstemp(suffix='.h5')
+        os.close(self._temp_fd)
 
-            self.make_hdf_vfile(filepath)
+        hdf_vfile = h5py.File(name=self._temp_path, mode='w')
+        for k in self.concatenation_keys():
+            self.write_single_vds(k, hdf_vfile)
 
-            hdf_vfile = h5py.File(name=filepath, mode='r')
-        # on exiting the with block, the temporary directory and file are unlinked, but the file won't actually be
-        # erased until it's closed.
-        return hdf_vfile
+        for k in self.copy_keys():
+            self.write_single_vds(k, hdf_vfile, first_only=True)
+
+        hdf_vfile.close()
+
+        # Windows seems to have a problem with reading when these files are still open, so close them
+        for f in self._files:
+            f.close()
+
+        return TempHDF5File(self._temp_path, mode='r')

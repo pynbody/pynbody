@@ -1,11 +1,18 @@
-"""Utilities for downloading and unpacking test data packages"""
+"""Utilities for downloading and unpacking test data packages
+
+WARNING: This module must not depend on a working pynbody installation.
+It is used during CI to download test data before pynbody is built/installed.
+Only use standard library modules and certifi (which is available in CI).
+"""
 
 import os
 import pathlib
 import shutil
-import subprocess
+import ssl
 import tarfile
 import urllib.request
+
+import certifi
 
 test_data_packages = {
     'swift': {'verify_path': 'SWIFT',
@@ -43,10 +50,10 @@ test_data_packages = {
 
 test_data_url = "https://zenodo.org/record/15528615/files/{archive_name}?download=1"
 
-def precache_test_data():
+def precache_test_data(verbose=False):
     """Download and unpack all test data packages."""
-    for package in test_data_packages.values():
-        _download_and_unpack_test_data_if_not_present(package)
+    for package_name, package in test_data_packages.items():
+        _download_and_unpack_test_data_if_not_present(package, package_name, verbose)
 
 def test_data_hash():
     """Return a hash representing the data packages to be downloaded"""
@@ -58,35 +65,45 @@ def test_data_hash():
     m.update(test_data_url.encode())
     return m.hexdigest()
 
-def download_and_unpack_test_data(archive_name, unpack_path=""):
+
+def download_and_unpack_test_data(archive_name, unpack_path="", verbose=False):
     """Download and unpack test data with the given archive name and unpack path.
 
     Equivalent to running:
 
-     wget https://zenodo.org/record/.../files/{archive_name}?download=1
-     tar -xzf {archive_name}
+        wget https://zenodo.org/record/.../files/{archive_name}?download=1
+        tar -xzf {archive_name}
     """
 
     url = test_data_url.format(archive_name=archive_name)
     unpack_path = f"testdata/{unpack_path}"
 
     if not os.path.exists(unpack_path):
-        os.mkdir(unpack_path)
+        os.makedirs(unpack_path, exist_ok=True)
 
-    # Wanted to do the following, but it fails with a certificate error on macos
-    #
-    #with urllib.request.urlopen(url) as data_file:
-    #    with tarfile.open(fileobj=data_file) as tar:
-    #        tar.extractall(unpack_path)
-
-    subprocess.run(["wget", "-O", archive_name, url], check=True)
-
-    # Unpack the tar file
-    with tarfile.open(archive_name) as tar:
-        tar.extractall(unpack_path, filter='data')
-
-    # Remove the downloaded tar file
-    os.remove(archive_name)
+    # use certifi to get the CA bundle for SSL verification
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    
+    # Download to a temporary file first
+    temp_file = f"{archive_name}.tmp"
+    try:
+        if verbose:
+            print(f"Downloading {archive_name} from {url}")
+        with urllib.request.urlopen(url, context=ssl_context) as response:
+            with open(temp_file, 'wb') as f:
+                shutil.copyfileobj(response, f)
+        
+        if verbose:
+            print(f"Extracting {archive_name} to {unpack_path}")
+        # Extract from the downloaded file
+        with tarfile.open(temp_file) as tar:
+            tar.extractall(unpack_path, filter='data')
+        if verbose:
+            print(f"Successfully unpacked {archive_name}")
+    finally:
+        # Clean up temporary file
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
 
 
 def ensure_test_data_available(*package_names):
@@ -95,9 +112,21 @@ def ensure_test_data_available(*package_names):
         if package_name not in test_data_packages:
             raise ValueError(f"Test data package {package_name} not found in test_data_packages")
         package = test_data_packages[package_name]
-        _download_and_unpack_test_data_if_not_present(package)
+        _download_and_unpack_test_data_if_not_present(package, package_name, False)
 
 
-def _download_and_unpack_test_data_if_not_present(package):
+def _download_and_unpack_test_data_if_not_present(package, package_name, verbose=False):
     if not pathlib.Path(f"testdata/{package['verify_path']}").exists():
-        download_and_unpack_test_data(package['archive_name'], package.get('extract_path', ''))
+        if verbose:
+            print(f"Test data package '{package_name}' not found, downloading...")
+        download_and_unpack_test_data(package['archive_name'], package.get('extract_path', ''), verbose)
+    elif verbose:
+        print(f"Test data package '{package_name}' already exists, skipping")
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "--fetch":
+        precache_test_data(verbose=True)
+    else:
+        print(test_data_hash())

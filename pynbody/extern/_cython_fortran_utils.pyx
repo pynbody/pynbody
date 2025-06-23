@@ -37,7 +37,7 @@ cdef class FortranFile:
     cdef bint _closed
 
     def __cinit__(self, str fname):
-        self.cfile = fopen(fname.encode('utf-8'), 'r')
+        self.cfile = fopen(fname.encode('utf-8'), 'rb')
         self._closed = False
         if self.cfile == NULL:
             raise IOError("Cannot open '%s'" % fname)
@@ -62,14 +62,29 @@ cdef class FortranFile:
             Returns 0 on success.
         """
         cdef INT32_t s1, s2, i
+        cdef size_t items_read
 
         if self._closed:
             raise ValueError("Read of closed file.")
 
         for i in range(n):
-            fread(&s1, INT32_SIZE, 1, self.cfile)
-            fseek(self.cfile, s1, SEEK_CUR)
-            fread(&s2, INT32_SIZE, 1, self.cfile)
+            # Initialize variables to avoid using garbage data
+            s1 = 0
+            s2 = 0
+            
+            items_read = fread(&s1, INT32_SIZE, 1, self.cfile)
+            if items_read != 1:
+                raise IOError("Failed to read record header")
+            
+            if s1 < 0:
+                raise IOError("Invalid record size: negative value")
+                
+            if fseek(self.cfile, s1, SEEK_CUR) != 0:  # Check fseek return value
+                raise IOError("Failed to seek past record data")
+            
+            items_read = fread(&s2, INT32_SIZE, 1, self.cfile)
+            if items_read != 1:
+                raise IOError("Failed to read record footer")
 
             if s1 != s2:
                 raise IOError('Sizes do not agree in the header and footer for '
@@ -103,6 +118,8 @@ cdef class FortranFile:
         elif dtype == 'f':
             return 4
         elif dtype == 'l':
+            raise ValueError("FortranFile does not support 'l' (long) type as this is platform-dependent. Use 'q' (int64) instead.")
+        elif dtype == 'q':
             return 8
         else:
             # Fallback to (slow) numpy to compute the size
@@ -127,24 +144,52 @@ cdef class FortranFile:
         >>> rv = f.read_vector("d")  # Read a float64 array
         >>> rv = f.read_vector("i")  # Read an int32 array
         """
-        cdef INT32_t s1, s2, size
+        cdef INT32_t s1, s2, size, expected_elements
         cdef np.ndarray data
+        cdef size_t items_read
 
         if self._closed:
             raise ValueError("I/O operation on closed file.")
 
         size = self.get_size(dtype)
+        
+        items_read = fread(&s1, INT32_SIZE, 1, self.cfile)
+        if items_read != 1:
+            raise IOError("Failed to read record header")
 
-        fread(&s1, INT32_SIZE, 1, self.cfile)
+        # Add safety check for record size
+        if s1 < 0:
+            raise ValueError("Invalid record size: negative value")
 
         # Check record is compatible with data type
         if s1 % size != 0:
             raise ValueError('Size obtained (%s) does not match with the expected '
                              'size (%s) of multi-item record' % (s1, size))
 
-        data = np.empty(s1 // size, dtype=dtype)
-        fread(<void *>data.data, size, s1 // size, self.cfile)
-        fread(&s2, INT32_SIZE, 1, self.cfile)
+        expected_elements = s1 // size
+        
+        # Create array and ensure it's contiguous and writable
+        data = np.empty(expected_elements, dtype=dtype, order='C')
+        
+        # Critical: Verify the allocated buffer size. If there is an inconsistency in our assumptions,
+        # this may manifest here. This caused subtle issues on Windows which should now be fixed, but
+        # we might as well keep the check.
+        if data.nbytes < s1:
+            raise RuntimeError("NumPy allocated insufficient memory: got %d bytes, need %d; dtype is %s" % (data.nbytes, s1, dtype))
+        
+        # Ensure array is contiguous and writable
+        if not data.flags.c_contiguous:
+            raise RuntimeError("Array is not C-contiguous")
+        if not data.flags.writeable:
+            raise RuntimeError("Array is not writable")
+
+        items_read = fread(<void *>data.data, size, expected_elements, self.cfile)
+        if items_read != expected_elements:
+            raise IOError("Failed to read record data")
+            
+        items_read = fread(&s2, INT32_SIZE, 1, self.cfile)
+        if items_read != 1:
+            raise IOError("Failed to read record footer")
 
         if s1 != s2:
             raise IOError('Sizes do not agree in the header and footer for '
@@ -162,9 +207,14 @@ cdef class FortranFile:
         """
         cdef INT32_t s1
         cdef INT64_t pos
+        cdef size_t items_read
 
         pos = self.tell()
-        fread(&s1, INT32_SIZE, 1, self.cfile)
+        
+        items_read = fread(&s1, INT32_SIZE, 1, self.cfile)
+        if items_read != 1:
+            raise IOError("Failed to read record size")
+            
         self.seek(pos)
 
         return s1
@@ -186,18 +236,26 @@ cdef class FortranFile:
 
         cdef INT32_t s1, s2
         cdef INT32_t data
+        cdef size_t items_read
 
         if self._closed:
             raise ValueError("I/O operation on closed file.")
 
-        fread(&s1, INT32_SIZE, 1, self.cfile)
+        items_read = fread(&s1, INT32_SIZE, 1, self.cfile)
+        if items_read != 1:
+            raise IOError("Failed to read record header")
 
-        if s1 != INT32_SIZE != 0:
+        if s1 != INT32_SIZE:  # Fixed: removed != 0 which was incorrect logic
             raise ValueError('Size obtained (%s) does not match with the expected '
                              'size (%s) of record' % (s1, INT32_SIZE))
 
-        fread(&data, INT32_SIZE, s1 // INT32_SIZE, self.cfile)
-        fread(&s2, INT32_SIZE, 1, self.cfile)
+        items_read = fread(&data, INT32_SIZE, 1, self.cfile)  # Fixed: should read 1 element, not s1 // INT32_SIZE
+        if items_read != 1:  # Fixed: should expect 1 element
+            raise IOError("Failed to read record data")
+            
+        items_read = fread(&s2, INT32_SIZE, 1, self.cfile)
+        if items_read != 1:
+            raise IOError("Failed to read record footer")
 
         if s1 != s2:
             raise IOError('Sizes do not agree in the header and footer for '
@@ -221,18 +279,31 @@ cdef class FortranFile:
 
         cdef INT32_t s1, s2
         cdef INT64_t data
+        cdef size_t items_read
 
         if self._closed:
             raise ValueError("I/O operation on closed file.")
 
-        fread(&s1, INT32_SIZE, 1, self.cfile)
+        # Initialize variables to avoid using garbage data
+        s1 = 0
+        s2 = 0
+        data = 0
+
+        items_read = fread(&s1, INT32_SIZE, 1, self.cfile)
+        if items_read != 1:
+            raise IOError("Failed to read record header")
 
         if s1 != INT64_SIZE:
             raise ValueError('Size obtained (%s) does not match with the expected '
                              'size (%s) of record' % (s1, INT64_SIZE))
 
-        fread(&data, INT64_SIZE, s1 // INT64_SIZE, self.cfile)
-        fread(&s2, INT32_SIZE, 1, self.cfile)
+        items_read = fread(&data, INT64_SIZE, s1 // INT64_SIZE, self.cfile)
+        if items_read != s1 // INT64_SIZE:
+            raise IOError("Failed to read record data")
+            
+        items_read = fread(&s2, INT32_SIZE, 1, self.cfile)
+        if items_read != 1:
+            raise IOError("Failed to read record footer")
 
         if s1 != s2:
             raise IOError('Sizes do not agree in the header and footer for '
@@ -253,22 +324,37 @@ cdef class FortranFile:
         cdef INT32_t s1, s2
         cdef INT32_t data32
         cdef INT64_t data64
+        cdef size_t items_read
 
         if self._closed:
             raise ValueError("I/O operation on closed file.")
 
-        fread(&s1, INT32_SIZE, 1, self.cfile)
+        # Initialize variables to avoid using garbage data
+        s1 = 0
+        s2 = 0
+        data32 = 0
+        data64 = 0
+
+        items_read = fread(&s1, INT32_SIZE, 1, self.cfile)
+        if items_read != 1:
+            raise IOError("Failed to read record header")
 
         if s1 == INT32_SIZE:
-            fread(&data32, INT32_SIZE, s1 // INT32_SIZE, self.cfile)
+            items_read = fread(&data32, INT32_SIZE, s1 // INT32_SIZE, self.cfile)
+            if items_read != s1 // INT32_SIZE:
+                raise IOError("Failed to read int32 data")
             data64 = <INT64_t> data32
         elif s1 == INT64_SIZE:
-            fread(&data64, INT64_SIZE, s1 // INT64_SIZE, self.cfile)
+            items_read = fread(&data64, INT64_SIZE, s1 // INT64_SIZE, self.cfile)
+            if items_read != s1 // INT64_SIZE:
+                raise IOError("Failed to read int64 data")
         else:
             raise ValueError('Size obtained (%s) does not match with the expected '
                              'size (%s or %s) of record' % (s1, INT32_SIZE, INT64_SIZE))
 
-        fread(&s2, INT32_SIZE, 1, self.cfile)
+        items_read = fread(&s2, INT32_SIZE, 1, self.cfile)
+        if items_read != 1:
+            raise IOError("Failed to read record footer")
 
         if s1 != s2:
             raise IOError('Sizes do not agree in the header and footer for '
@@ -383,11 +469,31 @@ cdef class FortranFile:
 
         if self._closed:
             raise ValueError("I/O operation on closed file.")
+        if self.cfile == NULL:
+            raise ValueError("File pointer is NULL.")
+
+        if count < 0:
+            raise ValueError("Count cannot be negative")
 
         size = self.get_size(dtype)
+        data = np.empty(count, dtype=dtype, order='C')
+        
+        # Critical: Verify the allocated buffer size. If there is an inconsistency in our assumptions,
+        # this may manifest here. This caused subtle issues on Windows which should now be fixed, but
+        # we might as well keep the check.
+        expected_bytes = <size_t>count * <size_t>size
+        if data.nbytes < expected_bytes:
+            raise RuntimeError("NumPy allocated insufficient memory: got %d bytes, need %d" % (data.nbytes, expected_bytes))
+        
+        # Ensure array is contiguous and writable
+        if not data.flags.c_contiguous:
+            raise RuntimeError("Array is not C-contiguous")
+        if not data.flags.writeable:
+            raise RuntimeError("Array is not writable")
 
-        data = np.empty(count, dtype=dtype)
-        fread(<void *>data.data, size, count, self.cfile)
+        items_read = fread(<void *>data.data, size, count, self.cfile)
+        if items_read != count:
+            raise IOError("Failed to read the requested number of elements")
 
         return data
 
@@ -423,10 +529,14 @@ cdef class FortranFile:
         """
         if self._closed:
             raise ValueError("I/O operation on closed file.")
+        if self.cfile == NULL:
+            raise ValueError("File pointer is NULL.")
         if whence < 0 or whence > 2:
             raise ValueError("whence argument can be 0, 1, or 2. Got %s" % whence)
 
-        fseek(self.cfile, pos, whence)
+        cdef int result = fseek(self.cfile, pos, whence)
+        if result != 0:
+            raise IOError(f"fseek failed with error code {result}")
         return self.tell()
 
     cpdef void close(self):
@@ -438,7 +548,8 @@ cdef class FortranFile:
             return
         self._closed = True
         fclose(self.cfile)
-
+        self.cfile = NULL  
+        
     def __dealloc__(self):
-        if not self._closed:
+        if not self._closed and self.cfile != NULL:  
             self.close()

@@ -14,6 +14,9 @@ get_directive_defaults()['language_level'] = 3
 def is_macos():
     return platform.system() == 'Darwin'
 
+def is_windows():
+    return platform.system() == 'Windows'
+
 def get_xcode_version():
     result = subprocess.run(['pkgutil', '--pkg-info=com.apple.pkg.CLTools_Executables'], capture_output=True, text=True)
     try:
@@ -49,26 +52,35 @@ def get_version(rel_path):
 #
 # Hopefully the availability of wheels for MacOS systems will prevent too many users suffering
 openmp_module_source = "openmp/openmp_real"
-openmp_args = ['-fopenmp']
+
+# Platform-specific compiler settings
+if is_windows():
+    # MSVC compiler flags
+    openmp_args = ['/openmp']
+    extra_compile_args = ['/O2', '/std:c++14']
+    extra_link_args = ['/openmp']
+else:
+    # GCC/Clang compiler flags
+    openmp_args = ['-fopenmp']
+    extra_compile_args = ['-ftree-vectorize',
+                          '-fno-omit-frame-pointer',
+                          '-funroll-loops',
+                          '-fprefetch-loop-arrays',
+                          '-fstrict-aliasing',
+                          '-fno-expensive-optimizations', #<-- for arm64 gcc
+                          '-g', '-std=c++14']
+    
+    # note on -fno-expensive-optimizations:
+    # This is needed for arm64 gcc, which otherwise gets wrong results for a small number of particles
+    # in the kdtree_test.py::test_smooth_wendlandC2 test. It's unclear why; quite possibly there is
+    # a subtle bug in the code exposed by these optimizations, but it is such a vague optimization
+    # that it's hard to know what it is. The actual routine affected is smBallGather, but for some reason
+    # its impact only shows up with the Wendland kernel.
+    
+    extra_link_args = openmp_args + ['-std=c++14']
 
 ext_modules = []
 libraries=[ ]
-extra_compile_args = ['-ftree-vectorize',
-                      '-fno-omit-frame-pointer',
-                      '-funroll-loops',
-                      '-fprefetch-loop-arrays',
-                      '-fstrict-aliasing',
-                      '-fno-expensive-optimizations', #<-- for arm64 gcc
-                      '-g', '-std=c++14']
-
-# note on -fno-expensive-optimizations:
-# This is needed for arm64 gcc, which otherwise gets wrong results for a small number of particles
-# in the kdtree_test.py::test_smooth_wendlandC2 test. It's unclear why; quite possibly there is
-# a subtle bug in the code exposed by these optimizations, but it is such a vague optimization
-# that it's hard to know what it is. The actual routine affected is smBallGather, but for some reason
-# its impact only shows up with the Wendland kernel.
-
-extra_link_args = openmp_args + ['-std=c++14']
 
 if xcode_fix_needed():
     # workaround for XCode bug FB13097713
@@ -141,17 +153,21 @@ ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx, 
                 cython_fortran_file, omp_commands]
 
 install_requires = [
-    'cython>=0.20',
-    'h5py>=3.0.0',
-    'matplotlib>=3.0.0',
-    'numpy>=1.21.6',
-    'scipy>=1.0.0',
-    'posix-ipc>=1.1.0'
+    'cython>=3.0.0',
+    'h5py>=3.8.0',
+    'matplotlib>=3.8.0',
+    'numpy>=1.26.0',
+    'scipy>=1.12.0',
+    'certifi'
 ]
 
 tests_require = [
-    'pytest','pandas','camb',"IPython",'healpy'
+    'pytest','pandas','camb',"IPython",
 ]
+
+# Add healpy only on non-Windows platforms
+if platform.system() != 'Windows':
+    tests_require.append('healpy')
 
 docs_require = [
     'ipython>=3',
@@ -188,7 +204,7 @@ setup(name = 'pynbody',
       packages = ['pynbody', 'pynbody/analysis', 'pynbody/array',
                   'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/filt', 'pynbody/sph',
                   'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/halo/details',
-                  'pynbody/extern', 'pynbody/kdtree', 'pynbody/test_utils', 'pynbody/util'],
+                  'pynbody/extern', 'pynbody/kdtree', 'pynbody/test_utils', 'pynbody/util', 'pynbody/array/shared'],
       package_data={'pynbody': ['default_config.ini'],
                     'pynbody/analysis': ['cmdlum.npz', 'default_ssp.txt', 'lsst_ssp.txt',
                                          'h1.hdf5',

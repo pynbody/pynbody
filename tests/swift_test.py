@@ -232,6 +232,9 @@ def swift_snap_with_alternate_mass_naming():
 
     yield str(tempfilename)
 
+    import gc
+    gc.collect() # otherwise hdf5 files may remain open and rmtree will fail on windows
+
     # clean up
     shutil.rmtree(tempdir)
 

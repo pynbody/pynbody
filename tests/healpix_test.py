@@ -1,11 +1,19 @@
-import healpy as hp
+import platform
+
 import numpy as np
 import pytest
 
 import pynbody
 
+try:
+    import healpy as hp
+except ImportError:
+    hp = None
+
 
 @pytest.mark.parametrize('nside', [8, 32, 64, 256, 512])
+@pytest.mark.skipif(hp is None or platform.system() == 'Windows', 
+                    reason="healpy not available or Windows platform")
 def test_query_disc(nside):
     """pynbody has its own implementation of query_disc for efficiency reasons
     this test checks that it returns the same result as the healpy implementation.

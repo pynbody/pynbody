@@ -126,7 +126,8 @@ def test_repr():
     f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
     f_c = f.get_copy_on_access_simsnap()
 
-    assert repr(f_c) == '<CopyOnAccessSimSnap "testdata/gasoline_ahf/g15784.lr.01024:copied_on_access" len=1717156>'
+    assert repr(f_c) == '<CopyOnAccessSimSnap "testdata/gasoline_ahf/g15784.lr.01024:copied_on_access" len=1717156>' or \
+           repr(f_c) == r'<CopyOnAccessSimSnap "testdata\gasoline_ahf\g15784.lr.01024:copied_on_access" len=1717156>'
 
 def test_loadable_keys():
     f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")

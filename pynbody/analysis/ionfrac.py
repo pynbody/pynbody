@@ -30,8 +30,12 @@ Information about available tables is provided in the function :func:`use_custom
 import abc
 import logging
 import os
+import shutil
+import ssl
 import subprocess
+import urllib.request
 
+import certifi
 import h5py
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
@@ -313,14 +317,16 @@ class IonFractionTable(IonFractionTableBase):
     @classmethod
     def _download_ionfracs(cls, name):
         """Download an ion fraction table from the pynbody data repository"""
-        import subprocess
-
         logger.warning("Downloading ion fraction table %s" % name)
         url = f"https://zenodo.org/record/13833051/files/{name}.npz?download=1"
         filename = cls._table_to_path(name)
 
-        # ideally we'd use urllib for this but on macos it fails with a certificate error
-        subprocess.run(["wget", "-O", filename, url], check=True)
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        
+        # Download the file using urllib with proper certificates
+        with urllib.request.urlopen(url, context=ssl_context) as response:
+            with open(filename, 'wb') as f:
+                shutil.copyfileobj(response, f)
 
     @classmethod
     def from_cloudy(cls, cloudy_path,

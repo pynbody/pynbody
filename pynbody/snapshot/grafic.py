@@ -14,7 +14,7 @@ from ..util import grid_gen
 from . import SimSnap
 
 _float_data_type = 'f'
-_int_data_type = 'l'
+_int_data_type = 'q'
 
 _header = dict(
     keys=('nx', 'ny', 'nz', 'dx', 'lx', 'ly', 'lz', 'astart', 'omegam', 'omegal', 'h0'),

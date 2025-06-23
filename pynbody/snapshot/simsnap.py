@@ -615,7 +615,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         if self is not relative_to:
             raise RuntimeError("Not a descendant of the specified simulation")
         if of_particles is None:
-            of_particles = np.arange(len(self))
+            of_particles = np.arange(len(self), dtype=np.int64)
+        else:
+            if not isinstance(of_particles, np.ndarray):
+                raise TypeError("Index list must be a numpy array")
+            if not np.issubdtype(of_particles.dtype, np.int64):
+                raise ValueError("Index list must have dtype of int64")
 
         return of_particles
 
