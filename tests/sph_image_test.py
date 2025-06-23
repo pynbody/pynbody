@@ -1,5 +1,4 @@
-import platform 
-
+import platform
 from pathlib import Path
 
 import matplotlib.pyplot as plt

@@ -5,11 +5,11 @@ from __future__ import annotations
 import atexit
 import os
 import tempfile
-import weakref 
-
+import weakref
 from typing import Iterable
 
 import h5py
+
 
 class TempHDF5File(h5py.File):
     """HDF5 file that auto-deletes on close or program exit."""

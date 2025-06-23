@@ -243,4 +243,3 @@ def test_alternate_mass_file(swift_snap_with_alternate_mass_naming):
     f1 = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
 
     assert np.allclose(f['mass'], f1['mass'])
-
