@@ -25,6 +25,7 @@ jobs:
         - [macos-13, macosx, x86_64, "/usr/local", "13.0"]
         - [macos-13-xlarge, macosx, arm64, "/opt/homebrew", "13.0"]
         - [windows-2022, win, amd64, "", ""]
+        - [windows-11-arm, win, arm64, "", ""]
         python: ["cp311", "cp312", "cp313"]
     steps:
       - uses: actions/checkout@v4
