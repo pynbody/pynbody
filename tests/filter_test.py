@@ -147,6 +147,13 @@ def test_logic(snap):
     comp = f[pynbody.filt.BandPass('mass', 2, 7)]
     not_test = f[~(pynbody.filt.BandPass('mass', 2, 7))]
 
+    # TEMPORARY DEBUG HELP...
+    print("Union test")
+    with np.printoptions(threshold=100000):
+        print(comp.get_index_list(f))
+        print(not_test.get_index_list(f))
+        print(comp.union(not_test).get_index_list(f))
+
     assert comp.union(not_test) == f
     assert len(comp.intersect(not_test)) == 0
 
