@@ -22,7 +22,7 @@ import warnings
 
 import numpy as np
 
-from .. import config_parser, family, units, util, chunk
+from .. import chunk, config_parser, family, units, util
 from . import SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
