@@ -238,6 +238,8 @@ class HDFArrayLoader:
 
             # A 'gadget group name' is e.g. 'PartType0', 'PartType1' etc.
             for hdf_group_name in self._family_to_group_map[loading_fam]:
+                if self._file_ptype_slice[hdf_group_name].stop <= self._file_ptype_slice[hdf_group_name].start:
+                    continue
                 # Create iterator for this group type across all files
                 hdf_group_iterator = iter(self._hdf_files.iter_particle_groups_with_name(hdf_group_name))
                 current_hdf = None
@@ -480,6 +482,11 @@ class GadgetHDFSnap(SimSnap):
         self._gadget_ptype_slice = self._array_loader._file_ptype_slice
         self._family_slice = self._array_loader._family_slice_to_load
         self._num_particles = self._array_loader._num_particles_to_load
+
+        # PartType3 is Tracer in Arepo, so we'd better to adjust the group mapping, removing empty groups
+        for family_name in self._family_to_group_map:
+            self._family_to_group_map[family_name] = [group_name for group_name in self._family_to_group_map[family_name] 
+                                           if self._gadget_ptype_slice[group_name].stop > self._gadget_ptype_slice[group_name].start]
 
     def __infer_mass_dtype(self):
         """Some files have a mixture of header-based masses and, for other partile types, explicit mass
