@@ -7,18 +7,19 @@ Code-specific loaders
 care of loading files in different formats. Unfortunately not all of
 these have the same capabilities; see below.
 
-========= ========== ================= ========== ================= ===================================
-Filetype  Can load?  Partial loading?  Can save?  Array-level save? Notes
-========= ========== ================= ========== ================= ===================================
-Tipsy     Yes        Yes               Yes        Yes
-Gadget    Yes        No [1]_           Yes        Yes
-Swift     Yes        Yes [6]_          No         Yes
-GadgetHDF Yes        No [1]_           No         Yes                [2]_
-Ramses    Yes        No [1]_           No         No 		    [3]_, [4]_
-NChilada  Yes        Yes               No         No
-GrafIC    Yes        Yes               No         No                [5]_
+========== ========== ================= ========== ================= ===================================
+Filetype   Can load?  Partial loading?  Can save?  Array-level save? Notes
+========== ========== ================= ========== ================= ===================================
+Tipsy      Yes        Yes               Yes        Yes
+Gadget     Yes        No [1]_           Yes        Yes
+Swift      Yes        Yes [6]_          No         Yes
+GadgetHDF  Yes        No [1]_           No         Yes                [2]_
+Ramses     Yes        No [1]_           No         No 		    [3]_, [4]_
+NChilada   Yes        Yes               No         No
+GrafIC     Yes        Yes               No         No                [5]_
+PkdgravHDF Yes        No [1]_           No         Yes                [2]_
 
-========= ========== ================= ========== ================= ===================================
+========== ========== ================= ========== ================= ===================================
 
 
 
@@ -75,3 +76,5 @@ different loaders, as all types of simulations are loaded with
 .. automodule:: pynbody.snapshot.ramses
 
 .. automodule:: pynbody.snapshot.grafic
+
+.. automodule:: pynbody.snapshot.pkdgravhdf
