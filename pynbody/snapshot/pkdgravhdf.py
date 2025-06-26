@@ -27,16 +27,36 @@ for hdf_groups in _pkd_default_type_map.values():
 
 
 class _PkdgravHdfMultiFileManager(_GadgetHdfMultiFileManager) :
-    _multifile_manager_class = _GadgetHdfMultiFileManager
     _nfiles_groupname = "Header"
     _nfiles_attrname = "NumFilesPerSnapshot"
     _namemapper_config_section = "pkdgrav3hdf-name-mapping"
+
+    def __init__(self, filename, mode='r') :
+        filename = str(filename)
+        self._mode = mode
+        if h5py.is_hdf5(filename):
+            self._filenames = [filename]
+            self._numfiles = 1
+        else:
+            h1 = h5py.File(filename + ".0", mode)
+            self._numfiles = self._get_num_files(h1)
+            if hasattr(self._numfiles, "__len__"):
+                assert len(self._numfiles) == 1
+                self._numfiles = self._numfiles[0]
+            self._filenames = [filename + "."
+                               + str(i) for i in range(self._numfiles)]
+
+        self._open_files = {}
 
     def get_cosmo_attrs(self):
         return self[0].parent['Cosmology'].attrs
 
 
 class PkdgravHDFSnap(GadgetHDFSnap):
+    # PKDGRAV3 creates files by default with the format
+    # {name}.{step:05d}.{n}
+    # where `n>=0` is the index of the file when doing parallel writting.
+    # It does not contain any ".hdf5" extension in the file names.
     _multifile_manager_class = _PkdgravHdfMultiFileManager
     _readable_hdf5_test_group = "Header"
     _readable_hdf5_test_attr = "Header", "PKDGRAV version"
@@ -52,6 +72,10 @@ class PkdgravHDFSnap(GadgetHDFSnap):
             for hdf_family_name in _pkd_all_hdf_particle_groups:
                 if hdf_family_name in hdf:
                     yield hdf[hdf_family_name]
+
+    @classmethod
+    def _guess_file_ending(cls, f):
+        return f.with_suffix(f.suffix + ".0")
 
     def _init_unit_information(self):
         try:
