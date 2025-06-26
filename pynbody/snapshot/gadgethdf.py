@@ -727,14 +727,17 @@ class GadgetHDFSnap(SimSnap):
                     found = False
         return found
 
+    @classmethod
+    def _guess_file_ending(cls, f):
+        return f.with_suffix(".0.hdf5")
 
     @classmethod
     def _can_load(cls, f):
         if hasattr(h5py, "is_hdf5"):
             if h5py.is_hdf5(f):
                 return cls._test_for_hdf5_key(f)
-            elif h5py.is_hdf5(f.with_suffix(".0.hdf5")):
-                return cls._test_for_hdf5_key(f.with_suffix(".0.hdf5"))
+            elif h5py.is_hdf5(cls._guess_file_ending(f)):
+                return cls._test_for_hdf5_key(cls._guess_file_ending(f))
             else:
                 return False
         else:
