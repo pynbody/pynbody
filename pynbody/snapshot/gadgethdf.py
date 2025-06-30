@@ -14,7 +14,6 @@ Spanned files are supported. To load a range of files ``snap.0.hdf5``, ``snap.1.
 pass the filename ``snap``. If you pass e.g. ``snap.2.hdf5``, only file 2 will be loaded.
 """
 
-import array
 import configparser
 import functools
 import itertools
@@ -22,8 +21,6 @@ import logging
 import warnings
 
 import numpy as np
-
-from pynbody.snapshot import simsnap
 
 from .. import chunk, config_parser, family, units, util
 from . import SimSnap, namemapper
@@ -387,7 +384,13 @@ class HDFArrayLoader:
                 source_sel = self._get_contiguous_hdf_slice(source_sel.start, source_sel.stop - 1, sim_element_size, file_element_size)
 
             # Determine the shape of the data chunk that will be read from HDF5
-            expected_chunk_shape = hdf_dataset[source_sel].shape
+            # expected_chunk_shape = hdf_dataset[source_sel].shape
+            # avoid the explicit hdf_dataset[source_sel].shape call
+            num_elements = source_sel.stop - source_sel.start
+            if len(hdf_dataset.shape) > 1:
+                expected_chunk_shape = (num_elements, ) + hdf_dataset.shape[1:]
+            else:
+                expected_chunk_shape = (num_elements, )
 
             assert sim_array_to_fill.size == np.prod(expected_chunk_shape)
 
@@ -416,6 +419,10 @@ class HDFArrayLoader:
         if sim_element_size == file_element_size:
             return np.s_[id_min : id_max + 1]
         else:
+            # If the element sizes differ, we need to account for that in the slice
+            # need satisfying (num_sim_elements * sim_element_size) == (num_file_elements * file_element_size)
+            # num_sim_elements = (id_max + 1  - id_min); slice[id_min, id_max+1]
+            # num_file_elements = (id_max + 1 - id_min) * scaling_factor; slice[int(id_min * scaling_factor), int((id_max + 1) * scaling_factor)]
             scaling_factor = sim_element_size / file_element_size
             return np.s_[int(id_min * scaling_factor) : int((id_max + 1) * scaling_factor)]
 
