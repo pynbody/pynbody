@@ -47,9 +47,6 @@ class PkdgravHDFSnap(GadgetHDFSnap):
     _readable_hdf5_test_group = "Header"
     _readable_hdf5_test_attr = "Header", "PKDGRAV version"
 
-    def __init__(self, filename, ):
-        super().__init__(filename)
-
     def _get_units_from_hdf_attr(self, hdfattrs) :
         pass
 
