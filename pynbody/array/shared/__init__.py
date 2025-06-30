@@ -14,6 +14,7 @@ import signal
 import time
 import weakref
 from functools import reduce
+from typing import Optional
 
 import numpy as np
 
@@ -30,11 +31,28 @@ from .. import SimArray
 
 _owned_shared_memory_names = []
 
-# previously the RNG was seeded within the make_shared_array function each time, but if called
-# in quick succession on Windows (which has a low resolution timer), this led to non-unique
-# names.
-_rng = random.Random()
-_rng.seed(os.getpid() + int(time.time() * 1000))
+_rng: Optional[random.Random] = None
+_rng_is_for_pid = None
+
+def _create_rng():
+    """Create and seed a random number generator for generating unique shared memory names.
+
+    Previously the RNG was seeded with the current time, which could lead to non-unique names
+    if called in quick succession. Now it is seeded with the process ID and the current time in milliseconds.
+
+    This can still lead to issues when multiprocessing forks, so _ensure_rng checks what PID the rng was
+    created on."""
+
+    global _rng, _rng_is_for_pid
+    _rng = random.Random()
+    _rng.seed(os.getpid() + int(time.time() * 1000))
+    _rng_is_for_pid = os.getpid()
+
+def _ensure_rng():
+    """Ensures that the random number generator is created and was seeded on *this* process."""
+    global _rng
+    if _rng is None or _rng_is_for_pid != os.getpid():
+        _create_rng()
 
 class SharedArrayNotFound(OSError):
     pass
@@ -89,6 +107,7 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
     if fname is None:
         if not create:
             raise ValueError("When opening an existing shared array, fname must be specified")
+        _ensure_rng()
         fname = "pynbody-" + \
                 ("".join([_rng.choice('abcdefghijklmnopqrstuvwxyz')
                           for _ in range(10)]))
