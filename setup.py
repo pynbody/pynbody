@@ -1,8 +1,5 @@
-import codecs
-import os
 import platform
 import subprocess
-from os import path
 
 import numpy as np
 from Cython.Build import build_ext
@@ -31,20 +28,6 @@ def xcode_fix_needed():
         return True
     else:
         return False
-
-def read(rel_path):
-    here = os.path.abspath(os.path.dirname(__file__))
-    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
-        return fp.read()
-
-def get_version(rel_path):
-    for line in read(rel_path).splitlines():
-        if line.startswith('__version__'):
-            delim = '"' if '"' in line else "'"
-            return line.split(delim)[1]
-    else:
-        raise RuntimeError("Unable to find version string.")
-
 
 
 # Support for compiling without OpenMP has been removed, for now, due to the spiralling
@@ -152,79 +135,5 @@ cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
 ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx, filt_geom_pyx,
                 cython_fortran_file, omp_commands]
 
-install_requires = [
-    'cython>=3.0.0',
-    'h5py>=3.8.0',
-    'matplotlib>=3.8.0',
-    'numpy>=1.26.0',
-    'scipy>=1.12.0',
-    'certifi'
-]
-
-tests_require = [
-    'pytest','pandas','camb',"IPython",
-]
-
-# Add healpy only on non-Windows platforms
-if platform.system() != 'Windows':
-    tests_require.append('healpy')
-
-docs_require = [
-    'ipython>=3',
-    'Sphinx>=7,<8.2.0', #<8.2.0 due to nbsphinx compatibility issue (cf https://github.com/rapidsai/build-planning/issues/155)
-    'sphinx-book-theme',
-    'sphinx-copybutton',
-    'numpydoc',
-    'nbsphinx',
-    'camb'
-],
-
-extras_require = {
-    'tests': tests_require,
-    'docs': docs_require,
-}
-
-extras_require['all'] = []
-for name, reqs in extras_require.items():
-    extras_require['all'].extend(reqs)
-
-
-
-this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, 'README.md'), encoding='utf-8') as snap:
-    long_description = snap.read()
-
-setup(name = 'pynbody',
-      author = 'The pynbody team',
-      author_email = 'pynbody@googlegroups.com',
-      version = get_version("pynbody/__init__.py"),
-      description = 'Astronomical N-body/SPH analysis for python',
-      url = 'https://github.com/pynbody/pynbody/releases',
-      package_dir = {'pynbody/': ''},
-      packages = ['pynbody', 'pynbody/analysis', 'pynbody/array',
-                  'pynbody/plot', 'pynbody/gravity', 'pynbody/chunk', 'pynbody/filt', 'pynbody/sph',
-                  'pynbody/snapshot', 'pynbody/bridge', 'pynbody/halo', 'pynbody/halo/details',
-                  'pynbody/extern', 'pynbody/kdtree', 'pynbody/test_utils', 'pynbody/util', 'pynbody/array/shared'],
-      package_data={'pynbody': ['default_config.ini'],
-                    'pynbody/analysis': ['cmdlum.npz', 'default_ssp.txt', 'lsst_ssp.txt',
-                                         'h1.hdf5',
-                                         'ionfracs.npz',
-                                         'CAMB_WMAP7', 'CAMB_Planck18',
-                                         'cambtemplate.ini'],
-                    'pynbody/plot': ['tollerud2008mw']},
-      ext_modules = ext_modules,
-      classifiers = ["Development Status :: 5 - Production/Stable",
-                     "Intended Audience :: Developers",
-                     "Intended Audience :: Science/Research",
-                     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-                     "Programming Language :: Python :: 3",
-                     "Topic :: Scientific/Engineering :: Astronomy",
-                     "Topic :: Scientific/Engineering :: Visualization"],
-      cmdclass={'build_ext': build_ext},
-      install_requires=install_requires,
-      tests_require=tests_require,
-      extras_require=extras_require,
-      python_requires='>=3.11',
-      long_description=long_description,
-      long_description_content_type='text/markdown'
-      )
+setup(ext_modules=ext_modules,
+      cmdclass={'build_ext': build_ext})
