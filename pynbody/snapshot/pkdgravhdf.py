@@ -31,22 +31,8 @@ class _PkdgravHdfMultiFileManager(_GadgetHdfMultiFileManager) :
     _nfiles_attrname = "NumFilesPerSnapshot"
     _namemapper_config_section = "pkdgrav3hdf-name-mapping"
 
-    def __init__(self, filename, mode='r') :
-        filename = str(filename)
-        self._mode = mode
-        if h5py.is_hdf5(filename):
-            self._filenames = [filename]
-            self._numfiles = 1
-        else:
-            h1 = h5py.File(filename + ".0", mode)
-            self._numfiles = self._get_num_files(h1)
-            if hasattr(self._numfiles, "__len__"):
-                assert len(self._numfiles) == 1
-                self._numfiles = self._numfiles[0]
-            self._filenames = [filename + "."
-                               + str(i) for i in range(self._numfiles)]
-
-        self._open_files = {}
+    def _make_filename_for_cpu(self, filename, n):
+        return filename + f".{n}"
 
     def get_cosmo_attrs(self):
         return self[0].parent['Cosmology'].attrs

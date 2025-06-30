@@ -80,17 +80,20 @@ class _GadgetHdfMultiFileManager:
             self._filenames = [filename]
             self._numfiles = 1
         else:
-            h1 = h5py.File(filename + ".0.hdf5", mode)
+            h1 = h5py.File(self._make_filename_for_cpu(filename, 0), mode)
             self._numfiles = self._get_num_files(h1)
             if hasattr(self._numfiles, "__len__"):
                 assert len(self._numfiles) == 1
                 self._numfiles = self._numfiles[0]
-            self._filenames = [filename+"."+str(i)+".hdf5" for i in range(self._numfiles)]
+            self._filenames = [self._make_filename_for_cpu(filename, i) for i in range(self._numfiles)]
 
         self._open_files = {}
 
     def _get_num_files(self, first_file):
         return first_file[self._nfiles_groupname].attrs[self._nfiles_attrname]
+
+    def _make_filename_for_cpu(self, filename, n):
+        return filename + f".{n}.hdf5"
 
     def __len__(self):
         return self._numfiles
