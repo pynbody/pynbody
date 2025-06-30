@@ -7,6 +7,7 @@ import pynbody.units as units
 SA = pynbody.array.SimArray
 import gc
 import os
+import platform
 import signal
 import sys
 import time
@@ -396,6 +397,7 @@ def _create_shared_array_with_random_name():
     """Create a shared array with a random name to avoid name collisions"""
     remote_ar = shared.make_shared_array((10,), dtype=np.int32, zeros=True)
 
+@pytest.mark.skipif(platform.system() == 'Windows', reason="Windows does not support fork")
 def test_shared_name_accidental_rng_collision():
     """Check that if the rng collides (this can happen after a fork made by multiprocessing),
     make_shared_array still succeeds"""
