@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "numpy>=2.0.0", "cython"]
+requires = ["setuptools", "wheel", "numpy>=2.0.0", "cython>=3.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -20,7 +20,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization"
 ]
 dependencies = [
-    "cython>=3.0.0",
     "h5py>=3.8.0",
     "matplotlib>=3.8.0",
     "numpy>=1.26.0",
@@ -47,7 +46,8 @@ docs = [
     "sphinx-copybutton",
     "numpydoc", 
     "nbsphinx",
-    "camb"
+    "camb",
+    "healpy"
 ]
 
 [tool.setuptools]
