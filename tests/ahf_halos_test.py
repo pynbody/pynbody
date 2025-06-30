@@ -141,7 +141,7 @@ def snap_in_unwritable_folder():
     shutil.rmtree("testdata/test_unwritable")
 
 
-
+@pytest.mark.filterwarnings("ignore:No readable param file*:RuntimeWarning")
 def test_ahf_unwritable(snap_in_unwritable_folder):
     f = pynbody.load(snap_in_unwritable_folder)
 
