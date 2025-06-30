@@ -52,10 +52,8 @@ class PkdgravHDFSnap(GadgetHDFSnap):
         return units.NoUnit()
 
     def _all_hdf_groups(self):
-        for hdf in self._hdf_files:
-            for hdf_family_name in _pkd_all_hdf_particle_groups:
-                if hdf_family_name in hdf:
-                    yield hdf[hdf_family_name]
+        for hdf_family_name in _pkd_all_hdf_particle_groups:
+            yield from self._hdf_files.iter_particle_groups_with_name(hdf_family_name)
 
     @classmethod
     def _guess_file_ending(cls, f):
