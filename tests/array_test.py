@@ -391,3 +391,27 @@ def test_shared_name_collision_raises(clean_up_test_protection):
     myar = shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")
     with pytest.raises(OSError):
         shared.make_shared_array((10,), dtype=np.int32, zeros=True, fname="pynbody-test-cleanup")
+
+def _create_shared_array_with_random_name():
+    """Create a shared array with a random name to avoid name collisions"""
+    remote_ar = shared.make_shared_array((10,), dtype=np.int32, zeros=True)
+
+def test_shared_name_accidental_rng_collision():
+    """Check that if the rng collides (this can happen after a fork made by multiprocessing),
+    make_shared_array still succeeds"""
+
+    # create a shared array to initialise the underlying rng
+    first_local_ar = shared.make_shared_array((10,), dtype=np.int32)
+
+    import multiprocessing as mp
+    context = mp.get_context('fork')
+    p = context.Process(target=_create_shared_array_with_random_name)
+    p.start()
+
+    # this will collide with the other process's shared array name if the rng is not
+    # properly reinitialised
+    second_local_ar = shared.make_shared_array((10,), dtype=np.int32)
+
+    p.join()
+
+    assert p.exitcode == 0, "Child process did not exit cleanly"
