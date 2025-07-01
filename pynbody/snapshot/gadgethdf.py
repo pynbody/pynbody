@@ -324,7 +324,6 @@ class HDFArrayLoader:
         self._family_to_group_map = family_to_group_map
         
         self.partial_load = take is not None
-        self._array_filler = _HDFArrayFiller()
         self.__init_file_map()
         self.__init_load_map(take)
 
@@ -407,12 +406,12 @@ class HDFArrayLoader:
 
         """
 
-        
+        array_filler = _HDFArrayFiller()
         for loading_fam in all_fams_to_load:
             
             sim_fam_array = sim[loading_fam][array_name]
-            self._array_filler._update_sim_element_size(sim_fam_array)
-            
+            array_filler._update_sim_element_size(sim_fam_array)
+
             i0 = 0 # current write position in sim_fam_array
 
             # A 'gadget group name' is e.g. 'PartType0', 'PartType1' etc.
@@ -436,11 +435,11 @@ class HDFArrayLoader:
                     if last_file_index != file_iterator.file_index:
                         dataset = self._get_dataset_from_translated_names(sim, file_iterator.current_hdf_file, translated_names)
                         last_file_index = file_iterator.file_index
-                        self._array_filler._update_file_element_size(dataset)
+                        array_filler._update_file_element_size(dataset)
 
                     if dataset is not None:
                         target_array = sim_fam_array[i0:i1]
-                        self._array_filler.fill_array_from_hdf_dataset(target_array, dataset, source_sel=buf_index,
+                        array_filler.fill_array_from_hdf_dataset(target_array, dataset, source_sel=buf_index,
                                                                        offset=file_iterator.particle_offset)
                     file_iterator.particle_offset += readlen
                     i0 = i1
