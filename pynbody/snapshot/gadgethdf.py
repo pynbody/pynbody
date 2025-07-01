@@ -165,16 +165,19 @@ class _HDFFileIterator:
         """
         self._hdf_file_iterator = hdf_file_iterator
         self.current_hdf_file = None
-        self.current_index = 0
+        self.file_index = -1
+        self.particle_offset = 0 
         self.select_file(0)
 
     def select_file(self, offset):
         try:
             self.current_hdf_file = next(self._hdf_file_iterator)
-            self.current_index = 0
+            self.file_index += 1 # next file
+            self.particle_offset = 0 # Reset offset for the new file
         except StopIteration:
             self.current_hdf_file = None
-            self.current_index = 0
+            self.file_index = -1
+            self.particle_offset = 0
 class _HDFArrayFiller:
     """A helper class to fill a pynbody array from an HDF5 dataset."""
 
@@ -400,8 +403,8 @@ class HDFArrayLoader:
                     continue
                 # Create iterator for this group type across all files
                 file_iterator = _HDFFileIterator(iter(self._hdf_files.iter_particle_groups_with_name(hdf_group_name)))
-                
 
+                last_file_index = -1
                 for readlen, buf_index, mem_index in self._load_control.iterate_with_interrupts(
                         hdf_group_name, 
                         hdf_group_name, 
@@ -411,12 +414,16 @@ class HDFArrayLoader:
                         continue
                     i1 = i0 + mem_index.stop - mem_index.start
 
-                    dataset = self._get_dataset_from_translated_names(sim, file_iterator.current_hdf_file, translated_names)
+                    # Check if we need to load a new dataset
+                    if last_file_index != file_iterator.file_index:
+                        dataset = self._get_dataset_from_translated_names(sim, file_iterator.current_hdf_file, translated_names)
+                        last_file_index = file_iterator.file_index
+                        
                     if dataset is not None:
                         target_array = sim[loading_fam][array_name][i0:i1]
                         _HDFArrayFiller.fill_array_from_hdf_dataset(target_array, dataset, source_sel=buf_index,
-                                                                       offset=file_iterator.current_index)
-                    file_iterator.current_index += readlen
+                                                                       offset=file_iterator.particle_offset)
+                    file_iterator.particle_offset += readlen
                     i0 = i1
             
 
