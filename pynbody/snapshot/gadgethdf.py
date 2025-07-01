@@ -80,17 +80,20 @@ class _GadgetHdfMultiFileManager:
             self._filenames = [filename]
             self._numfiles = 1
         else:
-            h1 = h5py.File(filename + ".0.hdf5", mode)
+            h1 = h5py.File(self._make_filename_for_cpu(filename, 0), mode)
             self._numfiles = self._get_num_files(h1)
             if hasattr(self._numfiles, "__len__"):
                 assert len(self._numfiles) == 1
                 self._numfiles = self._numfiles[0]
-            self._filenames = [filename+"."+str(i)+".hdf5" for i in range(self._numfiles)]
+            self._filenames = [self._make_filename_for_cpu(filename, i) for i in range(self._numfiles)]
 
         self._open_files = {}
 
     def _get_num_files(self, first_file):
         return first_file[self._nfiles_groupname].attrs[self._nfiles_attrname]
+
+    def _make_filename_for_cpu(self, filename, n):
+        return filename + f".{n}.hdf5"
 
     def __len__(self):
         return self._numfiles
@@ -727,14 +730,17 @@ class GadgetHDFSnap(SimSnap):
                     found = False
         return found
 
+    @classmethod
+    def _guess_file_ending(cls, f):
+        return f.with_suffix(".0.hdf5")
 
     @classmethod
     def _can_load(cls, f):
         if hasattr(h5py, "is_hdf5"):
             if h5py.is_hdf5(f):
                 return cls._test_for_hdf5_key(f)
-            elif h5py.is_hdf5(f.with_suffix(".0.hdf5")):
-                return cls._test_for_hdf5_key(f.with_suffix(".0.hdf5"))
+            elif h5py.is_hdf5(cls._guess_file_ending(f)):
+                return cls._test_for_hdf5_key(cls._guess_file_ending(f))
             else:
                 return False
         else:

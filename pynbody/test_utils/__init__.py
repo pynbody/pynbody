@@ -46,9 +46,11 @@ test_data_packages = {
                 'archive_name': 'subfind.tar.gz'},
     'tng_subfind': {'verify_path': 'arepo/tng',
                     'archive_name': 'tng_subfind.tar.gz'},
+    'pkdgrav3': {'verify_path': 'pkdgrav3',
+                 'archive_name': 'pkdgrav3.tar.gz'},
 }
 
-test_data_url = "https://zenodo.org/record/15528615/files/{archive_name}?download=1"
+test_data_url = "https://zenodo.org/record/15769415/files/{archive_name}?download=1"
 
 def precache_test_data(verbose=False):
     """Download and unpack all test data packages."""
