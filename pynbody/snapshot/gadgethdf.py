@@ -180,10 +180,12 @@ class _HDFFileIterator:
             self.particle_offset = 0
 class _HDFArrayFiller:
     """A helper class to fill a pynbody array from an HDF5 dataset."""
-    
-    def __init__(self):
-        self.sim_element_size = 1 # default element size for simulation arrays
-        self.file_element_size = 1 # default element size for file arrays
+
+    def __init__(self, sim_array_to_fill = None, hdf_dataset = None):
+        
+        # default element size for simulation arrays
+        self.sim_element_size = 1 if sim_array_to_fill is None else self._get_element_size(sim_array_to_fill)
+        self.file_element_size = 1 if hdf_dataset is None else self._get_element_size(hdf_dataset)
         self._update_scaling_factor()
 
     def _update_sim_element_size(self, sim_array_to_fill):
@@ -406,11 +408,9 @@ class HDFArrayLoader:
 
         """
 
-        array_filler = _HDFArrayFiller()
         for loading_fam in all_fams_to_load:
             
-            sim_fam_array = sim[loading_fam][array_name]
-            array_filler._update_sim_element_size(sim_fam_array)
+            sim_fam_array, array_filler = self._get_array_filler(array_name, loading_fam, sim, translated_names)
 
             i0 = 0 # current write position in sim_fam_array
 
@@ -435,7 +435,6 @@ class HDFArrayLoader:
                     if last_file_index != file_iterator.file_index:
                         dataset = self._get_dataset_from_translated_names(sim, file_iterator.current_hdf_file, translated_names)
                         last_file_index = file_iterator.file_index
-                        array_filler._update_file_element_size(dataset)
 
                     if dataset is not None:
                         target_array = sim_fam_array[i0:i1]
@@ -443,7 +442,31 @@ class HDFArrayLoader:
                                                                        offset=file_iterator.particle_offset)
                     file_iterator.particle_offset += readlen
                     i0 = i1
-            
+
+    def _get_array_filler(self, array_name: str, loading_fam: family.Family, sim: SimSnap, translated_names: list[str]):
+        """
+        Set up and return the simulation family array and its corresponding HDF array filler.
+        """
+        
+        sim_fam_array = sim[loading_fam][array_name]
+        
+        # Find the first dataset for this family to determine file element size
+        first_dataset = None
+        for hdf_group_name in self._family_to_group_map[loading_fam]:
+            if self._file_ptype_slice[hdf_group_name].stop <= self._file_ptype_slice[hdf_group_name].start:
+                continue
+            for hdf_group in self._hdf_files.iter_particle_groups_with_name(hdf_group_name):
+                first_dataset = self._get_dataset_from_translated_names(sim, hdf_group, translated_names)
+                if first_dataset is not None:
+                    break
+            if first_dataset is not None:
+                break
+
+        if first_dataset is None:
+            raise KeyError(f"No dataset found for {array_name} in family {loading_fam}")
+        
+        array_filler = _HDFArrayFiller(sim_fam_array, first_dataset)
+        return sim_fam_array, array_filler
 
     def _get_dataset_from_translated_names(self, sim_obj, hdf_particle_group, translated_names):
         """Retrieve an HDF5 dataset from translated_names."""
