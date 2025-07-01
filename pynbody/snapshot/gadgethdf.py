@@ -464,6 +464,7 @@ class GadgetHDFSnap(SimSnap):
         take = kwargs.pop("take", None)
         self.partial_load = take is not None
         self.__init_file_map(take)
+        self._remove_empty_particle_groups()
         self.__init_loadable_keys()
         self.__infer_mass_dtype()
         self._init_properties()
@@ -552,9 +553,14 @@ class GadgetHDFSnap(SimSnap):
         self._family_slice = self._array_loader._family_slice_to_load
         self._num_particles = self._array_loader._num_particles_to_load
 
-        # PartType3 is Tracer in Arepo, so we'd better to adjust the group mapping, removing empty groups
+    def _remove_empty_particle_groups(self):
+        """Remove particle groups that contain no particles from the internal family mapping.
+
+        This is important for some formats like Arepo where tracer particles might be defined
+        but not present, which can cause issues with `HaloCatalogue`.
+        """
         for family_name in self._family_to_group_map:
-            self._family_to_group_map[family_name] = [group_name for group_name in self._family_to_group_map[family_name] 
+            self._family_to_group_map[family_name] = [group_name for group_name in self._family_to_group_map[family_name]
                                            if self._gadget_ptype_slice[group_name].stop > self._gadget_ptype_slice[group_name].start]
 
     def __infer_mass_dtype(self):
