@@ -13,6 +13,43 @@ on:
 
 
 jobs:
+  fetch-testdata:
+    runs-on: ubuntu-latest
+    outputs:
+      testdata-key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - name: Install certifi
+      run: |
+        python -m pip install certifi
+    - name: Get testdata hash
+      id: get-testdata-hash
+      run: |
+        echo "testdatahash=$(python pynbody/test_utils/__init__.py)" >> $GITHUB_OUTPUT
+    - name: Restore testdata cache
+      uses: actions/cache/restore@v4
+      id: cache-testdata
+      with:
+        path: tests/testdata
+        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
+        enableCrossOsArchive: true
+    - name: Fetch and unpack test data
+      if: steps.cache-testdata.outputs.cache-hit != 'true'
+      working-directory: tests
+      run: |
+        python ../pynbody/test_utils/__init__.py --fetch
+    - name: Save testdata cache
+      uses: actions/cache/save@v4
+      if: always() && steps.cache-testdata.outputs.cache-hit != 'true'
+      with:
+        path: tests/testdata
+        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
+        enableCrossOsArchive: true
+
   build_wheels:
     name: Build wheels on ${{ matrix.buildplat[0] }} ${{ matrix.buildplat[2] }} ${{ matrix.python}}
     runs-on: ${{ matrix.buildplat[0] }}
@@ -101,8 +138,49 @@ jobs:
           name: artifact-source
           path: dist/*.tar.gz
 
+  test_wheels:
+    needs: [build_wheels, build_sdist, fetch-testdata]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-13]
+        python-version: ["3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: artifact-*
+          merge-multiple: true
+          path: dist
+          
+      - name: Install wheel
+        run: |
+          python -m pip install --upgrade pip
+          # Install pynbody from local wheel without dependencies to ensure we test the built wheel
+          python -m pip install pynbody --find-links dist --no-index --only-binary=pynbody --no-deps
+          # Install test dependencies from PyPI (since they're not in our wheel artifacts)
+          python -m pip install pynbody[tests]
+          
+      - name: Restore testdata cache
+        uses: actions/cache/restore@v4
+        with:
+          path: tests/testdata
+          key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
+          enableCrossOsArchive: true
+          
+      - name: Run tests
+        working-directory: tests
+        run: python -m pytest --ignore=testdata/ --tb=short
+
   upload_pypi:
-    needs: [build_wheels, build_sdist]
+    needs: [build_wheels, build_sdist, test_wheels]
     runs-on: ubuntu-latest
     environment: PyPI
     steps:

@@ -127,7 +127,7 @@ def snap_in_unwritable_folder():
             shutil.copy2(fname, "testdata/test_unwritable/"+fname[22:])
 
     if os.name == 'nt':  # Windows
-        subprocess.run(['icacls', 'testdata/test_unwritable', '/deny', 'Everyone:(W)'], check=True)
+        subprocess.run(['icacls', 'testdata/test_unwritable', '/deny', 'Everyone:(WD,AD,WEA)'], check=True)
     else:  # Unix/Linux/macOS
         os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR)
 
@@ -139,7 +139,6 @@ def snap_in_unwritable_folder():
     else:  # Unix/Linux/macOS
         os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR)
     shutil.rmtree("testdata/test_unwritable")
-
 
 
 def test_ahf_unwritable(snap_in_unwritable_folder):

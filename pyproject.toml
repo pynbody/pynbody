@@ -1,5 +1,92 @@
 [build-system]
-requires = ["setuptools", "wheel", "numpy>=2.0.0rc1", "cython"]
+requires = ["setuptools", "wheel", "numpy>=2.0.0", "cython>=3.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pynbody"
+authors = [
+    {name = "The pynbody team", email = "pynbody-users@googlegroups.com"}
+]
+description = "Astronomical N-body/SPH analysis for python"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Visualization"
+]
+dependencies = [
+    "h5py>=3.8.0",
+    "matplotlib>=3.8.0",
+    "numpy>=1.26.0",
+    "scipy>=1.12.0",
+    "certifi"
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/pynbody/pynbody/releases"
+
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "pandas",
+    "camb",
+    "IPython",
+    "healpy; platform_system != 'Windows'"
+]
+docs = [
+    "ipython>=3",
+    "Sphinx>=7,<8.2.0",
+    "sphinx-book-theme",
+    "sphinx-copybutton",
+    "numpydoc", 
+    "nbsphinx",
+    "camb",
+    "healpy"
+]
+
+[tool.setuptools]
+packages = [
+    "pynbody",
+    "pynbody.analysis",
+    "pynbody.array",
+    "pynbody.plot",
+    "pynbody.gravity",
+    "pynbody.chunk",
+    "pynbody.filt",
+    "pynbody.sph",
+    "pynbody.snapshot",
+    "pynbody.bridge",
+    "pynbody.halo",
+    "pynbody.halo.details",
+    "pynbody.extern",
+    "pynbody.kdtree",
+    "pynbody.test_utils",
+    "pynbody.util",
+    "pynbody.array.shared"
+]
+
+[tool.setuptools.package-data]
+pynbody = ["default_config.ini"]
+"pynbody.analysis" = [
+    "cmdlum.npz",
+    "default_ssp.txt",
+    "lsst_ssp.txt",
+    "h1.hdf5",
+    "ionfracs.npz",
+    "CAMB_WMAP7",
+    "CAMB_Planck18",
+    "cambtemplate.ini"
+]
+"pynbody.plot" = ["tollerud2008mw"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pynbody.__version__"}
 
 [tool.pytest.ini_options]
 testpaths = ['tests']
