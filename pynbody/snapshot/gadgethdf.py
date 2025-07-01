@@ -161,7 +161,7 @@ class _SubfindHdfMultiFileManager(_GadgetHdfMultiFileManager):
 class _HDFFileIterator:
     def __init__(self, hdf_file_iterator):
         """
-        Initialize the HDF file iterator.
+        Initialize the HDF file iterator. specifically used for LoadControl.iterate_with_interrupts
         """
         self._hdf_file_iterator = hdf_file_iterator
         self.current_hdf_file = None
@@ -175,6 +175,106 @@ class _HDFFileIterator:
         except StopIteration:
             self.current_hdf_file = None
             self.current_index = 0
+class _HDFArrayFiller:
+    """A helper class to fill a pynbody array from an HDF5 dataset."""
+
+    @staticmethod
+    def fill_array_from_hdf_dataset(sim_array_to_fill, hdf_dataset, source_sel: slice | np.ndarray | None, offset: int = 0):
+        """Fill a simulation array from an HDF5 dataset, handling various indexing and data shapes."""
+        if isinstance(hdf_dataset, _DummyHDFData):
+            hdf_dataset.read_direct(sim_array_to_fill)
+            return
+
+        source_sel = _HDFArrayFiller._preprocess_source_selection(source_sel, offset)
+        sim_element_size = _HDFArrayFiller._get_element_size(sim_array_to_fill)
+        file_element_size = _HDFArrayFiller._get_element_size(hdf_dataset)
+
+        if isinstance(source_sel, np.ndarray):
+            _HDFArrayFiller._fill_from_fancy_index(sim_array_to_fill, hdf_dataset, source_sel, sim_element_size, file_element_size)
+        elif isinstance(source_sel, slice):
+            _HDFArrayFiller._fill_from_slice(sim_array_to_fill, hdf_dataset, source_sel, sim_element_size, file_element_size)
+        elif source_sel is None:
+            _HDFArrayFiller._fill_entire_dataset(sim_array_to_fill, hdf_dataset)
+        else:
+            raise TypeError(f"Unsupported source_sel type: {type(source_sel)}. "
+                            "Expected numpy.ndarray, slice, or None.")
+    @staticmethod
+    def _get_element_size(array):
+        """Get the size of a single element in an array."""
+        if hasattr(array, 'ndim') and array.ndim > 1:
+            return int(np.prod(array.shape[1:]))
+        elif hasattr(array, 'shape') and len(array.shape) > 1:
+            return int(np.prod(array.shape[1:]))
+        else:
+            return 1
+    @staticmethod
+    def _preprocess_source_selection(source_sel, offset):
+        """Apply offset to the source selection and optimize if possible."""
+        if isinstance(source_sel, slice):
+            return slice(source_sel.start + offset, source_sel.stop + offset)
+        elif isinstance(source_sel, np.ndarray):
+            source_sel = source_sel + offset
+            # convert to slice for efficiency if the indices are contiguous
+            if len(source_sel) > 1 and source_sel[-1] - source_sel[0] == len(source_sel) - 1:
+                return slice(source_sel[0], source_sel[-1] + 1)
+        return source_sel
+    @staticmethod
+    def _fill_from_fancy_index(sim_array_to_fill, hdf_dataset, source_sel, sim_element_size, file_element_size):
+        """Fill array from a non-contiguous (fancy) index."""
+        id_min, id_max = source_sel[0], source_sel[-1]
+        num_read = id_max - id_min + 1
+        indices_in_read_chunk = source_sel - id_min
+
+        contiguous_hdf_slice = _HDFArrayFiller._get_contiguous_hdf_slice(id_min, id_max, sim_element_size, file_element_size)
+
+        data_chunk_from_hdf = hdf_dataset[contiguous_hdf_slice]
+        data_chunk_from_hdf = data_chunk_from_hdf.reshape(num_read, *sim_array_to_fill.shape[1:])
+
+        final_data_to_fill = data_chunk_from_hdf[indices_in_read_chunk]
+
+        if sim_array_to_fill.shape == final_data_to_fill.shape:
+            sim_array_to_fill[:] = final_data_to_fill
+        else:
+            sim_array_to_fill.reshape(final_data_to_fill.shape)[:] = final_data_to_fill
+            
+    @staticmethod
+    def _fill_from_slice(sim_array_to_fill, hdf_dataset, source_sel, sim_element_size, file_element_size):
+        """Fill array from a contiguous slice."""
+        if sim_element_size != file_element_size:
+            source_sel = _HDFArrayFiller._get_contiguous_hdf_slice(source_sel.start, source_sel.stop - 1, sim_element_size, file_element_size)
+
+        num_elements = source_sel.stop - source_sel.start
+        if len(hdf_dataset.shape) > 1:
+            expected_chunk_shape = (num_elements,) + hdf_dataset.shape[1:]
+        else:
+            expected_chunk_shape = (num_elements,)
+
+        assert sim_array_to_fill.size == np.prod(expected_chunk_shape)
+
+        sim_array_reshaped = sim_array_to_fill.reshape(expected_chunk_shape)
+        hdf_dataset.read_direct(sim_array_reshaped, source_sel=source_sel)
+        
+    @staticmethod
+    def _fill_entire_dataset(sim_array_to_fill, hdf_dataset):
+        """Fill array with the entire content of an HDF5 dataset."""
+        assert sim_array_to_fill.size == np.prod(hdf_dataset.shape)
+        sim_array_reshaped = sim_array_to_fill.reshape(hdf_dataset.shape)
+        hdf_dataset.read_direct(sim_array_reshaped, source_sel=None)
+        
+    @staticmethod
+    def _get_contiguous_hdf_slice(id_min, id_max, sim_element_size, file_element_size):
+        """Calculates the slice to select from an HDF5 file to get a contiguous block of data
+        covering the particle range [id_min, id_max], accounting for differing data layouts
+        between the file and memory.
+
+        For example, a 3D position array in memory might be stored as a flat 1D array in the file.
+        This function computes the correct start and end indices for the slice in the flat array.
+        """
+        if sim_element_size == file_element_size:
+            return np.s_[id_min: id_max + 1]
+        else:
+            scaling_factor = sim_element_size / file_element_size
+            return np.s_[int(id_min * scaling_factor): int((id_max + 1) * scaling_factor)]
 
 class HDFArrayLoader:
     """A helper class to handle the loading of particle data arrays from Gadget HDF5 files.
@@ -314,8 +414,8 @@ class HDFArrayLoader:
                     dataset = self._get_dataset_from_translated_names(sim, file_iterator.current_hdf_file, translated_names)
                     if dataset is not None:
                         target_array = sim[loading_fam][array_name][i0:i1]
-                        self._fill_array_from_hdf_dataset(target_array, dataset, source_sel=buf_index,
-                                                          offset=file_iterator.current_index)
+                        _HDFArrayFiller.fill_array_from_hdf_dataset(target_array, dataset, source_sel=buf_index,
+                                                                       offset=file_iterator.current_index)
                     file_iterator.current_index += readlen
                     i0 = i1
             
@@ -329,102 +429,6 @@ class HDFArrayLoader:
             except KeyError:
                 continue
             
-    def _fill_array_from_hdf_dataset(self, sim_array_to_fill, hdf_dataset, source_sel, offset=0):
-        """Fill a simulation array from an HDF5 dataset, handling various indexing and data shapes."""
-        
-        # For _DummyHDFData (e.g. mass from header), just fill with the value
-        if isinstance(hdf_dataset,_DummyHDFData):
-            hdf_dataset.read_direct(sim_array_to_fill)
-            return
-
-        if isinstance(source_sel, slice):
-            source_sel = slice(source_sel.start + offset, source_sel.stop + offset)
-        elif isinstance(source_sel, np.ndarray):
-            source_sel = source_sel + offset
-            if len(source_sel) > 1 and source_sel[-1] - source_sel[0] == len(source_sel) - 1:
-                # convert to slice for efficiency if the indices are contiguous
-                source_sel = slice(source_sel[0], source_sel[-1] + 1)
-
-        # Account for the fact that HDF5 datasets may have different element sizes
-        # than the target pynbody array. For example, a 3D vector might be stored
-        # as a flat 1D array on disk.
-        sim_element_size = int(np.prod(sim_array_to_fill.shape[1:])) if sim_array_to_fill.ndim > 1 else 1
-        file_element_size = int(np.prod(hdf_dataset.shape[1:])) if len(hdf_dataset.shape) > 1 else 1
-
-
-        # Determine if source_sel represents a fancy index array (for non-continuous selection)
-        if isinstance(source_sel, np.ndarray):
-            # Optimization for non-continuous reads:
-            # Read a single contiguous chunk from HDF5 that spans all requested indices
-            # for this file, then select the specific indices from this in-memory chunk.
-            id_min = source_sel[0]
-            id_max = source_sel[-1]
-            num_read = id_max - id_min + 1
-            indices_in_read_chunk = source_sel - id_min
-
-            contiguous_hdf_slice = self._get_contiguous_hdf_slice(id_min, id_max, sim_element_size, file_element_size)
-
-            # Read the contiguous chunk from the HDF5 dataset
-            data_chunk_from_hdf = hdf_dataset[contiguous_hdf_slice]
-            data_chunk_from_hdf = data_chunk_from_hdf.reshape(num_read,*sim_array_to_fill.shape[1:])
-
-            # Select the specific indices from the in-memory chunk
-            final_data_to_fill = data_chunk_from_hdf[indices_in_read_chunk]
-
-            # Reshape and fill the target simulation array
-            if sim_array_to_fill.shape == final_data_to_fill.shape:
-                sim_array_to_fill[:] = final_data_to_fill
-            else:
-                sim_array_reshaped = sim_array_to_fill.reshape(final_data_to_fill.shape)
-                sim_array_reshaped[:] = final_data_to_fill
-
-        elif isinstance(source_sel, slice):
-            # For continuous selections (slices), use hdf_dataset.read_direct for efficiency.
-            if sim_element_size != file_element_size:
-                source_sel = self._get_contiguous_hdf_slice(source_sel.start, source_sel.stop - 1, sim_element_size, file_element_size)
-
-            # Determine the shape of the data chunk that will be read from HDF5
-            # expected_chunk_shape = hdf_dataset[source_sel].shape
-            # avoid the explicit hdf_dataset[source_sel].shape call
-            num_elements = source_sel.stop - source_sel.start
-            if len(hdf_dataset.shape) > 1:
-                expected_chunk_shape = (num_elements, ) + hdf_dataset.shape[1:]
-            else:
-                expected_chunk_shape = (num_elements, )
-
-            assert sim_array_to_fill.size == np.prod(expected_chunk_shape)
-
-            # Reshape the target slice to match the shape of the data being read
-            sim_array_reshaped = sim_array_to_fill.reshape(expected_chunk_shape)
-            hdf_dataset.read_direct(sim_array_reshaped, source_sel=source_sel)
-
-        elif source_sel is None:
-            # Read the entire dataset
-            assert sim_array_to_fill.size == np.prod(hdf_dataset.shape)
-            sim_array_reshaped = sim_array_to_fill.reshape(hdf_dataset.shape)
-            hdf_dataset.read_direct(sim_array_reshaped, source_sel=source_sel)
-
-        else:
-            raise TypeError(f"Unsupported source_sel type: {type(source_sel)}. "
-                            "Expected numpy.ndarray, slice, or None.")
-
-    def _get_contiguous_hdf_slice(self, id_min, id_max, sim_element_size, file_element_size):
-        """Calculates the slice to select from an HDF5 file to get a contiguous block of data
-        covering the particle range [id_min, id_max], accounting for differing data layouts
-        between the file and memory.
-
-        For example, a 3D position array in memory might be stored as a flat 1D array in the file.
-        This function computes the correct start and end indices for the slice in the flat array.
-        """
-        if sim_element_size == file_element_size:
-            return np.s_[id_min : id_max + 1]
-        else:
-            # If the element sizes differ, we need to account for that in the slice
-            # need satisfying (num_sim_elements * sim_element_size) == (num_file_elements * file_element_size)
-            # num_sim_elements = (id_max + 1  - id_min); slice[id_min, id_max+1]
-            # num_file_elements = (id_max + 1 - id_min) * scaling_factor; slice[int(id_min * scaling_factor), int((id_max + 1) * scaling_factor)]
-            scaling_factor = sim_element_size / file_element_size
-            return np.s_[int(id_min * scaling_factor) : int((id_max + 1) * scaling_factor)]
 
 class GadgetHDFSnap(SimSnap):
     """
