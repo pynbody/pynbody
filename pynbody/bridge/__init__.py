@@ -16,10 +16,12 @@ from __future__ import annotations
 
 import abc
 import typing
+import warnings
 import weakref
 
 import numpy as np
 
+from .. import family
 from .. import util
 from . import _bridge
 
@@ -439,6 +441,50 @@ class OrderBridge(AbstractBridge):
             output_index = output_index[np.lexsort((new_family_index,))]
 
         return to_[output_index]
+
+class RamsesBugOrderBridge(OrderBridge):
+    def __init__(self, start, end, order_array="iord", monotonic=False, allow_family_change=False):
+        """A special case of OrderBridge for bridging between two Ramses snapshots affected by int32 iord truncation bug.
+
+        In this bug, the iord array is truncated to int32 when transmitted from one CPU to another. We first truncate
+        all iords to int32, then use heuristics to try to disambiguate collisions that occur due to this bit loss.
+        The heuristics are that star particles must always map onto star particles, and DM particles must map onto
+        DM particles of the same level.
+
+        Note that this class is never created automatically by :pynbody.snapshot.simsnap.SimSnap.bridge, but must
+        be create manually by the user, since it is not recommended for use except when there is no other option
+        but to process snapshots affected by this ramses bug.
+
+        Example usage:
+
+        >>> f = pynbody.load('snapshot_00010').dm
+        >>> f2 = pynbody.load('snapshot_00020').dm
+        >>> bridge = RamsesBugOrderBridge(f, f2)
+        >>> h = f.halos()[0]
+        >>> h2 = bridge(h)
+
+        """
+
+        start['pynbody_iord_recreation'] = self._make_new_iord_array(start, order_array)
+        end['pynbody_iord_recreation'] = self._make_new_iord_array(end, order_array)
+
+        if monotonic is not False:
+            warnings.warn("RamsesBugOrderBridge does not support monotonic iord arrays; setting monotonic to False")
+
+        super().__init__(start, end, 'pynbody_iord_recreation', False, allow_family_change)
+
+    @classmethod
+    def _make_new_iord_array(cls, snapshot, order_array_name):
+        new_order_array = snapshot[order_array_name].astype(np.int32).astype(np.int64)
+
+        level_guess = np.log2(snapshot.dm['mass']).astype(np.int64)
+        level_guess -= level_guess.max()
+
+        # we put each level onto its own high-order bits, in the hope this resolves most collisions. This only
+        # works for DM particles; other particles (probably stars) we leave in the lowest bits of the int64.
+        new_order_array[snapshot._get_family_slice(family.dm)] += (1+level_guess) * 2**32
+
+        return new_order_array
 
 
 def bridge_factory(a: snapshot.SimSnap, b: snapshot.SimSnap) -> AbstractBridge:
