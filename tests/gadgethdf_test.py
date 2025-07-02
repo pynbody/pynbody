@@ -152,3 +152,68 @@ def test_arepo_style_units():
     with pytest.warns(UserWarning, match="Unable to infer units from HDF attributes"):
         assert f.st['EMP_BirthTemperature'].units == units.NoUnit()
     # here is a case where no unit information is recorded in the file (who knows why)
+
+def test_load_copy(subfind):
+    h = subfind.halos()[0]
+    hcopy = h.load_copy()
+    assert (hcopy['iord'][::10000] == h['iord'][::10000]).all()
+    assert hcopy.ancestor is not h.ancestor
+    
+def test_load_copy_halo(subfind):
+    
+    halos = subfind.halos()
+    halo = halos[len(halos)-1] # contains 10 gas, 10 dm, no star
+    
+    halo_copy = halo.load_copy()
+    assert (halo_copy['iord']==halo['iord']).all()
+    
+    halo_star_copy = halo.s.load_copy()
+    assert (len(halo_star_copy) == len(halo.s)) and (len(halo.s) == 0)
+
+    halo_gas_copy = halo.g.load_copy()
+    assert (halo_gas_copy['iord'] == halo.g['iord']).all()
+
+    halo_dm_copy = halo.dm.load_copy()
+    assert (halo_dm_copy['iord'] == halo.dm['iord']).all()
+
+def test_load_copy_family(subfind):
+    star_copy = subfind.s.load_copy()
+    assert (star_copy['iord']==subfind.s['iord']).all()
+
+    gas_copy = subfind.g.load_copy()
+    assert (gas_copy['iord']==subfind.g['iord']).all()
+
+    dm_copy = subfind.dm.load_copy()
+    assert (dm_copy['iord']==subfind.dm['iord']).all()
+
+def test_load_copy_indexsnap(subfind):
+    indexsnap = subfind[1000:]
+    indexsnap_copy = indexsnap.load_copy()
+    assert (indexsnap_copy['iord']==indexsnap['iord']).all()
+
+def test_noncontiguous_selection_slicing(subfind):
+    # Test loading a non-contiguous selection of particles
+    noncontig = subfind[::2]
+    noncontig_copy = noncontig.load_copy()
+    assert (noncontig_copy['iord']==noncontig['iord']).all()
+
+def test_noncontiguous_selection_indexing(subfind):
+    # Test loading a non-contiguous selection of particles using indexing
+    halos = subfind.halos()
+    halo_0 = halos[0]
+    halo = halos[len(halos)-1] # contains 10 gas, 10 dm, no star
+    indices = np.concatenate([halo_0.get_index_list(subfind),halo.get_index_list(subfind)])  # situation: not contiguous indices for some PartType
+    indices = np.sort(indices)
+    
+    copy = subfind[indices].load_copy()
+    
+    assert (copy['iord']==subfind[indices]['iord']).all()
+
+def test_partial_load_mass_in_header():
+    f = pynbody.load("testdata/gadget3/snap_028_z000p000.0.hdf5")
+
+    f_slice = f[::2].load_copy()
+    f.physical_units()
+    f_slice.physical_units()
+    f['mass'] # load all masses
+    assert np.allclose(f_slice['mass'],f[::2]['mass'])
