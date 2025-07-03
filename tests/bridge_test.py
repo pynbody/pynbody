@@ -277,5 +277,3 @@ def test_ramses_bug_bridge():
     unbridged_iord = f_sub['iord_no_bug']
 
     assert len(np.setdiff1d(bridged_iord, unbridged_iord)) == 0
-
-

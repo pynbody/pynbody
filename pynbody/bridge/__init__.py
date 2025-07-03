@@ -21,8 +21,7 @@ import weakref
 
 import numpy as np
 
-from .. import family
-from .. import util
+from .. import family, util
 from . import _bridge
 
 if typing.TYPE_CHECKING:
