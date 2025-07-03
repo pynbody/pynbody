@@ -135,10 +135,15 @@ def test_family_bridge():
     b = pynbody.bridge.OrderBridge(f, f2, monotonic=False, only_families=['dm', 'star'])
 
     b_first_five = b(f[:5])
-    assert len(np.setdiff1d(b_first_five.dm['iord'], np.arange(0, 5))) == 0
+    assert set(b_first_five.dm['iord']) == {0, 1, 2, 3, 4}
 
     b_first_five_star = b(f.s[:5])
-    assert len(np.setdiff1d(b_first_five_star.star['iord'], np.arange(20, 25))) == 0
+    assert set(b_first_five_star.star['iord']) == {20, 21, 22, 23, 24}
+
+    f_mix_dm_star = f[[0,1,25,26]]
+    b_mix_dm_star = b(f_mix_dm_star)
+    assert set(b_mix_dm_star.dm['iord']) == {0, 1}
+    assert set(b_mix_dm_star.star['iord']) == {25, 26}
 
     b_gas = b(f.g[:5])
     assert len(b_gas) == 0

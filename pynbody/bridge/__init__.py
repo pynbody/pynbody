@@ -443,8 +443,9 @@ class OrderBridge(AbstractBridge):
                 if f in self._only_families:
                     iord_from = self._get_iord_array(s[f])
                     iord_to = self._get_iord_array(to_[f])
+                    family_offset = to_._get_family_slice(f).start
                     output_index_this_fam = self._get_particle_indices_from_source_and_target_iords(iord_from, iord_to)
-                    output_index.append(output_index_this_fam)
+                    output_index.append(output_index_this_fam + family_offset)
             if len(output_index) == 0:
                 output_index = np.array([], dtype=np.int64)
             else:
