@@ -274,7 +274,8 @@ def test_fuzzy_match_halos(snapshot_pair):
 
     assert fuzzy_match_rev[1] == [(0, 2./3), (1, 1./3)]
 
-def test_ramses_bug_bridge():
+@pytest.mark.parametrize('with_gas', [True, False])
+def test_ramses_bug_bridge(with_gas):
     # this seed is chosen by experimentation such that there is a problem with the stars matching if one
     # tries to treat them in the same way as the dark matter particles, i.e. by using their masses
     np.random.seed(1338)
@@ -293,12 +294,17 @@ def test_ramses_bug_bridge():
     test_masses[75:] /= 2
 
     def make_problematic_i32_truncated_snap():
-        f = pynbody.new(st=50, dm=100, gas=50) # gas just to make sure family-level iord array is OK cf PR #915
+        if with_gas:
+            f = pynbody.new(st=50, dm=100, gas=50) # gas just to make sure family-level iord array is OK cf PR #915
+        else:
+            f = pynbody.new(st=50, dm=100)
         assert f._get_family_slice(pynbody.family.star).start == 0
         dm_ordering = np.random.permutation(np.arange(0, 100))
         st_ordering = np.random.permutation(np.arange(0, 50))
         f.dm['iord_no_bug'] = test_iords_dm[dm_ordering]
         f.star['iord_no_bug'] = test_iords_star[st_ordering]
+        if with_gas:
+            f.gas['iord_no_bug'] = -1
         f.dm['iord'] = f.dm['iord_no_bug'].astype(np.int32).astype(np.int64)
         f.st['iord'] = f.st['iord_no_bug'].astype(np.int32).astype(np.int64)
         f.dm['mass'] = test_masses[dm_ordering]
@@ -315,9 +321,12 @@ def test_ramses_bug_bridge():
 
     f_sub = f1[index]
 
-    b = pynbody.bridge.RamsesBugOrderBridge(f1, f2, only_families=['dm', 'st'])
+    if with_gas:
+        b = pynbody.bridge.RamsesBugOrderBridge(f1, f2, only_families=['dm', 'st'])
+    else:
+        b = pynbody.bridge.RamsesBugOrderBridge(f1, f2)
 
     bridged_iord = b(f_sub)['iord_no_bug']
     unbridged_iord = f_sub['iord_no_bug']
 
-    assert len(np.setdiff1d(bridged_iord, unbridged_iord)) == 0
+    assert set(bridged_iord) == set(unbridged_iord)

@@ -501,12 +501,15 @@ class RamsesBugOrderBridge(OrderBridge):
         """
 
         if only_families is not None:
-            only_families = [family.get_family(f) for f in only_families]
+            families = [family.get_family(f) for f in only_families]
+        else:
+            families = start.families()
 
-            for fam_identifier in only_families:
-                fam = family.get_family(fam_identifier)
-                start[fam]['pynbody_iord_recreation'] = self._make_new_iord_array(start[fam], order_array)
-                end[fam]['pynbody_iord_recreation'] = self._make_new_iord_array(end[fam], order_array)
+        for fam_identifier in families:
+            fam = family.get_family(fam_identifier)
+            use_level_hashing = fam == family.dm
+            start[fam]['pynbody_iord_recreation'] = self._make_new_iord_array(start[fam], order_array, use_level_hashing)
+            end[fam]['pynbody_iord_recreation'] = self._make_new_iord_array(end[fam], order_array, use_level_hashing)
 
         if monotonic is not False:
             warnings.warn("RamsesBugOrderBridge does not support monotonic iord arrays; setting monotonic to False")
@@ -514,15 +517,15 @@ class RamsesBugOrderBridge(OrderBridge):
         super().__init__(start, end, 'pynbody_iord_recreation', False, allow_family_change, only_families)
 
     @classmethod
-    def _make_new_iord_array(cls, snapshot, order_array_name):
+    def _make_new_iord_array(cls, snapshot, order_array_name, use_level_hashing=False):
         new_order_array = snapshot[order_array_name].astype(np.int32).astype(np.int64)
 
-        level_guess = np.log2(snapshot.dm['mass']).astype(np.int64)
-        level_guess -= level_guess.max()
+        if use_level_hashing:
+            level_guess = np.log2(snapshot['mass']).astype(np.int64)
+            level_guess -= level_guess.max()
 
-        # we put each level onto its own high-order bits, in the hope this resolves most collisions. This only
-        # works for DM particles; other particles (probably stars) we leave in the lowest bits of the int64.
-        new_order_array[snapshot._get_family_slice(family.dm)] += (1+level_guess) * 2**32
+            # we put each level onto its own high-order bits, in the hope this resolves most collisions.
+            new_order_array += (1+level_guess) * 2**32
 
         return new_order_array
 
