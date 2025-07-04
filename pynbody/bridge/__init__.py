@@ -20,7 +20,7 @@ import weakref
 
 import numpy as np
 
-from .. import util
+from .. import family, util
 from . import _bridge
 
 if typing.TYPE_CHECKING:
@@ -372,8 +372,15 @@ class OrderBridge(AbstractBridge):
     ``start[order_array][i_start] == start[order_array][i_end]``.
     """
 
-    def __init__(self, start, end, order_array="iord", monotonic=True, allow_family_change=False):
+    def __init__(self, start, end, order_array="iord", monotonic=True, allow_family_change=False,
+                 only_families=None):
         """Initialise the ``OrderBridge``
+
+        .. versionchanged:: 2.3.0
+
+           The ``only_families`` parameter was added to allow bridging only between specific families. This is especially
+           helpful where the order array is not defined for all families, such as in some RAMSES simulations.
+
 
         Parameters
         ----------
@@ -395,11 +402,19 @@ class OrderBridge(AbstractBridge):
             If ``True``, the bridge will allow particles to change family going from one end to the other of the
             bridge. Otherwise, it is assumed that the family of a particle is conserved.
 
+        only_families : list of str or family.Family, optional
+            If specified, only particles in these families will be considered for the bridge. This is useful if
+            the order array is not defined for all families.
+
         """
         super().__init__(start, end)
         self._order_array = order_array
         self.monotonic = monotonic
         self.allow_family_change = allow_family_change
+        if only_families is not None:
+            self._only_families = [family.get_family(f) for f in only_families]
+        else:
+            self._only_families = None
 
     def __call__(self, s):
 
@@ -416,21 +431,25 @@ class OrderBridge(AbstractBridge):
         else:
             raise RuntimeError("Not a subview of either end of the bridge")
 
-        iord_to = np.asarray(to_[self._order_array]).view(np.ndarray)
-        iord_from = np.asarray(s[self._order_array]).view(np.ndarray)
 
-        if not self.monotonic:
-            iord_map_to = np.argsort(iord_to)
-            iord_map_from = np.argsort(iord_from)
-            iord_to = iord_to[iord_map_to]
-            iord_from = iord_from[iord_map_from]
 
-        output_index, found_match = _bridge.bridge(iord_to, iord_from)
-
-        if not self.monotonic:
-            output_index = iord_map_to[output_index[np.argsort(iord_map_from)][found_match]]
+        if self._only_families is None:
+            iord_to = self._get_iord_array(to_)
+            iord_from = self._get_iord_array(s)
+            output_index = self._get_particle_indices_from_source_and_target_iords(iord_from, iord_to)
         else:
-            output_index = output_index[found_match]
+            output_index = []
+            for f in s.families():
+                if f in self._only_families:
+                    iord_from = self._get_iord_array(s[f])
+                    iord_to = self._get_iord_array(to_[f])
+                    family_offset = to_._get_family_slice(f).start
+                    output_index_this_fam = self._get_particle_indices_from_source_and_target_iords(iord_from, iord_to)
+                    output_index.append(output_index_this_fam + family_offset)
+            if len(output_index) == 0:
+                output_index = np.array([], dtype=np.int64)
+            else:
+                output_index = np.concatenate(output_index)
 
         if self.allow_family_change:
             new_family_index = to_._family_index()[output_index]
@@ -439,6 +458,23 @@ class OrderBridge(AbstractBridge):
             output_index = output_index[np.lexsort((new_family_index,))]
 
         return to_[output_index]
+
+    def _get_iord_array(self, snap):
+        return np.asarray(snap[self._order_array]).view(np.ndarray)
+
+    def _get_particle_indices_from_source_and_target_iords(self, selected_iords_in_source_simulation,
+                                                           all_iords_in_target_simulation):
+        if not self.monotonic:
+            iord_map_to = np.argsort(all_iords_in_target_simulation)
+            iord_map_from = np.argsort(selected_iords_in_source_simulation)
+            all_iords_in_target_simulation = all_iords_in_target_simulation[iord_map_to]
+            selected_iords_in_source_simulation = selected_iords_in_source_simulation[iord_map_from]
+        output_index, found_match = _bridge.bridge(all_iords_in_target_simulation, selected_iords_in_source_simulation)
+        if not self.monotonic:
+            output_index = iord_map_to[output_index[np.argsort(iord_map_from)][found_match]]
+        else:
+            output_index = output_index[found_match]
+        return output_index
 
 
 def bridge_factory(a: snapshot.SimSnap, b: snapshot.SimSnap) -> AbstractBridge:
@@ -471,6 +507,6 @@ def bridge_factory(a: snapshot.SimSnap, b: snapshot.SimSnap) -> AbstractBridge:
     elif isinstance(a_top, ramses.RamsesSnap):
         if len(a.gas) > 0 or len(b.gas) > 0:
             raise RuntimeError("Cannot bridge AMR gas cells")
-        return OrderBridge(a_top, b_top, monotonic=False)
+        return OrderBridge(a_top, b_top, monotonic=False, only_families=["dm", "star"])
     else:
         raise RuntimeError(not_sure_error)
