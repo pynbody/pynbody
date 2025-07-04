@@ -253,9 +253,9 @@ to generate.
 
 For files where the particle ordering is static, so that the particle
 with index i in the first snapshot also has index i in the second
-snapshot, use the :class:`~pynbody.bridge.AbstractBridge` class, as follows: ::
+snapshot, use the :class:`~pynbody.bridge.Bridge` class, as follows: ::
 
-   b = pynbody.bridge.AbstractBridge(f1, f2)
+   b = pynbody.bridge.Bridge(f1, f2)
 
 For files which can spawn new particles, and therefore have a monotonically
 increasing particle ordering array (e.g. "iord" in gasoline), use the

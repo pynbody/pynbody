@@ -106,6 +106,49 @@ def test_family_morphing():
     assert (b(f2).dm['iord']==np.array([0,2,4,1,3])).all()
     assert (b(f2).gas['iord'] == np.array([6, 8, 5, 7, 9])).all()
 
+def test_ramses_bridge():
+    """Test that we can make a usable bridge from ramses files.
+
+    Previously, making a bridge from f.bridge(f2) would return an OrderBridge but when one then called
+    that on DM particles it would fail with a "family-level array" error"""
+    f = pynbody.load("testdata/ramses/new_adaptahop_output_00080")
+    f_dm = f.dm
+    b = f_dm.bridge(f_dm) # useless, but shouldn't fail
+    assert isinstance(b, pynbody.bridge.OrderBridge)
+
+    # Now try to use it
+    h = f.halos()
+
+    bridged = b(h[1])  # should not raise an error
+
+    assert (h[1].dm['iord'] == bridged.dm['iord']).all()
+
+def test_family_bridge():
+    """Test for bridges that use only selected families"""
+    np.random.seed(1337)
+    f = pynbody.new(dm=10, gas=10, star=10)
+    f2 = pynbody.new(dm=10, gas=10, star=10)
+    f['iord'] = np.arange(0,30)
+    f2.dm['iord'] = np.random.permutation(np.arange(0, 10))
+    f2.star['iord'] = np.random.permutation(np.arange(20, 30))
+
+    b = pynbody.bridge.OrderBridge(f, f2, monotonic=False, only_families=['dm', 'star'])
+
+    b_first_five = b(f[:5])
+    assert set(b_first_five.dm['iord']) == {0, 1, 2, 3, 4}
+
+    b_first_five_star = b(f.s[:5])
+    assert set(b_first_five_star.star['iord']) == {20, 21, 22, 23, 24}
+
+    f_mix_dm_star = f[[0,1,25,26]]
+    b_mix_dm_star = b(f_mix_dm_star)
+    assert set(b_mix_dm_star.dm['iord']) == {0, 1}
+    assert set(b_mix_dm_star.star['iord']) == {25, 26}
+
+    b_gas = b(f.g[:5])
+    assert len(b_gas) == 0
+
+
 
 def test_bridging_with_more_families():
     # Test that we can create a group array for snapshots that have a complex family structure,
