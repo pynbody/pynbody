@@ -500,8 +500,13 @@ class RamsesBugOrderBridge(OrderBridge):
 
         """
 
-        start['pynbody_iord_recreation'] = self._make_new_iord_array(start, order_array)
-        end['pynbody_iord_recreation'] = self._make_new_iord_array(end, order_array)
+        if only_families is not None:
+            only_families = [family.get_family(f) for f in only_families]
+
+            for fam_identifier in only_families:
+                fam = family.get_family(fam_identifier)
+                start[fam]['pynbody_iord_recreation'] = self._make_new_iord_array(start[fam], order_array)
+                end[fam]['pynbody_iord_recreation'] = self._make_new_iord_array(end[fam], order_array)
 
         if monotonic is not False:
             warnings.warn("RamsesBugOrderBridge does not support monotonic iord arrays; setting monotonic to False")

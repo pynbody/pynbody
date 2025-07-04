@@ -293,13 +293,14 @@ def test_ramses_bug_bridge():
     test_masses[75:] /= 2
 
     def make_problematic_i32_truncated_snap():
-        f = pynbody.new(st=50, dm=100)
+        f = pynbody.new(st=50, dm=100, gas=50) # gas just to make sure family-level iord array is OK cf PR #915
         assert f._get_family_slice(pynbody.family.star).start == 0
         dm_ordering = np.random.permutation(np.arange(0, 100))
         st_ordering = np.random.permutation(np.arange(0, 50))
         f.dm['iord_no_bug'] = test_iords_dm[dm_ordering]
         f.star['iord_no_bug'] = test_iords_star[st_ordering]
-        f['iord'] = f['iord_no_bug'].astype(np.int32).astype(np.int64)
+        f.dm['iord'] = f.dm['iord_no_bug'].astype(np.int32).astype(np.int64)
+        f.st['iord'] = f.st['iord_no_bug'].astype(np.int32).astype(np.int64)
         f.dm['mass'] = test_masses[dm_ordering]
         # stellar masses may change:
         f.st['mass'] = 2**np.random.uniform(-3, 0.0, size=50)
@@ -314,11 +315,9 @@ def test_ramses_bug_bridge():
 
     f_sub = f1[index]
 
-    b = pynbody.bridge.RamsesBugOrderBridge(f1, f2)
+    b = pynbody.bridge.RamsesBugOrderBridge(f1, f2, only_families=['dm', 'st'])
 
     bridged_iord = b(f_sub)['iord_no_bug']
     unbridged_iord = f_sub['iord_no_bug']
 
     assert len(np.setdiff1d(bridged_iord, unbridged_iord)) == 0
-
-
