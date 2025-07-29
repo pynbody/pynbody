@@ -56,6 +56,20 @@ def test_v_translate(test_simulation_with_copy):
 
     npt.assert_almost_equal(f['vel'], original['vel'])
 
+def test_nest(test_simulation_with_copy):
+    """Test for a bug where transformations on subsnaps fail to do lazy-transformation,
+    due to missing 'name' attribute on the subsnap. See also """
+    f, original = test_simulation_with_copy
+    f_lazy_load = f.get_copy_on_access_simsnap()
+
+    f_lazy_load_sub = f_lazy_load[pynbody.filt.Sphere(2)]
+    original_sub = original[pynbody.filt.Sphere(2)]
+
+    with f_lazy_load_sub.translate([1, 0, 0]):
+        f_lazy_load_sub['pos']
+        npt.assert_almost_equal(f_lazy_load_sub['pos'], original_sub['pos'] + [1, 0, 0])
+        f_lazy_load_sub['vel']
+        npt.assert_almost_equal(f_lazy_load_sub['vel'], original_sub['vel'])
 
 def test_vp_translate(test_simulation_with_copy):
     f, original = test_simulation_with_copy
