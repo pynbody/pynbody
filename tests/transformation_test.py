@@ -56,7 +56,7 @@ def test_v_translate(test_simulation_with_copy):
 
     npt.assert_almost_equal(f['vel'], original['vel'])
 
-def test_nest(test_simulation_with_copy):
+def test_subsnap_transform(test_simulation_with_copy):
     """Test for a bug where transformations on subsnaps fail to do lazy-transformation,
     due to missing 'name' attribute on the subsnap. See also """
     f, original = test_simulation_with_copy
