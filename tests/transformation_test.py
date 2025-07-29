@@ -69,7 +69,8 @@ def test_subsnap_transform(test_simulation_with_copy):
         f_lazy_load_sub['pos']
         npt.assert_almost_equal(f_lazy_load_sub['pos'], original_sub['pos'] + [1, 0, 0])
         f_lazy_load_sub['vel']
-        npt.assert_almost_equal(f_lazy_load_sub['vel'], original_sub['vel'])
+        # not sure why .flatten() below is needed, but get numpy error if not
+        npt.assert_almost_equal(f_lazy_load_sub['vel'].flatten(), original_sub['vel'].flatten())
 
 def test_vp_translate(test_simulation_with_copy):
     f, original = test_simulation_with_copy
