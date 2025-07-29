@@ -1042,6 +1042,10 @@ class IndexedSimArray:
     def ancestor(self):
         return self.base.ancestor
 
+    @property
+    def name(self):
+        return self.base.name
+
     def __init__(self, array: SimArray, ptr: slice | np.ndarray):
         """Initialise an IndexedSimArray based on an underlying SimArray and a pointer into that array.
 

@@ -56,3 +56,11 @@ def test_ndim_issue_399():
     assert f['blob_3d'].shape==(10,3)
     assert f_sub['blob_3d'].ndim==2
     assert f_sub['blob_3d'].shape==(4,3)
+
+def test_name():
+    f = pynbody.new(10)
+    f['blob'] = np.arange(10)
+
+    assert f['blob'].name == 'blob'
+
+    assert f[[1,5,6]]['blob'].name == 'blob'
