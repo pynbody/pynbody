@@ -326,3 +326,19 @@ def test_boxsize_too_small():
     f.properties['boxsize'] = 0.1
     with pytest.warns(RuntimeWarning, match = "span a region larger than the specified boxsize"):
         _ = f['smooth']
+
+
+def test_kdtree_float64_rounding(npart=1000):
+    """Check boundaries are ok even if float64 is in use"""
+    f = pynbody.new(dm=npart)
+    f.properties['boxsize'] = np.nextafter(1.0, -1.0)  # just below 1.0
+
+    f['pos'] = np.random.uniform(size=(npart, 3))
+    f['mass'] = np.random.uniform(size=npart)
+
+    f['pos'][0,0] = np.nextafter(1.0, -1.0)
+    f['pos'][1,0] = 0.0
+
+    f.build_tree()
+
+    _ = f['smooth']
