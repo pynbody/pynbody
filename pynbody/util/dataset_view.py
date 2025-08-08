@@ -94,7 +94,17 @@ class SlicedDatasetView(BaseView):
         """
         Returns the specified slices of the underlying dataset
         """
-        return np.concatenate([self.obj[s,...] for s in self._slices], axis=0)
+
+        # Fetch all slices
+        data = [self.obj[s,...] for s in self._slices]
+
+        # Concatenate if necessary (avoids a copy if we have only one slice)
+        if len(data) > 1:
+            return np.concatenate(data, axis=0)
+        elif len(data) == 1:
+            return data[0]
+        else:
+            raise RuntimeError("Requesting zero slices is not supported!")
 
     def __getitem__(self, key):
         if self._slices:
