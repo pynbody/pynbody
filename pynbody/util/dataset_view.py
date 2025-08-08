@@ -8,6 +8,11 @@
 import numpy as np
 from collections.abc import Mapping
 
+try:
+    import hdfstream
+except ImportError:
+    hdfstream = None
+
 
 def _split_path(path):
     """
@@ -95,7 +100,13 @@ class SlicedDatasetView(BaseView):
         Returns the specified slices of the underlying dataset
         """
 
-        # Fetch all slices
+        # If we're accessing a file using hdfstream we can fetch all slices
+        # with one request
+        if hdfstream is not None:
+            if isinstance(self.obj, hdfstream.RemoteDataset):
+                return self.obj.request_slices(self._slices)
+
+        # Otherwise, fetch all slices
         data = [self.obj[s,...] for s in self._slices]
 
         # Concatenate if necessary (avoids a copy if we have only one slice)
