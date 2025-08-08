@@ -144,6 +144,13 @@ class SlicedDatasetView(BaseView):
             return getattr(self.obj, name)
 
     def read_direct(self, target):
+
+        # Download slices directly to target if using hdfstream
+        if hdfstream is not None:
+            if isinstance(self.obj, hdfstream.RemoteDataset):
+                return self.obj.request_slices(self._slices, dest=target)
+
+        # TODO: should use Dataset.read_direct with a suitable selection here.
         target[...] = self[...]
 
 
