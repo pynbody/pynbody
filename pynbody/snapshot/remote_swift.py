@@ -138,15 +138,18 @@ class _BaseSwiftMultiFileManager(_GadgetHdfMultiFileManager):
 #
 class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
 
-    def __init__(self, server, *args, **kwargs):
+    def __init__(self, server, user, password, *args, **kwargs):
         self._server = server
+        self._user = user
+        self._password = password
         super().__init__(*args, **kwargs)
 
     def _connect(self):
         if self._rootdir is None:
             # Set lazy loading parameters such that we're likely to fetch the
             # cell metadata with the initial request.
-            self._rootdir = hdfstream.open(self._server, "/", max_depth=3, data_size_limit=1048576)
+            self._rootdir = hdfstream.open(self._server, "/", user=self._user, password=self._password,
+                                           max_depth=3, data_size_limit=1048576)
 
     def _open_hdf5_file(self, filename):
         self._connect()
@@ -155,17 +158,21 @@ class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
     def _is_hdf5(self, filename):
         self._connect()
         return self._rootdir.is_hdf5(filename)
-
+#
+# A RemoteSwiftSnap takes the server as the first argument and we might have
+# a username and password as keyword arguments if authentication is required.
+#
 class RemoteSwiftSnap(SwiftSnap):
     _multifile_manager_class = _RemoteSwiftMultiFileManager
-
     def __init__(self, server, *args, **kwargs):
         self._server = server
+        self._user = kwargs.pop("user", None)
+        self._password = kwargs.pop("password", None)
         super().__init__(*args, **kwargs)
 
     def _init_hdf_filemanager(self, filename):
-        self._hdf_files = self._multifile_manager_class(self._server, filename, self._take_swift_cells, self._take_region)
-
+        self._hdf_files = self._multifile_manager_class(self._server, self._user, self._password,
+                                                        filename, self._take_swift_cells, self._take_region)
 #
 # Class for reading local snapshots using h5py (e.g. to test _BaseSwiftMultiFileManager)
 #
