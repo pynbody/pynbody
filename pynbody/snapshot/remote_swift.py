@@ -133,15 +133,20 @@ class _BaseSwiftMultiFileManager(_GadgetHdfMultiFileManager):
 #
 # Class for reading remote snapshots using the hdfstream service
 #
+# Remote snapshots take an extra parameter with the server URL, and we need to
+# arrange for this to reach the multi file manager class.
+#
 class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
+
+    def __init__(self, server, *args, **kwargs):
+        self._server = server
+        super().__init__(*args, **kwargs)
 
     def _connect(self):
         if self._rootdir is None:
-            # TODO: mechanism to specify URL, user, password
-            server = "https://dataweb.cosma.dur.ac.uk:8443/hdfstream"
             # Set lazy loading parameters such that we're likely to fetch the
             # cell metadata with the initial request.
-            self._rootdir = hdfstream.open(server, "/", max_depth=3, data_size_limit=1048576)
+            self._rootdir = hdfstream.open(self._server, "/", max_depth=3, data_size_limit=1048576)
 
     def _open_hdf5_file(self, filename):
         self._connect()
@@ -153,6 +158,13 @@ class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
 
 class RemoteSwiftSnap(SwiftSnap):
     _multifile_manager_class = _RemoteSwiftMultiFileManager
+
+    def __init__(self, server, *args, **kwargs):
+        self._server = server
+        super().__init__(*args, **kwargs)
+
+    def _init_hdf_filemanager(self, filename):
+        self._hdf_files = self._multifile_manager_class(self._server, filename, self._take_swift_cells, self._take_region)
 
 #
 # Class for reading local snapshots using h5py (e.g. to test _BaseSwiftMultiFileManager)
