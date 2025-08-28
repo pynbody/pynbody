@@ -163,9 +163,6 @@ class GroupView(BaseView):
     The slices parameter should be a dict of {group_name : list_of_slices}
     pairs. If a group's name is in the dict then we only read the
     specified slices from any datasets in that group.
-
-    TODO: might need to wrap visititems() and anything else that returns
-    a group or dataset?
     """
     def __init__(self, obj, slices=None):
         self._slices = slices
@@ -201,3 +198,21 @@ class GroupView(BaseView):
             # And if it's anything else, return the underlying object
             result = obj
         return result
+
+    def visit(self, *args, **kwargs):
+        """
+        Avoid accidentally returning un-wrapped objects
+        """
+        raise NotImplementedError("GroupView.visit() is not implemented")
+
+    def visititems(self, *args, **kwargs):
+        """
+        Avoid accidentally returning un-wrapped objects
+        """
+        raise NotImplementedError("GroupView.visititems() is not implemented")
+
+    def items(self, *args, **kwargs):
+        """
+        Avoid accidentally returning un-wrapped objects
+        """
+        raise NotImplementedError("GroupView.items() is not implemented")
