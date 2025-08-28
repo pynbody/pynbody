@@ -125,11 +125,13 @@ class SlicedDatasetView:
         # If this is an un-sliced HDF5 dataset, can just call its read_direct()
         if self._slices is None:
             self._obj.read_direct(array, source_sel, dest_sel)
+            return
 
         # May be able to download slices directly to destination if using hdfstream
         if hdfstream is not None:
             if isinstance(self._obj, hdfstream.RemoteDataset) and source_sel is None and dest_sel is None:
-                return self._obj.request_slices(self._slices, dest=target)
+                self._obj.request_slices(self._slices, dest=target)
+                return
 
         # Otherwise we need to read all slices and copy to the destination
         array[dest_sel] = self._load()[source_sel]
