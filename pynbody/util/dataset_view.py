@@ -78,22 +78,31 @@ class BaseView(Mapping):
         return self.obj.__len__()
 
 
-class SlicedDatasetView(BaseView):
+class SlicedDatasetView:
     """
     This wraps a h5py.Dataset or similar object.
     """
     def __init__(self, obj, slices=None):
+
+        # Store a reference to the wrapped dataset
+        self._obj = obj
+
+        # Store selected slices, if any
         if slices is not None:
             if len(slices) == 0:
                 slices = [slice(0,0),] # empty list indicates zero selected elements
             else:
                 slices = _join_slices(slices)
         self._slices = slices
-        super(SlicedDatasetView, self).__init__(obj)
+
         # Compute total number of elements after slicing
         self.size = len(self)
         for s in obj.shape[1:]:
             self.size *= s
+
+        # Store some other dataset properties
+        self.shape = (len(self),) + self._obj.shape[1:]
+        self.dtype = self._obj.dtype
 
     def _load(self):
         """
@@ -103,11 +112,11 @@ class SlicedDatasetView(BaseView):
         # If we're accessing a file using hdfstream we can fetch all slices
         # with one request
         if hdfstream is not None:
-            if isinstance(self.obj, hdfstream.RemoteDataset):
-                return self.obj.request_slices(self._slices)
+            if isinstance(self._obj, hdfstream.RemoteDataset):
+                return self._obj.request_slices(self._slices)
 
         # Otherwise, fetch all slices
-        data = [self.obj[s,...] for s in self._slices]
+        data = [self._obj[s,...] for s in self._slices]
 
         # Concatenate if necessary (avoids a copy if we have only one slice)
         if len(data) > 1:
@@ -121,34 +130,26 @@ class SlicedDatasetView(BaseView):
         if self._slices:
             return self._load()[key]
         else:
-            return self.obj[key]
+            return self._obj[key]
 
     def __iter__(self):
         if self._slices:
             return self._load().__iter__()
         else:
-            return self.obj.__iter__()
+            return self._obj.__iter__()
 
     def __len__(self):
         if self._slices:
             return sum([s.stop-s.start for s in self._slices])
         else:
-            return self.obj.__len__()
-
-    def __getattr__(self, name):
-        if self._slices and name == "shape":
-            shape = list(self.obj.shape)
-            shape[0] = len(self)
-            return tuple(shape)
-        else:
-            return getattr(self.obj, name)
+            return self._obj.__len__()
 
     def read_direct(self, target):
 
         # Download slices directly to target if using hdfstream
         if hdfstream is not None:
-            if isinstance(self.obj, hdfstream.RemoteDataset):
-                return self.obj.request_slices(self._slices, dest=target)
+            if isinstance(self._obj, hdfstream.RemoteDataset):
+                return self._obj.request_slices(self._slices, dest=target)
 
         # TODO: should use Dataset.read_direct with a suitable selection here.
         target[...] = self[...]
