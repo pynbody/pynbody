@@ -54,30 +54,6 @@ def _join_slices(slices):
     return slices_out
 
 
-class BaseView(Mapping):
-    """
-    Base class for the sliced Group, Dataset and File objects.
-    Implements the (immutable) Mapping interface.
-
-    This wraps the input object and forwards any attribute
-    or item access to the wrapped object.
-    """
-    def __init__(self, obj):
-        self.obj = obj
-
-    def __getattr__(self, name):
-        return getattr(self.obj, name)
-
-    def __getitem__(self, key):
-        return self.obj[key]
-
-    def __iter__(self):
-        return self.obj.__iter__()
-
-    def __len__(self):
-        return self.obj.__len__()
-
-
 class SlicedDatasetView:
     """
     This wraps a h5py.Dataset or similar object.
@@ -103,12 +79,12 @@ class SlicedDatasetView:
         # Store some other dataset properties
         self.shape = (len(self),) + self._obj.shape[1:]
         self.dtype = self._obj.dtype
+        self.attrs = self._obj.attrs
 
     def _load(self):
         """
         Returns the specified slices of the underlying dataset
         """
-
         # If we're accessing a file using hdfstream we can fetch all slices
         # with one request
         if hdfstream is not None:
@@ -144,18 +120,22 @@ class SlicedDatasetView:
         else:
             return self._obj.__len__()
 
-    def read_direct(self, target):
+    def read_direct(self, array, source_sel=None, dest_sel=None):
 
-        # Download slices directly to target if using hdfstream
+        # If this is an un-sliced HDF5 dataset, can just call its read_direct()
+        if self._slices is None:
+            self._obj.read_direct(array, source_sel, dest_sel)
+
+        # May be able to download slices directly to destination if using hdfstream
         if hdfstream is not None:
-            if isinstance(self._obj, hdfstream.RemoteDataset):
+            if isinstance(self._obj, hdfstream.RemoteDataset) and source_sel is None and dest_sel is None:
                 return self._obj.request_slices(self._slices, dest=target)
 
-        # TODO: should use Dataset.read_direct with a suitable selection here.
-        target[...] = self[...]
+        # Otherwise we need to read all slices and copy to the destination
+        array[dest_sel] = self._load()[source_sel]
 
 
-class GroupView(BaseView):
+class GroupView(Mapping):
     """
     Class to wrap a h5py.Group or similar. This needs to ensure that if
     we open a sub-group or dataset we return a wrapped group or dataset
@@ -165,9 +145,12 @@ class GroupView(BaseView):
     pairs. If a group's name is in the dict then we only read the
     specified slices from any datasets in that group.
     """
-    def __init__(self, obj, slices=None):
+    def __init__(self, obj, slices=None, parent=None):
+        self._obj = obj
         self._slices = slices
-        super(GroupView, self).__init__(obj)
+        self.parent = self if parent is None else parent
+        self.attrs = self._obj.attrs
+        self.name = self._obj.name
 
     def _is_dataset_like(self, obj):
         return hasattr(obj, "shape")
@@ -183,10 +166,10 @@ class GroupView(BaseView):
             return self[prefix][remainder]
 
         # Otherwise, key refers to something in this group
-        obj = self.obj[key]
+        obj = self._obj[key]
         if self._is_dataset_like(obj):
             # If it's a dataset, check if we need to slice it
-            name = self.obj.name.lstrip("/")
+            name = self._obj.name.lstrip("/")
             if self._slices is not None and name in self._slices:
                 slices = self._slices[name]
             else:
@@ -194,38 +177,37 @@ class GroupView(BaseView):
             result = SlicedDatasetView(obj, slices)
         elif self._is_group_like(obj):
             # If it's a group, pass on the dict of slices
-            result = GroupView(obj, self._slices)
+            result = GroupView(obj, self._slices, parent=self)
         else:
             # And if it's anything else, return the underlying object
             result = obj
         return result
 
-    def visit(self, *args, **kwargs):
-        """
-        Avoid accidentally returning un-wrapped objects
-        """
-        raise NotImplementedError("GroupView.visit() is not implemented")
+    def __iter__(self):
+        for key in self._obj.keys():
+            yield key
 
-    def visititems(self, *args, **kwargs):
-        """
-        Avoid accidentally returning un-wrapped objects
-        """
-        raise NotImplementedError("GroupView.visititems() is not implemented")
+    def __len__(self):
+        return self._obj.__len__()
 
-    def items(self, *args, **kwargs):
-        """
-        Avoid accidentally returning un-wrapped objects
-        """
-        raise NotImplementedError("GroupView.items() is not implemented")
+    def _visititems(self, func, path):
 
-    def values(self, *args, **kwargs):
-        """
-        Avoid accidentally returning un-wrapped objects
-        """
-        raise NotImplementedError("GroupView.values() is not implemented")
+        for name, obj in self.items():
+            if path is None:
+                full_name = name
+            else:
+                full_name = path + "/" + name
 
-    def get(self, *args, **kwargs):
-        """
-        Avoid accidentally returning un-wrapped objects
-        """
-        raise NotImplementedError("GroupView.get() is not implemented")
+            # Call the function on this member
+            value = func(full_name, obj)
+            if value is not None:
+                return value
+
+            # If the member is a group, visit it
+            if isinstance(obj, GroupView):
+                value = obj._visititems(func, path=full_name)
+                if value is not None:
+                    return value
+
+    def visititems(self, func):
+        return self._visititems(func, None)
