@@ -216,3 +216,15 @@ class GroupView(BaseView):
         Avoid accidentally returning un-wrapped objects
         """
         raise NotImplementedError("GroupView.items() is not implemented")
+
+    def values(self, *args, **kwargs):
+        """
+        Avoid accidentally returning un-wrapped objects
+        """
+        raise NotImplementedError("GroupView.values() is not implemented")
+
+    def get(self, *args, **kwargs):
+        """
+        Avoid accidentally returning un-wrapped objects
+        """
+        raise NotImplementedError("GroupView.get() is not implemented")
