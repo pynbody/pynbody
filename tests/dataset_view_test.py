@@ -1,32 +1,23 @@
 import io
 import h5py
 import numpy as np
+import pytest
 
+import pynbody.test_utils
 from pynbody.util import dataset_view
 
 
-def create_test_file():
-    """
-    Create an in memory HDF5 file with several datasets
-    """
-    nmax = 10000
-    f = h5py.File(io.BytesIO(), "w")
-    for ptype in range(2):
-        g = f.create_group(f"PartType{ptype}")
-        g["ParticleIDs"] = np.arange(nmax, dtype=int) + nmax*ptype
-        pos = np.ndarray((nmax,3), dtype=float)
-        for i in range(3):
-            pos[:,i] = 3*np.arange(nmax, dtype=float)+i
-        g["Coordinates"] = pos
-    return f
+@pytest.fixture(scope='module')
+def test_file():
+    pynbody.test_utils.ensure_test_data_available("swift")
+    with h5py.File("testdata/SWIFT/snap_0150.hdf5", "r") as tf:
+        yield tf
 
 
-def test_dataset_view_single_slice_start():
+def test_dataset_view_single_slice_start(test_file):
     """
     Basic test applying different slices to two groups
     """
-    # Create a HDF5 file
-    testfile = create_test_file()
 
     # Choose dataset slices to include in the view
     slices = {
@@ -35,27 +26,25 @@ def test_dataset_view_single_slice_start():
         }
 
     # Create the view
-    group_view = dataset_view.GroupView(testfile, slices=slices)
+    group_view = dataset_view.GroupView(test_file, slices=slices)
     # Check the first dataset
     dataset0_view = group_view["PartType0"]["ParticleIDs"]
     assert len(dataset0_view) == 10
     assert dataset0_view.shape == (10,)
     assert dataset0_view.size == 10
-    assert np.all(dataset0_view[...] == testfile["PartType0"]["ParticleIDs"][:10])
+    assert np.all(dataset0_view[...] == test_file["PartType0"]["ParticleIDs"][:10])
     # Check the second dataset
     dataset1_view = group_view["PartType1"]["ParticleIDs"]
     assert len(dataset1_view) == 20
     assert dataset1_view.shape == (20,)
     assert dataset1_view.size == 20
-    assert np.all(dataset1_view[...] == testfile["PartType1"]["ParticleIDs"][:20])
+    assert np.all(dataset1_view[...] == test_file["PartType1"]["ParticleIDs"][:20])
 
 
-def test_dataset_view_no_slice():
+def test_dataset_view_no_slice(test_file):
     """
     If no slices are specified for a group, all elements should be returned
     """
-    # Create a HDF5 file
-    testfile = create_test_file()
 
     # Choose dataset slices to include in the view
     slices = {
@@ -64,15 +53,15 @@ def test_dataset_view_no_slice():
         }
 
     # Create the view
-    group_view = dataset_view.GroupView(testfile, slices=slices)
+    group_view = dataset_view.GroupView(test_file, slices=slices)
     # Check the first dataset
     dataset0_view = group_view["PartType0"]["ParticleIDs"]
     assert len(dataset0_view) == 10
     assert dataset0_view.shape == (10,)
     assert dataset0_view.size == 10
-    assert np.all(dataset0_view[...] == testfile["PartType0"]["ParticleIDs"][:10])
+    assert np.all(dataset0_view[...] == test_file["PartType0"]["ParticleIDs"][:10])
     # Check the second dataset
-    dset1 = testfile["PartType1"]["ParticleIDs"]
+    dset1 = test_file["PartType1"]["ParticleIDs"]
     dataset1_view = group_view["PartType1"]["ParticleIDs"]
     assert len(dataset1_view) == len(dset1)
     assert dataset1_view.shape == dset1.shape
@@ -80,12 +69,10 @@ def test_dataset_view_no_slice():
     assert np.all(dataset1_view[...] == dset1[...])
 
 
-def test_dataset_view_slice_none():
+def test_dataset_view_slice_none(test_file):
     """
     Setting slices to None should also return all elements
     """
-    # Create a HDF5 file
-    testfile = create_test_file()
 
     # Choose dataset slices to include in the view
     slices = {
@@ -94,15 +81,15 @@ def test_dataset_view_slice_none():
     }
 
     # Create the view
-    group_view = dataset_view.GroupView(testfile, slices=slices)
+    group_view = dataset_view.GroupView(test_file, slices=slices)
     # Check the first dataset
     dataset0_view = group_view["PartType0"]["ParticleIDs"]
     assert len(dataset0_view) == 10
     assert dataset0_view.shape == (10,)
     assert dataset0_view.size == 10
-    assert np.all(dataset0_view[...] == testfile["PartType0"]["ParticleIDs"][:10])
+    assert np.all(dataset0_view[...] == test_file["PartType0"]["ParticleIDs"][:10])
     # Check the second dataset
-    dset1 = testfile["PartType1"]["ParticleIDs"]
+    dset1 = test_file["PartType1"]["ParticleIDs"]
     dataset1_view = group_view["PartType1"]["ParticleIDs"]
     assert len(dataset1_view) == len(dset1)
     assert dataset1_view.shape == dset1.shape
@@ -110,12 +97,10 @@ def test_dataset_view_slice_none():
     assert np.all(dataset1_view[...] == dset1[...])
 
 
-def test_dataset_view_slice_empty_list():
+def test_dataset_view_slice_empty_list(test_file):
     """
     An empty list of slices indicates a zero element view
     """
-    # Create a HDF5 file
-    testfile = create_test_file()
 
     # Choose dataset slices to include in the view
     slices = {
@@ -124,15 +109,15 @@ def test_dataset_view_slice_empty_list():
     }
 
     # Create the view
-    group_view = dataset_view.GroupView(testfile, slices=slices)
+    group_view = dataset_view.GroupView(test_file, slices=slices)
     # Check the first dataset
     dataset0_view = group_view["PartType0"]["ParticleIDs"]
     assert len(dataset0_view) == 10
     assert dataset0_view.shape == (10,)
     assert dataset0_view.size == 10
-    assert np.all(dataset0_view[...] == testfile["PartType0"]["ParticleIDs"][:10])
+    assert np.all(dataset0_view[...] == test_file["PartType0"]["ParticleIDs"][:10])
     # Check the second dataset
-    dset1 = testfile["PartType1"]["ParticleIDs"]
+    dset1 = test_file["PartType1"]["ParticleIDs"]
     dataset1_view = group_view["PartType1"]["ParticleIDs"]
     assert len(dataset1_view) == 0
     assert dataset1_view.shape == (0,)
@@ -140,10 +125,10 @@ def test_dataset_view_slice_empty_list():
     assert dataset1_view[...].shape == (0,)
 
 
-def slicing_test(testfile, slices):
+def slicing_test(test_file, slices):
 
     # Create the view
-    file_view = dataset_view.GroupView(testfile, slices=slices)
+    file_view = dataset_view.GroupView(test_file, slices=slices)
 
     # Check that the view contains the expected data
     for group_name in slices.keys():
@@ -154,7 +139,7 @@ def slicing_test(testfile, slices):
         for dataset_name in ("ParticleIDs", "Coordinates"):
 
             # Find the real HDF5 dataset
-            dset = testfile[group_name][dataset_name]
+            dset = test_file[group_name][dataset_name]
 
             # Find the sliced view of the same dataset
             dset_view = file_view[group_name][dataset_name]
@@ -178,31 +163,28 @@ def slicing_test(testfile, slices):
                 assert np.all(real_data==view_data)
                 offset += n
 
-def test_dataset_view_contiguous():
+def test_dataset_view_contiguous(test_file):
 
-    testfile = create_test_file()
     slices = {
         "PartType0" : [slice(0,100), slice(100,200)],
         "PartType1" : [slice(5000,5100), slice(5100,5200)],
         }
-    slicing_test(testfile, slices)
+    slicing_test(test_file, slices)
 
 
-def test_dataset_view_noncontiguous():
+def test_dataset_view_noncontiguous(test_file):
 
-    testfile = create_test_file()
     slices = {
         "PartType0" : [slice(0,100), slice(1100,1200)],
         "PartType1" : [slice(5000,5100), slice(6100,6200)],
         }
-    slicing_test(testfile, slices)
+    slicing_test(test_file, slices)
 
 
-def test_dataset_view_all():
+def test_dataset_view_all(test_file):
 
-    testfile = create_test_file()
     slices = {
         "PartType0" : [slice(i*1000,(i+1)*1000) for i in range(10)],
         "PartType1" : [slice(i*100,(i+1)*100) for i in range(100)]
         }
-    slicing_test(testfile, slices)
+    slicing_test(test_file, slices)
