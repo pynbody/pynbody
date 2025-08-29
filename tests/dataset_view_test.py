@@ -148,6 +148,9 @@ def slicing_test(testfile, slices):
     # Check that the view contains the expected data
     for group_name in slices.keys():
 
+        group_view = file_view[group_name]
+        assert isinstance(group_view, dataset_view.GroupView) # should not be a h5py.Group
+
         for dataset_name in ("ParticleIDs", "Coordinates"):
 
             # Find the real HDF5 dataset
@@ -155,6 +158,8 @@ def slicing_test(testfile, slices):
 
             # Find the sliced view of the same dataset
             dset_view = file_view[group_name][dataset_name]
+            assert isinstance(dset_view, dataset_view.SlicedDatasetView) # should not be a h5py.Dataset
+            assert dset.dtype == dset_view.dtype
 
             # Find the expected number of elements in the view
             ntot = sum([s.stop-s.start for s in slices[group_name]])
@@ -172,7 +177,6 @@ def slicing_test(testfile, slices):
                 view_data = dset_view[offset:offset+n,...]
                 assert np.all(real_data==view_data)
                 offset += n
-
 
 def test_dataset_view_contiguous():
 
