@@ -8,7 +8,6 @@ import pytest
 from pytest import raises
 
 import pynbody
-import pynbody.halo.velociraptor
 import pynbody.snapshot.remote_swift
 import pynbody.test_utils
 
@@ -16,19 +15,21 @@ import hdfstream
 hdfstream.verify_cert(False)
 
 #
-# This is a copy of the tests for pynbody.snapshot.swift.SwiftSnap. We're going
-# to run these twice: first accessing a local file with h5py then accessing
-# a remote file with hdfstream. In both cases we use the multi-file manager
-# from pynbody/snapshot/remote_swift.py.
+# This is a copy of most of the tests from
+# pynbody.snapshot.swift.SwiftSnap.  We're going to run these twice:
+# first accessing a local file with h5py then accessing a remote file
+# with hdfstream. In both cases we use the multi-file manager from
+# pynbody/snapshot/remote_swift.py.
 #
-test_files = [
+test_args = [
     {
-        "filename" : "testdata/SWIFT/snap_0150.hdf5",
+        "server" : None,
+        "dir" : "",
         "class" : pynbody.snapshot.remote_swift.LocalSwiftSnap,
     },
     {
-        "filename" : "Tests/pynbody/test_data/SWIFT/snap_0150.hdf5",
         "server" : "https://localhost:8444/hdfstream",
+        "dir" : "Tests/pynbody/",
         "class" : pynbody.snapshot.remote_swift.RemoteSwiftSnap,
     },
 ]
@@ -37,21 +38,17 @@ test_files = [
 def get_data():
     pynbody.test_utils.ensure_test_data_available("swift")
 
-@pytest.fixture(params=test_files)
-def test_file(request):
-    snap_class = request.param["class"]
-    filename = request.param["filename"]
-    server = request.param.get("server", None)
-    if server is not None:
-        return snap_class(filename, server=server)
+def pynbody_load(params, path, **kwargs):
+    snap_class = params["class"]
+    filename = params["dir"]+path
+    if params["server"] is None:
+        return snap_class(filename, **kwargs)
     else:
-        return snap_class(filename)
+        return snap_class(filename, server=params["server"], **kwargs)
 
-def pynbody_load(*args, **kwargs):
-    return pynbody.load(*args, **kwargs, priority=(pynbody.snapshot.remote_swift.LocalSwiftSnap,))
-
-def test_swift_properties(test_file):
-    f = test_file
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_properties(test_args):
+    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
     assert np.allclose(f.properties['a'], 0.38234515)
     assert np.allclose(f.properties['z'], 1.61543791)
     assert np.allclose(f.properties['h'], 0.703)
@@ -60,8 +57,9 @@ def test_swift_properties(test_file):
     assert np.allclose(f.properties['omegaL0'], 0.724)
     assert np.allclose(f.properties['omegaNu0'], 0.0)
 
-def test_swift_arrays(test_file):
-    f = test_file
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_arrays(test_args):
+    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
     assert np.allclose(f.dm['pos'].units.ratio("Mpc a", **f.conversion_context()), 1.0)
     assert np.allclose(f.dm['vel'].units.ratio("km s^-1", **f.conversion_context()), 1.0)
     # the reason the following isn't exactly 1.0 is because our solar mass is slightly different to swift's
@@ -92,27 +90,24 @@ def _assert_multifile_contents_is_sensible(f):
                                                        [83.46050257, 20.91647755, 116.546989],
                                                        [125.83232028, 49.9732396, 72.2264199]]))
 
-def test_swift_multifile_with_vds():
-    f = pynbody_load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
-    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_multifile_with_vds(test_args):
+    f = pynbody_load(test_args, "testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
+    assert isinstance(f, test_args["class"])
     assert len(f._hdf_files) == 1
-    #assert f._hdf_files.is_virtual()
     _assert_multifile_contents_is_sensible(f)
 
-
-def test_swift_multifile_without_vds():
-    f = pynbody_load("testdata/SWIFT/multifile_without_vds/snap_0000")
-    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_multifile_without_vds(test_args):
+    f = pynbody_load(test_args, "testdata/SWIFT/multifile_without_vds/snap_0000")
+    assert isinstance(f, test_args["class"])
     assert len(f._hdf_files) == 10
-    #assert not f._hdf_files.is_virtual()
     _assert_multifile_contents_is_sensible(f)
 
-# def test_swift_singlefile_is_not_vds():
-#     f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
-#     assert not f._hdf_files.is_virtual()
-
-def test_swift_singlefile_partial_loading():
-    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5",
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_singlefile_partial_loading(test_args):
+    f = pynbody_load(test_args,
+                     "testdata/SWIFT/snap_0150.hdf5",
                      take_swift_cells=[5,15,20,25])
     assert len(f.dm) == 1849
     assert len(f.gas) == 1882
@@ -123,8 +118,10 @@ def test_swift_singlefile_partial_loading():
                                      26367,  2503, 26825, 10827, 59463, 26703, 51909, 27927, 12057,
                                      36761]).all()
 
-def test_swift_multifile_partial_loading():
-    f = pynbody_load("testdata/SWIFT/multifile_without_vds/snap_0000",
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_multifile_partial_loading(test_args):
+    f = pynbody_load(test_args,
+                     "testdata/SWIFT/multifile_without_vds/snap_0000",
                      take_swift_cells=[0,5,20,200])
 
     assert len(f) == 2048
@@ -152,22 +149,29 @@ def test_swift_multifile_partial_loading():
                           [ 16.59894837,  36.67247821,  85.82433427],
                           [  9.79404938,  52.28051827,  81.30710868]])
 
-def test_swift_multifile_partial_loading_order_insensitive():
-    f = pynbody_load("testdata/SWIFT/multifile_without_vds/snap_0000",
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_multifile_partial_loading_order_insensitive(test_args):
+    f = pynbody_load(test_args,
+                     "testdata/SWIFT/multifile_without_vds/snap_0000",
                      take_swift_cells=[0, 5, 20, 200])
-    f2 = pynbody_load("testdata/SWIFT/multifile_without_vds/snap_0000",
+    f2 = pynbody_load(test_args,
+                      "testdata/SWIFT/multifile_without_vds/snap_0000",
                      take_swift_cells=[0, 5, 20, 200][::-1])
     assert (f['iord'] == f2['iord']).all()
 
-def test_swift_vds_partial_loading():
-    f = pynbody_load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", # <-- VDS file
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_vds_partial_loading(test_args):
+    f = pynbody_load(test_args,
+                     "testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", # <-- VDS file
                      take_swift_cells=[0,5,20,200])
-    f2 = pynbody_load("testdata/SWIFT/multifile_without_vds/snap_0000",
+    f2 = pynbody_load(test_args,
+                      "testdata/SWIFT/multifile_without_vds/snap_0000",
                       take_swift_cells=[0, 5, 20, 200][::-1])
     assert (f['iord'] == f2['iord']).all()
 
-def test_swift_fof_groups():
-    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_fof_groups(test_args):
+    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
     h = f.halos(priority = ['HaloNumberCatalogue'])
 
     with raises(KeyError):
@@ -179,26 +183,29 @@ def test_swift_fof_groups():
 
     assert len(h) < 1000
 
-def test_swift_dtypes():
-    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_dtypes(test_args):
+    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
     assert np.issubdtype(f['iord'].dtype, np.integer)
     assert np.issubdtype(f['pos'].dtype, np.floating)
 
+@pytest.mark.parametrize("test_args", test_args)
 @pytest.mark.parametrize('test_region',
                          [pynbody.filt.Sphere(50., (50., 50., 50.)),
                          pynbody.filt.Cuboid(-20.0)]) # note the cuboid test region wraps around the box
-def test_swift_take_geometric_region(test_region):
-    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5",
+def test_swift_take_geometric_region(test_args, test_region):
+    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5",
                      take_region = test_region)
 
-    f_full = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
+    f_full = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
 
     assert len(f) < len(f_full)
 
     assert np.all(f[test_region]['iord'] == f_full[test_region]['iord'])
 
-def test_swift_scalefactor_in_units():
-    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
+@pytest.mark.parametrize("test_args", test_args)
+def test_swift_scalefactor_in_units(test_args):
+    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
 
     # naively, one would assume cm^2 s^-2, but actual units header says 1e10 a^2 cm^2 s^-2
     # So this tests pynbody respects that. Note that we don't give the scalefactor context,
@@ -207,56 +214,3 @@ def test_swift_scalefactor_in_units():
 
     npt.assert_allclose(f.gas['pos'].units.in_units("Mpc a"), 1.0)
 
-def test_ambiguous_name_mapping():
-    from pynbody.snapshot import namemapper
-    nm = namemapper.AdaptiveNameMapper("swift-name-mapping")
-    assert nm("mass") == "Masses" or nm("mass") == "SubgridMasses"
-
-    nm("Masses", reverse=True)
-    assert nm("mass") == "Masses"
-
-    nm("SubgridMasses", reverse=True)
-
-    # when allow_ambiguous = False, name mapper just returns the first format-specific name it knew about
-    assert nm("mass") == "SubgridMasses"
-
-    nm = namemapper.AdaptiveNameMapper("swift-name-mapping", return_all_format_names=True)
-    assert nm("mass") == ["Masses", "SubgridMasses"]
-
-    nm("Masses", reverse=True)
-
-    assert nm("mass") == ["Masses", "SubgridMasses"]
-
-    nm("SubgridMasses", reverse=True)
-
-    # when allow_ambiguous = True, name mapper returns a tuple of allowed format-specific names
-    assert nm("mass") == ["Masses", "SubgridMasses"]
-
-
-
-@pytest.fixture
-def swift_snap_with_alternate_mass_naming():
-    # In real swift snapshots, BH masses are called 'SubgridMasses' and other particles are called 'Masses'
-    # Here, to avoid adding another snapshot file, we just rename the gas masses in the snapshot we already have
-
-    # first copy snap_0150.hdf5 to a temporary file
-    tempdir = Path.cwd() / 'tempdir'
-    tempdir.mkdir(exist_ok=True)
-    tempfilename = tempdir / "snap_0150.hdf5"
-    shutil.copy("testdata/SWIFT/snap_0150.hdf5", tempfilename)
-
-    # now open the file and rename the gas masses
-    with h5py.File(tempfilename, 'r+') as f:
-        f['PartType0']['SubgridMasses'] = f['PartType0']['Masses']
-        del f['PartType0']['Masses']
-
-    yield str(tempfilename)
-
-    # clean up
-    shutil.rmtree(tempdir)
-
-def test_alternate_mass_file(swift_snap_with_alternate_mass_naming):
-    f = pynbody_load(swift_snap_with_alternate_mass_naming)
-    f1 = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
-
-    assert np.allclose(f['mass'], f1['mass'])
