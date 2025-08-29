@@ -12,25 +12,46 @@ import pynbody.halo.velociraptor
 import pynbody.snapshot.remote_swift
 import pynbody.test_utils
 
+import hdfstream
+hdfstream.verify_cert(False)
+
 #
-# This is a copy of the tests for pynbody.snapshot.swift.SwiftSnap modified
-# to use the multi file handling code from the RemoteSwiftSnap class.
+# This is a copy of the tests for pynbody.snapshot.swift.SwiftSnap. We're going
+# to run these twice: first accessing a local file with h5py then accessing
+# a remote file with hdfstream. In both cases we use the multi-file manager
+# from pynbody/snapshot/remote_swift.py.
 #
+test_files = [
+    {
+        "filename" : "testdata/SWIFT/snap_0150.hdf5",
+        "class" : pynbody.snapshot.remote_swift.LocalSwiftSnap,
+    },
+    {
+        "filename" : "Tests/pynbody/test_data/SWIFT/snap_0150.hdf5",
+        "server" : "https://localhost:8444/hdfstream",
+        "class" : pynbody.snapshot.remote_swift.RemoteSwiftSnap,
+    },
+]
 
 @pytest.fixture(scope='module', autouse=True)
 def get_data():
     pynbody.test_utils.ensure_test_data_available("swift")
 
+@pytest.fixture(params=test_files)
+def test_file(request):
+    snap_class = request.param["class"]
+    filename = request.param["filename"]
+    server = request.param.get("server", None)
+    if server is not None:
+        return snap_class(filename, server=server)
+    else:
+        return snap_class(filename)
+
 def pynbody_load(*args, **kwargs):
     return pynbody.load(*args, **kwargs, priority=(pynbody.snapshot.remote_swift.LocalSwiftSnap,))
 
-def test_load_identifies_swift():
-    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
-    assert isinstance(f, pynbody.snapshot.remote_swift.LocalSwiftSnap)
-
-def test_swift_properties():
-    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
-
+def test_swift_properties(test_file):
+    f = test_file
     assert np.allclose(f.properties['a'], 0.38234515)
     assert np.allclose(f.properties['z'], 1.61543791)
     assert np.allclose(f.properties['h'], 0.703)
@@ -39,8 +60,8 @@ def test_swift_properties():
     assert np.allclose(f.properties['omegaL0'], 0.724)
     assert np.allclose(f.properties['omegaNu0'], 0.0)
 
-def test_swift_arrays():
-    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
+def test_swift_arrays(test_file):
+    f = test_file
     assert np.allclose(f.dm['pos'].units.ratio("Mpc a", **f.conversion_context()), 1.0)
     assert np.allclose(f.dm['vel'].units.ratio("km s^-1", **f.conversion_context()), 1.0)
     # the reason the following isn't exactly 1.0 is because our solar mass is slightly different to swift's

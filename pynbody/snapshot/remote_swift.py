@@ -164,8 +164,8 @@ class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
 #
 class RemoteSwiftSnap(SwiftSnap):
     _multifile_manager_class = _RemoteSwiftMultiFileManager
-    def __init__(self, server, *args, **kwargs):
-        self._server = server
+    def __init__(self, *args, **kwargs):
+        self._server = kwargs.pop("server", None)
         self._user = kwargs.pop("user", None)
         self._password = kwargs.pop("password", None)
         super().__init__(*args, **kwargs)
