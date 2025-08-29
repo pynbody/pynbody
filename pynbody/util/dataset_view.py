@@ -192,24 +192,13 @@ class GroupView(Mapping):
     def __len__(self):
         return self._obj.__len__()
 
-    def _visititems(self, func, path):
-
-        for name, obj in self.items():
-            if path is None:
-                full_name = name
-            else:
-                full_name = path + "/" + name
-
-            # Call the function on this member
-            value = func(full_name, obj)
-            if value is not None:
-                return value
-
-            # If the member is a group, visit it
-            if isinstance(obj, GroupView):
-                value = obj._visititems(func, path=full_name)
-                if value is not None:
-                    return value
+    def visit(self, func):
+        self._obj.visit(func)
 
     def visititems(self, func):
-        return self._visititems(func, None)
+        """
+        visititems() needs to pass wrapped objects to func()
+        """
+        def wrapper_func(name):
+            return func(name, self[name])
+        self._obj.visit(wrapper_func)

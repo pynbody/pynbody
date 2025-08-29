@@ -188,3 +188,66 @@ def test_dataset_view_all(test_file):
         "PartType1" : [slice(i*100,(i+1)*100) for i in range(100)]
         }
     slicing_test(test_file, slices)
+
+
+def test_visititems(test_file):
+    """
+    Check that GroupView.visititems() finds all groups and datasets
+
+    SWIFT snapshots contain links, which visititems() should not follow.
+    """
+
+    # Create the view
+    test_view = dataset_view.GroupView(test_file)
+
+    # Find all objects in the file
+    test_file_objects = {}
+    def visit_file(name, obj):
+        test_file_objects[name] = obj
+    test_file.visititems(visit_file)
+
+    # Find all wrapped objects in the wrapped view of the file
+    test_view_objects = {}
+    def visit_view(name, obj):
+        test_view_objects[name] = obj
+    test_view.visititems(visit_view)
+
+    # Check consistency
+    assert len(test_file_objects) == len(test_view_objects)
+    all_names = set(test_file_objects.keys()).union(set(test_view_objects.keys()))
+    for name in all_names:
+        assert name in test_file_objects
+        assert name in test_view_objects
+        file_obj = test_file[name]
+        view_obj = test_view[name]
+        if isinstance(file_obj, h5py.Group):
+            assert isinstance(view_obj, dataset_view.GroupView)
+        else:
+            assert isinstance(file_obj, h5py.Dataset)
+            assert isinstance(view_obj, dataset_view.SlicedDatasetView)
+
+
+def test_visit(test_file):
+    """
+    Check that GroupView.visit() finds all groups and datasets
+
+    SWIFT snapshots contain links, which visit() should not follow.
+    """
+
+    # Create the view
+    test_view = dataset_view.GroupView(test_file)
+
+    # Find all objects in the file
+    test_file_objects = []
+    def visit_file(name, obj):
+        test_file_objects.append(name)
+    test_file.visit(visit_file)
+
+    # Find all wrapped objects in the wrapped view of the file
+    test_view_objects = []
+    def visit_view(name, obj):
+        test_view_objects.append(name)
+    test_view.visit(visit_view)
+
+    # Check consistency
+    assert set(test_file_objects) == set(test_view_objects)
