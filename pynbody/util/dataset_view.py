@@ -3,8 +3,9 @@
 # apply in the first dimension.
 #
 
-import numpy as np
 from collections.abc import Mapping
+
+import numpy as np
 
 try:
     import hdfstream

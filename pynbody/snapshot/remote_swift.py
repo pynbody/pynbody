@@ -1,10 +1,11 @@
 import pathlib
-import numpy as np
-import h5py
 
-from .swift import SwiftSnap
-from .gadgethdf import _GadgetHdfMultiFileManager
+import h5py
+import numpy as np
+
 from ..util import dataset_view
+from .gadgethdf import _GadgetHdfMultiFileManager
+from .swift import SwiftSnap
 
 try:
     import hdfstream
