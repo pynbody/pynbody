@@ -16,6 +16,18 @@ def test_simulation_with_copy():
     s['mass'] = np.random.uniform(1.0, 10.0, size=s['mass'].shape)
     return s, copy.deepcopy(s)
 
+@pytest.fixture
+def test_simulation_hole():
+    # This generates a simulation with a cubic hole in the gas and star particle distribution
+    # to test the align method in angmom
+    s = pynbody.new(gas=1000, stars=1000, dm=1000)
+    s['pos'] = np.random.normal(scale=1.0, size=s['pos'].shape)
+    s.g['pos'] += 2*np.sign(s.g['pos'])
+    s.s['pos'] += 2*np.sign(s.s['pos'])
+    s['vel'] = np.random.normal(scale=1.0, size=s['vel'].shape)
+    s['mass'] = np.random.uniform(1.0, 10.0, size=s['mass'].shape)
+    return s, copy.deepcopy(s)
+
 
 def test_translate(test_simulation_with_copy):
     f, original = test_simulation_with_copy
@@ -132,6 +144,14 @@ def test_chaining(test_simulation_with_copy):
 
     npt.assert_almost_equal(f['pos'], original['pos'])
 
+def test_angmom_align(test_simulation_hole):
+    f, original = test_simulation_hole
+
+    with pynbody.analysis.angmom.sideon(f, disk_size=1.0):
+        pass
+
+    npt.assert_almost_equal(f['pos'], original['pos'])
+    npt.assert_almost_equal(f['vel'], original['vel'])
 
 def test_halo_managers(test_simulation_with_copy):
     f, original = test_simulation_with_copy
