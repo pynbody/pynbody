@@ -184,8 +184,7 @@ class GroupView(Mapping):
         return result
 
     def __iter__(self):
-        for key in self._obj.keys():
-            yield key
+        yield from self._obj.keys()
 
     def __len__(self):
         return self._obj.__len__()
