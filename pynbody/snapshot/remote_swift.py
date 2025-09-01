@@ -159,8 +159,8 @@ class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
         self._connect()
         return self._rootdir.is_hdf5(filename)
 #
-# A RemoteSwiftSnap takes the server as the first argument and we might have
-# a username and password as keyword arguments if authentication is required.
+# To open a RemoteSwiftSnap we need the server URL and we might have a
+# username and password if authentication is required.
 #
 class RemoteSwiftSnap(SwiftSnap):
     _multifile_manager_class = _RemoteSwiftMultiFileManager
