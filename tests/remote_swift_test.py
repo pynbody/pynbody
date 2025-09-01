@@ -15,8 +15,6 @@ try:
     import hdfstream
 except ImportError:
     hdfstream = None
-else:
-    hdfstream.verify_cert(False)
 
 #
 # This is a copy of most of the tests from
@@ -25,6 +23,8 @@ else:
 # with hdfstream. In both cases we use the multi-file manager from
 # pynbody/snapshot/remote_swift.py.
 #
+server_url = "https://dataweb.cosma.dur.ac.uk:8443/hdfstream"
+testdata_dir = "Tests/pynbody/"
 test_args = [
     {
         "server" : None,
@@ -32,8 +32,8 @@ test_args = [
         "class" : pynbody.snapshot.remote_swift.LocalSwiftSnap,
     },
     {
-        "server" : "https://localhost:8444/hdfstream",
-        "dir" : "Tests/pynbody/",
+        "server" : server_url,
+        "dir" : testdata_dir,
         "class" : pynbody.snapshot.remote_swift.RemoteSwiftSnap,
     },
 ]
