@@ -239,15 +239,15 @@ def test_visit(test_file):
 
     # Find all objects in the file
     test_file_objects = []
-    def visit_file(name, obj):
+    def visit_file(name):
         test_file_objects.append(name)
     test_file.visit(visit_file)
 
     # Find all wrapped objects in the wrapped view of the file
     test_view_objects = []
-    def visit_view(name, obj):
+    def visit_view(name):
         test_view_objects.append(name)
     test_view.visit(visit_view)
 
-    # Check consistency
+    # Check consistency. Should have the same set of names.
     assert set(test_file_objects) == set(test_view_objects)
