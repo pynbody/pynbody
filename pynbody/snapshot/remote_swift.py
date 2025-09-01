@@ -163,6 +163,7 @@ class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
 # username and password if authentication is required.
 #
 class RemoteSwiftSnap(SwiftSnap):
+    _max_buf = 2**63-1 # do not split requests into multiple chunks
     _multifile_manager_class = _RemoteSwiftMultiFileManager
     def __init__(self, *args, **kwargs):
         self._server = kwargs.pop("server", None)
