@@ -1,5 +1,3 @@
-#!/bin/env python
-#
 # Contains classes to wrap h5py.Datasets to provide views which return only
 # a subset of elements. These elements are identified by a list of slices to
 # apply in the first dimension.

@@ -229,4 +229,3 @@ def test_swift_scalefactor_in_units(test_args):
     npt.assert_allclose((f.gas['u'].units).in_units("km^2 s^-2 a^-2"), 1.0)
 
     npt.assert_allclose(f.gas['pos'].units.in_units("Mpc a"), 1.0)
-
