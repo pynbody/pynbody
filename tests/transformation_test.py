@@ -144,7 +144,16 @@ def test_chaining(test_simulation_with_copy):
 
     npt.assert_almost_equal(f['pos'], original['pos'])
 
-def test_angmom_align(test_simulation_hole):
+def test_align_particle_selection(test_simulation_hole):
+    '''
+    Previously, the align() function in the angmom module had a bug (GH Issue #922) where
+    a series of checks intended to calculate the angular momentum vector of the central region
+    from either gas, stars, or all particles (in that order).  However, the check did not actually
+    check the number of particles within the central region, but the total number of particles in the
+    simsnap.  This could lead to the vec_to_xform function being called on zero particles, which in
+    turn gives a div-by-zero exception.  This test is intended to check for that behaviour by using
+    a mock dataset with a cubic hole in center of a ball of the gas and stars (but not in the DM).
+    '''
     f, original = test_simulation_hole
 
     with pynbody.analysis.angmom.sideon(f, disk_size=1.0):
