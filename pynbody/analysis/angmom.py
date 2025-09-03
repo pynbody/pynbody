@@ -200,9 +200,9 @@ def align(h, vec_to_xform, disk_size="5 kpc", move_all=True, already_centered = 
         tx = halo.center(h_for_centering, **center_kwargs)
 
     try:
-        if len(h.gas) > 5:
+        if len(h.gas[filt.Sphere(disk_size)]) > 5:
             cen = h.gas[filt.Sphere(disk_size)]
-        elif len(h.st) > 5:
+        elif len(h.st[filt.Sphere(disk_size)]) > 5:
             cen = h.st[filt.Sphere(disk_size)]
         else:
             cen = h[filt.Sphere(disk_size)]
