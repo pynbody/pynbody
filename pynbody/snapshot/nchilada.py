@@ -36,10 +36,13 @@ class NchiladaSnap(SimSnap):
         assert struct.unpack('>l',buf[pos:(pos:=pos+4)])[0] == 1062053
         # Read double, walrus assignment updates pos
         t= struct.unpack('>d',buf[pos:(pos:=pos+8)])[0]
-        # Read four ints, walrus assignment updates pos
-        highword, nbod, ndim, code = (
-            struct.unpack('>l',buf[pos:(pos:=pos+4)])[0] for i in range(4)
-        )
+        # Read quad, walrus assignment updates pos
+        nbod = struct.unpack('>q',buf[pos:(pos:=pos+8)])[0]
+        # Read int, walrus assignment updates pos
+        ndim = struct.unpack('>l',buf[pos:(pos:=pos+4)])[0]
+        # Read int, walrus assignment updates pos
+        code = struct.unpack('>l',buf[pos:(pos:=pos+4)])[0]
+
         return t, nbod, ndim, _type_codes[code]
 
     def _update_loadable_keys(self):
