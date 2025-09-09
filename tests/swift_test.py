@@ -17,6 +17,7 @@ import pynbody.test_utils
 def get_data():
     pynbody.test_utils.ensure_test_data_available("swift")
     pynbody.test_utils.ensure_test_data_available("swift_isolated")
+    pynbody.test_utils.ensure_test_data_available("swift_planetary")
 
 def test_load_identifies_swift():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
@@ -243,3 +244,36 @@ def test_alternate_mass_file(swift_snap_with_alternate_mass_naming):
     f1 = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
 
     assert np.allclose(f['mass'], f1['mass'])
+
+def test_load_planetary():
+    f = pynbody.load("testdata/SWIFT/planetary.hdf5")
+    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+    assert len(f) == 1000
+    assert len(f.gas) == 1000
+
+    npt.assert_allclose(f.gas['pos'][::100], [[10.19632557, 73.59282912, 49.16676751],
+          [24.99624414, 66.67475135, 59.88181694],
+          [27.97163269, 60.54673522, 65.82359251],
+          [30.72580155, 62.44005645, 63.86075764],
+          [32.14849187, 64.29730994, 49.5467268 ],
+          [33.56796736, 62.13704988, 55.87569192],
+          [34.79418039, 55.83508342, 57.37397361],
+          [34.97915523, 61.50632026, 62.00416941],
+          [35.47905534, 55.80711974, 68.81765962],
+          [35.50355171, 60.95662443, 54.52549088]])
+
+
+
+def test_planetary_physical_units():
+    f = pynbody.load("testdata/SWIFT/planetary.hdf5")
+    f.physical_units('1e3 km')
+    npt.assert_allclose(f['pos'][::100], [[ 64.96079021, 468.85991433, 313.24147579],
+          [159.25107139, 424.78484083, 381.50705574],
+          [178.20727184, 385.74325012, 419.3621079 ],
+          [195.75408167, 397.80559963, 406.85688691],
+          [204.81804168, 409.63816166, 315.66219645],
+          [213.86152008, 395.8751448 , 355.98403322],
+          [221.67372325, 355.72531646, 365.52958587],
+          [222.85219794, 391.8567664 , 395.02856333],
+          [226.0370616 , 355.54715989, 438.43730943],
+          [226.19312796, 388.35465427, 347.38190241]])

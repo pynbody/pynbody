@@ -51,7 +51,10 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
         return self[0].parent['Parameters'].attrs
 
     def is_virtual(self):
-        return self[0].parent['Header'].attrs['Virtual'][0] == 1
+        try:
+            return self[0].parent['Header'].attrs['Virtual'][0] == 1
+        except KeyError:
+            return False
 
     def iter_particle_groups_with_name(self, hdf_family_name):
         if hdf_family_name in self._hdf_vfile:
@@ -62,29 +65,27 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
         return self[0]['Cells/Counts'].keys()
 
     def _make_hdf_vfile(self, take_cells):
-        temp_fd, temp_path = tempfile.mkstemp(suffix='.h5')
-        os.close(temp_fd)
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            tmpfile_path = os.path.join(tmpdirname,"nofile.hdf5")
+            with h5py.File(name=tmpfile_path, mode='w') as hdf_vfile:
+                # ideally one would simply use  backing_store=False, to File but then there doesn't seem to be a way
+                # to actually use the file (the VDS views just returns zeros).
+                # Instead we write then re-read it, which presumably carries minimal overhead but is a bit ugly.
 
-        from ..util.hdf_vds import TempHDF5File
+                for group_name in self._all_group_names():
 
-        with h5py.File(name=temp_path, mode='w') as hdf_vfile:
-            # ideally one would simply use  backing_store=False, to File but then there doesn't seem to be a way
-            # to actually use the file (the VDS views just returns zeros).
-            # Instead we write then re-read it, which presumably carries minimal overhead but is a bit ugly.
+                    if take_cells is None:
+                        source_groups, source_slices = self._generate_groups_and_slices_for_full_file(group_name)
+                    else:
+                        source_groups, source_slices = self._generate_groups_and_slices_from_cells(group_name,
+                                                                                                   take_cells)
 
-            for group_name in self._all_group_names():
+                    target_group = hdf_vfile.create_group(group_name)
+                    self._make_hdf_group_with_slicing(source_groups, source_slices, target_group)
 
-                if take_cells is None:
-                    source_groups, source_slices = self._generate_groups_and_slices_for_full_file(group_name)
-                else:
-                    source_groups, source_slices = self._generate_groups_and_slices_from_cells(group_name,
-                                                                                                take_cells)
-
-                target_group = hdf_vfile.create_group(group_name)
-                self._make_hdf_group_with_slicing(source_groups, source_slices, target_group)
-
-        self._hdf_vfile = TempHDF5File(temp_path, mode='r')
-
+            self._hdf_vfile = h5py.File(name=tmpfile_path, mode='r')
+            # on exiting the temporarydirectory context, the file/folder will be unlinked but we should
+            # be able to retain access for the lifetime of the hdf_vfile object
 
     def _generate_groups_and_slices_for_full_file(self, group_name):
         source_groups = [hdf_file[group_name] for hdf_file in self]
@@ -171,7 +172,6 @@ class SwiftSnap(GadgetHDFSnap):
     def _is_cosmological(self):
         cosmo = ExtractScalarWrapper(self._hdf_files[0]['Cosmology'].attrs)
         return cosmo['Cosmological run'] == 1
-
     def _init_properties(self):
         params = ExtractScalarWrapper(self._hdf_files[0]['Parameters'].attrs)
         header = ExtractScalarWrapper(self._hdf_files[0]['Header'].attrs)
@@ -201,13 +201,9 @@ class SwiftSnap(GadgetHDFSnap):
 
 
     def _get_units_from_hdf_attr(self, hdfattrs):
-        cosmological = self._is_cosmological()
         this_unit = units.Unit("1")
-
         for k in hdfattrs.keys():
             if k.endswith('exponent'):
-                if (k.startswith('a-scale') or k.startswith('h-scale')) and not cosmological:
-                    continue
                 unitname = k.split(" ")[0]
                 exponent = util.fractions.Fraction.from_float(float(ExtractScalarWrapper(hdfattrs)[k])).limit_denominator()
 
@@ -229,8 +225,14 @@ class SwiftSnap(GadgetHDFSnap):
                    'U_M': mass_unit,
                    'U_t': time_unit,
                    'U_T': temp_unit,
-                   'a-scale': units.a,
-                   'h-scale': units.h}
+                   'a-scale': 1.0, # non-cosmo sims bizarrely still have non-zero scalefactor exponents
+                   'h-scale': 1.0,}
+
+        if self._is_cosmological():
+            unitvar.update({
+                'a-scale': units.a,
+                'h-scale': units.h
+            })
 
 
         self._hdf_unitvar = unitvar
