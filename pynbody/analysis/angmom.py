@@ -145,7 +145,7 @@ def align(h, vec_to_xform, disk_size="5 kpc", move_all=True, already_centered = 
            center_kwargs = None):
     """Reposition and rotate the ancestor of h to place the angular momentum into a specified orientation.
 
-    The routine first calls the center routine to reposition the halo (unless already_centered is True).
+    The routine first calls the center routine to reposition the halo (unless ``already_centered`` is ``True``).
     If there are a sufficient number of star particles (more than 100), only the star particles are used for
     centering; if there is an offset between dark matter and baryons, it is better to centre on the baryons.
 
@@ -153,8 +153,8 @@ def align(h, vec_to_xform, disk_size="5 kpc", move_all=True, already_centered = 
     a specified radius of the halo center. If there are less than 5 gas particles within this radius, the 
     routine falls back first to stellar particles, and then to all particles.
 
-    Finally, the angular momentum vector is converted into a rotation matrix using the vec_to_xform function,
-    and the rotation is applied.
+    Finally, the angular momentum vector is converted into a rotation matrix using the :func:`vec_to_xform` 
+    function, and the rotation is applied.
 
     .. versionchanged :: 2.3.1
 
