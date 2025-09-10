@@ -20,6 +20,9 @@ test_data_packages = {
     'swift_isolated': {'verify_path': 'SWIFT/isolated_0008.hdf5',
                        'extract_path': 'SWIFT',
                        'archive_name': 'swift_isolated.tar.gz'},
+    'swift_planetary': {'verify_path': 'SWIFT/planetary.hdf5',
+                        'extract_path': 'SWIFT',
+                        'archive_name': 'swift_planetary.tar.gz'},
     'adaptahop_longint': {'verify_path': 'adaptahop_longint',
                        'archive_name': 'adaptahop_longint.tar.gz'},
     'arepo': {'verify_path': 'arepo',
@@ -50,7 +53,7 @@ test_data_packages = {
                  'archive_name': 'pkdgrav3.tar.gz'},
 }
 
-test_data_url = "https://zenodo.org/record/15769415/files/{archive_name}?download=1"
+test_data_url = "https://zenodo.org/record/17084976/files/{archive_name}?download=1"
 
 def precache_test_data(verbose=False):
     """Download and unpack all test data packages."""

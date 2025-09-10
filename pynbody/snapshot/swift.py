@@ -1,6 +1,8 @@
 import os
 import pathlib
+import shutil
 import tempfile
+import weakref
 
 import h5py
 import numpy as np
@@ -51,7 +53,10 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
         return self[0].parent['Parameters'].attrs
 
     def is_virtual(self):
-        return self[0].parent['Header'].attrs['Virtual'][0] == 1
+        try:
+            return self[0].parent['Header'].attrs['Virtual'][0] == 1
+        except KeyError:
+            return False
 
     def iter_particle_groups_with_name(self, hdf_family_name):
         if hdf_family_name in self._hdf_vfile:
@@ -62,12 +67,9 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
         return self[0]['Cells/Counts'].keys()
 
     def _make_hdf_vfile(self, take_cells):
-        temp_fd, temp_path = tempfile.mkstemp(suffix='.h5')
-        os.close(temp_fd)
-
-        from ..util.hdf_vds import TempHDF5File
-
-        with h5py.File(name=temp_path, mode='w') as hdf_vfile:
+        temp_dir_path = tempfile.mkdtemp()
+        tmpfile_path = os.path.join(temp_dir_path, "nofile.hdf5")
+        with h5py.File(name=tmpfile_path, mode='w') as hdf_vfile:
             # ideally one would simply use  backing_store=False, to File but then there doesn't seem to be a way
             # to actually use the file (the VDS views just returns zeros).
             # Instead we write then re-read it, which presumably carries minimal overhead but is a bit ugly.
@@ -78,13 +80,22 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
                     source_groups, source_slices = self._generate_groups_and_slices_for_full_file(group_name)
                 else:
                     source_groups, source_slices = self._generate_groups_and_slices_from_cells(group_name,
-                                                                                                take_cells)
+                                                                                               take_cells)
 
                 target_group = hdf_vfile.create_group(group_name)
                 self._make_hdf_group_with_slicing(source_groups, source_slices, target_group)
 
-        self._hdf_vfile = TempHDF5File(temp_path, mode='r')
+        self._hdf_vfile = h5py.File(name=tmpfile_path, mode='r')
+        self._finalizer = weakref.finalize(self, self._finalize, self._hdf_vfile, temp_dir_path)
 
+    @classmethod
+    def _finalize(cls, hdf_vfile, temp_dir_path):
+        try:
+           hdf_vfile.close()
+        except Exception:
+            pass
+
+        shutil.rmtree(temp_dir_path)
 
     def _generate_groups_and_slices_for_full_file(self, group_name):
         source_groups = [hdf_file[group_name] for hdf_file in self]
@@ -171,7 +182,6 @@ class SwiftSnap(GadgetHDFSnap):
     def _is_cosmological(self):
         cosmo = ExtractScalarWrapper(self._hdf_files[0]['Cosmology'].attrs)
         return cosmo['Cosmological run'] == 1
-
     def _init_properties(self):
         params = ExtractScalarWrapper(self._hdf_files[0]['Parameters'].attrs)
         header = ExtractScalarWrapper(self._hdf_files[0]['Header'].attrs)
@@ -201,13 +211,9 @@ class SwiftSnap(GadgetHDFSnap):
 
 
     def _get_units_from_hdf_attr(self, hdfattrs):
-        cosmological = self._is_cosmological()
         this_unit = units.Unit("1")
-
         for k in hdfattrs.keys():
             if k.endswith('exponent'):
-                if (k.startswith('a-scale') or k.startswith('h-scale')) and not cosmological:
-                    continue
                 unitname = k.split(" ")[0]
                 exponent = util.fractions.Fraction.from_float(float(ExtractScalarWrapper(hdfattrs)[k])).limit_denominator()
 
@@ -229,8 +235,14 @@ class SwiftSnap(GadgetHDFSnap):
                    'U_M': mass_unit,
                    'U_t': time_unit,
                    'U_T': temp_unit,
-                   'a-scale': units.a,
-                   'h-scale': units.h}
+                   'a-scale': 1.0, # non-cosmo sims bizarrely still have non-zero scalefactor exponents
+                   'h-scale': 1.0,}
+
+        if self._is_cosmological():
+            unitvar.update({
+                'a-scale': units.a,
+                'h-scale': units.h
+            })
 
 
         self._hdf_unitvar = unitvar
