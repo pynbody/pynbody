@@ -153,8 +153,13 @@ def align(h, vec_to_xform, disk_size="5 kpc", move_all=True, already_centered = 
     a specified radius of the halo center. If there are less than 5 gas particles within this radius, the 
     routine falls back first to stellar particles, and then to all particles.
 
-    Finally, the angular momentum vector is converted into a rotation matrix using the :func:`vec_to_xform` 
+    Finally, the angular momentum vector is converted into a rotation matrix using the ``vec_to_xform``
     function, and the rotation is applied.
+
+    .. seealso::
+
+      Convenient wrappers around this routine are provided to either align a disk side-on or face-on;
+      see :func:`sideon` and :func:`faceon`.
 
     .. versionchanged :: 2.3.1
 
@@ -237,7 +242,11 @@ def sideon(h, **kwargs):
     Since pynbody's imaging routines project along the z direction, one can get a side-on view of a disk or
     other rotationally-supported structure by calling this routine first.
 
-    For details of how the transformation is calculated, see the documentation for the underlying :func:`align` routine.
+    .. seealso::
+
+      For details of how the transformation is calculated, see the documentation for the underlying :func:`align` routine.
+
+      A similar routine for aligning face-on is also provided; see :func:`faceon`.
 
     Parameters
     ----------
@@ -270,7 +279,11 @@ def faceon(h, **kwargs):
     Since pynbody's imaging routines project along the z direction, one can get a face-on view of a disk
     or other rotationally-supported structure by calling this routine first.
 
-    For details of how the transformation is calculated, see the documentation for the underlying :func:`align` routine.
+    .. seealso::
+
+      For details of how the transformation is calculated, see the documentation for the underlying :func:`align` routine.
+
+      A similar routine for aligning side-on is also provided; see :func:`sideon`.
 
 
     Parameters
