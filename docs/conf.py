@@ -80,7 +80,9 @@ globaltoc_collapse = True
 
 # General information about the project.
 project = 'pynbody'
-copyright = '2011-24, pynbody team'
+copyright = '2011-%Y'
+author = 'pynbody team'
+
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
