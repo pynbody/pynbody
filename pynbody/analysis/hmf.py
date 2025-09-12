@@ -898,16 +898,19 @@ def simulation_halo_mass_function(snapshot_or_cat,
         raise TypeError("snapshot_or_cat must be a SimSnap or HaloCatalogue")
 
 
+    need_masses = (masses is None) and (mass_property is None)
     #Check that the mass resolution is uniform, this method does not handle otherwise
-    if len(set(snapshot.d['mass'])) > 1:
-        warnings.warn( "The mass resolution of the snapshot is not uniform (e.g. zooms). This method"
-                       "will not generate a correct HMF in this case.")
+    if need_masses:
+        if len(set(snapshot.d['mass'])) > 1:
+            warnings.warn( "The mass resolution of the snapshot is not uniform (e.g. zooms). This method"
+                           "will not generate a correct HMF in this case.")
 
     nbins = int(1 + (log_M_max - log_M_min)/delta_log_M)
     bins = np.logspace(log_M_min, log_M_max, num=nbins, base=10)
     bin_centers = (bins[:-1] + bins[1:]) / 2
 
-    halo_catalogue.load_all()
+    if need_masses:
+        halo_catalogue.load_all()
 
     if subsample_catalogue is not None:
         halo_catalogue_underlying = halo_catalogue # keep alive for the lifetime of the function
