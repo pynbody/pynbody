@@ -34,6 +34,15 @@ def test_hist2d():
           [3.27461479e-03, 6.21391401e-01, 5.57536393e+00, 5.47845734e+00, 4.27261670e-01],
           [9.68454529e-03, 4.16202360e-01, 4.42973922e+00, 3.95274321e+00, 5.27707223e-01],
           [1.21313249e-04, 1.04381327e-01, 4.73558908e-01, 5.71217039e-01, 4.16500118e-02]])
+    
+    # Test specific grid size
+    h, xedges, yedges = hist2d(x, y, gridsize=(100,50), logscale=False)
+    assert xedges.shape == (100,)
+    assert yedges.shape == (50,)
+    
+    h, xedges, yedges = hist2d(x, y, gridsize=(100,200), logscale=False,use_kde=True)
+    assert xedges.shape == (100,)
+    assert yedges.shape == (200,)
 
 def test_hist2d_massweight():
     np.random.seed(1337)
