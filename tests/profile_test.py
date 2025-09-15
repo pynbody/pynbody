@@ -144,6 +144,12 @@ def test_unique_hash_generation():
     assert(type(hash2) is str)
 
 
+def test_kappa_profile():
+    f1 = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    p = pynbody.analysis.profile.Profile(f1[:100], nbins=5)
+    with pytest.warns(UserWarning):
+        p['kappa'].in_units('km s**-1 kpc**-1')
+
 def test_write_profile():
     f1 = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
 
