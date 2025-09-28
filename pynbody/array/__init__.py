@@ -164,6 +164,12 @@ def _copy_docstring_from(source_class):
 
     return wrapper
 
+def _as_sim_array(result: np.ndarray, units: units.UnitBase, sim: snapshot.SimSnap) -> SimArray:
+    result = result.view(SimArray)
+    result.units = units
+    result.sim = sim
+    return result
+
 
 class SimArray(np.ndarray):
     """A shallow wrapper around numpy.ndarray for extra functionality like unit-tracking.
@@ -407,20 +413,11 @@ class SimArray(np.ndarray):
                     sim = arg.sim
                     break
             units_val = SimArray._ufunc_registry[func](*args, **kwargs)
-            
-            # If result is a tuple, convert each element
-            if isinstance(result, tuple):
-                result = tuple( r.view(SimArray) for r in result)
-                result = tuple(
-                    (setattr(r, 'units', units_val) or setattr(r, 'sim', sim) or r)
-                    if isinstance(r, SimArray) else r
-                    for r in result
-                )
+
+            if isinstance(result, (tuple, list)):
+                result = type(result)(_as_sim_array(r_i, units_val, sim) for r_i in result)
             else:
-                result = result.view(SimArray)
-                if isinstance(result, SimArray): # may not be true if the result is a scalar
-                    result.units = units_val
-                    result.sim = sim
+                result = _as_sim_array(result, units_val, sim)
 
         return result
 
