@@ -180,12 +180,20 @@ def test_norm_units():
     assert result.units == "kpc"
 
 def test_gradient_units():
+
+    # general use
     x = SA([1.0, 2.0, 3.0, 4.0], "kpc")
     result = np.gradient(x)
     assert result.units == "kpc"
     npt.assert_allclose(result, np.ones(4), rtol=1.e-5)
 
-    # ndim > 1, tuple of SimArray
+    # two SimArray inputs
+    t = SA(np.arange(4)*2,"Gyr")
+    result = np.gradient(x, t)
+    assert result.units == "kpc Gyr**-1"
+    npt.assert_allclose(result, np.ones(4)*0.5, rtol=1.e-5)
+
+    # ndim > 1, tuple of SimArray, (or list for numpy 1.26.4)
     xg = np.gradient(SA(np.array([[1, 2.,3.],
                                [1, 2.,3.]]),"kpc"),)
     assert all(isinstance(gi, SA) for gi in xg)

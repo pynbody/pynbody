@@ -977,7 +977,9 @@ def _norm_units(a, *args, **kwargs):
 
 @SimArray.ufunc_rule(np.gradient)
 def _gradient_units(a, *varargs, **kwargs):
-    n = len(varargs)
+    for i in varargs:
+        if isinstance(i, SimArray):
+            return a.units / i.units
     return a.units
 
 def _implement_array_functionality(class_):
