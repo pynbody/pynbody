@@ -179,6 +179,19 @@ def test_norm_units():
     npt.assert_allclose(result, np.ones(10) * np.sqrt(3), rtol=1.e-5)
     assert result.units == "kpc"
 
+def test_gradient_units():
+    x = SA([1.0, 2.0, 3.0, 4.0], "kpc")
+    result = np.gradient(x)
+    assert result.units == "kpc"
+    npt.assert_allclose(result, np.ones(4), rtol=1.e-5)
+
+    # ndim > 1, tuple of SimArray
+    xg = np.gradient(SA(np.array([[1, 2.,3.],
+                               [1, 2.,3.]]),"kpc"),)
+    assert all(isinstance(gi, SA) for gi in xg)
+    assert all(gi.units == "kpc" for gi in xg)
+
+
 def test_dimensionful_comparison():
     # check that dimensionful units compare correctly
     # see issue 130
