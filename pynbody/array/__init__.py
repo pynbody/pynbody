@@ -400,15 +400,27 @@ class SimArray(np.ndarray):
         result = func(*args_processed, **kwargs_processed)
 
         if func in SimArray._ufunc_registry:
-            result = result.view(SimArray)
-            if isinstance(result, SimArray): # may not be true if the result is a scalar
-                sim = None
-                for arg in args:
-                    if isinstance(arg, SimArray):
-                        sim = arg.sim
-                        break
-                result.units = SimArray._ufunc_registry[func](*args, **kwargs)
-                result.sim = sim
+            
+            sim = None
+            for arg in args:
+                if isinstance(arg, SimArray):
+                    sim = arg.sim
+                    break
+            units_val = SimArray._ufunc_registry[func](*args, **kwargs)
+            
+            # If result is a tuple, convert each element
+            if isinstance(result, tuple):
+                result = tuple( r.view(SimArray) for r in result)
+                result = tuple(
+                    (setattr(r, 'units', units_val) or setattr(r, 'sim', sim) or r)
+                    if isinstance(r, SimArray) else r
+                    for r in result
+                )
+            else:
+                result = result.view(SimArray)
+                if isinstance(result, SimArray): # may not be true if the result is a scalar
+                    result.units = units_val
+                    result.sim = sim
 
         return result
 
@@ -966,6 +978,10 @@ def _comparison_units(ar, other):
 def _norm_units(a, *args, **kwargs):
     return a.units
 
+@SimArray.ufunc_rule(np.gradient)
+def _gradient_units(a, *varargs, **kwargs):
+    n = len(varargs)
+    return a.units
 
 def _implement_array_functionality(class_):
     """Implement all the standard numpy array functionality on the given class.
