@@ -133,6 +133,7 @@ from __future__ import annotations
 
 import fractions
 import functools
+import itertools
 import logging
 import weakref
 from typing import TYPE_CHECKING
@@ -415,8 +416,13 @@ class SimArray(np.ndarray):
             units_val = SimArray._ufunc_registry[func](*args, **kwargs)
 
             if isinstance(result, (tuple, list)):
-                result = type(result)(_as_sim_array(r_i, units_val, sim) for r_i in result)
+                units_val = (units_val,) if not isinstance(units_val, tuple) else units_val
+                result = type(result)(
+                    _as_sim_array(r_i, u_i, sim) 
+                    for r_i,u_i in zip(result, itertools.cycle(units_val))
+                    )
             else:
+                units_val = units_val[0] if isinstance(units_val, tuple) else units_val
                 result = _as_sim_array(result, units_val, sim)
 
         return result
@@ -977,10 +983,10 @@ def _norm_units(a, *args, **kwargs):
 
 @SimArray.ufunc_rule(np.gradient)
 def _gradient_units(a, *varargs, **kwargs):
-    for i in varargs:
-        if isinstance(i, SimArray):
-            return a.units / i.units
-    return a.units
+    if not varargs:
+        return a.units
+    return tuple(a.units / i.units if isinstance(i, SimArray) 
+            else a.units for i in varargs)
 
 def _implement_array_functionality(class_):
     """Implement all the standard numpy array functionality on the given class.

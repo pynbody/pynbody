@@ -199,6 +199,14 @@ def test_gradient_units():
     assert all(isinstance(gi, SA) for gi in xg)
     assert all(gi.units == "kpc" for gi in xg)
 
+    # different units along each axis
+    v = SA([[1, 2, 3], [4, 5, 6]], 'K')
+    y = SA([1, 2], 'km')
+    t = SA([1, 2, 3], 's')
+    xg = np.gradient(v, y, t)
+    assert xg[0].units == 'K km**-1'
+    assert xg[1].units == 'K s**-1'
+
 
 def test_dimensionful_comparison():
     # check that dimensionful units compare correctly
