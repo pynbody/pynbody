@@ -406,20 +406,21 @@ class SimArray(np.ndarray):
 
         result = func(*args_processed, **kwargs_processed)
 
-        if func in SimArray._ufunc_registry:
-            
-            sim = None
-            for arg in args:
-                if isinstance(arg, SimArray):
-                    sim = arg.sim
-                    break
-            units_val = SimArray._ufunc_registry[func](*args, **kwargs)
+        units_rule = SimArray._ufunc_registry.get(func, None)
+        if units_rule is not None:
+
+            sim = next((arg.sim for arg in args if isinstance(arg, SimArray)), None)
+            units_val = units_rule(*args, **kwargs)
 
             if isinstance(result, (tuple, list)):
-                units_val = (units_val,) if not isinstance(units_val, tuple) else units_val
+                if isinstance(units_val, tuple):
+                    if len(units_val) != len(result):
+                        raise ValueError("Output units must match result length")
+                else:
+                    units_val = itertools.cycle((units_val,))
                 result = type(result)(
                     _as_sim_array(r_i, u_i, sim) 
-                    for r_i,u_i in zip(result, itertools.cycle(units_val))
+                    for r_i,u_i in zip(result, units_val)
                     )
             else:
                 units_val = units_val[0] if isinstance(units_val, tuple) else units_val
