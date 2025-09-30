@@ -745,7 +745,7 @@ def omega(pro):
 @Profile.profile_property
 def kappa(pro):
     """Radial frequency kappa = sqrt(R dOmega^2/dR + 4 Omega^2) (see Binney & Tremaine Sect. 3.2) in the z=0 plane"""
-    dOmega2dR = np.gradient(pro['omega'] ** 2) / np.gradient(pro['rbins'])
+    dOmega2dR = np.gradient(pro['omega'] ** 2) / np.gradient(pro['rbins'])  
     return np.sqrt(pro['rbins'] * dOmega2dR + 4 * pro['omega'] ** 2)
 
 

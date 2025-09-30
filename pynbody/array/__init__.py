@@ -133,6 +133,7 @@ from __future__ import annotations
 
 import fractions
 import functools
+import itertools
 import logging
 import weakref
 from typing import TYPE_CHECKING
@@ -163,6 +164,12 @@ def _copy_docstring_from(source_class):
         return target_class
 
     return wrapper
+
+def _as_sim_array(result: np.ndarray, units: units.UnitBase, sim: snapshot.SimSnap) -> SimArray:
+    result = result.view(SimArray)
+    result.units = units
+    result.sim = sim
+    return result
 
 
 class SimArray(np.ndarray):
@@ -399,16 +406,25 @@ class SimArray(np.ndarray):
 
         result = func(*args_processed, **kwargs_processed)
 
-        if func in SimArray._ufunc_registry:
-            result = result.view(SimArray)
-            if isinstance(result, SimArray): # may not be true if the result is a scalar
-                sim = None
-                for arg in args:
-                    if isinstance(arg, SimArray):
-                        sim = arg.sim
-                        break
-                result.units = SimArray._ufunc_registry[func](*args, **kwargs)
-                result.sim = sim
+        units_rule = SimArray._ufunc_registry.get(func, None)
+        if units_rule is not None:
+
+            sim = next((arg.sim for arg in args if isinstance(arg, SimArray)), None)
+            units_val = units_rule(*args, **kwargs)
+
+            if isinstance(result, (tuple, list)):
+                if isinstance(units_val, tuple):
+                    if len(units_val) != len(result):
+                        raise ValueError("Output units must match result length")
+                else:
+                    units_val = itertools.cycle((units_val,))
+                result = type(result)(
+                    _as_sim_array(r_i, u_i, sim) 
+                    for r_i,u_i in zip(result, units_val)
+                    )
+            else:
+                units_val = units_val[0] if isinstance(units_val, tuple) else units_val
+                result = _as_sim_array(result, units_val, sim)
 
         return result
 
@@ -966,6 +982,12 @@ def _comparison_units(ar, other):
 def _norm_units(a, *args, **kwargs):
     return a.units
 
+@SimArray.ufunc_rule(np.gradient)
+def _gradient_units(a, *varargs, **kwargs):
+    if not varargs:
+        return a.units
+    return tuple(a.units / i.units if isinstance(i, SimArray) 
+            else a.units for i in varargs)
 
 def _implement_array_functionality(class_):
     """Implement all the standard numpy array functionality on the given class.
