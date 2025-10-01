@@ -12,7 +12,7 @@ jobs:
     outputs:
       testdata-key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Install Python
       uses: actions/setup-python@v5
       with:
@@ -70,7 +70,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Install gcc (Ubuntu only)
       if: matrix.os == 'ubuntu-latest'
       run: |
