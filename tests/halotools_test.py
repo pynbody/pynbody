@@ -27,6 +27,23 @@ def test_center(snap, halos):
         np.testing.assert_allclose(
             snap['pos'][0], [-0.0137471, -0.00208458, -0.04392379], rtol=1e-4)
 
+def test_hybrid_center():
+    # without 'phi' (potential).
+    f = pynbody.new(1000)
+    f['pos'] = np.ones(f['pos'].shape)
+    f['pos'][0] = [200,200,200]
+    
+    f['vel'] = np.ones(f['vel'].shape)
+    f['mass'] = np.ones(1000)
+    cen = pynbody.analysis.halo.hybrid_center(f,r=1)
+    np.testing.assert_allclose(cen, [1., 1., 1.])
+    
+    # with 'phi'
+    f['phi'] = np.ones(1000)
+    f['phi'][0] = 0.
+    cen = pynbody.analysis.halo.hybrid_center(f,r=1)
+    np.testing.assert_allclose(cen, [200.0, 200., 200.])
+
 def test_center_wrapped_halo():
     npart = 10000
     f = pynbody.new(dm=npart)

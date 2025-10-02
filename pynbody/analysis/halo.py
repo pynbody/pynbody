@@ -217,7 +217,7 @@ def hybrid_center(sim, r='3 kpc', **kwargs):
     try:
         cen_a = _potential_minimum(sim)
     except KeyError:
-        cen_a = center_of_mass(sim)
+        cen_a = sim.mean_by_mass("pos")
     return shrink_sphere_center(sim[filt.Sphere(r, cen_a)], **kwargs)
 
 
