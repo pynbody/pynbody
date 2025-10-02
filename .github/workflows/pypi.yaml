@@ -18,7 +18,7 @@ jobs:
     outputs:
       testdata-key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Install Python
       uses: actions/setup-python@v5
       with:
@@ -65,7 +65,7 @@ jobs:
         - [windows-11-arm, win, arm64, "", ""]
         python: ["cp311", "cp312", "cp313"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install GCC (Ubuntu)
         if: startsWith(matrix.buildplat[0], 'ubuntu')
@@ -120,7 +120,7 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-python@v5
         name: Install Python
@@ -147,7 +147,7 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install Python
         uses: actions/setup-python@v5
