@@ -50,13 +50,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-2025]
-        python-version: ["3.11", "3.12", "3.13"]
-        numpy-version: ["1.26.4", "2.0.2", "2.2.0"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        numpy-version: ["2.0.2", "2.3.3"]
         exclude:
-          - python-version: "3.12"
-            numpy-version: "1.26.4"
-          - python-version: "3.13"
-            numpy-version: "1.26.4"
+          - python-version: "3.14"
+            numpy-version: "2.0.2"
           - python-version: "3.13"
             numpy-version: "2.0.2"
 

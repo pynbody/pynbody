@@ -1,4 +1,5 @@
 import platform
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -210,6 +211,10 @@ def test_projection_average(simple_test_file):
     npt.assert_allclose(im_collapsed, answer, atol=0.3)
 
 
+
+
+
+
 def test_spherical_render(simple_test_file):
     f = simple_test_file
 
@@ -236,6 +241,7 @@ def test_spherical_render(simple_test_file):
 
 @pytest.mark.filterwarnings("ignore::UserWarning")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Healpy not supported on Windows")
+@pytest.mark.skipif(sys.version_info >= (3, 14), reason="Healpy binaries seem to be broken on Python 3.14")
 def test_render_stars_spherical(snap):
     plt.clf()
     res = pynbody.plot.stars.render_mollweide(snap, return_image=True)

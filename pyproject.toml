@@ -37,7 +37,7 @@ tests = [
     "pandas",
     "camb",
     "IPython",
-    "healpy; platform_system != 'Windows'"
+    "healpy; platform_system != 'Windows' and python_version < '3.14'"
 ]
 docs = [
     "ipython>=3",

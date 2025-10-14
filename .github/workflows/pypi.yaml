@@ -63,7 +63,7 @@ jobs:
         - [macos-13-xlarge, macosx, arm64, "/opt/homebrew", "13.0"]
         - [windows-2022, win, amd64, "", ""]
         - [windows-11-arm, win, arm64, "", ""]
-        python: ["cp311", "cp312", "cp313"]
+        python: ["cp311", "cp312", "cp313", "cp314"]
     steps:
       - uses: actions/checkout@v5
 
@@ -143,8 +143,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2025, macos-13]
-        python-version: ["3.11", "3.12", "3.13"]
+        os: [ubuntu-latest, windows-2025, macos-latest]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
