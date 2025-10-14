@@ -1,4 +1,5 @@
 import platform
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -208,6 +209,11 @@ def test_projection_average(simple_test_file):
     im = pynbody.sph.render_image(f, quantity='temp', weight=True, width=1, out_units='0.1 K')
     im_collapsed = np.mean(im, axis=0)
     npt.assert_allclose(im_collapsed, answer, atol=0.3)
+
+
+
+
+
 
 def test_spherical_render(simple_test_file):
     f = simple_test_file
