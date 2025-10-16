@@ -1133,6 +1133,42 @@ class EagleLikeHDFSnap(GadgetHDFSnap):
             return cat
         else:
             return halo.number_array.HaloNumberCatalogue(self, array="GroupNumber", ignore=np.max(self['GroupNumber']))
+            
+class FIREHDFSnap(GadgetHDFSnap):
+    """Reads FIRE-like HDF snapshots"""
+    _readable_hdf5_test_key = "PartType0/ParticleIDGenerationNumber"
+    _namemapper_config_section = "gadgethdf-name-mapping"
+        
+    _default_type_map = {}
+    for x in family.family_names():
+        try:
+            _default_type_map[family.get_family(x)] = \
+                     [q.strip() for q in config_parser.get('firehdf-type-mapping', x).split(",")]
+        except configparser.NoOptionError:
+            pass
+
+    _all_hdf_particle_groups = []
+    for hdf_groups in _default_type_map.values():
+        for hdf_group in hdf_groups:
+            _all_hdf_particle_groups.append(hdf_group)
+
+        
+    def __init_family_map(self):
+        type_map = {}
+        for fam, g_types in _default_type_map.items():
+            my_types = []
+            for x in g_types:
+                # Get all keys from all hdf files
+                for hdf in self._hdf_files:
+                    if x in list(hdf.keys()):
+                        my_types.append(x)
+                        break
+            if len(my_types):
+                type_map[fam] = my_types
+        self._family_to_group_map = type_map
+    
+    def halos(self) :
+        return halo.AHFCatalogue(self)
 
 ## Gadget has internal energy variable
 @GadgetHDFSnap.derived_array
