@@ -69,6 +69,18 @@ SimArray([  1.99e+30,   3.98e+30], 'kg')
 >>> print(x)
 SimArray([1,2], "Msol")
 
+You can also supply context values for conversions (e.g. the cosmological scale factor a):
+
+>>> x = SimArray([1,2], "kpc a")
+>>> print(x.in_units("kpc", a=0.5))
+SimArray([  0.5,   1. ], 'kpc')
+
+Per-element (array-valued) context is supported and broadcasts over the leading axis:
+
+>>> import numpy as np
+>>> SimArray([1, 2, 3], "a kpc").in_units("kpc", a=np.array([0.2, 0.3, 0.4]))
+SimArray([0.2, 0.6, 1.2], 'kpc')
+
 If the :class:`SimArray` (or :class:`IndexedSimArray`) was created by a SimSnap (which is most likely), it
 has a pointer into the SimSnap's properties so that the cosmological
 context is automatically fetched. For example, comoving -> physical
