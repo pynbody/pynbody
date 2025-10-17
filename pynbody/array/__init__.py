@@ -172,6 +172,24 @@ def _as_sim_array(result: np.ndarray, units: units.UnitBase, sim: snapshot.SimSn
     return result
 
 
+def _reshape_ratio_for_broadcast(ratio: float | np.ndarray, target_shape: tuple) -> float | np.ndarray:
+    """Ensure ratio broadcasts over target_shape's leading axis."""
+    if np.isscalar(ratio): # int, float, or numpy scalar
+        return ratio
+
+    ratio_arr = np.asarray(ratio)
+    if ratio_arr.shape == (): # 0-D numpy scalar
+        return ratio_arr.item()
+
+    if ratio_arr.ndim == 1:  # 1-D array, length matches leading axis
+        if len(target_shape) == 0:
+            raise ValueError("Cannot broadcast 1-D ratio onto scalar target shape")
+        if ratio_arr.shape[0] != target_shape[0]:
+            raise ValueError("Ratio length does not match target leading axis")
+        return ratio_arr.reshape((ratio_arr.shape[0],) + (1,) * (len(target_shape) - 1))
+
+    raise ValueError("Ratio must be a scalar or 1-D array")
+
 class SimArray(np.ndarray):
     """A shallow wrapper around numpy.ndarray for extra functionality like unit-tracking.
 
@@ -747,8 +765,9 @@ class SimArray(np.ndarray):
         context.update(context_overrides)
 
         if self.units is not None:
-            r = self * self.units.ratio(new_unit,
-                                        **context)
+            ratio = self.units.ratio(new_unit, **context)
+            ratio = _reshape_ratio_for_broadcast(ratio, self.shape)
+            r = self * ratio
             r.units = new_unit
             return r
         else:
@@ -764,6 +783,7 @@ class SimArray(np.ndarray):
                                      **(self.conversion_context()))
             logger.debug("Converting %s units from %s to %s; ratio = %.3e" %
                          (self.name, self.units, new_unit, ratio))
+            ratio = _reshape_ratio_for_broadcast(ratio, self.shape)
             self *= ratio
             self.units = new_unit
 
@@ -913,6 +933,7 @@ def _consistent_units(*arrays, catch=None):
             else:
                 if unit != output_unit:
                     conversion_ratio = unit.ratio(output_unit, **conversion_context)
+                    conversion_ratio = _reshape_ratio_for_broadcast(conversion_ratio, np.shape(numpy_array))
                     numpy_arrays[i] = numpy_array * conversion_ratio
 
         return output_unit, numpy_arrays
