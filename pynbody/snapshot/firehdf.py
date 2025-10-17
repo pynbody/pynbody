@@ -41,62 +41,62 @@ class FIREHDFSnap(GadgetHDFSnap):
         self._family_to_group_map = type_map
         
         
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def He(self) :
     He = self['metals_list'][:,1]
     return He
     
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def H(self) :
     H = 1 - self['metals_list'][:,0] - self['He']
     return H
    
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def C(self) :
     C = self['metals_list'][:,2]
     return C
     
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def N(self) :
     N = self['metals_list'][:,3]
     return N
     
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def O(self) :
     O = self['metals_list'][:,4]
     return O
     
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def Ne(self) :
     Ne = self['metals_list'][:,5]
     return Ne
      
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def Mg(self) :
     Mg = self['metals_list'][:,6]
     return Mg
     
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def Si(self) :
     Si = self['metals_list'][:,7]
     return Si
     
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def S(self) :
     S = self['metals_list'][:,8]
     return S
     
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def Ca(self) :
     Ca = self['metals_list'][:,9]
     return Ca
     
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def Fe(self) :
     Fe = self['metals_list'][:,10]
     return Fe
     
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def metals(self) :
     metals = self['metals_list'][:,0]
     return metals
