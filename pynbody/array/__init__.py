@@ -178,7 +178,7 @@ def _reshape_ratio_for_broadcast(ratio: float | np.ndarray, target_shape: tuple)
         return ratio
 
     ratio_arr = np.asarray(ratio)
-    if ratio_arr.shape == (): # 0-D numpy scalar
+    if ratio_arr.ndim == 0 or ratio_arr.size == 1: # 0-D numpy scalar
         return ratio_arr.item()
 
     if ratio_arr.ndim == 1:  # 1-D array, length matches leading axis
