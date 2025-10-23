@@ -29,8 +29,9 @@ def test_issue_943():
     
     # Load the gizmo file
     f = pynbody.load("testdata/gizmo/snapshot_000.hdf5")
-    # ensuring filename is a PosixPath
-    assert not isinstance(f.filename,str) 
+    # ensure the error would actually occur
+    with pytest.raises(TypeError):
+        f.filename + ".units" 
     # Note: Gizmo snapshots do not call _override_units_system by default
     # so we call it manually
     # This should produce an OSError because the file is formatted incorrectly
