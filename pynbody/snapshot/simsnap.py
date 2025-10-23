@@ -686,10 +686,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         name_mapping = {'pos': 'distance', 'vel': 'velocity'}
         units_dict = {}
 
-        for line in lines:
+        for i,line in enumerate(lines):
+            if not line.strip():
+                continue
             if (not line.startswith("#")):
                 if ":" not in line:
-                    raise OSError("Unknown format for units file %r"%(str(self.filename)+".units"))
+                    raise OSError("Unknown format for units file %r on line %i"%(str(self.filename)+".units",i))
                 else:
                     t, u = list(map(str.strip,line.split(":")))
                     t = name_mapping.get(t,t)
