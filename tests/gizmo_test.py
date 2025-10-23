@@ -1,6 +1,7 @@
+import os
+
 import numpy as np
 import pytest
-import os
 
 import pynbody
 import pynbody.test_utils
