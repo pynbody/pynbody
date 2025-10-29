@@ -13,7 +13,10 @@ import pynbody.test_utils
 def get_data():
     pynbody.test_utils.ensure_test_data_available("hbt")
 
-pytestmark = pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Unable to infer units from HDF attributes",
+    r"ignore:HBT\+ catalogue does not.*",
+)
 
 @pytest.fixture(params=[True, False], ids=['multifile', 'single-file'])
 def snap(request):

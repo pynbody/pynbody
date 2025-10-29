@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import warnings
 
 import h5py
 import numpy as np
@@ -150,9 +151,17 @@ class HBTPlusCatalogue(HaloCatalogue):
     def _setup_parents(self):
         parents = np.empty(len(self), dtype=np.intp)
         parents.fill(-1)
-        for i in range(len(self)):
-            for child in self._trackid_number_mapper.number_to_index(self._file["NestedSubhalos"][i]):
-                parents[child] = self.number_mapper.index_to_number(i)
+        if "NestedParentTrackId" in self._file:
+            parents_track_ids = self._file["NestedParentTrackId"][:]
+            mask = parents_track_ids!=-1
+            parents[mask] = self.number_mapper.index_to_number(
+                self._trackid_number_mapper.number_to_index(parents_track_ids)
+            )
+        else:
+            warnings.warn("HBT+ catalogue does not contain 'NestedParentTrackId' dataset; falling back to slow parent lookup.")
+            for i in range(len(self)):
+                for child in self._trackid_number_mapper.number_to_index(self._file["NestedSubhalos"][i]):
+                    parents[child] = self.number_mapper.index_to_number(i)
 
         self._parents = parents
 
