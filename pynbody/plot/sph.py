@@ -648,8 +648,6 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
     else:
         qtytitle = None
 
-    if weight and qtytitle:
-        qtytitle = f"$\\langle${qtytitle}$\\rangle$"
 
     renderer = renderers.make_render_pipeline(sim, quantity=qty, width=width, resolution=resolution,
                                               out_units=units, weight=weight, restrict_depth=restrict_depth,
@@ -659,7 +657,9 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
     # if width was provided e.g. as string, we'll need it as a float
     width = renderer.geometry.width
 
-    if renderer.is_projected and qtytitle is not None:
+    if weight and qtytitle:
+        qtytitle = f"$\\langle${qtytitle}$\\rangle$"
+    elif renderer.is_projected and qtytitle is not None:
         qtytitle = f"$\\int\\,${qtytitle}$\\,\\mathrm{{d}}z$"
 
     im = renderer.render()
