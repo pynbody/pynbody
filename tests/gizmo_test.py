@@ -74,4 +74,3 @@ def test_allow_blank_lines():
     finally:
         # remove unitfile
         os.remove(unitfile_name)
-
