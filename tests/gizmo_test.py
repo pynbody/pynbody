@@ -55,22 +55,23 @@ def test_allow_blank_lines():
         unitfile.write("\n \t") # empty line with whitespace wasn't allowed
         unitfile.write("pos: kpc a h^-1\n")
 
-    # Load the gizmo file
-    f = pynbody.load("testdata/gizmo/snapshot_000.hdf5")
-    # this should not raise an error due to whitespace
-    assert f['pos'].units == "Mpc a h^-1"
-    f._override_units_system()
-    assert f['pos'].units == "kpc a h^-1"
-    
-    # Now add a deliberate typo to check it still errors on incorrect formats
-    with open(unitfile_name,"a") as unitfile:
-        unitfile.write("\n")
-        unitfile.write("vel; km s^-1\n") # deliberate typo
-
-    f = pynbody.load("testdata/gizmo/snapshot_000.hdf5")
-    with pytest.raises(OSError):
+    try:
+        # Load the gizmo file
+        f = pynbody.load("testdata/gizmo/snapshot_000.hdf5")
+        # this should not raise an error due to whitespace
+        assert f['pos'].units == "Mpc a h^-1"
         f._override_units_system()
+        assert f['pos'].units == "kpc a h^-1"
+        
+        # Now add a deliberate typo to check it still errors on incorrect formats
+        with open(unitfile_name,"a") as unitfile:
+            unitfile.write("\n")
+            unitfile.write("vel; km s^-1\n") # deliberate typo
 
-    # remove unitfile
-    os.remove(unitfile_name)
+        f = pynbody.load("testdata/gizmo/snapshot_000.hdf5")
+        with pytest.raises(OSError):
+            f._override_units_system()
+    finally:
+        # remove unitfile
+        os.remove(unitfile_name)
 
