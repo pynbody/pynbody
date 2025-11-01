@@ -689,7 +689,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         for line in lines:
             if (not line.startswith("#")):
                 if ":" not in line:
-                    raise OSError("Unknown format for units file %r"%(self.filename+".units"))
+                    raise OSError("Unknown format for units file %r"%(str(self.filename)+".units"))
                 else:
                     t, u = list(map(str.strip,line.split(":")))
                     t = name_mapping.get(t,t)
