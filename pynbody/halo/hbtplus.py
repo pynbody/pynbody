@@ -151,19 +151,32 @@ class HBTPlusCatalogue(HaloCatalogue):
     def _setup_parents(self):
         parents = np.empty(len(self), dtype=np.intp)
         parents.fill(-1)
+
         if "NestedParentTrackId" in self._file["Subhalos"].dtype.names:
+            children = [[] for _ in range(len(self))]
             parents_track_ids = self._file["Subhalos"]["NestedParentTrackId"]
             mask = parents_track_ids!=-1
-            parents[mask] = self.number_mapper.index_to_number(
-                self._trackid_number_mapper.number_to_index(parents_track_ids[mask])
-            )
+            parents_index_masked = self._trackid_number_mapper.number_to_index(parents_track_ids[mask])
+            parents_numbers_masked = self.number_mapper.index_to_number(parents_index_masked)
+            parents[mask] = parents_numbers_masked
+            children_numbers = self.number_mapper.index_to_number(np.arange(len(self))[mask])
+            for child, parent_index in zip(children_numbers, parents_index_masked):
+                children[parent_index].append(child)
+
         else:
             warnings.warn("HBT+ catalogue does not contain 'NestedParentTrackId' dataset; falling back to slow parent lookup.")
+            children = []
             for i in range(len(self)):
-                for child in self._trackid_number_mapper.number_to_index(self._file["NestedSubhalos"][i]):
-                    parents[child] = self.number_mapper.index_to_number(i)
+                parent_number = self.number_mapper.index_to_number(i)
+                children_index = self._trackid_number_mapper.number_to_index(self._file["NestedSubhalos"][i])
+                children.append(
+                    self.number_mapper.index_to_number(children_index)
+                )
+                for child_index in children_index:
+                    parents[child_index] = self.number_mapper.index_to_number(i)
 
         self._parents = parents
+        self._children = children
 
     def _map_trackid_to_pynbody_number(self, trackid: NDArray[int]) -> NDArray[int]:
         if self.number_mapper is self._trackid_number_mapper:
@@ -214,7 +227,7 @@ class HBTPlusCatalogue(HaloCatalogue):
         result = {}
         for k in self._file["Subhalos"].dtype.names:
             result[k] = self._file["Subhalos"][k][index]
-        result['children'] = self._get_children_one_halo(index)
+        result['children'] = self._children[index]
         result['parent'] = self._parents[index]
         return result
 
@@ -222,13 +235,9 @@ class HBTPlusCatalogue(HaloCatalogue):
         result = {}
         for k in self._file["Subhalos"].dtype.names:
             result[k] = np.asarray(self._file["Subhalos"][k])
-        result['children'] = [self._get_children_one_halo(i) for i in range(len(self))]
+        result['children'] = self._children
         result['parent'] = self._parents
         return result
-
-    def _get_children_one_halo(self, index) -> NDArray[int]:
-        return self._map_trackid_to_pynbody_number(self._file["NestedSubhalos"][index])
-
 
 
     @classmethod
@@ -238,7 +247,7 @@ class HBTPlusCatalogue(HaloCatalogue):
         try:
             hbt_filename = filename or cls._infer_hbt_filename(sim)
             if h5py.is_hdf5(hbt_filename):
-                with h5py.File(hbt_filename, 'r') as f:
+                with h5py.File(hbt_filename, 'r', locking=False) as f:
                     if "NumberOfFiles" in f:
                         return True
         except OSError:

@@ -55,7 +55,7 @@ class HdfVdsMaker:
             if isinstance(f, h5py.File):
                 self._files.append(f)
             else:
-                self._files.append(h5py.File(f, 'r'))
+                self._files.append(h5py.File(f, 'r', locking=False))
 
     def concatenation_keys(self) -> Iterable[str]:
         """Returns all keys to concatenate as VDS"""

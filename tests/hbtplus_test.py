@@ -369,3 +369,12 @@ def test_load_with_parent_trackid(hbtplus_catalogue_with_parent_track_ids):
     parent_number_original = h_original.get_properties_all_halos()['parent']
 
     assert (parent_number == parent_number_original).all()
+
+    h.load_all()
+    h_original.load_all()
+
+    # check that children are also ok:
+    for i in range(len(h)):
+        children = np.sort(np.asarray(h[i].properties['children']))
+        children_original = np.sort(np.asarray(h_original[i].properties['children']))
+        assert (children == children_original).all()
