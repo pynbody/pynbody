@@ -89,7 +89,7 @@ class HBTPlusCatalogue(HaloCatalogue):
         else:
             filename = self._map_user_filename_to_file_0(filename)
 
-        self._file = h5py.File(filename, 'r')
+        self._file = h5py.File(filename, 'r', locking=False)
 
         num_halos = int(self._file["NumberOfSubhalosInAllFiles"][0])
         if int(self._file["NumberOfFiles"][0])>1:
@@ -151,11 +151,11 @@ class HBTPlusCatalogue(HaloCatalogue):
     def _setup_parents(self):
         parents = np.empty(len(self), dtype=np.intp)
         parents.fill(-1)
-        if "NestedParentTrackId" in self._file:
-            parents_track_ids = self._file["NestedParentTrackId"][:]
+        if "NestedParentTrackId" in self._file["Subhalos"].dtype.names:
+            parents_track_ids = self._file["Subhalos"]["NestedParentTrackId"]
             mask = parents_track_ids!=-1
             parents[mask] = self.number_mapper.index_to_number(
-                self._trackid_number_mapper.number_to_index(parents_track_ids)
+                self._trackid_number_mapper.number_to_index(parents_track_ids[mask])
             )
         else:
             warnings.warn("HBT+ catalogue does not contain 'NestedParentTrackId' dataset; falling back to slow parent lookup.")
