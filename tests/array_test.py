@@ -21,7 +21,21 @@ import pytest
 def get_data():
     pynbody.test_utils.ensure_test_data_available("gadget")
 
+class _FakeSim:
+    """Minimal SimSnap-like object that returns conversion_context."""
+    def __init__(self, *args, **kwargs):
+        self._conversion_context = dict(*args, **kwargs)
 
+    def conversion_context(self):
+        return self._conversion_context
+
+    @property
+    def ancestor(self):
+        return self
+
+    def __getitem__(self, key):
+        # For family routing in SimArray.sim
+        return self
 
 def test_pickle():
     import pickle
@@ -159,6 +173,58 @@ def test_iop_sanity():
     assert id(x) == x_id
     x /= 2
     assert id(x) == x_id
+    
+def test_in_units_normal_ratio():
+    x = SA([1.0, 2.0, 3.0], 'a kpc')
+    y = x.in_units('pc', a=0.001)
+    assert y.units == 'pc'
+    npt.assert_allclose(y, np.array([1.0, 2.0, 3.0]), rtol=1e-12, atol=0)
+    
+    y = x.in_units('pc', a = np.array([0.001]))
+    npt.assert_allclose(y, np.array([1.0, 2.0, 3.0]), rtol=1e-12, atol=0)
+    
+    y = x.in_units('pc', a = SA(np.array([0.001])))
+    npt.assert_allclose(y, np.array([1.0, 2.0, 3.0]), rtol=1e-12, atol=0)
+
+def test_in_units_array1d_ratio1d():
+    x = SA([1.0, 2.0, 3.0], 'a kpc')
+    a = np.array([0.2, 0.3, 0.4])
+    y = x.in_units('kpc', a=a)
+    assert y.units == 'kpc'
+    npt.assert_allclose(y, np.array([0.2, 0.6, 1.2]), rtol=1e-12, atol=0)
+
+def test_in_units_array3d_ratio1d():
+    N = 5
+    x = SA(np.arange(1, N*3 + 1, dtype=float).reshape(N, 3), 'a kpc')
+    a = np.linspace(0.1, 0.5, N)
+    y = x.in_units('kpc', a=a)
+    expected = x.view(np.ndarray) * a.reshape(N, 1)
+    assert y.units == 'kpc'
+    npt.assert_allclose(y, expected, rtol=1e-12, atol=0)
+    
+def test_in_units_array_ratio_mismatch_raises():
+    x = SA(np.ones(5), 'a kpc')
+    with pytest.raises(ValueError):
+        _ = x.in_units('kpc', a=np.ones(4))
+        _ = x.in_units('kpc', a=np.ones((5,2)))
+        
+    x = SA(np.ones(1), 'a kpc')
+    with pytest.raises(ValueError):
+        _ = x.in_units('kpc', a=np.ones(2))
+
+def test_add_with_array_ratio_context_broadcast():
+    a = np.array([0.2, 0.3, 0.4, 0.5])
+    x = SA(np.ones((4, 3)), 'a kpc')
+    y = SA(2.0 * np.ones((4, 3)), 'kpc')
+
+    fake = _FakeSim(a=a)
+    x.sim = fake
+    y.sim = fake
+
+    z = x + y
+    expected = x.view(np.ndarray) + y.view(np.ndarray) * (1.0 / a).reshape(4, 1)
+    assert z.units == 'a kpc'
+    npt.assert_allclose(z, expected, rtol=1e-12, atol=0)
 
 
 def test_unit_array_interaction():
