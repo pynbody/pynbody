@@ -1,3 +1,4 @@
+import gc
 import os
 import pathlib
 import shutil
@@ -349,6 +350,7 @@ def hbtplus_catalogue_with_parent_track_ids():
 
     yield target_filename
 
+    gc.collect() # ensure hdf file has been closed, for windows
     os.remove(target_filename)
 
 def test_load_with_parent_trackid(hbtplus_catalogue_with_parent_track_ids):
