@@ -1,6 +1,10 @@
+import gc
+import os
 import pathlib
+import shutil
 import warnings
 
+import h5py
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -13,7 +17,10 @@ import pynbody.test_utils
 def get_data():
     pynbody.test_utils.ensure_test_data_available("hbt")
 
-pytestmark = pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Unable to infer units from HDF attributes",
+    r"ignore:HBT\+ catalogue does not.*",
+)
 
 @pytest.fixture(params=[True, False], ids=['multifile', 'single-file'])
 def snap(request):
@@ -297,3 +304,79 @@ def test_with_group_cat(halos_length_ordered, subfind_groups, children_of_group_
 
     properties = combined_catalogue.get_properties_all_halos()
     assert (properties['children'][0] == children_of_group_0).all()
+
+@pytest.fixture
+def hbtplus_catalogue_with_parent_track_ids():
+    """Newer HBT+ catalogues have ParentTrackId property, which is important for efficiency.
+    This constructs such a catalogue for testing."""
+
+    target_filename = "testdata/gadget4_subfind_HBT/034/SubSnap_034_with_parent_trackid.0.hdf5"
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        f = pynbody.load("testdata/gadget4_subfind_HBT/snapshot_034.hdf5")
+        h = pynbody.halo.hbtplus.HBTPlusCatalogue(f)
+
+    # Manually construct ParentTrackId propert
+    parent_number = h.get_properties_all_halos()['parent']
+    mask = parent_number >= 0
+    parent_index_masked = h.number_mapper.number_to_index(parent_number[mask])
+    parent_trackid_masked = h._trackid_number_mapper.index_to_number(parent_index_masked)
+    parent_trackid = np.repeat(-1, len(parent_number))
+    parent_trackid[mask] = parent_trackid_masked
+
+    h._file.close()
+
+    shutil.copy("testdata/gadget4_subfind_HBT/034/SubSnap_034.0.hdf5",
+                target_filename)
+
+    with h5py.File(target_filename, "r+",
+                   locking=False) as f:
+        old_data = f['Subhalos'][:]
+        old_dtype = f['Subhalos'].dtype
+
+        # Define new dtype with an extra column
+        new_dtype = np.dtype(old_dtype.descr + [('NestedParentTrackId', 'i8')])
+
+        # Create new data array
+        new_data = np.empty(old_data.shape, dtype=new_dtype)
+        for name in old_dtype.names:
+            new_data[name] = old_data[name]
+        new_data['NestedParentTrackId'] = parent_trackid
+
+        # Delete old dataset and create new one
+        del f['Subhalos']
+        f.create_dataset('Subhalos', data=new_data)
+
+    yield target_filename
+
+    gc.collect() # ensure hdf file has been closed, for windows
+    os.remove(target_filename)
+
+def test_load_with_parent_trackid(hbtplus_catalogue_with_parent_track_ids):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        f = pynbody.load("testdata/gadget4_subfind_HBT/snapshot_034.hdf5")
+
+    # should not issue a performance warning:
+    with warnings.catch_warnings(action='error') as w:
+        h = pynbody.halo.hbtplus.HBTPlusCatalogue(f, filename=hbtplus_catalogue_with_parent_track_ids)
+
+    # this will warn, but the warnings are ignored at module level:
+    h_original = pynbody.halo.hbtplus.HBTPlusCatalogue(f)
+
+    # Check that parent TrackIds are correct
+    parent_number = h.get_properties_all_halos()['parent']
+
+    parent_number_original = h_original.get_properties_all_halos()['parent']
+
+    assert (parent_number == parent_number_original).all()
+
+    h.load_all()
+    h_original.load_all()
+
+    # check that children are also ok:
+    for i in range(len(h)):
+        children = np.sort(np.asarray(h[i].properties['children']))
+        children_original = np.sort(np.asarray(h_original[i].properties['children']))
+        assert (children == children_original).all()
