@@ -201,7 +201,7 @@ class HBTPlusCatalogue(HaloCatalogue):
         boundaries = np.empty((len(self._file["SubhaloParticles"]), 2),
                               dtype=np.intp)
         start = 0
-        for i, halo_parts in enumerate(self._file['SubhaloParticles']):
+        for i, halo_parts in enumerate(self._file['SubhaloParticles'][:]):
             end = start + len(halo_parts)
             indices[start:end] = np.sort(self._iord_to_fpos.map_ignoring_order(halo_parts))
             boundaries[i] = (start,end)
@@ -225,16 +225,18 @@ class HBTPlusCatalogue(HaloCatalogue):
     def get_properties_one_halo(self, halo_number) -> dict:
         index = self.number_mapper.number_to_index(halo_number)
         result = {}
-        for k in self._file["Subhalos"].dtype.names:
-            result[k] = self._file["Subhalos"][k][index]
+        subhalo = self._file["Subhalos"][index]
+        for k in subhalo.dtype.names:
+            result[k] = subhalo[k]
         result['children'] = self._children[index]
         result['parent'] = self._parents[index]
         return result
 
     def get_properties_all_halos(self, with_units=True) -> dict:
         result = {}
-        for k in self._file["Subhalos"].dtype.names:
-            result[k] = np.asarray(self._file["Subhalos"][k])
+        subhalos = self._file["Subhalos"][:]
+        for k in subhalos.dtype.names:
+            result[k] = np.asarray(subhalos[k])
         result['children'] = self._children
         result['parent'] = self._parents
         return result
