@@ -775,10 +775,7 @@ class GadgetSnap(SimSnap):
 
         # Add default mapping to unpadded lower case if not in config file.
         for nn in self._loadable_keys:
-            if sys.version_info[0] == 2:
-                mm = nn.lower().strip()
-            else:
-                mm = nn.lower().strip().decode('utf-8')
+            mm = nn.lower().strip().decode('utf-8')
             if nn not in _rev_name_map:
                 _rev_name_map[nn] = mm
             if mm not in _name_map:
