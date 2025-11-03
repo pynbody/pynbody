@@ -1,7 +1,7 @@
 import configparser
 from .. import config_parser, family, units
+from ..array import SimArray
 from .gadgethdf import GadgetHDFSnap
-import numpy as np
 
 _default_type_map = {}
 for x in family.family_names():
@@ -110,7 +110,7 @@ def Fe(self) :
     
 @FIREHDFSnap.derived_array
 def metals(self) :
-    metals = np.array(self['metals_list'][:,0], dtype = np.float64)
+    metals = SimArray(self['metals_list'][:,0], dtype = float)
     # Specify dtype to fix clamping problems when interpolating magnitudes,
     # should we do this for all element mass fractions?
     # PENDING: check if position 0 is always the metal_fraction
