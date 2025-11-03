@@ -16,7 +16,7 @@ def get_data():
 
 @pytest.fixture
 def snap():
-    f = pynbody.load('testdata/m11i_res7100/output/snapshot_600.hdf5')
+    f = pynbody.load('testdata/FIRE/m11i_res7100/output/snapshot_600.hdf5')
     yield f
     del f
     gc.collect()
@@ -24,12 +24,12 @@ def snap():
 
 @pytest.fixture
 def multi_snap():
-    f = pynbody.load('testdata/m10q_res30/output/snapdir_600/snapshot_600')
+    f = pynbody.load('testdata/FIRE/m10q_res30/output/snapdir_600/snapshot_600')
     yield f
     del f
     gc.collect()
     
-def test_standard_arrays(snap, multi_snap) :
+def test_standard_arrays(snap, multi_snap):
     """Check that the data loading works"""
 
     for s in [snap, multi_snap] :
@@ -45,10 +45,10 @@ def test_standard_arrays(snap, multi_snap) :
         s.gas['rho']
         s.star['mass']
 
-def test_mags(snap, subfind) :
+def test_mags(snap, multi_snap):
     """Check that magnitudes are not NaN"""
     bands = pynbody.analysis.luminosity._load_ssp_table(pynbody.analysis.luminosity._default_ssp_file[0]).bands
     for s in [snap, multi_snap] :
         for b in bands:
-            mags = pynbody.analysis.luminosity.calc_mags(s, b)
+            mags = pynbody.analysis.luminosity.calc_mags(s.star, b)
             assert not np.any(np.isnan(mags))

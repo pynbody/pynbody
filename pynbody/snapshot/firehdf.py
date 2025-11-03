@@ -41,6 +41,17 @@ class FIREHDFSnap(GadgetHDFSnap):
                 type_map[fam] = my_types
         self._family_to_group_map = type_map
         
+    def _init_unit_information(self):
+        # Uses gadget default units, FIRE doesn't store units
+        atr = self._hdf_files.get_parameter_attrs()
+        if self._velocity_unit_key not in atr.keys():
+            vel_unit = config_parser.get('firehdf-units', 'vel')
+            dist_unit = config_parser.get('firehdf-units', 'pos')
+            mass_unit = config_parser.get('firehdf-units', 'mass')
+            self._file_units_system = [units.Unit(x) for x in [
+                vel_unit, dist_unit, mass_unit, "K"]]
+            return
+        
         
 @FIREHDFSnap.derived_array
 def He(self) :
@@ -97,7 +108,7 @@ def Fe(self) :
     Fe = self['metals_list'][:,10]
     return Fe
     
-@FIREHDFSnap.derived_quantity
+@FIREHDFSnap.derived_array
 def metals(self) :
     metals = np.array(self['metals_list'][:,0], dtype = np.float64)
     # Specify dtype to fix clamping problems when interpolating magnitudes,
