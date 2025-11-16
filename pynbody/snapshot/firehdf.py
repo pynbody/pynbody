@@ -110,8 +110,11 @@ def Fe(self) :
     
 @FIREHDFSnap.derived_array
 def metals(self) :
-    metals = SimArray(self['metals_list'][:,0], dtype = float)
-    # Specify dtype to fix clamping problems when interpolating magnitudes,
-    # should we do this for all element mass fractions?
-    # PENDING: check if position 0 is always the metal_fraction
+    metals = self['metals_list'][:,0]
+    # PENDING: there's some small discrepancy with np.sum(self['metals_list'][:,2:], axis = 1), 
+    # but the FIRE-2 public release info is incorrect, as self['metals_list'][:,0] 
+    # is clearly not equal to the H mass fraction
     return metals
+    
+# PENDING: "some" FIRE-2 simulations include additional metal_list fields
+# for r-process calculations
