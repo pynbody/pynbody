@@ -201,9 +201,9 @@ class SSPTable:
 
         """
 
-        age_star = snapshot['age'].in_units('yr')
+        age_star = snapshot['age'].in_units('yr').astype(np.float64)
         age_star[age_star<1.0] = 1.0
-        metals = snapshot['metals']
+        metals = snapshot['metals'].astype(np.float64)
         try:
             masses = snapshot['massform'].in_units('Msol')
         except KeyError:
