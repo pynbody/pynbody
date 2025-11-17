@@ -163,8 +163,10 @@ class SSPTable:
         """
         if self._case_insensitive:
             band = band.lower()
-        metallicities = np.copy(metallicities)
-        ages = np.copy(ages)
+        # Convert to float64 for consistent interpolation (issue #953)
+        # The SSP tables are float64, so we need matching precision for clamping
+        metallicities = np.asarray(metallicities, dtype=np.float64)
+        ages = np.asarray(ages, dtype=np.float64)
         # clamp to the edge of the table
         metallicities = self._clamp_value(metallicities, self._metallicities)
         ages = self._clamp_value(ages, self._ages)
@@ -201,9 +203,9 @@ class SSPTable:
 
         """
 
-        age_star = snapshot['age'].in_units('yr').astype(np.float64)
+        age_star = snapshot['age'].in_units('yr')
         age_star[age_star<1.0] = 1.0
-        metals = snapshot['metals'].astype(np.float64)
+        metals = snapshot['metals']
         try:
             masses = snapshot['massform'].in_units('Msol')
         except KeyError:

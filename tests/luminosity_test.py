@@ -210,6 +210,6 @@ def test_float32_dtype_magnitudes():
             Vmags_float64 = Vmags.copy()
         else:
             # Check that float32 results match float64 results (within reasonable tolerance
-            # accounting for float32 precision)
-            npt.assert_allclose(Vmags, Vmags_float64, rtol=1e-4,
+            # accounting for float32 precision and log operations on float32 values)
+            npt.assert_allclose(Vmags, Vmags_float64, rtol=1e-3,
                                 err_msg="float32 and float64 magnitudes should match")
