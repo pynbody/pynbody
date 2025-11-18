@@ -217,3 +217,13 @@ def test_partial_load_mass_in_header():
     f_slice.physical_units()
     f['mass'] # load all masses
     assert np.allclose(f_slice['mass'],f[::2]['mass'])
+
+
+def test_load_copy_issue_955(snap):
+    # condition: A single-file snapshot with a PartType length greater than max_buf; 
+    # select a slice across chunk boundary
+    from pynbody.snapshot.gadgethdf import _max_buf
+    boundary_slice = slice(_max_buf, _max_buf+1)
+
+    snap_cop = snap[boundary_slice].load_copy()
+    assert (snap_cop['iord'] == snap[boundary_slice]['iord']).all()
