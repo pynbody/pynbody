@@ -431,11 +431,9 @@ class HDFArrayLoader:
                         self._file_interrupt_points[hdf_group_name],  # file offset
                         file_iterator.select_file): 
                     if mem_index is None or file_iterator.current_hdf_file is None:
-                        # Advance the per-file read cursor even when this iteration is a "skip" (mem_index=None).
-                        # LoadControl can emit skip commands where the disk logically advances by `readlen`
-                        # without writing to memory. If don't bump `particle_offset` here, the next
-                        # non-skip read will start too early and fetch the wrong elements, especially at
-                        # chunk/file boundaries (e.g. slice(_max_buf, _max_buf+1)).
+                        # Skip-read: advance on-disk cursor even when we don't copy into memory,
+                        # otherwise the next actual read will start from the wrong disk position
+                        # at chunk/file boundaries (e.g. slice at start == _max_buf). Refs #955
                         file_iterator.particle_offset += readlen
                         continue
                     i1 = i0 + mem_index.stop - mem_index.start
