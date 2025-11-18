@@ -9,9 +9,6 @@ on:
 jobs:
   fetch-testdata:
     runs-on: ubuntu-latest
-    concurrency:
-      group: testdata-download
-      cancel-in-progress: false
     outputs:
       testdata-key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
     steps:
