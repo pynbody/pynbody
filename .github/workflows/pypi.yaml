@@ -14,41 +14,7 @@ on:
 
 jobs:
   fetch-testdata:
-    runs-on: ubuntu-latest
-    outputs:
-      testdata-key: ${{ steps.get-testdata-hash.outputs.testdatahash }}
-    steps:
-    - uses: actions/checkout@v5
-    - name: Install Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.11"
-    - name: Install osfclient
-      run: |
-        python -m pip install osfclient
-    - name: Get testdata hash
-      id: get-testdata-hash
-      run: |
-        echo "testdatahash=$(python pynbody/test_utils/__init__.py)" >> $GITHUB_OUTPUT
-    - name: Restore testdata cache
-      uses: actions/cache/restore@v4
-      id: cache-testdata
-      with:
-        path: tests/testdata
-        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
-        enableCrossOsArchive: true
-    - name: Fetch and unpack test data
-      if: steps.cache-testdata.outputs.cache-hit != 'true'
-      working-directory: tests
-      run: |
-        python ../pynbody/test_utils/__init__.py --fetch
-    - name: Save testdata cache
-      uses: actions/cache/save@v4
-      if: always() && steps.cache-testdata.outputs.cache-hit != 'true'
-      with:
-        path: tests/testdata
-        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
-        enableCrossOsArchive: true
+    uses: ./.github/workflows/fetch-testdata.yaml
 
   build_wheels:
     name: Build wheels on ${{ matrix.buildplat[0] }} ${{ matrix.buildplat[2] }} ${{ matrix.python}}
