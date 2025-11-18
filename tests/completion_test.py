@@ -32,7 +32,9 @@ def test_ipython_key_completions():
         completions = list(ip.Completer.completions(text, cursor_pos))
 
     # Extract completion texts
-    completion_list = [str(c.text)[1:-1] for c in completions]  # if c.
+    # Filter for dict key completions only (IPython 9+ returns all completions)
+    # and strip the quotes from the completion text
+    completion_list = [str(c.text)[1:-1] for c in completions if c.type == 'dict key']
     expected_keys = f.all_keys()
 
     assert set(completion_list) == set(expected_keys)
