@@ -9,9 +9,6 @@ defaults:
 jobs:
   fetch-testdata:
     uses: ./.github/workflows/fetch-testdata.yaml
-    concurrency:
-      group: testdata-download
-      cancel-in-progress: false
 
   build:
     needs: fetch-testdata

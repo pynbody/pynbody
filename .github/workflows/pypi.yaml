@@ -15,9 +15,6 @@ on:
 jobs:
   fetch-testdata:
     uses: ./.github/workflows/fetch-testdata.yaml
-    concurrency:
-      group: testdata-download
-      cancel-in-progress: false
 
   build_wheels:
     name: Build wheels on ${{ matrix.buildplat[0] }} ${{ matrix.buildplat[2] }} ${{ matrix.python}}
