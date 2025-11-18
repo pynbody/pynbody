@@ -242,7 +242,8 @@ class IonFractionTable(IonFractionTableBase):
         self._tables = {k.upper(): v for k, v in tables.items()}
         self._interpolators = {ion: RegularGridInterpolator(
             (self._redshift_values, self._log_temp_values, self._log_den_values),
-            np.log10(np.maximum(self._tables[ion], np.nextafter(0.0, 1.0)))
+            np.log10(np.maximum(self._tables[ion], np.nextafter(0.0, 1.0))),
+            method='linear'
         ) for ion in self._tables.keys()}
 
     def calculate(self, simulation, ion='ovi'):
@@ -441,7 +442,7 @@ class V1IonFractionTable(IonFractionTableBase):
         self._clamp_values(z, np.min(z_vals), np.max(z_vals))
 
         # interpolate
-        interpolator = RegularGridInterpolator((x_vals, y_vals, z_vals), vals)
+        interpolator = RegularGridInterpolator((x_vals, y_vals, z_vals), vals, method='linear')
         result_array = interpolator(np.array([x, y, z]).T)
 
         return 10 ** result_array
