@@ -17,16 +17,14 @@ and compare it to a theoretical model.
  For precision cosmology applications, we recommend using these libraries.
  The functionality here is retained for quick cross-checks of simulations.
 
+To illustrate the point, we will use a sample output from a gadget simulation.
+You can download these from the ``tutorial_gadget.tar.gz`` dataset on `osf <https://osf.io/5m6zs/files>`_,
+or alternatively from python you can type:
 
-Since the pynbody test data does not include a simulation with a uniform resolution volume,
-we will borrow some test data from `tangos <https://pynbody.github.io/tangos/>`_ to illustrate the
-halo mass function.
-Click `here <https://zenodo.org/records/10825178/files/tutorial_gadget.tar.gz?download=1>`_ to download, or type
+.. code:: python
 
-.. code:: bash
-
-   $ wget https://zenodo.org/records/10825178/files/tutorial_gadget.tar.gz?download=1 -O tutorial_gadget4.tar.gz
-   $ tar -xvzf tutorial_gadget.tar.gz
+    import pynbody.test_utils as tu
+    tu.ensure_test_data_available('tutorial_gadget')
 
 
 Calculating a theoretical halo mass function

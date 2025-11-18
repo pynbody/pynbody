@@ -17,9 +17,9 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: "3.11"
-    - name: Install certifi
+    - name: Install osfclient
       run: |
-        python -m pip install certifi
+        python -m pip install osfclient
     - name: Get testdata hash
       id: get-testdata-hash
       run: |

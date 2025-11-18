@@ -15,14 +15,15 @@ of particles in one snapshot will trace these particles back (or
 forward) to the second snapshot. Constructing bridges is also very straight-forward
 in most cases.
 
-Since the pynbody test data does not include a simulation with two different outputs,
-we will borrow some test data from `tangos <https://pynbody.github.io/tangos/>`_ to illustrate the point.
-Click `here <https://zenodo.org/records/10825178/files/tutorial_gadget4.tar.gz?download=1>`_ to download, or type
+To illustrate the point, we will use a couple of sample outputs from a gadget 4 simulation.
+You can download these from the ``tutorial_gadget4.tar.gz`` dataset on `osf <https://osf.io/5m6zs/files>`_,
+or alternatively from python you can type:
 
-.. code:: bash
+.. code:: python
 
-   $ wget https://zenodo.org/records/10825178/files/tutorial_gadget4.tar.gz?download=1 -O tutorial_gadget4.tar.gz
-   $ tar -xvzf tutorial_gadget4.tar.gz
+    import pynbody.test_utils as tu
+    tu.ensure_test_data_available('tutorial_gadget4')
+
 
 
 Basic usage
