@@ -15,16 +15,6 @@ of particles in one snapshot will trace these particles back (or
 forward) to the second snapshot. Constructing bridges is also very straight-forward
 in most cases.
 
-Since the pynbody test data does not include a simulation with two different outputs,
-we will borrow some test data from `tangos <https://pynbody.github.io/tangos/>`_ to illustrate the point.
-Click `here <https://zenodo.org/records/10825178/files/tutorial_gadget4.tar.gz?download=1>`_ to download, or type
-
-.. code:: bash
-
-   $ wget https://zenodo.org/records/10825178/files/tutorial_gadget4.tar.gz?download=1 -O tutorial_gadget4.tar.gz
-   $ tar -xvzf tutorial_gadget4.tar.gz
-
-
 Basic usage
 ------------
 
@@ -34,9 +24,9 @@ Load the data at high and low redshift:
 
    In [1]: import pynbody
 
-   In [2]: f1 = pynbody.load("tutorial_gadget4/snapshot_033.hdf5")
+   In [2]: f1 = pynbody.load("testdata/tutorial_gadget4/snapshot_033.hdf5")
 
-   In [3]: f2 = pynbody.load("tutorial_gadget4/snapshot_035.hdf5")
+   In [3]: f2 = pynbody.load("testdata/tutorial_gadget4/snapshot_035.hdf5")
 
 Verify the redshifts:
 
