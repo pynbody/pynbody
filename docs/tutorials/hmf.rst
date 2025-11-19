@@ -17,15 +17,6 @@ and compare it to a theoretical model.
  For precision cosmology applications, we recommend using these libraries.
  The functionality here is retained for quick cross-checks of simulations.
 
-To illustrate the point, we will use a sample output from a gadget simulation.
-You can download these from the ``tutorial_gadget.tar.gz`` dataset on `osf <https://osf.io/5m6zs/files>`_,
-or alternatively from python you can type:
-
-.. code:: python
-
-    import pynbody.test_utils as tu
-    tu.ensure_test_data_available('tutorial_gadget')
-
 
 Calculating a theoretical halo mass function
 --------------------------------------------
@@ -37,7 +28,7 @@ We will start by loading a snapshot data.
 
   In [1]: import pynbody
      ...: import matplotlib.pyplot as p
-     ...: s = pynbody.load('tutorial_gadget/snapshot_020')
+     ...: s = pynbody.load('testdata/tutorial_gadget/snapshot_020')
      ...: s.physical_units()
 
 To define the expected halo mass function, we need to make sure that the cosmology is well set. Some cosmological
