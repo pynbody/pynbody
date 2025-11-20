@@ -50,7 +50,7 @@ class IordToOffsetSparse(IordToOffset):
                 iord_values = np.sort(iord_values)
 
             # Test for unicity after sorting
-            if np.all(iord_values[1:] != iord_values[:-1]):
+            if (iord_values[1:] == iord_values[:-1]).any():
                 warnings.warn(
                     "Some of the particles IDs in 'iord' are not unique. This might cause issues assigning particles to "
                     "their parent halo. Double check your 'iord' array.")
