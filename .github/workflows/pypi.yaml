@@ -25,8 +25,8 @@ jobs:
         buildplat:
         - [ubuntu-24.04, manylinux, x86_64, "", ""]
         - [ubuntu-24.04-arm, manylinux, aarch64, "", ""]
-        - [macos-13, macosx, x86_64, "/usr/local", "13.0"]
-        - [macos-13-xlarge, macosx, arm64, "/opt/homebrew", "13.0"]
+        - [macos-14, macosx, x86_64, "/usr/local", "14.0"]
+        - [macos-14-xlarge, macosx, arm64, "/opt/homebrew", "14.0"]
         - [windows-2022, win, amd64, "", ""]
         - [windows-11-arm, win, arm64, "", ""]
         python: ["cp311", "cp312", "cp313", "cp314"]
@@ -75,7 +75,7 @@ jobs:
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
           CIBW_ARCHS_LINUX: ${{ matrix.buildplat[2] }}
           CIBW_ENVIRONMENT: >-
-            MACOSX_DEPLOYMENT_TARGET=${{ matrix.buildplat[4] }}
+            MACOSX_DEPLOYMENT_TARGET="10.15"
 
       - uses: actions/upload-artifact@v5
         with:
