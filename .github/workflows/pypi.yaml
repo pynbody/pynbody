@@ -48,7 +48,7 @@ jobs:
         run: |
           curl -L -o Miniforge3.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh 
           bash Miniforge3.sh -b -p $HOME/miniforge3 
-          $HOME/miniforge3/bin/conda gcc gxx libgomp
+          $HOME/miniforge3/bin/conda install gcc gxx libgomp
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.2.1
