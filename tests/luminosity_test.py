@@ -154,3 +154,62 @@ def test_ssp_table_recovers_input_from_file():
     table = pynbody.analysis.luminosity.get_current_ssp_table()
     npt.assert_allclose(default_ssp_file[0, 5], table(ssp_tester, 'V'))
     npt.assert_allclose(default_ssp_file[0, 6], table(ssp_tester, 'R'))
+
+
+def test_float32_dtype_magnitudes():
+    """Test that magnitude calculation works correctly with float32 dtype arrays.
+
+    This is a regression test for issue #953, where float32 dtype for ages and metals
+    could cause NaN values in magnitude calculations due to dtype mismatch in the
+    clamping mechanism.
+    """
+    np.random.seed(42)
+
+    N = 1000
+
+    age_arr = np.random.uniform(0.0, 13.7, N)
+    log_metal_arr = np.random.uniform(-5, 0.5, N)
+    mass_arr = np.random.uniform(1e2, 1e3, N)
+
+    # Store results from float64 calculation for comparison
+    Vmags_float64 = None
+
+    # Process float64 first to establish reference values
+    for dtype in ['float64', 'float32']:
+        ages = pynbody.array.SimArray(
+            age_arr,
+            units="Gyr",
+            dtype=dtype
+        )
+
+        metals = pynbody.array.SimArray(
+            10**log_metal_arr,
+            units="",
+            dtype=dtype
+        )
+
+        masses = pynbody.array.SimArray(
+            mass_arr,
+            units="Msol",
+            dtype=dtype
+        )
+
+        sim = pynbody.new(dm=0, gas=0, star=N)
+
+        sim.stars['age'] = ages
+        sim.stars['metals'] = metals
+        sim.stars['mass'] = masses
+
+        Vmags = sim.stars['V_mag']
+
+        # Check that there are no NaN values (the bug in issue #953)
+        num_nans = len(Vmags[np.isnan(Vmags)])
+        assert num_nans == 0, f"Found {num_nans} NaN values in V_mag using dtype {dtype}"
+
+        if dtype == 'float64':
+            Vmags_float64 = Vmags.copy()
+        else:
+            # Check that float32 results match float64 results (within reasonable tolerance
+            # accounting for float32 precision and log operations on float32 values)
+            npt.assert_allclose(Vmags, Vmags_float64, rtol=1e-3,
+                                err_msg="float32 and float64 magnitudes should match")

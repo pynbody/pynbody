@@ -14,9 +14,9 @@ build:
    jobs:
      pre_build:
        - echo "Getting test data"
-       - cd tests && python -c "import pynbody.test_utils as tu; tu.precache_test_data()"
-       - cd docs && wget -q https://zenodo.org/records/10825178/files/tutorial_gadget4.tar.gz?download=1 -O tutorial_gadget4.tar.gz && tar -xvzf tutorial_gadget4.tar.gz
-       - cd docs && wget -q https://zenodo.org/records/10825178/files/tutorial_gadget.tar.gz?download=1 -O tutorial_gadget.tar.gz && tar -xvzf tutorial_gadget.tar.gz
+       - cd tests && python -c "import pynbody.test_utils as tu; tu.precache_test_data(extended=True)"
+       - cd docs && ln -s ../tests/testdata/tutorial_gadget4 .
+       - cd docs && ln -s ../tests/testdata/tutorial_gadget .
      post_build:
        - mkdir $READTHEDOCS_OUTPUT/html/tutorials/plots/
        - cp -r docs/plots/*.png $READTHEDOCS_OUTPUT/html/tutorials/plots/

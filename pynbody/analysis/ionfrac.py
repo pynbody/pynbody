@@ -35,7 +35,6 @@ import ssl
 import subprocess
 import urllib.request
 
-import certifi
 import h5py
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
@@ -242,7 +241,8 @@ class IonFractionTable(IonFractionTableBase):
         self._tables = {k.upper(): v for k, v in tables.items()}
         self._interpolators = {ion: RegularGridInterpolator(
             (self._redshift_values, self._log_temp_values, self._log_den_values),
-            np.log10(np.maximum(self._tables[ion], np.nextafter(0.0, 1.0)))
+            np.log10(np.maximum(self._tables[ion], np.nextafter(0.0, 1.0))),
+            method='linear'
         ) for ion in self._tables.keys()}
 
     def calculate(self, simulation, ion='ovi'):
@@ -317,16 +317,14 @@ class IonFractionTable(IonFractionTableBase):
     @classmethod
     def _download_ionfracs(cls, name):
         """Download an ion fraction table from the pynbody data repository"""
+        from ..test_utils import get_osf_file_object
+
         logger.warning("Downloading ion fraction table %s" % name)
-        url = f"https://zenodo.org/record/13833051/files/{name}.npz?download=1"
+        osf_file = get_osf_file_object('z46rq', f'{name}.npz')
         filename = cls._table_to_path(name)
 
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-        
-        # Download the file using urllib with proper certificates
-        with urllib.request.urlopen(url, context=ssl_context) as response:
-            with open(filename, 'wb') as f:
-                shutil.copyfileobj(response, f)
+        with open(filename, 'wb') as f:
+            osf_file.write_to(f)
 
     @classmethod
     def from_cloudy(cls, cloudy_path,
@@ -441,7 +439,7 @@ class V1IonFractionTable(IonFractionTableBase):
         self._clamp_values(z, np.min(z_vals), np.max(z_vals))
 
         # interpolate
-        interpolator = RegularGridInterpolator((x_vals, y_vals, z_vals), vals)
+        interpolator = RegularGridInterpolator((x_vals, y_vals, z_vals), vals, method='linear')
         result_array = interpolator(np.array([x, y, z]).T)
 
         return 10 ** result_array
