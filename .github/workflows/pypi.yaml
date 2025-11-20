@@ -60,7 +60,6 @@ jobs:
             MACOSX_DEPLOYMENT_TARGET="10.15"
             CC=$HOME/miniforge3/bin/clang
             CXX=$HOME/miniforge3/bin/clang++
-            LDSHARED=$HOME/miniforge3/bin/clang++
             LDFLAGS="-L$HOME/miniforge3/lib"
             CPPFLAGS="-I$HOME/miniforge3/include"
             OPENMP_STATIC=1
