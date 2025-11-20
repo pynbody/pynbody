@@ -49,9 +49,6 @@ else:
     # GCC/Clang compiler flags
     openmp_args = ['-fopenmp']
 
-    if use_static_openmp:
-        openmp_args += ['-static-openmp'] # clang on macos cibuildwheel
-
     extra_compile_args = ['-ftree-vectorize',
                           '-fno-omit-frame-pointer',
                           '-funroll-loops',

@@ -25,8 +25,8 @@ jobs:
         buildplat:
         - [ubuntu-24.04, manylinux, x86_64, "", ""]
         - [ubuntu-24.04-arm, manylinux, aarch64, "", ""]
-        - [macos-14, macosx, x86_64, "/usr/local", "14.0"]
-        - [macos-14-xlarge, macosx, arm64, "/opt/homebrew", "14.0"]
+        - [macos-15-intel, macosx, x86_64, "/usr/local", "14.0"]
+        - [macos-15, macosx, arm64, "/opt/homebrew", "14.0"]
         - [windows-2022, win, amd64, "", ""]
         - [windows-11-arm, win, arm64, "", ""]
         python: ["cp311", "cp312", "cp313", "cp314"]
