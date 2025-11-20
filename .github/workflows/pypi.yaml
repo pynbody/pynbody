@@ -62,7 +62,7 @@ jobs:
             CXX=$HOME/miniforge3/bin/clang++
             LDFLAGS="-L$HOME/miniforge3/lib"
             CPPFLAGS="-I$HOME/miniforge3/include"
-            OPENMP_STATIC=1
+            DYLD_LIBRARY_PATH="$HOME/miniforge3/lib"
 
       - uses: actions/upload-artifact@v5
         with:
