@@ -561,9 +561,12 @@ def bridge_factory(a: snapshot.SimSnap, b: snapshot.SimSnap) -> AbstractBridge:
         if len(a.gas) > 0 or len(b.gas) > 0:
             raise RuntimeError("Cannot bridge AMR gas cells")
         if a_top.has_potential_negative_iords_bug or b_top.has_potential_negative_iords_bug:
-            warnings.warn("One of your snapshots has been identified as affected by the truncation bug in iord, so "
-                          "a specific bridge will be used (see PR # 914). To override this, initialise your snapshot with "
-                          "pynbody.load(....., negative_iords_on_purpose=True).")
+            warnings.warn("Due to the unexpected presence of negative iord values, one of your snapshots has been identified "
+                          "as potentially affected by a bug in RAMSES which leads to bit-loss in the iords. Pynbody will attempt "
+                          "to correct for this bug. However if you intentionally have negative iords in your snapshot, this is not "
+                          "what you want. In such cases, please reload your file with `pynbody.load(..., "
+                          "negative_iords_on_purpose=True)`. For more background see: "
+                          "https://github.com/pynbody/pynbody/pull/914, https://github.com/pynbody/pynbody/pull/961")
             return RamsesBugOrderBridge(a_top, b_top, monotonic=False, only_families=["dm", "star"])
         return OrderBridge(a_top, b_top, monotonic=False, only_families=["dm", "star"])
     else:

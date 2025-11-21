@@ -462,7 +462,7 @@ class RamsesSnap(SimSnap):
             self.times_are_proper = times_are_proper
 
         if negative_iords_on_purpose is not None:
-            self.negative_iords_on_purpose = negative_iords_on_purpose
+            self._negative_iords_on_purpose = negative_iords_on_purpose
 
         ngas = self._count_gas_cells() if has_gas else 0
 
@@ -1060,15 +1060,10 @@ class RamsesSnap(SimSnap):
         return self._has_potential_negative_iords_bug()
 
     def _has_potential_negative_iords_bug(self):
-        if self.negative_iords_on_purpose:
+        if self._negative_iords_on_purpose:
             return False
 
         if self.is_cosmological and self.has_negative_iords:
-            warnings.warn("This Ramses snapshot is cosmological and has DM iords that are negative. "
-                          "In the majority of cases, this is unwanted and due to a Ramses cast bug in communicators "
-                          "(see issue #116 in ramses-organisation). "
-                          "If negative iords are here by design, override this pynbody behaviour by "
-                          "initialising your snapshot with pynbody.load(....., negative_iords_on_purpose=True).")
             return True
         return False
 
