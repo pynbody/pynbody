@@ -108,6 +108,7 @@ from . import (
     gadgethdf,
     grafic,
     nchilada,
+    firehdf,
     pkdgravhdf,
     ramses,
     subsnap,
