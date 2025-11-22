@@ -45,6 +45,14 @@ def test_issue_943():
         # remove unitfile
         os.remove(unitfile_name)
 
+@pytest.mark.filterwarnings("ignore:Unable to find cosmological factors", "ignore:Masses are either")
+def test_units():
+    f = pynbody.load("testdata/gizmo/snapshot_000.hdf5")
+
+    assert np.allclose(f['pos'].units.in_units("4.5377647058823524e21 cm a"), 1.0)
+    assert f['vel'].units == "km a^1/2 s^-1"
+    assert f['mass'].units == "2.925e43 g"
+
 @pytest.mark.filterwarnings("ignore:No unit information", "ignore:Assuming default value", "ignore:Unable to infer units")
 def test_allow_blank_lines():
     # Need to create a test snapshot_000.hdf5.units file that 
