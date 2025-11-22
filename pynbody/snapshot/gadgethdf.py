@@ -768,9 +768,19 @@ class GadgetHDFSnap(SimSnap):
         return ret
 
     @classmethod
-    def _get_cosmo_factors(cls, hdf, arr_name) :
+    def _get_cosmo_factors(cls, hdf, arr_names) :
         """Return the cosmological factors for a given array"""
-        match = [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf) if ((s.endswith("/"+arr_name)) & ('PartType' in s))]
+        matching_hdf_keys = lambda arr_name: [s for s in GadgetHDFSnap._get_hdf_allarray_keys(hdf)
+                                             if ((s.endswith("/"+arr_name)) & ('PartType' in s))]
+        if isinstance(arr_names, str):
+            arr_name = arr_names
+            match = matching_hdf_keys(arr_name)
+        else:
+            for arr_name in arr_names:
+                match = matching_hdf_keys(arr_name)
+                if len(match) > 0:
+                    break
+
         if (arr_name == 'Mass' or arr_name == 'Masses') and len(match) == 0:
             # mass stored in header. We're out in the cold on our own.
             warnings.warn("Masses are either stored in the header or have another dataset name; assuming the cosmological factor %s" % units.h**-1)
@@ -779,16 +789,24 @@ class GadgetHDFSnap(SimSnap):
             else:
                 return units.Unit('1.0'),
         if len(match) > 0 :
-            try:
-                aexp = hdf[match[0]].attrs['aexp-scale-exponent']
-            except KeyError:
-                # gadget4 <sigh>
-                aexp = hdf[match[0]].attrs['a_scaling']
-            try:
-                hexp = hdf[match[0]].attrs['h-scale-exponent']
-            except KeyError:
-                # gadget4 <sigh>
-                hexp = hdf[match[0]].attrs['h_scaling']
+            attrs  = hdf[match[0]].attrs
+
+            if 'aexp-scale-exponent' in attrs:
+                aexp = attrs['aexp-scale-exponent']
+            elif 'a_scaling' in attrs:
+                # gadget4
+                aexp = attrs['a_scaling']
+            else:
+                raise KeyError("Unable to find aexp-scale-exponent or a_scaling attribute for array %s" % arr_name)
+
+            if 'h-scale-exponent' in attrs:
+                hexp = attrs['h-scale-exponent']
+            elif 'h_scaling' in attrs:
+                # gadget4
+                hexp = attrs['h_scaling']
+            else:
+                raise KeyError("Unable to find h-scale-exponent or h_scaling attribute for array %s" % arr_name)
+
             return units.a**util.fractions.Fraction.from_float(float(aexp)).limit_denominator(), units.h**util.fractions.Fraction.from_float(float(hexp)).limit_denominator()
         else :
             return units.Unit('1.0'), units.Unit('1.0')
@@ -1001,7 +1019,7 @@ class GadgetHDFSnap(SimSnap):
                 vel_unit *= units.a**(1,2)
                 warnings.warn("Unable to find cosmological factors in HDF file; assuming velocity is %s" % vel_unit)
             try:
-                for fac in self._get_cosmo_factors(self._hdf_files[0], 'Mass'): mass_unit *= fac
+                for fac in self._get_cosmo_factors(self._hdf_files[0], ('Mass', 'Masses')): mass_unit *= fac
             except KeyError:
                 if self._units_need_hubble_factors:
                     mass_unit *= units.h**-1

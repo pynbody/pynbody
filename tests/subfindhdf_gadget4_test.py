@@ -32,8 +32,7 @@ def htest():
 
 @pytest.fixture
 def snap_arepo():
-    with pytest.warns(UserWarning, match="Masses are either stored in the header or have another dataset .*"):
-        return pynbody.load('testdata/arepo/cosmobox_015.hdf5')
+    return pynbody.load('testdata/arepo/cosmobox_015.hdf5')
 
 @pytest.fixture
 def halos_arepo(snap_arepo):
