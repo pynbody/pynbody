@@ -26,7 +26,7 @@ from . import SimSnap, namemapper
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
 multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
-multiprocess = (multiprocess_num > 1) 
+multiprocess = (multiprocess_num > 1)
 
 if multiprocess:
     import atexit
@@ -36,15 +36,18 @@ if multiprocess:
     remote_map = pynbody.array.shared.remote_map
 else:
     multiprocessing = None
+
+
     def remote_exec(fn):
         return fn
+
 
     def remote_map(*args, **kwargs):
         return list(map(*args[1:], **kwargs))
 
-
 _float_type = 'd'
 _int_type = 'i'
+
 
 def _timestep_id(basename):
     try:
@@ -72,17 +75,18 @@ def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, 
         else:
             data = f.read_vector(distinguisher_type)
 
-        if len(data)>0:
-            my_mask = np.array((data != 0), dtype=np.int8) # -> 0 for dm, 1 for star
+        if len(data) > 0:
+            my_mask = np.array((data != 0), dtype=np.int8)  # -> 0 for dm, 1 for star
         else:
             my_mask = np.zeros(npart_this, dtype=np.int8)
         nstar_this = (data != 0).sum()
         return npart_this, nstar_this, my_mask
 
+
 @remote_exec
 def _cpui_count_particles_with_explicit_families(filename, family_field, family_type):
     assert np.issubdtype(family_type, np.int8)
-    counts_array = np.zeros(256,dtype=np.int64)
+    counts_array = np.zeros(256, dtype=np.int64)
     with FortranFile(filename) as f:
         header = f.read_attrs(ramses_particle_header)
         npart_this = header['npart']
@@ -91,11 +95,12 @@ def _cpui_count_particles_with_explicit_families(filename, family_field, family_
         my_mask = f.read_vector(family_type)
 
         unique_mask_ids, counts = np.unique(my_mask, return_counts=True)
-        counts_array[unique_mask_ids]=counts
+        counts_array[unique_mask_ids] = counts
 
-        assert sum(counts)==npart_this
+        assert sum(counts) == npart_this
 
         return counts_array, my_mask
+
 
 @remote_exec
 def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, family_mask):
@@ -151,15 +156,15 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
                     coords += [np.zeros_like(coords[0]) for ar in range(3 - ndim)]
 
                     f.skip(1  # father index
-                                 + 2 * ndim  # nbor index
-                                 # son index,cpumap,refinement map
-                                 + 2 * (2 ** ndim)
-                                 )
+                           + 2 * ndim  # nbor index
+                           # son index,cpumap,refinement map
+                           + 2 * (2 ** ndim)
+                           )
 
                     refine = np.array(
                         [f.read_vector(_int_type) for i in range(2 ** ndim)])
 
-                    if(level+1 == maxlevel or level+1==header['nlevelmax']):
+                    if (level + 1 == maxlevel or level + 1 == header['nlevelmax']):
                         refine[:] = 0
 
                     coords[0] -= offset[0]
@@ -176,7 +181,6 @@ def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
 
             if header['nboundary'] > 0:
                 for boundaryf in np.where(n_per_level_boundary[level, :] != 0)[0]:
-
                     f.skip(3 + ndim + 1 + 2 * ndim + 3 * 2 ** ndim)
 
 
@@ -215,6 +219,7 @@ def _cpui_load_gas_pos(pos_array, smooth_array, ndim, boxlen, i0, level_iterator
         smooth_array[i0:i1] = dx
         i0 = i1
 
+
 _gv_load_hydro = 0
 _gv_load_gravity = 1
 _gv_load_rt = 2
@@ -223,7 +228,6 @@ _gv_load_rt = 2
 @remote_exec
 def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
                         mode=_gv_load_hydro):
-
     logger.info("Loading data from CPU %d", cpu)
 
     nvar = len(dims)
@@ -247,8 +251,9 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
         if nvar_file != nvar and exact_nvar:
             raise ValueError("Wrong number of variables in RAMSES dump")
         elif nvar_file < nvar:
-            warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)" % (
-                nvar, nvar_file), RuntimeWarning)
+            warnings.warn(
+                "Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)" % (
+                    nvar, nvar_file), RuntimeWarning)
             nvar = nvar_file
             dims = dims[:nvar]
         elif nvar_file > nvar:
@@ -264,7 +269,6 @@ def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
 
                 if ncache > 0:
                     if cpuf == cpu:
-
                         coords, refine, gi_cpu, gi_level = next(grid_info_iter)
                         mark = np.where(refine == 0)
 
@@ -351,9 +355,12 @@ grav_blocks = [_.strip() for _ in config_parser.get('ramses', "gravity-blocks").
 rt_blocks = [_.strip() for _ in config_parser.get('ramses', 'rt-blocks', raw=True).split(",")]
 
 particle_distinguisher = [_.strip() for _ in config_parser.get('ramses', 'particle-distinguisher').split(",")]
-positive_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('ramses', 'type-mapping-positive').split(",")]
+positive_typemap = [family.get_family(str.strip(x)) for x in
+                    config_parser.get('ramses', 'type-mapping-positive').split(",")]
 
-negative_typemap = [family.get_family(str.strip(x)) for x in config_parser.get('ramses', 'type-mapping-negative').split(",")]
+negative_typemap = [family.get_family(str.strip(x)) for x in
+                    config_parser.get('ramses', 'type-mapping-negative').split(",")]
+
 
 def _read_descriptor(fname):
     """Read a RAMSES file descriptor and return a list of the variable names."""
@@ -379,7 +386,8 @@ class RamsesSnap(SimSnap):
     """
     reader_pool = None
 
-    def __init__(self, dirname, cpus=None, maxlevel=None, with_gas=True, force_gas=False, times_are_proper=None):
+    def __init__(self, dirname, cpus=None, maxlevel=None, with_gas=True, force_gas=False, times_are_proper=None,
+                 negative_iords_on_purpose=False):
         """
         Initialize a RamsesSnap.
 
@@ -453,15 +461,18 @@ class RamsesSnap(SimSnap):
         if times_are_proper is not None:
             self.times_are_proper = times_are_proper
 
+        if negative_iords_on_purpose is not None:
+            self._negative_iords_on_purpose = negative_iords_on_purpose
+
         ngas = self._count_gas_cells() if has_gas else 0
 
-        if ngas>0:
+        if ngas > 0:
             type_map[family.gas] = ngas
 
         count = 0
         for fam in type_map:
-            self._family_slice[fam] = slice(count, count+type_map[fam])
-            count+=type_map[fam]
+            self._family_slice[fam] = slice(count, count + type_map[fam])
+            count += type_map[fam]
 
         self._num_particles = count
         self._load_fluid_descriptors()
@@ -475,7 +486,7 @@ class RamsesSnap(SimSnap):
             if (RamsesSnap.reader_pool is None):
                 RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
                 atexit.register(self._cleanup_reader_pool)
-    
+
     @classmethod
     def _cleanup_reader_pool(cls):
         """Clean up the multiprocessing pool when the process exits"""
@@ -510,9 +521,9 @@ class RamsesSnap(SimSnap):
 
         for group in range(self._info['nGroups']):
             for block in rt_blocks:
-                self._rt_blocks.append(block%group)
+                self._rt_blocks.append(block % group)
 
-        self._rt_unit = self._info['unit_pf']*units.Unit("cm^-2 s^-1")
+        self._rt_unit = self._info['unit_pf'] * units.Unit("cm^-2 s^-1")
 
         for block in self._rt_blocks:
             self._rt_blocks_3d.add(self._array_name_1D_to_ND(block) or block)
@@ -592,11 +603,10 @@ class RamsesSnap(SimSnap):
             self._particle_types = []
             for line in f:
                 if not line.startswith("#"):
-                    ivar, name, dtype = list(map(str.strip,line.split(",")))
+                    ivar, name, dtype = list(map(str.strip, line.split(",")))
                     self._particle_blocks.append(self._translate_array_name(name, reverse=True))
                     self._particle_types.append(dtype)
             self._particle_blocks_are_explictly_known = True
-
 
     def _guess_particle_descriptor(self):
         # determine whether we have explicit information about
@@ -640,10 +650,10 @@ class RamsesSnap(SimSnap):
         else:
             ndm, nstar = self._count_particles_using_implicit_families()
             return {family.dm: ndm, family.star: nstar}
-    
+
     def _has_particle_file(self):
         """Check whether the output has a particle file available"""
-        if len(self._cpus)>0 :
+        if len(self._cpus) > 0:
             return os.path.exists(self._particle_filename(self._cpus[0]))
         else:
             return False
@@ -662,9 +672,9 @@ class RamsesSnap(SimSnap):
                              [family_block] * len(self._cpus),
                              [family_dtype] * len(self._cpus))
 
-        aggregate_counts = np.zeros(256,dtype=np.int64)
+        aggregate_counts = np.zeros(256, dtype=np.int64)
         for counts, family_ids in results:
-            aggregate_counts+=counts
+            aggregate_counts += counts
             self._particle_family_ids_on_disk.append(family_ids)
 
         # The above family IDs are defined according to ramses' own internal system. We now need
@@ -678,49 +688,48 @@ class RamsesSnap(SimSnap):
         aggregate_counts_remapped = np.zeros(256, dtype=np.int64)
 
         for ramses_family_id in nonzero_families:
-            if ramses_family_id>128 or ramses_family_id == 0:
+            if ramses_family_id > 128 or ramses_family_id == 0:
                 neg_offset = (256 - ramses_family_id) % 256
-                if neg_offset>len(negative_typemap):
+                if neg_offset > len(negative_typemap):
                     pynbody_family = negative_typemap[-1]
                 else:
                     pynbody_family = negative_typemap[neg_offset]
             else:
-                if ramses_family_id>len(positive_typemap):
+                if ramses_family_id > len(positive_typemap):
                     pynbody_family = positive_typemap[-1]
                 else:
-                    pynbody_family = positive_typemap[ramses_family_id-1]
+                    pynbody_family = positive_typemap[ramses_family_id - 1]
             if pynbody_family in internal_id_to_family:
                 internal_id = internal_id_to_family.index(pynbody_family)
             else:
                 internal_id = len(internal_id_to_family)
                 internal_id_to_family.append(pynbody_family)
             ramses_id_to_internal_id[ramses_family_id] = internal_id
-            aggregate_counts_remapped[internal_id]+=aggregate_counts[ramses_family_id]
+            aggregate_counts_remapped[internal_id] += aggregate_counts[ramses_family_id]
 
         # perform the remapping for our stored particle identifiers
         for fid in self._particle_family_ids_on_disk:
             fid[:] = ramses_id_to_internal_id[fid]
 
         return_d = {}
-        self._particle_file_start_indices = [ [] for x in results]
+        self._particle_file_start_indices = [[] for x in results]
         for internal_family_id in range(256):
-            if aggregate_counts_remapped[internal_family_id]>0:
+            if aggregate_counts_remapped[internal_family_id] > 0:
                 fam = internal_id_to_family[internal_family_id]
                 count = aggregate_counts_remapped[internal_family_id]
                 return_d[fam] = count
                 startpoint = 0
-                for i,fid in enumerate(self._particle_family_ids_on_disk):
+                for i, fid in enumerate(self._particle_family_ids_on_disk):
                     self._particle_file_start_indices[i].append(startpoint)
-                    startpoint+=(fid==internal_family_id).sum()
-                assert startpoint==count
+                    startpoint += (fid == internal_family_id).sum()
+                assert startpoint == count
 
         n_sinks = self._count_sink_particles()
 
-        if n_sinks>0:
+        if n_sinks > 0:
             return_d[self._sink_family] = n_sinks
 
         return return_d
-
 
     def _load_sink_data_to_temporary_store(self):
         if not os.path.exists(self._sink_filename()):
@@ -733,7 +742,7 @@ class RamsesSnap(SimSnap):
             reader = csv.reader(sink_file, skipinitialspace=True)
             data = list(reader)
 
-        if len(data)<2:
+        if len(data) < 2:
             self._after_load_sink_data_failure()
             return
 
@@ -741,7 +750,7 @@ class RamsesSnap(SimSnap):
         dimensions = data[1]
         data = np.array(data[2:], dtype=object)
 
-        if column_names[0][0]!='#' or dimensions[0][0]!='#':
+        if column_names[0][0] != '#' or dimensions[0][0] != '#':
             self._after_load_sink_data_failure()
             return
 
@@ -762,7 +771,6 @@ class RamsesSnap(SimSnap):
         self._sink_column_names = self._sink_dimensions = self._sink_data = []
         self._sink_family = None
 
-
     @staticmethod
     def _fix_fortran_missing_exponent(data_array):
         flattened_data = data_array.flat
@@ -771,9 +779,8 @@ class RamsesSnap(SimSnap):
             if "-" in d and "E" not in d:
                 flattened_data[i] = "E-".join(d.split("-"))
 
-
     def _transfer_sink_data_to_family_array(self):
-        if len(self._sink_data)==0:
+        if len(self._sink_data) == 0:
             return
 
         target = self[self._sink_family]
@@ -781,21 +788,17 @@ class RamsesSnap(SimSnap):
                                            self._sink_dimensions,
                                            self._sink_data.T):
             dtype = np.float64
-            if column=="id":
+            if column == "id":
                 dtype = np.int64
             target[column] = data.astype(dtype)
-            unit = dimension.replace("m","g").replace("l","cm").replace("t","yr")
-            if unit=="1":
-                target[column].units="1"
+            unit = dimension.replace("m", "g").replace("l", "cm").replace("t", "yr")
+            if unit == "1":
+                target[column].units = "1"
             else:
                 target[column].set_units_like(unit)
 
-
-
     def _count_sink_particles(self):
         return len(self._sink_data)
-
-
 
     def _count_particles_using_implicit_families(self):
         """Returns ndm, nstar where ndm is the number of dark matter particles
@@ -826,11 +829,12 @@ class RamsesSnap(SimSnap):
             except ValueError:
                 # couldn't find the named distinguisher field. Fall back to using index.
                 distinguisher_field = int(particle_distinguisher[0])
-                if len(self._particle_blocks)>distinguisher_field:
-                    pb_name = "%r"%self._particle_blocks[distinguisher_field]
+                if len(self._particle_blocks) > distinguisher_field:
+                    pb_name = "%r" % self._particle_blocks[distinguisher_field]
                 else:
-                    pb_name = "at offset %d"%distinguisher_field
-                warnings.warn("Using field %s to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher."%pb_name)
+                    pb_name = "at offset %d" % distinguisher_field
+                warnings.warn(
+                    "Using field %s to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher." % pb_name)
             distinguisher_type = self._particle_types[distinguisher_field]
 
         results = remote_map(self.reader_pool,
@@ -899,13 +903,12 @@ class RamsesSnap(SimSnap):
             self.gas[i].set_default_units()
 
         if not os.path.exists(self._hydro_filename(1)):
-            #Case where force_gas = True, make sure rho is non-zero and such that mass=1.
+            # Case where force_gas = True, make sure rho is non-zero and such that mass=1.
             # This does not keep track of units for mass or rho since their value is enforced.
             logger.info("No hydro file found, gas likely from force_gas=True => hard setting rho gas")
             self.gas['rho'][:] = 1.0
             self.gas['rho'] /= (np.array(self.gas['smooth']) ** 3)
             self.gas['rho'].set_default_units()
-
 
         _grid_info_iter = self._level_iterator()
 
@@ -941,7 +944,6 @@ class RamsesSnap(SimSnap):
                 for f in self._iter_particle_families():
                     self[f]._create_array(name, dtype=type_)
 
-
     def _load_particle_block(self, blockname):
         offset = self._particle_blocks.index(blockname)
         _type = self._particle_types[offset]
@@ -951,7 +953,6 @@ class RamsesSnap(SimSnap):
         arrays = []
         for f in self._iter_particle_families():
             arrays.append(self[f][blockname])
-
 
         try:
             remote_map(self.reader_pool,
@@ -964,7 +965,8 @@ class RamsesSnap(SimSnap):
                        self._particle_family_ids_on_disk
                        )
         except Exception:
-            warnings.warn("Exception encountered while reading %r; is there an incompatibility in your Ramses configuration?"%blockname)
+            warnings.warn(
+                "Exception encountered while reading %r; is there an incompatibility in your Ramses configuration?" % blockname)
             del self[blockname]
             raise
 
@@ -1046,6 +1048,25 @@ class RamsesSnap(SimSnap):
 
         return not_cosmological
 
+    @property
+    def has_negative_iords(self):
+        return self._has_negative_iords()
+
+    def _has_negative_iords(self):
+        return self.dm['iord'].min() < 0
+
+    @property
+    def has_potential_negative_iords_bug(self):
+        return self._has_potential_negative_iords_bug()
+
+    def _has_potential_negative_iords_bug(self):
+        if self._negative_iords_on_purpose:
+            return False
+
+        if self.is_cosmological and self.has_negative_iords:
+            return True
+        return False
+
     def _convert_tform(self):
         # Copy the existing t array in weird Ramses format into a hidden raw array
         self.star['tform_raw'] = self.star['tform']
@@ -1058,7 +1079,6 @@ class RamsesSnap(SimSnap):
 
             # Replace the tform array by its usual meaning using the birth files
             ramses_util.get_tform(self, times_are_proper=self.times_are_proper)
-
 
     @property
     def times_are_proper(self) -> bool:
@@ -1124,7 +1144,7 @@ class RamsesSnap(SimSnap):
 
             # Deal with tform for stars that require extra conversion
             if array_name in ('tform', 'tform_raw'):
-                if 'tform' in self._particle_blocks: # Only attempt these conversion if tform is actually on disc (Issue #689)
+                if 'tform' in self._particle_blocks:  # Only attempt these conversion if tform is actually on disc (Issue #689)
                     self._load_particle_block('tform')
                     self._convert_tform()
 
@@ -1186,7 +1206,7 @@ class RamsesSnap(SimSnap):
                 self._load_gas_vars()
 
             # the below triggers loading ALL particles, not just DM
-            for name in 'x','y','z','vx','vy','vz':
+            for name in 'x', 'y', 'z', 'vx', 'vy', 'vz':
                 self._load_particle_block(name)
 
         elif fam is None and array_name == 'mass':
@@ -1206,8 +1226,6 @@ class RamsesSnap(SimSnap):
         else:
             raise OSError("No such array on disk")
 
-
-
     @staticmethod
     def _can_load(f):
         tsid = _timestep_id(f)
@@ -1218,8 +1236,7 @@ class RamsesSnap(SimSnap):
 
 @RamsesSnap.decorator
 def _translate_info(sim):
-
-    if sim._info['H0']>1e-3:
+    if sim._info['H0'] > 1e-3:
         sim.properties['a'] = sim._info['aexp']
         sim.properties['omegaM0'] = sim._info['omega_m']
         sim.properties['omegaL0'] = sim._info['omega_l']
