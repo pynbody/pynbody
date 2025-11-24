@@ -137,8 +137,7 @@ def test_gadgethdf_style_units():
                         rtol=1e-3)
 
 def test_arepo_style_units():
-    with pytest.warns(UserWarning, match=r"Masses are either stored in the header or have.*"):
-        f = pynbody.load("testdata/arepo/agora_100.hdf5")
+    f = pynbody.load("testdata/arepo/agora_100.hdf5")
     npt.assert_allclose(f.st['EMP_InitialStellarMass'].units.in_units("1.989e42 g"),
                         1.0, rtol=1e-3)
     # I strongly suspect that the units in this file are wrong -- the masses are

@@ -25,8 +25,8 @@ jobs:
         buildplat:
         - [ubuntu-24.04, manylinux, x86_64, "", ""]
         - [ubuntu-24.04-arm, manylinux, aarch64, "", ""]
-        - [macos-13, macosx, x86_64, "/usr/local", "13.0"]
-        - [macos-13-xlarge, macosx, arm64, "/opt/homebrew", "13.0"]
+        - [macos-15-intel, macosx, x86_64, "/usr/local", "14.0"]
+        - [macos-15, macosx, arm64, "/opt/homebrew", "14.0"]
         - [windows-2022, win, amd64, "", ""]
         - [windows-11-arm, win, arm64, "", ""]
         python: ["cp311", "cp312", "cp313", "cp314"]
@@ -42,31 +42,13 @@ jobs:
           echo "CC=gcc-10" >> $GITHUB_ENV
           echo "CXX=g++-10" >> $GITHUB_ENV
 
-      - name: Install GCC (MacOS)
+      - name: Install miniforge GCC (MacOS)
         if: startsWith(matrix.buildplat[0], 'macos')
         shell: bash
         run: |
-          brew install gcc@13 pipx
-          echo "CC=${{matrix.buildplat[3]}}/bin/gcc-13" >> $GITHUB_ENV
-          echo "CXX=${{matrix.buildplat[3]}}/bin/g++-13" >> $GITHUB_ENV
-
-      # - name: Determine version tag
-      #   if: github.event_name != 'pull_request'
-      #   run: |
-      #     echo "SETUP_VERSION=`python setup.py --version`" >> $GITHUB_ENV
-      #     echo "VERSION_TAG=`git describe --tags | cut -c 2-`" >> $GITHUB_ENV
-
-      # - name: Verify version naming is consistent
-      #   if: github.event_name != 'pull_request'
-      #   run: |
-      #     if [ "${{ env.VERSION_TAG }}" == "${{ env.SETUP_VERSION }}" ]; then
-      #         echo Git tag and python setup.py versions match: ${{ env.VERSION_TAG }}
-      #     else
-      #         echo Version label mismatch
-      #         echo Git tag-derived version is ${{ env.VERSION_TAG }}
-      #         echo setup.py-derived version is ${{ env.SETUP_VERSION }}
-      #         exit 1;
-      #     fi
+          curl -L -o Miniforge3.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh 
+          bash Miniforge3.sh -b -p $HOME/miniforge3 
+          $HOME/miniforge3/bin/conda install compilers
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.2.1
@@ -74,8 +56,13 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
           CIBW_ARCHS_LINUX: ${{ matrix.buildplat[2] }}
-          CIBW_ENVIRONMENT: >-
-            MACOSX_DEPLOYMENT_TARGET=${{ matrix.buildplat[4] }}
+          CIBW_ENVIRONMENT_MACOS: >-
+            MACOSX_DEPLOYMENT_TARGET="10.15"
+            CC=$HOME/miniforge3/bin/clang
+            CXX=$HOME/miniforge3/bin/clang++
+            LDFLAGS="-L$HOME/miniforge3/lib"
+            CPPFLAGS="-I$HOME/miniforge3/include"
+            DYLD_LIBRARY_PATH="$HOME/miniforge3/lib"
 
       - uses: actions/upload-artifact@v5
         with:
@@ -109,7 +96,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2025, macos-latest]
+        os: [ubuntu-latest, windows-2025, macos-14, macos-15-intel] # good to test on old macos as far as possible
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     runs-on: ${{ matrix.os }}
     steps:

@@ -1,3 +1,4 @@
+import os
 import platform
 import subprocess
 
@@ -43,8 +44,11 @@ if is_windows():
     extra_compile_args = ['/O2', '/std:c++14']
     extra_link_args = ['/openmp']
 else:
+    use_static_openmp = os.environ.get('OPENMP_STATIC', '0') == '1'
+
     # GCC/Clang compiler flags
     openmp_args = ['-fopenmp']
+
     extra_compile_args = ['-ftree-vectorize',
                           '-fno-omit-frame-pointer',
                           '-funroll-loops',
@@ -59,7 +63,7 @@ else:
     # a subtle bug in the code exposed by these optimizations, but it is such a vague optimization
     # that it's hard to know what it is. The actual routine affected is smBallGather, but for some reason
     # its impact only shows up with the Wendland kernel.
-    
+
     extra_link_args = openmp_args + ['-std=c++14']
 
 ext_modules = []
