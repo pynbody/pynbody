@@ -25,21 +25,6 @@ class FIREHDFSnap(GadgetHDFSnap):
     def _get_units_from_hdf_attr(self, hdfattrs) :
         # FIRE does not store units as attributes
         return units.NoUnit()
-
-                
-    def __init_family_map(self):
-        type_map = {}
-        for fam, g_types in _default_type_map.items():
-            my_types = []
-            for x in g_types:
-                # Get all keys from all hdf files
-                for hdf in self._hdf_files:
-                    if x in list(hdf.keys()):
-                        my_types.append(x)
-                        break
-            if len(my_types):
-                type_map[fam] = my_types
-        self._family_to_group_map = type_map
         
     def _init_unit_information(self):
         # Uses gadget default units, FIRE doesn't store units
