@@ -1064,6 +1064,13 @@ class RamsesSnap(SimSnap):
             return False
 
         if self.is_cosmological and self.has_negative_iords:
+            # Very likely we have a bug, so also test
+            # if this affects the unicity of the iords and flag it to user if some iords are duplicates
+            if len(np.unique(self.dm['iord'])) != len(self.dm['iord']):
+                warnings.warn(
+                    "Not all particles IDs in 'iord' are unique which can cause ambiguities when assigning particles "
+                    "to their parent halo or bridging haloes across snapshots. This can arise due to an integer truncation bug"
+                    "in Ramses (see issue #116 in ramses-organisation).")
             return True
         return False
 

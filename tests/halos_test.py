@@ -371,12 +371,6 @@ def test_long_iord_to_pos_map():
     assert (iord_to_fpos.map_ignoring_order([0, 10, 20, 300]) == np.array([0, 2, 1, 3])).all()
     assert iord_to_fpos.map_ignoring_order(300) == 3
 
-def test_long_iord_to_pos_map_non_unique():
-    with pytest.warns(UserWarning): # Warning will be raised because iord are not unique anymore
-        iord = np.array([0, 20, 20, 300])
-        iord_to_fpos = halo.details.iord_mapping.make_iord_to_offset_mapper(iord)
-        iord_to_fpos.map_ignoring_order(iord)
-
 def test_load_halo_priority():
     from pynbody.halo.adaptahop import AdaptaHOPCatalogue
     from pynbody.halo.hop import HOPCatalogue

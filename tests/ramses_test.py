@@ -521,8 +521,16 @@ def test_tipsy_conversion_for_cosmo_gas():
 @pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
 def test_negative_iords(ramses_file):
     fcosmo = pynbody.load("testdata/ramses/output_00080")
-    fcosmo['iord'] = np.linspace(-1000, 1000, len(fcosmo), dtype=int)
+
+    # Make one iord negative -> bug flag should be true but no warning generated because iord are still unique
+    fcosmo.dm['iord'][0] = -1
     assert fcosmo.has_negative_iords == True
     assert fcosmo.is_cosmological == True
-    with pytest.warns(UserWarning): # Warning will be raised to flag the potential bug
+    assert fcosmo.has_potential_negative_iords_bug == True
+
+    # Now have negatives, but also a duplicate -> warning generated
+    fcosmo.dm['iord'][0:5] = - np.ones(5)
+    assert fcosmo.has_negative_iords == True
+    assert fcosmo.is_cosmological == True
+    with pytest.warns(UserWarning):
         assert fcosmo.has_potential_negative_iords_bug == True
