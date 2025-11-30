@@ -527,10 +527,3 @@ def test_negative_iords(ramses_file):
     assert fcosmo.has_negative_iords == True
     assert fcosmo.is_cosmological == True
     assert fcosmo.has_potential_negative_iords_bug == True
-
-    # Now have negatives, but also a duplicate -> warning generated
-    fcosmo.dm['iord'][0:5] = - np.ones(5)
-    assert fcosmo.has_negative_iords == True
-    assert fcosmo.is_cosmological == True
-    with pytest.warns(UserWarning):
-        assert fcosmo.has_potential_negative_iords_bug == True

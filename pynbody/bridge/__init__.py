@@ -527,6 +527,13 @@ class RamsesBugOrderBridge(OrderBridge):
             # we put each level onto its own high-order bits, in the hope this resolves most collisions.
             new_order_array += (1 + level_guess) * 2 ** 32
 
+        # Check that the newly created iords are all unique
+        if len(np.unique(new_order_array)) != len(new_order_array):
+            warnings.warn(
+                "Failed to resolve all conflicts when recreating the iord array in RamsesBugOrderBridge. "
+                "This is likely due to having non-unique iords in one of the two ends of the bridge"
+                "which cannot be mapped out to unique iords on the other end.")
+
         return new_order_array
 
 
