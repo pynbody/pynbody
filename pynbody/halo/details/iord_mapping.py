@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import warnings
 
 import numpy as np
 
@@ -55,12 +56,14 @@ class IordToOffsetSparse(IordToOffset):
         else:
             return result
 
+
 class IordOffsetModifier(IordToOffset):
     """A wrapper around an IordToOffset which adds a constant offset to the result of the underlying mapping.
 
     Useful if the iord values e.g. are only available for a single family; then the fpos_offset will correspond
     to the first index of that family in the pynbody snapshot.
     """
+
     def __init__(self, iord_to_offset: IordToOffset, fpos_offset: int):
         self._underlying = iord_to_offset
         self._fpos_offset = fpos_offset
@@ -69,6 +72,7 @@ class IordOffsetModifier(IordToOffset):
         result = self._underlying.map_ignoring_order(i)
         result += self._fpos_offset
         return result
+
 
 def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToOffset:
     """Given an array of unique integers, iord, make an object which maps from an iord value to offset in the array.
@@ -80,11 +84,10 @@ def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToOffset:
     returns the indexes of my_iord_values in the iord array.
     """
 
+    min_iord = int(iord.min())
     max_iord = int(iord.max())
 
-    assert iord.min() >= 0, "Can't handle negative iord values"
-
-    if max_iord < 2 * len(iord):
+    if (min_iord >= 0) and (max_iord < 2 * len(iord)):
         # maximum iord is not very big, just do a direct in-memory mapping for speed
         return IordToOffsetDense(iord, max_iord)
     else:

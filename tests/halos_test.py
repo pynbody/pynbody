@@ -368,7 +368,6 @@ def test_long_iord_to_pos_map():
     iord = np.array([0, 20, 10, 300])
     iord_to_fpos = halo.details.iord_mapping.make_iord_to_offset_mapper(iord)
     assert isinstance(iord_to_fpos, halo.details.iord_mapping.IordToOffsetSparse)
-
     assert (iord_to_fpos.map_ignoring_order([0, 10, 20, 300]) == np.array([0, 2, 1, 3])).all()
     assert iord_to_fpos.map_ignoring_order(300) == 3
 

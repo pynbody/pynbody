@@ -328,5 +328,27 @@ def test_ramses_bug_bridge(with_gas):
 
     bridged_iord = b(f_sub)['iord_no_bug']
     unbridged_iord = f_sub['iord_no_bug']
-
     assert set(bridged_iord) == set(unbridged_iord)
+
+def test_warning_bug_bridge_duplicates():
+    fcosmo = pynbody.load("testdata/ramses/output_00080")
+    fcosmo['iord'] = np.ones(len(fcosmo), dtype=int)    # Lots of duplicates iords
+    fcosmo2 = pynbody.load("testdata/ramses/output_00080")
+    f1d = fcosmo.d
+    f2d = fcosmo2.d
+
+    with pytest.warns(UserWarning): # Should throw a warning that some iords could not be mapped to unique values
+        b = pynbody.bridge.RamsesBugOrderBridge(f1d, f2d)
+        b(f1d[0:100])
+
+
+def test_auto_bug_bridge():
+    fcosmo = pynbody.load("testdata/ramses/output_00080")
+    fcosmo['iord'] = np.linspace(-1000, 1000, len(fcosmo), dtype=int)
+    fcosmo2 = pynbody.load("testdata/ramses/output_00080")
+    f1d = fcosmo.d
+    f2d = fcosmo2.d
+
+    with pytest.warns(UserWarning): # Warning will be raised because iord are negative
+        bridge = f1d.bridge(f2d)
+        assert type(bridge) is pynbody.bridge.RamsesBugOrderBridge
