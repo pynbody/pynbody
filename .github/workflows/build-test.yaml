@@ -52,6 +52,11 @@ jobs:
         os: [ubuntu-latest, windows-2025]
         python-version: ["3.11", "3.12", "3.13"]
         numpy-version: ["1.26.4", "2.0.2", "2.2.0"]
+        include:
+          - os: ubuntu-latest
+            test_flags: "--hdfstream-server=http://localhost:8080/hdfstream"
+          - os: windows-2025
+            test_flags: ""
         exclude:
           - python-version: "3.12"
             numpy-version: "1.26.4"
@@ -59,6 +64,12 @@ jobs:
             numpy-version: "1.26.4"
           - python-version: "3.13"
             numpy-version: "2.0.2"
+    services:
+      hdfstream:
+        image: ghcr.io/jchelly/hdfstream-api:0.0.3
+        ports:
+          - 8080:8080
+        if: ${{ matrix.os == 'ubuntu-latest' }}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -91,9 +102,9 @@ jobs:
         path: tests/testdata
         key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
         enableCrossOsArchive: true
-    - name: Run all tests
+    - name: Run tests
       working-directory: tests
-      run: python -m pytest --ignore=testdata/ --tb=short
+      run: python -m pytest --ignore=testdata/ --tb=short ${{ matrix.test_flags }}
     # Following is temporarily necessary because of the >2.0.0rc1 numpy version
     - name: sanitize artifact name
       if: always()

@@ -23,37 +23,39 @@ except ImportError:
 # with hdfstream. In both cases we use the multi-file manager from
 # pynbody/snapshot/remote_swift.py.
 #
-server_url = "https://dataweb.cosma.dur.ac.uk:8443/hdfstream"
-testdata_dir = "Tests/pynbody/"
-test_args = [
-    {
-        "server" : None,
-        "dir" : "",
-        "class" : pynbody.snapshot.remote_swift.LocalSwiftSnap,
-    },
-    {
-        "server" : server_url,
-        "dir" : testdata_dir,
-        "class" : pynbody.snapshot.remote_swift.RemoteSwiftSnap,
-    },
+snap_classes = [
+    pynbody.snapshot.remote_swift.LocalSwiftSnap,
+    pynbody.snapshot.remote_swift.RemoteSwiftSnap,
 ]
+
+@pytest.fixture(params=snap_classes)
+def pynbody_load(request, hdfstream_server_url):
+    """
+    Fixture returning a callable which can open files with pynbody,
+    given a filename.
+    """
+    snap_class = request.param
+    if snap_class is pynbody.snapshot.remote_swift.LocalSwiftSnap:
+        def load(filename, **kwargs):
+            return snap_class(filename, **kwargs)
+        return load
+    elif snap_class is pynbody.snapshot.remote_swift.RemoteSwiftSnap:
+        if hdfstream_server_url is None:
+            pytest.skip("No server URL specified")
+        if hdfstream is None:
+            pytest.skip("Hdfstream module not available")
+        def load(filename, **kwargs):
+            return snap_class("Tests/pynbody/"+filename, server=hdfstream_server_url, **kwargs)
+        return load
+    else:
+        raise RuntimeError("Unexpected snapshot class")
 
 @pytest.fixture(scope='module', autouse=True)
 def get_data():
     pynbody.test_utils.ensure_test_data_available("swift")
 
-def pynbody_load(params, path, **kwargs):
-    snap_class = params["class"]
-    filename = params["dir"]+path
-    if params["server"] is None:
-        return snap_class(filename, **kwargs)
-    else:
-        return snap_class(filename, server=params["server"], **kwargs)
-
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_properties(test_args):
-    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
+def test_swift_properties(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
     assert np.allclose(f.properties['a'], 0.38234515)
     assert np.allclose(f.properties['z'], 1.61543791)
     assert np.allclose(f.properties['h'], 0.703)
@@ -62,10 +64,8 @@ def test_swift_properties(test_args):
     assert np.allclose(f.properties['omegaL0'], 0.724)
     assert np.allclose(f.properties['omegaNu0'], 0.0)
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_arrays(test_args):
-    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
+def test_swift_arrays(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
     assert np.allclose(f.dm['pos'].units.ratio("Mpc a", **f.conversion_context()), 1.0)
     assert np.allclose(f.dm['vel'].units.ratio("km s^-1", **f.conversion_context()), 1.0)
     # the reason the following isn't exactly 1.0 is because our solar mass is slightly different to swift's
@@ -96,27 +96,18 @@ def _assert_multifile_contents_is_sensible(f):
                                                        [83.46050257, 20.91647755, 116.546989],
                                                        [125.83232028, 49.9732396, 72.2264199]]))
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_multifile_with_vds(test_args):
-    f = pynbody_load(test_args, "testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
-    assert isinstance(f, test_args["class"])
+def test_swift_multifile_with_vds(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
     assert len(f._hdf_files) == 1
     _assert_multifile_contents_is_sensible(f)
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_multifile_without_vds(test_args):
-    f = pynbody_load(test_args, "testdata/SWIFT/multifile_without_vds/snap_0000")
-    assert isinstance(f, test_args["class"])
+def test_swift_multifile_without_vds(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/multifile_without_vds/snap_0000")
     assert len(f._hdf_files) == 10
     _assert_multifile_contents_is_sensible(f)
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_singlefile_partial_loading(test_args):
-    f = pynbody_load(test_args,
-                     "testdata/SWIFT/snap_0150.hdf5",
+def test_swift_singlefile_partial_loading(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5",
                      take_swift_cells=[5,15,20,25])
     assert len(f.dm) == 1849
     assert len(f.gas) == 1882
@@ -127,11 +118,8 @@ def test_swift_singlefile_partial_loading(test_args):
                                      26367,  2503, 26825, 10827, 59463, 26703, 51909, 27927, 12057,
                                      36761]).all()
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_multifile_partial_loading(test_args):
-    f = pynbody_load(test_args,
-                     "testdata/SWIFT/multifile_without_vds/snap_0000",
+def test_swift_multifile_partial_loading(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/multifile_without_vds/snap_0000",
                      take_swift_cells=[0,5,20,200])
 
     assert len(f) == 2048
@@ -159,32 +147,22 @@ def test_swift_multifile_partial_loading(test_args):
                           [ 16.59894837,  36.67247821,  85.82433427],
                           [  9.79404938,  52.28051827,  81.30710868]])
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_multifile_partial_loading_order_insensitive(test_args):
-    f = pynbody_load(test_args,
-                     "testdata/SWIFT/multifile_without_vds/snap_0000",
+def test_swift_multifile_partial_loading_order_insensitive(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/multifile_without_vds/snap_0000",
                      take_swift_cells=[0, 5, 20, 200])
-    f2 = pynbody_load(test_args,
-                      "testdata/SWIFT/multifile_without_vds/snap_0000",
+    f2 = pynbody_load("testdata/SWIFT/multifile_without_vds/snap_0000",
                      take_swift_cells=[0, 5, 20, 200][::-1])
     assert (f['iord'] == f2['iord']).all()
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_vds_partial_loading(test_args):
-    f = pynbody_load(test_args,
-                     "testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", # <-- VDS file
+def test_swift_vds_partial_loading(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", # <-- VDS file
                      take_swift_cells=[0,5,20,200])
-    f2 = pynbody_load(test_args,
-                      "testdata/SWIFT/multifile_without_vds/snap_0000",
+    f2 = pynbody_load("testdata/SWIFT/multifile_without_vds/snap_0000",
                       take_swift_cells=[0, 5, 20, 200][::-1])
     assert (f['iord'] == f2['iord']).all()
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_fof_groups(test_args):
-    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
+def test_swift_fof_groups(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
     h = f.halos(priority = ['HaloNumberCatalogue'])
 
     with raises(KeyError):
@@ -196,32 +174,26 @@ def test_swift_fof_groups(test_args):
 
     assert len(h) < 1000
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_dtypes(test_args):
-    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
+def test_swift_dtypes(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
     assert np.issubdtype(f['iord'].dtype, np.integer)
     assert np.issubdtype(f['pos'].dtype, np.floating)
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
 @pytest.mark.parametrize('test_region',
                          [pynbody.filt.Sphere(50., (50., 50., 50.)),
                          pynbody.filt.Cuboid(-20.0)]) # note the cuboid test region wraps around the box
-def test_swift_take_geometric_region(test_args, test_region):
-    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5",
+def test_swift_take_geometric_region(pynbody_load, test_region):
+    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5",
                      take_region = test_region)
 
-    f_full = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
+    f_full = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
 
     assert len(f) < len(f_full)
 
     assert np.all(f[test_region]['iord'] == f_full[test_region]['iord'])
 
-@pytest.mark.skipif(hdfstream is None, reason="hdfstream module is not available")
-@pytest.mark.parametrize("test_args", test_args)
-def test_swift_scalefactor_in_units(test_args):
-    f = pynbody_load(test_args, "testdata/SWIFT/snap_0150.hdf5")
+def test_swift_scalefactor_in_units(pynbody_load):
+    f = pynbody_load("testdata/SWIFT/snap_0150.hdf5")
 
     # naively, one would assume cm^2 s^-2, but actual units header says 1e10 a^2 cm^2 s^-2
     # So this tests pynbody respects that. Note that we don't give the scalefactor context,
