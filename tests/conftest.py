@@ -1,5 +1,6 @@
 import pytest
 
+
 def pytest_addoption(parser):
     parser.addoption(
         "--hdfstream-server", type=str, default=None, help="hdfstream server URL for the test"
