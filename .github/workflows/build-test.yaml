@@ -28,12 +28,12 @@ jobs:
             numpy-version: "2.0.2"
           - python-version: "3.13"
             numpy-version: "2.0.2"
+
     services:
       hdfstream:
-        image: ghcr.io/jchelly/hdfstream-api:0.0.3
+        image: ${{ (matrix.os == 'ubuntu-latest') && 'ghcr.io/jchelly/hdfstream-api:0.0.3' || '' }}
         ports:
           - 8080:8080
-        if: ${{ matrix.os == 'ubuntu-latest' }}
 
     runs-on: ${{ matrix.os }}
     env:
