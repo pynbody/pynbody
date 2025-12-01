@@ -69,6 +69,18 @@ SimArray([  1.99e+30,   3.98e+30], 'kg')
 >>> print(x)
 SimArray([1,2], "Msol")
 
+You can also supply context values for conversions (e.g. the cosmological scale factor a):
+
+>>> x = SimArray([1,2], "kpc a")
+>>> print(x.in_units("kpc", a=0.5))
+SimArray([  0.5,   1. ], 'kpc')
+
+Per-element (array-valued) context is supported and broadcasts over the leading axis:
+
+>>> import numpy as np
+>>> SimArray([1, 2, 3], "a kpc").in_units("kpc", a=np.array([0.2, 0.3, 0.4]))
+SimArray([0.2, 0.6, 1.2], 'kpc')
+
 If the :class:`SimArray` (or :class:`IndexedSimArray`) was created by a SimSnap (which is most likely), it
 has a pointer into the SimSnap's properties so that the cosmological
 context is automatically fetched. For example, comoving -> physical
@@ -133,6 +145,7 @@ from __future__ import annotations
 
 import fractions
 import functools
+import itertools
 import logging
 import weakref
 from typing import TYPE_CHECKING
@@ -164,6 +177,30 @@ def _copy_docstring_from(source_class):
 
     return wrapper
 
+def _as_sim_array(result: np.ndarray, units: units.UnitBase, sim: snapshot.SimSnap) -> SimArray:
+    result = result.view(SimArray)
+    result.units = units
+    result.sim = sim
+    return result
+
+
+def _reshape_ratio_for_broadcast(ratio: float | np.ndarray, target_shape: tuple) -> float | np.ndarray:
+    """Ensure ratio broadcasts over target_shape's leading axis."""
+    if np.isscalar(ratio): # int, float, or numpy scalar
+        return ratio
+
+    ratio_arr = np.asarray(ratio)
+    if ratio_arr.ndim == 0 or ratio_arr.size == 1: # 0-D numpy scalar
+        return ratio_arr.item()
+
+    if ratio_arr.ndim == 1:  # 1-D array, length matches leading axis
+        if len(target_shape) == 0:
+            raise ValueError("Cannot broadcast 1-D ratio onto scalar target shape")
+        if ratio_arr.shape[0] != target_shape[0]:
+            raise ValueError("Ratio length does not match target leading axis")
+        return ratio_arr.reshape((ratio_arr.shape[0],) + (1,) * (len(target_shape) - 1))
+
+    raise ValueError("Ratio must be a scalar or 1-D array")
 
 class SimArray(np.ndarray):
     """A shallow wrapper around numpy.ndarray for extra functionality like unit-tracking.
@@ -399,16 +436,25 @@ class SimArray(np.ndarray):
 
         result = func(*args_processed, **kwargs_processed)
 
-        if func in SimArray._ufunc_registry:
-            result = result.view(SimArray)
-            if isinstance(result, SimArray): # may not be true if the result is a scalar
-                sim = None
-                for arg in args:
-                    if isinstance(arg, SimArray):
-                        sim = arg.sim
-                        break
-                result.units = SimArray._ufunc_registry[func](*args, **kwargs)
-                result.sim = sim
+        units_rule = SimArray._ufunc_registry.get(func, None)
+        if units_rule is not None:
+
+            sim = next((arg.sim for arg in args if isinstance(arg, SimArray)), None)
+            units_val = units_rule(*args, **kwargs)
+
+            if isinstance(result, (tuple, list)):
+                if isinstance(units_val, tuple):
+                    if len(units_val) != len(result):
+                        raise ValueError("Output units must match result length")
+                else:
+                    units_val = itertools.cycle((units_val,))
+                result = type(result)(
+                    _as_sim_array(r_i, u_i, sim) 
+                    for r_i,u_i in zip(result, units_val)
+                    )
+            else:
+                units_val = units_val[0] if isinstance(units_val, tuple) else units_val
+                result = _as_sim_array(result, units_val, sim)
 
         return result
 
@@ -731,8 +777,9 @@ class SimArray(np.ndarray):
         context.update(context_overrides)
 
         if self.units is not None:
-            r = self * self.units.ratio(new_unit,
-                                        **context)
+            ratio = self.units.ratio(new_unit, **context)
+            ratio = _reshape_ratio_for_broadcast(ratio, self.shape)
+            r = self * ratio
             r.units = new_unit
             return r
         else:
@@ -748,6 +795,7 @@ class SimArray(np.ndarray):
                                      **(self.conversion_context()))
             logger.debug("Converting %s units from %s to %s; ratio = %.3e" %
                          (self.name, self.units, new_unit, ratio))
+            ratio = _reshape_ratio_for_broadcast(ratio, self.shape)
             self *= ratio
             self.units = new_unit
 
@@ -897,6 +945,7 @@ def _consistent_units(*arrays, catch=None):
             else:
                 if unit != output_unit:
                     conversion_ratio = unit.ratio(output_unit, **conversion_context)
+                    conversion_ratio = _reshape_ratio_for_broadcast(conversion_ratio, np.shape(numpy_array))
                     numpy_arrays[i] = numpy_array * conversion_ratio
 
         return output_unit, numpy_arrays
@@ -966,6 +1015,12 @@ def _comparison_units(ar, other):
 def _norm_units(a, *args, **kwargs):
     return a.units
 
+@SimArray.ufunc_rule(np.gradient)
+def _gradient_units(a, *varargs, **kwargs):
+    if not varargs:
+        return a.units
+    return tuple(a.units / i.units if isinstance(i, SimArray) 
+            else a.units for i in varargs)
 
 def _implement_array_functionality(class_):
     """Implement all the standard numpy array functionality on the given class.

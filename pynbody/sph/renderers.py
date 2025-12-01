@@ -33,7 +33,8 @@ def _auto_denoise(sim, kernel):
 
     if not _kernel_suitable_for_denoise(kernel):
         return False
-    elif isinstance(sim.ancestor,snapshot.ramses.RamsesSnap):
+    elif isinstance(sim.ancestor,snapshot.ramses.RamsesSnap)\
+            or getattr(sim.ancestor, '_should_denoise_images', False):
         return True
     else:
         return False
@@ -922,12 +923,11 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
     if approximate_fast:
         renderer = renderer.with_approximate()
 
-    renderer = renderer.with_denoising(denoise)
-
     if weight is True:
         renderer = renderer.with_volume_weighted_projection()
     elif weight is not None and weight is not False:
         renderer = renderer.with_weighted_projection(weight)
 
+    renderer = renderer.with_denoising(denoise)
 
     return renderer

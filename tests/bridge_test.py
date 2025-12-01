@@ -273,3 +273,82 @@ def test_fuzzy_match_halos(snapshot_pair):
     assert fuzzy_match_rev.keys() == set(f2['grp'])
 
     assert fuzzy_match_rev[1] == [(0, 2./3), (1, 1./3)]
+
+@pytest.mark.parametrize('with_gas', [True, False])
+def test_ramses_bug_bridge(with_gas):
+    # this seed is chosen by experimentation such that there is a problem with the stars matching if one
+    # tries to treat them in the same way as the dark matter particles, i.e. by using their masses
+    np.random.seed(1338)
+
+    # pretend first 50 particles are from one level, next 25 from another, next 25 from yet another,
+    # in such a way that the iord crosses 2**32 during the second level
+    test_iords_dm = np.empty(100, dtype=np.int64)
+    test_iords_dm[:50] = np.random.permutation(np.arange(0, 50))
+    test_iords_dm[50:] = np.random.permutation(np.arange(0, 50)) - 5 + 2**32
+    test_iords_dm[75:] += 2**30
+
+    test_iords_star = np.random.permutation(np.arange(0, 50)) + 3**32
+
+    test_masses = np.ones(100)
+    test_masses[50:] /= 2
+    test_masses[75:] /= 2
+
+    def make_problematic_i32_truncated_snap():
+        if with_gas:
+            f = pynbody.new(st=50, dm=100, gas=50) # gas just to make sure family-level iord array is OK cf PR #915
+        else:
+            f = pynbody.new(st=50, dm=100)
+        assert f._get_family_slice(pynbody.family.star).start == 0
+        dm_ordering = np.random.permutation(np.arange(0, 100))
+        st_ordering = np.random.permutation(np.arange(0, 50))
+        f.dm['iord_no_bug'] = test_iords_dm[dm_ordering]
+        f.star['iord_no_bug'] = test_iords_star[st_ordering]
+        if with_gas:
+            f.gas['iord_no_bug'] = -1
+        f.dm['iord'] = f.dm['iord_no_bug'].astype(np.int32).astype(np.int64)
+        f.st['iord'] = f.st['iord_no_bug'].astype(np.int32).astype(np.int64)
+        f.dm['mass'] = test_masses[dm_ordering]
+        # stellar masses may change:
+        f.st['mass'] = 2**np.random.uniform(-3, 0.0, size=50)
+        return f
+
+    f1 = make_problematic_i32_truncated_snap()
+    f2 = make_problematic_i32_truncated_snap()
+
+    index_st = np.random.choice(np.arange(50), size=20, replace=False)
+    index_dm = np.random.choice(np.arange(50, 150), size=20, replace=False)
+    index = np.concatenate((index_st, index_dm))
+
+    f_sub = f1[index]
+
+    if with_gas:
+        b = pynbody.bridge.RamsesBugOrderBridge(f1, f2, only_families=['dm', 'st'])
+    else:
+        b = pynbody.bridge.RamsesBugOrderBridge(f1, f2)
+
+    bridged_iord = b(f_sub)['iord_no_bug']
+    unbridged_iord = f_sub['iord_no_bug']
+    assert set(bridged_iord) == set(unbridged_iord)
+
+def test_warning_bug_bridge_duplicates():
+    fcosmo = pynbody.load("testdata/ramses/output_00080")
+    fcosmo['iord'] = np.ones(len(fcosmo), dtype=int)    # Lots of duplicates iords
+    fcosmo2 = pynbody.load("testdata/ramses/output_00080")
+    f1d = fcosmo.d
+    f2d = fcosmo2.d
+
+    with pytest.warns(UserWarning): # Should throw a warning that some iords could not be mapped to unique values
+        b = pynbody.bridge.RamsesBugOrderBridge(f1d, f2d)
+        b(f1d[0:100])
+
+
+def test_auto_bug_bridge():
+    fcosmo = pynbody.load("testdata/ramses/output_00080")
+    fcosmo['iord'] = np.linspace(-1000, 1000, len(fcosmo), dtype=int)
+    fcosmo2 = pynbody.load("testdata/ramses/output_00080")
+    f1d = fcosmo.d
+    f2d = fcosmo2.d
+
+    with pytest.warns(UserWarning): # Warning will be raised because iord are negative
+        bridge = f1d.bridge(f2d)
+        assert type(bridge) is pynbody.bridge.RamsesBugOrderBridge

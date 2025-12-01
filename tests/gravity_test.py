@@ -86,9 +86,7 @@ def test_varying_eps():
     npt.assert_allclose(accel, np.array([[-4.0, 0.0, 0.0]]), atol=1e-8, rtol=0)
 
 
-@pytest.mark.filterwarnings("ignore:no unit")
-@pytest.mark.filterwarnings("ignore:assuming default value")
-@pytest.mark.filterwarnings("ignore:unable to infer units")
+@pytest.mark.filterwarnings("ignore:Unable to find cosmological")
 def test_direct_gravity_large_snapshot_no_segfault():
     # Load data with more than a few million particles
     snapshot = pynbody.load("testdata/gizmo/snapshot_000.hdf5")

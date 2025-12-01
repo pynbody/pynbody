@@ -1,4 +1,5 @@
 import platform
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -146,6 +147,25 @@ def test_denoise_projected_image_throws(snap):
         pipeline = renderers.make_render_pipeline(snap.gas, width=20.0, out_units="m_p cm^-2", denoise=True,
                                                   resolution=10)
 
+def test_no_denoise_weighted_image(snap):
+    snap._should_denoise_images = True
+
+    # check auto-denoising is working
+    pipeline = renderers.make_render_pipeline(snap.gas, width=20.0, denoise=None, quantity='temp')
+    assert isinstance(pipeline, renderers.DenoisedImageRenderer)
+
+    # but there should be NO denoising in this pipeline, since it makes no sense on a weighted image:
+    pipeline = renderers.make_render_pipeline(snap.gas, width=20.0, denoise=None, weight='rho', quantity='temp')
+
+    def _assert_not_denoising_step(step):
+        if isinstance(step, renderers.DenoisedImageRenderer):
+            raise AssertionError("Denoising step found in weighted image pipeline")
+    def _traverse_steps(step):
+        _assert_not_denoising_step(step)
+        if hasattr(step, '_subrenderers'):
+            for substep in step._subrenderers:
+                _traverse_steps(substep)
+    _traverse_steps(pipeline)
 
 @pytest.mark.filterwarnings("ignore:No log file found:UserWarning")
 def test_render_stars(stars_2d, stars_dust_2d, snap):
@@ -210,6 +230,10 @@ def test_projection_average(simple_test_file):
     npt.assert_allclose(im_collapsed, answer, atol=0.3)
 
 
+
+
+
+
 def test_spherical_render(simple_test_file):
     f = simple_test_file
 
@@ -236,6 +260,7 @@ def test_spherical_render(simple_test_file):
 
 @pytest.mark.filterwarnings("ignore::UserWarning")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Healpy not supported on Windows")
+@pytest.mark.skipif(sys.version_info >= (3, 14), reason="Healpy binaries seem to be broken on Python 3.14")
 def test_render_stars_spherical(snap):
     plt.clf()
     res = pynbody.plot.stars.render_mollweide(snap, return_image=True)

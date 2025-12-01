@@ -517,3 +517,13 @@ def test_tipsy_conversion_for_cosmo_gas():
         # Clean up our namelist to avoid any other issues with other tests
         Path(path + os.sep + "namelist.txt").unlink(missing_ok=True)
         Path(tipsy_path + ".param").unlink(missing_ok=True)
+
+@pytest.mark.filterwarnings(r"ignore:Using field at offset \d to distinguish.*:UserWarning")
+def test_negative_iords(ramses_file):
+    fcosmo = pynbody.load("testdata/ramses/output_00080")
+
+    # Make one iord negative -> bug flag should be true but no warning generated because iord are still unique
+    fcosmo.dm['iord'][0] = -1
+    assert fcosmo.has_negative_iords == True
+    assert fcosmo.is_cosmological == True
+    assert fcosmo.has_potential_negative_iords_bug == True

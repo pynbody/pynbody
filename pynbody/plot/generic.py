@@ -251,7 +251,7 @@ def hist2d(x, y, weights=None, values=None, gridsize=(100, 100), nbins = None,
             return hist, ys, xs
     else:
         def _histogram_generator(weights):
-            return np.histogram2d(y, x, weights=weights, bins=gridsize, range=[y_range, x_range])
+            return np.histogram2d(y, x, weights=weights, bins=[gridsize[1],gridsize[0]], range=[y_range, x_range])
 
     if values is not None:
         hist, ys, xs = _histogram_generator(weights * values)

@@ -30,7 +30,7 @@ please consider `opening an issue on github <https://github.com/pynbody/pynbody/
 `email list <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_. To help us help you, when asking for
 assistance please provide a simple, minimal python script that we can use to reproduce a bug, inaccuracy or situation.
 Preferably reproduce the bug using pynbody's own test data (as used by the tutorials,
-and downloadable from `zenodo <https://zenodo.org/doi/10.5281/zenodo.12552027>`_).
+and downloadable from `osf <https://osf.io/5m6zs/files>`_).
 If this impossible, provide us a pointer to another file that we can use to reproduce the problem.
 
 Please note that we adhere to a  `community code of conduct

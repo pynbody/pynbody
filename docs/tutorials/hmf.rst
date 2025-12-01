@@ -18,17 +18,6 @@ and compare it to a theoretical model.
  The functionality here is retained for quick cross-checks of simulations.
 
 
-Since the pynbody test data does not include a simulation with a uniform resolution volume,
-we will borrow some test data from `tangos <https://pynbody.github.io/tangos/>`_ to illustrate the
-halo mass function.
-Click `here <https://zenodo.org/records/10825178/files/tutorial_gadget.tar.gz?download=1>`_ to download, or type
-
-.. code:: bash
-
-   $ wget https://zenodo.org/records/10825178/files/tutorial_gadget.tar.gz?download=1 -O tutorial_gadget4.tar.gz
-   $ tar -xvzf tutorial_gadget.tar.gz
-
-
 Calculating a theoretical halo mass function
 --------------------------------------------
 
@@ -39,7 +28,7 @@ We will start by loading a snapshot data.
 
   In [1]: import pynbody
      ...: import matplotlib.pyplot as p
-     ...: s = pynbody.load('tutorial_gadget/snapshot_020')
+     ...: s = pynbody.load('testdata/tutorial_gadget/snapshot_020')
      ...: s.physical_units()
 
 To define the expected halo mass function, we need to make sure that the cosmology is well set. Some cosmological

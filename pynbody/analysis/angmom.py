@@ -145,17 +145,30 @@ def align(h, vec_to_xform, disk_size="5 kpc", move_all=True, already_centered = 
            center_kwargs = None):
     """Reposition and rotate the ancestor of h to place the angular momentum into a specified orientation.
 
-    The routine first calls the center routine to reposition the halo (unless already_centered is True).
-    If there are a sufficient number of gas particles (more than 100), only the gas particles are used for
-    centering, since these will also be used for angular momentum calculations; if there is an offset between
-    e.g. dark matter and baryons, it is better to centre on the baryons.
+    The routine first calls the center routine to reposition the halo (unless ``already_centered`` is ``True``).
+    If there are a sufficient number of star particles (more than 100), only the star particles are used for
+    centering; if there is an offset between dark matter and baryons, it is better to centre on the baryons.
 
     Then, it determines the disk orientation using the angular momentum vector of the gas particles within
-    a specified radius of the halo center. If there is no gas within this radius, the routine falls back first
-    to stellar particles, and then to all particles.
+    a specified radius of the halo center. If there are less than 5 gas particles within this radius, the 
+    routine falls back first to stellar particles, and then to all particles.
 
-    Finally, the angular momentum vector is converted into a rotation matrix using the vec_to_xform function,
-    and the rotation is applied.
+    Finally, the angular momentum vector is converted into a rotation matrix using the ``vec_to_xform``
+    function, and the rotation is applied.
+
+    .. seealso::
+
+      Convenient wrappers around this routine are provided to either align a disk side-on or face-on;
+      see :func:`sideon` and :func:`faceon`.
+
+    .. versionchanged :: 2.3.1
+
+      The routine previously checked the total number of gas particles to determine whether to use gas for
+      angular momentum determination, but now actually checks particles in the specified radius. This
+      prevents an issue where there could be enough gas particles overall but none in the specified radius,
+      leading the routine to fail.
+
+      Additionally, the docstring regarding choice of particles for centring has been clarified.
 
     Parameters
     ----------
@@ -200,10 +213,10 @@ def align(h, vec_to_xform, disk_size="5 kpc", move_all=True, already_centered = 
         tx = halo.center(h_for_centering, **center_kwargs)
 
     try:
-        if len(h.gas) > 5:
-            cen = h.gas[filt.Sphere(disk_size)]
-        elif len(h.st) > 5:
-            cen = h.st[filt.Sphere(disk_size)]
+        if len(cen_trial := h.gas[filt.Sphere(disk_size)]) > 5:
+            cen = cen_trial
+        elif len(cen_trial := h.st[filt.Sphere(disk_size)]) > 5:
+            cen = cen_trial
         else:
             cen = h[filt.Sphere(disk_size)]
 
@@ -229,7 +242,11 @@ def sideon(h, **kwargs):
     Since pynbody's imaging routines project along the z direction, one can get a side-on view of a disk or
     other rotationally-supported structure by calling this routine first.
 
-    For details of how the transformation is calculated, see the documentation for the underlying :func:`align` routine.
+    .. seealso::
+
+      For details of how the transformation is calculated, see the documentation for the underlying :func:`align` routine.
+
+      A similar routine for aligning face-on is also provided; see :func:`faceon`.
 
     Parameters
     ----------
@@ -262,7 +279,11 @@ def faceon(h, **kwargs):
     Since pynbody's imaging routines project along the z direction, one can get a face-on view of a disk
     or other rotationally-supported structure by calling this routine first.
 
-    For details of how the transformation is calculated, see the documentation for the underlying :func:`align` routine.
+    .. seealso::
+
+      For details of how the transformation is calculated, see the documentation for the underlying :func:`align` routine.
+
+      A similar routine for aligning side-on is also provided; see :func:`sideon`.
 
 
     Parameters

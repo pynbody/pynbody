@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import abc
 import typing
+import warnings
 import weakref
 
 import numpy as np
@@ -25,6 +26,7 @@ from . import _bridge
 
 if typing.TYPE_CHECKING:
     from .. import snapshot
+
 
 class AbstractBridge(abc.ABC):
     """The abstract base class for bridges between two snapshots.
@@ -41,14 +43,12 @@ class AbstractBridge(abc.ABC):
     def __call__(self, s: snapshot.SubSnap) -> snapshot.SubSnap:
         """Map from a ``SubSnap`` at one end of the bridge, to the corresponding ``SubSnap`` at the other end"""
 
-
     def _get_ends(self):
         start = self._start()
         end = self._end()
         if start is None or end is None:
             raise RuntimeError("Stale reference to start or endpoint")
         return start, end
-
 
     def match_halos(self, halos_1, halos_2, /, threshold=0.5, use_family=None, fill_value=-1, use_halo_indexes=False):
         """Given halo catalogues, identify the likely halo number in the second catalogue for each halo in the first.
@@ -101,13 +101,13 @@ class AbstractBridge(abc.ABC):
 
         highest_commonality_index = particles_in_common_matrix.argmax(axis=1)
         highest_commonality = particles_in_common_matrix[np.arange(particles_in_common_matrix.shape[0]),
-                                                         highest_commonality_index]
+        highest_commonality_index]
         # return nan for zero division
         with np.errstate(divide='ignore', invalid='ignore'):
-            frac_commonality = highest_commonality/particles_in_common_matrix.sum(axis=1)
+            frac_commonality = highest_commonality / particles_in_common_matrix.sum(axis=1)
         frac_commonality[~np.isfinite(frac_commonality)] = 0
 
-        invalid_matches = frac_commonality<threshold
+        invalid_matches = frac_commonality < threshold
 
         if use_halo_indexes:
             result = highest_commonality_index
@@ -230,8 +230,10 @@ class AbstractBridge(abc.ABC):
             end = end[use_family]
             start = start[use_family]
 
-        restricted_start_particles = self(self(start)) # map back and forth to get only particles that are held in common
-        restricted_end_particles = self(restricted_start_particles) # map back to start in case a reordering is required
+        restricted_start_particles = self(
+            self(start))  # map back and forth to get only particles that are held in common
+        restricted_end_particles = self(
+            restricted_start_particles)  # map back to start in case a reordering is required
 
         restriction_end_indices = restricted_end_particles.get_index_list(end.ancestor)
         restriction_start_indices = restricted_start_particles.get_index_list(start.ancestor)
@@ -239,7 +241,6 @@ class AbstractBridge(abc.ABC):
         assert len(restriction_end_indices) == len(restriction_start_indices), \
             ("Internal consistency failure in catalog_transfer_matrix: particles supposedly "
              "common to both simulations have two different lengths")
-
 
         # Need to account for the fact that get_group_array(only_family) will return an array of length Nfamily
         # while restriction_start_indices are global indeces to the ancestor snapshot,
@@ -257,43 +258,41 @@ class AbstractBridge(abc.ABC):
 
         return transfer_matrix
 
-
-
     @util.deprecated("match_catalog is deprecated; use match_halos instead")
-    def match_catalog(self, min_index=1, max_index=30, threshold=0.5, groups_1 = None, groups_2 = None,
-                      use_family = None):
+    def match_catalog(self, min_index=1, max_index=30, threshold=0.5, groups_1=None, groups_2=None,
+                      use_family=None):
         """Deprecated alternative to :func:`match_halos`. Use that method instead."""
         fuzzy_matches = self.fuzzy_match_catalog(min_index, max_index, threshold, groups_1, groups_2, use_family)
 
-        identification = np.zeros(max_index+1,dtype=int)
+        identification = np.zeros(max_index + 1, dtype=int)
 
-        for i,row in enumerate(fuzzy_matches):
-            if len(row)>0:
+        for i, row in enumerate(fuzzy_matches):
+            if len(row) > 0:
                 identification[i] = row[0][0]
-            elif i<min_index:
+            elif i < min_index:
                 identification[i] = -2
             else:
                 identification[i] = -1
 
         return identification
 
-
     @util.deprecated("fuzzy_match_catalog is deprecated; use fuzzy_match_halos instead")
     def fuzzy_match_catalog(self, min_index=1, max_index=30, threshold=0.01,
-                            groups_1 = None, groups_2 = None, use_family=None, only_family=None):
+                            groups_1=None, groups_2=None, use_family=None, only_family=None):
         """Deprecated alternative to :func:`fuzzy_match_halos`. Use that method instead."""
 
-        transfer_matrix = self.catalog_transfer_matrix(min_index,max_index,groups_1,groups_2,use_family,only_family)
+        transfer_matrix = self.catalog_transfer_matrix(min_index, max_index, groups_1, groups_2, use_family,
+                                                       only_family)
 
-        output = [[]]*min_index
+        output = [[]] * min_index
         for row in transfer_matrix:
             this_row_matches = []
-            if row.sum()>0:
-                frac_particles_transferred = np.array(row,dtype=float)/row.sum()
-                above_threshold = np.where(frac_particles_transferred>threshold)[0]
+            if row.sum() > 0:
+                frac_particles_transferred = np.array(row, dtype=float) / row.sum()
+                above_threshold = np.where(frac_particles_transferred > threshold)[0]
                 above_threshold = above_threshold[np.argsort(frac_particles_transferred[above_threshold])[::-1]]
                 for column in above_threshold:
-                    this_row_matches.append((column+min_index, frac_particles_transferred[column]))
+                    this_row_matches.append((column + min_index, frac_particles_transferred[column]))
 
             output.append(this_row_matches)
 
@@ -314,7 +313,7 @@ class AbstractBridge(abc.ABC):
         del min_index, max_index
 
         if only_family is not None:
-            if use_family!=only_family and use_family is not None:
+            if use_family != only_family and use_family is not None:
                 raise ValueError("use_family and only_family must be the same if both specified")
             use_family = only_family
 
@@ -332,8 +331,8 @@ class AbstractBridge(abc.ABC):
         max_number_1 = min(max_number, max(groups_1.keys()))
         max_number_2 = min(max_number, max(groups_2.keys()))
 
-        indices_to_use_1 = groups_1.number_mapper.number_to_index(np.arange(min_number, max_number_1+1))
-        indices_to_use_2 = groups_2.number_mapper.number_to_index(np.arange(min_number, max_number_2+1))
+        indices_to_use_1 = groups_1.number_mapper.number_to_index(np.arange(min_number, max_number_1 + 1))
+        indices_to_use_2 = groups_2.number_mapper.number_to_index(np.arange(min_number, max_number_2 + 1))
 
         max_index = max(indices_to_use_1.max(), indices_to_use_2.max())
 
@@ -343,6 +342,7 @@ class AbstractBridge(abc.ABC):
         transfer_matrix_restricted = transfer_matrix[indices_to_use_1, :][:, indices_to_use_2]
 
         return transfer_matrix_restricted
+
 
 class OneToOneBridge(AbstractBridge):
     """Connects two snapshots with identical particle numbers and file layout.
@@ -364,6 +364,7 @@ class OneToOneBridge(AbstractBridge):
             return start[s.get_index_list(end)]
         else:
             raise RuntimeError("Not a subview of either end of the bridge")
+
 
 class OrderBridge(AbstractBridge):
     """Connects to snapshots that both have arrays of identity integers (``iord`` or similar) to identify particles.
@@ -431,8 +432,6 @@ class OrderBridge(AbstractBridge):
         else:
             raise RuntimeError("Not a subview of either end of the bridge")
 
-
-
         if self._only_families is None:
             iord_to = self._get_iord_array(to_)
             iord_from = self._get_iord_array(s)
@@ -477,6 +476,67 @@ class OrderBridge(AbstractBridge):
         return output_index
 
 
+class RamsesBugOrderBridge(OrderBridge):
+    def __init__(self, start, end, order_array="iord", monotonic=False, allow_family_change=False, only_families=None):
+        """A special case of OrderBridge for bridging between two Ramses snapshots affected by int32 iord truncation bug.
+
+        In this bug, the iord array is truncated to int32 when transmitted from one CPU to another. We first truncate
+        all iords to int32, then use heuristics to try to disambiguate collisions that occur due to this bit loss.
+        The heuristics are that star particles must always map onto star particles, and DM particles must map onto
+        DM particles of the same level.
+
+        Note that this class is never created automatically by :pynbody.snapshot.simsnap.SimSnap.bridge, but must
+        be create manually by the user, since it is not recommended for use except when there is no other option
+        but to process snapshots affected by this ramses bug.
+
+        Example usage:
+
+        >>> f = pynbody.load('snapshot_00010').dm
+        >>> f2 = pynbody.load('snapshot_00020').dm
+        >>> bridge = RamsesBugOrderBridge(f, f2)
+        >>> h = f.halos()[0]
+        >>> h2 = bridge(h)
+
+        """
+
+        if only_families is not None:
+            families = [family.get_family(f) for f in only_families]
+        else:
+            families = start.families()
+
+        for fam_identifier in families:
+            fam = family.get_family(fam_identifier)
+            use_level_hashing = fam == family.dm
+            start[fam]['pynbody_iord_recreation'] = self._make_new_iord_array(start[fam], order_array,
+                                                                              use_level_hashing)
+            end[fam]['pynbody_iord_recreation'] = self._make_new_iord_array(end[fam], order_array, use_level_hashing)
+
+        if monotonic is not False:
+            warnings.warn("RamsesBugOrderBridge does not support monotonic iord arrays; setting monotonic to False")
+
+        super().__init__(start, end, 'pynbody_iord_recreation', False, allow_family_change, only_families)
+
+    @classmethod
+    def _make_new_iord_array(cls, snapshot, order_array_name, use_level_hashing=False):
+        new_order_array = snapshot[order_array_name].astype(np.int32).astype(np.int64)
+
+        if use_level_hashing:
+            level_guess = np.log2(snapshot['mass']).astype(np.int64)
+            level_guess -= level_guess.max()
+
+            # we put each level onto its own high-order bits, in the hope this resolves most collisions.
+            new_order_array += (1 + level_guess) * 2 ** 32
+
+        # Check that the newly created iords are all unique
+        if len(np.unique(new_order_array)) != len(new_order_array):
+            warnings.warn(
+                "Failed to resolve all conflicts when recreating the iord array in RamsesBugOrderBridge. "
+                "This is likely due to having non-unique iords in one of the two ends of the bridge"
+                "which cannot be mapped out to unique iords on the other end.")
+
+        return new_order_array
+
+
 def bridge_factory(a: snapshot.SimSnap, b: snapshot.SimSnap) -> AbstractBridge:
     """Create a bridge connecting the two specified snapshots.
 
@@ -486,8 +546,8 @@ def bridge_factory(a: snapshot.SimSnap, b: snapshot.SimSnap) -> AbstractBridge:
     For more information see :doc:`the bridge tutorial </tutorials/bridge>`.
     """
 
-    not_sure_error = "Don't know how to automatically bridge between two simulations of different formats. "\
-                     "You will need to create your bridge manually by instantiating either the OneToOneBridge or "\
+    not_sure_error = "Don't know how to automatically bridge between two simulations of different formats. " \
+                     "You will need to create your bridge manually by instantiating either the OneToOneBridge or " \
                      "OrderBridge class appropriately."
 
     from ..snapshot import gadget, gadgethdf, nchilada, ramses, tipsy
@@ -507,6 +567,14 @@ def bridge_factory(a: snapshot.SimSnap, b: snapshot.SimSnap) -> AbstractBridge:
     elif isinstance(a_top, ramses.RamsesSnap):
         if len(a.gas) > 0 or len(b.gas) > 0:
             raise RuntimeError("Cannot bridge AMR gas cells")
+        if a_top.has_potential_negative_iords_bug or b_top.has_potential_negative_iords_bug:
+            warnings.warn("Due to the unexpected presence of negative iord values, one of your snapshots has been identified "
+                          "as potentially affected by a bug in RAMSES which leads to bit-loss in the iords. Pynbody will attempt "
+                          "to correct for this bug. However if you intentionally have negative iords in your snapshot, this is not "
+                          "what you want. In such cases, please reload your file with `pynbody.load(..., "
+                          "negative_iords_on_purpose=True)`. For more background see: "
+                          "https://github.com/pynbody/pynbody/pull/914, https://github.com/pynbody/pynbody/pull/961")
+            return RamsesBugOrderBridge(a_top, b_top, monotonic=False, only_families=["dm", "star"])
         return OrderBridge(a_top, b_top, monotonic=False, only_families=["dm", "star"])
     else:
         raise RuntimeError(not_sure_error)

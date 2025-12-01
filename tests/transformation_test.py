@@ -16,6 +16,18 @@ def test_simulation_with_copy():
     s['mass'] = np.random.uniform(1.0, 10.0, size=s['mass'].shape)
     return s, copy.deepcopy(s)
 
+@pytest.fixture
+def test_simulation_hole():
+    # This generates a simulation with a cubic hole in the gas and star particle distribution
+    # to test the align method in angmom
+    s = pynbody.new(gas=1000, stars=1000, dm=1000)
+    s['pos'] = np.random.normal(scale=1.0, size=s['pos'].shape)
+    s.g['pos'] += 2*np.sign(s.g['pos'])
+    s.s['pos'] += 2*np.sign(s.s['pos'])
+    s['vel'] = np.random.normal(scale=1.0, size=s['vel'].shape)
+    s['mass'] = np.random.uniform(1.0, 10.0, size=s['mass'].shape)
+    return s, copy.deepcopy(s)
+
 
 def test_translate(test_simulation_with_copy):
     f, original = test_simulation_with_copy
@@ -132,6 +144,23 @@ def test_chaining(test_simulation_with_copy):
 
     npt.assert_almost_equal(f['pos'], original['pos'])
 
+def test_align_particle_selection(test_simulation_hole):
+    '''
+    Previously, the align() function in the angmom module had a bug (GH Issue #922) where
+    a series of checks intended to calculate the angular momentum vector of the central region
+    from either gas, stars, or all particles (in that order).  However, the check did not actually
+    check the number of particles within the central region, but the total number of particles in the
+    simsnap.  This could lead to the vec_to_xform function being called on zero particles, which in
+    turn gives a div-by-zero exception.  This test is intended to check for that behaviour by using
+    a mock dataset with a cubic hole in center of a ball of the gas and stars (but not in the DM).
+    '''
+    f, original = test_simulation_hole
+
+    with pynbody.analysis.angmom.sideon(f, disk_size=1.0):
+        pass
+
+    npt.assert_almost_equal(f['pos'], original['pos'])
+    npt.assert_almost_equal(f['vel'], original['vel'])
 
 def test_halo_managers(test_simulation_with_copy):
     f, original = test_simulation_with_copy

@@ -19,7 +19,7 @@ Obtaining test data
 
 Many of the tutorials below use the same dataset that pynbody is tested on. While they are easily adapted for your
 own data, you can also download and unpack the test data to replicate the examples exactly. To do this, you can either
-manually download the tarballs from `zenodo <https://zenodo.org/doi/10.5281/zenodo.12552027>`_ and unpack them
+manually download the tarballs from `osf <https://osf.io/5m6zs/files>`_ and unpack them
 to a directory of your choice, or automatically download using pynbody's built-in testdata downloader:
 
 .. code:: python
