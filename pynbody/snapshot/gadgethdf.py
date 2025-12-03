@@ -1182,8 +1182,6 @@ class GizmoHDFSnap(GadgetHDFSnap):
         if not existing_files:
             return None
         elif len(existing_files) == 1:
-            warnings.warn(
-                f"Found param file in: {existing_files[0]}\n")
             return existing_files[0]
         else:
             warnings.warn(
@@ -1237,7 +1235,6 @@ class GizmoHDFSnap(GadgetHDFSnap):
             atr = {"":""}
             
         if (self._velocity_unit_key not in atr.keys()):
-            warnings.warn("No unit information found in GizmoHDF file. Looking for a param file. Note you may provide a full path as 'param_filename'", RuntimeWarning)
 
             if self._param_filename is None:
                 self._param_filename = self._search_param_file()
@@ -1253,7 +1250,7 @@ class GizmoHDFSnap(GadgetHDFSnap):
                 atr[self._mass_unit_key] = units.Unit(atr[self._param_file_mass_unit_key])
         
         if (self._velocity_unit_key not in atr.keys()):
-            warnings.warn("No unit information found in GizmoHDF file or param file. Using gizmo default units.", RuntimeWarning)
+            warnings.warn("No unit information found either in the HDF file itself, or as a Gizmo parameter file. Units will revert to defaults. To use a gizmo paramfile, provide its full path as 'param_filename'", RuntimeWarning)
             vel_unit = config_parser.get('gizmohdf-units', 'vel')
             dist_unit = config_parser.get('gizmohdf-units', 'pos')
             mass_unit = config_parser.get('gizmohdf-units', 'mass')
@@ -1269,35 +1266,7 @@ class GizmoHDFSnap(GadgetHDFSnap):
 
         dist_unit = atr[self._length_unit_key]
         mass_unit = atr[self._mass_unit_key]
-        try:
-            time_unit = atr[self._time_unit_key] * units.s
-        except KeyError:
-            # Gadget 4 (and Gizmo) seems not to store time units explicitly <sigh>
-            time_unit = dist_unit/vel_unit
-
-        if vel_unit is None:
-            # Swift files don't store the velocity explicitly
-            vel_unit = dist_unit / time_unit
-
-        temp_unit = 1.0
-
-        # Create a dictionary for the units, this will come in handy later
-        unitvar = {'U_V': vel_unit * units.cm/units.s, 'U_L': dist_unit * units.cm,
-                   'U_M': mass_unit * units.g,
-                   'U_T': time_unit,
-                   '[K]': temp_unit * units.K,
-                   'SEC_PER_YEAR': units.yr,
-                   'SOLAR_MASS': units.Msol,
-                   'solar masses / yr': units.Msol/units.yr,
-                   'BH smoothing': dist_unit}
-        # Some arrays like StarFormationRate don't follow the pattern of U_ units
-        cgsvar = {'U_M': 'g', 'SOLAR_MASS': 'g', 'U_T': 's',
-                  'SEC_PER_YEAR': 's', 'U_V': 'cm s**-1', 'U_L': 'cm', '[K]': 'K',
-                  'solar masses / yr': 'g s**-1', 'BH smoothing': 'cm'}
-
-        self._hdf_cgsvar = cgsvar
-        self._hdf_unitvar = unitvar
-
+        
         cosmo = 'HubbleParam' in list(self._get_hdf_parameter_attrs().keys())
         if cosmo:
             try:
