@@ -1128,15 +1128,13 @@ class GizmoHDFSnap(GadgetHDFSnap):
     _param_file_length_unit_key = 'UnitLength_in_cm'
     _param_file_mass_unit_key = 'UnitMass_in_g'
     _units_need_hubble_factors = False
-    _namemapper_config_section = "gadgethdf-name-mapping"
+    _namemapper_config_section = "gizmohdf-name-mapping"
     
     def __init__(self, filename,**kwargs):
     
         self._param_filename = kwargs.pop("param_filename", None)
         
         super().__init__(filename)
-        
-        print(self._param_filename)
 
     def _get_units_from_hdf_attr(self, hdfattrs):
         # Gizmo doesn't seem to store any info about units in the attributes. Let pynbody use the default
@@ -1161,7 +1159,6 @@ class GizmoHDFSnap(GadgetHDFSnap):
         possible_paths = []
         
         sim_dir = os.path.dirname(self.filename)
-        print(sim_dir)
         
         relative_paths = [
             "gizmo_parameters.txt-usedvalues",
@@ -1195,6 +1192,11 @@ class GizmoHDFSnap(GadgetHDFSnap):
             return existing_files[0]
             
     def _get_gizmo_param_values(self, param_names):
+    
+        unit_mapping = {
+            self._param_file_length_unit_key:   " h^-1",
+            self._param_file_mass_unit_key:     " h^-1"
+        }
           
         results = {name: None for name in param_names}
         found_count = 0
@@ -1207,6 +1209,9 @@ class GizmoHDFSnap(GadgetHDFSnap):
                 # Remove inline comments
                 if '#' in line:
                     line = line.split('#')[0]
+                    
+                if '%' in line:
+                    line = line.split('%')[0]
                 
                 line = line.strip()
                 if not line:
@@ -1219,7 +1224,8 @@ class GizmoHDFSnap(GadgetHDFSnap):
                     value = parts[1].strip()
                     
                     if current_param in results and results[current_param] is None:
-                        results[current_param] = float(value)
+                        unit = unit_mapping.get(current_param, "")
+                        results[current_param] = value + unit
                         found_count += 1
                     
         return results
@@ -1238,15 +1244,17 @@ class GizmoHDFSnap(GadgetHDFSnap):
             else:
                 self._param_filename = self._search_param_file()
                 
-            atr = self._get_gizmo_param_values([self._param_file_velocity_unit_key, self._param_file_length_unit_key, self._param_file_mass_unit_key])
-            
-        print(atr.keys())
+                if self._param_filename is not None:
+                    atr = self._get_gizmo_param_values([self._param_file_velocity_unit_key, self._param_file_length_unit_key, self._param_file_mass_unit_key])
+                    atr[self._velocity_unit_key] = units.Unit(atr[self._param_file_velocity_unit_key])
+                    atr[self._length_unit_key] = units.Unit(atr[self._param_file_length_unit_key])
+                    atr[self._mass_unit_key] = units.Unit(atr[self._param_file_mass_unit_key])
 
-        if (self._velocity_unit_key not in atr.keys()) or (self._param_filename is None):
+        if (self._velocity_unit_key not in atr.keys()):
             warnings.warn("No unit information found in GizmoHDF file or param file. Using gizmo default units.", RuntimeWarning)
-            vel_unit = config_parser.get('gadget-units', 'vel')
-            dist_unit = config_parser.get('gadget-units', 'pos')
-            mass_unit = config_parser.get('gadget-units', 'mass')
+            vel_unit = config_parser.get('gizmohdf-units', 'vel')
+            dist_unit = config_parser.get('gizmohdf-units', 'pos')
+            mass_unit = config_parser.get('gizmohdf-units', 'mass')
             self._file_units_system = [units.Unit(x) for x in [
                 vel_unit, dist_unit, mass_unit, "K"]]
             return
@@ -1428,16 +1436,21 @@ def Fe(self) :
     return Fe
     
 @GizmoHDFSnap.derived_array
+def rprocess(self) :
+    # Only stored in some FIRE simulations
+    if self['metals_list'].shape[1] > 10:
+        r_process_models = self['metals_list'][:,11:]
+        return r_process_models
+    
+@GizmoHDFSnap.derived_array
 def metals(self) :
     metals = self['metals_list'][:,0]
-    # PENDING: there's some small discrepancy with np.sum(self['metals_list'][:,2:], axis = 1), 
-    # but the FIRE-2 public release info is incorrect, as self['metals_list'][:,0] 
+    # There's some small discrepancy with np.sum(self['metals_list'][:,2:11], axis = 1),
+    # possibly due to reduced precission in float32.
+    # FIRE-2 public release info is incorrect, as self['metals_list'][:,0] 
     # is clearly not equal to the H mass fraction
     return metals
     
-# PENDING: "some" FIRE-2 simulations include additional metal_list fields
-# for r-process calculations
-
 ## Gadget has internal energy variable
 @GadgetHDFSnap.derived_array
 @SubFindHDFSnap.derived_array
