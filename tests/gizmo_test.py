@@ -86,8 +86,7 @@ def get_fire_data():
     pynbody.test_utils.ensure_test_data_available("tiny_FIRE")
     
 @pytest.mark.filterwarnings("ignore:Unable to find cosmological factors",
-                            "ignore:No unit information found in GizmoHDF file",
-                            "ignore:Found param file")
+                            "ignore:No unit information found either")
 def test_load_file_fire():
     f = pynbody.load("testdata/tiny_FIRE/output/m11i_res7100_truncated_1000.hdf5")
     assert isinstance(f, pynbody.snapshot.gadgethdf.GadgetHDFSnap)
@@ -97,8 +96,7 @@ def test_load_file_fire():
     assert np.allclose(f.properties['z'], 0)
     
 @pytest.mark.filterwarnings("ignore:Unable to find cosmological factors",
-                            "ignore:No unit information found in GizmoHDF file",
-                            "ignore:Found param file")
+                            "ignore:No unit information found either")
 def test_units_fire():
     f = pynbody.load("testdata/tiny_FIRE/output/m11i_res7100_truncated_1000.hdf5")
     assert np.allclose(f['pos'].units.in_units("3.085678e21 cm a h^-1"), 1.0)
@@ -107,8 +105,7 @@ def test_units_fire():
     
     
 @pytest.mark.filterwarnings("ignore:Unable to find cosmological factors",
-                            "ignore:No unit information found in GizmoHDF file",
-                            "ignore:Found param file")
+                            "ignore:No unit information found either")
 def test_units_fire_specify_param_file_name():
     os.rename('testdata/tiny_FIRE/gizmo_parameters.txt', 'testdata/tiny_FIRE/foo.txt')
     f = pynbody.load("testdata/tiny_FIRE/output/m11i_res7100_truncated_1000.hdf5", param_filename = 'testdata/tiny_FIRE/foo.txt')
@@ -118,8 +115,7 @@ def test_units_fire_specify_param_file_name():
     assert np.allclose(f['mass'].units.in_units("1.989e+43 g h^-1"), 1.0)
     
 @pytest.mark.filterwarnings("ignore:Unable to find cosmological factors",
-                            "ignore:No unit information found in GizmoHDF file",
-                            "ignore:Found param file")
+                            "ignore:No unit information found either")
 def test_units_fire_no_param_file():
     os.rename('testdata/tiny_FIRE/gizmo_parameters.txt', 'testdata/tiny_FIRE/foo.txt')
     f = pynbody.load("testdata/tiny_FIRE/output/m11i_res7100_truncated_1000.hdf5")
@@ -129,8 +125,7 @@ def test_units_fire_no_param_file():
     assert f['mass'].units == "1e10 Msol h^-1"
 
 @pytest.mark.filterwarnings("ignore:Unable to find cosmological factors",
-                            "ignore:No unit information found in GizmoHDF file",
-                            "ignore:Found param file")
+                            "ignore:No unit information found either")
 def test_derived_arrays():
     f = pynbody.load("testdata/tiny_FIRE/output/m11i_res7100_truncated_1000.hdf5")
     new_derived_arrays = ['metals_list', 'H', 'He', 'C', 'N', 'O',
