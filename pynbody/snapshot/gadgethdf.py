@@ -1238,18 +1238,20 @@ class GizmoHDFSnap(GadgetHDFSnap):
             
         if (self._velocity_unit_key not in atr.keys()):
             warnings.warn("No unit information found in GizmoHDF file. Looking for a param file. Note you may provide a full path as 'param_filename'", RuntimeWarning)
+
+            if self._param_filename is None:
+                self._param_filename = self._search_param_file()
+
             if self._param_filename is not None:
                 if not os.path.exists(self._param_filename):
-                    raise FileNotFoundError(f"Parameter file not found: {self._param_filename}")   
-            else:
-                self._param_filename = self._search_param_file()
-                
-                if self._param_filename is not None:
-                    atr = self._get_gizmo_param_values([self._param_file_velocity_unit_key, self._param_file_length_unit_key, self._param_file_mass_unit_key])
-                    atr[self._velocity_unit_key] = units.Unit(atr[self._param_file_velocity_unit_key])
-                    atr[self._length_unit_key] = units.Unit(atr[self._param_file_length_unit_key])
-                    atr[self._mass_unit_key] = units.Unit(atr[self._param_file_mass_unit_key])
+                    raise FileNotFoundError(f"Parameter file not found: {self._param_filename}")
 
+                keys = [self._param_file_velocity_unit_key, self._param_file_length_unit_key, self._param_file_mass_unit_key]
+                atr = self._get_gizmo_param_values(keys)
+                atr[self._velocity_unit_key] = units.Unit(atr[self._param_file_velocity_unit_key])
+                atr[self._length_unit_key] = units.Unit(atr[self._param_file_length_unit_key])
+                atr[self._mass_unit_key] = units.Unit(atr[self._param_file_mass_unit_key])
+        
         if (self._velocity_unit_key not in atr.keys()):
             warnings.warn("No unit information found in GizmoHDF file or param file. Using gizmo default units.", RuntimeWarning)
             vel_unit = config_parser.get('gizmohdf-units', 'vel')

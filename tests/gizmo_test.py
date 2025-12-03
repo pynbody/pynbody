@@ -104,7 +104,18 @@ def test_units_fire():
     assert np.allclose(f['pos'].units.in_units("3.085678e21 cm a h^-1"), 1.0)
     assert f['vel'].units == "km a^1/2 s^-1"
     assert np.allclose(f['mass'].units.in_units("1.989e+43 g h^-1"), 1.0)
-    f.physical_units()
+    
+    
+@pytest.mark.filterwarnings("ignore:Unable to find cosmological factors",
+                            "ignore:No unit information found in GizmoHDF file",
+                            "ignore:Found param file")
+def test_units_fire_specify_param_file_name():
+    os.rename('testdata/tiny_FIRE/gizmo_parameters.txt', 'testdata/tiny_FIRE/foo.txt')
+    f = pynbody.load("testdata/tiny_FIRE/output/m11i_res7100_truncated_1000.hdf5", param_filename = 'testdata/tiny_FIRE/foo.txt')
+    os.rename('testdata/tiny_FIRE/foo.txt', 'testdata/tiny_FIRE/gizmo_parameters.txt')
+    assert np.allclose(f['pos'].units.in_units("3.085678e21 cm a h^-1"), 1.0)
+    assert f['vel'].units == "km a^1/2 s^-1"
+    assert np.allclose(f['mass'].units.in_units("1.989e+43 g h^-1"), 1.0)
     
 @pytest.mark.filterwarnings("ignore:Unable to find cosmological factors",
                             "ignore:No unit information found in GizmoHDF file",
