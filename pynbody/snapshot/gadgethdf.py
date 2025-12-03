@@ -1190,12 +1190,7 @@ class GizmoHDFSnap(GadgetHDFSnap):
             return existing_files[0]
             
     def _get_gizmo_param_values(self, param_names):
-    
-        unit_mapping = {
-            self._param_file_length_unit_key:   " h^-1",
-            self._param_file_mass_unit_key:     " h^-1"
-        }
-          
+        
         results = {name: None for name in param_names}
         found_count = 0
         
@@ -1222,8 +1217,7 @@ class GizmoHDFSnap(GadgetHDFSnap):
                     value = parts[1].strip()
                     
                     if current_param in results and results[current_param] is None:
-                        unit = unit_mapping.get(current_param, "")
-                        results[current_param] = value + unit
+                        results[current_param] = value
                         found_count += 1
                     
         return results
@@ -1248,9 +1242,11 @@ class GizmoHDFSnap(GadgetHDFSnap):
                 atr[self._velocity_unit_key] = units.Unit(atr[self._param_file_velocity_unit_key])
                 atr[self._length_unit_key] = units.Unit(atr[self._param_file_length_unit_key])
                 atr[self._mass_unit_key] = units.Unit(atr[self._param_file_mass_unit_key])
+                self._units_need_hubble_factors = True
         
         if (self._velocity_unit_key not in atr.keys()):
             warnings.warn("No unit information found either in the HDF file itself, or as a Gizmo parameter file. Units will revert to defaults. To use a gizmo paramfile, provide its full path as 'param_filename'", RuntimeWarning)
+            self._units_need_hubble_factors = False
             vel_unit = config_parser.get('gizmohdf-units', 'vel')
             dist_unit = config_parser.get('gizmohdf-units', 'pos')
             mass_unit = config_parser.get('gizmohdf-units', 'mass')
