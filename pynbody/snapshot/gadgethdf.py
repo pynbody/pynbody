@@ -1130,11 +1130,11 @@ class GizmoHDFSnap(GadgetHDFSnap):
     _units_need_hubble_factors = False
     _namemapper_config_section = "gizmohdf-name-mapping"
     
-    def __init__(self, filename,**kwargs):
+    def __init__(self, filename, **kwargs):
     
         self._param_filename = kwargs.pop("param_filename", None)
         
-        super().__init__(filename)
+        super().__init__(filename, **kwargs)
 
     def _get_units_from_hdf_attr(self, hdfattrs):
         # Gizmo doesn't seem to store any info about units in the attributes. Let pynbody use the default
