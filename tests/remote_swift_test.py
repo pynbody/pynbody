@@ -45,7 +45,7 @@ def pynbody_load(request, hdfstream_server_url):
         if hdfstream is None:
             pytest.skip("Hdfstream module not available")
         def load(filename, **kwargs):
-            return snap_class("Tests/pynbody/"+filename, server=hdfstream_server_url, **kwargs)
+            return snap_class(filename, server=hdfstream_server_url, **kwargs)
         return load
     else:
         raise RuntimeError("Unexpected snapshot class")

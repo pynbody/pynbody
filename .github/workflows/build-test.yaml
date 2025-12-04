@@ -29,12 +29,6 @@ jobs:
           - python-version: "3.13"
             numpy-version: "2.0.2"
 
-    services:
-      hdfstream:
-        image: ${{ (matrix.os == 'ubuntu-latest') && 'ghcr.io/jchelly/hdfstream-api:0.0.3' || '' }}
-        ports:
-          - 8080:8080
-
     runs-on: ${{ matrix.os }}
     env:
       C: ${{ matrix.os == 'ubuntu-latest' && 'gcc-10' || '' }}
@@ -66,6 +60,15 @@ jobs:
         path: tests/testdata
         key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
         enableCrossOsArchive: true
+
+    - name: Start hdfstream container to serve test data
+      uses: ./.github/actions/start-hdfstream
+      if: ${{ (matrix.os == 'ubuntu-latest') }}
+      with:
+        data-dir: ./tests/testdata
+        virtual-prefix: tests/testdata
+        image: ghcr.io/jchelly/hdfstream-api:0.0.5
+
     - name: Run tests
       working-directory: tests
       run: python -m pytest --ignore=testdata/ --tb=short ${{ matrix.test_flags }}
@@ -81,3 +84,7 @@ jobs:
       with:
         name: ${{ env.TARGET_SANI }}
         path: tests/result*.npy
+
+    - name: Stop hdfstream container
+      uses: ./.github/actions/stop-hdfstream
+      if: ${{ (matrix.os == 'ubuntu-latest') }}
