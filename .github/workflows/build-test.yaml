@@ -66,7 +66,7 @@ jobs:
       if: ${{ (matrix.os == 'ubuntu-latest') }}
       with:
         data-dir: ./tests/testdata
-        virtual-prefix: tests/testdata
+        virtual-prefix: testdata
         image: ghcr.io/jchelly/hdfstream-api:0.0.5
 
     - name: Run tests
