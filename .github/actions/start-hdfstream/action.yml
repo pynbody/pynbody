@@ -1,0 +1,40 @@
+name: 'Start hdfstream'
+description: 'Start the hdfstream service with a mounted directory'
+inputs:
+  data-dir:
+    description: 'Directory with the files to serve'
+    required: true
+    default: './data/'
+  virtual-prefix:
+    description: 'Virtual directory prefix to use'
+    required: true
+    default: 'Data'
+  image:
+    description: 'Server container image to use'
+    required: true
+    default: ghcr.io/jchelly/hdfstream-api:0.0.5
+runs:
+  using: "composite"
+  steps:
+    - name: Start hdfstream service with tests/data mounted
+      shell: bash
+      run: |
+        docker run -d \
+          --name hdfstream \
+          -p 8080:8080 \
+          -v ${{ inputs.data-dir }}:/opt/hdfstream/data:ro \
+          -e HDFSTREAM_PREFIX=${{ inputs.virtual-prefix }} \
+          ${{ inputs.image }}
+    - name: Wait until hdfstream service is responding
+      shell: bash
+      run: |
+        for i in {1..30}; do
+          status=$(docker inspect --format='{{.State.Health.Status}}' hdfstream)
+          if [ "$status" = "healthy" ]; then
+            echo "Service is ready"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "Service did not become healthy in time"
+        exit 1
