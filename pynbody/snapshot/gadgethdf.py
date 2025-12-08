@@ -18,8 +18,8 @@ import configparser
 import functools
 import itertools
 import logging
-import warnings
 import os
+import warnings
 
 import numpy as np
 
@@ -1194,7 +1194,7 @@ class GizmoHDFSnap(GadgetHDFSnap):
         results = {name: None for name in param_names}
         found_count = 0
         
-        with open(self._param_filename, 'r') as f:
+        with open(self._param_filename) as f:
             for line in f:
                 if found_count >= len(param_names):
                     break
