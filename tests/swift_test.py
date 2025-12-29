@@ -34,6 +34,10 @@ def test_swift_properties():
     assert np.allclose(f.properties['omegaL0'], 0.724)
     assert np.allclose(f.properties['omegaNu0'], 0.0)
 
+    # NB this incorrectly gave a 'comoving' time (i.e. in units of s a) due to inferring from joint vel/pos
+    # units, which is inconsistent with what swift actually outputs.
+    assert np.allclose(f.properties['time'].in_units("s"), 1.28661456e17)
+
 def test_swift_noncosmological():
     f = pynbody.load("testdata/SWIFT/isolated_0008.hdf5")
     assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
