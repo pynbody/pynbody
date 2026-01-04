@@ -107,7 +107,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           pattern: artifact-*
           merge-multiple: true
@@ -137,7 +137,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: PyPI
     steps:
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           pattern: artifact-*
           merge-multiple: true
