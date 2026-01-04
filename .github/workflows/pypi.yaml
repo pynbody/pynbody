@@ -122,7 +122,7 @@ jobs:
           python -m pip install pynbody[tests]
           
       - name: Restore testdata cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: tests/testdata
           key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
