@@ -25,7 +25,7 @@ jobs:
       run: |
         echo "testdatahash=$(python pynbody/test_utils/__init__.py)" >> $GITHUB_OUTPUT
     - name: Restore testdata cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       id: cache-testdata
       with:
         path: tests/testdata
@@ -37,7 +37,7 @@ jobs:
       run: |
         python ../pynbody/test_utils/__init__.py --fetch
     - name: Save testdata cache
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v5
       if: always() && steps.cache-testdata.outputs.cache-hit != 'true'
       with:
         path: tests/testdata
