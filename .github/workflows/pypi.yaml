@@ -64,7 +64,7 @@ jobs:
             CPPFLAGS="-I$HOME/miniforge3/include"
             DYLD_LIBRARY_PATH="$HOME/miniforge3/lib"
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: artifact-${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           path: ./wheelhouse/*.whl
@@ -86,7 +86,7 @@ jobs:
       - name: Build sdist
         run: python setup.py sdist
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: artifact-source
           path: dist/*.tar.gz
