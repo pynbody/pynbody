@@ -153,7 +153,20 @@ def make_shared_array(dims, dtype, zeros=False, fname=None, create=True,
             ret_ar._shared_mem_ref = mem_info['memory']
 
     if strides:
-        ret_ar.strides = strides
+        # Store attributes that need to be preserved
+        fname_stored = ret_ar._shared_fname
+        owner_stored = ret_ar._shared_owner
+        mem_ref_stored = getattr(ret_ar, '_shared_mem_ref', None)
+
+        # Use as_strided instead of direct stride assignment (deprecated in NumPy 2.4)
+        # subok=True preserves the SharedMemorySimArray type
+        ret_ar = np.lib.stride_tricks.as_strided(ret_ar, shape=ret_ar.shape, strides=strides, subok=True)
+
+        # Restore attributes (subok preserves type but not instance attributes)
+        ret_ar._shared_fname = fname_stored
+        ret_ar._shared_owner = owner_stored
+        if mem_ref_stored is not None:
+            ret_ar._shared_mem_ref = mem_ref_stored
 
     if zero_size:
         ret_ar = ret_ar[1:]
