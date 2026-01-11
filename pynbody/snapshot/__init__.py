@@ -110,6 +110,7 @@ from . import (
     nchilada,
     pkdgravhdf,
     ramses,
+    remote_swift,
     subsnap,
     swift,
     tipsy,

@@ -47,8 +47,6 @@ for hdf_groups in _default_type_map.values():
         _all_hdf_particle_groups.append(hdf_group)
 
 
-_max_buf = 1024 * 512 # max_chunk for chunk.LoadControl
-
 class _DummyHDFData:
 
     """A stupid class to allow emulation of mass arrays for particles
@@ -312,7 +310,7 @@ class HDFArrayLoader:
     handles chunked reading of the data to keep memory usage under control (see
     pynbody.chunk.LoadControl).
     """
-    def __init__(self, hdf_files: _GadgetHdfMultiFileManager, all_families: list[family.Family], family_to_group_map: dict[family.Family, list[str]], take: np.ndarray | None = None):
+    def __init__(self, hdf_files: _GadgetHdfMultiFileManager, all_families: list[family.Family], family_to_group_map: dict[family.Family, list[str]], max_buf: int, take: np.ndarray | None = None):
         """Initializes the HDFArrayLoader.
 
         Parameters
@@ -335,7 +333,7 @@ class HDFArrayLoader:
         
         self.partial_load = take is not None
         self.__init_file_map()
-        self.__init_load_map(take)
+        self.__init_load_map(max_buf, take=take)
 
     def __init_file_map(self):
         """ Initialize the file map for particle types and families """
@@ -376,10 +374,10 @@ class HDFArrayLoader:
 
         self._num_file_particle = family_slice_start
         
-    def __init_load_map(self, take = None):
+    def __init_load_map(self, max_buf, take = None):
         """ Set up family slice and particle count for loading """
 
-        self._load_control = chunk.LoadControl(self._file_ptype_slice, _max_buf, take) # use HDF groups type instead of family type here
+        self._load_control = chunk.LoadControl(self._file_ptype_slice, max_buf, take) # use HDF groups type instead of family type here
         self._family_slice_to_load = {}
         self._num_particles_to_load = self._load_control.mem_num_particles
 
@@ -506,6 +504,7 @@ class GadgetHDFSnap(SimSnap):
 
     _mass_pynbody_name = "mass"
     _eps_pynbody_name = "eps"
+    _max_buf = 1024 * 512 # max_chunk for chunk.LoadControl
 
     _velocity_unit_key = 'UnitVelocity_in_cm_per_s'
     _length_unit_key = 'UnitLength_in_cm'
@@ -619,7 +618,7 @@ class GadgetHDFSnap(SimSnap):
 
 
     def __init_file_map(self, take):
-        self._array_loader = HDFArrayLoader(self._hdf_files, self._families_ordered(), self._family_to_group_map, take)
+        self._array_loader = HDFArrayLoader(self._hdf_files, self._families_ordered(), self._family_to_group_map, self._max_buf, take)
         self._gadget_ptype_slice = self._array_loader._file_ptype_slice
         self._family_slice = self._array_loader._family_slice_to_load
         self._num_particles = self._array_loader._num_particles_to_load

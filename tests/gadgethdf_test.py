@@ -223,9 +223,10 @@ def test_partial_load_mass_in_header():
 
 
 def test_load_copy_issue_955(snap):
-    # condition: A single-file snapshot with a PartType length greater than max_buf; 
+    # condition: A single-file snapshot with a PartType length greater than max_buf;
     # select a slice across chunk boundary
-    from pynbody.snapshot.gadgethdf import _max_buf
+    from pynbody.snapshot.gadgethdf import GadgetHDFSnap
+    _max_buf = GadgetHDFSnap._max_buf
     boundary_slice = slice(_max_buf, _max_buf+1)
 
     snap_cop = snap[boundary_slice].load_copy()

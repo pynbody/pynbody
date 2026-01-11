@@ -7,7 +7,7 @@ import weakref
 import h5py
 import numpy as np
 
-from .. import halo, units, util
+from .. import units, util
 from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager
 
 
@@ -259,6 +259,9 @@ class SwiftSnap(GadgetHDFSnap):
 
     def halos(self, **kwargs):
         h = super().halos(**kwargs)
+
+        # Import on use to avoid circular import
+        from .. import halo
 
         if isinstance(h, halo.number_array.HaloNumberCatalogue):
             ignore = int(self._hdf_files.get_parameter_attrs()['FOF:group_id_default'])
