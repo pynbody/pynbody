@@ -65,7 +65,7 @@ jobs:
         TARGET_SANI=$(echo "images-${{ matrix.python-version }}-${{ matrix.numpy-version }}-${{ matrix.os }}" | tr ">" "_")
         echo "TARGET_SANI=${TARGET_SANI}" >> "$GITHUB_ENV"
     - name: Upload test images
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       if: success() || failure()
       with:
         name: ${{ env.TARGET_SANI }}
