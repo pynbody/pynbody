@@ -171,6 +171,7 @@ class TipsySnap(SimSnap):
             for k in "rho", "temp", "metals":
                 if k in write:
                     self.gas[k].set_default_units(quiet=True)
+
         if 'star' in self.families():
             if "metals" not in list(self.star.keys()):
                 self.star._create_array("metals", zeros=False)
@@ -201,8 +202,6 @@ class TipsySnap(SimSnap):
         tbuf = bytearray(max_item_size * 10240)
 
         for fam, dtype in ((family.gas, self._g_dtype), (family.dm, self._d_dtype), (family.star, self._s_dtype)):
-            if fam not in self.families():
-                continue
             self_fam = self[fam]
             st_len = dtype.itemsize
             for readlen, buf_index, mem_index in self._load_control.iterate([fam], [fam], multiskip=True):
@@ -217,7 +216,7 @@ class TipsySnap(SimSnap):
                 if self._byteswap:
                     buf = buf.byteswap()
 
-                if mem_index is not None:
+                if fam in self.families() and mem_index is not None:
                     # Copy into the correct arrays
                     for name in dtype.names:
                         if name in write:
