@@ -151,38 +151,44 @@ class TipsySnap(SimSnap):
                 self._create_array(w, ndim, zeros=False)
                 write.append(w)
 
-        for w in "rho", "temp":
-            if w not in list(self.gas.keys()):
-                self.gas._create_array(w, zeros=False)
-                write.append(w)
-
-        if ("metals" not in list(self.gas.keys())) and ("metals" not in list(self.star.keys())):
-            self.gas._create_array("metals", zeros=False)
-            self.star._create_array("metals", zeros=False)
-            write.append("metals")
-
-        if "tform" not in list(self.star.keys()):
-            self.star._create_array("tform", zeros=False)
-            write.append("tform")
-
-        if "temp" in write:
-            self.gas["temp"].units = "K"
-
         for k in "pos", "vel", "mass", "eps", "phi":
             if k in write:
                 self[k].set_default_units(quiet=True)
+
+        if 'gas' in self.families():
+            for w in "rho", "temp":
+                if w not in list(self.gas.keys()):
+                    self.gas._create_array(w, zeros=False)
+                    write.append(w)
+
+            if "metals" not in list(self.gas.keys()):
+                self.gas._create_array("metals", zeros=False)
+                write.append("metals")
+
+            if "temp" in write:
+                self.gas["temp"].units = "K"
+
+            for k in "rho", "temp", "metals":
+                if k in write:
+                    self.gas[k].set_default_units(quiet=True)
+        if 'star' in self.families():
+            if "metals" not in list(self.star.keys()):
+                self.star._create_array("metals", zeros=False)
+                if "metals" not in write:
+                    write.append("metals")
+
+            if "tform" not in list(self.star.keys()):
+                self.star._create_array("tform", zeros=False)
+                write.append("tform")
+
+            for k in "metals", "tform":
+                if k in write:
+                    self.star[k].set_default_units(quiet=True)
 
         # only do this for cosmo runs
         if "phi" in write and 'h' in self.properties:
             self['phi'].units = self['phi'].units * units.a ** -3  # messy :-(
 
-        for k in "rho", "temp", "metals":
-            if k in write:
-                self.gas[k].set_default_units(quiet=True)
-
-        for k in "metals", "tform":
-            if k in write:
-                self.star[k].set_default_units(quiet=True)
 
         if "pos" in write:
             write += ['x', 'y', 'z']
@@ -195,6 +201,8 @@ class TipsySnap(SimSnap):
         tbuf = bytearray(max_item_size * 10240)
 
         for fam, dtype in ((family.gas, self._g_dtype), (family.dm, self._d_dtype), (family.star, self._s_dtype)):
+            if fam not in self.families():
+                continue
             self_fam = self[fam]
             st_len = dtype.itemsize
             for readlen, buf_index, mem_index in self._load_control.iterate([fam], [fam], multiskip=True):
