@@ -57,7 +57,7 @@ jobs:
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
           CIBW_ARCHS_LINUX: ${{ matrix.buildplat[2] }}
           CIBW_ENVIRONMENT_MACOS: >-
-            MACOSX_DEPLOYMENT_TARGET="10.15"
+            MACOSX_DEPLOYMENT_TARGET="11"
             CC=$HOME/miniforge3/bin/clang
             CXX=$HOME/miniforge3/bin/clang++
             LDFLAGS="-L$HOME/miniforge3/lib"
