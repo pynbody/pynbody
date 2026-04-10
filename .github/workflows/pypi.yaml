@@ -113,9 +113,16 @@ jobs:
           merge-multiple: true
           path: dist
           
-      - name: Install wheel
+      - name: Update pip 
         run: |
           python -m pip install --upgrade pip
+
+      - name: Install version of camb suitable for intel macos 
+        run: |
+          python -m pip install camb==1.6.5
+
+      - name: Install wheel
+        run: |
           # Install pynbody from local wheel without dependencies to ensure we test the built wheel
           python -m pip install pynbody --find-links dist --no-index --only-binary=pynbody --no-deps
           # Install test dependencies from PyPI (since they're not in our wheel artifacts)
