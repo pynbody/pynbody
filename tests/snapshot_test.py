@@ -339,7 +339,7 @@ def test_set_units_system_after_units_change(sim_with_units):
     assert sim_with_units['pos'].units == 'Mpc'
     np.testing.assert_allclose(sim_with_units['pos'], 1.0)
 
-def test_set_units_system_does_not_convert_properties(sim_with_units):
+def test_set_units_system_updates_sim_properties(sim_with_units):
 
     # test unitbase in properties
     sim_with_units.properties['boxsize'] = 1000 * units.kpc
