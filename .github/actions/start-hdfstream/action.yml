@@ -12,7 +12,7 @@ inputs:
   image:
     description: 'Server container image to use'
     required: true
-    default: ghcr.io/jchelly/hdfstream-api:0.0.5
+    default: ghcr.io/jchelly/hdfstream-api:0.0.10
 runs:
   using: "composite"
   steps:

@@ -65,7 +65,7 @@ jobs:
       with:
         data-dir: ./tests/testdata
         virtual-prefix: testdata
-        image: ghcr.io/jchelly/hdfstream-api:0.0.5
+        image: ghcr.io/jchelly/hdfstream-api:0.0.10
 
     - name: Run tests
       working-directory: tests
