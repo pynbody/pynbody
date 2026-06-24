@@ -304,6 +304,7 @@ def _make_test_gaussian(npart):
 
 def test_kdtree_shared_mem(npart=1000):
     f = _make_test_gaussian(npart)
+    gc.collect()
     n = shared.get_num_shared_arrays_owned()
     f.build_tree(shared_mem=False)
     assert shared.get_num_shared_arrays_owned() == n

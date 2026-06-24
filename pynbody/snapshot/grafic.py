@@ -197,27 +197,27 @@ class GrafICSnap(SimSnap):
         self._read_grafic_file(filename, self['pvar'], _float_data_type)
 
     def _read_grafic_file(self, filename, target_buffer, data_type):
-        with FortranFile(filename) as f:
-            h = {k: v for k, v
-                 in zip(_header['keys'], f.read_vector(_header['dtype'])[0])}
+        with open(filename, 'rb') as f:
+            # skip file header + first record header
+            f.seek(12 + np.dtype(_header['dtype']).itemsize, os.SEEK_SET)
+            data_type = np.dtype(data_type)
 
-            def dummy_interrupt(pos):
-                pass
+            h = self._header
+
+            # manually skip over fortran record headers/footers
+            def skip_fortran_record_footer_header(pos):
+                f.seek(8, os.SEEK_CUR) # always two int32 bytes
 
             for readlen, buf_index, mem_index in \
                     self._load_control.iterate_with_interrupts(
                         family.dm, family.dm,
                         np.arange(1, h['nz']) * (h['nx'] * h['ny']),
-                        dummy_interrupt):
+                        skip_fortran_record_footer_header):
                 if buf_index is None:
-                    f.skip(1)
+                    f.seek(data_type.itemsize * readlen, os.SEEK_CUR)
                     continue
-                sliced_data = f.read_vector(data_type)
-                if len(sliced_data) != self._dlen:
-                    raise OSError(
-                        'Expected a slice of length {}, got {}'.format(
-                            self._dlen, len(sliced_data)
-                        ))
+
+                sliced_data = np.fromfile(f, data_type, readlen)
                 target_buffer[mem_index] = sliced_data[buf_index]
 
     def _load_array(self, name, fam=None):

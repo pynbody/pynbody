@@ -441,3 +441,34 @@ def test_nested_context_managers():
 
     # Expected: stack should be empty after both contexts exit
     assert len(f._transformations) == 0, f"Expected empty stack, got: {f._transformations}"
+
+
+def test_chained_rotation_apply_to_other_sim():
+    """Ensure apply_to uses the target sim, not the original one (ref #966)."""
+    
+    origin_pos = np.zeros((4, 3))
+    origin_pos[:, 0] = 1.0
+    
+    # Simple, deterministic setup
+    f1 = pynbody.new(dm=4)
+    f1['pos'] = origin_pos
+
+    f2 = pynbody.new(dm=4)
+    f2['pos'] = origin_pos
+
+    # Apply a chained transformation to f1 and reuse it for f2
+    with f1.translate([1, 0, 0]).rotate_z(90) as trans:
+
+        # Apply the same transformation to f2
+        trans.apply_to(f2)
+
+        # Both sims should end up with the same transformed coordinates
+        npt.assert_allclose(f1['pos'], f2['pos'])
+        
+        expected_pos = np.zeros_like(f1['pos'])
+        expected_pos[:, 1] = 2.0
+        npt.assert_allclose(f1['pos'], expected_pos, atol=1e-10)
+
+    # After context exit, f1 is reverted, f2 keeps the applied transformation
+    npt.assert_allclose(f1['pos'], origin_pos)
+    npt.assert_allclose(f2['pos'], expected_pos, atol=1e-10)

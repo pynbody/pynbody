@@ -429,3 +429,20 @@ def test_load_without_paramfile(no_paramfile_snap):
         f = pynbody.load(no_paramfile_snap)
         assert isinstance(f, pynbody.snapshot.tipsy.TipsySnap)
         assert len(f) == 1717156
+
+@pytest.fixture
+def DMO_snap():
+    f = pynbody.new(dm=100)
+    f.properties['a'] = 0
+    f.properties['time'] = 0
+    f.write(fmt=pynbody.snapshot.tipsy.TipsySnap, filename="testdata/dm_only.tipsy")
+    del f
+    yield pynbody.load("testdata/dm_only.tipsy")
+    for fname in glob.glob("testdata/dm_only.tipsy*"):
+        os.unlink(fname)
+
+@pytest.mark.filterwarnings("ignore:No readable param file.*:RuntimeWarning")
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
+def test_shared_memory_DM(DMO_snap):
+    DMO_snap.enable_shared_arrays()
+    DMO_snap._load_main_file() # This will fail as per issue #983

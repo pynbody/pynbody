@@ -36,6 +36,22 @@ def test_pos(snap):
 def test_iord(snap):
     assert (snap['iord'][::10] == [0, 40, 5, 45, 10, 35, 15]).all()
 
+def test_iord_with_small_buf():
+    """Tests for an issue where loading grafic arrays would be inaccurate when the file length
+    exceed _max_buflen. See https://github.com/pynbody/genetIC/issues/130"""
+    old_buflen = pynbody.snapshot.grafic._max_buflen
+
+    try:
+        # buflen shouldn't matter, it shouldn't need to be a power of 2, and it should be
+        # fine if it's much less than the size of the file and/or a single fortran chunk
+        for buflen_trials in [8, 15, 16, 30]:
+            pynbody.snapshot.grafic._max_buflen = buflen_trials
+            snap = pynbody.load("testdata/grafic_test/")
+            assert (snap['iord'][::10] == [0, 40, 5, 45, 10, 35, 15]).all()
+    finally:
+        pynbody.snapshot.grafic._max_buflen = old_buflen
+
+
 def test_mass(snap):
     npt.assert_allclose(snap['mass'], 2.157418e+14)
 

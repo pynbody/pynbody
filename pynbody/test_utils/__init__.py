@@ -57,6 +57,8 @@ test_data_packages = {
     'tutorial_gadget': {'verify_path': 'tutorial_gadget/snapshot_020',
                         'archive_name': 'tutorial_gadget.tar.gz',
                         'extended': True},
+    'tiny_FIRE' : {'verify_path': 'tiny_FIRE', 
+                    'archive_name': 'tiny_FIRE.tar.gz'}
 }
 
 osf_project_id = '5m6zs'

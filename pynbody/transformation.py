@@ -441,15 +441,15 @@ class Rotation(Transformation):
         super().__init__(f, description=description)
 
     def _apply_to_snapshot(self, f):
-        self._transform(self.matrix)
+        self._transform(self.matrix, f)
 
     def _unapply_to_snapshot(self, f):
-        self._transform(self.matrix.T)
+        self._transform(self.matrix.T, f)
 
-    def _transform(self, matrix):
+    def _transform(self, matrix, f = None):
         """Transforms the snapshot according to the 3x3 matrix given."""
 
-        sim = self.sim
+        sim = self.sim if f is None else f
 
         # NB though it might seem more efficient to access _arrays and
         # _family_arrays directly, this would not work for SubSnaps.

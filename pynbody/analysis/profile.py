@@ -321,36 +321,37 @@ class Profile:
     def _auto_profile(self, name, dispersion=False, rms=False, median=False):
         result = np.zeros(self.nbins)
 
-        # force derivation of array if necessary:
-        self.sim[name]
+        with self.sim.immediate_mode:
+            # force derivation of array if necessary:
+            self.sim[name]
 
-        for i in range(self.nbins):
-            subs = self.sim[self.binind[i]]
-            name_array = subs[name].view(np.ndarray)
-            mass_array = subs[self._weight_by].view(np.ndarray)
+            for i in range(self.nbins):
+                subs = self.sim[self.binind[i]]
+                name_array = subs[name].view(np.ndarray)
+                mass_array = subs[self._weight_by].view(np.ndarray)
 
-            if dispersion:
-                sq_mean = (name_array ** 2 * mass_array).sum() / \
-                    self['weight_fn'][i]
-                mean_sq = (
-                    (name_array * mass_array).sum() / self['weight_fn'][i]) ** 2
-                try:
-                    result[i] = math.sqrt(sq_mean - mean_sq)
-                except ValueError:
-                    # sq_mean<mean_sq occasionally from numerical roundoff
-                    result[i] = 0
+                if dispersion:
+                    sq_mean = (name_array ** 2 * mass_array).sum() / \
+                        self['weight_fn'][i]
+                    mean_sq = (
+                        (name_array * mass_array).sum() / self['weight_fn'][i]) ** 2
+                    try:
+                        result[i] = math.sqrt(sq_mean - mean_sq)
+                    except ValueError:
+                        # sq_mean<mean_sq occasionally from numerical roundoff
+                        result[i] = 0
 
-            elif rms:
-                result[i] = np.sqrt(
-                    (name_array ** 2 * mass_array).sum() / self['weight_fn'][i])
-            elif median:
-                if len(subs) == 0:
-                    result[i] = np.nan
+                elif rms:
+                    result[i] = np.sqrt(
+                        (name_array ** 2 * mass_array).sum() / self['weight_fn'][i])
+                elif median:
+                    if len(subs) == 0:
+                        result[i] = np.nan
+                    else:
+                        sorted_name = sorted(name_array)
+                        result[i] = sorted_name[int(np.floor(0.5 * len(subs)))]
                 else:
-                    sorted_name = sorted(name_array)
-                    result[i] = sorted_name[int(np.floor(0.5 * len(subs)))]
-            else:
-                result[i] = (name_array * mass_array).sum() / self['weight_fn'][i]
+                    result[i] = (name_array * mass_array).sum() / self['weight_fn'][i]
 
         result = result.view(array.SimArray)
         result.units = self.sim[name].units

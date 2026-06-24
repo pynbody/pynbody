@@ -16,8 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-2025]
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-        numpy-version: ["2.0.2", "2.3.3"]
+        python-version: ["3.12", "3.13", "3.14"]
+        numpy-version: ["2.1.0", "2.5.0"]
         include:
           - os: ubuntu-latest
             test_flags: "--hdfstream-server=http://localhost:8080/hdfstream"
@@ -25,9 +25,7 @@ jobs:
             test_flags: ""
         exclude:
           - python-version: "3.14"
-            numpy-version: "2.0.2"
-          - python-version: "3.13"
-            numpy-version: "2.0.2"
+            numpy-version: "2.1.0"
 
     runs-on: ${{ matrix.os }}
     env:
@@ -39,7 +37,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Install gcc (Ubuntu only)
       if: matrix.os == 'ubuntu-latest'
       run: |
@@ -55,7 +53,7 @@ jobs:
         python -m pip install -v .[tests]
 
     - name: Restore testdata cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       with:
         path: tests/testdata
         key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
@@ -79,7 +77,7 @@ jobs:
         TARGET_SANI=$(echo "images-${{ matrix.python-version }}-${{ matrix.numpy-version }}-${{ matrix.os }}" | tr ">" "_")
         echo "TARGET_SANI=${TARGET_SANI}" >> "$GITHUB_ENV"
     - name: Upload test images
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       if: success() || failure()
       with:
         name: ${{ env.TARGET_SANI }}

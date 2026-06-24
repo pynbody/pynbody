@@ -207,7 +207,9 @@ class SwiftSnap(GadgetHDFSnap):
             boxsize_3d = header.underlying['BoxSize']
             assert np.allclose(boxsize_3d[0], boxsize_3d)
 
-        self.properties['time'] = header['Time']*self.infer_original_units("s")
+        self.properties['time'] = header['Time']*self._hdf_unitvar['U_t']
+        # Above should NOT be infer_original_units('s'), which assumes a three-way consistency between
+        # position, velocity and time units that swift does not respect for cosmo sims.
 
 
     def _get_units_from_hdf_attr(self, hdfattrs):
