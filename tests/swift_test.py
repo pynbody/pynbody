@@ -137,22 +137,22 @@ def test_swift_multifile_partial_loading(load_kwargs):
                           [ 16.59894837,  36.67247821,  85.82433427],
                           [  9.79404938,  52.28051827,  81.30710868]])
 
-def test_swift_multifile_partial_loading_order_insensitive():
+def test_swift_multifile_partial_loading_order_insensitive(load_kwargs):
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
-                     take_swift_cells=[0, 5, 20, 200])
+                     take_swift_cells=[0, 5, 20, 200], **load_kwargs)
     f2 = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
-                     take_swift_cells=[0, 5, 20, 200][::-1])
+                     take_swift_cells=[0, 5, 20, 200][::-1], **load_kwargs)
     assert (f['iord'] == f2['iord']).all()
 
-def test_swift_vds_partial_loading():
+def test_swift_vds_partial_loading(load_kwargs):
     f = pynbody.load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", # <-- VDS file
-                     take_swift_cells=[0,5,20,200])
+                     take_swift_cells=[0,5,20,200], **load_kwargs)
     f2 = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
-                      take_swift_cells=[0, 5, 20, 200][::-1])
+                      take_swift_cells=[0, 5, 20, 200][::-1], **load_kwargs)
     assert (f['iord'] == f2['iord']).all()
 
-def test_swift_fof_groups():
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+def test_swift_fof_groups(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
     h = f.halos(priority = ['HaloNumberCatalogue'])
 
     with raises(KeyError):
@@ -164,26 +164,26 @@ def test_swift_fof_groups():
 
     assert len(h) < 1000
 
-def test_swift_dtypes():
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+def test_swift_dtypes(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
     assert np.issubdtype(f['iord'].dtype, np.integer)
     assert np.issubdtype(f['pos'].dtype, np.floating)
 
 @pytest.mark.parametrize('test_region',
                          [pynbody.filt.Sphere(50., (50., 50., 50.)),
                          pynbody.filt.Cuboid(-20.0)]) # note the cuboid test region wraps around the box
-def test_swift_take_geometric_region(test_region):
+def test_swift_take_geometric_region(test_region, load_kwargs):
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
-                     take_region = test_region)
+                     take_region = test_region, **load_kwargs)
 
-    f_full = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+    f_full = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
 
     assert len(f) < len(f_full)
 
     assert np.all(f[test_region]['iord'] == f_full[test_region]['iord'])
 
-def test_swift_scalefactor_in_units():
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+def test_swift_scalefactor_in_units(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
 
     # naively, one would assume cm^2 s^-2, but actual units header says 1e10 a^2 cm^2 s^-2
     # So this tests pynbody respects that. Note that we don't give the scalefactor context,
@@ -243,14 +243,14 @@ def swift_snap_with_alternate_mass_naming():
     # clean up
     shutil.rmtree(tempdir)
 
-def test_alternate_mass_file(swift_snap_with_alternate_mass_naming):
+def test_alternate_mass_file(swift_snap_with_alternate_mass_naming, load_kwargs):
     f = pynbody.load(swift_snap_with_alternate_mass_naming)
-    f1 = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+    f1 = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
 
     assert np.allclose(f['mass'], f1['mass'])
 
-def test_load_planetary():
-    f = pynbody.load("testdata/SWIFT/planetary.hdf5")
+def test_load_planetary(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/planetary.hdf5", **load_kwargs)
     assert isinstance(f, pynbody.snapshot.swift.BaseSwiftSnap)
     assert len(f) == 1000
     assert len(f.gas) == 1000
@@ -268,8 +268,8 @@ def test_load_planetary():
 
 
 
-def test_planetary_physical_units():
-    f = pynbody.load("testdata/SWIFT/planetary.hdf5")
+def test_planetary_physical_units(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/planetary.hdf5", **load_kwargs)
     f.physical_units('1e3 km')
     npt.assert_allclose(f['pos'][::100], [[ 64.96079021, 468.85991433, 313.24147579],
           [159.25107139, 424.78484083, 381.50705574],
