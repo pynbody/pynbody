@@ -3,9 +3,9 @@ import pathlib
 import h5py
 import numpy as np
 
+from .. import halo, units, util
 from ..util import dataset_view
-from .gadgethdf import _GadgetHdfMultiFileManager
-from .swift import SwiftSnap
+from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager
 
 try:
     import hdfstream
@@ -131,6 +131,12 @@ class _BaseSwiftMultiFileManager(_GadgetHdfMultiFileManager):
                 if self._size_from_hdf5_key in hdf[hdf_family_name]:
                     yield hdf[hdf_family_name]
 
+    def is_virtual(self):
+        try:
+            return self[0].parent['Header'].attrs['Virtual'][0] == 1
+        except KeyError:
+            return False
+
 #
 # Class for reading remote snapshots using the hdfstream service
 #
@@ -159,11 +165,142 @@ class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
     def _is_hdf5(self, filename):
         self._connect()
         return self._rootdir.is_hdf5(filename)
+
+#
+# Class for reading local snapshots using h5py
+#
+class _LocalSwiftMultiFileManager(_BaseSwiftMultiFileManager):
+
+    def _open_hdf5_file(self, filename):
+        return h5py.File(filename, "r")
+
+    def _is_hdf5(self, filename):
+        return h5py.is_hdf5(filename)
+
+
+class ExtractScalarWrapper:
+    def __init__(self, underlying):
+        self.underlying = underlying
+
+    def __getitem__(self, name):
+        val = self.underlying[name]
+        try:
+            return val[0]
+        except (TypeError, IndexError):
+            return val
+
+
+class BaseSwiftSnap(GadgetHDFSnap):
+    _readable_hdf5_test_key = "Policy"
+
+    _velocity_unit_key = None
+    _length_unit_key = 'Unit length in cgs (U_L)'
+    _mass_unit_key = 'Unit mass in cgs (U_M)'
+    _time_unit_key = 'Unit time in cgs (U_t)'
+
+    _namemapper_config_section = 'swift-name-mapping'
+
+    def __init__(self, filename, take_swift_cells=None, take_region=None):
+        self._take_swift_cells = take_swift_cells
+        self._take_region = take_region
+        super().__init__(filename)
+
+
+    def _init_hdf_filemanager(self, filename):
+        self._hdf_files = self._multifile_manager_class(filename, self._take_swift_cells, self._take_region)
+
+    def _is_cosmological(self):
+        cosmo = ExtractScalarWrapper(self._hdf_files[0]['Cosmology'].attrs)
+        return cosmo['Cosmological run'] == 1
+    def _init_properties(self):
+        params = ExtractScalarWrapper(self._hdf_files[0]['Parameters'].attrs)
+        header = ExtractScalarWrapper(self._hdf_files[0]['Header'].attrs)
+        cosmo = ExtractScalarWrapper(self._hdf_files[0]['Cosmology'].attrs)
+
+        cosmological = self._is_cosmological()
+
+        assert header['Dimension'] == 3, "Sorry, pynbody is only set up to deal with 3-dimensional swift simulations"
+
+        if cosmological:
+            self.properties['z'] = 1./(1.+cosmo['Scale-factor'])
+            self.properties['a'] = cosmo['Scale-factor']
+            self.properties['h'] = cosmo['h']
+            # TODO: check these params are OK even at higher redshift (sample file is z=0)
+            self.properties['omegaM0'] = cosmo['Omega_m']
+            self.properties['omegaL0'] = cosmo['Omega_lambda']
+            self.properties['omegaB0'] = cosmo['Omega_b']
+            self.properties['omegaC0'] = cosmo['Omega_cdm']
+            self.properties['omegaNu0'] = cosmo['Omega_nu_0']
+
+            self.properties['boxsize'] = header['BoxSize']*self.infer_original_units('m')
+            # Swift writes out 3D box sizes. Check it's actually a cube and if not emit a warning
+            boxsize_3d = header.underlying['BoxSize']
+            assert np.allclose(boxsize_3d[0], boxsize_3d)
+
+        self.properties['time'] = header['Time']*self._hdf_unitvar['U_t']
+        # Above should NOT be infer_original_units('s'), which assumes a three-way consistency between
+        # position, velocity and time units that swift does not respect for cosmo sims.
+
+
+    def _get_units_from_hdf_attr(self, hdfattrs):
+        this_unit = units.Unit("1")
+        for k in hdfattrs.keys():
+            if k.endswith('exponent'):
+                unitname = k.split(" ")[0]
+                exponent = util.fractions.Fraction.from_float(float(ExtractScalarWrapper(hdfattrs)[k])).limit_denominator()
+
+                if exponent != 0:
+                    this_unit *= self._hdf_unitvar.get(unitname, units.no_unit)**exponent
+
+        return this_unit
+
+    def _init_unit_information(self):
+        atr = ExtractScalarWrapper(self._hdf_files.get_unit_attrs())
+        dist_unit = atr['Unit length in cgs (U_L)'] * units.cm
+        mass_unit = atr['Unit mass in cgs (U_M)'] * units.g
+        time_unit = atr['Unit time in cgs (U_t)'] * units.s
+        temp_unit = atr['Unit temperature in cgs (U_T)'] * units.K
+        vel_unit = dist_unit / time_unit
+
+        unitvar = {'U_V': vel_unit,
+                   'U_L': dist_unit,
+                   'U_M': mass_unit,
+                   'U_t': time_unit,
+                   'U_T': temp_unit,
+                   'a-scale': 1.0, # non-cosmo sims bizarrely still have non-zero scalefactor exponents
+                   'h-scale': 1.0,}
+
+        if self._is_cosmological():
+            unitvar.update({
+                'a-scale': units.a,
+                'h-scale': units.h
+            })
+
+
+        self._hdf_unitvar = unitvar
+
+        if self._is_cosmological():
+            # when using hdf-provided exponents, the scalefactor will automatically be included. However, if using
+            # infer_original_units, our best guess is that distances are comoving. So include the scalefactor
+            # in self._file_units_system but not in self._hdf_unitvar.
+            dist_unit = dist_unit * units.a
+
+        self._file_units_system = [vel_unit, dist_unit, mass_unit, temp_unit]
+
+    def halos(self, **kwargs):
+        h = super().halos(**kwargs)
+
+        if isinstance(h, halo.number_array.HaloNumberCatalogue):
+            ignore = int(self._hdf_files.get_parameter_attrs()['FOF:group_id_default'])
+            return halo.number_array.HaloNumberCatalogue(self, ignore=ignore, **kwargs)
+
+        return h
+
 #
 # To open a RemoteSwiftSnap we need the server URL and we might have a
 # username and password if authentication is required.
 #
-class RemoteSwiftSnap(SwiftSnap):
+class RemoteSwiftSnap(BaseSwiftSnap):
     _max_buf = 2**63-1 # do not split requests into multiple chunks
     _multifile_manager_class = _RemoteSwiftMultiFileManager
     def __init__(self, *args, **kwargs):
@@ -184,16 +321,7 @@ class RemoteSwiftSnap(SwiftSnap):
     def _init_hdf_filemanager(self, filename):
         self._hdf_files = self._multifile_manager_class(self._server, self._user, self._password,
                                                         filename, self._take_swift_cells, self._take_region)
-#
-# Class for reading local snapshots using h5py (e.g. to test _BaseSwiftMultiFileManager)
-#
-class _LocalSwiftMultiFileManager(_BaseSwiftMultiFileManager):
 
-    def _open_hdf5_file(self, filename):
-        return h5py.File(filename, "r")
 
-    def _is_hdf5(self, filename):
-        return h5py.is_hdf5(filename)
-
-class LocalSwiftSnap(SwiftSnap):
+class SwiftSnap(BaseSwiftSnap):
     _multifile_manager_class = _LocalSwiftMultiFileManager
