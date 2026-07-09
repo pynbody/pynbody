@@ -18,7 +18,6 @@ class _BaseSwiftMultiFileManager(_GadgetHdfMultiFileManager):
     def __init__(self, filename: pathlib.Path, take_cells, take_region, mode='r'):
 
         filename = str(filename)
-        self._rootdir = None
 
         # Determine number of files and open the first file
         if self._is_hdf5(filename):
@@ -140,30 +139,17 @@ class _BaseSwiftMultiFileManager(_GadgetHdfMultiFileManager):
 #
 # Class for reading remote snapshots using the hdfstream service
 #
-# Remote snapshots take an extra parameter with the server URL, and we need to
-# arrange for this to reach the multi file manager class.
-#
 class _RemoteSwiftMultiFileManager(_BaseSwiftMultiFileManager):
 
-    def __init__(self, server, user, password, *args, **kwargs):
-        self._server = server
-        self._user = user
-        self._password = password
+    def __init__(self, remote_dir, *args, **kwargs):
+        self._rootdir = remote_dir
+        assert self._rootdir is not None
         super().__init__(*args, **kwargs)
 
-    def _connect(self):
-        if self._rootdir is None:
-            # Set lazy loading parameters such that we're likely to fetch the
-            # cell metadata with the initial request.
-            self._rootdir = hdfstream.open(self._server, "/", user=self._user, password=self._password,
-                                           max_depth=3, data_size_limit=1048576)
-
     def _open_hdf5_file(self, filename):
-        self._connect()
         return self._rootdir[filename]
 
     def _is_hdf5(self, filename):
-        self._connect()
         return self._rootdir.is_hdf5(filename)
 
 #
@@ -297,16 +283,13 @@ class BaseSwiftSnap(GadgetHDFSnap):
         return h
 
 #
-# To open a RemoteSwiftSnap we need the server URL and we might have a
-# username and password if authentication is required.
+# To open a RemoteSwiftSnap we need a hdfstream.RemoteDirectory object which contains the file(s)
 #
 class RemoteSwiftSnap(BaseSwiftSnap):
     _max_buf = 2**63-1 # do not split requests into multiple chunks
     _multifile_manager_class = _RemoteSwiftMultiFileManager
     def __init__(self, *args, **kwargs):
-        self._server = kwargs.pop("server", None)
-        self._user = kwargs.pop("user", None)
-        self._password = kwargs.pop("password", None)
+        self._remote_dir = kwargs.pop("remote_dir")
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -319,8 +302,7 @@ class RemoteSwiftSnap(BaseSwiftSnap):
         return (hdfstream is not None) and (remote_dir is not None) and (f in remote_dir) and (remote_dir[f].is_hdf5())
 
     def _init_hdf_filemanager(self, filename):
-        self._hdf_files = self._multifile_manager_class(self._server, self._user, self._password,
-                                                        filename, self._take_swift_cells, self._take_region)
+        self._hdf_files = self._multifile_manager_class(self._remote_dir, filename, self._take_swift_cells, self._take_region)
 
 
 class SwiftSnap(BaseSwiftSnap):

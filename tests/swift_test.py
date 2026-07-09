@@ -19,9 +19,9 @@ def get_data():
     pynbody.test_utils.ensure_test_data_available("swift_isolated")
     pynbody.test_utils.ensure_test_data_available("swift_planetary")
 
-def test_load_identifies_swift():
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
-    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+def test_load_identifies_swift(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
+    assert isinstance(f, pynbody.snapshot.swift.BaseSwiftSnap)
 
 def test_swift_properties():
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
@@ -40,7 +40,7 @@ def test_swift_properties():
 
 def test_swift_noncosmological():
     f = pynbody.load("testdata/SWIFT/isolated_0008.hdf5")
-    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+    assert isinstance(f, pynbody.snapshot.swift.BaseSwiftSnap)
     assert (f['pos'].units / pynbody.units.Unit("cm")).is_dimensionless()
 
 
@@ -79,7 +79,7 @@ def _assert_multifile_contents_is_sensible(f):
 
 def test_swift_multifile_with_vds():
     f = pynbody.load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
-    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+    assert isinstance(f, pynbody.snapshot.swift.BaseSwiftSnap)
     assert len(f._hdf_files) == 1
     assert f._hdf_files.is_virtual()
     _assert_multifile_contents_is_sensible(f)
@@ -87,7 +87,7 @@ def test_swift_multifile_with_vds():
 
 def test_swift_multifile_without_vds():
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
-    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+    assert isinstance(f, pynbody.snapshot.swift.BaseSwiftSnap)
     assert len(f._hdf_files) == 10
     assert not f._hdf_files.is_virtual()
     _assert_multifile_contents_is_sensible(f)
@@ -251,7 +251,7 @@ def test_alternate_mass_file(swift_snap_with_alternate_mass_naming):
 
 def test_load_planetary():
     f = pynbody.load("testdata/SWIFT/planetary.hdf5")
-    assert isinstance(f, pynbody.snapshot.swift.SwiftSnap)
+    assert isinstance(f, pynbody.snapshot.swift.BaseSwiftSnap)
     assert len(f) == 1000
     assert len(f.gas) == 1000
 
