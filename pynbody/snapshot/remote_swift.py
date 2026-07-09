@@ -172,6 +172,15 @@ class RemoteSwiftSnap(SwiftSnap):
         self._password = kwargs.pop("password", None)
         super().__init__(*args, **kwargs)
 
+    @classmethod
+    def _can_load(cls, f):
+        return False
+
+    @classmethod
+    def _can_load_remote(cls, f, *args, **kwargs):
+        remote_dir = kwargs.get("remote_dir")
+        return (hdfstream is not None) and (remote_dir is not None) and (f in remote_dir) and (remote_dir[f].is_hdf5())
+
     def _init_hdf_filemanager(self, filename):
         self._hdf_files = self._multifile_manager_class(self._server, self._user, self._password,
                                                         filename, self._take_swift_cells, self._take_region)
