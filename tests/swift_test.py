@@ -23,8 +23,8 @@ def test_load_identifies_swift(load_kwargs):
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
     assert isinstance(f, pynbody.snapshot.swift.BaseSwiftSnap)
 
-def test_swift_properties():
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+def test_swift_properties(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
 
     assert np.allclose(f.properties['a'], 0.38234515)
     assert np.allclose(f.properties['z'], 1.61543791)
@@ -38,15 +38,15 @@ def test_swift_properties():
     # units, which is inconsistent with what swift actually outputs.
     assert np.allclose(f.properties['time'].in_units("s"), 1.28661456e17)
 
-def test_swift_noncosmological():
-    f = pynbody.load("testdata/SWIFT/isolated_0008.hdf5")
+def test_swift_noncosmological(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/isolated_0008.hdf5", **load_kwargs)
     assert isinstance(f, pynbody.snapshot.swift.BaseSwiftSnap)
     assert (f['pos'].units / pynbody.units.Unit("cm")).is_dimensionless()
 
 
 
-def test_swift_arrays():
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+def test_swift_arrays(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
     assert np.allclose(f.dm['pos'].units.ratio("Mpc a", **f.conversion_context()), 1.0)
     assert np.allclose(f.dm['vel'].units.ratio("km s^-1", **f.conversion_context()), 1.0)
     # the reason the following isn't exactly 1.0 is because our solar mass is slightly different to swift's
@@ -77,28 +77,28 @@ def _assert_multifile_contents_is_sensible(f):
                                                        [83.46050257, 20.91647755, 116.546989],
                                                        [125.83232028, 49.9732396, 72.2264199]]))
 
-def test_swift_multifile_with_vds():
-    f = pynbody.load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
+def test_swift_multifile_with_vds(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", **load_kwargs)
     assert isinstance(f, pynbody.snapshot.swift.BaseSwiftSnap)
     assert len(f._hdf_files) == 1
     assert f._hdf_files.is_virtual()
     _assert_multifile_contents_is_sensible(f)
 
 
-def test_swift_multifile_without_vds():
-    f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
+def test_swift_multifile_without_vds(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000", **load_kwargs)
     assert isinstance(f, pynbody.snapshot.swift.BaseSwiftSnap)
     assert len(f._hdf_files) == 10
     assert not f._hdf_files.is_virtual()
     _assert_multifile_contents_is_sensible(f)
 
-def test_swift_singlefile_is_not_vds():
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+def test_swift_singlefile_is_not_vds(load_kwargs):
+    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
     assert not f._hdf_files.is_virtual()
 
-def test_swift_singlefile_partial_loading():
+def test_swift_singlefile_partial_loading(load_kwargs):
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5",
-                     take_swift_cells=[5,15,20,25])
+                     take_swift_cells=[5,15,20,25], **load_kwargs)
     assert len(f.dm) == 1849
     assert len(f.gas) == 1882
     assert (f.dm['iord'][::100] == [ 16468,   9172,  41176,  49874,   9342,  10234,  33908,  25852,
@@ -108,9 +108,9 @@ def test_swift_singlefile_partial_loading():
                                      26367,  2503, 26825, 10827, 59463, 26703, 51909, 27927, 12057,
                                      36761]).all()
 
-def test_swift_multifile_partial_loading():
+def test_swift_multifile_partial_loading(load_kwargs):
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
-                     take_swift_cells=[0,5,20,200])
+                     take_swift_cells=[0,5,20,200], **load_kwargs)
 
     assert len(f) == 2048
 

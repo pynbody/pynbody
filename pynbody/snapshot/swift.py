@@ -299,7 +299,12 @@ class RemoteSwiftSnap(BaseSwiftSnap):
     @classmethod
     def _can_load_remote(cls, f, *args, **kwargs):
         remote_dir = kwargs.get("remote_dir")
-        return (hdfstream is not None) and (remote_dir is not None) and (f in remote_dir) and (remote_dir[f].is_hdf5())
+        if (hdfstream is None) or (remote_dir is None):
+            return False
+        for filename in (f, cls._guess_file_ending(f)):
+            if filename in remote_dir and remote_dir[filename].is_hdf5():
+                return cls._readable_hdf5_test_key in remote_dir[filename]
+        return False
 
     def _init_hdf_filemanager(self, filename):
         self._hdf_files = self._multifile_manager_class(self._remote_dir, filename, self._take_swift_cells, self._take_region)
