@@ -9,9 +9,11 @@ defaults:
 jobs:
   fetch-testdata:
     uses: ./.github/workflows/fetch-testdata.yaml
+  fetch-tables:
+    uses: ./.github/workflows/fetch-tables.yaml
 
   build:
-    needs: fetch-testdata
+    needs: [fetch-testdata, fetch-tables]
     strategy:
       fail-fast: false
       matrix:
@@ -53,6 +55,17 @@ jobs:
         path: tests/testdata
         key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
         enableCrossOsArchive: true
+
+    - name: Restore table data cache
+      id: cache-tables
+      uses: actions/cache/restore@v5
+      with:
+        path: |
+          pynbody/analysis/hm12.npz
+          pynbody/analysis/fg20.np2
+        key: project-z46rq-files-hm12-fg20
+        enableCrossOsArchive: true
+
     - name: Run all tests
       working-directory: tests
       run: python -m pytest --ignore=testdata/ --tb=short

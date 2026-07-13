@@ -1,0 +1,33 @@
+name: fetch-tables.yaml
+on:
+  workflow_call:
+
+jobs:
+  fetch-testdata:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.11"
+
+    - name: Install osfclient
+      run: |
+        python -m pip install osfclient
+
+    - name: Cache table data
+      id: cache-tables
+      uses: actions/cache@v6
+      with:
+        path: |
+          pynbody/analysis/hm12.npz
+          pynbody/analysis/fg20.np2
+        key: project-z46rq-files-hm12-fg20
+
+    - name: Fetch table data
+      if: steps.cache-tables.outputs.cache-hit != 'true'
+      run: |
+        osf -p z46rq fetch hm12.npz pynbody/analysis/hm12.npz
+        osf -p z46rq fetch fg20.np2 pynbody/analysis/fg20.np2
