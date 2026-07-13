@@ -60,11 +60,15 @@ jobs:
       id: cache-tables
       uses: actions/cache/restore@v5
       with:
-        path: |
-          pynbody/analysis/hm12.npz
-          pynbody/analysis/fg20.np2
-        key: project-z46rq-files-hm12-fg20
+        path: ionfrac_tables
+        key: ionfrac_tables_v1
         enableCrossOsArchive: true
+
+    - name: Copy table data to pynbody installation
+      working-directory: ionfrac_tables
+      run: |
+        DESTDIR=$(python -c "import pynbody ; import os ; print(os.path.dirname(pynbody.analysis.__file__))")
+        cp *.npz "${DESTDIR}"
 
     - name: Run all tests
       working-directory: tests
