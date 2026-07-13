@@ -14,6 +14,9 @@ import urllib.request
 
 import osfclient
 
+# Cache OSF file objects to avoid repeating http requests
+_OSF_STORAGE_CACHE = {}
+
 test_data_packages = {
     'swift': {'verify_path': 'SWIFT',
               'archive_name': 'swift.tar.gz'},
@@ -86,17 +89,18 @@ def test_data_hash():
 
 def get_osf_file_object(osf_project_id, archive_name):
     """Retrieve the OSF file object for the given archive name in the specified OSF project."""
-    osf = osfclient.OSF()
-    osf_project = osf.project(osf_project_id)
-    osf_storage = osf_project.storage('osfstorage')
 
-    for file in osf_storage.files:
-        if file.name == archive_name:
-            osf_file = file
-            break
-    else:
-        raise ValueError(f"File {archive_name} not found in OSF project {osf_project_id}")
-    return osf_file
+    # Open the OSF project storage, if we didn't already
+    if osf_project_id not in _OSF_STORAGE_CACHE:
+        osf = osfclient.OSF()
+        osf_project = osf.project(osf_project_id)
+        osf_storage = osf_project.storage('osfstorage')
+        _OSF_STORAGE_CACHE[osf_project_id] = {}
+        for file in osf_storage.files:
+            _OSF_STORAGE_CACHE[osf_project_id][file.name] = file
+
+    # Return the cached file
+    return _OSF_STORAGE_CACHE[osf_project_id][archive_name]
 
 def download_and_unpack_test_data(archive_name, unpack_path="", verbose=False):
     """Download and unpack test data with the given archive name and unpack path.
