@@ -25,7 +25,7 @@ jobs:
       run: |
         echo "testdatahash=$(python pynbody/test_utils/__init__.py)" >> $GITHUB_OUTPUT
     - name: Restore testdata cache
-      uses: actions/cache/restore@v5
+      uses: actions/cache@v6
       id: cache-testdata
       with:
         path: tests/testdata
@@ -36,10 +36,3 @@ jobs:
       working-directory: tests
       run: |
         python ../pynbody/test_utils/__init__.py --fetch
-    - name: Save testdata cache
-      uses: actions/cache/save@v5
-      if: always() && steps.cache-testdata.outputs.cache-hit != 'true'
-      with:
-        path: tests/testdata
-        key: testdata-${{ steps.get-testdata-hash.outputs.testdatahash }}
-        enableCrossOsArchive: true
