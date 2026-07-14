@@ -145,7 +145,7 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
     """
 
     if r_max is None:
-        r_max = (sim["x"].max() - sim["x"].min())
+        r_max = (sim["pos"].max() - sim["pos"].min())
     else:
         if cen is not None:
             sim = sim[filt.Sphere(r_max, cen)]
