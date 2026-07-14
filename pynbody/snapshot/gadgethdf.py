@@ -198,7 +198,7 @@ class _HDFFileIterator:
         self._hdf_file_iterator = hdf_file_iterator
         self.current_hdf_file = None
         self.file_index = -1
-        self.particle_offset = 0 
+        self.particle_offset = 0
         self.select_file(0)
 
     def select_file(self, offset):
@@ -214,7 +214,7 @@ class _HDFArrayFiller:
     """A helper class to fill a pynbody array from an HDF5 dataset."""
 
     def __init__(self, sim_array_to_fill = None, hdf_dataset = None):
-        
+
         # default element size for simulation arrays
         self.sim_element_size = 1 if sim_array_to_fill is None else self._get_element_size(sim_array_to_fill)
         self.file_element_size = 1 if hdf_dataset is None else self._get_element_size(hdf_dataset)
@@ -224,7 +224,7 @@ class _HDFArrayFiller:
         """Update the element size for the simulation array."""
         self.sim_element_size = self._get_element_size(sim_array_to_fill)
         self._update_scaling_factor()
-    
+
     def _update_file_element_size(self, hdf_dataset):
         """Update the element size for the HDF5 dataset."""
         self.file_element_size = self._get_element_size(hdf_dataset)
@@ -273,18 +273,32 @@ class _HDFArrayFiller:
                 return slice(source_sel[0], source_sel[-1] + 1)
         return source_sel
 
-    def _fill_from_fancy_index(self, sim_array_to_fill, hdf_dataset, source_sel):
-        """Fill array from a non-contiguous (fancy) index."""
+    def _get_data_to_fill_local(self, sim_array_to_fill, hdf_dataset, source_sel):
+        """Read the selected elements from a local HDF5 file"""
         id_min, id_max = source_sel[0], source_sel[-1]
         num_read = id_max - id_min + 1
         indices_in_read_chunk = source_sel - id_min
-
         contiguous_hdf_slice = self._get_contiguous_hdf_slice(id_min, id_max)
-
         data_chunk_from_hdf = hdf_dataset[contiguous_hdf_slice]
         data_chunk_from_hdf = data_chunk_from_hdf.reshape(num_read, *sim_array_to_fill.shape[1:])
+        return data_chunk_from_hdf[indices_in_read_chunk]
 
-        final_data_to_fill = data_chunk_from_hdf[indices_in_read_chunk]
+    def _get_data_to_fill_remote(self, sim_array_to_fill, hdf_dataset, source_sel):
+        """Read the selected elements from a remote file using the hdfstream module"""
+        if self.need_rescale:
+            flat_index = (self.scale_factor * np.asarray(source_sel)[:,None] + np.arange(self.scale_factor, dtype=int)).flatten()
+            flat_data = hdf_dataset[flat_index]
+            final_data_to_fill = flat_data.reshape((len(source_sel),self.scaling_factor))
+        else:
+            final_data_to_fill = hdf_dataset[source_sel,...]
+        return final_data_to_fill
+
+    def _fill_from_fancy_index(self, sim_array_to_fill, hdf_dataset, source_sel):
+        """Fill array from a non-contiguous (fancy) index."""
+        if hdfstream is not None and isinstance(hdf_dataset, hdfstream.RemoteDataset):
+            final_data_to_fill = self._get_data_to_fill_remote(sim_array_to_fill, hdf_dataset, source_sel)
+        else:
+            final_data_to_fill = self._get_data_to_fill_local(sim_array_to_fill, hdf_dataset, source_sel)
 
         if sim_array_to_fill.shape == final_data_to_fill.shape:
             sim_array_to_fill[:] = final_data_to_fill
@@ -293,7 +307,7 @@ class _HDFArrayFiller:
 
     def _fill_from_slice(self, sim_array_to_fill, hdf_dataset, source_sel):
         """Fill array from a contiguous slice."""
-        
+
         if self.need_rescale:
             source_sel = self._get_contiguous_hdf_slice(source_sel.start, source_sel.stop - 1)
 
