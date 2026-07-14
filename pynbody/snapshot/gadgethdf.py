@@ -532,7 +532,7 @@ class GadgetHDFSnap(SimSnap):
         self._init_unit_information()
         self.__init_family_map()
 
-        take = kwargs.pop("take", None)
+        take = self._get_take_parameter(**kwargs)
         self.partial_load = take is not None
         self.__init_file_map(take)
         self._remove_empty_particle_groups()
@@ -540,6 +540,9 @@ class GadgetHDFSnap(SimSnap):
         self.__infer_mass_dtype()
         self._init_properties()
         self._decorate()
+
+    def _get_take_parameter(self, **kwargs):
+        return kwargs.pop("take", None)
 
     def _have_softening_for_particle_type(self, particle_type):
         attrs = self._get_hdf_parameter_attrs()
