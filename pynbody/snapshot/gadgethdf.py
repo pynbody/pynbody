@@ -118,6 +118,12 @@ class _GadgetHdfMultiFileManager:
             assert filename0 == self._filenames[0]
             self._cache_file(0, file0)
 
+    def max_buf(self):
+        if self._remote_dir is not None:
+            return (2 << 63) # don't chunk http requests
+        else:
+            return _max_buf
+
     def _open_file(self, filename, mode):
         if self._remote_dir is None:
             return _open_hdf_file(filename, mode)
@@ -418,7 +424,7 @@ class HDFArrayLoader:
     def __init_load_map(self, take = None):
         """ Set up family slice and particle count for loading """
 
-        self._load_control = chunk.LoadControl(self._file_ptype_slice, _max_buf, take) # use HDF groups type instead of family type here
+        self._load_control = chunk.LoadControl(self._file_ptype_slice, self._hdf_files.max_buf(), take) # use HDF groups type instead of family type here
         self._family_slice_to_load = {}
         self._num_particles_to_load = self._load_control.mem_num_particles
 
