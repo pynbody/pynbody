@@ -162,8 +162,12 @@ def _download_and_unpack_test_data_if_not_present(package, package_name, verbose
 _ionfrac_tables_osf_project_id = "z46rq"
 _required_ionfrac_tables = ("hm12", "fg20") # Tables needed by the tests
 
-def _download_ionfrac_table(name, destination):
-    """Download an ion fraction table from the pynbody data repository"""
+def download_ionfrac_table(name, destination):
+    """Download an ion fraction table from the pynbody data repository
+
+    Note that this is also called from pynbody.analysis.ionfrac to fetch
+    the tables when they are needed and not already present.
+    """
     osf_file = get_osf_file_object(_ionfrac_tables_osf_project_id, f'{name}.npz')
     with open(destination, 'wb') as f:
         osf_file.write_to(f)
@@ -174,7 +178,7 @@ def precache_ionfrac_tables(verbose=False):
     for name in _required_ionfrac_tables:
         if verbose:
             print(f"Downloading table: {name}")
-        _download_ionfrac_table(name, pathlib.Path("ionfrac_tables") / pathlib.Path(name+".npz"))
+        download_ionfrac_table(name, pathlib.Path("ionfrac_tables") / pathlib.Path(name+".npz"))
 
 def ionfrac_tables_hash():
     """Return a hash of the ionfrac table names"""

@@ -317,10 +317,10 @@ class IonFractionTable(IonFractionTableBase):
     @classmethod
     def _download_ionfracs(cls, name):
         """Download an ion fraction table from the pynbody data repository"""
-        from ..test_utils import _download_ionfrac_table
+        from ..test_utils import download_ionfrac_table
         logger.warning("Downloading ion fraction table %s" % name)
         filename = cls._table_to_path(name)
-        _download_ionfrac_table(name, filename)
+        download_ionfrac_table(name, filename)
 
     @classmethod
     def from_cloudy(cls, cloudy_path,
