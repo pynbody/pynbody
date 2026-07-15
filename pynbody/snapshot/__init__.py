@@ -42,7 +42,11 @@ def load(filename, *args, **kwargs) -> SimSnap:
     priority = kwargs.pop('priority', config['snap-class-priority'])
 
     for c in SimSnap.iter_subclasses_with_priority(priority):
-        if c._can_load(filename):
+        if "remote_dir" in kwargs:
+            if hasattr(c, "_can_load_remote") and c._can_load_remote(filename, *args, **kwargs):
+                logger.info("Loading using backend %s" % str(c))
+                return c(filename, *args, **kwargs)
+        elif c._can_load(filename):
             logger.info("Loading using backend %s" % str(c))
             return c(filename, *args, **kwargs)
 
