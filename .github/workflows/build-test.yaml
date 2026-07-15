@@ -50,6 +50,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip setuptools wheel
         python -m pip install numpy==${{ matrix.numpy-version }}
+        python -m pip install hdfstream
     - name: Build and install pynbody
       run: |
         python -m pip install -v .[tests]
