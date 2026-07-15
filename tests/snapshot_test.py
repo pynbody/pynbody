@@ -7,12 +7,22 @@ import pytest
 
 import pynbody
 import pynbody.test_utils
+from pynbody import units
 
 
 @pytest.fixture(scope='module', autouse=True)
 def get_data():
     pynbody.test_utils.ensure_test_data_available("gasoline_ahf")
 
+@pytest.fixture(scope="function")
+def sim_with_units():
+    sim = pynbody.new(dm=10, star=5)
+    sim._file_units_system = [units.kpc, units.km / units.s, units.Msol, units.K]
+    sim["pos"][:] = 1.0
+    sim["vel"][:] = 1.0
+    sim["mass"][:] = 1.0
+    sim.set_units_system()
+    return sim
 
 def setup_module():
     global f, h
@@ -309,3 +319,46 @@ def test_race_condition():
         t.start()
     for t in threads:
         t.join()
+
+
+def test_set_units_system(sim_with_units):
+    sim_with_units.set_units_system(distance="Mpc", velocity="m s^-1", mass="10 Msol")
+    assert sim_with_units['pos'].units == 'Mpc'
+    np.testing.assert_allclose(sim_with_units['pos'], 1.0)    
+    assert sim_with_units['vel'].units == 'm s^-1'
+    np.testing.assert_allclose(sim_with_units['vel'], 1.0)
+    assert sim_with_units['mass'].units == '10 Msol'
+    np.testing.assert_allclose(sim_with_units['mass'], 1.0)
+
+def test_set_units_system_after_units_change(sim_with_units):
+
+    sim_with_units.physical_units(distance="pc")
+    np.testing.assert_allclose(sim_with_units['pos'], 1e3)
+
+    sim_with_units.set_units_system(distance="Mpc")
+    assert sim_with_units['pos'].units == 'Mpc'
+    np.testing.assert_allclose(sim_with_units['pos'], 1.0)
+
+def test_set_units_system_updates_sim_properties(sim_with_units):
+
+    # test unitbase in properties
+    sim_with_units.properties['boxsize'] = 1000 * units.kpc
+    
+    # a unitbase in properties, related to the distance and velocity units, 
+    sim_with_units.properties["time"] = 1.0 * units.kpc / (units.km / units.s)
+    
+    # test simarray in properties
+    prop_arr = pynbody.array.SimArray(1.0, units.kpc)
+    prop_arr.sim = sim_with_units
+    sim_with_units.properties["prop"] = prop_arr
+
+    sim_with_units.set_units_system(distance="Mpc")
+    # from "1000 kpc" to "1000 Mpc"
+    assert sim_with_units.properties['boxsize'] == 1000 * units.Mpc
+    
+    # from "1.0 kpc / (km/s)" to "1.0 Mpc / (km/s)"
+    assert sim_with_units.properties["time"] == 1.0 * units.Mpc / (units.km / units.s)
+    
+    # from arr(1, kpc) to arr(1, Mpc)
+    assert sim_with_units.properties["prop"].units == units.Mpc
+    np.testing.assert_allclose(sim_with_units.properties["prop"], 1.0)

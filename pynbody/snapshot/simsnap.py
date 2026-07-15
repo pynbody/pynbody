@@ -744,6 +744,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             if x is not None:
                 new_units.append(units.Unit(x))
 
+        # record the old units for properties, 
+        # so we can convert them to the new system after changing the file unit system
+        prop_old_units = {}
+        for k,v in list(self.properties.items()):
+            if isinstance(v, units.UnitBase):
+                prop_old_units[k] = self.infer_original_units(v)
 
         self._file_units_system = new_units
 
@@ -764,6 +770,18 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
                     continue
 
             arr.set_units_like(ref_unit)
+
+        # set new units for properties
+        for k, v in list(self.properties.items()):
+            if isinstance(v, units.UnitBase):
+                old_units = prop_old_units[k]
+                new_unit = self.infer_original_units(v)
+                self.properties[k]= new_unit * v.ratio(old_units)
+                    
+            elif isinstance(v, array.SimArray):
+                if v.units != units.NoUnit():
+                    ref_unit = v.units
+                    v.set_units_like(ref_unit)
 
     def original_units(self):
         """Converts all arrays'units to be consistent with the units of
