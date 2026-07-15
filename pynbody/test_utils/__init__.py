@@ -5,6 +5,7 @@ It is used during CI to download test data before pynbody is built/installed.
 Only use standard library modules and osfclient (which is available in CI).
 """
 
+import argparse
 import os
 import pathlib
 import shutil
@@ -158,9 +159,49 @@ def _download_and_unpack_test_data_if_not_present(package, package_name, verbose
         print(f"Test data package '{package_name}' already exists, skipping")
 
 
+_ionfrac_tables_osf_project_id = "z46rq"
+_required_ionfrac_tables = ("hm12", "fg20") # Tables needed by the tests
+
+def _download_ionfrac_table(name, destination):
+    """Download an ion fraction table from the pynbody data repository"""
+    osf_file = get_osf_file_object(_ionfrac_tables_osf_project_id, f'{name}.npz')
+    with open(destination, 'wb') as f:
+        osf_file.write_to(f)
+
+def precache_ionfrac_tables(verbose=False):
+    """Download all ionfrac tables needed for tests"""
+    os.makedirs("ionfrac_tables", exist_ok=True)
+    for name in _required_ionfrac_tables:
+        if verbose:
+            print(f"Downloading table: {name}")
+        _download_ionfrac_table(name, pathlib.Path("ionfrac_tables") / pathlib.Path(name+".npz"))
+
+def ionfrac_tables_hash():
+    """Return a hash of the ionfrac table names"""
+    import hashlib
+    m = hashlib.sha256()
+    for name in _required_ionfrac_tables:
+        m.update(name.encode())
+    return m.hexdigest()
+
+
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "--fetch":
+
+    parser = argparse.ArgumentParser(description='Download data files needed for tests')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--fetch-testdata", action="store_true", help="Download pynbody test data files")
+    group.add_argument("--hash-testdata", action="store_true", help="Output the hash of the test data files")
+    group.add_argument("--fetch-ionfrac", action="store_true", help="Download ionfrac table files needed for tests")
+    group.add_argument("--hash-ionfrac", action="store_true", help="Output the hash of the ionfrac table names")
+    args = parser.parse_args()
+
+    if args.fetch_testdata:
         precache_test_data(verbose=True)
-    else:
+    elif args.hash_testdata:
         print(test_data_hash())
+    elif args.fetch_ionfrac:
+        precache_ionfrac_tables(verbose=True)
+    elif args.hash_ionfrac:
+        print(ionfrac_tables_hash())
+    else:
+        raise RuntimeError("No operation specified!")

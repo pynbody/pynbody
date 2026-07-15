@@ -61,7 +61,7 @@ jobs:
       uses: actions/cache/restore@v5
       with:
         path: ionfrac_tables
-        key: ionfrac_tables_v1
+        key: ionfrac-${{ needs.fetch-tables.outputs.ionfrac-key }}
         enableCrossOsArchive: true
 
     - name: Copy table data to pynbody installation

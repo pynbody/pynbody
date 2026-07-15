@@ -1,32 +1,37 @@
 name: fetch-tables.yaml
 on:
   workflow_call:
+    outputs:
+      ionfrac-key:
+        description: 'The cache key for the ion fraction tables'
+        value: ${{ jobs.fetch-tables.outputs.ionfrac-key }}
 
 jobs:
   fetch-tables:
     runs-on: ubuntu-latest
+    outputs:
+      ionfrac-key: ${{ steps.get-ionfrac-hash.outputs.ionfrachash }}
     steps:
     - uses: actions/checkout@v6
-
     - name: Install Python
       uses: actions/setup-python@v6
       with:
         python-version: "3.11"
-
     - name: Install osfclient
       run: |
         python -m pip install osfclient
-
+    - name: Get ionfrac tables hash
+      id: get-ionfrac-hash
+      run: |
+        echo "ionfrachash=$(python pynbody/test_utils/__init__.py --hash-ionfrac)" >> $GITHUB_OUTPUT
     - name: Cache table data
       id: cache-tables
       uses: actions/cache@v6
       with:
         path: ionfrac_tables
-        key: ionfrac_tables_v1
+        key: ionfrac-${{ steps.get-ionfrac-hash.outputs.ionfrachash }}
         enableCrossOsArchive: true
-
     - name: Fetch table data
       if: steps.cache-tables.outputs.cache-hit != 'true'
       run: |
-        osf -p z46rq fetch hm12.npz ionfrac_tables/hm12.npz
-        osf -p z46rq fetch fg20.npz ionfrac_tables/fg20.npz
+        python ./pynbody/test_utils/__init__.py --fetch-ionfrac
