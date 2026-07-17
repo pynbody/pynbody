@@ -13,6 +13,118 @@ from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager
 
 class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
+    def __init__(self, filename, mode='r', take_swift_cells=None, take_region=None):
+
+        if take_swift_cells is not None and take_region is not None:
+            raise ValueError("Either take_swift_cells or take_region must be specified, not both")
+
+        filename = str(filename)
+        self._mode = mode
+        if h5py.is_hdf5(filename):
+            # We have a single file snapshot, we're reading one file from a
+            # snapshot, or we're reading the VDS file of a multi file snapshot.
+            filenames = [filename]
+            numfiles = 1
+            h1 = h5py.File(filename, mode)
+            # Don't allow reading regions from a sub-file because they might be incomplete
+            if self._get_num_files(h1) > 1 and (take_swift_cells is not None or take_region is not None):
+                raise ValueError("Cannot select part of a sub-file from a multi file snapshot")
+        else:
+            # We're reading a full set of snapshot files
+            h1 = h5py.File(self._make_filename_for_cpu(filename, 0), mode)
+            numfiles = self._get_num_files(h1)
+            if hasattr(numfiles, "__len__"):
+                assert len(numfiles) == 1
+                numfiles = numfiles[0]
+            filenames = [self._make_filename_for_cpu(filename, i) for i in range(numfiles)]
+
+        self._read_cell_metadata(h1)
+        if take_region is not None:
+            take_swift_cells = self._identify_cells_to_take(take_region)
+        if take_swift_cells is not None:
+            take_swift_cells = np.unique(np.asarray(take_swift_cells, dtype=int))
+        self._file_mask = self._select_files(filenames, take_swift_cells)
+        self._filenames = [filename for (filename, keep) in zip(filenames, self._file_mask) if keep]
+        self._numfiles = len(self._filenames)
+        self._open_files = {}
+        self._take_swift_cells = take_swift_cells
+
+    def _select_files(self, filenames, take_swift_cells):
+        """Choose which files to open and return a boolean mask"""
+        # If we're not reading a subset, open all of the files
+        if take_swift_cells is None:
+            return np.ones(len(filenames), dtype=bool)
+
+        # Find the set of files which contain selected cells
+        required_files = set()
+        nr_parts = {}
+        for name in self._cells:
+            counts = self._cells[name]["counts"][take_swift_cells].astype(np.int64)
+            files = self._cells[name]["files"][take_swift_cells].astype(np.int64)
+            required_files = required_files.union(set(files[counts>0]))
+            # Open at least one file with a non-zero number of particles of each
+            # type, if there is one. This so that we still know that stars
+            # exist, for example, even if we picked a region without any.
+            if sum(counts) == 0:
+                files_with_type = files[np.nonzero(counts)[0]]
+                if len(files_with_type) > 0:
+                    required_files.add(files_with_type[0])
+
+        # Return the selection mask
+        mask = np.zeros(len(filenames), dtype=bool)
+        for i in required_files:
+            mask[i] = True
+        return mask
+
+    def get_take_parameter(self, families_ordered, family_to_group_map):
+        """Return the array of particle indexes to read
+        """
+        # Handle the case where we're reading everything
+        if self._take_swift_cells is None:
+            return None
+
+        # Compute particle "take" indices corresponding to the selected cells
+        take = []
+        ptype_offset = 0
+        for family in families_ordered:
+            for name in family_to_group_map[family]:
+                # Find the cell metadata
+                cell_file_index = self._cells[name]["files"]
+                cell_file_offset = self._cells[name]["offsets"]
+                particles_per_cell = self._cells[name]["counts"]
+                # Get the original number of files in the full snapshot
+                nr_files_total = np.amax(cell_file_index) + 1
+                # Treat cells in files we don't open as empty, because we're
+                # computing an index into the subset of files we opened.
+                particles_per_cell[self._file_mask[cell_file_index]==False] = 0
+                # Compute the offset to the first particle in each file in the subset.
+                # Note that the file index refers to the full set of snapshot files here.
+                particles_per_file = np.bincount(cell_file_index, weights=particles_per_cell, minlength=nr_files_total)
+                offset_to_file = np.cumsum(particles_per_file, dtype=np.int64) - particles_per_file
+                # Compute the offset to the first particle in each cell
+                offset_to_cell = ptype_offset + offset_to_file[cell_file_index] + cell_file_offset
+                # Extract offsets and lengths of the selected subsets of cells
+                cell_offsets_to_take = offset_to_cell[self._take_swift_cells]
+                cell_counts_to_take = particles_per_cell[self._take_swift_cells]
+                # Construct a sorted array of particle indexes to take
+                order = np.argsort(cell_offsets_to_take)
+                for cell_count, cell_offset in zip(cell_counts_to_take[order], cell_offsets_to_take[order]):
+                    take.append(np.arange(cell_offset, cell_offset+cell_count, dtype=np.int64))
+                ptype_offset += np.sum(particles_per_cell, dtype=np.int64)
+        return np.concatenate(take)
+
+    def _read_cell_metadata(self, h1):
+        self._cells = {}
+        for name in h1["Cells/Counts"]:
+            self._cells[name] = {}
+            self._cells[name]["counts"] = h1["Cells/Counts"][name][...]
+            self._cells[name]["files"] = h1["Cells/Files"][name][...]
+            self._cells[name]["offsets"] = h1["Cells/OffsetsInFile"][name][...]
+        self._cell_centres = h1["Cells/Centres"][...]
+
+    def _identify_cells_to_take(self, take):
+        return np.where(take.cubic_cell_intersection(self._cell_centres))[0]
+
     def get_unit_attrs(self):
         return self[0].parent['InternalCodeUnits'].attrs
 
@@ -51,61 +163,22 @@ class SwiftSnap(GadgetHDFSnap):
 
     _namemapper_config_section = 'swift-name-mapping'
 
+    def __init__(self, filename, take_swift_cells=None, take_region=None):
+        """Initialise a SWIFT snapshot.
+
+        Extra parameters can be passed to the multi file manager by
+        storing them here and overriding the _init_hdf_filemanager
+        method.
+        """
+        self._take_swift_cells = take_swift_cells
+        self._take_region = take_region
+        super().__init__(filename)
+
+    def _init_hdf_filemanager(self, filename):
+        self._hdf_files = self._multifile_manager_class(filename, take_swift_cells=self._take_swift_cells, take_region=self._take_region)
 
     def _get_take_parameter(self, **kwargs):
-        if len({"take", "take_swift_region", "take_swift_cells"} & kwargs.keys()) > 1:
-            raise ValueError("Can only specify one of take, take_cells or take_region")
-        if "take" in kwargs:
-            return kwargs.pop("take")
-        elif "take_swift_cells" in kwargs:
-            return self._take_from_cells(kwargs.pop("take_swift_cells"))
-        elif "take_region" in kwargs:
-            return self._take_from_region(kwargs.pop("take_region"))
-        else:
-            return None
-
-    def _take_from_cells(self, take_cells):
-        if take_cells is None:
-            return None
-
-        # Check if we're reading one file from a multi file snapshot
-        snap = self._hdf_files[0]
-        header = ExtractScalarWrapper(snap["Header"].attrs)
-        nr_files = header["NumFilesPerSnapshot"]
-        if len(self._hdf_files) < nr_files:
-            raise NotImplementedError("Can't use take_cells or take_region on a single sub-file")
-
-        # Validate the input cell index array
-        take_cells = np.unique(np.asarray(take_cells, dtype=int))
-        nr_cells = snap["Cells/Centres"].shape[0]
-        if np.any(take_cells < 0) or np.any(take_cells >= nr_cells):
-            raise ValueError("SWIFT cell index is out of range!")
-
-        # Compute particle indices corresponding to the selected cells
-        take = []
-        ptype_offset = 0
-        for family in self._families_ordered():
-            for name in self._family_to_group_map[family]:
-                cell_file_index = snap["Cells/Files"][name][...]
-                cell_file_offset = snap["Cells/OffsetsInFile"][name][...]
-                particles_per_cell = snap["Cells/Counts"][name][...]
-                particles_per_file = np.bincount(cell_file_index, weights=particles_per_cell, minlength=nr_files)
-                offset_to_file = np.cumsum(particles_per_file, dtype=np.int64) - particles_per_file
-                offset_to_cell = ptype_offset + offset_to_file[cell_file_index] + cell_file_offset
-                cell_offsets_to_take = offset_to_cell[take_cells]
-                cell_counts_to_take = particles_per_cell[take_cells]
-                order = np.argsort(cell_offsets_to_take)
-                for cell_count, cell_offset in zip(cell_counts_to_take[order], cell_offsets_to_take[order]):
-                    take.append(np.arange(cell_offset, cell_offset+cell_count, dtype=np.int64))
-                ptype_offset += np.sum(particles_per_cell, dtype=np.int64)
-        return np.concatenate(take)
-
-    def _take_from_region(self, take_region):
-        if take_region is None:
-            return None
-        centres = self._hdf_files[0]['Cells/Centres'][:]
-        take_cells = np.where(take_region.cubic_cell_intersection(centres))[0]
-        return self._take_from_cells(take_cells)
+        return self._hdf_files.get_take_parameter(list(self._families_ordered()), self._family_to_group_map)
 
     def _is_cosmological(self):
         cosmo = ExtractScalarWrapper(self._hdf_files[0]['Cosmology'].attrs)

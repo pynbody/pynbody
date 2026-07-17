@@ -542,6 +542,10 @@ class GadgetHDFSnap(SimSnap):
         self._decorate()
 
     def _get_take_parameter(self, **kwargs):
+        """This can be overridden by sub-classes to allow alternate ways to
+        specify subsets of particles to read. For standard GadgetHDF snapshots
+        we just allow specifying an array of particle indexes with take=...
+        """
         return kwargs.pop("take", None)
 
     def _have_softening_for_particle_type(self, particle_type):
