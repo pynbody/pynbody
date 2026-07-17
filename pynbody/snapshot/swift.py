@@ -62,18 +62,22 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
             counts = self._cells[name]["counts"][take_swift_cells].astype(np.int64)
             files = self._cells[name]["files"][take_swift_cells].astype(np.int64)
             required_files = required_files.union(set(files[counts>0]))
-            # Open at least one file with a non-zero number of particles of each
-            # type, if there is one. This so that we still know that stars
-            # exist, for example, even if we picked a region without any.
+            # Gadget and older Swift versions completely omit particle type
+            # groups which would contain zero particles. We don't want to be
+            # missing a particle type just because the selected region happens
+            # not to contain that type, so ensure we open a file containing at
+            # least one particle of the current type. This also prevents us
+            # from opening zero files when no particles are in the region.
             if sum(counts) == 0:
-                files_with_type = files[np.nonzero(counts)[0]]
+                all_counts = self._cells[name]["counts"]
+                all_files = self._cells[name]["files"]
+                files_with_type = np.unique(all_files[all_counts>0])
                 if len(files_with_type) > 0:
                     required_files.add(files_with_type[0])
 
-        # Return the selection mask
+        # Return the file selection mask
         mask = np.zeros(len(filenames), dtype=bool)
-        for i in required_files:
-            mask[i] = True
+        mask[list(required_files)] = True
         return mask
 
     def get_take_parameter(self, families_ordered, family_to_group_map):
@@ -111,7 +115,7 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
                 for cell_count, cell_offset in zip(cell_counts_to_take[order], cell_offsets_to_take[order]):
                     take.append(np.arange(cell_offset, cell_offset+cell_count, dtype=np.int64))
                 ptype_offset += np.sum(particles_per_cell, dtype=np.int64)
-        return np.concatenate(take)
+        return np.concatenate(take) if len(take) > 0 else np.zeros(0, dtype=np.int64)
 
     def _read_cell_metadata(self, h1):
         self._cells = {}
