@@ -57,6 +57,9 @@ class ImageGeometry:
 
         # for use by healpix renderer:
         self.nside = None
+        self.shell_distance = None
+        # if set, the healpix renderer produces a thin shell at this radius (in position units)
+        # rather than a projection along the line of sight
 
     @property
     def width(self):
@@ -715,10 +718,33 @@ class Grid3dRenderer(ImageRenderer):
         return image
 
 class HealpixRenderer(ImageRenderer):
-    """Implementation for rendering a simulation snapshot to healpix"""
+    """Implementation for rendering a simulation snapshot to healpix.
+
+    Two modes are available. By default a projection along the line of sight is rendered, giving a quantity per unit
+    solid angle. Alternatively, if a shell distance is set via :meth:`set_shell_distance`, the quantity is sampled on
+    a thin spherical shell at that radius, giving the same (e.g. volumetric density) units as a slice image.
+    """
 
     def __init__(self, snap: snapshot.SimSnap):
         super().__init__(snap)
+
+    def set_shell_distance(self, distance: float | str | units.UnitBase | None):
+        """Render a thin spherical shell at the given radius instead of a line-of-sight projection.
+
+        .. versionadded :: 2.5.0
+
+        Parameters
+        ----------
+        distance : float, str, units.UnitBase or None
+            The radius of the shell on which to sample the quantity, in position units (or a unit/string which is
+            converted accordingly). If None, a projection is rendered instead.
+        """
+        if distance is None:
+            self._geometry.shell_distance = None
+        else:
+            self._geometry.shell_distance = self._to_position_units(distance)
+            # a thin shell is sampled with the full 3D kernel, i.e. it is not a projection
+            self._is_projected = False
 
     def _get_native_area_unit(self, smooth, kernel_h_power=None):
         if kernel_h_power is None:
@@ -731,7 +757,8 @@ class HealpixRenderer(ImageRenderer):
     def _call_c_renderer(self, array, geometry, kernel, mass_array, rho_array, smooth_array, x_array, y_array, z_array):
         return _render.render_spherical_image_core(rho_array, mass_array, array,
                                                    x_array, y_array, z_array,
-                                                   smooth_array, self.geometry.nside, kernel)
+                                                   smooth_array, geometry.nside, kernel,
+                                                   geometry.shell_distance or 0.0)
 
 
 
@@ -747,6 +774,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
                          resolution: int = None,
                          nx: int = None, ny: int = None, nz: int = None,
                          nside: int = None,
+                         shell_distance: float | str | units.UnitBase = None,
                          out_units: str | units.UnitBase = None,
                          weight: bool | str | np.ndarray | NoneType = None,
                          restrict_depth: bool = False,
@@ -759,6 +787,10 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
                          target: str = 'image',
                          ) -> ImageRendererBase:
     """Generate a renderer object for rendering images of a simulation snapshot.
+
+    .. versionchanged :: 2.5.0
+
+      The parameter *shell_distance* has been added.
 
     Parameters
     ----------
@@ -792,6 +824,11 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
     nside : int, optional
         The nside of the image to be rendered, for healpix images (target='healpix'). The default is None,
         in which case a default nside is adopted.
+
+    shell_distance : float, str, units.UnitBase, optional
+        For healpix images (target='healpix') only. If provided, a thin spherical shell is sampled at this radius
+        (in position units) using the full 3D kernel, instead of the default line-of-sight projection. The result
+        then carries volumetric (e.g. density) units rather than a per-solid-angle column.
 
     out_units : str, units.UnitBase, optional
         The units to be used for the output image. These are checked for compatibility with the array to be
@@ -903,15 +940,21 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
     if nside is not None and target != 'healpix':
         raise ValueError("nside is only valid in combination with target='healpix'")
 
+    if shell_distance is not None and target != 'healpix':
+        raise ValueError("shell_distance is only valid in combination with target='healpix'")
+
+    is_shell = target == 'healpix' and shell_distance is not None
+    if is_shell:
+        renderer.set_shell_distance(shell_distance)
 
     renderer.set_quantity(quantity)
 
     if out_units is not None:
         renderer.set_output_units(out_units)
         # this may change the projection status of the image
-    elif target == 'healpix' and not weight:
-        # by _default_, spherical images are projected. In fact, right now, there is no other option
-        # but in future we could implement a distance argument that would enable volume rendering too
+    elif target == 'healpix' and not weight and not is_shell:
+        # by _default_, spherical images are projected onto the sky. A thin shell (is_shell) is instead
+        # sampled with the full 3D kernel and so is not a projection.
         renderer.set_projection(True)
 
     if z_camera is not None:

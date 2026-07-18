@@ -258,9 +258,60 @@ def test_spherical_render(simple_test_file):
                                      -0.46617195], rtol=0.01)
 
 
+def test_spherical_shell_render(simple_test_file):
+    """A thin-shell healpix render should sample the 3D density field, giving volumetric units."""
+    f = simple_test_file
+
+    im = pynbody.sph.render_spherical_image(f, 'rho', nside=16, distance='1.0 kpc')
+
+    # sampling density on a shell gives a volumetric (density) quantity, not a per-solid-angle column
+    assert im.units == "Msol kpc^-3"
+
+    # the shell passes through the bulk of the (unit-variance gaussian) distribution, so it must be
+    # populated with sensible, positive densities
+    assert (im >= 0).all()
+    assert np.count_nonzero(im) > len(im) // 2
+    assert 0.001 < im.mean() < 1.0
+
+
+@pytest.mark.skipif(platform.system() == "Windows", reason="Healpy not supported on Windows")
+def test_spherical_shell_geometry(simple_test_file):
+    """Check the thin-shell geometry against an independent brute-force evaluation on healpix pixels."""
+    import healpy as hp
+
+    f = simple_test_file
+    nside = 16
+    distance = 1.3
+
+    kernel = kernels.CubicSplineKernel()
+    im = pynbody.sph.render_spherical_image(f, 'rho', nside=nside, distance=distance, kernel=kernel)
+
+    pos = f['pos'].view(np.ndarray)
+    h = f['smooth'].view(np.ndarray)
+    mass = f['mass'].view(np.ndarray)
+    rho = f['rho'].view(np.ndarray)
+
+    npix = 12 * nside * nside
+    shell_points = distance * np.array(hp.pix2vec(nside, np.arange(npix))).T  # (npix, 3)
+
+    ref = np.zeros(npix)
+    max_d = kernel.max_d
+    for i in range(len(pos)):
+        d = np.linalg.norm(shell_points - pos[i], axis=1)
+        contributing = np.nonzero(d < max_d * h[i])[0]
+        for p in contributing:
+            # get_value's first argument is the normalised distance q = d / h
+            ref[p] += mass[i] * kernel.get_value(d[p] / h[i], h[i])  # rho * mass / rho = mass
+
+    # residual is dominated by the kernel look-up-table quantisation, matching the accuracy of the
+    # flat-image renderer; require agreement to ~1% of the peak with only the small systematic LUT bias
+    peak = np.abs(ref).max()
+    assert np.abs(im - ref).max() < 0.02 * peak
+    assert np.abs((im - ref).mean()) < 5e-3 * peak
+
+
 @pytest.mark.filterwarnings("ignore::UserWarning")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Healpy not supported on Windows")
-@pytest.mark.skipif(sys.version_info >= (3, 14), reason="Healpy binaries seem to be broken on Python 3.14")
 def test_render_stars_spherical(snap):
     plt.clf()
     res = pynbody.plot.stars.render_mollweide(snap, return_image=True)
