@@ -275,7 +275,6 @@ def test_spherical_shell_render(simple_test_file):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Healpy not supported on Windows")
-@pytest.mark.skipif(sys.version_info >= (3, 14), reason="Healpy binaries seem to be broken on Python 3.14")
 def test_spherical_shell_geometry(simple_test_file):
     """Check the thin-shell geometry against an independent brute-force evaluation on healpix pixels."""
     import healpy as hp
@@ -313,7 +312,6 @@ def test_spherical_shell_geometry(simple_test_file):
 
 @pytest.mark.filterwarnings("ignore::UserWarning")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Healpy not supported on Windows")
-@pytest.mark.skipif(sys.version_info >= (3, 14), reason="Healpy binaries seem to be broken on Python 3.14")
 def test_render_stars_spherical(snap):
     plt.clf()
     res = pynbody.plot.stars.render_mollweide(snap, return_image=True)
