@@ -69,6 +69,12 @@ jobs:
       - name: Show interpreter version
         run: python --version
 
+      - name: Cache pip wheels (source builds are slow; no cp315 wheels exist upstream yet)
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/pip
+          key: pip-py315-${{ hashFiles('pyproject.toml') }}
+
       - name: Install system build dependencies
         run: |
           sudo apt-get update -qq
@@ -168,30 +174,36 @@ jobs:
           DESTDIR=$(python -c "import pynbody ; import os ; print(os.path.dirname(pynbody.analysis.__file__))")
           cp *.npz "${DESTDIR}"
 
-      - name: Run test suite
+      # TEMPORARY DIAGNOSTIC: array_test.py::test_shared_name_accidental_rng_collision
+      # (which deliberately calls os.fork() via multiprocessing to test pynbody's
+      # shared-array RNG re-seeding) fails on Python 3.15 with "DeprecationWarning:
+      # This process is multi-threaded, use of fork() may lead to deadlocks",
+      # escalated to a hard error by pynbody's filterwarnings=["error"]. Switching
+      # pytest-timeout to --timeout-method=signal (no watchdog thread) did NOT fix
+      # it, so something else leaves a background thread alive by the time this
+      # test runs (10% into the suite, after adaptahop_test.py and ahf_halos_test.py).
+      # This plugin traces every threading.Thread.start() call with a stack trace so
+      # we can identify the actual culprit from real CI output instead of guessing.
+      - name: Write thread-start diagnostic plugin
+        working-directory: tests
+        run: |
+          cat > _diag_thread_trace.py <<'EOF'
+          import threading, traceback, sys
+          _orig_start = threading.Thread.start
+          def _traced_start(self, *a, **kw):
+              print(f"\n[DIAG] Thread.start() name={self.name!r} daemon={self.daemon}", file=sys.stderr, flush=True)
+              traceback.print_stack(file=sys.stderr)
+              return _orig_start(self, *a, **kw)
+          threading.Thread.start = _traced_start
+          EOF
+
+      - name: "Run test suite (diagnostic: adaptahop/ahf/array only)"
         working-directory: tests
         run: |
           set +e
-          EXTRA_ARGS=()
-          if [ "${{ steps.healpy.outputs.available }}" != "true" ]; then
-            EXTRA_ARGS+=(--deselect sph_image_test.py::test_spherical_shell_geometry)
-            EXTRA_ARGS+=(--deselect sph_image_test.py::test_render_stars_spherical)
-          fi
-          if [ "${{ steps.camb.outputs.available }}" != "true" ]; then
-            EXTRA_ARGS+=(--deselect hmf_test.py::test_powspec_live)
-          fi
-
-          # --timeout-method=signal (SIGALRM) is used instead of pytest-timeout's
-          # default thread-based watchdog: a background thread makes the pytest
-          # process appear multi-threaded to Python's fork-safety check, which
-          # spuriously trips array_test.py::test_shared_name_accidental_rng_collision
-          # (a test that deliberately calls os.fork() via multiprocessing) --
-          # Python 3.15 turns "process is multi-threaded, use of fork() may lead
-          # to deadlocks" into a DeprecationWarning that pynbody's pytest config
-          # (filterwarnings = ["error", ...]) then escalates to a hard failure.
-          # This isn't a real pynbody/3.15 incompatibility, just an artifact of
-          # this workflow's own --timeout flag (which build-test.yaml doesn't use).
-          python -m pytest --ignore=testdata/ --tb=short -rA --timeout=300 --timeout-method=signal "${EXTRA_ARGS[@]}" 2>&1 | tee pytest-output.log
+          python -m pytest --ignore=testdata/ --tb=short -rA --timeout=300 --timeout-method=signal \
+            -p _diag_thread_trace \
+            adaptahop_test.py ahf_halos_test.py array_test.py 2>&1 | tee pytest-output.log
           PYTEST_EXIT=${PIPESTATUS[0]}
 
           {
