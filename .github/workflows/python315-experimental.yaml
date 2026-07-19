@@ -174,24 +174,22 @@ jobs:
           DESTDIR=$(python -c "import pynbody ; import os ; print(os.path.dirname(pynbody.analysis.__file__))")
           cp *.npz "${DESTDIR}"
 
-      # KNOWN FAILURE (real, not an artifact of this workflow's setup):
-      # array_test.py::test_shared_name_accidental_rng_collision deliberately
-      # calls os.fork() via multiprocessing to test pynbody's shared-array RNG
-      # re-seeding. By the time it runs, RamsesSnap's persistent reader pool
-      # (pynbody/snapshot/ramses.py: multiprocessing.Pool created on first RAMSES
-      # load, kept alive for the process via atexit -- "parallel-read=8" is the
-      # default config) is already up, from adaptahop_test.py loading a RAMSES
-      # snapshot earlier in the same session. Its 3 management threads
-      # (_handle_workers/_handle_tasks/_handle_results) are real, live
-      # threading.Thread objects -- confirmed via a thread-creation trace in an
-      # earlier run of this workflow. Python 3.15 is stricter than 3.12-3.14 about
-      # detecting this and raises "DeprecationWarning: This process is
-      # multi-threaded, use of fork() may lead to deadlocks" on the subsequent
-      # os.fork(), which pynbody's filterwarnings=["error"] then escalates to a
-      # hard failure. This is a genuine Python 3.15 behavioural change surfacing
-      # a pre-existing (if likely harmless) latent pattern in pynbody's own test
-      # suite, not a dependency incompatibility -- left failing here deliberately
-      # so it's visible rather than deselected away.
+      # array_test.py::test_shared_name_accidental_rng_collision used to fork via
+      # multiprocessing to test pynbody's shared-array RNG re-seeding. By the time
+      # it ran, RamsesSnap's persistent reader pool (pynbody/snapshot/ramses.py:
+      # multiprocessing.Pool created on first RAMSES load, kept alive for the
+      # process via atexit -- "parallel-read=8" is the default config) was already
+      # up from adaptahop_test.py loading a RAMSES snapshot earlier in the same
+      # session, whose 3 management threads (_handle_workers/_handle_tasks/
+      # _handle_results) are real, live threading.Thread objects -- confirmed via
+      # a thread-creation trace in an earlier run of this workflow. Python 3.15 is
+      # stricter than 3.12-3.14 about detecting this and raises "DeprecationWarning:
+      # This process is multi-threaded, use of fork() may lead to deadlocks" on the
+      # subsequent os.fork(), which pynbody's filterwarnings=["error"] then
+      # escalates to a hard failure. Fixed upstream in the test itself (it now
+      # simulates a forked child's stale pid via monkeypatching os.getpid() rather
+      # than actually forking, since that's the only part of the scenario the
+      # behaviour being tested depends on).
       - name: Run test suite
         working-directory: tests
         run: |
