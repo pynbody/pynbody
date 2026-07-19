@@ -1,0 +1,201 @@
+# Experimental, temporary workflow to track pynbody's compatibility with the
+# upcoming Python 3.15 release ahead of its final release. This is kept
+# separate from build-test.yaml (the normal CI) because it currently needs
+# non-standard, throwaway setup to work around issues that are specific to
+# Python 3.15 pre-releases and/or the current state of the packages involved:
+#
+#  * No package here yet ships a prebuilt wheel for cp315, so numpy, scipy,
+#    h5py, matplotlib and healpy are all built from source (sdist).
+#
+#  * scipy's optional pythran-JIT build accelerator (via its `gast`
+#    AST-translation shim) is broken on Python 3.15: pythran calls
+#    ast.literal_eval() on a gast-reconstructed ast.Compare node, but 3.15
+#    made `left` a required positional argument of ast.Compare, so gast's
+#    reconstruction raises TypeError and the scipy build aborts. We build
+#    scipy with -Duse-pythran=false (a documented scipy meson option) which
+#    only disables a handful of JIT-accelerated ufunc paths, not scipy
+#    functionality generally. This is the one genuine upstream compatibility
+#    gap found so far -- everything else below is just packaging friction.
+#
+#  * healpy's minimum healpix_cxx (>=3.83.0) is newer than the version Ubuntu
+#    ships (3.80), so healpy's setup.py falls back to compiling its own
+#    vendored copy of healpix_cxx. That fallback build produces a *shared*
+#    library that only exists in pip's ephemeral build directory, which is
+#    deleted once the wheel is installed -- so `import healpy` fails at
+#    runtime with a missing .so. We avoid this entirely by installing a
+#    healpix_cxx >=3.83 build from conda-forge into /usr/local first, so
+#    healpy's pkg-config check succeeds and links against a real, permanent
+#    system library instead.
+#
+# Once cp315 wheels exist upstream for these packages and pythran supports
+# Python 3.15, most of this can be deleted and this job folded into (or
+# replaced by) a normal matrix entry in build-test.yaml.
+
+name: Python 3.15 (experimental)
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/python315-experimental.yaml'
+  schedule:
+    # Weekly, so we notice when upstream packages catch up (or regress).
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-testdata:
+    uses: ./.github/workflows/fetch-testdata.yaml
+  fetch-tables:
+    uses: ./.github/workflows/fetch-tables.yaml
+
+  build-and-test:
+    needs: [fetch-testdata, fetch-tables]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install latest available Python 3.15 (alpha/beta/rc)
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.15"
+          allow-prereleases: true
+
+      - name: Show interpreter version
+        run: python --version
+
+      - name: Install system build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            gfortran libopenblas-dev liblapack-dev \
+            libhdf5-dev libcfitsio-dev pkg-config zstd
+
+      - name: Upgrade packaging tools
+        run: python -m pip install --upgrade pip setuptools wheel "cython>=3.0.0"
+
+      - name: Install numpy (newest available, built from source)
+        run: python -m pip install -v numpy
+
+      - name: Install scipy (newest available satisfying pynbody's <1.18.0 cap, pythran disabled)
+        run: |
+          python -m pip install -v "scipy<1.18.0" --no-binary scipy \
+            --config-settings=setup-args=-Duse-pythran=false
+
+      - name: Fetch a healpix_cxx >=3.83 build from conda-forge for healpy
+        run: |
+          curl -sSL -o healpix_cxx.conda \
+            "https://conda.anaconda.org/conda-forge/linux-64/healpix_cxx-3.83-h10fef04_0.conda"
+          mkdir healpix_cxx_extract && cd healpix_cxx_extract
+          unzip -q ../healpix_cxx.conda
+          for t in pkg-*.tar.zst; do zstd -d "$t" -o "${t%.zst}"; tar xf "${t%.zst}"; done
+          sudo cp -r include/healpix_cxx /usr/local/include/
+          sudo cp lib/libhealpix_cxx.so.4.0.5 /usr/local/lib/
+          sudo ln -sf /usr/local/lib/libhealpix_cxx.so.4.0.5 /usr/local/lib/libhealpix_cxx.so.4
+          sudo ln -sf /usr/local/lib/libhealpix_cxx.so.4.0.5 /usr/local/lib/libhealpix_cxx.so
+          sudo mkdir -p /usr/local/lib/pkgconfig
+          sed 's|^prefix=.*|prefix=/usr/local|; s| -I/home/conda[^ ]*||g' \
+            lib/pkgconfig/healpix_cxx.pc | sudo tee /usr/local/lib/pkgconfig/healpix_cxx.pc > /dev/null
+          sudo ldconfig
+          pkg-config --modversion healpix_cxx
+
+      - name: Install h5py and matplotlib (newest available, built from source)
+        run: |
+          export HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/serial
+          python -m pip install -v h5py matplotlib
+
+      - name: Install healpy (optional; tolerate failure)
+        id: healpy
+        run: |
+          if python -m pip install -v healpy; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "### :warning: healpy could not be installed for Python 3.15 -- deselecting the tests that require it" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Build and install pynbody plus remaining test dependencies
+        run: python -m pip install -v ".[tests]" pytest-timeout
+
+      - name: Check camb actually works (optional; tolerate failure)
+        id: camb
+        run: |
+          if python -c "
+          import camb
+          pars = camb.CAMBparams()
+          pars.set_cosmology(H0=67.5, ombh2=0.022, omch2=0.122)
+          camb.get_background(pars)
+          "; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "### :warning: camb could not be installed/run for Python 3.15 -- deselecting the tests that require it" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Report installed dependency versions
+        if: always()
+        run: |
+          {
+            echo "## Dependency versions on Python 3.15"
+            echo '```'
+            python --version
+            python -m pip freeze
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Restore testdata cache
+        uses: actions/cache/restore@v5
+        with:
+          path: tests/testdata
+          key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
+          enableCrossOsArchive: true
+
+      - name: Restore table data cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ionfrac_tables
+          key: ionfrac-${{ needs.fetch-tables.outputs.ionfrac-key }}
+          enableCrossOsArchive: true
+
+      - name: Copy table data to pynbody installation
+        working-directory: ionfrac_tables
+        run: |
+          DESTDIR=$(python -c "import pynbody ; import os ; print(os.path.dirname(pynbody.analysis.__file__))")
+          cp *.npz "${DESTDIR}"
+
+      - name: Run test suite
+        working-directory: tests
+        run: |
+          set +e
+          EXTRA_ARGS=()
+          if [ "${{ steps.healpy.outputs.available }}" != "true" ]; then
+            EXTRA_ARGS+=(--deselect sph_image_test.py::test_spherical_shell_geometry)
+            EXTRA_ARGS+=(--deselect sph_image_test.py::test_render_stars_spherical)
+          fi
+          if [ "${{ steps.camb.outputs.available }}" != "true" ]; then
+            EXTRA_ARGS+=(--deselect hmf_test.py::test_powspec_live)
+          fi
+
+          python -m pytest --ignore=testdata/ --tb=short -rA --timeout=300 "${EXTRA_ARGS[@]}" 2>&1 | tee pytest-output.log
+          PYTEST_EXIT=${PIPESTATUS[0]}
+
+          {
+            echo "## Python 3.15 test results"
+            echo '```'
+            tail -n 30 pytest-output.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$PYTEST_EXIT"
+
+      - name: Upload test images
+        uses: actions/upload-artifact@v6
+        if: success() || failure()
+        with:
+          name: images-py315-experimental
+          path: tests/result*.npy
