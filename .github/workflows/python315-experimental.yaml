@@ -181,7 +181,17 @@ jobs:
             EXTRA_ARGS+=(--deselect hmf_test.py::test_powspec_live)
           fi
 
-          python -m pytest --ignore=testdata/ --tb=short -rA --timeout=300 "${EXTRA_ARGS[@]}" 2>&1 | tee pytest-output.log
+          # --timeout-method=signal (SIGALRM) is used instead of pytest-timeout's
+          # default thread-based watchdog: a background thread makes the pytest
+          # process appear multi-threaded to Python's fork-safety check, which
+          # spuriously trips array_test.py::test_shared_name_accidental_rng_collision
+          # (a test that deliberately calls os.fork() via multiprocessing) --
+          # Python 3.15 turns "process is multi-threaded, use of fork() may lead
+          # to deadlocks" into a DeprecationWarning that pynbody's pytest config
+          # (filterwarnings = ["error", ...]) then escalates to a hard failure.
+          # This isn't a real pynbody/3.15 incompatibility, just an artifact of
+          # this workflow's own --timeout flag (which build-test.yaml doesn't use).
+          python -m pytest --ignore=testdata/ --tb=short -rA --timeout=300 --timeout-method=signal "${EXTRA_ARGS[@]}" 2>&1 | tee pytest-output.log
           PYTEST_EXIT=${PIPESTATUS[0]}
 
           {
