@@ -96,6 +96,19 @@ def test_hist2d_image_type():
 
     assert len(plt.gca().collections) > 0
 
+def test_hist2d_xylabel_with_contour():
+    # regression test: passing xlabel/ylabel used to be forwarded all the way down to
+    # matplotlib's contour/contourf call, where they are not valid keyword arguments
+    x = np.random.randn(10000)
+    y = np.random.randn(10000)
+
+    for plot_type in ('contour', 'contourf', 'image'):
+        plt.clf()
+        hist2d(x, y, nbins=100, plot_type=plot_type, xlabel='my x label', ylabel='my y label')
+
+        assert plt.gca().get_xlabel() == 'my x label'
+        assert plt.gca().get_ylabel() == 'my y label'
+
 def test_hist2d_with_nan():
     np.random.seed(13136)
     x = np.random.normal(size=10000)
