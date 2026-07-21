@@ -53,7 +53,6 @@ nbsphinx_execute = 'never' # the notebook is expensive to evaluate, so we need i
 
 autosummary_generate = True
 
-ipython_warning_is_error = False
 ipython_savefig_dir = 'plots'
 
 # for .. plot:: directives
@@ -62,6 +61,34 @@ plot_working_directory = '.'
 
 extensions+=['IPython.sphinxext.ipython_console_highlighting',
              'IPython.sphinxext.ipython_directive']
+
+# ipython_warning_is_error is kept at False (rather than its usual default of True):
+# that flag makes *both* unexpected exceptions and unexpected python warnings raised
+# inside `.. ipython::` blocks fatal, and we only want the former (regressions that leave
+# a traceback in the rendered docs), not the latter (e.g. informational/deprecation
+# warnings, which are routine and shouldn't break the readthedocs build). So instead we
+# hook the specific log message that IPython.sphinxext.ipython_directive emits for an
+# unmarked exception (one raised inside a block that isn't marked with :okexcept:) and
+# turn just that into a build failure.
+ipython_warning_is_error = False
+
+import logging as _logging
+
+
+class _FailOnUnexpectedIPythonException(_logging.Filter):
+    def filter(self, record):
+        message = record.getMessage()
+        if "Exception in " in message and "at block ending on line" in message:
+            raise RuntimeError(
+                "An ipython:: block raised an exception that isn't marked with :okexcept:; "
+                "see above for the traceback. If the exception is intentional (e.g. "
+                "illustrating an error case), add :okexcept: to the block.\n" + message
+            )
+        return True
+
+
+_logging.getLogger('sphinx.IPython.sphinxext.ipython_directive').addFilter(
+    _FailOnUnexpectedIPythonException())
 
 
 # Add any paths that contain templates here, relative to this directory.
