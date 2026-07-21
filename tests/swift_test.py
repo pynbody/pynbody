@@ -11,6 +11,10 @@ import pynbody
 import pynbody.halo.velociraptor
 import pynbody.snapshot.swift
 import pynbody.test_utils
+from pynbody.test_utils.split_swift_snapshot import (
+    hash_swift_cell_coordinates,
+    split_swift_snapshot,
+)
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -281,3 +285,27 @@ def test_planetary_physical_units():
           [222.85219794, 391.8567664 , 395.02856333],
           [226.0370616 , 355.54715989, 438.43730943],
           [226.19312796, 388.35465427, 347.38190241]])
+
+
+@pytest.fixture
+def multifile_with_multiple_types(tmp_path):
+    nr_files = 8
+    input_snapshot = "./testdata/SWIFT/snap_0150.hdf5"
+    output_snapshot = tmp_path / "split_snap_0150.0.hdf5"
+    rng = np.random.default_rng(0)
+    cell_file_index = rng.integers(nr_files, size=512)
+    split_swift_snapshot(input_snapshot, nr_files, cell_file_index, output_snapshot)
+    return str(output_snapshot).removesuffix(".0.hdf5")
+
+
+@pytest.mark.parametrize('test_region',
+                         [pynbody.filt.Sphere(50., (50., 50., 50.)),
+                         pynbody.filt.Cuboid(-20.0)]) # note the cuboid test region wraps around the box
+def test_swift_take_region_multiple_files_and_types(test_region, multifile_with_multiple_types):
+    f = pynbody.load(multifile_with_multiple_types, take_region = test_region)
+    f_full = pynbody.load(multifile_with_multiple_types)
+    assert len(f_full) == 524288
+    assert len(f) < len(f_full)
+    assert np.all(f[test_region]['iord'] == f_full[test_region]['iord'])
+    assert len(f.families())==2
+    assert len(f_full.families())==2
