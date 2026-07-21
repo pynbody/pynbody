@@ -57,7 +57,6 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
         # Find the set of files which contain selected cells
         required_files = set()
-        nr_parts = {}
         for name in self._cells:
             counts = self._cells[name]["counts"][take_swift_cells].astype(np.int64)
             files = self._cells[name]["files"][take_swift_cells].astype(np.int64)
@@ -95,7 +94,7 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
                 # Find the cell metadata
                 cell_file_index = self._cells[name]["files"]
                 cell_file_offset = self._cells[name]["offsets"]
-                particles_per_cell = self._cells[name]["counts"]
+                particles_per_cell = self._cells[name]["counts"].copy()
                 # Get the original number of files in the full snapshot
                 nr_files_total = np.amax(cell_file_index) + 1
                 # Treat cells in files we don't open as empty, because we're
