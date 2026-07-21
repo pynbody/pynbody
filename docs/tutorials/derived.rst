@@ -163,6 +163,7 @@ To create a derived array associated with a specific subclass, use the
 e.g.
 
 .. ipython::
+   :okexcept:
 
    In [5]: @pynbody.snapshot.tipsy.TipsySnap.derived_array
       ...: def half_mass(sim):
