@@ -311,10 +311,10 @@ def test_swift_take_region_multiple_files_and_types(test_region, multifile_with_
     assert len(f_full.families())==2
 
 
-@pytest.fixture
-def multifile_with_sparse_gas(tmp_path):
-    # Create a snapshot where only one cell (and file) has gas particles
-    nr_files = 8
+@pytest.fixture(params=[1, 8])
+def snapshot_with_sparse_gas(request, tmp_path):
+    # Create a snapshot where only one cell has gas particles
+    nr_files = request.param
     input_snapshot = "./testdata/SWIFT/snap_0150.hdf5"
     output_snapshot = tmp_path / "split_snap_0150.0.hdf5"
     rng = np.random.default_rng(0)
@@ -322,12 +322,25 @@ def multifile_with_sparse_gas(tmp_path):
     gas_mask = np.zeros(512, dtype=bool)
     gas_mask[337] = True # Only keep the gas in this cell
     split_swift_snapshot(input_snapshot, nr_files, cell_file_index, output_snapshot, cell_mask={"PartType0" : gas_mask})
-    return str(output_snapshot).removesuffix(".0.hdf5")
+    if nr_files > 1:
+        return str(output_snapshot).removesuffix(".0.hdf5")
+    else:
+        return str(output_snapshot)
 
 
-def test_swift_open_snapshot_with_sparse_gas(multifile_with_sparse_gas):
-    # Check that opening a multi-file snapshot still works when some files have no gas
-    f = pynbody.load(multifile_with_sparse_gas)
+def test_swift_open_snapshot_with_sparse_gas(snapshot_with_sparse_gas):
+    f = pynbody.load(snapshot_with_sparse_gas)
     assert len(f.families())==2
-    assert len(f.dm.loadable_keys() > 1)
-    assert len(f.gas.loadable_keys() > 1)
+    assert len(f.dm.loadable_keys()) > 1
+    assert len(f.gas.loadable_keys()) > 1
+
+
+@pytest.mark.parametrize('test_region', [
+    pynbody.filt.Sphere(10., (97.795, 44.452, 26.671)), # contains gas
+    pynbody.filt.Sphere(10., (30.000, 44.452, 26.671)), # contains no gas
+])
+def test_swift_open_region_with_sparse_gas(snapshot_with_sparse_gas, test_region):
+    f = pynbody.load(snapshot_with_sparse_gas, take_region=test_region)
+    assert len(f.families())==2
+    assert len(f.dm.loadable_keys()) > 1
+    assert len(f.gas.loadable_keys()) > 1

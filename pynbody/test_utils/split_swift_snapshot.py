@@ -69,16 +69,7 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
 
             # Count particles of this type in this file
             nr_particles = sum(cell_counts[ptype][cell_file_index==file_nr])
-            if nr_particles == 0:
-                continue
             total_nr_particles = sum(cell_counts[ptype])
-
-            # Create the PartType group
-            group = output_snap.create_group(ptype)
-            for attr_name, attr_val in input_snap[ptype].attrs.items():
-                group.attrs[attr_name] = attr_val
-            group.attrs.modify("NumberOfParticles", nr_particles)
-            group.attrs.modify("TotalNumberOfParticles", total_nr_particles)
 
             # Update header attributes for this type
             index = int(ptype[-1])
@@ -90,6 +81,17 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
             # Update cell metadata
             output_snap["Cells/OffsetsInFile"][ptype][...] = cell_output_offsets[ptype]
             output_snap["Cells/Files"][ptype][...] = cell_file_index
+
+            # If there are no particles of this type in this file, don't create the PartType group or datasets
+            if nr_particles == 0:
+                continue
+
+            # Create the PartType group
+            group = output_snap.create_group(ptype)
+            for attr_name, attr_val in input_snap[ptype].attrs.items():
+                group.attrs[attr_name] = attr_val
+            group.attrs.modify("NumberOfParticles", nr_particles)
+            group.attrs.modify("TotalNumberOfParticles", total_nr_particles)
 
             # Copy dataset contents and attributes
             for name in input_snap[ptype]:
