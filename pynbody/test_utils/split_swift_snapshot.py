@@ -81,6 +81,7 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
             # Update cell metadata
             output_snap["Cells/OffsetsInFile"][ptype][...] = cell_output_offsets[ptype]
             output_snap["Cells/Files"][ptype][...] = cell_file_index
+            output_snap["Cells/Counts"][ptype][...] = cell_counts[ptype]
 
             # If there are no particles of this type in this file, don't create the PartType group or datasets
             if nr_particles == 0:
