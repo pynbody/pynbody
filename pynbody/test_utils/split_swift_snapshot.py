@@ -12,7 +12,7 @@ def _update_array_attribute(obj, attr_name, index, value):
 
 
 def split_swift_snapshot(template_file, nr_files, cell_file_index,
-                         output_name):
+                         output_name, cell_mask=None):
     """
     Given a single file SWIFT snapshot at path template_file, write a new,
     multi-file snapshot by assigning cells to files using cell_file_index.
@@ -35,6 +35,11 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
         # Here we assume that the cells are sorted by offset in the input snapshot
         assert np.all(cell_input_offsets[ptype][1:] >= cell_input_offsets[ptype][:-1])
 
+    # If a cell mask is specified, discard cells which are not selected
+    if cell_mask is not None:
+        for ptype in cell_mask:
+            cell_counts[ptype][cell_mask[ptype]==False] = 0
+
     # Check total number of cells
     nr_cells = len(cell_file_index)
     assert nr_cells == input_snap["Cells/Centres"].shape[0]
@@ -48,7 +53,6 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
             file_nr = cell_file_index[cell_nr]
             cell_output_offsets[ptype][cell_nr] = particles_in_file[file_nr]
             particles_in_file[file_nr] += cell_counts[ptype][cell_nr]
-        assert sum(particles_in_file) == input_snap[ptype].attrs["NumberOfParticles"][0]
 
     # Loop over output files to create
     for file_nr in range(nr_files):
