@@ -4,6 +4,13 @@ import h5py
 import numpy as np
 
 
+def _update_array_attribute(obj, attr_name, index, value):
+    """Update an element in a HDF5 object array attribute"""
+    data = obj.attrs[attr_name]
+    data[index] = value
+    obj.attrs.modify(attr_name, data)
+
+
 def split_swift_snapshot(template_file, nr_files, cell_file_index,
                          output_name):
     """
@@ -11,6 +18,12 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
     multi-file snapshot by assigning cells to files using cell_file_index.
     """
     input_snap = h5py.File(template_file, "r")
+
+    # Remove any .X.hdf5 suffix from the output name
+    output_name = str(output_name)
+    m = re.match(r"^(.*)\.[0-9]+\.hdf5", output_name)
+    if m is not None:
+        output_name = m.group(1)
 
     # Get list of particle types and cell metadata
     ptypes = list(input_snap["Cells/Counts"])
@@ -35,7 +48,7 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
             file_nr = cell_file_index[cell_nr]
             cell_output_offsets[ptype][cell_nr] = particles_in_file[file_nr]
             particles_in_file[file_nr] += cell_counts[ptype][cell_nr]
-        assert particles_in_file[file_nr] == input_snap[ptype].attrs["NumberOfParticles"][0]
+        assert sum(particles_in_file) == input_snap[ptype].attrs["NumberOfParticles"][0]
 
     # Loop over output files to create
     for file_nr in range(nr_files):
@@ -45,7 +58,7 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
         for name, h5obj in input_snap.items():
             if not name.startswith("PartType"):
                 input_snap.copy(name, output_snap)
-        output_snap["Header"].attrs["NumFilesPerSnapshot"][0] = nr_files
+        output_snap["Header"].attrs.modify("NumFilesPerSnapshot", nr_files)
 
         # Loop over particle types
         for ptype in ptypes:
@@ -60,15 +73,15 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
             group = output_snap.create_group(ptype)
             for attr_name, attr_val in input_snap[ptype].attrs.items():
                 group.attrs[attr_name] = attr_val
-            group.attrs["NumberOfParticles"] = nr_particles
-            group.attrs["TotalNumberOfParticles"] = total_nr_particles
+            group.attrs.modify("NumberOfParticles", nr_particles)
+            group.attrs.modify("TotalNumberOfParticles", total_nr_particles)
 
             # Update header attributes for this type
             index = int(ptype[-1])
             assert f"PartType{index}" == ptype
-            output_snap["Header"].attrs["NumPart_ThisFile"][index] = nr_particles
-            output_snap["Header"].attrs["NumPart_Total"][index] = total_nr_particles
-            output_snap["Header"].attrs["NumPart_Total_HighWord"][index] = 0
+            _update_array_attribute(output_snap["Header"], "NumPart_ThisFile", index, nr_particles)
+            _update_array_attribute(output_snap["Header"], "NumPart_Total", index, total_nr_particles)
+            _update_array_attribute(output_snap["Header"], "NumPart_Total_HighWord", index, 0)
 
             # Update cell metadata
             output_snap["Cells/OffsetsInFile"][ptype][...] = cell_output_offsets[ptype]
@@ -80,7 +93,7 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
                 assert isinstance(input_dset, h5py.Dataset)
                 shape = list(input_dset.shape)
                 shape[0] = nr_particles
-                output_dset = output_snap[ptype].create_dataset_like(name, input_dset, shape=shape)
+                output_dset = output_snap[ptype].create_dataset_like(name, input_dset, shape=shape, chunks=None)
                 for attr_name, attr_val in input_dset.attrs.items():
                     output_dset.attrs[attr_name] = attr_val
                 for input_offset, output_offset, count in zip(cell_input_offsets[ptype][cell_file_index==file_nr],
@@ -103,6 +116,7 @@ def hash_swift_cell_coordinates(filename):
         nr_cells = f0["Cells/Centres"].shape[0]
 
     # Get the full list of filenames
+    filename = str(filename)
     if nr_files == 1:
         filenames = [filename,]
     else:
