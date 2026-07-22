@@ -42,7 +42,10 @@ tests = [
 docs = [
     "ipython>=3",
     "Sphinx>=7,<8.2.0",
-    "sphinx-book-theme",
+    # pinned: sphinx-book-theme>=1.3.0 pulls in pydata-sphinx-theme>=0.17, whose
+    # sidebar rework (executablebooks/sphinx-book-theme upstream) breaks opening
+    # the primary sidebar on mobile/narrow viewports. Unpin once that's fixed upstream.
+    "sphinx-book-theme==1.2.0",
     "sphinx-copybutton",
     "numpydoc", 
     "nbsphinx",
