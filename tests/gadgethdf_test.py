@@ -222,6 +222,21 @@ def test_partial_load_mass_in_header():
     assert np.allclose(f_slice['mass'],f[::2]['mass'])
 
 
+def test_partial_load_empty_family_issue_1005():
+    # Regression test for #1005: a `take` selection that excludes an entire family
+    # (here, dm) must give the same, order-independent result regardless of whether
+    # some other family's array was already read first.
+    f = pynbody.load("testdata/gadget3/snap_028_z000p000.0.hdf5", take=(0, 1, 2, 3))
+    assert f.families() == [pynbody.family.gas]
+    dm_pos = f.dm['pos']
+    assert dm_pos.shape == (0, 3)
+
+    f2 = pynbody.load("testdata/gadget3/snap_028_z000p000.0.hdf5", take=(0, 1, 2, 3))
+    gas_pos = f2.gas['pos']
+    dm_pos2 = f2.dm['pos']
+    assert gas_pos.shape == (4, 3)
+    assert dm_pos2.shape == (0, 3)
+
 def test_load_copy_issue_955(snap):
     # condition: A single-file snapshot with a PartType length greater than max_buf; 
     # select a slice across chunk boundary
