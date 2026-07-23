@@ -368,3 +368,51 @@ def test_swift_open_region_with_sparse_gas(snapshot_with_sparse_gas, test_params
     if expect_gas:
         f_full = pynbody.load("./testdata/SWIFT/snap_0150.hdf5", take_swift_cells=(337,))
         assert np.all(gas_pos == f_full.gas["pos"])
+
+
+@pytest.fixture(params=[
+    (1, True),  # single file with empty gas datasets
+    (8, True),  # multi file with empty gas datasets
+])
+def snapshot_with_no_gas(request, tmp_path):
+    # Create a snapshot where the gas particle datasets exist
+    # but there are zero gas particles. This is to simulate how
+    # recent Swift versions always write out the same set of
+    # datasets in all snapshots, even if stars or black holes
+    # have not formed yet.
+    nr_files, write_zero_size_datasets = request.param
+    input_snapshot = "./testdata/SWIFT/snap_0150.hdf5"
+    output_snapshot = tmp_path / "split_snap_0150.0.hdf5"
+    rng = np.random.default_rng(0)
+    cell_file_index = rng.integers(nr_files, size=512)
+    gas_mask = np.zeros(512, dtype=bool) # discard all gas
+    split_swift_snapshot(input_snapshot, nr_files, cell_file_index, output_snapshot,
+                         write_zero_size_datasets=write_zero_size_datasets,
+                         cell_mask={"PartType0" : gas_mask})
+    if nr_files > 1:
+        return str(output_snapshot).removesuffix(".0.hdf5")
+    else:
+        return str(output_snapshot)
+
+
+def test_swift_open_snapshot_with_no_gas(snapshot_with_no_gas):
+    f = pynbody.load(snapshot_with_no_gas)
+
+    # The families() method only reports families with >0 particles
+    assert len(f.families()) == 1
+    assert len(f.dm.loadable_keys()) > 1
+
+    # Check we can read the DM particles correctly.
+    # Ordering of the cells will differ in the multi file case.
+    f_full = pynbody.load("./testdata/SWIFT/snap_0150.hdf5")
+    def sorted_dm_coords(snap):
+        order = np.argsort(snap.dm["iord"])
+        return snap.dm["pos"][order,:]
+    assert np.all(sorted_dm_coords(f) == sorted_dm_coords(f_full))
+
+    # # But we should still have gas and dm families
+    # assert len(f.gas.loadable_keys()) > 1
+
+    # # We should be able to read the gas coordinates, and get an empty array
+    # gas_pos = f.gas["pos"]
+    # assert gas_pos.shape == (0,3)
