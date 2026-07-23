@@ -96,17 +96,23 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
 
             # Copy dataset contents and attributes
             for name in input_snap[ptype]:
+                # Open and read the input dataset
                 input_dset = input_snap[ptype][name]
                 assert isinstance(input_dset, h5py.Dataset)
                 shape = list(input_dset.shape)
                 shape[0] = nr_particles
-                output_dset = output_snap[ptype].create_dataset_like(name, input_dset, shape=shape, chunks=None)
-                for attr_name, attr_val in input_dset.attrs.items():
-                    output_dset.attrs[attr_name] = attr_val
+                input_data = input_dset[...]
+                # Create and populate the output array
+                output_data = np.empty_like(input_data, shape=shape)
                 for input_offset, output_offset, count in zip(cell_input_offsets[ptype][cell_file_index==file_nr],
                                                               cell_output_offsets[ptype][cell_file_index==file_nr],
                                                               cell_counts[ptype][cell_file_index==file_nr]):
-                    output_dset[output_offset:output_offset+count,...] = input_dset[input_offset:input_offset+count,...]
+                    output_data[output_offset:output_offset+count,...] = input_data[input_offset:input_offset+count,...]
+                # Write the output dataset
+                output_dset = output_snap[ptype].create_dataset_like(name, input_dset, shape=shape, chunks=None)
+                output_dset[...] = output_data
+                for attr_name, attr_val in input_dset.attrs.items():
+                    output_dset.attrs[attr_name] = attr_val
 
         output_snap.close()
 
