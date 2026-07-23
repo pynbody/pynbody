@@ -143,6 +143,17 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
     def _all_group_names(self):
         return self[0]['Cells/Counts'].keys()
 
+    def iter_particle_groups_with_name(self, hdf_family_name):
+        """
+        Swift snapshots can contain zero length datasets, which we need to skip.
+        TODO: should this be handled in GadgetHdfSnap somewhere?
+        """
+        for hdf in self:
+            if hdf_family_name in hdf:
+                if self._size_from_hdf5_key in hdf[hdf_family_name]:
+                    n = hdf[hdf_family_name][self._size_from_hdf5_key].shape[0]
+                    if n > 0:
+                        yield hdf[hdf_family_name]
 
 class ExtractScalarWrapper:
     def __init__(self, underlying):
