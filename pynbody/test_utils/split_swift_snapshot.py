@@ -139,10 +139,22 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
     input_snap.close()
 
 
-def hash_swift_cell_coordinates(filename):
-    """Hash the coordinates of particles in each cell in sequence. This hash
-    should not be affected by splitting a snapshot into multiple files,
-    assuming the input did not use lossy compression.
+def hash_swift_cell_coordinates(filename, cell_mask=None):
+    """
+    Hash the coordinates of particles in each cell in sequence.
+
+    This hash should not be affected by splitting a snapshot into multiple
+    files, assuming the input did not use lossy compression.
+
+    Parameters
+    ----------
+
+    filename: pathlib.Path or str
+        Name of a file from the snapshot
+    cell_mask: dict
+        Dict where the keys are particle type names (PartTypeX) and the
+        values are boolean masks indicating which cells to hash for that
+        particle type.
     """
     with h5py.File(filename, "r") as f0:
         nr_files = f0["Header"].attrs["NumFilesPerSnapshot"][0]
@@ -160,7 +172,7 @@ def hash_swift_cell_coordinates(filename):
     # Open all of the files
     snap_file = [h5py.File(filename, "r") for filename in filenames]
 
-    # For each cell, read the particle coordinates and add them to the hash
+    # For each selected cell, read the particle coordinates and add them to the hash
     import hashlib
     m = hashlib.sha256()
     ptypes = sorted(list(snap_file[0]["Cells/Counts"]))
@@ -168,13 +180,21 @@ def hash_swift_cell_coordinates(filename):
         cell_file_index = snap_file[0]["Cells/Files"][ptype][...]
         cell_offsets = snap_file[0]["Cells/OffsetsInFile"][ptype][...]
         cell_counts = snap_file[0]["Cells/Counts"][ptype][...]
-        all_coords = [snap_file[file_nr][ptype]["Coordinates"][...] for file_nr in range(nr_files)]
+        if cell_mask is not None:
+            cell_counts[cell_mask[ptype]==False] = 0 # skip masked out cells
+        all_coords = []
+        for file_nr in range(nr_files):
+            if ptype in snap_file[file_nr]:
+                all_coords.append(snap_file[file_nr][ptype]["Coordinates"][...])
+            else:
+                all_coords.append(None)
         for cell_nr in range(nr_cells):
             file_nr = cell_file_index[cell_nr]
             offset = cell_offsets[cell_nr]
             count = cell_counts[cell_nr]
-            pos = all_coords[file_nr][offset:offset+count,...]
-            m.update(pos)
+            if count > 0:
+                pos = all_coords[file_nr][offset:offset+count,...]
+                m.update(pos)
 
     for f in snap_file:
         f.close()

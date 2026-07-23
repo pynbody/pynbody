@@ -62,3 +62,8 @@ def test_split_snapshot_with_mask(tmp_path, write_zero_size_datasets):
                 assert "PartType0/Coordinates" not in f
             else:
                 assert "PartType0/Coordinates" in f
+
+    # Check the hashes of coordinates in the selected cells.
+    # The input snapshot contains all cells so we need to supply a mask.
+    assert (hash_swift_cell_coordinates(input_snapshot, cell_mask=cell_mask) ==
+            hash_swift_cell_coordinates(output_snapshot))
