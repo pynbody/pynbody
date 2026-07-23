@@ -12,10 +12,30 @@ def _update_array_attribute(obj, attr_name, index, value):
 
 
 def split_swift_snapshot(template_file, nr_files, cell_file_index,
-                         output_name, cell_mask=None):
+                         output_name, cell_mask=None,
+                         write_zero_size_datasets=False):
     """
     Given a single file SWIFT snapshot at path template_file, write a new,
     multi-file snapshot by assigning cells to files using cell_file_index.
+
+    Parameters
+    ----------
+    template_file : pathlib.Path or str
+        Name of a single file Swift snapshot to use as a template
+    nr_files: int
+        The number of files to split the template snapshot into
+    cell_file_index: numpy.ndarray
+        Array with a file index to assign each cell to
+    output_name: pathlib.Path or str
+        Name of the output files. Any .X.hdf5 suffix will be replaced.
+    cell_mask: dict
+        Dict where the keys are particle type names (PartTypeX) and the
+        values are boolean masks indicating which cells to keep for that
+        particle type.
+    write_zero_size_datasets: bool
+        If False, datasets which would have zero particles are omitted
+        (as in older Swift versions). If True, all datasets are always
+        written regardless of size (current Swift behaviour).
     """
     input_snap = h5py.File(template_file, "r")
 
@@ -84,7 +104,7 @@ def split_swift_snapshot(template_file, nr_files, cell_file_index,
             output_snap["Cells/Counts"][ptype][...] = cell_counts[ptype]
 
             # If there are no particles of this type in this file, don't create the PartType group or datasets
-            if nr_particles == 0:
+            if nr_particles == 0 and not write_zero_size_datasets:
                 continue
 
             # Create the PartType group
