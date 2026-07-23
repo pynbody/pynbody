@@ -329,18 +329,36 @@ def snapshot_with_sparse_gas(request, tmp_path):
 
 
 def test_swift_open_snapshot_with_sparse_gas(snapshot_with_sparse_gas):
+    # Make sure we can open a snapshot where some files have datasets
+    # which would contain zero particles and therefore might not have
+    # been written at all.
     f = pynbody.load(snapshot_with_sparse_gas)
     assert len(f.families())==2
     assert len(f.dm.loadable_keys()) > 1
     assert len(f.gas.loadable_keys()) > 1
 
 
-@pytest.mark.parametrize('test_region', [
-    pynbody.filt.Sphere(10., (97.795, 44.452, 26.671)), # contains gas
-    pynbody.filt.Sphere(10., (30.000, 44.452, 26.671)), # contains no gas
+@pytest.mark.parametrize('test_params', [
+    (pynbody.filt.Sphere(10., (97.795, 44.452, 26.671)), True),  # contains gas
+    (pynbody.filt.Sphere(10., (30.000, 44.452, 26.671)), False), # contains no gas
 ])
-def test_swift_open_region_with_sparse_gas(snapshot_with_sparse_gas, test_region):
+def test_swift_open_region_with_sparse_gas(snapshot_with_sparse_gas, test_params):
+    test_region, expect_gas = test_params
     f = pynbody.load(snapshot_with_sparse_gas, take_region=test_region)
-    assert len(f.families())==2
+
+    # The families() method only reports families with >0 particles
+    assert len(f.families()) == (2 if expect_gas else 1)
+
+    # But we should still always have gas and dm families
     assert len(f.dm.loadable_keys()) > 1
     assert len(f.gas.loadable_keys()) > 1
+
+    # We should be able to read the gas coordinates, and get an empty array
+    # if the selection does not cover the region with gas.
+    gas_pos = f.gas["pos"]
+    assert gas_pos.shape == (274,3) if expect_gas else (0,3) # cell 337 has 274 gas particles
+
+    # Check that the gas coordinates we got are correct
+    if expect_gas:
+        f_full = pynbody.load("./testdata/SWIFT/snap_0150.hdf5", take_swift_cells=(337,))
+        assert np.all(gas_pos == f_full.gas["pos"])
