@@ -400,7 +400,14 @@ def test_swift_open_snapshot_with_no_gas(snapshot_with_no_gas):
 
     # The families() method only reports families with >0 particles
     assert len(f.families()) == 1
+
+    # But we should have gas and dm families
     assert len(f.dm.loadable_keys()) > 1
+    assert len(f.gas.loadable_keys()) > 1
+
+    # We should be able to read the gas coordinates, and get an empty array
+    gas_pos = f.gas["pos"]
+    assert gas_pos.shape == (0,3)
 
     # Check we can read the DM particles correctly.
     # Ordering of the cells will differ in the multi file case.
@@ -409,10 +416,3 @@ def test_swift_open_snapshot_with_no_gas(snapshot_with_no_gas):
         order = np.argsort(snap.dm["iord"])
         return snap.dm["pos"][order,:]
     assert np.all(sorted_dm_coords(f) == sorted_dm_coords(f_full))
-
-    # # But we should still have gas and dm families
-    # assert len(f.gas.loadable_keys()) > 1
-
-    # # We should be able to read the gas coordinates, and get an empty array
-    # gas_pos = f.gas["pos"]
-    # assert gas_pos.shape == (0,3)
