@@ -431,10 +431,30 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
     if kwargs.get('ret_im', None) is not None:
         warnings.warn("The 'ret_im' keyword is deprecated. Use 'plot_type' instead.", DeprecationWarning)
         plot_type = 'image'
-
+        del kwargs['ret_im']
 
     if 'norm' in kwargs:
         del(kwargs['norm'])
+
+    xlabel = kwargs.pop('xlabel', None)
+    if xlabel is None:
+        try:
+            if xlabel_display_log:
+                xlabel = r'' + '$log_{10}(' + xs.units.latex() + ')$'
+            else:
+                xlabel = r'' + '$x/' + xs.units.latex() + '$'
+        except AttributeError:
+            xlabel = None
+
+    ylabel = kwargs.pop('ylabel', None)
+    if ylabel is None:
+        try:
+            if ylabel_display_log:
+                ylabel = '$log_{10}(' + ys.units.latex() + ')$'
+            else:
+                ylabel = r'' + '$y/' + ys.units.latex() + '$'
+        except AttributeError:
+            ylabel = None
 
     if colorbar_label is None:
         if hasattr(arr,'units') and arr.units != NoUnit() and arr.units != 1:
@@ -474,33 +494,11 @@ def make_contour_plot(arr, xs, ys, x_range=None, y_range=None, nlevels=20,
     else:
         raise ValueError("Unknown plot_type: %s" % plot_type)
 
-    if 'xlabel' in kwargs:
-        xlabel = kwargs['xlabel']
-    else:
-        try:
-            if xlabel_display_log:
-                xlabel = r'' + '$log_{10}(' + xs.units.latex() + ')$'
-            else:
-                xlabel = r'' + '$x/' + xs.units.latex() + '$'
-        except AttributeError:
-            xlabel = None
-
     if xlabel:
         try:
             plt.xlabel(xlabel)
         except Exception:
             pass
-
-    if 'ylabel' in kwargs:
-        ylabel = kwargs['ylabel']
-    else:
-        try:
-            if ylabel_display_log:
-                ylabel = '$log_{10}(' + ys.units.latex() + ')$'
-            else:
-                ylabel = r'' + '$y/' + ys.units.latex() + '$'
-        except AttributeError:
-            ylabel = None
 
     if ylabel:
         try:

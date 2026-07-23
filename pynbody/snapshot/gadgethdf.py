@@ -592,7 +592,11 @@ class GadgetHDFSnap(SimSnap):
     def __init_loadable_keys(self):
 
         self._loadable_family_keys = {}
-        all_fams = self.families()
+        # Deliberately not self.families(), which only returns families with a non-empty slice
+        # *after* any take/region selection has been applied. A family can have a legitimate
+        # (possibly zero-length) sub-view even when none of its particles were selected, and it
+        # must still get an entry here or accessing its arrays later raises a spurious KeyError.
+        all_fams = [fam for fam, groups in self._family_to_group_map.items() if len(groups) > 0]
         if len(all_fams)==0:
             return
 

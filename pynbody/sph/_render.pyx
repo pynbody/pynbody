@@ -5,8 +5,11 @@ cimport libc.math as cmath
 cimport numpy as np
 
 np.import_array()
-from libc.math cimport atan, pow, sqrt
+from libc.math cimport acos, atan, cos, pow, sqrt
 from libc.stdlib cimport free, malloc
+
+
+cdef double PI = 3.14159265358979323846
 
 # The following slightly odd repetitiveness is to force Cython to generate
 # code for different permutations of the possible integer inputs.
@@ -53,17 +56,42 @@ def render_spherical_image_core(np.ndarray[fused_input_type_1, ndim=1] rho, # ar
                                 np.ndarray[fused_input_type_4, ndim=1] z,
                                 np.ndarray[fused_input_type_5, ndim=1] h, # particle smoothing length
                                 unsigned int nside,
-                                kernel) :
+                                kernel,
+                                fixed_input_type shell_radius=0.0) :
+    """Render an SPH quantity onto a healpix sphere around the origin.
+
+    Two modes are supported, selected by the dimension of the ``kernel``:
+
+    * A projected (column) image, obtained by passing a 2D (projected) kernel
+      (``kernel.h_power == 2``). Every particle whose smoothing sphere crosses
+      the line of sight contributes its full column, giving a quantity per unit
+      solid angle. ``shell_radius`` is ignored in this mode.
+
+    * A thin-shell image, obtained by passing a 3D kernel (``kernel.h_power == 3``)
+      together with a positive ``shell_radius``. The 3D kernel is evaluated on the
+      sphere of radius ``shell_radius``, i.e. the field is sampled where each
+      particle's kernel intersects that shell. This is the spherical analogue of
+      the thin-slice mode of :func:`render_image`.
+    """
 
     cdef np.ndarray[image_output_type,ndim=1] im
 
     if nside & (nside - 1) != 0:
         raise ValueError('nside value must be a power of 2')
 
-    if kernel.h_power != 2:
-        raise ValueError('Only kernels of dimension 2 (i.e. projected kernels) are currently supported for healpix maps')
+    cdef int kernel_dim = kernel.h_power
+    if kernel_dim != 2 and kernel_dim != 3:
+        raise ValueError('Only kernels of dimension 2 (projected) or 3 (thin shell) '
+                         'are supported for healpix maps')
+
+    # projected -> column image; otherwise a thin shell at shell_radius
+    cdef int projected = (kernel_dim == 2)
+
+    if not projected and shell_radius <= 0.0:
+        raise ValueError('A positive shell_radius is required to render a 3D (thin shell) healpix map')
 
     cdef fixed_input_type max_d_over_h = kernel.max_d
+    cdef fixed_input_type max_d_over_h_2 = max_d_over_h * max_d_over_h
 
     cdef np.ndarray[image_output_type, ndim=1] samples = kernel.get_samples(dtype=np_image_output_type)
     cdef int num_samples = len(samples)
@@ -82,10 +110,21 @@ def render_spherical_image_core(np.ndarray[fused_input_type_1, ndim=1] rho, # ar
     cdef size_t num_pixels
     cdef double[3] pos_i
     cdef double angular_size
+    cdef double distance, distance2
     cdef double smooth_2
     cdef double kernel_max_2
     cdef double physical_offset
+    cdef double cos_alpha              # thin shell: cosine of the intersection half-angle
+    cdef double shell_2 = shell_radius * shell_radius
+    cdef double d2                     # thin shell: squared 3D distance particle->shell point
+    cdef double two_rs_d               # thin shell: 2 * shell_radius * distance
     cdef fused_input_type_3 qty_i
+
+    # per-particle value of h to the power of the kernel dimension, which get_kernel
+    # divides the (h=1) samples by. For the projected image this additionally carries
+    # a distance^2 Jacobian to express the column per unit solid angle rather than per
+    # unit transverse area.
+    cdef image_output_type h_to_kdim
 
     cdef image_output_type kern
 
@@ -101,16 +140,40 @@ def render_spherical_image_core(np.ndarray[fused_input_type_1, ndim=1] rho, # ar
             pos_i[2] = z[i]
             distance2 = pos_i[0]*pos_i[0] + pos_i[1]*pos_i[1] + pos_i[2]*pos_i[2]
             distance = sqrt(distance2)
-            angular_size = max_d_over_h * h[i] / distance
             smooth_2 = h[i]*h[i]
-            kernel_max_2 = smooth_2*max_d_over_h*max_d_over_h
+            kernel_max_2 = smooth_2*max_d_over_h_2
+
+            if projected:
+                angular_size = max_d_over_h * h[i] / distance
+                h_to_kdim = smooth_2 / distance2
+            else:
+                # The kernel support (sphere of radius sqrt(kernel_max_2) about the
+                # particle) meets the shell in a circle. Its angular radius about the
+                # origin follows from the law of cosines for the triangle
+                # origin-particle-shellpoint:
+                #     cos(alpha) = (shell^2 + distance^2 - kernel_max_2) / (2 shell distance)
+                two_rs_d = 2.0 * shell_radius * distance
+                cos_alpha = (shell_2 + distance2 - kernel_max_2) / two_rs_d
+                if cos_alpha >= 1.0:
+                    # closest approach still outside the kernel: no intersection
+                    continue
+                elif cos_alpha <= -1.0:
+                    angular_size = PI
+                else:
+                    angular_size = acos(cos_alpha)
+                h_to_kdim = smooth_2 * h[i]
 
             num_pixels = query_disc_c(nside, pos_i, angular_size, index_buffer, angle_buffer)
 
             for j in range(num_pixels):
-                physical_offset = distance * angle_buffer[j]
-                kern = get_kernel(physical_offset*physical_offset, kernel_max_2,
-                                  smooth_2/distance2, num_samples, samples_c)
+                if projected:
+                    physical_offset = distance * angle_buffer[j]
+                    d2 = physical_offset*physical_offset
+                else:
+                    # 3D separation between the particle and the shell point in this
+                    # direction, again by the law of cosines
+                    d2 = shell_2 + distance2 - two_rs_d * cos(angle_buffer[j])
+                kern = get_kernel(d2, kernel_max_2, h_to_kdim, num_samples, samples_c)
                 im[index_buffer[j]] += qty_i * kern * mass[i] / rho[i]
 
     return im

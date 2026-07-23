@@ -427,7 +427,7 @@ def _units_imply_projection(sim, qty, units):
         return True
 
 def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, units=None,
-                    weight=False, log=True, vmin=None, vmax=None, cmap=None, xsize=1600):
+                    weight=False, distance=None, log=True, vmin=None, vmax=None, cmap=None, xsize=1600):
     """Make an SPH image on the sky around the origin.
 
     .. note::
@@ -436,6 +436,11 @@ def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, unit
       the healpix image onto a Mollweide projection.
 
       To install healpy, use ``pip install healpy``.
+
+    .. versionchanged :: 2.5.0
+
+      The parameter *distance* has been added. If provided, the quantity is sampled on a thin spherical shell at
+      this radius (in position units).
 
     Parameters
     ----------
@@ -466,6 +471,11 @@ def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, unit
         If True, the requested quantity is volume-averaged down the line of sight. If a string, the requested quantity
         is averaged down the line of sight weighted by the named array (e.g. use 'rho' for density-weighted quantity).
 
+    distance : float, str, pynbody.units.Unit, optional
+        If provided, sample the quantity on a thin spherical shell at this radius (in position units) using the full
+        3D kernel, instead of the default line-of-sight projection. The output then carries volumetric units (e.g. a
+        density) rather than a per-solid-angle column.
+
     log : bool, optional
         If True, the image is log-scaled. (Default is True)
 
@@ -488,7 +498,7 @@ def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, unit
     except ImportError:
         raise ImportError("healpy is required for spherical_image function. Install with: pip install healpy")
     image = sph.render_spherical_image(sim, quantity=qty, nside=nside, kernel=kernel, out_units=units,
-                                       weight=weight, threaded=threaded)
+                                       weight=weight, distance=distance, threaded=threaded)
 
     unit = image.units
     if unit is not None:
