@@ -311,17 +311,23 @@ def test_swift_take_region_multiple_files_and_types(test_region, multifile_with_
     assert len(f_full.families())==2
 
 
-@pytest.fixture(params=[1, 8])
+@pytest.fixture(params=[
+    (1, True),  # all datasets have non-zero size when nr_files==1
+    (8, True),  # multi file with all datasets present
+    (8, False), # multi file with zero sized datasets omitted
+])
 def snapshot_with_sparse_gas(request, tmp_path):
     # Create a snapshot where only one cell has gas particles
-    nr_files = request.param
+    nr_files, write_zero_size_datasets = request.param
     input_snapshot = "./testdata/SWIFT/snap_0150.hdf5"
     output_snapshot = tmp_path / "split_snap_0150.0.hdf5"
     rng = np.random.default_rng(0)
     cell_file_index = rng.integers(nr_files, size=512)
     gas_mask = np.zeros(512, dtype=bool)
     gas_mask[337] = True # Only keep the gas in this cell
-    split_swift_snapshot(input_snapshot, nr_files, cell_file_index, output_snapshot, cell_mask={"PartType0" : gas_mask})
+    split_swift_snapshot(input_snapshot, nr_files, cell_file_index, output_snapshot,
+                         write_zero_size_datasets=write_zero_size_datasets,
+                         cell_mask={"PartType0" : gas_mask})
     if nr_files > 1:
         return str(output_snapshot).removesuffix(".0.hdf5")
     else:
