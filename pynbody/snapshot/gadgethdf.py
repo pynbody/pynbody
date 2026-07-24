@@ -653,10 +653,13 @@ class GadgetHDFSnap(SimSnap):
         type_map = {}
         for fam, g_types in _default_type_map.items():
             my_types = []
+            # Loop over particle type groups for this family (PartType1, PartType2, ...)
             for x in g_types:
-                # Get all keys from all hdf files
+                # Find instances of this group in all files. Discard any that
+                # don't have the dataset we'd use to get the number of
+                # particles (e.g. Arepo tracers don't have ParticleIDs)
                 for hdf in self._hdf_files:
-                    if x in list(hdf.keys()):
+                    if x in hdf and self._hdf_files._size_from_hdf5_key in hdf[x]:
                         my_types.append(x)
                         break
             if len(my_types):
