@@ -465,8 +465,6 @@ class HDFArrayLoader:
         # Find the first dataset for this family to determine file element size
         first_dataset = None
         for hdf_group_name in self._family_to_group_map[loading_fam]:
-            if self._file_ptype_slice[hdf_group_name].stop <= self._file_ptype_slice[hdf_group_name].start:
-                continue
             for hdf_group in self._hdf_files.iter_particle_groups_with_name(hdf_group_name):
                 first_dataset = self._get_dataset_from_translated_names(sim, hdf_group, translated_names)
                 if first_dataset is not None:
@@ -532,14 +530,20 @@ class GadgetHDFSnap(SimSnap):
         self._init_unit_information()
         self.__init_family_map()
 
-        take = kwargs.pop("take", None)
+        take = self._get_take_parameter(**kwargs)
         self.partial_load = take is not None
         self.__init_file_map(take)
-        self._remove_empty_particle_groups()
         self.__init_loadable_keys()
         self.__infer_mass_dtype()
         self._init_properties()
         self._decorate()
+
+    def _get_take_parameter(self, **kwargs):
+        """This can be overridden by sub-classes to allow alternate ways to
+        specify subsets of particles to read. For standard GadgetHDF snapshots
+        we just allow specifying an array of particle indexes with take=...
+        """
+        return kwargs.pop("take", None)
 
     def _have_softening_for_particle_type(self, particle_type):
         attrs = self._get_hdf_parameter_attrs()
@@ -628,15 +632,6 @@ class GadgetHDFSnap(SimSnap):
         self._family_slice = self._array_loader._family_slice_to_load
         self._num_particles = self._array_loader._num_particles_to_load
 
-    def _remove_empty_particle_groups(self):
-        """Remove particle groups that contain no particles from the internal family mapping.
-
-        This is important for some formats like Arepo where tracer particles might be defined
-        but not present, which can cause issues with `HaloCatalogue`.
-        """
-        for family_name in self._family_to_group_map:
-            self._family_to_group_map[family_name] = [group_name for group_name in self._family_to_group_map[family_name]
-                                           if self._gadget_ptype_slice[group_name].stop > self._gadget_ptype_slice[group_name].start]
 
     def __infer_mass_dtype(self):
         """Some files have a mixture of header-based masses and, for other partile types, explicit mass
@@ -658,10 +653,13 @@ class GadgetHDFSnap(SimSnap):
         type_map = {}
         for fam, g_types in _default_type_map.items():
             my_types = []
+            # Loop over particle type groups for this family (PartType1, PartType2, ...)
             for x in g_types:
-                # Get all keys from all hdf files
+                # Find instances of this group in all files. Discard any that
+                # don't have the dataset we'd use to get the number of
+                # particles (e.g. Arepo tracers don't have ParticleIDs)
                 for hdf in self._hdf_files:
-                    if x in list(hdf.keys()):
+                    if x in hdf and self._hdf_files._size_from_hdf5_key in hdf[x]:
                         my_types.append(x)
                         break
             if len(my_types):

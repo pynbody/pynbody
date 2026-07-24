@@ -233,7 +233,7 @@ class LoadControl:
         i = 0
         next_dip = disk_interrupt_points[i]
         for nread_disk, disk_slice, mem_slice in self.iterate(families_on_disk, families_in_memory, multiskip):
-            while next_dip and fpos + nread_disk > next_dip:
+            while (next_dip is not None) and fpos + nread_disk > next_dip:
                 # an interrupt falls in the middle of our slice
                 # work out what to read first
                 len_pre = next_dip - fpos
