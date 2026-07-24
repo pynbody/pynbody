@@ -465,8 +465,6 @@ class HDFArrayLoader:
         # Find the first dataset for this family to determine file element size
         first_dataset = None
         for hdf_group_name in self._family_to_group_map[loading_fam]:
-            if self._file_ptype_slice[hdf_group_name].stop <= self._file_ptype_slice[hdf_group_name].start:
-                continue
             for hdf_group in self._hdf_files.iter_particle_groups_with_name(hdf_group_name):
                 first_dataset = self._get_dataset_from_translated_names(sim, hdf_group, translated_names)
                 if first_dataset is not None:
@@ -535,7 +533,6 @@ class GadgetHDFSnap(SimSnap):
         take = self._get_take_parameter(**kwargs)
         self.partial_load = take is not None
         self.__init_file_map(take)
-        self._remove_empty_particle_groups()
         self.__init_loadable_keys()
         self.__infer_mass_dtype()
         self._init_properties()
@@ -635,15 +632,6 @@ class GadgetHDFSnap(SimSnap):
         self._family_slice = self._array_loader._family_slice_to_load
         self._num_particles = self._array_loader._num_particles_to_load
 
-    def _remove_empty_particle_groups(self):
-        """Remove particle groups that contain no particles from the internal family mapping.
-
-        This is important for some formats like Arepo where tracer particles might be defined
-        but not present, which can cause issues with `HaloCatalogue`.
-        """
-        for family_name in self._family_to_group_map:
-            self._family_to_group_map[family_name] = [group_name for group_name in self._family_to_group_map[family_name]
-                                           if self._gadget_ptype_slice[group_name].stop > self._gadget_ptype_slice[group_name].start]
 
     def __infer_mass_dtype(self):
         """Some files have a mixture of header-based masses and, for other partile types, explicit mass
