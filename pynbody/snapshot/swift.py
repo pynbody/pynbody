@@ -15,7 +15,7 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
             raise ValueError("Either take_swift_cells or take_region must be specified, not both")
 
         h1 = self._open_hdf5(self._filenames[0])
-        if self._get_num_files(h1) > 1 and (take_swift_cells is not None or take_region is not None):
+        if len(self._filenames) < self._get_num_files(h1) and (take_swift_cells is not None or take_region is not None):
             raise ValueError("Cannot select part of a sub-file from a multi file snapshot")
 
         self._read_cell_metadata(h1)

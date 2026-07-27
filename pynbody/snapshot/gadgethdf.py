@@ -560,8 +560,8 @@ class GadgetHDFSnap(SimSnap):
         super().__init__()
 
         self._filename = filename
-
-        self._init_hdf_filemanager(filename, remote_dir=remote_dir)
+        self._remote_dir = remote_dir
+        self._init_hdf_filemanager(filename)
 
         self._translate_array_name = namemapper.AdaptiveNameMapper(self._namemapper_config_section,
                                                                    return_all_format_names=True) # required for swift
@@ -621,8 +621,8 @@ class GadgetHDFSnap(SimSnap):
     def _get_hdf_unit_attrs(self):
         return self._hdf_files.get_unit_attrs()
 
-    def _init_hdf_filemanager(self, filename, **kwargs):
-        self._hdf_files = self._multifile_manager_class(filename, **kwargs)
+    def _init_hdf_filemanager(self, filename):
+        self._hdf_files = self._multifile_manager_class(filename, remote_dir=self._remote_dir)
 
     def __init_loadable_keys(self):
 
