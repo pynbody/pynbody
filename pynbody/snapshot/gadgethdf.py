@@ -33,6 +33,11 @@ try:
 except ImportError:
     h5py = None
 
+try:
+    import hdfstream
+except ImportError:
+    hdfstream = None
+
 _default_type_map = {}
 for x in family.family_names():
     try:
@@ -78,14 +83,15 @@ class _GadgetHdfMultiFileManager:
     _size_from_hdf5_key = "ParticleIDs"
     _subgroup_name = None
 
-    def __init__(self, filename, mode='r') :
+    def __init__(self, filename, mode='r', remote_dir=None):
         filename = str(filename)
         self._mode = mode
-        if h5py.is_hdf5(filename):
+        self._remote_dir = remote_dir
+        if self._is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1
         else:
-            h1 = h5py.File(self._make_filename_for_cpu(filename, 0), mode)
+            h1 = self._open_hdf5(self._make_filename_for_cpu(filename, 0), mode)
             self._numfiles = self._get_num_files(h1)
             if hasattr(self._numfiles, "__len__"):
                 assert len(self._numfiles) == 1
@@ -93,6 +99,24 @@ class _GadgetHdfMultiFileManager:
             self._filenames = [self._make_filename_for_cpu(filename, i) for i in range(self._numfiles)]
 
         self._open_files = {}
+
+    def max_buf(self):
+        if self._remote_dir is not None:
+            return (2 << 63) # don't chunk http requests
+        else:
+            return _max_buf
+
+    def _open_hdf5(self, filename, *args, **kwargs):
+        if self._remote_dir is None:
+            return h5py.File(filename, *args, **kwargs)
+        else:
+            return self._remote_dir[filename]
+
+    def _is_hdf5(self, filename, *args, **kwargs):
+        if self._remote_dir is None:
+            return h5py.is_hdf5(filename)
+        else:
+            return self._remote_dir.is_hdf5(filename)
 
     def _get_num_files(self, first_file):
         return first_file[self._nfiles_groupname].attrs[self._nfiles_attrname]
@@ -106,7 +130,7 @@ class _GadgetHdfMultiFileManager:
     def __iter__(self) :
         for i in range(self._numfiles) :
             if i not in self._open_files:
-                self._open_files[i] = h5py.File(self._filenames[i], self._mode)
+                self._open_files[i] = self._open_hdf5(self._filenames[i], self._mode)
                 if self._subgroup_name is not None:
                     self._open_files[i] = self._open_files[i][self._subgroup_name]
 
@@ -174,7 +198,7 @@ class _HDFFileIterator:
         self._hdf_file_iterator = hdf_file_iterator
         self.current_hdf_file = None
         self.file_index = -1
-        self.particle_offset = 0 
+        self.particle_offset = 0
         self.select_file(0)
 
     def select_file(self, offset):
@@ -190,7 +214,7 @@ class _HDFArrayFiller:
     """A helper class to fill a pynbody array from an HDF5 dataset."""
 
     def __init__(self, sim_array_to_fill = None, hdf_dataset = None):
-        
+
         # default element size for simulation arrays
         self.sim_element_size = 1 if sim_array_to_fill is None else self._get_element_size(sim_array_to_fill)
         self.file_element_size = 1 if hdf_dataset is None else self._get_element_size(hdf_dataset)
@@ -200,7 +224,7 @@ class _HDFArrayFiller:
         """Update the element size for the simulation array."""
         self.sim_element_size = self._get_element_size(sim_array_to_fill)
         self._update_scaling_factor()
-    
+
     def _update_file_element_size(self, hdf_dataset):
         """Update the element size for the HDF5 dataset."""
         self.file_element_size = self._get_element_size(hdf_dataset)
@@ -249,18 +273,32 @@ class _HDFArrayFiller:
                 return slice(source_sel[0], source_sel[-1] + 1)
         return source_sel
 
-    def _fill_from_fancy_index(self, sim_array_to_fill, hdf_dataset, source_sel):
-        """Fill array from a non-contiguous (fancy) index."""
+    def _get_data_to_fill_local(self, sim_array_to_fill, hdf_dataset, source_sel):
+        """Read the selected elements from a local HDF5 file"""
         id_min, id_max = source_sel[0], source_sel[-1]
         num_read = id_max - id_min + 1
         indices_in_read_chunk = source_sel - id_min
-
         contiguous_hdf_slice = self._get_contiguous_hdf_slice(id_min, id_max)
-
         data_chunk_from_hdf = hdf_dataset[contiguous_hdf_slice]
         data_chunk_from_hdf = data_chunk_from_hdf.reshape(num_read, *sim_array_to_fill.shape[1:])
+        return data_chunk_from_hdf[indices_in_read_chunk]
 
-        final_data_to_fill = data_chunk_from_hdf[indices_in_read_chunk]
+    def _get_data_to_fill_remote(self, sim_array_to_fill, hdf_dataset, source_sel):
+        """Read the selected elements from a remote file using the hdfstream module"""
+        if self.need_rescale:
+            flat_index = (self.scale_factor * np.asarray(source_sel)[:,None] + np.arange(self.scale_factor, dtype=int)).flatten()
+            flat_data = hdf_dataset[flat_index]
+            final_data_to_fill = flat_data.reshape((len(source_sel),self.scaling_factor))
+        else:
+            final_data_to_fill = hdf_dataset[source_sel,...]
+        return final_data_to_fill
+
+    def _fill_from_fancy_index(self, sim_array_to_fill, hdf_dataset, source_sel):
+        """Fill array from a non-contiguous (fancy) index."""
+        if hdfstream is not None and isinstance(hdf_dataset, hdfstream.RemoteDataset):
+            final_data_to_fill = self._get_data_to_fill_remote(sim_array_to_fill, hdf_dataset, source_sel)
+        else:
+            final_data_to_fill = self._get_data_to_fill_local(sim_array_to_fill, hdf_dataset, source_sel)
 
         if sim_array_to_fill.shape == final_data_to_fill.shape:
             sim_array_to_fill[:] = final_data_to_fill
@@ -269,7 +307,7 @@ class _HDFArrayFiller:
 
     def _fill_from_slice(self, sim_array_to_fill, hdf_dataset, source_sel):
         """Fill array from a contiguous slice."""
-        
+
         if self.need_rescale:
             source_sel = self._get_contiguous_hdf_slice(source_sel.start, source_sel.stop - 1)
 
@@ -379,7 +417,7 @@ class HDFArrayLoader:
     def __init_load_map(self, take = None):
         """ Set up family slice and particle count for loading """
 
-        self._load_control = chunk.LoadControl(self._file_ptype_slice, _max_buf, take) # use HDF groups type instead of family type here
+        self._load_control = chunk.LoadControl(self._file_ptype_slice, self._hdf_files.max_buf(), take) # use HDF groups type instead of family type here
         self._family_slice_to_load = {}
         self._num_particles_to_load = self._load_control.mem_num_particles
 
@@ -512,7 +550,7 @@ class GadgetHDFSnap(SimSnap):
 
     _units_need_hubble_factors = True
 
-    def __init__(self, filename, **kwargs):
+    def __init__(self, filename, remote_dir=None, **kwargs):
         """Initialise a Gadget HDF snapshot.
 
         Spanned files are supported. To load a range of files ``snap.0.hdf5``, ``snap.1.hdf5``, ... ``snap.n.hdf5``,
@@ -523,7 +561,7 @@ class GadgetHDFSnap(SimSnap):
 
         self._filename = filename
 
-        self._init_hdf_filemanager(filename)
+        self._init_hdf_filemanager(filename, remote_dir=remote_dir)
 
         self._translate_array_name = namemapper.AdaptiveNameMapper(self._namemapper_config_section,
                                                                    return_all_format_names=True) # required for swift
@@ -583,8 +621,8 @@ class GadgetHDFSnap(SimSnap):
     def _get_hdf_unit_attrs(self):
         return self._hdf_files.get_unit_attrs()
 
-    def _init_hdf_filemanager(self, filename):
-        self._hdf_files = self._multifile_manager_class(filename)
+    def _init_hdf_filemanager(self, filename, **kwargs):
+        self._hdf_files = self._multifile_manager_class(filename, **kwargs)
 
     def __init_loadable_keys(self):
 
@@ -1075,6 +1113,16 @@ class GadgetHDFSnap(SimSnap):
                 warnings.warn(
                     "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
             return False
+
+    @classmethod
+    def _can_load_remote(cls, f, *args, **kwargs):
+        remote_dir = kwargs.get("remote_dir")
+        if (hdfstream is None) or (remote_dir is None):
+            return False
+        for filename in (f, cls._guess_file_ending(f)):
+            if filename in remote_dir and remote_dir[filename].is_hdf5():
+                return cls._readable_hdf5_test_key in remote_dir[filename]
+        return False
 
     def _init_properties(self):
         atr = self._get_hdf_header_attrs()
