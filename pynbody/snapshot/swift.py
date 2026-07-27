@@ -7,38 +7,24 @@ from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager
 
 class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
-    def __init__(self, filename, mode='r', take_swift_cells=None, take_region=None):
+    def __init__(self, filename, mode='r', take_swift_cells=None, take_region=None, **kwargs):
+
+        super().__init__(filename, mode, **kwargs)
 
         if take_swift_cells is not None and take_region is not None:
             raise ValueError("Either take_swift_cells or take_region must be specified, not both")
 
-        filename = str(filename)
-        self._mode = mode
-        if h5py.is_hdf5(filename):
-            # We have a single file snapshot, we're reading one file from a
-            # snapshot, or we're reading the VDS file of a multi file snapshot.
-            filenames = [filename]
-            numfiles = 1
-            h1 = h5py.File(filename, mode)
-            # Don't allow reading regions from a sub-file because they might be incomplete
-            if self._get_num_files(h1) > 1 and (take_swift_cells is not None or take_region is not None):
-                raise ValueError("Cannot select part of a sub-file from a multi file snapshot")
-        else:
-            # We're reading a full set of snapshot files
-            h1 = h5py.File(self._make_filename_for_cpu(filename, 0), mode)
-            numfiles = self._get_num_files(h1)
-            if hasattr(numfiles, "__len__"):
-                assert len(numfiles) == 1
-                numfiles = numfiles[0]
-            filenames = [self._make_filename_for_cpu(filename, i) for i in range(numfiles)]
+        h1 = self._open_hdf5(self._filenames[0])
+        if self._get_num_files(h1) > 1 and (take_swift_cells is not None or take_region is not None):
+            raise ValueError("Cannot select part of a sub-file from a multi file snapshot")
 
         self._read_cell_metadata(h1)
         if take_region is not None:
             take_swift_cells = self._identify_cells_to_take(take_region)
         if take_swift_cells is not None:
             take_swift_cells = np.unique(np.asarray(take_swift_cells, dtype=int))
-        self._file_mask = self._select_files(filenames, take_swift_cells)
-        self._filenames = [filename for (filename, keep) in zip(filenames, self._file_mask) if keep]
+        self._file_mask = self._select_files(self._filenames, take_swift_cells)
+        self._filenames = [filename for (filename, keep) in zip(self._filenames, self._file_mask) if keep]
         self._numfiles = len(self._filenames)
         self._open_files = {}
         self._take_swift_cells = take_swift_cells
@@ -160,7 +146,7 @@ class SwiftSnap(GadgetHDFSnap):
 
     _namemapper_config_section = 'swift-name-mapping'
 
-    def __init__(self, filename, take_swift_cells=None, take_region=None):
+    def __init__(self, filename, take_swift_cells=None, take_region=None, **kwargs):
         """Initialise a SWIFT snapshot.
 
         Extra parameters can be passed to the multi file manager by
@@ -169,10 +155,12 @@ class SwiftSnap(GadgetHDFSnap):
         """
         self._take_swift_cells = take_swift_cells
         self._take_region = take_region
-        super().__init__(filename)
+        super().__init__(filename, **kwargs)
 
     def _init_hdf_filemanager(self, filename):
-        self._hdf_files = self._multifile_manager_class(filename, take_swift_cells=self._take_swift_cells, take_region=self._take_region)
+        self._hdf_files = self._multifile_manager_class(filename, remote_dir=self._remote_dir,
+                                                        take_swift_cells=self._take_swift_cells,
+                                                        take_region=self._take_region)
 
     def _get_take_parameter(self, **kwargs):
         return self._hdf_files.get_take_parameter(list(self._families_ordered()), self._family_to_group_map)
