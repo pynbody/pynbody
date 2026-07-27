@@ -33,6 +33,11 @@ try:
 except ImportError:
     h5py = None
 
+try:
+    import hdfstream
+except ImportError:
+    hdfstream = None
+
 _default_type_map = {}
 for x in family.family_names():
     try:
@@ -78,14 +83,15 @@ class _GadgetHdfMultiFileManager:
     _size_from_hdf5_key = "ParticleIDs"
     _subgroup_name = None
 
-    def __init__(self, filename, mode='r') :
+    def __init__(self, filename, mode='r', remote_dir=None):
         filename = str(filename)
         self._mode = mode
-        if h5py.is_hdf5(filename):
+        self._remote_dir = remote_dir
+        if self._is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1
         else:
-            h1 = h5py.File(self._make_filename_for_cpu(filename, 0), mode)
+            h1 = self._open_hdf5(self._make_filename_for_cpu(filename, 0), mode)
             self._numfiles = self._get_num_files(h1)
             if hasattr(self._numfiles, "__len__"):
                 assert len(self._numfiles) == 1
@@ -93,6 +99,18 @@ class _GadgetHdfMultiFileManager:
             self._filenames = [self._make_filename_for_cpu(filename, i) for i in range(self._numfiles)]
 
         self._open_files = {}
+
+    def _open_hdf5(self, filename, *args, **kwargs):
+        if self._remote_dir is None:
+            return h5py.File(filename, *args, **kwargs)
+        else:
+            return self._remote_dir[filename]
+
+    def _is_hdf5(self, filename, *args, **kwargs):
+        if self._remote_dir is None:
+            return h5py.is_hdf5(filename)
+        else:
+            return self._remote_dir.is_hdf5(filename)
 
     def _get_num_files(self, first_file):
         return first_file[self._nfiles_groupname].attrs[self._nfiles_attrname]
@@ -106,7 +124,7 @@ class _GadgetHdfMultiFileManager:
     def __iter__(self) :
         for i in range(self._numfiles) :
             if i not in self._open_files:
-                self._open_files[i] = h5py.File(self._filenames[i], self._mode)
+                self._open_files[i] = self._open_hdf5(self._filenames[i], self._mode)
                 if self._subgroup_name is not None:
                     self._open_files[i] = self._open_files[i][self._subgroup_name]
 
@@ -514,7 +532,7 @@ class GadgetHDFSnap(SimSnap):
 
     _units_need_hubble_factors = True
 
-    def __init__(self, filename, **kwargs):
+    def __init__(self, filename, remote_dir=None, **kwargs):
         """Initialise a Gadget HDF snapshot.
 
         Spanned files are supported. To load a range of files ``snap.0.hdf5``, ``snap.1.hdf5``, ... ``snap.n.hdf5``,
@@ -525,7 +543,7 @@ class GadgetHDFSnap(SimSnap):
 
         self._filename = filename
 
-        self._init_hdf_filemanager(filename)
+        self._init_hdf_filemanager(filename, remote_dir=remote_dir)
 
         self._translate_array_name = namemapper.AdaptiveNameMapper(self._namemapper_config_section,
                                                                    return_all_format_names=True) # required for swift
@@ -579,8 +597,8 @@ class GadgetHDFSnap(SimSnap):
     def _get_hdf_unit_attrs(self):
         return self._hdf_files.get_unit_attrs()
 
-    def _init_hdf_filemanager(self, filename):
-        self._hdf_files = self._multifile_manager_class(filename)
+    def _init_hdf_filemanager(self, filename, **kwargs):
+        self._hdf_files = self._multifile_manager_class(filename, **kwargs)
 
     def __init_loadable_keys(self):
 
@@ -1077,6 +1095,16 @@ class GadgetHDFSnap(SimSnap):
                 warnings.warn(
                     "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
             return False
+
+    @classmethod
+    def _can_load_remote(cls, f, *args, **kwargs):
+        remote_dir = kwargs.get("remote_dir")
+        if (hdfstream is None) or (remote_dir is None):
+            return False
+        for filename in (f, cls._guess_file_ending(f)):
+            if filename in remote_dir and remote_dir[filename].is_hdf5():
+                return cls._readable_hdf5_test_key in remote_dir[filename]
+        return False
 
     def _init_properties(self):
         atr = self._get_hdf_header_attrs()
