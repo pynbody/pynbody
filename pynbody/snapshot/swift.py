@@ -263,3 +263,20 @@ class SwiftSnap(GadgetHDFSnap):
             return halo.number_array.HaloNumberCatalogue(self, ignore=ignore, **kwargs)
 
         return h
+
+    @staticmethod
+    def _get_hdf_allarray_keys(group):
+        """Return all HDF array keys underneath group (includes nested groups)
+
+        Swift snapshots do not have nested groups in the PartTypeX groups and
+        checking the type of every key can be slow when there are many keys.
+        Here we assume that all keys in the PartTypeX groups are datasets."""
+        if group.name.startswith("/PartType"):
+            return list(group.keys())
+        else:
+            keys = []
+            def _append_if_array(to_list, name, obj):
+                if not hasattr(obj, 'keys'):
+                    to_list.append(name)
+            group.visititems(functools.partial(_append_if_array, keys))
+            return keys
