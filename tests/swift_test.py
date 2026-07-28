@@ -337,9 +337,12 @@ def test_swift_open_snapshot_with_sparse_gas(snapshot_with_sparse_gas):
     # which would contain zero particles and therefore might not have
     # been written at all.
     f = pynbody.load(snapshot_with_sparse_gas)
-    assert len(f.families())==2
-    assert len(f.dm.loadable_keys()) > 1
-    assert len(f.gas.loadable_keys()) > 1
+    assert len(f.families()) == 2
+    assert "gas" in f.families()
+    assert "dm" in f.families()
+    for name in ("pos", "vel", "mass", "iord", "grp"):
+        assert name in f.dm.loadable_keys()
+        assert name in f.gas.loadable_keys()
 
 
 @pytest.mark.parametrize('test_params', [
@@ -353,9 +356,10 @@ def test_swift_open_region_with_sparse_gas(snapshot_with_sparse_gas, test_params
     # The families() method only reports families with >0 particles
     assert len(f.families()) == (2 if expect_gas else 1)
 
-    # But we should still always have gas and dm families
-    assert len(f.dm.loadable_keys()) > 1
-    assert len(f.gas.loadable_keys()) > 1
+    # But we should still always have gas and dm families with arrays
+    for name in ("pos", "vel", "mass", "iord", "grp"):
+        assert name in f.dm.loadable_keys()
+        assert name in f.gas.loadable_keys()
 
     # We should be able to read the gas coordinates, and get an empty array
     # if the selection does not cover the region with gas.
@@ -396,10 +400,12 @@ def test_swift_open_snapshot_with_no_gas(snapshot_with_no_gas):
 
     # The families() method only reports families with >0 particles
     assert len(f.families()) == 1
+    assert "dm" in f.families()
 
-    # But we should have gas and dm families
-    assert len(f.dm.loadable_keys()) > 1
-    assert len(f.gas.loadable_keys()) > 1
+    # But we should still always have gas and dm families with arrays
+    for name in ("pos", "vel", "mass", "iord", "grp"):
+        assert name in f.dm.loadable_keys()
+        assert name in f.gas.loadable_keys()
 
     # We should be able to read the gas coordinates, and get an empty array
     gas_pos = f.gas["pos"]
