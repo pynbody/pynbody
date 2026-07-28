@@ -1,4 +1,7 @@
 import re
+from contextlib import contextmanager
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import h5py
 import numpy as np
@@ -200,3 +203,60 @@ def hash_swift_cell_coordinates(filename, cell_mask=None):
         f.close()
 
     return m.hexdigest()
+
+
+@contextmanager
+def staging_dir(final_path):
+    final_path = Path(final_path)
+    final_path.parent.mkdir(exist_ok=True)
+    with TemporaryDirectory(dir=final_path.parent, prefix=f".{final_path.name}.") as tmp:
+        tmp_path = Path(tmp)
+        tmp_path.mkdir(exist_ok=True)
+        yield tmp_path
+        tmp_path.replace(final_path)
+
+
+def ensure_split_snapshot_exists(template_file, nr_files, output_dir,
+                                 output_name, cell_file_index,
+                                 cell_mask=None,
+                                 write_zero_size_datasets=False):
+    """
+    Ensure that the specified split snapshot exists on disk.
+
+    Parameters
+    ----------
+    template_file : pathlib.Path or str
+        Name of a single file Swift snapshot to use as a template
+    nr_files: int
+        The number of files to split the template snapshot into
+    output_dir: str or Path
+        Directory to write the new snapshot to
+    output_name: pathlib.Path or str
+        Name of the output files. Any .X.hdf5 suffix will be replaced.
+    cell_file_index: numpy.ndarray
+        Array with a file index to assign each cell to
+    cell_mask: dict
+        Dict where the keys are particle type names (PartTypeX) and the
+        values are boolean masks indicating which cells to keep for that
+        particle type.
+    write_zero_size_datasets: bool
+        If False, datasets which would have zero particles are omitted
+        (as in older Swift versions). If True, all datasets are always
+        written regardless of size (current Swift behaviour).
+
+    Returns
+    -------
+    str
+        A string which can be passed to pynbody.load() to open the snapshot.
+        This is the name of the file for single file snapshots or the name
+        minus any .X.hdf5 suffix for multi file snapshots.
+    """
+    if not Path(output_dir).exists():
+        with staging_dir(output_dir) as temp_dir:
+            split_swift_snapshot(template_file, nr_files, cell_file_index,
+                                 temp_dir / output_name, cell_mask=cell_mask,
+                                  write_zero_size_datasets=write_zero_size_datasets)
+    if nr_files > 1:
+        return str(Path(output_dir) / output_name).removesuffix(".0.hdf5")
+    else:
+        return str(Path(output_dir) / output_name)

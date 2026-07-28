@@ -11,10 +11,7 @@ import pynbody
 import pynbody.halo.velociraptor
 import pynbody.snapshot.swift
 import pynbody.test_utils
-from pynbody.test_utils.split_swift_snapshot import (
-    hash_swift_cell_coordinates,
-    split_swift_snapshot,
-)
+from pynbody.test_utils.split_swift_snapshot import ensure_split_snapshot_exists
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -288,15 +285,18 @@ def test_planetary_physical_units():
 
 
 @pytest.fixture
-def multifile_with_multiple_types(tmp_path):
+def multifile_with_multiple_types():
+    """
+    Split a snapshot with gas and dark matter over multiple files
+    """
     nr_files = 8
     input_snapshot = "./testdata/SWIFT/snap_0150.hdf5"
-    output_snapshot = tmp_path / "split_snap_0150.0.hdf5"
+    output_dir = "./testdata/SWIFT/multi_file_multi_type"
+    output_name = "split_snap_0150.0.hdf5"
     rng = np.random.default_rng(0)
     cell_file_index = rng.integers(nr_files, size=512)
-    split_swift_snapshot(input_snapshot, nr_files, cell_file_index, output_snapshot)
-    return str(output_snapshot).removesuffix(".0.hdf5")
-
+    return ensure_split_snapshot_exists(input_snapshot, nr_files, output_dir, output_name,
+                                        cell_file_index)
 
 @pytest.mark.parametrize('test_region',
                          [pynbody.filt.Sphere(50., (50., 50., 50.)),
@@ -320,18 +320,16 @@ def snapshot_with_sparse_gas(request, tmp_path):
     # Create a snapshot where only one cell has gas particles
     nr_files, write_zero_size_datasets = request.param
     input_snapshot = "./testdata/SWIFT/snap_0150.hdf5"
-    output_snapshot = tmp_path / "split_snap_0150.0.hdf5"
+    output_dir = f"./testdata/SWIFT/sparse_gas/nfiles_{nr_files}{'_zero_size' if write_zero_size_datasets else ''}"
+    output_name = "split_snap_0150.0.hdf5"
     rng = np.random.default_rng(0)
     cell_file_index = rng.integers(nr_files, size=512)
     gas_mask = np.zeros(512, dtype=bool)
     gas_mask[337] = True # Only keep the gas in this cell
-    split_swift_snapshot(input_snapshot, nr_files, cell_file_index, output_snapshot,
-                         write_zero_size_datasets=write_zero_size_datasets,
-                         cell_mask={"PartType0" : gas_mask})
-    if nr_files > 1:
-        return str(output_snapshot).removesuffix(".0.hdf5")
-    else:
-        return str(output_snapshot)
+    return ensure_split_snapshot_exists(input_snapshot, nr_files, output_dir,
+                                        output_name, cell_file_index,
+                                        write_zero_size_datasets=write_zero_size_datasets,
+                                        cell_mask={"PartType0" : gas_mask})
 
 
 def test_swift_open_snapshot_with_sparse_gas(snapshot_with_sparse_gas):
@@ -382,17 +380,15 @@ def snapshot_with_no_gas(request, tmp_path):
     # have not formed yet.
     nr_files, write_zero_size_datasets = request.param
     input_snapshot = "./testdata/SWIFT/snap_0150.hdf5"
-    output_snapshot = tmp_path / "split_snap_0150.0.hdf5"
+    output_dir = f"./testdata/SWIFT/no_gas/nfiles_{nr_files}{'_zero_size' if write_zero_size_datasets else ''}"
+    output_name = "split_snap_0150.0.hdf5"
     rng = np.random.default_rng(0)
     cell_file_index = rng.integers(nr_files, size=512)
     gas_mask = np.zeros(512, dtype=bool) # discard all gas
-    split_swift_snapshot(input_snapshot, nr_files, cell_file_index, output_snapshot,
-                         write_zero_size_datasets=write_zero_size_datasets,
-                         cell_mask={"PartType0" : gas_mask})
-    if nr_files > 1:
-        return str(output_snapshot).removesuffix(".0.hdf5")
-    else:
-        return str(output_snapshot)
+    return ensure_split_snapshot_exists(input_snapshot, nr_files, output_dir,
+                                        output_name, cell_file_index,
+                                        write_zero_size_datasets=write_zero_size_datasets,
+                                        cell_mask={"PartType0" : gas_mask})
 
 
 def test_swift_open_snapshot_with_no_gas(snapshot_with_no_gas):
