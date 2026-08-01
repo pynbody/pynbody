@@ -8,7 +8,7 @@ import h5py
 import numpy as np
 
 from .. import halo, units, util
-from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager
+from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager, _open_hdf_file
 
 
 class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
@@ -85,7 +85,7 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
                 target_group = hdf_vfile.create_group(group_name)
                 self._make_hdf_group_with_slicing(source_groups, source_slices, target_group)
 
-        self._hdf_vfile = h5py.File(name=tmpfile_path, mode='r')
+        self._hdf_vfile = _open_hdf_file(tmpfile_path, mode='r')
         self._finalizer = weakref.finalize(self, self._finalize, self._hdf_vfile, temp_dir_path)
 
     @classmethod
@@ -104,28 +104,56 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
         return source_groups, source_slices
 
     def _generate_groups_and_slices_from_cells(self, group_name, take_cells):
-        # we get the cell info from the first file, and assume it's consistent between files
-        offsets = self[0]['Cells']['OffsetsInFile'][group_name]
-        lens = self[0]['Cells']['Counts'][group_name]
-        file_responsible = self[0]['Cells']['Files'][group_name]
+        # we get the cell info from the first file, and assume it's consistent between files.
+        # Read it into memory in one go; indexing the hdf5 datasets cell-by-cell is very slow.
+        offsets = self[0]['Cells']['OffsetsInFile'][group_name][:]
+        lens = self[0]['Cells']['Counts'][group_name][:]
+        file_responsible = self[0]['Cells']['Files'][group_name][:]
 
-        # First, make a map from the file ID to the slices to be taken from that file
-        file_id_to_slices_map = {}
-        for cell in take_cells:
-            if file_responsible[cell] not in file_id_to_slices_map:
-                file_id_to_slices_map[file_responsible[cell]] = []
-            sl = slice(offsets[cell], offsets[cell] + lens[cell])
-            file_id_to_slices_map[file_responsible[cell]].append(sl)
+        take_cells = np.asarray(take_cells)
+        files_for_take_cells = file_responsible[take_cells]
 
-        # Now, reformat everything into the format expected by _make_hdf_group_with_slicing
         source_slices = []
         source_groups = []
 
-        for file_id in sorted(list(file_id_to_slices_map)):
-            source_groups.append(self[file_id][group_name])
-            source_slices.append(sorted(file_id_to_slices_map[file_id]))
+        for file_id in np.unique(files_for_take_cells):
+            cells_this_file = take_cells[files_for_take_cells == file_id]
+            slices_this_file = self._coalesce_cells_into_slices(offsets[cells_this_file], lens[cells_this_file])
+            if len(slices_this_file) == 0:
+                continue
+            source_groups.append(self[int(file_id)][group_name])
+            source_slices.append(slices_this_file)
 
         return source_groups, source_slices
+
+    @staticmethod
+    def _coalesce_cells_into_slices(offsets, lens):
+        """Convert per-cell offsets and lengths into a minimal list of ascending, non-adjacent slices.
+
+        Merging cells that are adjacent on disk is essential for performance: reading from an HDF5 virtual
+        dataset costs a roughly constant overhead for each mapping that is touched, so the number of
+        mappings, rather than the amount of data, dominates the time taken to load a partially-loaded
+        snapshot. Cells are normally stored in cell order, so taking a contiguous range of cells collapses
+        to a single mapping.
+        """
+        order = np.argsort(offsets)
+        offsets = np.asarray(offsets)[order]
+        ends = offsets + np.asarray(lens)[order]
+
+        non_empty = ends > offsets
+        offsets, ends = offsets[non_empty], ends[non_empty]
+
+        if len(offsets) == 0:
+            return []
+
+        # a new slice starts wherever a cell does not begin exactly where the previous one ended
+        starts_new_slice = np.ones(len(offsets), dtype=bool)
+        starts_new_slice[1:] = offsets[1:] != ends[:-1]
+
+        slice_starts = np.where(starts_new_slice)[0]
+        slice_ends = np.append(slice_starts[1:], len(offsets)) - 1
+
+        return [slice(int(offsets[start]), int(ends[end])) for start, end in zip(slice_starts, slice_ends)]
 
     def _make_hdf_group_with_slicing(self, source_groups, source_slices, target_group):
         total_len = 0
