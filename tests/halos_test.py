@@ -371,6 +371,104 @@ def test_long_iord_to_pos_map():
     assert (iord_to_fpos.map_ignoring_order([0, 10, 20, 300]) == np.array([0, 2, 1, 3])).all()
     assert iord_to_fpos.map_ignoring_order(300) == 3
 
+
+@pytest.fixture(params=['dense', 'sparse'])
+def iord_mapper_and_missing(request):
+    """An iord mapper alongside iord values which are, and are not, present in the underlying array"""
+    from pynbody.halo.details import iord_mapping
+    if request.param == 'dense':
+        iord = np.array([0, 5, 4, 2])
+        mapper = iord_mapping.make_iord_to_offset_mapper(iord)
+        assert isinstance(mapper, iord_mapping.IordToOffsetDense)
+        # 1 and 3 are inside the range covered by the lookup table but absent; 100 is beyond its end
+        return mapper, [5, 2, 0, 4], [1, 3, 2], [100, 4], [-1, 0]
+    else:
+        iord = np.array([0, 20, 10, 300])
+        mapper = iord_mapping.make_iord_to_offset_mapper(iord)
+        assert isinstance(mapper, iord_mapping.IordToOffsetSparse)
+        return mapper, [0, 10, 20, 300], [5, 11, 10], [1000, 300], [-1, 0]
+
+
+def test_iord_to_pos_map_rejects_missing(iord_mapper_and_missing):
+    from pynbody.halo.details import iord_mapping
+    mapper, present, with_interior_missing, with_exterior_missing, with_negative = iord_mapper_and_missing
+
+    # no exception when everything is present:
+    mapper.map_ignoring_order(present)
+
+    for values in (with_interior_missing, with_exterior_missing, with_negative):
+        with pytest.raises(iord_mapping.IllegalIordError):
+            mapper.map_ignoring_order(values)
+
+    # ... and the same for scalar queries
+    for value in (with_interior_missing[0], with_exterior_missing[0], with_negative[0]):
+        with pytest.raises(iord_mapping.IllegalIordError):
+            mapper.map_ignoring_order(value)
+
+
+def test_iord_to_pos_map_allowing_missing(iord_mapper_and_missing):
+    from pynbody.halo.details import iord_mapping
+    mapper, present, with_interior_missing, with_exterior_missing, with_negative = iord_mapper_and_missing
+
+    # results are only defined up to ordering, so compare sorted results with sorted expectations
+    for values in (with_interior_missing, with_exterior_missing, with_negative):
+        result = mapper.map_ignoring_order(values, allow_missing=True)
+        expected = [mapper.map_ignoring_order(v, allow_missing=True) for v in values]
+        assert (np.sort(result) == np.sort(expected)).all()
+        assert (result == iord_mapping.NO_OFFSET).sum() == sum(e == iord_mapping.NO_OFFSET for e in expected)
+
+    # scalars map to scalars, and missing ones map to the sentinel
+    assert mapper.map_ignoring_order(present[0], allow_missing=True) >= 0
+    assert np.ndim(mapper.map_ignoring_order(present[0], allow_missing=True)) == 0
+    assert mapper.map_ignoring_order(with_interior_missing[0], allow_missing=True) == iord_mapping.NO_OFFSET
+    assert mapper.map_ignoring_order(with_exterior_missing[0], allow_missing=True) == iord_mapping.NO_OFFSET
+    assert mapper.map_ignoring_order(with_negative[0], allow_missing=True) == iord_mapping.NO_OFFSET
+
+
+def test_iord_to_pos_map_missing_message(iord_mapper_and_missing):
+    from pynbody.halo.details import iord_mapping
+    mapper, _, with_interior_missing, _, _ = iord_mapper_and_missing
+
+    # the exception should name the offending iords, not the ones that were found
+    with pytest.raises(iord_mapping.IllegalIordError) as excinfo:
+        mapper.map_ignoring_order(with_interior_missing)
+
+    message = str(excinfo.value)
+    present_values = {v for v in with_interior_missing
+                      if mapper.map_ignoring_order(v, allow_missing=True) != iord_mapping.NO_OFFSET}
+    missing_values = set(with_interior_missing) - present_values
+
+    for value in missing_values:
+        assert str(value) in message
+    assert message.startswith(f"{len(missing_values)} particle ID")
+
+
+def test_iord_to_pos_map_all_present_unaffected(iord_mapper_and_missing):
+    """Check that allow_missing doesn't change the result when nothing is missing"""
+    mapper, present, _, _, _ = iord_mapper_and_missing
+    assert (mapper.map_ignoring_order(present)
+            == mapper.map_ignoring_order(present, allow_missing=True)).all()
+
+
+def test_iord_offset_modifier_with_missing():
+    from pynbody.halo.details import iord_mapping
+    iord = np.array([0, 5, 4, 2])
+    mapper = iord_mapping.IordOffsetModifier(iord_mapping.make_iord_to_offset_mapper(iord), 100)
+
+    assert (mapper.map_ignoring_order([5, 2, 0, 4]) == [101, 103, 100, 102]).all()
+
+    with pytest.raises(iord_mapping.IllegalIordError):
+        mapper.map_ignoring_order([5, 3])
+
+    # the sentinel must not be shifted by the offset
+    result = mapper.map_ignoring_order([5, 3, 100], allow_missing=True)
+    assert (result == [101, iord_mapping.NO_OFFSET, iord_mapping.NO_OFFSET]).all()
+
+    assert mapper.map_ignoring_order(5, allow_missing=True) == 101
+    assert mapper.map_ignoring_order(3, allow_missing=True) == iord_mapping.NO_OFFSET
+    with pytest.raises(iord_mapping.IllegalIordError):
+        mapper.map_ignoring_order(3)
+
 def test_load_halo_priority():
     from pynbody.halo.adaptahop import AdaptaHOPCatalogue
     from pynbody.halo.hop import HOPCatalogue
