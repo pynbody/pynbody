@@ -161,6 +161,90 @@ def test_load(snap):
     h = snap.halos(priority=["HBTPlusCatalogue", "Gadget4SubfindHDFCatalogue"])
     assert isinstance(h, pynbody.halo.hbtplus.HBTPlusCatalogue)
 
+
+@pytest.fixture
+def partially_loaded_halos(snap):
+    """An HBT+ catalogue for a snapshot from which only some of the particles are available.
+
+    Some halos then refer to particles that are not present, and cannot be fully constructed."""
+    hbt_filename = pynbody.halo.hbtplus.HBTPlusCatalogue._infer_hbt_filename(snap)
+    partial_snap = snap[:len(snap) // 2] # NB must be kept alive; catalogues only hold a weak reference
+
+    def make_catalogue():
+        return pynbody.halo.hbtplus.HBTPlusCatalogue(partial_snap, filename=hbt_filename)
+
+    return make_catalogue
+
+
+def _split_complete_and_incomplete(halos):
+    complete, incomplete = [], []
+    with warnings.catch_warnings():
+        # we are deliberately accessing halos one at a time, which may prompt an efficiency warning
+        warnings.filterwarnings("ignore", message="Accessing multiple halos")
+        for halo_number in halos.keys():
+            try:
+                halos[halo_number]
+                complete.append(halo_number)
+            except pynbody.halo.IncompleteHaloError:
+                incomplete.append(halo_number)
+    return complete, incomplete
+
+
+@pytest.mark.parametrize('load_all', [True, False], ids=['load_all', 'no_load_all'])
+def test_incomplete_halos_are_flagged(partially_loaded_halos, load_all):
+    halos = partially_loaded_halos()
+    if load_all:
+        halos.load_all() # must not raise, even though some halos cannot be constructed
+
+    complete, incomplete = _split_complete_and_incomplete(halos)
+
+    assert len(incomplete) > 0, "Test requires at least one halo with particles outside the loaded region"
+    assert len(complete) > 0, "Test requires at least one halo that is entirely within the loaded region"
+
+
+def test_incomplete_halos_consistent_with_and_without_load_all(partially_loaded_halos):
+    """Whether or not load_all is used, the same halos are available and contain the same particles"""
+    halos_one_at_a_time = partially_loaded_halos()
+    complete, incomplete = _split_complete_and_incomplete(halos_one_at_a_time)
+
+    halos_all_at_once = partially_loaded_halos()
+    halos_all_at_once.load_all()
+    complete_all_at_once, incomplete_all_at_once = _split_complete_and_incomplete(halos_all_at_once)
+
+    assert complete == complete_all_at_once
+    assert incomplete == incomplete_all_at_once
+
+    for halo_number in complete:
+        assert (halos_one_at_a_time[halo_number]['iord'] == halos_all_at_once[halo_number]['iord']).all()
+
+
+def test_incomplete_halo_error_reports_missing_particles(partially_loaded_halos):
+    halos = partially_loaded_halos()
+    halos.load_all()
+    _, incomplete = _split_complete_and_incomplete(halos)
+
+    halo_number = incomplete[0]
+    halo_index = halos.number_mapper.number_to_index(halo_number)
+
+    with pytest.raises(pynbody.halo.IncompleteHaloError) as excinfo:
+        _ = halos[halo_number]
+
+    assert excinfo.value.halo_number == halo_number
+    assert excinfo.value.num_missing_particles > 0
+
+    # the particles that are present are still stored, and the number missing is consistent with the
+    # number the halo finder assigned to this halo
+    particles_present = halos._index_lists.get_particle_index_list_for_halo(halo_index, allow_incomplete=True)
+    nbound = halos.get_properties_one_halo(halo_number)['Nbound']
+    assert len(particles_present) + excinfo.value.num_missing_particles == nbound
+
+
+def test_fully_loaded_halos_are_never_incomplete(halos):
+    """The machinery for flagging incomplete halos must not disturb ordinary, complete catalogues"""
+    halos.load_all()
+    assert not any(halos._index_lists.is_halo_incomplete(i) for i in range(len(halos)))
+    assert len(halos[1]) > 0
+
 def test_load_from_filename(snap):
     filename: pathlib.Path = snap.filename
     snap._filename = "" # clear filename so we can test loading from catalogue filename

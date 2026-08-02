@@ -60,6 +60,100 @@ class SimpleHaloCatalogueWithMultiMembership(halo.HaloCatalogue):
 
         return pynbody.halo.details.particle_indices.HaloParticleIndices(particle_ids = members, boundaries = boundaries)
 
+class SimpleHaloCatalogueWithIncompleteHalos(SimpleHaloCatalogue):
+    """A catalogue where halos 2 and 5 refer to particles that are not in the snapshot.
+
+    This mimics what a real catalogue does when the snapshot has been partially loaded: the missing
+    particles are simply absent from the index list, but the halos are flagged so that accessing them
+    raises rather than silently returning too few particles."""
+
+    incomplete_halo_numbers = (2, 5)
+
+    def _get_all_particle_indices(self):
+        indices = super()._get_all_particle_indices()
+        num_missing = np.zeros(len(self.number_mapper), dtype=np.intp)
+        for halo_number in self.incomplete_halo_numbers:
+            num_missing[self.number_mapper.number_to_index(halo_number)] = halo_number
+        indices.num_missing_particles = num_missing
+        return indices
+
+
+@pytest.fixture
+def snap_for_incomplete_halos():
+    return pynbody.new(dm=100)
+
+
+@pytest.fixture
+def incomplete_halos(snap_for_incomplete_halos):
+    return SimpleHaloCatalogueWithIncompleteHalos(snap_for_incomplete_halos)
+
+
+@pytest.mark.parametrize("load_all", [True, False])
+def test_incomplete_halos_raise(incomplete_halos, load_all):
+    if load_all:
+        incomplete_halos.load_all() # must not itself raise
+
+    for halo_number in incomplete_halos.keys():
+        if halo_number in SimpleHaloCatalogueWithIncompleteHalos.incomplete_halo_numbers:
+            with pytest.raises(halo.IncompleteHaloError):
+                _ = incomplete_halos[halo_number]
+        else:
+            assert len(incomplete_halos[halo_number]) > 0
+
+
+def test_incomplete_halo_error_carries_details(incomplete_halos):
+    with pytest.raises(halo.IncompleteHaloError) as excinfo:
+        _ = incomplete_halos[2]
+
+    assert excinfo.value.halo_number == 2
+    assert excinfo.value.num_missing_particles == 2
+    assert "Halo 2" in str(excinfo.value)
+
+
+def test_incomplete_halos_do_not_affect_other_functionality(incomplete_halos, snap_for_incomplete_halos):
+    """Properties, group arrays and complete halos remain available even when some halos are incomplete"""
+    assert incomplete_halos.get_properties_one_halo(2)['testproperty'] == 3.0
+
+    complete_halos = SimpleHaloCatalogue(snap_for_incomplete_halos)
+    assert (incomplete_halos.get_group_array() == complete_halos.get_group_array()).all()
+    assert (incomplete_halos[1].get_index_list(snap_for_incomplete_halos)
+            == complete_halos[1].get_index_list(snap_for_incomplete_halos)).all()
+
+
+def test_incomplete_halo_index_list_accessible_if_requested():
+    """The particles that *are* present can still be retrieved, for callers that ask explicitly"""
+    from pynbody.halo.details.particle_indices import (
+        HaloParticleIndices,
+        IncompleteHaloError,
+    )
+
+    index_list = HaloParticleIndices(particle_ids=np.array([0, 1, 2, 3, 4]),
+                                     boundaries=np.array([[0, 2], [2, 5]]),
+                                     num_missing_particles=np.array([0, 3]))
+
+    assert not index_list.is_halo_incomplete(0)
+    assert index_list.is_halo_incomplete(1)
+    assert index_list.get_num_missing_particles_for_halo(1) == 3
+
+    assert (index_list.get_particle_index_list_for_halo(0) == [0, 1]).all()
+
+    with pytest.raises(IncompleteHaloError):
+        index_list.get_particle_index_list_for_halo(1)
+
+    assert (index_list.get_particle_index_list_for_halo(1, allow_incomplete=True) == [2, 3, 4]).all()
+
+
+def test_index_list_without_missing_particle_information():
+    """Catalogues that don't provide missing particle counts behave exactly as before"""
+    from pynbody.halo.details.particle_indices import HaloParticleIndices
+
+    index_list = HaloParticleIndices(particle_ids=np.array([0, 1, 2, 3, 4]),
+                                     boundaries=np.array([[0, 2], [2, 5]]))
+
+    assert not index_list.is_halo_incomplete(1)
+    assert (index_list.get_particle_index_list_for_halo(1) == [2, 3, 4]).all()
+
+
 def test_halo_number_mapper():
     halo_numbers = np.array([-5, -3, 0, 10])
     mapper = pynbody.halo.details.number_mapping.MonotonicHaloNumberMapper(halo_numbers)

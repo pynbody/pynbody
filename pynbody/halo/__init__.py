@@ -76,13 +76,13 @@ from numpy.typing import NDArray
 
 from .. import array, snapshot, units, util
 from ..util import iter_subclasses
-from .details.iord_mapping import make_iord_to_offset_mapper
+from .details.iord_mapping import NO_OFFSET, make_iord_to_offset_mapper
 from .details.number_mapping import (
     HaloNumberMapper,
     MonotonicHaloNumberMapper,
     create_halo_number_mapper,
 )
-from .details.particle_indices import HaloParticleIndices
+from .details.particle_indices import HaloParticleIndices, IncompleteHaloError
 
 if TYPE_CHECKING:
     from .subhalo_catalogue import SubhaloCatalogue
@@ -183,6 +183,13 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
       offsets within the snapshot, not particle IDs or 'iord's. Many halo finders output particle IDs which must
       therefore be mapped. To aid this, call :meth:`_init_iord_to_fpos` in your :meth:`__init__` method, which creates
       a mapper as :attr:`_iord_to_fpos`. See :mod:`details.iord_mapping` for more information.
+    * If the snapshot is partially loaded, a halo may refer to particles that are not present. Rather than mapping
+      particle IDs with :attr:`_iord_to_fpos` directly, use :meth:`_map_iords_to_fpos_one_halo` (in
+      :meth:`_get_particle_indices_one_halo`), which raises an :class:`IncompleteHaloError`; and
+      :meth:`_map_iords_to_fpos` (in :meth:`_get_all_particle_indices`), which discards and counts the missing
+      particles. Pass those counts to :class:`details.particle_indices.HaloParticleIndices` as
+      ``num_missing_particles``, so that loading all halos does not fail, while an
+      :class:`IncompleteHaloError` is still raised if an affected halo is accessed.
 
     """
 
@@ -263,12 +270,12 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         A generic implementation is provided that fetches index lists for all halos and then extracts the one"""
         self.load_all()
         return self._index_lists.get_particle_index_list_for_halo(
-            self.number_mapper.number_to_index(halo_number)
+            self.number_mapper.number_to_index(halo_number), halo_number
         )
 
     def _get_particle_indices_one_halo_using_list_if_available(self, halo_number, halo_index) -> NDArray[int]:
         if self._index_lists:
-            return self._index_lists.get_particle_index_list_for_halo(halo_index)
+            return self._index_lists.get_particle_index_list_for_halo(halo_index, halo_number)
         else:
             if len(self._cached_halos) == 5:
                 warnings.warn("Accessing multiple halos may be more efficient if you call load_all() on the "
@@ -340,7 +347,48 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
                     def __getitem__(self, i):
                         return i
 
+                    def map_ignoring_order(self, i, allow_missing=False):
+                        # without iords there is no way to tell whether a particle is missing, so all
+                        # iords are taken at face value
+                        return i
+
                 self._iord_to_fpos = OneToOneIndex()
+
+    def _map_iords_to_fpos(self, iords) -> tuple[NDArray[int], int]:
+        """Map particle IDs to file positions, discarding any particles that are not in the snapshot.
+
+        This is a convenience function for subclasses to use when implementing
+        :meth:`_get_all_particle_indices`; see also :meth:`_map_iords_to_fpos_one_halo`. It requires
+        :meth:`_init_iord_to_fpos` to have been called first.
+
+        Returns the file positions of the particles that are present, together with the number of particles
+        that were discarded. A non-zero count should be recorded in the ``num_missing_particles`` argument of
+        :class:`~pynbody.halo.details.particle_indices.HaloParticleIndices`, so that the affected halos are
+        flagged as incomplete rather than silently returning too few particles.
+        """
+        fpos = self._iord_to_fpos.map_ignoring_order(iords, allow_missing=True)
+
+        # all genuine file positions are non-negative, so a single reduction tells us whether anything is
+        # missing, without allocating a mask in the usual case that nothing is
+        if len(fpos) > 0 and fpos.min() < 0:
+            present = fpos != NO_OFFSET
+            return fpos[present], len(fpos) - int(present.sum())
+        else:
+            return fpos, 0
+
+    def _map_iords_to_fpos_one_halo(self, iords, halo_number=None) -> NDArray[int]:
+        """Map the particle IDs of a single halo to file positions.
+
+        This is a convenience function for subclasses to use when implementing
+        :meth:`_get_particle_indices_one_halo`; see also :meth:`_map_iords_to_fpos`. It requires
+        :meth:`_init_iord_to_fpos` to have been called first.
+
+        Raises an :class:`IncompleteHaloError` if any of the particles are not in the snapshot.
+        """
+        fpos, num_missing = self._map_iords_to_fpos(iords)
+        if num_missing > 0:
+            raise IncompleteHaloError(halo_number, num_missing)
+        return fpos
 
     def _get_subhalo_catalogue(self, parent_halo_number: int) -> SubhaloCatalogue:
         from .subhalo_catalogue import SubhaloCatalogue
