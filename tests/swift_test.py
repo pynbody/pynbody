@@ -428,6 +428,10 @@ def copied_snapshot():
         tmp_snap = Path(tmp) / "snap_0150.hdf5"
         shutil.copy("./testdata/SWIFT/snap_0150.hdf5", tmp_snap)
         yield tmp_snap
+        # Try to ensure the snapshot is closed so we can delete the file
+        # (Windows locks files that are open)
+        import gc
+        gc.collect()
 
 def test_swift_no_number_of_fields(copied_snapshot):
     """Check that we reject snapshots where the NumberOfFields attribute is missing"""
