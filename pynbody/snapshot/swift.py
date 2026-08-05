@@ -1,3 +1,5 @@
+import re
+
 import h5py
 import numpy as np
 
@@ -32,11 +34,14 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
                 numfiles = numfiles[0]
             filenames = [self._make_filename_for_cpu(filename, i) for i in range(numfiles)]
 
-        self._read_cell_metadata(h1)
-        if take_region is not None:
-            take_swift_cells = self._identify_cells_to_take(take_region)
-        if take_swift_cells is not None:
-            take_swift_cells = np.unique(np.asarray(take_swift_cells, dtype=int))
+        # Only read cell metadata if we need it (e.g. the planetary example
+        # does not have valid cell info)
+        if take_region is not None or take_swift_cells is not None:
+            self._read_cell_metadata(h1)
+            if take_region is not None:
+                take_swift_cells = self._identify_cells_to_take(take_region)
+            if take_swift_cells is not None:
+                take_swift_cells = np.unique(np.asarray(take_swift_cells, dtype=int))
         self._file_mask = self._select_files(filenames, take_swift_cells)
         self._filenames = [filename for (filename, keep) in zip(filenames, self._file_mask) if keep]
         self._numfiles = len(self._filenames)
@@ -112,12 +117,35 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
         return np.concatenate(take) if len(take) > 0 else np.zeros(0, dtype=np.int64)
 
     def _read_cell_metadata(self, h1):
+        num_files = self._get_num_files(h1)
+        numpart_total = (h1["Header"].attrs["NumPart_Total"].astype(np.int64) +
+                         (h1["Header"].attrs["NumPart_Total_HighWord"].astype(np.int64) << 32))
         self._cells = {}
         for name in h1["Cells/Counts"]:
+            # Get the total number of particles of this type. Read the header
+            # because the PartType group might not be present if this sub-file
+            # happens to contain zero particles.
+            m = re.match(r"PartType([0-9]+)", name)
+            if m is None:
+                raise ValueError(f"Unexpected particle group name: {name}")
+            else:
+                nptot = numpart_total[int(m.group(1))]
+            # Read the cell information
             self._cells[name] = {}
             self._cells[name]["counts"] = h1["Cells/Counts"][name][...]
             self._cells[name]["files"] = h1["Cells/Files"][name][...]
             self._cells[name]["offsets"] = h1["Cells/OffsetsInFile"][name][...]
+            # Do some sanity checks
+            if np.any(self._cells[name]["counts"] < 0):
+                raise ValueError("A SWIFT cell contains a negative number of particles!")
+            if np.any((self._cells[name]["files"] < 0) | (self._cells[name]["files"] >= num_files)):
+                raise ValueError("A SWIFT cell's file index is out of range!")
+            if np.any(self._cells[name]["offsets"] < 0):
+                raise ValueError("A SWIFT cell offset is negative!")
+            if np.any((self._cells[name]["offsets"] + self._cells[name]["counts"]) > nptot):
+                raise ValueError("A SWIFT cell's offset+count is out of range")
+            if np.sum(self._cells[name]["counts"], dtype=np.int64) != nptot:
+                raise ValueError("The total number of particles in all cells does not match the snapshot header")
         self._cell_centres = h1["Cells/Centres"][...]
 
     def _identify_cells_to_take(self, take):
