@@ -96,7 +96,8 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
                 particles_per_cell[self._file_mask[cell_file_index]==False] = 0
                 # Compute the offset to the first particle in each file in the subset.
                 # Note that the file index refers to the full set of snapshot files here.
-                particles_per_file = np.bincount(cell_file_index, weights=particles_per_cell, minlength=nr_files_total)
+                particles_per_file = np.zeros(nr_files_total, dtype=np.int64)
+                np.add.at(particles_per_file, cell_file_index, particles_per_cell)
                 offset_to_file = np.cumsum(particles_per_file, dtype=np.int64) - particles_per_file
                 # Compute the offset to the first particle in each cell
                 offset_to_cell = ptype_offset + offset_to_file[cell_file_index] + cell_file_offset
