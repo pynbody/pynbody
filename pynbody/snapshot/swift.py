@@ -1,3 +1,5 @@
+import functools
+
 import h5py
 import numpy as np
 
@@ -278,6 +280,7 @@ class SwiftSnap(GadgetHDFSnap):
         if "NumberOfFields" in group.attrs and group.attrs["NumberOfFields"][0] == len(group):
             return list(group.keys())
         else:
+            return GadgetHDFSnap._get_hdf_allarray_keys(group)
             keys = []
             def _append_if_array(to_list, name, obj):
                 if not hasattr(obj, 'keys'):
