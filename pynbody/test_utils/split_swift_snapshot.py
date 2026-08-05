@@ -211,7 +211,6 @@ def staging_dir(final_path):
     final_path.parent.mkdir(exist_ok=True)
     with TemporaryDirectory(dir=final_path.parent, prefix=f".{final_path.name}.") as tmp:
         tmp_path = Path(tmp)
-        tmp_path.mkdir(exist_ok=True)
         yield tmp_path
         tmp_path.replace(final_path)
 
