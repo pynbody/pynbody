@@ -11,42 +11,34 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
     def __init__(self, filename, mode='r', take_swift_cells=None, take_region=None):
 
+        super().__init__(filename, mode)
+
         if take_swift_cells is not None and take_region is not None:
             raise ValueError("Either take_swift_cells or take_region must be specified, not both")
 
-        filename = str(filename)
-        self._mode = mode
-        if h5py.is_hdf5(filename):
-            # We have a single file snapshot, we're reading one file from a
-            # snapshot, or we're reading the VDS file of a multi file snapshot.
-            filenames = [filename]
-            numfiles = 1
-            h1 = h5py.File(filename, mode)
-            # Don't allow reading regions from a sub-file because they might be incomplete
-            if self._get_num_files(h1) > 1 and (take_swift_cells is not None or take_region is not None):
-                raise ValueError("Cannot select part of a sub-file from a multi file snapshot")
-        else:
-            # We're reading a full set of snapshot files
-            h1 = h5py.File(self._make_filename_for_cpu(filename, 0), mode)
-            numfiles = self._get_num_files(h1)
-            if hasattr(numfiles, "__len__"):
-                assert len(numfiles) == 1
-                numfiles = numfiles[0]
-            filenames = [self._make_filename_for_cpu(filename, i) for i in range(numfiles)]
+        # We can only cut out regions or cells if we're reading all files in the set
+        file0 = self[0] # the file might already have been opened
+        if self._get_num_files(file0) != len(self._filenames) and (take_swift_cells is not None or take_region is not None):
+            raise ValueError("Cannot select part of a sub-file from a multi file snapshot")
 
-        # Only read cell metadata if we need it (e.g. the planetary example
-        # does not have valid cell info)
+        # Determine which cells we need. Avoid reading cells if we don't
+        # need them in case the snapshot doesn't have valid metadata (e.g.
+        # the planetary example in the test data).
         if take_region is not None or take_swift_cells is not None:
-            self._read_cell_metadata(h1)
+            self._read_cell_metadata(file0)
             if take_region is not None:
                 take_swift_cells = self._identify_cells_to_take(take_region)
             if take_swift_cells is not None:
                 take_swift_cells = np.unique(np.asarray(take_swift_cells, dtype=int))
-        self._file_mask = self._select_files(filenames, take_swift_cells)
-        self._filenames = [filename for (filename, keep) in zip(filenames, self._file_mask) if keep]
-        self._numfiles = len(self._filenames)
-        self._open_files = {}
         self._take_swift_cells = take_swift_cells
+
+        # Determine which files we need to read
+        self._file_mask = self._select_files(self._filenames, take_swift_cells)
+
+        # Discard the files we're not reading
+        self._filenames = [filename for (filename, keep) in zip(self._filenames, self._file_mask) if keep]
+        self._numfiles = len(self._filenames)
+        self._open_files = {0: file0} if self._file_mask[0] else {}
 
     def _select_files(self, filenames, take_swift_cells):
         """Choose which files to open and return a boolean mask"""
