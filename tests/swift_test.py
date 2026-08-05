@@ -364,7 +364,7 @@ def test_swift_open_region_with_sparse_gas(snapshot_with_sparse_gas, test_params
     # We should be able to read the gas coordinates, and get an empty array
     # if the selection does not cover the region with gas.
     gas_pos = f.gas["pos"]
-    assert gas_pos.shape == (274,3) if expect_gas else (0,3) # cell 337 has 274 gas particles
+    assert gas_pos.shape == ((274,3) if expect_gas else (0,3)) # cell 337 has 274 gas particles
 
     # Check that the gas coordinates we got are correct
     if expect_gas:
