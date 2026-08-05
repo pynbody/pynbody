@@ -1,5 +1,7 @@
 import shutil
+from contextlib import contextmanager
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import h5py
 import numpy as np
@@ -418,3 +420,27 @@ def test_swift_open_snapshot_with_no_gas(snapshot_with_no_gas):
         order = np.argsort(snap.dm["iord"])
         return snap.dm["pos"][order,:]
     assert np.all(sorted_dm_coords(f) == sorted_dm_coords(f_full))
+
+
+@contextmanager
+def copy_test_snap():
+    with TemporaryDirectory(dir="testdata/SWIFT", prefix=f".snap_0150_copy.") as tmp:
+        tmp_snap = Path(tmp) / "snap_0150.hdf5"
+        shutil.copy("./testdata/SWIFT/snap_0150.hdf5", tmp_snap)
+        yield tmp_snap
+
+def test_swift_no_number_of_fields():
+    """Check that we reject snapshots where the NumberOfFields attribute is missing"""
+    with copy_test_snap() as tmp_snap:
+        with h5py.File(tmp_snap, "r+") as f:
+            del f["PartType1"].attrs["NumberOfFields"]
+        with raises(ValueError):
+            snap = pynbody.load(tmp_snap)
+
+def test_swift_wrong_number_of_fields():
+    """Check that we reject snapshots where the NumberOfFields attribute is wrong"""
+    with copy_test_snap() as tmp_snap:
+        with h5py.File(tmp_snap, "r+") as f:
+            f["PartType1"].attrs["NumberOfFields"] += 1
+        with raises(ValueError):
+            snap = pynbody.load(tmp_snap)
