@@ -422,25 +422,48 @@ def test_swift_open_snapshot_with_no_gas(snapshot_with_no_gas):
     assert np.all(sorted_dm_coords(f) == sorted_dm_coords(f_full))
 
 
-@contextmanager
-def copy_test_snap():
-    with TemporaryDirectory(dir="testdata/SWIFT", prefix=f".snap_0150_copy.") as tmp:
+@pytest.fixture(scope="function")
+def copied_snapshot():
+    with TemporaryDirectory(dir="testdata/SWIFT", prefix=".snap_0150_copy.") as tmp:
         tmp_snap = Path(tmp) / "snap_0150.hdf5"
         shutil.copy("./testdata/SWIFT/snap_0150.hdf5", tmp_snap)
         yield tmp_snap
 
-def test_swift_no_number_of_fields():
+def test_swift_no_number_of_fields(copied_snapshot):
     """Check that we reject snapshots where the NumberOfFields attribute is missing"""
-    with copy_test_snap() as tmp_snap:
-        with h5py.File(tmp_snap, "r+") as f:
-            del f["PartType1"].attrs["NumberOfFields"]
-        with raises(ValueError):
-            snap = pynbody.load(tmp_snap)
+    with h5py.File(copied_snapshot, "r+") as f:
+        del f["PartType1"].attrs["NumberOfFields"]
+    with raises(ValueError):
+        snap = pynbody.load(copied_snapshot)
 
-def test_swift_wrong_number_of_fields():
+def test_swift_wrong_number_of_fields(copied_snapshot):
     """Check that we reject snapshots where the NumberOfFields attribute is wrong"""
-    with copy_test_snap() as tmp_snap:
-        with h5py.File(tmp_snap, "r+") as f:
-            f["PartType1"].attrs["NumberOfFields"] += 1
-        with raises(ValueError):
-            snap = pynbody.load(tmp_snap)
+    with h5py.File(copied_snapshot, "r+") as f:
+        f["PartType1"].attrs["NumberOfFields"] += 1
+    with raises(ValueError):
+        snap = pynbody.load(copied_snapshot)
+
+
+@pytest.mark.parametrize('metadata_change', [
+    # Dataset,                         index,   new value
+    ("Cells/Counts/PartType0",         395,     811),    # wrong total number of particles (cell 395 has 810 particles)
+    ("Cells/Files/PartType0",          5,      -1),      # negative file index for cell 5
+    ("Cells/Files/PartType0",          5,       1),      # file index too large for cell 5 (it's a single file snapshot)
+    ("Cells/OffsetsInFile/PartType1",  503,     261672), # offset+count too large (cell 503 has 473 particles, there are 262144 total)
+    ("Cells/OffsetsInFile/PartType1",  1,      -1),      # negative offset for cell 1
+])
+def test_swift_wrong_cell_metadata(copied_snapshot, metadata_change):
+    """Check that we reject snapshots where cell metadata fails consistency checks"""
+    dset, index, value = metadata_change
+
+    # Modify the cell metadata
+    with h5py.File(copied_snapshot, "r+") as f:
+        f[dset][index] = value
+
+    # Reading a region fails because the cell metadata is incorrect
+    with raises(ValueError):
+        snap = pynbody.load(copied_snapshot, take_region=pynbody.filt.Sphere(50., (50., 50., 50.)))
+
+    # Reading the full snapshot does not require the cell metadata, so it still works
+    snap = pynbody.load(copied_snapshot)
+    assert isinstance(snap, pynbody.snapshot.swift.SwiftSnap)
