@@ -94,7 +94,7 @@ class _GadgetHdfMultiFileManager:
                 self._numfiles = self._numfiles[0]
             self._filenames = [self._make_filename_for_cpu(filename, i) for i in range(self._numfiles)]
             assert filename0 == self._filenames[0]
-            self._open_files[0] = file0
+            self._cache_file(0, file0)
 
     def _get_num_files(self, first_file):
         return first_file[self._nfiles_groupname].attrs[self._nfiles_attrname]
@@ -105,13 +105,16 @@ class _GadgetHdfMultiFileManager:
     def __len__(self):
         return self._numfiles
 
+    def _cache_file(self, i, h5file):
+        if self._subgroup_name is None:
+            self._open_files[i] = h5file
+        else:
+            self._open_files[i] = h5file[self._subgroup_name]
+
     def __iter__(self) :
         for i in range(self._numfiles) :
             if i not in self._open_files:
-                self._open_files[i] = h5py.File(self._filenames[i], self._mode)
-                if self._subgroup_name is not None:
-                    self._open_files[i] = self._open_files[i][self._subgroup_name]
-
+                self._cache_file(i, h5py.File(self._filenames[i], self._mode))
             yield self._open_files[i]
 
     def __getitem__(self, i) :
