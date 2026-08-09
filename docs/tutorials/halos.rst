@@ -293,6 +293,34 @@ a function of mass in this halo catalogue:
  @savefig masses_vs_vels.png width=5in
  In [21]: plt.loglog()
 
+Transferring a catalogue to another process
+-------------------------------------------
+
+Loading a halo catalogue can be expensive, and when analysing a simulation in parallel it is wasteful for every
+process to repeat the work. A catalogue can therefore be reduced to a dictionary of numpy arrays and python
+primitives, using :meth:`~pynbody.halo.HaloCatalogue.get_portable_state`:
+
+.. ipython::
+
+ In [22]: state = h.get_portable_state()
+
+ In [23]: sorted(state.keys())
+
+Nothing in this dictionary refers to the halo finder's files, or to the process that created it, so it can be
+handed to another process -- for example by copying the arrays into shared memory. There, it is turned back
+into a working halo catalogue by :meth:`~pynbody.halo.HaloCatalogue.from_portable_state`, which attaches it to
+a snapshot that the receiving process has loaded:
+
+.. ipython::
+
+ In [24]: h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(state, s)
+
+ In [25]: h_recreated[0]['vel'].std()
+
+The recreated catalogue offers the halo membership and finder-calculated properties of the original, but never
+touches the halo finder's files. Note that the snapshot it is attached to must have the same particle ordering
+as the one the state was generated from, since halo membership is stored as offsets into the snapshot.
+
 .. note::
 
     Pynbody includes infrastructure for analysing large simulations and halo catalogues using parallel processing.

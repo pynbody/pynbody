@@ -1,6 +1,7 @@
 import gc
 import os
 import pathlib
+import pickle
 import shutil
 import warnings
 
@@ -237,6 +238,48 @@ def test_incomplete_halo_error_reports_missing_particles(partially_loaded_halos)
     particles_present = halos._index_lists.get_particle_index_list_for_halo(halo_index, allow_incomplete=True)
     nbound = halos.get_properties_one_halo(halo_number)['Nbound']
     assert len(particles_present) + excinfo.value.num_missing_particles == nbound
+
+
+def test_portable_state_round_trip(halos, snap):
+    """A real catalogue, including its finder properties, survives being reduced to arrays and rebuilt"""
+    state = pickle.loads(pickle.dumps(halos.get_portable_state()))
+    halos_recreated = pynbody.halo.HaloCatalogue.from_portable_state(state, snap)
+
+    assert len(halos_recreated) == len(halos)
+    assert (halos_recreated.keys() == halos.keys()).all()
+    assert (halos_recreated[1]['iord'] == halos[1]['iord']).all()
+    assert (halos_recreated.get_group_array() == halos.get_group_array()).all()
+
+    properties = halos_recreated.get_properties_all_halos()
+    original_properties = halos.get_properties_all_halos()
+    assert (properties['Nbound'] == original_properties['Nbound']).all()
+
+    for children, original_children in zip(properties['children'], original_properties['children']):
+        assert (children == original_children).all()
+
+    # subhalos are located through the transferred 'children' property
+    parent = halos.number_mapper.index_to_number(
+        np.argmax([len(c) for c in original_properties['children']]))
+    assert len(halos_recreated[parent].subhalos) == len(halos[parent].subhalos)
+    assert (halos_recreated[parent].subhalos[0]['iord'] == halos[parent].subhalos[0]['iord']).all()
+
+
+def test_portable_state_preserves_incompleteness(partially_loaded_halos):
+    """Halos that are incomplete because of partial loading are still flagged after a round trip"""
+    halos = partially_loaded_halos()
+    halos.load_all()
+    complete, incomplete = _split_complete_and_incomplete(halos)
+
+    state = pickle.loads(pickle.dumps(halos.get_portable_state()))
+    halos_recreated = pynbody.halo.HaloCatalogue.from_portable_state(state, halos.base)
+
+    complete_recreated, incomplete_recreated = _split_complete_and_incomplete(halos_recreated)
+
+    assert complete_recreated == complete
+    assert incomplete_recreated == incomplete
+
+    for halo_number in complete[:10]:
+        assert (halos_recreated[halo_number]['iord'] == halos[halo_number]['iord']).all()
 
 
 def test_fully_loaded_halos_are_never_incomplete(halos):

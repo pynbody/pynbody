@@ -47,6 +47,28 @@ class HaloParticleIndices:
         self.particle_index_list_boundaries = boundaries
         self.num_missing_particles = num_missing_particles
 
+    def get_portable_state(self) -> dict:
+        """Return a dictionary of numpy arrays describing the halo membership.
+
+        The dictionary can be turned back into a :class:`HaloParticleIndices` by
+        :meth:`from_portable_state`, and contains nothing that is tied to the present process, so it may be
+        transferred elsewhere in between (see :meth:`pynbody.halo.HaloCatalogue.get_portable_state`).
+
+        Any information about particles that are missing from the snapshot is included, so that halos which
+        are incomplete here remain flagged as incomplete after the round trip."""
+        state = {'particle_index_list': np.asarray(self.particle_index_list),
+                 'particle_index_list_boundaries': np.asarray(self.particle_index_list_boundaries)}
+        if self.num_missing_particles is not None:
+            state['num_missing_particles'] = np.asarray(self.num_missing_particles)
+        return state
+
+    @classmethod
+    def from_portable_state(cls, state: dict) -> 'HaloParticleIndices':
+        """Recreate an object from a dictionary previously returned by :meth:`get_portable_state`."""
+        return cls(particle_ids=state['particle_index_list'],
+                   boundaries=state['particle_index_list_boundaries'],
+                   num_missing_particles=state.get('num_missing_particles'))
+
     def get_num_missing_particles_for_halo(self, halo_index) -> int:
         """Get the number of particles that are missing from the snapshot for the specified halo index"""
         if self.num_missing_particles is None:

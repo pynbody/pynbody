@@ -4,8 +4,55 @@ from typing import Union
 import numpy as np
 from numpy import typing as npt
 
+#: Value of the ``type`` entry in a portable state that is to be interpreted as a plain list of halo numbers,
+#: in index order, rather than as a description of a specific mapper class.
+_FROM_HALO_NUMBERS = 'halo_numbers'
+
+
+def _iter_subclasses(cls):
+    """Iterate recursively over all subclasses of the given class"""
+    for subclass in cls.__subclasses__():
+        yield subclass
+        yield from _iter_subclasses(subclass)
+
 
 class HaloNumberMapper(ABC):
+
+    def get_portable_state(self) -> dict:
+        """Return a dictionary of numpy arrays and python primitives describing this mapper.
+
+        The dictionary contains a ``type`` entry saying how it should be interpreted, plus whatever other
+        information is needed. It can be turned back into a mapper by :meth:`from_portable_state`, and
+        contains nothing that is tied to the present process, so it may be transferred elsewhere in between
+        (see :meth:`pynbody.halo.HaloCatalogue.get_portable_state`).
+
+        The default implementation stores the halo numbers in index order, which is always enough to recreate
+        the mapping, if not necessarily the exact class. Subclasses override this where they can describe
+        themselves more compactly or more precisely."""
+        return {'type': _FROM_HALO_NUMBERS, 'halo_numbers': np.asarray(self.all_numbers)}
+
+    @classmethod
+    def from_portable_state(cls, state: dict) -> 'HaloNumberMapper':
+        """Recreate a mapper from a dictionary previously returned by :meth:`get_portable_state`."""
+        state = dict(state)
+        type_name = state.pop('type')
+
+        if type_name == _FROM_HALO_NUMBERS:
+            halo_numbers = state['halo_numbers']
+            if len(halo_numbers) == 0:
+                return SimpleHaloNumberMapper(0, 0)
+            return create_halo_number_mapper(halo_numbers)
+
+        for subclass in _iter_subclasses(HaloNumberMapper):
+            if subclass.__name__ == type_name:
+                return subclass._from_portable_state(state)
+
+        raise ValueError(f"Unknown halo number mapper type '{type_name}'")
+
+    @classmethod
+    def _from_portable_state(cls, state: dict) -> 'HaloNumberMapper':
+        """Recreate a mapper of this specific class, given the state without its ``type`` entry"""
+        raise NotImplementedError(f"{cls.__name__} does not know how to recreate itself from a portable state")
 
     @abstractmethod
     def number_to_index(self, halo_number: Union[int, npt.NDArray[int]]) -> Union[int, npt.NDArray[int]]:
@@ -46,6 +93,15 @@ class MonotonicHaloNumberMapper(HaloNumberMapper):
         assert np.all(np.diff(halo_numbers) > 0)
         self._halo_numbers = halo_numbers
 
+    def get_portable_state(self) -> dict:
+        # NB the class is named explicitly, rather than taken from type(self), so that any subclass which
+        # does not override this method is recreated as the class whose description is actually being stored
+        return {'type': 'MonotonicHaloNumberMapper', 'halo_numbers': np.asarray(self._halo_numbers)}
+
+    @classmethod
+    def _from_portable_state(cls, state: dict) -> 'MonotonicHaloNumberMapper':
+        return cls(state['halo_numbers'])
+
     def number_to_index(self, halo_number: Union[int, npt.NDArray[int]]) -> Union[int, npt.NDArray[int]]:
         """Convert a halo number to a zero-based index """
         halo_number = np.asarray(halo_number)
@@ -83,6 +139,14 @@ class SimpleHaloNumberMapper(HaloNumberMapper):
         """A HaloNumberMapper where the relationship between halo numbers and indices is simply an offset"""
         self.zero_offset = zero_offset
         self.num_halos = num_halos
+
+    def get_portable_state(self) -> dict:
+        return {'type': 'SimpleHaloNumberMapper', 'zero_offset': int(self.zero_offset),
+                'num_halos': int(self.num_halos)}
+
+    @classmethod
+    def _from_portable_state(cls, state: dict) -> 'SimpleHaloNumberMapper':
+        return cls(state['zero_offset'], state['num_halos'])
 
     def number_to_index(self, halo_number: Union[int, npt.NDArray[int]]) -> Union[int, npt.NDArray[int]]:
         if hasattr(halo_number, "__len__"):
@@ -158,6 +222,11 @@ class NonMonotonicHaloNumberMapper(MonotonicHaloNumberMapper):
             self.original_halo_numbers = halo_numbers_or_ordering
             sorted_halo_numbers = halo_numbers_or_ordering[self.sorted_to_unsorted_index]
         super().__init__(sorted_halo_numbers)
+
+    def get_portable_state(self) -> dict:
+        # the halo numbers in index order are enough to reconstruct the mapping; the orderings are
+        # derived from them by __init__
+        return {'type': 'NonMonotonicHaloNumberMapper', 'halo_numbers': np.asarray(self.original_halo_numbers)}
 
     def number_to_index(self, halo_number: Union[int, npt.NDArray[int]]) -> Union[int, npt.NDArray[int]]:
         halo_index_sorted = super().number_to_index(halo_number)
