@@ -269,7 +269,12 @@ def test_load_planetary():
           [35.47905534, 55.80711974, 68.81765962],
           [35.50355171, 60.95662443, 54.52549088]])
 
-
+def test_load_planetary_region():
+    # The planetary example is an incomplete snapshot with all cell counts
+    # equal to zero, so this should fail
+    with raises(ValueError) as excinfo:
+        f = pynbody.load("testdata/SWIFT/planetary.hdf5", take_region=pynbody.filt.Sphere(10., (60., 60., 60.)))
+    assert "No spatial index" in str(excinfo.value)
 
 def test_planetary_physical_units():
     f = pynbody.load("testdata/SWIFT/planetary.hdf5")

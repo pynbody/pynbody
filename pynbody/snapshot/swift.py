@@ -128,6 +128,8 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
             self._cells[name]["files"] = h1["Cells/Files"][name][...]
             self._cells[name]["offsets"] = h1["Cells/OffsetsInFile"][name][...]
             # Do some sanity checks
+            if np.all(self._cells[name]["counts"] == 0):
+                raise ValueError("No spatial index found in this snapshot; unable to load a region.")
             if np.any(self._cells[name]["counts"] < 0):
                 raise ValueError("A SWIFT cell contains a negative number of particles!")
             if np.any((self._cells[name]["files"] < 0) | (self._cells[name]["files"] >= num_files)):
