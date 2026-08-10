@@ -308,3 +308,11 @@ class SwiftSnap(GadgetHDFSnap):
                 return GadgetHDFSnap._get_hdf_allarray_keys(group)
         else:
             raise ValueError(f"The expected NumberOfFields attribute of group {group.name} is not present")
+
+    def write_array(self, *args, **kwargs):
+        """
+        We can't yet write arrays if we selected a region or cells
+        """
+        if self._take_region is not None or self._take_swift_cells is not None:
+            raise NotImplementedError("Unable to write array to a selected region or cells")
+        super().write_array(*args, **kwargs)

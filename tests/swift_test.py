@@ -489,3 +489,14 @@ def test_swift_add_field(copied_snapshot):
     # Check it can still be loaded
     with pytest.warns(RuntimeWarning):
         snap = pynbody.load(copied_snapshot)
+
+
+def test_swift_write_array_to_region(copied_snapshot):
+
+    # Open a region in the snapshot and create a new array
+    snap = pynbody.load(copied_snapshot, take_region=pynbody.filt.Sphere(50., (50., 50., 50.)))
+    snap['test_array'] = np.random.uniform(0, 1, len(snap))
+
+    # Writing the new array should not work
+    with pytest.raises(NotImplementedError):
+        snap['test_array'].write()
