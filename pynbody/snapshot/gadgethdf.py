@@ -723,10 +723,14 @@ class GadgetHDFSnap(SimSnap):
                                                               target_array_this.dtype)
     
                     dataset.write_direct(target_array_this.reshape(dataset.shape))
-    
+                    self._update_group_attributes_on_write(hdf)
                     i0 = i1
         finally:
             self._hdf_files.reopen_in_mode('r')
+
+    def _update_group_attributes_on_write(self, hdf):
+        """Sub-classes might have group metadata to update on writing arrays"""
+        pass
 
     @staticmethod
     def _get_hdf_allarray_keys(group):
@@ -749,6 +753,7 @@ class GadgetHDFSnap(SimSnap):
             ret =ret[tpart]
 
         dataset_name = hdf_name.split("/")[-1]
+
         return ret.require_dataset(dataset_name, shape, dtype, exact=True)
 
 

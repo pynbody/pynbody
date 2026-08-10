@@ -487,8 +487,7 @@ def test_swift_add_field(copied_snapshot):
     snap['test_array'].write()
 
     # Check it can still be loaded
-    with pytest.warns(RuntimeWarning):
-        snap = pynbody.load(copied_snapshot)
+    snap = pynbody.load(copied_snapshot)
 
 
 def test_swift_write_array_to_region(copied_snapshot):

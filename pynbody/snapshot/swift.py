@@ -316,3 +316,10 @@ class SwiftSnap(GadgetHDFSnap):
         if self._take_region is not None or self._take_swift_cells is not None:
             raise NotImplementedError("Unable to write array to a selected region or cells")
         super().write_array(*args, **kwargs)
+
+    def _update_group_attributes_on_write(self, hdf):
+        """
+        Update group's NumberOfFields attribute on writing an array
+        """
+        if "NumberOfFields" in hdf.attrs:
+            hdf.attrs.modify("NumberOfFields", (len(hdf),))
