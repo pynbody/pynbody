@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 import numpy.testing as npt
 import pytest
-from pytest import raises
+from pytest import raises, warns
 
 import pynbody
 import pynbody.halo.velociraptor
@@ -446,10 +446,10 @@ def test_swift_no_number_of_fields(copied_snapshot):
         snap = pynbody.load(copied_snapshot)
 
 def test_swift_wrong_number_of_fields(copied_snapshot):
-    """Check that we reject snapshots where the NumberOfFields attribute is wrong"""
+    """Check that we warn on snapshots where the NumberOfFields attribute is wrong"""
     with h5py.File(copied_snapshot, "r+") as f:
         f["PartType1"].attrs["NumberOfFields"] += 1
-    with raises(ValueError):
+    with warns(RuntimeWarning):
         snap = pynbody.load(copied_snapshot)
 
 
@@ -476,3 +476,16 @@ def test_swift_wrong_cell_metadata(copied_snapshot, metadata_change):
     # Reading the full snapshot does not require the cell metadata, so it still works
     snap = pynbody.load(copied_snapshot)
     assert isinstance(snap, pynbody.snapshot.swift.SwiftSnap)
+
+
+def test_swift_add_field(copied_snapshot):
+    """Check that the snapshot is still readable if we write a new field"""
+
+    # Open the snapshot and write a new array
+    snap = pynbody.load(copied_snapshot)
+    snap['test_array'] = np.random.uniform(0, 1, len(snap))
+    snap['test_array'].write()
+
+    # Check it can still be loaded
+    with pytest.warns(RuntimeWarning):
+        snap = pynbody.load(copied_snapshot)
