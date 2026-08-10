@@ -478,16 +478,79 @@ def test_swift_wrong_cell_metadata(copied_snapshot, metadata_change):
     assert isinstance(snap, pynbody.snapshot.swift.SwiftSnap)
 
 
-def test_swift_add_field(copied_snapshot):
-    """Check that the snapshot is still readable if we write a new field"""
+@contextmanager
+def tmp_directory_copy(src_dir):
+    """Make a temporary copy of a directory containing snapshot files"""
+    src_dir = Path(src_dir)
+    with TemporaryDirectory(dir=src_dir.parent, prefix=f".{src_dir.name}.") as tmp_dir:
+        dest_dir = Path(tmp_dir) / src_dir.name
+        shutil.copytree(src_dir, dest_dir)
+        yield dest_dir
 
+
+@pytest.fixture
+def writable_sparse_gas(snapshot_with_sparse_gas):
+    with tmp_directory_copy(Path(snapshot_with_sparse_gas).parent) as tmp:
+        try:
+            yield tmp / Path(snapshot_with_sparse_gas).name
+        finally:
+            # Ensure HDF5 files are closed
+            import gc
+            gc.collect()
+
+
+def test_swift_add_field(writable_sparse_gas):
+    """
+    Check that the snapshot is still readable if we write a new field
+
+    Use the sparse gas fixture so we test single and multi file snapshots
+    and cases with and without zero sized datasets present.
+    """
     # Open the snapshot and write a new array
-    snap = pynbody.load(copied_snapshot)
-    snap['test_array'] = np.random.uniform(0, 1, len(snap))
+    snap = pynbody.load(writable_sparse_gas)
+    test_array = np.random.uniform(0, 1, len(snap))
+    snap['test_array'] = test_array
     snap['test_array'].write()
 
-    # Check it can still be loaded
-    snap = pynbody.load(copied_snapshot)
+    # Check it can still be loaded back in
+    snap = pynbody.load(writable_sparse_gas)
+    assert np.all(snap['test_array'] == test_array)
+
+    # Should have a new array for all groups with a ParticleIDs dataset, even
+    # if the group contains no particles.
+    for f in snap._hdf_files:
+        for group_name, group in f.items():
+            if group_name.startswith("PartType"):
+                assert "test_array" in group
+                assert group["ParticleIDs"].shape == group["test_array"].shape
+
+
+def test_swift_add_field_for_family(writable_sparse_gas):
+    """
+    Test writing a new field for one family only.
+
+    Use the sparse gas fixture so we test single and multi file snapshots
+    and cases with and without zero sized datasets present.
+    """
+    # Open the snapshot and write a new array
+    snap = pynbody.load(writable_sparse_gas)
+    test_array = np.random.uniform(0, 1, len(snap.gas))
+    snap.gas['test_array'] = test_array
+    snap.gas['test_array'].write()
+
+    # Check it can still be loaded back in
+    snap = pynbody.load(writable_sparse_gas)
+    assert np.all(snap.gas['test_array'] == test_array)
+
+    # Should have a new array for all gas groups, even if there are zero
+    # gas particles
+    for f in snap._hdf_files:
+        for group_name, group in f.items():
+            if group_name == "PartType0":
+                assert "test_array" in group
+                assert group["ParticleIDs"].shape == group["test_array"].shape
+            elif group_name.startswith("PartType"):
+                assert "test_array" not in group
 
 
 def test_swift_write_array_to_region(copied_snapshot):
