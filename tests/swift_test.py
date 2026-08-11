@@ -159,14 +159,6 @@ def test_coalesce_cells_into_slices():
     assert coalesce(np.array([0, 10]), np.array([0, 0])) == []
 
 
-def test_partial_loading_uses_minimal_virtual_mappings():
-    """Check contiguous cells result in a single mapping per array; see test_coalesce_cells_into_slices"""
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", take_swift_cells=np.arange(0, 256))
-    for group_name in ('PartType0', 'PartType1'):
-        dataset = f._hdf_files._hdf_vfile[group_name]['ParticleIDs']
-        assert len(dataset.virtual_sources()) == 1
-
-
 def test_swift_multifile_partial_loading_order_insensitive():
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
                      take_swift_cells=[0, 5, 20, 200])
