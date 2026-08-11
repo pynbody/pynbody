@@ -988,7 +988,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     # WRITING FUNCTIONS
     ############################################
     def write(self, fmt=None, filename=None, **kwargs):
-        if filename is None and "<" in self.filename:
+        if filename is None and "<" in str(self.filename):
             raise RuntimeError(
                 'Cannot infer a filename; please provide one (use obj.write(filename="filename"))')
 
