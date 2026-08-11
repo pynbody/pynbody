@@ -81,18 +81,20 @@ class _GadgetHdfMultiFileManager:
     def __init__(self, filename, mode='r') :
         filename = str(filename)
         self._mode = mode
+        self._open_files = {}
         if h5py.is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1
         else:
-            h1 = h5py.File(self._make_filename_for_cpu(filename, 0), mode)
-            self._numfiles = self._get_num_files(h1)
+            filename0 = self._make_filename_for_cpu(filename, 0)
+            file0 = h5py.File(filename0, mode)
+            self._numfiles = self._get_num_files(file0)
             if hasattr(self._numfiles, "__len__"):
                 assert len(self._numfiles) == 1
                 self._numfiles = self._numfiles[0]
             self._filenames = [self._make_filename_for_cpu(filename, i) for i in range(self._numfiles)]
-
-        self._open_files = {}
+            assert filename0 == self._filenames[0]
+            self._cache_file(0, file0)
 
     def _get_num_files(self, first_file):
         return first_file[self._nfiles_groupname].attrs[self._nfiles_attrname]
@@ -103,13 +105,16 @@ class _GadgetHdfMultiFileManager:
     def __len__(self):
         return self._numfiles
 
+    def _cache_file(self, i, h5file):
+        if self._subgroup_name is None:
+            self._open_files[i] = h5file
+        else:
+            self._open_files[i] = h5file[self._subgroup_name]
+
     def __iter__(self) :
         for i in range(self._numfiles) :
             if i not in self._open_files:
-                self._open_files[i] = h5py.File(self._filenames[i], self._mode)
-                if self._subgroup_name is not None:
-                    self._open_files[i] = self._open_files[i][self._subgroup_name]
-
+                self._cache_file(i, h5py.File(self._filenames[i], self._mode))
             yield self._open_files[i]
 
     def __getitem__(self, i) :
@@ -465,8 +470,6 @@ class HDFArrayLoader:
         # Find the first dataset for this family to determine file element size
         first_dataset = None
         for hdf_group_name in self._family_to_group_map[loading_fam]:
-            if self._file_ptype_slice[hdf_group_name].stop <= self._file_ptype_slice[hdf_group_name].start:
-                continue
             for hdf_group in self._hdf_files.iter_particle_groups_with_name(hdf_group_name):
                 first_dataset = self._get_dataset_from_translated_names(sim, hdf_group, translated_names)
                 if first_dataset is not None:
@@ -532,14 +535,20 @@ class GadgetHDFSnap(SimSnap):
         self._init_unit_information()
         self.__init_family_map()
 
-        take = kwargs.pop("take", None)
+        take = self._get_take_parameter(**kwargs)
         self.partial_load = take is not None
         self.__init_file_map(take)
-        self._remove_empty_particle_groups()
         self.__init_loadable_keys()
         self.__infer_mass_dtype()
         self._init_properties()
         self._decorate()
+
+    def _get_take_parameter(self, **kwargs):
+        """This can be overridden by sub-classes to allow alternate ways to
+        specify subsets of particles to read. For standard GadgetHDF snapshots
+        we just allow specifying an array of particle indexes with take=...
+        """
+        return kwargs.pop("take", None)
 
     def _have_softening_for_particle_type(self, particle_type):
         attrs = self._get_hdf_parameter_attrs()
@@ -628,15 +637,6 @@ class GadgetHDFSnap(SimSnap):
         self._family_slice = self._array_loader._family_slice_to_load
         self._num_particles = self._array_loader._num_particles_to_load
 
-    def _remove_empty_particle_groups(self):
-        """Remove particle groups that contain no particles from the internal family mapping.
-
-        This is important for some formats like Arepo where tracer particles might be defined
-        but not present, which can cause issues with `HaloCatalogue`.
-        """
-        for family_name in self._family_to_group_map:
-            self._family_to_group_map[family_name] = [group_name for group_name in self._family_to_group_map[family_name]
-                                           if self._gadget_ptype_slice[group_name].stop > self._gadget_ptype_slice[group_name].start]
 
     def __infer_mass_dtype(self):
         """Some files have a mixture of header-based masses and, for other partile types, explicit mass
@@ -658,10 +658,13 @@ class GadgetHDFSnap(SimSnap):
         type_map = {}
         for fam, g_types in _default_type_map.items():
             my_types = []
+            # Loop over particle type groups for this family (PartType1, PartType2, ...)
             for x in g_types:
-                # Get all keys from all hdf files
+                # Find instances of this group in all files. Discard any that
+                # don't have the dataset we'd use to get the number of
+                # particles (e.g. Arepo tracers don't have ParticleIDs)
                 for hdf in self._hdf_files:
-                    if x in list(hdf.keys()):
+                    if x in hdf and self._hdf_files._size_from_hdf5_key in hdf[x]:
                         my_types.append(x)
                         break
             if len(my_types):
@@ -720,10 +723,14 @@ class GadgetHDFSnap(SimSnap):
                                                               target_array_this.dtype)
     
                     dataset.write_direct(target_array_this.reshape(dataset.shape))
-    
+                    self._update_group_attributes_on_write(hdf)
                     i0 = i1
         finally:
             self._hdf_files.reopen_in_mode('r')
+
+    def _update_group_attributes_on_write(self, hdf):
+        """Sub-classes might have group metadata to update on writing arrays"""
+        pass
 
     @staticmethod
     def _get_hdf_allarray_keys(group):
@@ -746,6 +753,7 @@ class GadgetHDFSnap(SimSnap):
             ret =ret[tpart]
 
         dataset_name = hdf_name.split("/")[-1]
+
         return ret.require_dataset(dataset_name, shape, dtype, exact=True)
 
 
