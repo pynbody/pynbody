@@ -23,9 +23,10 @@ def load_kwargs(request):
         server = request.config.getoption("--hdfstream-server")
         if server is None:
             pytest.skip("hdfstream server URL not specified")
-        # Check we have the client module
+        # Check we have the client module. If a server is specified but the
+        # client module is not present, tests should fail rather than skip.
         if hdfstream is None:
-            pytest.skip("hdfstream client module not available")
+            raise RuntimeError("Server URL was specified but the hdfstream module could not be imported")
         # We might not have a valid certificate in development builds of the server
         hdfstream.verify_cert(not request.config.getoption("--no-verify-cert"))
         # Pynbody test data might be in a subdirectory on the server
