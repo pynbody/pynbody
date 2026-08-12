@@ -31,6 +31,10 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
     """
 
+    # halo membership is expressed as offsets and lengths within the snapshot's own ordering, rather than as
+    # particle IDs, so there is no way to tell whether any particles are missing
+    _can_determine_completeness = False
+
     # Names of various groups and attributes in the hdf file (which vary in different versions of SubFind)
 
     _fof_name = 'FOF'

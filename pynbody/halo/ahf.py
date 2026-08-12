@@ -12,7 +12,7 @@ import warnings
 import numpy as np
 
 from .. import snapshot, util
-from . import HaloCatalogue, HaloParticleIndices, logger
+from . import HaloCatalogue, IncompleteHaloError, logger
 from .details.number_mapping import (
     NonMonotonicHaloNumberMapper,
     SimpleHaloNumberMapper,
@@ -126,6 +126,11 @@ class AHFCatalogue(HaloCatalogue):
 
         if self._use_iord:
             self._init_iord_to_fpos()
+
+        # only the new format maps its particle IDs; otherwise they are interpreted as offsets within the
+        # snapshot's families, and there is no way to tell whether any particles are missing
+        if not (self._use_iord and self._is_new_format):
+            self._can_determine_completeness = False
 
         try:
             self._load_ahf_substructure(self._ahfBasename + 'substructure')
@@ -262,7 +267,10 @@ class AHFCatalogue(HaloCatalogue):
         return self._fpos
 
     def _load_ahf_particle_block(self, f, nparts):
-        """Load the particles for the next halo described in particle file f"""
+        """Load the particles for the next halo described in particle file f
+
+        Returns the particles' offsets within the snapshot, together with the number of particles which are
+        not present in it (which is always zero unless the snapshot has been partially loaded)."""
         if self._is_new_format:
             if not isinstance(f, gzip.GzipFile):
                 data = np.fromfile(
@@ -279,8 +287,9 @@ class AHFCatalogue(HaloCatalogue):
                 for i in range(nparts):
                     data[i] = int(f.readline().split()[0])
 
-            data = self._ahf_to_pynbody_particle_ids(data)
+            data, num_missing = self._ahf_to_pynbody_particle_ids(data)
         else:
+            num_missing = 0
             if not isinstance(f, gzip.GzipFile):
                 data = np.fromfile(f, dtype=int, sep=" ", count=nparts)
             else:
@@ -289,15 +298,19 @@ class AHFCatalogue(HaloCatalogue):
                 for i in range(nparts):
                     data[i] = int(f.readline())
         data.sort()
-        return data
+        return data, num_missing
 
     def _ahf_to_pynbody_particle_ids(self, data):
+        """Map AHF particle IDs onto offsets within the snapshot.
+
+        Returns the offsets, together with the number of particles which are not present in the snapshot."""
         ng = len(self.base.gas)
         nd = len(self.base.dark)
         ns = len(self.base.star)
         nds = nd + ns
+        num_missing = 0
         if self._use_iord:
-            data = self._iord_to_fpos.map_ignoring_order(data)
+            data, num_missing = self._map_iords_to_fpos(data)
         elif isinstance(self.base, snapshot.ramses.RamsesSnap):
             # AHF only expects three families, DM, star, gas in this order
             # and generates iords on disc according to this rule
@@ -335,29 +348,30 @@ class AHFCatalogue(HaloCatalogue):
             g_mask = data >= nds
             data[np.where(st_mask)] += ng
             data[np.where(g_mask)] -= ns
-        return data
+        return data, num_missing
 
     def _get_particle_indices_one_halo(self, halo_number):
         fpos = self._get_file_positions()
         file_index = self.number_mapper.number_to_index(halo_number)
         with util.open_(self._ahfBasename + 'particles') as f:
             f.seek(fpos[file_index],0)
-            ids = self._load_ahf_particle_block(f, nparts=self._halo_properties['npart'][file_index])
+            ids, num_missing = self._load_ahf_particle_block(f, nparts=self._halo_properties['npart'][file_index])
+        if num_missing > 0:
+            raise IncompleteHaloError(halo_number, num_missing)
         return ids
 
     def _get_all_particle_indices(self):
         fpos = self._get_file_positions()
-        boundaries = np.cumsum(np.concatenate(([0], self._halo_properties['npart'])))
-        boundaries = np.vstack((boundaries[:-1], boundaries[1:])).T
-        particle_ids = np.empty(boundaries[-1,1], dtype=int)
-        with util.open_(self._ahfBasename + 'particles') as f:
-            for i in range(len(self._halo_properties['npart'])):
-                nparts = self._halo_properties['npart'][i]
+        npart_per_halo = self._halo_properties['npart']
+
+        def mapped_iords_per_halo(f):
+            for i, nparts in enumerate(npart_per_halo):
                 f.seek(fpos[i])
-                start = boundaries[i,0]
-                end = boundaries[i,1]
-                particle_ids[start:end] = self._load_ahf_particle_block(f, nparts=nparts)        
-        return HaloParticleIndices(particle_ids=particle_ids, boundaries=boundaries)
+                yield self._load_ahf_particle_block(f, nparts=nparts)
+
+        with util.open_(self._ahfBasename + 'particles') as f:
+            return self._assemble_particle_indices(mapped_iords_per_halo(f), num_halos=len(npart_per_halo),
+                                                   num_particles=npart_per_halo.sum())
 
 
     def get_properties_one_halo(self, i):

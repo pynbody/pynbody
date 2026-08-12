@@ -27,6 +27,10 @@ class SubhaloCatalogue(HaloCatalogue):
     def load_all(self):
         self._full_halo_catalogue.load_all()
 
+    @property
+    def _can_determine_completeness(self):
+        return self._full_halo_catalogue._can_determine_completeness
+
     def _is_loaded(self):
         return self._full_halo_catalogue._is_loaded()
 

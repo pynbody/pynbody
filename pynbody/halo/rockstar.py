@@ -94,7 +94,7 @@ class RockstarCatalogue(HaloCatalogue):
         cpu = self._cpu_per_halo[halo_index]
         iords = self._cpus[cpu].read_iords_for_halo(halo_number)
         self._init_iord_to_fpos()
-        return self._iord_to_fpos.map_ignoring_order(iords)
+        return self._map_iords_to_fpos_one_halo(iords, halo_number)
 
     def _get_all_particle_indices(self):
         iords = np.empty(0, dtype=int)
@@ -105,11 +105,12 @@ class RockstarCatalogue(HaloCatalogue):
             iords = np.append(iords, iords_this_cpu)
 
         self._init_iord_to_fpos()
-        fpos = iords # nb this doesn't copy! but we won't use the iords again after this, so it's ok
-        for a, b in boundaries:
-            # iord_to_fpos may not retain ordering, so have to do this per halo
-            fpos[a:b] = self._iord_to_fpos.map_ignoring_order(iords[a:b])
-        return fpos, boundaries
+
+        # iord_to_fpos may not retain ordering, so the mapping has to be done per halo
+        return self._assemble_particle_indices(
+            (self._map_iords_to_fpos(iords[a:b]) for a, b in boundaries),
+            num_halos=len(boundaries), num_particles=len(iords)
+        )
 
     def get_properties_one_halo(self, halo_number):
         halo_index = self.number_mapper.number_to_index(halo_number)

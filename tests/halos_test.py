@@ -334,6 +334,36 @@ def test_complete_keys_avoids_efficiency_warning(incomplete_halos):
             incomplete_halos[halo_number]
 
 
+class SimpleHaloCatalogueWithoutCompletenessInformation(SimpleHaloCatalogue):
+    """A catalogue of the kind that identifies its particles by position rather than by ID"""
+
+    _can_determine_completeness = False
+
+
+def test_warning_when_completeness_cannot_be_determined(snap_for_incomplete_halos):
+    """Catalogues which cannot detect missing particles must say so rather than claiming completeness"""
+    halos = SimpleHaloCatalogueWithoutCompletenessInformation(snap_for_incomplete_halos)
+
+    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
+        assert (halos.complete_keys() == halos.keys()).all()
+
+    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
+        assert halos.is_complete(1)
+
+    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
+        assert halos.get_complete_mask().all()
+
+
+def test_completeness_warning_does_not_require_load_all(snap_for_incomplete_halos):
+    """There is nothing to be gained by loading the halos, so the question is answered without doing so"""
+    halos = SimpleHaloCatalogueWithoutCompletenessInformation(snap_for_incomplete_halos)
+
+    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
+        halos.complete_keys(load_all_if_required=False)
+
+    assert halos._index_lists is None
+
+
 def test_subhalo_catalogue_completeness(incomplete_halos):
     """A subhalo catalogue is a view onto its parent, and must report completeness in its own numbering"""
     from pynbody.halo.subhalo_catalogue import SubhaloCatalogue
@@ -626,6 +656,14 @@ def test_grp_catalogue_with_ignore_value(snap_with_grp, do_load_all, ignore_valu
         for halo_number in range(1,10):
             if halo_number != ignore_value:
                 assert (h[halo_number]['id'] == f[f['grp'] == halo_number]['id']).all()
+
+def test_grp_catalogue_cannot_determine_completeness(snap_with_grp):
+    """The halo number array covers only the loaded particles, so completeness cannot be established"""
+    h = pynbody.halo.number_array.HaloNumberCatalogue(snap_with_grp)
+
+    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
+        assert (h.complete_keys() == h.keys()).all()
+
 
 def test_grp_catalogue_generated(snap_with_grp):
     h = snap_with_grp.halos()

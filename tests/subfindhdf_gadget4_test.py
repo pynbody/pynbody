@@ -225,3 +225,12 @@ def test_eps_array(snap_arepo, snap):
     assert np.allclose(snap_arepo['eps'][[0,-1000,-1]],[0.0025, 0.0005, 0.04])
     assert snap['eps'].units == '3.085678e+24 cm a h^-1'
     assert snap_arepo['eps'].units == '3.085678e+24 cm a h^-1'
+
+
+def test_cannot_determine_completeness(halos):
+    """Subfind identifies its particles by position in the snapshot, so missing particles cannot be detected"""
+    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
+        assert (halos.complete_keys() == halos.keys()).all()
+
+    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
+        assert halos.is_complete(halos.keys()[0])
