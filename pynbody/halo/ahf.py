@@ -98,6 +98,13 @@ class AHFCatalogue(HaloCatalogue):
         self._only_stat = only_stat
         self._try_writing_fpos = write_fpos
 
+        # If we are not using iords, the AHF particle ids are offsets within the snapshot's families, so we
+        # already know a partially loaded snapshot is unusable. Check now, before going looking for files, so
+        # that the user gets a useful explanation rather than a failure to locate the catalogue. (If we *are*
+        # using iords, whether the ids are mapped also depends on the file format revision, established below.)
+        self._uses_file_position_addressing = not use_iord
+        self._refuse_if_snapshot_partially_loaded(sim)
+
         if only_stat:
             warnings.warn(DeprecationWarning("only_stat keyword is deprecated; instead, use the catalogue's get_dummy_halo method"))
 
@@ -120,17 +127,16 @@ class AHFCatalogue(HaloCatalogue):
 
         number_mapper = self._setup_halo_numbering(halo_numbers)
 
-        super().__init__(sim, number_mapper)
+        # only the new format maps its particle IDs; otherwise they are interpreted as offsets within the
+        # snapshot's families, which is only meaningful if all the particles are present
+        self._uses_file_position_addressing = not (self._use_iord and self._is_new_format)
+
+        super().__init__(sim, number_mapper) # rechecks partial loading, now the file format is known
 
         self._remap_host_halo_property()
 
         if self._use_iord:
             self._init_iord_to_fpos()
-
-        # only the new format maps its particle IDs; otherwise they are interpreted as offsets within the
-        # snapshot's families, and there is no way to tell whether any particles are missing
-        if not (self._use_iord and self._is_new_format):
-            self._can_determine_completeness = False
 
         try:
             self._load_ahf_substructure(self._ahfBasename + 'substructure')

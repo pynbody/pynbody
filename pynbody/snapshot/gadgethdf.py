@@ -94,6 +94,9 @@ class _GadgetHdfMultiFileManager:
     _size_from_hdf5_key = "ParticleIDs"
     _subgroup_name = None
 
+    only_one_file_of_a_set = False
+    """True if we have been pointed at a single file which declares itself to be one of a multi-file set"""
+
     def __init__(self, filename, mode='r') :
         filename = str(filename)
         self._mode = mode
@@ -101,6 +104,11 @@ class _GadgetHdfMultiFileManager:
         if h5py.is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1
+            file0 = _open_hdf_file(filename, mode)
+            # the user has pointed us at a single hdf5 file; if it declares itself to be one of a set, we are
+            # seeing only part of the snapshot, and must say so (see SimSnap.is_partially_loaded)
+            self.only_one_file_of_a_set = self._get_declared_num_files(file0) > 1
+            self._cache_file(0, file0)
         else:
             filename0 = self._make_filename_for_cpu(filename, 0)
             file0 = _open_hdf_file(filename0, mode)
@@ -114,6 +122,18 @@ class _GadgetHdfMultiFileManager:
 
     def _get_num_files(self, first_file):
         return first_file[self._nfiles_groupname].attrs[self._nfiles_attrname]
+
+    def _get_declared_num_files(self, first_file):
+        """Return the number of files the given file believes its snapshot to be spread across.
+
+        Returns 1 if the file does not say, since then there is no evidence of any other files."""
+        try:
+            num_files = self._get_num_files(first_file)
+        except KeyError:
+            return 1
+        if hasattr(num_files, "__len__"):
+            num_files = num_files[0]
+        return int(num_files)
 
     def _make_filename_for_cpu(self, filename, n):
         return filename + f".{n}.hdf5"
@@ -553,6 +573,7 @@ class GadgetHDFSnap(SimSnap):
 
         take = self._get_take_parameter(**kwargs)
         self.partial_load = take is not None
+        self.incomplete_file_set = self._hdf_files.only_one_file_of_a_set
         self.__init_file_map(take)
         self.__init_loadable_keys()
         self.__infer_mass_dtype()

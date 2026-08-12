@@ -280,11 +280,8 @@ def test_complete_keys_of_combined_catalogue(halos_length_ordered, subfind_group
     """The combined catalogue and its subhalo views delegate completeness to the catalogues they wrap"""
     combined = halos_length_ordered.with_groups_from(subfind_groups)
 
-    # the particles of the combined catalogue come from subfind, which cannot detect missing particles
-    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
-        assert (combined.complete_keys() == subfind_groups.keys()).all()
+    assert (combined.complete_keys() == subfind_groups.keys()).all()
 
-    # the subhalos, on the other hand, come from HBT+, which can
     subhalos = combined[0].subhalos
     assert (subhalos.complete_keys() == subhalos.keys()).all()
 

@@ -71,8 +71,8 @@ class SubfindCatalogue(HaloCatalogue):
             self._ordered = bool((sim['iord']==np.arange(len(sim))).all())
 
         # when the snapshot is taken to be ordered, the catalogue's particle IDs are used directly as offsets
-        # into it, so there is no way to tell whether any particles are missing
-        self._can_determine_completeness = not self._ordered
+        # into it, which is only meaningful if all the particles are present
+        self._uses_file_position_addressing = self._ordered
 
         self._halos = {}
 

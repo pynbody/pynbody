@@ -32,8 +32,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
     """
 
     # halo membership is expressed as offsets and lengths within the snapshot's own ordering, rather than as
-    # particle IDs, so there is no way to tell whether any particles are missing
-    _can_determine_completeness = False
+    # particle IDs, so this catalogue cannot be used with a partially loaded snapshot
+    _uses_file_position_addressing = True
 
     # Names of various groups and attributes in the hdf file (which vary in different versions of SubFind)
 
@@ -102,6 +102,10 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             warnings.warn("The 'subs' argument to SubFindHDFHaloCatalogue is deprecated. Use 'subhalos' instead.",
                           DeprecationWarning)
             subhalos = subs
+
+        # checked here, before we go looking for files, so that the user gets a useful explanation rather
+        # than a failure to locate a catalogue for the partially loaded snapshot
+        self._refuse_if_snapshot_partially_loaded(sim)
 
         self._sub_mode = subhalos
         self._hdf_files = self._get_catalogue_multifile(sim, user_provided_filename=filename)

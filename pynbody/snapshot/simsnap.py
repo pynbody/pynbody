@@ -71,6 +71,21 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     _loadable_keys_registry = {}
     _persistent = ["kdtree", "_immediate_cache", "_kdtree_derived_smoothing"]
 
+    partial_load = False
+    """True if only some of the particles in the file(s) that were opened have been read.
+
+    Set by loaders which support partial loading. Note that this specifically describes selection *within* the
+    files opened, so that the particle ordering no longer corresponds to that of :attr:`filename`; see
+    :attr:`incomplete_file_set` for the case where not all the snapshot's files were opened at all, and
+    :meth:`is_partially_loaded`, which should normally be preferred as it covers both, plus views."""
+
+    incomplete_file_set = False
+    """True if the snapshot is spread over several files, of which only some have been opened.
+
+    Set by loaders which can be pointed at a single file of a multi-file snapshot. Such a snapshot is
+    internally consistent, but does not contain all the particles that other tools (for example halo finders)
+    will consider it to have."""
+
     # These 3D arrays get four views automatically created, one reflecting the
     # full Nx3 data, the others reflecting Nx1 slices of it
     #
@@ -605,6 +620,27 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         else:
             return self
 
+    def is_partially_loaded(self) -> bool:
+        """Return True if this snapshot holds only some of the particles in the file it came from.
+
+        This is the case either because the file was partially loaded (e.g. by passing ``take`` to
+        :func:`~pynbody.snapshot.load`, or by loading only some of the files of a multi-file snapshot), or
+        because this is a view onto part of a snapshot (e.g. ``f[:100]`` or ``f.dm``).
+
+        Code which identifies particles by their position within the file, rather than by their ID, cannot be
+        used with such a snapshot: the positions refer to particles which are not all present, and there is in
+        general no way to map them onto those which are. Halo catalogues in this category refuse to load; see
+        :class:`~pynbody.halo.HaloCatalogue`.
+
+        Note that a view which happens to contain all the particles of its ancestor is still reported as
+        partially loaded, since it may present them in a different order.
+
+        .. versionadded:: 2.6.0
+
+        """
+        ancestor = self.ancestor
+        return self is not ancestor or ancestor.partial_load or ancestor.incomplete_file_set
+
     def get_index_list(self, relative_to, of_particles=None) -> np.ndarray:
         """Get a list specifying the index of the particles in this view relative to the ancestor *relative_to*
 
@@ -856,7 +892,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             if can_load:
                 return c(self, *args, **kwargs)
 
-        raise RuntimeError("No halo catalogue found for %r" % str(self))
+        message = "No halo catalogue found for %r" % str(self)
+        if self.is_partially_loaded():
+            message += (". Note that this snapshot holds only some of the particles in its file, which "
+                        "prevents some halo catalogue formats from being used at all, and can also stop the "
+                        "catalogue files being located automatically; try passing filename=...")
+        raise RuntimeError(message)
 
     def bridge(self, other) -> bridge.AbstractBridge:
         """Tries to construct a bridge function between this SimSnap

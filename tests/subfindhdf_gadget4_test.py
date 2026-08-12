@@ -227,10 +227,34 @@ def test_eps_array(snap_arepo, snap):
     assert snap_arepo['eps'].units == '3.085678e+24 cm a h^-1'
 
 
-def test_cannot_determine_completeness(halos):
-    """Subfind identifies its particles by position in the snapshot, so missing particles cannot be detected"""
-    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
-        assert (halos.complete_keys() == halos.keys()).all()
+# Subfind expresses halo membership as offsets and lengths within the snapshot's own ordering, rather than as
+# particle IDs. Those offsets are meaningless unless every particle is present, so the catalogue refuses to
+# load against a partially loaded snapshot rather than silently returning the wrong particles.
 
-    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
-        assert halos.is_complete(halos.keys()[0])
+
+def test_subfind_refuses_partially_loaded_snapshot(snap):
+    partial = pynbody.load('testdata/gadget4_subfind/snapshot_000.hdf5',
+                           take=np.arange(500, len(snap) // 2))
+    assert partial.is_partially_loaded()
+
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(partial)
+
+    # ... including when reached through the automatic catalogue detection
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        partial.halos()
+
+
+def test_subfind_refuses_subsnap(snap):
+    """A view onto part of a snapshot is no more usable than a partial load.
+
+    The refusal must come before the catalogue goes looking for its files, so that the user is told what is
+    actually wrong."""
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap[:1000])
+
+
+def test_subfind_loads_from_complete_snapshot(halos):
+    """Control for the tests above: the catalogue is unaffected when the whole snapshot is present"""
+    assert len(halos[1]) > 0
+    assert (halos.complete_keys() == halos.keys()).all()

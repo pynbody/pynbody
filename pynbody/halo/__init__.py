@@ -82,7 +82,11 @@ from .details.number_mapping import (
     MonotonicHaloNumberMapper,
     create_halo_number_mapper,
 )
-from .details.particle_indices import HaloParticleIndices, IncompleteHaloError
+from .details.particle_indices import (
+    HaloParticleIndices,
+    IncompleteHaloError,
+    PartialLoadingNotSupportedError,
+)
 
 if TYPE_CHECKING:
     from .subhalo_catalogue import SubhaloCatalogue
@@ -205,12 +209,31 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     _can_determine_completeness = True
     """Whether this catalogue is able to tell that particles are missing from the snapshot.
 
-    Catalogues which identify their particles by ID can tell; those which rely on the ordering of the
-    snapshot, or on an array defined only for the particles which have been loaded, cannot. Subclasses in the
-    latter category should set this to False, so that users are warned rather than being given a completeness
-    answer which is really an assumption. See :meth:`complete_keys`."""
+    Catalogues which identify their particles by ID can tell; those which rely on an array defined only for
+    the particles which have been loaded cannot. Subclasses in the latter category should set this to False,
+    so that users are warned rather than being given a completeness answer which is really an assumption.
+    See :meth:`complete_keys`."""
+
+    _uses_file_position_addressing = False
+    """Whether this catalogue identifies its particles by position within the file rather than by ID.
+
+    Such a catalogue cannot be used with a partially loaded snapshot, since its positions refer to particles
+    which are not all present, and there is in general no way to map them onto those which are. Subclasses in
+    this category should set this to True (before calling ``super().__init__``, if it depends on how the
+    catalogue is configured), and construction is then refused for such snapshots."""
+
+    def _refuse_if_snapshot_partially_loaded(self, sim):
+        """Raise if this catalogue addresses particles by file position but the snapshot is partially loaded.
+
+        This is called by :meth:`__init__`. Subclasses which do significant work (such as locating and opening
+        their files) before calling ``super().__init__`` may call it earlier, so that the user gets this
+        explanation rather than a confusing failure of that earlier work."""
+        if self._uses_file_position_addressing and sim.is_partially_loaded():
+            raise PartialLoadingNotSupportedError(type(self).__name__)
 
     def __init__(self, sim, number_mapper):
+        self._refuse_if_snapshot_partially_loaded(sim)
+
         self._base: weakref[snapshot.SimSnap] = weakref.ref(sim)
         self.number_mapper: HaloNumberMapper = number_mapper
         self._index_lists: HaloParticleIndices | None = None
@@ -478,12 +501,14 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
                 self._iord_to_fpos = make_iord_to_offset_mapper(self.base['iord'])
 
             else:
+                if self.base.is_partially_loaded():
+                    # without particle IDs we would have to take the catalogue's values as file positions,
+                    # which are meaningless if not all the particles are present
+                    raise PartialLoadingNotSupportedError(
+                        f"{type(self).__name__}, with no iord array available,")
+
                 warnings.warn("No iord array available; assuming halo catalogue is using sequential particle IDs",
                               RuntimeWarning)
-
-                # without particle IDs, a particle which is absent from the snapshot is indistinguishable from
-                # one which is present, so we cannot tell whether any halo is complete
-                self._can_determine_completeness = False
 
                 class OneToOneIndex:
                     def __getitem__(self, i):

@@ -62,6 +62,7 @@ class NchiladaSnap(SimSnap):
             d[our_fam] = d_f
 
     def _setup_slices(self, take=None):
+        self.partial_load = take is not None
         disk_family_slice = {}
         i = 0
         # for each family, find an array (any array) to determine length and

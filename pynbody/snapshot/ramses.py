@@ -447,6 +447,10 @@ class RamsesSnap(SimSnap):
             self._cpus = cpus
         else:
             self._cpus = list(range(1, self.ncpu + 1))
+
+        # ramses partial-loads by selecting whole cpu files; anything less than all of them means the
+        # snapshot does not contain all the particles in the output
+        self.partial_load = sorted(self._cpus) != list(range(1, self.ncpu + 1))
         self._maxlevel = maxlevel
 
         type_map = self._count_particles()
