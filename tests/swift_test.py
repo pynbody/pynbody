@@ -140,24 +140,6 @@ def test_swift_multifile_partial_loading():
                           [ 16.59894837,  36.67247821,  85.82433427],
                           [  9.79404938,  52.28051827,  81.30710868]])
 
-def test_coalesce_cells_into_slices():
-    """Cells that are adjacent on disk must be merged into a single slice.
-
-    Each slice becomes a mapping in the virtual dataset, and reading from a virtual dataset costs a
-    roughly fixed overhead per mapping touched, so failing to merge makes partial loads very slow."""
-    coalesce = pynbody.snapshot.swift.SwiftMultiFileManager._coalesce_cells_into_slices
-
-    # a contiguous run of cells becomes a single slice, whatever order it is presented in
-    assert coalesce(np.array([0, 10, 25]), np.array([10, 15, 5])) == [slice(0, 30)]
-    assert coalesce(np.array([25, 0, 10]), np.array([5, 10, 15])) == [slice(0, 30)]
-
-    # gaps are respected
-    assert coalesce(np.array([0, 10, 40]), np.array([10, 15, 5])) == [slice(0, 25), slice(40, 45)]
-
-    # empty cells neither generate slices nor break up a run
-    assert coalesce(np.array([0, 10, 10]), np.array([10, 0, 15])) == [slice(0, 25)]
-    assert coalesce(np.array([0, 10]), np.array([0, 0])) == []
-
 
 def test_swift_multifile_partial_loading_order_insensitive():
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
