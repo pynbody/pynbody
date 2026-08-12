@@ -189,7 +189,11 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
       :meth:`_map_iords_to_fpos` (in :meth:`_get_all_particle_indices`), which discards and counts the missing
       particles. Pass those counts to :class:`details.particle_indices.HaloParticleIndices` as
       ``num_missing_particles``, so that loading all halos does not fail, while an
-      :class:`IncompleteHaloError` is still raised if an affected halo is accessed.
+      :class:`IncompleteHaloError` is still raised if an affected halo is accessed. Those counts are also what
+      :meth:`complete_keys` reports to the user, so no further work is needed to support it.
+    * Catalogues which are views onto another catalogue, and therefore delegate :meth:`load_all` rather than
+      populating their own particle index lists, must provide their own :meth:`_get_complete_mask` (mapping the
+      underlying catalogue's answer into their own halo indexing) and :meth:`_is_loaded`.
 
     """
 
@@ -197,13 +201,14 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         self._base: weakref[snapshot.SimSnap] = weakref.ref(sim)
         self.number_mapper: HaloNumberMapper = number_mapper
         self._index_lists: HaloParticleIndices | None = None
+        self._complete_mask: NDArray[bool] | None = None
         self._properties: dict | None = None
         self._cached_halos: dict[int, Halo] = {}
         self._persistent_units = None
 
     def load_all(self):
         """Loads all halos, which is normally more efficient if a large fraction of them will be accessed."""
-        if not self._index_lists:
+        if self._index_lists is None:
             index_lists = self._get_all_particle_indices()
             properties = self.get_properties_all_halos(with_units=True)
             if isinstance(index_lists, tuple):
@@ -274,7 +279,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         )
 
     def _get_particle_indices_one_halo_using_list_if_available(self, halo_number, halo_index) -> NDArray[int]:
-        if self._index_lists:
+        if self._index_lists is not None:
             return self._index_lists.get_particle_index_list_for_halo(halo_index, halo_number)
         else:
             if len(self._cached_halos) == 5:
@@ -313,9 +318,115 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     def __repr__(self):
         return f"<{type(self).__name__}, length {len(self)}>"
 
-    def keys(self):
-        """Return an iterable of all halo numbers in the catalogue."""
-        return self.number_mapper.all_numbers
+    def keys(self) -> NDArray[int]:
+        """Return an array of all halo numbers in the catalogue, whether or not they can be loaded.
+
+        If the snapshot has been partially loaded, some of these halos may refer to particles that are not
+        present, and cannot be retrieved; see :meth:`complete_keys`.
+
+        The returned array is read-only, since it may be a view of the catalogue's internal numbering.
+        """
+        all_numbers = np.asarray(self.number_mapper.all_numbers).view()
+        all_numbers.flags.writeable = False
+        return all_numbers
+
+    def complete_keys(self, load_all_if_required=True) -> NDArray[int]:
+        """Return an array of the halo numbers which can actually be retrieved from the snapshot.
+
+        This is a subset of :meth:`keys`, in the same order, from which halos referring to particles that are
+        not present in the snapshot have been excluded. Accessing such halos raises an
+        :class:`~pynbody.halo.details.particle_indices.IncompleteHaloError`; this normally happens only if the
+        snapshot has been partially loaded.
+
+        Note that halo *properties* remain available for all halos, including incomplete ones; it is only
+        access to the particles which fails. Note also that halo finder formats which are unable to detect
+        missing particles report all their halos as complete.
+
+        Parameters
+        ----------
+
+        load_all_if_required : bool
+            Establishing which halos are complete requires the particle lists for all halos, so
+            :meth:`load_all` is called if it has not been already. If this is undesirable (e.g. because the
+            catalogue is very large), pass False to raise a RuntimeError instead.
+
+        .. versionadded:: 2.6.0
+
+        """
+        all_numbers = self.keys()
+        complete_mask = self.get_complete_mask(load_all_if_required)
+
+        # NB the halo numbers are not necessarily in halo index order (see NonMonotonicHaloNumberMapper),
+        # so the mask must be explicitly mapped rather than applied directly
+        all_indices = np.asarray(self.number_mapper.number_to_index(all_numbers), dtype=np.intp)
+
+        return np.asarray(all_numbers)[complete_mask[all_indices]]
+
+    def is_complete(self, halo_number, load_all_if_required=True) -> bool:
+        """Return True if the specified halo can actually be retrieved from the snapshot.
+
+        See :meth:`complete_keys` for more information, including the meaning of the
+        ``load_all_if_required`` argument.
+
+        .. versionadded:: 2.6.0
+
+        """
+        halo_index = self.number_mapper.number_to_index(halo_number)
+        return bool(self.get_complete_mask(load_all_if_required)[halo_index])
+
+    def get_complete_mask(self, load_all_if_required=True) -> NDArray[bool]:
+        """Return a boolean mask, in halo index order, of the halos which can be retrieved from the snapshot.
+
+        This is the underlying information from which :meth:`complete_keys` and :meth:`is_complete` are
+        derived. Since it is in index order, it can be used to filter the arrays returned by
+        :meth:`get_properties_all_halos`. (See the class documentation for the distinction between halo
+        numbers and indices.)
+
+        See :meth:`complete_keys` for the meaning of the ``load_all_if_required`` argument. The returned array
+        is cached and read-only.
+
+        .. versionadded:: 2.6.0
+
+        """
+        if self._complete_mask is None:
+            if not self._is_loaded():
+                if not load_all_if_required:
+                    raise RuntimeError("Establishing which halos are complete requires the particle lists for "
+                                       "all halos. Either call load_all() first, or pass "
+                                       "load_all_if_required=True.")
+                self.load_all()
+
+            complete_mask = np.asarray(self._get_complete_mask())
+
+            if complete_mask.dtype != bool or complete_mask.shape != (len(self),):
+                raise ValueError(f"{type(self).__name__}._get_complete_mask returned a {complete_mask.dtype} "
+                                 f"array of shape {complete_mask.shape}; expected a boolean array of shape "
+                                 f"({len(self)},)")
+
+            complete_mask.flags.writeable = False # it is cached, and handed out repeatedly
+            self._complete_mask = complete_mask
+
+        return self._complete_mask
+
+    def _is_loaded(self) -> bool:
+        """Return True if the particle lists underlying this catalogue have been loaded.
+
+        Catalogues which are views onto another catalogue should override this alongside
+        :meth:`_get_complete_mask`."""
+        return self._index_lists is not None
+
+    def _get_complete_mask(self) -> NDArray[bool]:
+        """Return a boolean array, in halo index order, flagging the halos whose particles are all present.
+
+        This is the hook underlying :meth:`get_complete_mask`, and is called only once the catalogue has been
+        loaded; it should not itself trigger loading. The default implementation uses the particle index
+        lists, so catalogues which are views onto another catalogue must override it (see also
+        :meth:`_is_loaded`)."""
+        if self._index_lists is None:
+            raise NotImplementedError(f"{type(self).__name__} is unable to establish which of its halos are "
+                                      f"complete; it should provide its own _get_complete_mask implementation")
+
+        return self._index_lists.get_complete_mask()
 
     def __getitem__(self, item) -> Halo | SubhaloCatalogue:
         from .subhalo_catalogue import SubhaloCatalogue

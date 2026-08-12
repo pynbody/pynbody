@@ -295,6 +295,13 @@ class HBTPlusCatalogueWithGroups(HaloCatalogue):
         self._hbt_cat.load_all()
         self._group_cat.load_all()
 
+    def _is_loaded(self):
+        return self._group_cat._is_loaded()
+
+    def _get_complete_mask(self):
+        # our particles come from the group catalogue, whose halo numbering (and therefore indexing) we share
+        return self._group_cat.get_complete_mask(load_all_if_required=False)
+
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
         return self._group_cat._get_particle_indices_one_halo(halo_number)
 

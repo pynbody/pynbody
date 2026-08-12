@@ -78,6 +78,27 @@ class SimpleHaloCatalogueWithIncompleteHalos(SimpleHaloCatalogue):
         return indices
 
 
+class SimpleHaloCatalogueWithAllIncompleteHalos(SimpleHaloCatalogueWithIncompleteHalos):
+    """A catalogue where no halo at all can be constructed"""
+
+    incomplete_halo_numbers = tuple(range(1, 10))
+
+
+class SimpleHaloCatalogueWithReorderedNumbers(SimpleHaloCatalogueWithIncompleteHalos):
+    """A catalogue where the halo numbers are not in the same order as the halo indices.
+
+    This mimics catalogues loaded with halo_numbers='length-order', where the halo numbers are assigned
+    according to a reordering of the underlying halos."""
+
+    ordering = np.array([3, 1, 8, 0, 6, 2, 7, 4, 5])
+    incomplete_halo_numbers = (2, 5)
+
+    def __init__(self, sim):
+        number_mapper = pynbody.halo.details.number_mapping.NonMonotonicHaloNumberMapper(
+            self.ordering, ordering=True, start_index=1)
+        halo.HaloCatalogue.__init__(self, sim, number_mapper)
+
+
 @pytest.fixture
 def snap_for_incomplete_halos():
     return pynbody.new(dm=100)
@@ -152,6 +173,188 @@ def test_index_list_without_missing_particle_information():
 
     assert not index_list.is_halo_incomplete(1)
     assert (index_list.get_particle_index_list_for_halo(1) == [2, 3, 4]).all()
+
+
+def test_keys_unaffected_by_incompleteness(incomplete_halos):
+    """keys() always describes the whole catalogue, whether or not the halos can be constructed"""
+    assert (incomplete_halos.keys() == np.arange(1, 10)).all()
+    incomplete_halos.load_all()
+    assert (incomplete_halos.keys() == np.arange(1, 10)).all()
+
+
+def test_keys_is_read_only(incomplete_halos):
+    """keys() may be a view of the catalogue's own numbering, so it must not be modifiable"""
+    keys = incomplete_halos.keys()
+    with pytest.raises(ValueError):
+        keys[0] = 99
+
+    assert incomplete_halos.keys()[0] == 1
+
+
+def test_complete_keys_excludes_incomplete_halos(incomplete_halos):
+    complete_keys = incomplete_halos.complete_keys()
+    assert (complete_keys == [1, 3, 4, 6, 7, 8, 9]).all()
+    assert np.issubdtype(complete_keys.dtype, np.integer)
+
+
+def test_complete_keys_matches_accessible_halos(incomplete_halos):
+    """The halos reported as complete are exactly those which can actually be retrieved"""
+    complete_keys = incomplete_halos.complete_keys()
+
+    with warnings.catch_warnings():
+        # we are deliberately accessing halos one at a time, which may prompt an efficiency warning
+        warnings.filterwarnings("ignore", message="Accessing multiple halos")
+        for halo_number in incomplete_halos.keys():
+            try:
+                incomplete_halos[halo_number]
+                accessible = True
+            except halo.IncompleteHaloError:
+                accessible = False
+
+            assert accessible == (halo_number in complete_keys)
+
+
+def test_complete_keys_triggers_load_all(incomplete_halos):
+    assert incomplete_halos._index_lists is None
+    assert (incomplete_halos.complete_keys() == [1, 3, 4, 6, 7, 8, 9]).all()
+    assert incomplete_halos._index_lists is not None
+
+
+def test_complete_keys_can_decline_to_load_all(incomplete_halos):
+    with pytest.raises(RuntimeError):
+        incomplete_halos.complete_keys(load_all_if_required=False)
+
+    with pytest.raises(RuntimeError):
+        incomplete_halos.is_complete(1, load_all_if_required=False)
+
+    incomplete_halos.load_all()
+
+    assert (incomplete_halos.complete_keys(load_all_if_required=False) == [1, 3, 4, 6, 7, 8, 9]).all()
+    assert incomplete_halos.is_complete(1, load_all_if_required=False)
+
+
+def test_complete_keys_when_completeness_is_unknown(snap_for_incomplete_halos):
+    """Catalogues that don't report missing particles describe all their halos as complete"""
+    halos = SimpleHaloCatalogue(snap_for_incomplete_halos)
+    assert (halos.complete_keys() == halos.keys()).all()
+    assert halos.get_complete_mask().all()
+
+
+def test_complete_keys_when_nothing_is_complete(snap_for_incomplete_halos):
+    halos = SimpleHaloCatalogueWithAllIncompleteHalos(snap_for_incomplete_halos)
+    complete_keys = halos.complete_keys()
+    assert len(complete_keys) == 0
+    assert np.issubdtype(complete_keys.dtype, np.integer)
+    assert not halos.get_complete_mask().any()
+
+
+def test_is_complete(incomplete_halos):
+    assert incomplete_halos.is_complete(1) is True
+    assert incomplete_halos.is_complete(2) is False
+
+    with pytest.raises(KeyError):
+        incomplete_halos.is_complete(100)
+
+
+def test_complete_mask_is_in_index_order(incomplete_halos):
+    mask = incomplete_halos.get_complete_mask()
+
+    assert mask.dtype == bool
+    assert len(mask) == len(incomplete_halos)
+    assert (incomplete_halos.number_mapper.index_to_number(np.flatnonzero(mask))
+            == incomplete_halos.complete_keys()).all()
+
+
+def test_iterating_over_incomplete_catalogue_still_raises(incomplete_halos):
+    """Incomplete halos must not be silently omitted from iteration; the error points at the alternative"""
+    with pytest.raises(halo.IncompleteHaloError) as excinfo:
+        list(incomplete_halos)
+
+    assert "complete_keys" in str(excinfo.value)
+
+
+def test_complete_keys_with_reordered_halo_numbers(snap_for_incomplete_halos):
+    """Halo numbers are not necessarily in halo index order, and completeness must follow the numbers"""
+    halos = SimpleHaloCatalogueWithReorderedNumbers(snap_for_incomplete_halos)
+
+    complete_keys = halos.complete_keys()
+
+    # the answer must be expressible either via the halo numbers or via the underlying indices
+    complete_indices = np.flatnonzero(halos.get_complete_mask())
+    assert sorted(complete_keys) == sorted(halos.number_mapper.index_to_number(complete_indices))
+
+    # ... and it must be a subsequence of keys(), i.e. simply those halos which can be constructed
+    assert list(complete_keys) == [n for n in halos.keys() if n not in halos.incomplete_halo_numbers]
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="Accessing multiple halos")
+        for halo_number in halos.keys():
+            try:
+                halos[halo_number]
+                accessible = True
+            except halo.IncompleteHaloError:
+                accessible = False
+
+            assert accessible == (halo_number in complete_keys)
+
+
+def test_complete_mask_is_cached_and_read_only(incomplete_halos):
+    """The mask is handed out repeatedly, so it must not be recalculated or modifiable"""
+    mask = incomplete_halos.get_complete_mask()
+    assert incomplete_halos.get_complete_mask() is mask
+
+    with pytest.raises(ValueError):
+        mask[0] = False
+
+
+def test_complete_mask_of_wrong_shape_is_rejected(snap_for_incomplete_halos):
+    class BrokenCatalogue(SimpleHaloCatalogue):
+        def _get_complete_mask(self):
+            return np.ones(len(self) + 1, dtype=bool)
+
+    with pytest.raises(ValueError, match="_get_complete_mask"):
+        BrokenCatalogue(snap_for_incomplete_halos).get_complete_mask()
+
+
+def test_delegating_catalogue_without_hook_is_reported(snap_for_incomplete_halos):
+    """A catalogue that never populates its own index lists must say so, rather than failing obscurely"""
+    class DelegatingCatalogue(SimpleHaloCatalogue):
+        def load_all(self):
+            pass
+
+    with pytest.raises(NotImplementedError, match="_get_complete_mask"):
+        DelegatingCatalogue(snap_for_incomplete_halos).complete_keys()
+
+
+def test_complete_keys_avoids_efficiency_warning(incomplete_halos):
+    """Since complete_keys loads all halos, the recommended idiom does not trip the efficiency warning"""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        for halo_number in incomplete_halos.complete_keys():
+            incomplete_halos[halo_number]
+
+
+def test_subhalo_catalogue_completeness(incomplete_halos):
+    """A subhalo catalogue is a view onto its parent, and must report completeness in its own numbering"""
+    from pynbody.halo.subhalo_catalogue import SubhaloCatalogue
+
+    # parent halos 1, 2, 3 become subhalo catalogue entries 0, 1, 2; of these, parent halo 2 is incomplete
+    subhalos = SubhaloCatalogue(incomplete_halos, np.array([1, 2, 3]))
+
+    assert (subhalos.complete_keys() == [0, 2]).all()
+    assert subhalos.is_complete(0) is True
+    assert subhalos.is_complete(1) is False
+
+    assert len(subhalos[0]) > 0
+    with pytest.raises(halo.IncompleteHaloError):
+        subhalos[1]
+
+
+def test_subhalo_catalogue_completeness_with_no_subhalos(incomplete_halos):
+    from pynbody.halo.subhalo_catalogue import SubhaloCatalogue
+
+    subhalos = SubhaloCatalogue(incomplete_halos, np.array([]))
+    assert len(subhalos.complete_keys()) == 0
 
 
 def test_halo_number_mapper():

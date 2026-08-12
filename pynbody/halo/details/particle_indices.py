@@ -23,7 +23,8 @@ class IncompleteHaloError(RuntimeError):
             num_description = f"{num_missing_particles} of its particles are"
 
         super().__init__(f"{halo_description} cannot be loaded because {num_description} not present in the "
-                         f"snapshot. This normally means the snapshot has been partially loaded.")
+                         f"snapshot. This normally means the snapshot has been partially loaded. Use the "
+                         f"catalogue's complete_keys() method to get the halo numbers which can be loaded.")
 
 
 class HaloParticleIndices:
@@ -56,6 +57,12 @@ class HaloParticleIndices:
     def is_halo_incomplete(self, halo_index) -> bool:
         """Return True if particles are missing from the snapshot for the specified halo index"""
         return self.get_num_missing_particles_for_halo(halo_index) > 0
+
+    def get_complete_mask(self) -> npt.NDArray[bool]:
+        """Return a boolean mask, in halo index order, of the halos with no missing particles"""
+        if self.num_missing_particles is None:
+            return np.ones(len(self), dtype=bool)
+        return np.asarray(self.num_missing_particles) == 0
 
     def get_particle_index_list_for_halo(self, halo_index, halo_number=None, allow_incomplete=False):
         """Get the index list for the specified halo index
