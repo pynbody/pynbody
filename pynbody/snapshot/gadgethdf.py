@@ -128,6 +128,8 @@ class _GadgetHdfMultiFileManager:
         if self._remote_dir is None:
             return _open_hdf_file(filename, mode)
         else:
+            if mode != "r":
+                raise NotImplementedError("Unable to open remote files in writable mode!")
             return self._remote_dir[filename]
 
     def _is_hdf5(self, filename, *args, **kwargs):
