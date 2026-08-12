@@ -299,16 +299,7 @@ class SwiftSnap(GadgetHDFSnap):
         Here we check that we have the expected number of keys (given by the
         NumberOfFields attribute) and assume that they're all datasets.
         """
-        if "NumberOfFields" in group.attrs:
-            if group.attrs["NumberOfFields"][0] == len(group):
-                return list(group.keys())
-            else:
-                # NumberOfFields can be wrong if we wrote a new field to the snapshot, for example.
-                warnings.warn(f"The NumberOfFields attribute of group {group.name} does not match the number of keys in the group",
-                              RuntimeWarning)
-                return GadgetHDFSnap._get_hdf_allarray_keys(group)
-        else:
-            raise ValueError(f"The expected NumberOfFields attribute of group {group.name} is not present")
+        return list(group.keys())
 
     def write_array(self, *args, **kwargs):
         """

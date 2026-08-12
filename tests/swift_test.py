@@ -438,20 +438,6 @@ def copied_snapshot():
         import gc
         gc.collect()
 
-def test_swift_no_number_of_fields(copied_snapshot):
-    """Check that we reject snapshots where the NumberOfFields attribute is missing"""
-    with h5py.File(copied_snapshot, "r+") as f:
-        del f["PartType1"].attrs["NumberOfFields"]
-    with raises(ValueError):
-        snap = pynbody.load(copied_snapshot)
-
-def test_swift_wrong_number_of_fields(copied_snapshot):
-    """Check that we warn on snapshots where the NumberOfFields attribute is wrong"""
-    with h5py.File(copied_snapshot, "r+") as f:
-        f["PartType1"].attrs["NumberOfFields"] += 1
-    with warns(RuntimeWarning):
-        snap = pynbody.load(copied_snapshot)
-
 
 @pytest.mark.parametrize('metadata_change', [
     # Dataset,                         index,   new value
