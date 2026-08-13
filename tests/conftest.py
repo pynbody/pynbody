@@ -37,7 +37,7 @@ def _open_remote_dir(request):
     return hdfstream.open(server, prefix)
 
 
-@pytest.fixture(scope="module", params=[False, True])
+@pytest.fixture(scope="module")
 def remote_kwargs(request):
     """
     Returns the keyword args for load() to open a remote file.

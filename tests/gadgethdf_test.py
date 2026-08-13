@@ -260,7 +260,7 @@ def test_remote_open(remote_kwargs):
     # Open the same file through the server and check we didn't just open the local file again
     remote_snap = pynbody.load(filename, **remote_kwargs)
     import hdfstream
-    assert isinstance(local_snap._hdf_files[0], hdfstream.RemoteFile)
+    assert isinstance(remote_snap._hdf_files[0], hdfstream.RemoteFile)
 
     # Compare file contents
     assert local_snap.families() == remote_snap.families()
