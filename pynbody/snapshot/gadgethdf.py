@@ -1098,8 +1098,8 @@ class GadgetHDFSnap(SimSnap):
             vel_unit*units.cm/units.s, dist_unit*units.cm, mass_unit*units.g, "K"]]
 
     @classmethod
-    def _test_for_hdf5_key(cls, f):
-        with h5py.File(f, "r") as h5test:
+    def _test_for_hdf5_key(cls, f, method):
+        with method.File(f, "r") as h5test:
             test_key = cls._readable_hdf5_test_key
             found = False
             if test_key[-1]=="?":
@@ -1128,29 +1128,27 @@ class GadgetHDFSnap(SimSnap):
         return f.with_suffix(".0.hdf5")
 
     @classmethod
-    def _can_load(cls, f):
-        if hasattr(h5py, "is_hdf5"):
-            if h5py.is_hdf5(f):
-                return cls._test_for_hdf5_key(f)
-            elif h5py.is_hdf5(cls._guess_file_ending(f)):
-                return cls._test_for_hdf5_key(cls._guess_file_ending(f))
+    def _can_load_local_or_remote(cls, f, method):
+        if hasattr(method, "is_hdf5"):
+            if method.is_hdf5(f):
+                return cls._test_for_hdf5_key(f, method)
+            elif method.is_hdf5(cls._guess_file_ending(f)):
+                return cls._test_for_hdf5_key(cls._guess_file_ending(f), method)
             else:
                 return False
         else:
-            if "hdf5" in f:
+            if "hdf5" in f and method is h5py:
                 warnings.warn(
                     "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
             return False
 
     @classmethod
-    def _can_load_remote(cls, f, *args, **kwargs):
-        remote_dir = kwargs.get("remote_dir")
-        if (hdfstream is None) or (remote_dir is None):
-            return False
-        for filename in (f, cls._guess_file_ending(f)):
-            if filename in remote_dir and remote_dir[filename].is_hdf5():
-                return cls._readable_hdf5_test_key in remote_dir[filename]
-        return False
+    def _can_load(cls, f):
+        return cls._can_load_local_or_remote(f, h5py)
+
+    @classmethod
+    def _can_load_remote(cls, f, remote_dir):
+        return cls._can_load_local_or_remote(f, remote_dir)
 
     def _init_properties(self):
         atr = self._get_hdf_header_attrs()
