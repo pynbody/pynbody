@@ -31,6 +31,8 @@ public:
   npy_intp nListSize;
   std::vector<T> fList;
   std::vector<npy_intp> pList;
+  std::vector<T> dxList; // 3 entries per neighbour: the periodic-wrapped
+                         // displacement from the search centre to the neighbour
 
   npy_intp pin = 0, pi = 0, pNext = 0; // particle indices for distributed loops (TODO: rationalise)
   npy_intp nCurrent = 0; // particle indices for distributed loops (TODO: rationalise)
@@ -49,6 +51,7 @@ public:
 
   SmoothingContext(KDContext* kd, npy_intp nSmooth, T fPeriod[3]) : kd(kd), nSmooth(nSmooth), fPeriod{fPeriod[0], fPeriod[1], fPeriod[2]},
       nListSize(nSmooth + RESMOOTH_SAFE), fList(nListSize), pList(nListSize),
+      dxList(3 * nListSize),
       pMutex(std::make_shared<std::mutex>()),
       priorityQueue(std::make_unique<PriorityQueue<T>>(nSmooth, kd->nActive)) {
 
@@ -56,7 +59,8 @@ public:
 
   SmoothingContext(const SmoothingContext<T> &copy) : kd(copy.kd), nSmooth(copy.nSmooth),
       fPeriod{copy.fPeriod[0], copy.fPeriod[1], copy.fPeriod[2]},
-      nListSize(copy.nListSize), fList(nListSize), pList(nListSize), pMutex(copy.pMutex),
+      nListSize(copy.nListSize), fList(nListSize), pList(nListSize),
+      dxList(3 * nListSize), pMutex(copy.pMutex),
       smx_global(const_cast<SmoothingContext<T>*>(&copy)),
       priorityQueue(std::make_unique<PriorityQueue<T>>(nSmooth, kd->nActive)),
       pKernel(copy.pKernel) { }
@@ -244,6 +248,7 @@ void smBallSearch(SmoothingContext<T> *smx, T *ri) {
 
 template<typename T>
 inline npy_intp smBallGatherStoreResultInList(SmoothingContext<T>* smx, T fDist2,
+                                              T dx, T dy, T dz,
                                               npy_intp particleIndex,
                                               npy_intp foundIndex) {
   smx->result->push_back(smx->kd->particleOffsets[particleIndex]);
@@ -252,6 +257,7 @@ inline npy_intp smBallGatherStoreResultInList(SmoothingContext<T>* smx, T fDist2
 
 template<typename T>
 inline npy_intp smBallGatherStoreResultInSmx(SmoothingContext<T>* smx, T fDist2,
+                                             T dx, T dy, T dz,
                                              npy_intp particleIndex,
                                              npy_intp foundIndex) {
   if (foundIndex >= smx->nListSize) {
@@ -263,12 +269,18 @@ inline npy_intp smBallGatherStoreResultInSmx(SmoothingContext<T>* smx, T fDist2,
   }
   smx->fList[foundIndex] = fDist2;
   smx->pList[foundIndex] = particleIndex;
+  // smBallGather computes (search centre - neighbour); store the displacement
+  // pointing from the search centre towards the neighbour instead.
+  smx->dxList[3 * foundIndex + 0] = -dx;
+  smx->dxList[3 * foundIndex + 1] = -dy;
+  smx->dxList[3 * foundIndex + 2] = -dz;
   return foundIndex + 1;
 }
 
 
 template <typename T,
-          npy_intp (*storeResultFunction)(SmoothingContext<T> *, T, npy_intp, npy_intp)>
+          npy_intp (*storeResultFunction)(SmoothingContext<T> *, T, T, T, T,
+                                          npy_intp, npy_intp)>
 npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
   /* Gather all particles within the specified radius, using the storeResultFunction callback
    * to store the results. */
@@ -308,7 +320,7 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
         dz = sz - GET2<T>(kd->pNumpyPos, p[pj], 2);
         fDist2 = dx * dx + dy * dy + dz * dz;
         if (fDist2 <= fBall2) {
-          nCnt = storeResultFunction(smx, fDist2, pj, nCnt);
+          nCnt = storeResultFunction(smx, fDist2, dx, dy, dz, pj, nCnt);
         }
       }
     }
@@ -326,6 +338,147 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
 
 template <typename T>
 PyObject *getReturnParticleList(SmoothingContext<T> * smx);
+
+
+#define PAIR_MODE_GATHER 0
+#define PAIR_MODE_SYMMETRIC 1
+
+template <typename T>
+class PairContext {
+  /* Iteration state for streaming neighbour pairs back to python in blocks.
+   *
+   * Pairs are produced by walking each particle in turn and ball-gathering its
+   * own kernel volume, exactly as the density calculation does. In 'gather'
+   * mode every ordered pair (a, b) with r < 2 h_a is emitted. In 'symmetric'
+   * mode each unordered pair is emitted exactly once, canonicalised to i < j,
+   * using a purely local test: while walking particle a and finding neighbour
+   * b, emit iff (a < b) or (r >= 2 h_b). In the latter case b's own walk will
+   * not find a, so nobody else will emit the pair; in the former case the two
+   * walks would both find it, and the lower index breaks the tie. This needs
+   * no communication between walks and no global de-duplication.
+   */
+public:
+  SmoothingContext<T> *smx; // owned
+  npy_intp blocksize;
+  int mode;
+
+  npy_intp nextParticle;    // next particle (in tree order) to be walked
+  npy_intp pendingParticle; // particle whose neighbour list we are part-way through
+  npy_intp pendingCount;    // number of neighbours found for it
+  npy_intp pendingIndex;    // how far through that neighbour list we have got
+  bool havePending;
+
+  std::vector<npy_intp> outI, outJ;
+  std::vector<double> outDx, outR;
+
+  PairContext(SmoothingContext<T> *smx, npy_intp blocksize, int mode)
+      : smx(smx), blocksize(blocksize), mode(mode), nextParticle(0),
+        pendingParticle(0), pendingCount(0), pendingIndex(0),
+        havePending(false) {
+    outI.reserve(blocksize);
+    outJ.reserve(blocksize);
+    outDx.reserve(3 * blocksize);
+    outR.reserve(blocksize);
+  }
+
+  ~PairContext() { delete smx; }
+};
+
+
+template <typename T>
+void smFillPairBlock(PairContext<T> *pc) {
+  SmoothingContext<T> *smx = pc->smx;
+  KDContext *kd = smx->kd;
+
+  pc->outI.clear();
+  pc->outJ.clear();
+  pc->outDx.clear();
+  pc->outR.clear();
+
+  while (static_cast<npy_intp>(pc->outI.size()) < pc->blocksize) {
+
+    if (!pc->havePending) {
+      if (pc->nextParticle >= kd->nActive)
+        break; // every particle has been walked
+      pc->pendingParticle = pc->nextParticle++;
+
+      npy_intp ia = kd->particleOffsets[pc->pendingParticle];
+      T hi = GET<T>(kd->pNumpySmooth, ia);
+      T ri[3];
+      for (int k = 0; k < 3; ++k)
+        ri[k] = GET2<T>(kd->pNumpyPos, ia, k);
+
+      // Search slightly beyond 2h. Membership is decided below on r itself
+      // rather than on r^2, and the two can disagree by an ulp; widening here
+      // guarantees no candidate is discarded before that exact test is
+      // applied. Surplus candidates are then filtered out.
+      T fBall2Search = 4 * hi * hi;
+      fBall2Search *= (1 + 16 * std::numeric_limits<T>::epsilon());
+
+      pc->pendingCount =
+          smBallGather<T, smBallGatherStoreResultInSmx>(smx, fBall2Search, ri);
+      pc->pendingIndex = 0;
+      pc->havePending = true;
+
+      if (smx->warnings)
+        return; // neighbour buffer overflowed; caller raises
+    }
+
+    npy_intp ia = kd->particleOffsets[pc->pendingParticle];
+    double hi = static_cast<double>(GET<T>(kd->pNumpySmooth, ia));
+
+    while (pc->pendingIndex < pc->pendingCount &&
+           static_cast<npy_intp>(pc->outI.size()) < pc->blocksize) {
+      npy_intp k = pc->pendingIndex++;
+      npy_intp jb = kd->particleOffsets[smx->pList[k]];
+
+      if (jb == ia)
+        continue; // no self-pairs
+
+      // Membership is tested on r, not r^2, and inclusively. Smoothing lengths
+      // are defined as half the distance to the nth neighbour, so r == 2h is
+      // hit exactly for one neighbour of every particle; deciding on r^2, or
+      // excluding the boundary, would strand those pairs on the wrong side by
+      // an ulp. The inclusive test matches smBallGather, so a gather over
+      // nSmooth neighbours really does yield nSmooth of them.
+      double r = sqrt(static_cast<double>(smx->fList[k]));
+      if (!(r <= 2.0 * hi))
+        continue;
+
+      npy_intp emitI = ia, emitJ = jb;
+      bool flip = false;
+
+      if (pc->mode == PAIR_MODE_SYMMETRIC && ia > jb) {
+        double hj = static_cast<double>(GET<T>(kd->pNumpySmooth, jb));
+        if (r <= 2.0 * hj)
+          continue; // jb's own walk finds ia, and will emit the pair
+        emitI = jb;
+        emitJ = ia;
+        flip = true;
+      }
+
+      double d0 = static_cast<double>(smx->dxList[3 * k + 0]);
+      double d1 = static_cast<double>(smx->dxList[3 * k + 1]);
+      double d2 = static_cast<double>(smx->dxList[3 * k + 2]);
+      if (flip) {
+        // dx must always point from the emitted i towards the emitted j
+        d0 = -d0;
+        d1 = -d1;
+        d2 = -d2;
+      }
+
+      pc->outI.push_back(emitI);
+      pc->outJ.push_back(emitJ);
+      pc->outDx.push_back(d0);
+      pc->outDx.push_back(d1);
+      pc->outDx.push_back(d2);
+      pc->outR.push_back(r);
+    }
+
+    if (pc->pendingIndex >= pc->pendingCount)
+      pc->havePending = false;
+  }
+}
 
 
 template <typename T>

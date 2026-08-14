@@ -40,8 +40,71 @@ class KernelBase:
         return samples
 
     def get_value(self, d, h=1) -> float:
-        """Get the value of the kernel for a given smoothing length."""
+        """Get the value of the kernel for a given smoothing length.
+
+        Here ``d`` is the separation *in units of the smoothing length*, i.e.
+        ``d = r/h``. For a vectorised version taking the separation directly,
+        see :meth:`value`.
+        """
         raise NotImplementedError("Subclasses must implement this method")
+
+    def value(self, r, h):
+        r"""Get the kernel :math:`W(r, h)`, vectorised over ``r`` and ``h``.
+
+        .. versionadded:: 2.6.0
+
+        Unlike :meth:`get_value`, this takes the separation ``r`` directly
+        rather than ``r/h``, and both arguments may be arrays. This is the
+        form needed when evaluating a kernel for a list of particle pairs,
+        e.g. inside a callback passed to
+        :meth:`pynbody.kdtree.KDTree.pair_reduce`.
+
+        Parameters
+        ----------
+        r : array_like
+            Separation between particles.
+        h : array_like
+            Smoothing length. The kernel has support out to ``r = 2h``.
+
+        Returns
+        -------
+        numpy.ndarray
+            The kernel value, normalised such that
+            :math:`4\pi \int W(r, h) r^2 dr = 1`.
+        """
+        raise NotImplementedError("Subclasses must implement this method")
+
+    def gradient(self, r, h):
+        r"""Get :math:`dW/dr`, vectorised over ``r`` and ``h``.
+
+        .. versionadded:: 2.6.0
+
+        This is the radial derivative of :meth:`value`, and is negative on
+        :math:`0 < r < 2h`. The full gradient with respect to the position of
+        particle :math:`i` is
+
+        .. math::
+
+            \nabla_i W(|x_i - x_j|, h) = \frac{dW}{dr} \frac{x_i - x_j}{r}
+
+        Parameters
+        ----------
+        r : array_like
+            Separation between particles.
+        h : array_like
+            Smoothing length.
+
+        Returns
+        -------
+        numpy.ndarray
+            The radial derivative of the kernel.
+        """
+        raise NotImplementedError("Subclasses must implement this method")
+
+    @staticmethod
+    def _as_arrays(r, h):
+        return (np.asarray(r, dtype=np.float64),
+                np.asarray(h, dtype=np.float64))
 
     def projection(self) -> KernelBase:
         """Return a 2D projection of this kernel"""
@@ -70,6 +133,22 @@ class CubicSplineKernel(KernelBase):
 
         return f / (np.pi * h ** 3)
 
+    def value(self, r, h):
+        r, h = self._as_arrays(r, h)
+        q = r / h
+        f = np.where(q < 1.0,
+                     1.0 - 1.5 * q ** 2 + 0.75 * q ** 3,
+                     0.25 * np.clip(2.0 - q, 0.0, None) ** 3)
+        return f / (np.pi * h ** 3)
+
+    def gradient(self, r, h):
+        r, h = self._as_arrays(r, h)
+        q = r / h
+        df = np.where(q < 1.0,
+                      -3.0 * q + 2.25 * q ** 2,
+                      -0.75 * np.clip(2.0 - q, 0.0, None) ** 2)
+        return df / (np.pi * h ** 4)
+
     @classmethod
     def get_c_kernel_id(cls):
         return 0
@@ -84,6 +163,19 @@ class WendlandC2Kernel(KernelBase):
             f = 0
 
         return (21. * f) / (16. * np.pi * h ** 3)
+
+    def value(self, r, h):
+        r, h = self._as_arrays(r, h)
+        q = r / h
+        t = np.clip(1.0 - 0.5 * q, 0.0, None)
+        return 21.0 * t ** 4 * (2.0 * q + 1.0) / (16.0 * np.pi * h ** 3)
+
+    def gradient(self, r, h):
+        # d/dq [ (1-q/2)^4 (2q+1) ] = -5 q (1-q/2)^3
+        r, h = self._as_arrays(r, h)
+        q = r / h
+        t = np.clip(1.0 - 0.5 * q, 0.0, None)
+        return -21.0 * 5.0 * q * t ** 3 / (16.0 * np.pi * h ** 4)
 
     @classmethod
     def get_c_kernel_id(cls):
@@ -109,6 +201,25 @@ class Kernel2D(KernelBase):
 
     def __hash__(self):
         return hash((self.__class__, self.k_orig))
+
+
+def create_kernel_from_c_id(kernel_id: int) -> KernelBase:
+    """Create a kernel object from the integer id used by the C++ code.
+
+    .. versionadded:: 2.6.0
+
+    This is the inverse of :meth:`KernelBase.get_c_kernel_id`, and is used to
+    recover a python-side kernel from a :class:`pynbody.kdtree.KDTree` whose
+    kernel was set from a serialized state.
+    """
+    for subclass in KernelBase.__subclasses__():
+        try:
+            if subclass.get_c_kernel_id() == kernel_id:
+                return subclass()
+        except (NotImplementedError, TypeError):
+            # e.g. Kernel2D, which has no C counterpart
+            continue
+    raise ValueError("No kernel corresponds to C kernel id %r" % kernel_id)
 
 
 def create_kernel(spec) -> KernelBase:

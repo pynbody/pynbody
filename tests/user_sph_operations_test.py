@@ -1,0 +1,874 @@
+"""Tests for user-defined pairwise SPH operations.
+
+These cover:
+
+  * ``KDTree.pair_blocks(mode, blocksize)`` -- iterate over neighbour pairs in
+    blocks, as flat numpy arrays;
+  * ``KDTree.pair_reduce(func, mode, blocksize, dtype)`` -- accumulate a
+    user-supplied pairwise function over those pairs;
+  * ``KernelBase.value(r, h)`` / ``KernelBase.gradient(r, h)`` -- vectorised
+    kernel evaluation, and ``KDTree.kernel`` to reach the kernel the tree is
+    actually using.
+
+Together these let a user express operations such as SPH artificial viscosity
+and artificial conduction without a Python-level loop over ``KDTree.nn()``.
+
+Most tests run against two implementations, selected by the ``pair_api``
+fixture:
+
+  ``reference``  a brute-force O(N^2) implementation, defined in this file.
+                 It *is* the specification of the pair set and of the
+                 accumulation.
+  ``kdtree``     the real ``KDTree`` methods, backed by the C++ tree walk.
+
+Applying identical assertions to both is what checks the C++ implementation
+against the reference; :func:`test_matches_reference_pair_set` and friends
+additionally compare the two head-to-head.
+
+The pair-set tests deliberately do not depend on the kernel API (they use a
+reference kernel defined here), and the kernel tests do not depend on the pair
+API, so that a failure points at one thing or the other.
+"""
+
+import numpy as np
+import numpy.testing as npt
+import pytest
+
+import pynbody
+
+_trapezoid = getattr(np, 'trapezoid', None) or np.trapz
+
+
+# ---------------------------------------------------------------------------
+# Reference implementation: this defines the semantics that the C++
+# implementation must reproduce.
+# ---------------------------------------------------------------------------
+
+def _minimum_image(dx, boxsize):
+    if boxsize is None:
+        return dx
+    return dx - boxsize * np.round(dx / boxsize)
+
+
+def _boxsize_of(f):
+    """Mirror of SimSnap._get_boxsize_for_kdtree, returning None if infinite."""
+    boxsize = f.properties.get('boxsize', None)
+    if not boxsize:
+        return None
+    if pynbody.units.is_unit_like(boxsize):
+        return float(boxsize.in_units(f['pos'].units))
+    return float(boxsize)
+
+
+def _reference_all_pairs(pos, h, boxsize, mode):
+    """Brute-force enumeration of the pair set, O(N^2).
+
+    ``symmetric`` yields each unordered pair ``{a, b}`` with
+    ``r <= max(2h_a, 2h_b)`` exactly once, canonicalised to ``i < j``.
+    ``gather`` yields each ordered pair ``(a, b)`` with ``r <= 2h_a``.
+
+    The boundary is inclusive, matching smBallGather. Note that ``r == 2h``
+    occurs by construction, since h is half the distance to the nth
+    neighbour, so pairs sitting exactly on it are not a rare edge case.
+    """
+    if mode not in ('symmetric', 'gather'):
+        raise ValueError(f"unknown mode {mode!r}")
+
+    i_list, j_list, dx_list = [], [], []
+
+    for a in range(len(pos)):
+        dx = _minimum_image(pos - pos[a], boxsize)
+        r = np.sqrt(np.einsum('kl,kl->k', dx, dx))
+
+        if mode == 'symmetric':
+            within = r <= np.maximum(2.0 * h[a], 2.0 * h)
+            within[:a + 1] = False          # each unordered pair once, i < j
+        else:
+            within = r <= 2.0 * h[a]
+            within[a] = False               # no self-pairs
+
+        b = np.flatnonzero(within)
+        i_list.append(np.full(len(b), a, dtype=np.int64))
+        j_list.append(b.astype(np.int64))
+        dx_list.append(dx[b])
+
+    return (np.concatenate(i_list), np.concatenate(j_list),
+            np.concatenate(dx_list))
+
+
+def _scatter_add(out, idx, contrib):
+    """``out[idx] += contrib``, summing over repeated entries of ``idx``."""
+    npart = out.shape[0]
+    if out.ndim == 1:
+        out += np.bincount(idx, weights=contrib, minlength=npart)
+    else:
+        for k in range(out.shape[1]):
+            out[:, k] += np.bincount(idx, weights=contrib[:, k],
+                                     minlength=npart)
+
+
+class ReferenceImplementation:
+    """Brute-force implementation of the proposed API."""
+
+    name = 'reference'
+
+    @staticmethod
+    def pair_blocks(f, mode='symmetric', blocksize=1 << 20):
+        i_all, j_all, dx_all = _reference_all_pairs(
+            np.asarray(f['pos'], dtype=np.float64),
+            np.asarray(f['smooth'], dtype=np.float64),
+            _boxsize_of(f), mode)
+
+        for s in range(0, len(i_all), blocksize):
+            sl = slice(s, s + blocksize)
+            i, j, dx = i_all[sl], j_all[sl], dx_all[sl]
+            r = np.sqrt(np.einsum('kl,kl->k', dx, dx))
+            for arr in (i, j, dx, r):
+                arr.flags.writeable = False
+            yield i, j, dx, r
+
+    @classmethod
+    def pair_reduce(cls, f, func, mode='symmetric', blocksize=1 << 20,
+                    dtype=np.float64):
+        out = np.zeros(len(f), dtype=dtype)
+        trailing = None
+
+        for i, j, dx, r in cls.pair_blocks(f, mode, blocksize):
+            res = func(i, j, dx, r)
+            ci, cj = res if isinstance(res, tuple) else (res, None)
+            ci = np.asarray(ci)
+
+            if len(ci) != len(i):
+                raise ValueError("callback returned %d values for a block of "
+                                 "%d pairs" % (len(ci), len(i)))
+            if trailing is None:
+                trailing = ci.shape[1:]
+                out = np.zeros((len(f),) + trailing, dtype=dtype)
+            elif ci.shape[1:] != trailing:
+                raise ValueError("callback returned trailing shape %s; the "
+                                 "first block gave %s"
+                                 % (ci.shape[1:], trailing))
+
+            _scatter_add(out, i, ci)
+            if cj is not None:
+                _scatter_add(out, j, np.asarray(cj))
+
+        return out
+
+
+class KDTreeImplementation:
+    """The proposed KDTree methods."""
+
+    name = 'kdtree'
+
+    @staticmethod
+    def pair_blocks(f, mode='symmetric', blocksize=1 << 20):
+        f.build_tree()
+        return f.kdtree.pair_blocks(mode=mode, blocksize=blocksize)
+
+    @staticmethod
+    def pair_reduce(f, func, mode='symmetric', blocksize=1 << 20,
+                    dtype=np.float64):
+        f.build_tree()
+        return f.kdtree.pair_reduce(func, mode=mode, blocksize=blocksize,
+                                    dtype=dtype)
+
+
+# Reference cubic spline, matching pynbody's normalisation:
+#     W(r, h) = f(r/h) / (pi h^3),  support at r = 2h
+# Used by the cross-checks against pynbody's own C++ density and divergence, so
+# that those tests exercise the pair set rather than the proposed kernel API.
+
+def _reference_kernel_value(r, h):
+    q = np.asarray(r, dtype=np.float64) / h
+    f = np.where(q < 1, 1 - 1.5 * q ** 2 + 0.75 * q ** 3,
+                 0.25 * np.clip(2 - q, 0, None) ** 3)
+    return f / (np.pi * np.asarray(h, dtype=np.float64) ** 3)
+
+
+def _reference_kernel_gradient(r, h):
+    """dW/dr, negative on (0, 2h)."""
+    q = np.asarray(r, dtype=np.float64) / h
+    df = np.where(q < 1, -3 * q + 2.25 * q ** 2,
+                  -0.75 * np.clip(2 - q, 0, None) ** 2)
+    return df / (np.pi * np.asarray(h, dtype=np.float64) ** 4)
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(params=[ReferenceImplementation, KDTreeImplementation],
+                ids=lambda impl: impl.name)
+def pair_api(request):
+    return request.param
+
+
+@pytest.fixture
+def snap():
+    """A small non-periodic snapshot, with smoothing lengths already fixed."""
+    npart = 400
+    f = pynbody.new(gas=npart)
+    np.random.seed(1337)
+    f['pos'] = np.random.normal(scale=10.0, size=(npart, 3))
+    f['mass'] = np.random.uniform(0.5, 1.5, size=npart)
+    f['vel'] = np.random.normal(size=(npart, 3))
+    f['u'] = np.random.uniform(1.0, 2.0, size=npart)
+    f['smooth']  # force calculation now, so h is constant through the test
+    return f
+
+
+@pytest.fixture
+def periodic_snap():
+    """A periodic snapshot with plenty of boundary-straddling pairs."""
+    npart = 600
+    f = pynbody.new(gas=npart)
+    np.random.seed(1338)
+    f['pos'] = np.random.uniform(-0.5, 0.5, size=(npart, 3))
+    f['mass'] = np.random.uniform(0.5, 1.5, size=npart)
+    f.properties['boxsize'] = 1.0
+    f['smooth']
+
+    # minimum-image is only well defined while kernels are smaller than the box
+    assert (2 * np.asarray(f['smooth'])).max() < 0.5
+    return f
+
+
+def _collect(blocks):
+    """Concatenate an iterator of pair blocks into single arrays."""
+    parts = list(blocks)
+    if not parts:
+        return (np.empty(0, np.int64), np.empty(0, np.int64),
+                np.empty((0, 3)), np.empty(0))
+    return tuple(np.concatenate([p[k] for p in parts]) for k in range(4))
+
+
+def _pair_keys(i, j):
+    """A sorted key per pair, for order-insensitive comparison of pair sets."""
+    return np.sort(i.astype(np.int64) * (1 << 32) + j.astype(np.int64))
+
+
+#: Pairs closer than this (relative) to the r == 2h boundary are treated as
+#: ambiguous when comparing two implementations. Smoothing lengths are defined
+#: as half the distance to the nth neighbour, so r == 2h is hit exactly for one
+#: neighbour of every particle. Two independent floating-point evaluations of
+#: that same distance -- the C++ tree walk and numpy's einsum -- differ in the
+#: last bit, so membership on the boundary is not reproducible between them.
+#: It is also physically irrelevant, since W and dW/dr both vanish at r == 2h;
+#: :func:`test_boundary_disagreements_carry_no_kernel_weight` asserts exactly
+#: that, so nothing is being swept under the carpet here.
+BOUNDARY_RTOL = 1e-12
+
+
+def _boundary_threshold(i, j, h, mode):
+    """The value of r at which each pair enters or leaves the pair set."""
+    if mode == 'gather':
+        return 2.0 * h[i]
+    return np.maximum(2.0 * h[i], 2.0 * h[j])
+
+
+def _away_from_boundary(i, j, r, h, mode, rtol=BOUNDARY_RTOL):
+    """Mask selecting pairs whose membership is unambiguous."""
+    threshold = _boundary_threshold(i, j, h, mode)
+    return np.abs(r - threshold) > rtol * threshold
+
+
+# ---------------------------------------------------------------------------
+# pair_blocks: what the callback receives
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_pair_blocks_shapes_and_dtypes(pair_api, snap, mode):
+    seen_any = False
+    for i, j, dx, r in pair_api.pair_blocks(snap, mode=mode, blocksize=500):
+        seen_any = True
+        nblock = len(i)
+        assert nblock <= 500
+        assert i.shape == (nblock,) and j.shape == (nblock,)
+        assert dx.shape == (nblock, 3)
+        assert r.shape == (nblock,)
+        assert np.issubdtype(i.dtype, np.integer)
+        assert np.issubdtype(j.dtype, np.integer)
+        assert dx.dtype == np.float64 and r.dtype == np.float64
+    assert seen_any, "no pairs were generated at all"
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_pair_blocks_r_is_consistent_with_dx(pair_api, snap, mode):
+    """``r`` must be exactly ``|dx|``, so the callback may use either."""
+    _, _, dx, r = _collect(pair_api.pair_blocks(snap, mode=mode))
+    npt.assert_allclose(r, np.sqrt(np.einsum('kl,kl->k', dx, dx)), rtol=1e-14)
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_pair_blocks_excludes_self_pairs(pair_api, snap, mode):
+    i, j, _, r = _collect(pair_api.pair_blocks(snap, mode=mode))
+    assert (i != j).all()
+    assert (r > 0).all(), "with self-pairs excluded, r is never zero"
+
+
+def test_pair_blocks_arrays_are_read_only(pair_api, snap):
+    """The callback must not be able to corrupt pynbody's internal buffers."""
+    for block in pair_api.pair_blocks(snap):
+        for name, arr in zip(('i', 'j', 'dx', 'r'), block):
+            assert not arr.flags.writeable, f"{name} should be read-only"
+        break
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_pair_blocks_blocksize_is_respected(pair_api, snap, mode):
+    sizes = [len(b[0]) for b in
+             pair_api.pair_blocks(snap, mode=mode, blocksize=137)]
+    assert len(sizes) > 1, "test is only meaningful with several blocks"
+    assert max(sizes) <= 137
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_pair_blocks_invariant_to_blocksize(pair_api, snap, mode):
+    """Blocking is an implementation detail; the pair set cannot depend on it."""
+    i1, j1, _, r1 = _collect(pair_api.pair_blocks(snap, mode=mode,
+                                                  blocksize=1 << 20))
+    i2, j2, _, r2 = _collect(pair_api.pair_blocks(snap, mode=mode,
+                                                  blocksize=97))
+    npt.assert_array_equal(_pair_keys(i1, j1), _pair_keys(i2, j2))
+    npt.assert_allclose(np.sort(r1), np.sort(r2), rtol=1e-14)
+
+
+def test_pair_blocks_is_deterministic(pair_api, snap):
+    """Same tree and blocksize => identical blocks, so results are reproducible."""
+    first = list(pair_api.pair_blocks(snap, blocksize=311))
+    second = list(pair_api.pair_blocks(snap, blocksize=311))
+
+    assert len(first) == len(second)
+    for block1, block2 in zip(first, second):
+        for arr1, arr2 in zip(block1, block2):
+            npt.assert_array_equal(arr1, arr2)
+
+
+# ---------------------------------------------------------------------------
+# pair_blocks: which pairs are in the set
+# ---------------------------------------------------------------------------
+
+def _assert_pair_set_matches_reference(f, i, j, r, mode):
+    """Compare a pair set to the brute-force reference, away from the boundary."""
+    h = np.asarray(f['smooth'], dtype=np.float64)
+    pos = np.asarray(f['pos'], dtype=np.float64)
+
+    exp_i, exp_j, exp_dx = _reference_all_pairs(pos, h, _boxsize_of(f), mode)
+    exp_r = np.sqrt(np.einsum('kl,kl->k', exp_dx, exp_dx))
+
+    got = _away_from_boundary(i, j, r, h, mode)
+    expected = _away_from_boundary(exp_i, exp_j, exp_r, h, mode)
+
+    npt.assert_array_equal(_pair_keys(i[got], j[got]),
+                           _pair_keys(exp_i[expected], exp_j[expected]))
+
+    # Each particle contributes at most one boundary pair, namely its own nth
+    # neighbour, which is what defines its smoothing length. Anything much
+    # beyond that would mean the disagreement is systematic rather than a
+    # last-bit tie.
+    assert (~got).sum() <= 2 * len(f), (
+        "%d of %d pairs sit on the 2h boundary, with only %d particles; that "
+        "is more than the one-per-particle expected from the definition of h"
+        % ((~got).sum(), len(i), len(f)))
+
+
+def test_symmetric_mode_pair_set(pair_api, snap):
+    """symmetric mode == {a<b : r <= max(2h_a, 2h_b)}, each pair exactly once."""
+    i, j, _, r = _collect(pair_api.pair_blocks(snap, mode='symmetric'))
+
+    assert (i < j).all(), "symmetric pairs must be canonicalised to i < j"
+    keys = _pair_keys(i, j)
+    assert len(np.unique(keys)) == len(keys), "pairs must not be duplicated"
+
+    _assert_pair_set_matches_reference(snap, i, j, r, 'symmetric')
+
+
+def test_gather_mode_pair_set(pair_api, snap):
+    """gather mode == ordered pairs {(a,b) : r <= 2h_a}."""
+    i, j, _, r = _collect(pair_api.pair_blocks(snap, mode='gather'))
+
+    h = np.asarray(snap['smooth'], dtype=np.float64)
+    assert (r <= 2.0 * h[i] * (1 + 1e-12)).all(), \
+        "gather mode must not exceed i's kernel"
+
+    _assert_pair_set_matches_reference(snap, i, j, r, 'gather')
+
+
+def test_the_two_modes_cover_the_same_unordered_pairs(pair_api, snap):
+    gi, gj, _, _ = _collect(pair_api.pair_blocks(snap, mode='gather'))
+    si, sj, _, _ = _collect(pair_api.pair_blocks(snap, mode='symmetric'))
+
+    gather_unordered = set(zip(np.minimum(gi, gj).tolist(),
+                               np.maximum(gi, gj).tolist()))
+    assert gather_unordered == set(zip(si.tolist(), sj.tolist()))
+
+
+def test_gather_mode_visits_some_pairs_from_only_one_side(pair_api, snap):
+    """Where h_a << h_b, (a,b) is a gather pair but (b,a) is not."""
+    gi, gj, _, _ = _collect(pair_api.pair_blocks(snap, mode='gather'))
+    ordered = set(zip(gi.tolist(), gj.tolist()))
+
+    one_sided = sum(1 for (a, b) in ordered if (b, a) not in ordered)
+    assert one_sided > 0, "expected at least one singly-counted gather pair"
+
+
+def test_symmetric_mode_includes_pairs_reachable_only_from_the_larger_h(
+        pair_api, snap):
+    """The point of symmetric mode: pairs with r > 2h_i but r < 2h_j."""
+    i, j, _, r = _collect(pair_api.pair_blocks(snap, mode='symmetric'))
+    h = np.asarray(snap['smooth'], dtype=np.float64)
+
+    one_sided = ((r > 2.0 * h[i]) & (r < 2.0 * h[j])) | \
+                ((r > 2.0 * h[j]) & (r < 2.0 * h[i]))
+    assert one_sided.sum() > 0, (
+        "no one-sided pairs in this snapshot, so the test cannot tell a "
+        "symmetric search from a gather search")
+
+
+# ---------------------------------------------------------------------------
+# pair_blocks: periodicity
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_pair_blocks_displacement_is_minimum_image(pair_api, periodic_snap,
+                                                   mode):
+    """``dx`` must be wrapped; computing ``pos[j]-pos[i]`` by hand is wrong."""
+    i, j, dx, r = _collect(pair_api.pair_blocks(periodic_snap, mode=mode))
+    boxsize = _boxsize_of(periodic_snap)
+    pos = np.asarray(periodic_snap['pos'], dtype=np.float64)
+
+    npt.assert_allclose(dx, _minimum_image(pos[j] - pos[i], boxsize),
+                        atol=1e-12)
+    assert (np.abs(dx) <= boxsize / 2 + 1e-12).all()
+
+
+def test_pair_blocks_finds_pairs_across_the_periodic_boundary(pair_api,
+                                                              periodic_snap):
+    """Some pairs must have an unwrapped separation of nearly a box length."""
+    i, j, _, r = _collect(pair_api.pair_blocks(periodic_snap))
+    pos = np.asarray(periodic_snap['pos'], dtype=np.float64)
+    d = pos[j] - pos[i]
+    unwrapped = np.sqrt(np.einsum('kl,kl->k', d, d))
+
+    assert (unwrapped > 2 * r).sum() > 0, (
+        "no boundary-straddling pairs, so periodicity is untested here")
+
+
+# ---------------------------------------------------------------------------
+# pair_reduce: accumulation semantics
+# ---------------------------------------------------------------------------
+
+def test_pair_reduce_counts_pairs_per_particle(pair_api, snap):
+    """A callback returning 1.0 counts pairs, i.e. repeated indices sum.
+
+    This is the ``np.bincount`` versus ``out[i] += c`` trap: the latter keeps
+    only one contribution per particle per block.
+    """
+    counts = pair_api.pair_reduce(
+        snap, lambda i, j, dx, r: (np.ones(len(i)), np.ones(len(j))),
+        mode='symmetric', blocksize=97)
+
+    i, j, _, _ = _collect(pair_api.pair_blocks(snap, mode='symmetric'))
+    expected = (np.bincount(i, minlength=len(snap))
+                + np.bincount(j, minlength=len(snap)))
+
+    npt.assert_array_equal(counts, expected)
+    assert counts.sum() == 2 * len(i)
+
+
+def test_pair_reduce_single_return_accumulates_at_i_only(pair_api, snap):
+    """Returning one array rather than a tuple means 'accumulate at i'."""
+    at_i = pair_api.pair_reduce(snap, lambda i, j, dx, r: np.ones(len(i)),
+                                mode='gather')
+    i, _, _, _ = _collect(pair_api.pair_blocks(snap, mode='gather'))
+    npt.assert_array_equal(at_i, np.bincount(i, minlength=len(snap)))
+
+
+def test_pair_reduce_output_shape_scalar_and_vector(pair_api, snap):
+    m = np.asarray(snap['mass'], dtype=np.float64)
+
+    scalar = pair_api.pair_reduce(snap, lambda i, j, dx, r: m[j] / r)
+    assert scalar.shape == (len(snap),)
+
+    vector = pair_api.pair_reduce(
+        snap, lambda i, j, dx, r: (m[j] / r ** 3)[:, None] * dx)
+    assert vector.shape == (len(snap), 3)
+
+
+def test_pair_reduce_output_covers_every_particle(pair_api, snap):
+    """Output is always length N, whatever the pair distribution."""
+    out = pair_api.pair_reduce(snap, lambda i, j, dx, r: np.zeros(len(i)))
+    assert out.shape == (len(snap),)
+    npt.assert_array_equal(out, 0.0)
+
+
+def test_pair_reduce_invariant_to_blocksize(pair_api, snap):
+    """A particle's pairs straddle block boundaries; that must not matter."""
+    m = np.asarray(snap['mass'], dtype=np.float64)
+    u = np.asarray(snap['u'], dtype=np.float64)
+
+    def func(i, j, dx, r):
+        c = m[j] * (u[j] - u[i]) / r
+        return c, -c
+
+    npt.assert_allclose(pair_api.pair_reduce(snap, func, blocksize=1 << 20),
+                        pair_api.pair_reduce(snap, func, blocksize=53),
+                        rtol=1e-12)
+
+
+def test_pair_reduce_dtype_is_respected(pair_api, snap):
+    out = pair_api.pair_reduce(snap, lambda i, j, dx, r: np.ones(len(i)),
+                               dtype=np.float32)
+    assert out.dtype == np.float32
+
+
+# ---------------------------------------------------------------------------
+# pair_reduce: the conservation property that motivates the design
+# ---------------------------------------------------------------------------
+
+def test_antisymmetric_reduction_conserves_exactly(pair_api, snap):
+    """An antisymmetric callback conserves energy to roundoff, by construction.
+
+    Because each unordered pair is visited once and both ends are accumulated
+    from that single visit, ``sum_i m_i du_i/dt == 0`` is an algebraic identity
+    rather than something a user has to verify numerically.
+    """
+    m = np.asarray(snap['mass'], dtype=np.float64)
+    u = np.asarray(snap['u'], dtype=np.float64)
+    h = np.asarray(snap['smooth'], dtype=np.float64)
+    vel = np.asarray(snap['vel'], dtype=np.float64)
+
+    def conduction_like(i, j, dx, r):
+        v_d = np.abs(np.einsum('kl,kl->k', vel[j] - vel[i], dx) / r)
+        g = 1.0 / h[i] ** 4 + 1.0 / h[j] ** 4
+        c = v_d * (u[j] - u[i]) * g
+        return m[j] * c, -m[i] * c
+
+    du_dt = pair_api.pair_reduce(snap, conduction_like, mode='symmetric')
+
+    terms = m * du_dt
+    residual = np.abs(terms.sum()) / np.abs(terms).sum()
+    assert residual < 1e-13, f"energy residual {residual:.3e} is too large"
+
+
+def test_symmetric_reduction_of_positive_definite_term_stays_positive(pair_api,
+                                                                      snap):
+    """The viscous form is positive definite; that must survive the reduction."""
+    m = np.asarray(snap['mass'], dtype=np.float64)
+    vel = np.asarray(snap['vel'], dtype=np.float64)
+    h = np.asarray(snap['smooth'], dtype=np.float64)
+
+    def viscosity_like(i, j, dx, r):
+        mu = np.minimum(np.einsum('kl,kl->k', vel[j] - vel[i], dx) / r, 0.0)
+        c = mu ** 2 * (1.0 / h[i] ** 4 + 1.0 / h[j] ** 4)
+        return m[j] * c, m[i] * c
+
+    assert (pair_api.pair_reduce(snap, viscosity_like) >= 0).all()
+
+
+# ---------------------------------------------------------------------------
+# pair_reduce cross-checked against pynbody's existing C++ SPH operations.
+# These use the reference kernel, so they test the pair set and the
+# accumulation rather than the proposed kernel API.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("snap_name", ['snap', 'periodic_snap'])
+def test_pair_reduce_reproduces_density(pair_api, request, snap_name):
+    """rho_i = sum_j m_j W(r, h_i), including the self-contribution."""
+    f = request.getfixturevalue(snap_name)
+    m = np.asarray(f['mass'], dtype=np.float64)
+    h = np.asarray(f['smooth'], dtype=np.float64)
+
+    rho = pair_api.pair_reduce(
+        f, lambda i, j, dx, r: m[j] * _reference_kernel_value(r, h[i]),
+        mode='gather')
+    rho += m * _reference_kernel_value(np.zeros(len(f)), h)
+
+    npt.assert_allclose(rho, np.asarray(f['rho'], dtype=np.float64), rtol=1e-9)
+
+
+def test_pair_reduce_reproduces_sph_divergence(pair_api, snap):
+    """Reproduce KDTree.sph_divergence, which uses the m_j/rho_j gather form.
+
+        div v_i = sum_j (m_j/rho_j) (v_j - v_i) . grad_i W(r, h_i)
+
+    with grad_i W = (dW/dr) * (-dx/r), since dx points from i towards j.
+    """
+    m = np.asarray(snap['mass'], dtype=np.float64)
+    rho = np.asarray(snap['rho'], dtype=np.float64)
+    h = np.asarray(snap['smooth'], dtype=np.float64)
+    vel = np.asarray(snap['vel'], dtype=np.float64)
+
+    def divergence(i, j, dx, r):
+        dv_dot_dx = np.einsum('kl,kl->k', vel[j] - vel[i], dx)
+        return -(m[j] / rho[j]) * dv_dot_dx * _reference_kernel_gradient(r, h[i]) / r
+
+    div = pair_api.pair_reduce(snap, divergence, mode='gather')
+    expected = np.asarray(snap.kdtree.sph_divergence(
+        snap['vel'], pynbody.config['sph']['smooth-particles']))
+
+    npt.assert_allclose(div, expected, rtol=1e-8)
+
+
+# ---------------------------------------------------------------------------
+# Head-to-head comparison of the two implementations
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_matches_reference_pair_set(snap, mode):
+    h = np.asarray(snap['smooth'], dtype=np.float64)
+
+    ri, rj, _, rr = _collect(ReferenceImplementation.pair_blocks(snap,
+                                                                 mode=mode))
+    ki, kj, _, kr = _collect(KDTreeImplementation.pair_blocks(snap, mode=mode))
+
+    ref_ok = _away_from_boundary(ri, rj, rr, h, mode)
+    kd_ok = _away_from_boundary(ki, kj, kr, h, mode)
+
+    npt.assert_array_equal(_pair_keys(ri[ref_ok], rj[ref_ok]),
+                           _pair_keys(ki[kd_ok], kj[kd_ok]))
+    npt.assert_allclose(np.sort(rr[ref_ok]), np.sort(kr[kd_ok]), rtol=1e-12)
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_boundary_disagreements_carry_no_kernel_weight(snap, mode):
+    """Where the two implementations disagree, the kernel is exactly zero.
+
+    This is what makes the r == 2h ambiguity harmless: such pairs enter every
+    SPH sum multiplied by W or dW/dr, both of which vanish at the edge of the
+    kernel, so no physical quantity can depend on which side they fall.
+    """
+    h = np.asarray(snap['smooth'], dtype=np.float64)
+    kernel = snap.kdtree.kernel
+
+    ri, rj, _, rr = _collect(ReferenceImplementation.pair_blocks(snap,
+                                                                 mode=mode))
+    ki, kj, _, kr = _collect(KDTreeImplementation.pair_blocks(snap, mode=mode))
+
+    ref_keys = _pair_keys(ri, rj)
+    kd_keys = _pair_keys(ki, kj)
+    disputed = np.setxor1d(ref_keys, kd_keys)
+
+    if len(disputed) == 0:
+        pytest.skip("the two implementations agree exactly on this snapshot")
+
+    # locate the disputed pairs in whichever set contains them
+    for keys, i, j, r in ((ref_keys, ri, rj, rr), (kd_keys, ki, kj, kr)):
+        order = np.argsort(i.astype(np.int64) * (1 << 32) + j.astype(np.int64))
+        i, j, r = i[order], j[order], r[order]
+        sel = np.isin(keys, disputed)
+        if not sel.any():
+            continue
+
+        threshold = _boundary_threshold(i[sel], j[sel], h, mode)
+        npt.assert_allclose(r[sel], threshold, rtol=1e-12)
+
+        # both the kernel and its gradient vanish there, for either smoothing
+        for h_side in (h[i[sel]], h[j[sel]]):
+            weight = np.abs(kernel.value(r[sel], h_side))
+            grad = np.abs(kernel.gradient(r[sel], h_side))
+            assert (weight[r[sel] >= 2 * h_side] == 0).all()
+            assert (grad[r[sel] >= 2 * h_side] == 0).all()
+
+
+def test_matches_reference_reduction(snap):
+    """A realistic kernel-weighted sum agrees exactly, boundary notwithstanding."""
+    m = np.asarray(snap['mass'], dtype=np.float64)
+    u = np.asarray(snap['u'], dtype=np.float64)
+    h = np.asarray(snap['smooth'], dtype=np.float64)
+    kernel = snap.kdtree.kernel
+
+    def func(i, j, dx, r):
+        # as in any real SPH sum, the kernel gradient multiplies every term,
+        # so pairs sitting on r == 2h contribute exactly zero
+        g = kernel.gradient(r, h[i]) + kernel.gradient(r, h[j])
+        c = (u[j] - u[i]) * g
+        return m[j] * c, -m[i] * c
+
+    npt.assert_allclose(ReferenceImplementation.pair_reduce(snap, func),
+                        KDTreeImplementation.pair_reduce(snap, func),
+                        rtol=1e-11)
+
+
+def test_matches_reference_in_periodic_box(periodic_snap):
+    m = np.asarray(periodic_snap['mass'], dtype=np.float64)
+    h = np.asarray(periodic_snap['smooth'], dtype=np.float64)
+    kernel = periodic_snap.kdtree.kernel
+
+    def func(i, j, dx, r):
+        g = kernel.gradient(r, h[i]) + kernel.gradient(r, h[j])
+        c = (m[j] * g / r)[:, None] * dx
+        return c, -(m[i] / m[j])[:, None] * c
+
+    npt.assert_allclose(
+        ReferenceImplementation.pair_reduce(periodic_snap, func),
+        KDTreeImplementation.pair_reduce(periodic_snap, func), rtol=1e-11)
+
+
+# ---------------------------------------------------------------------------
+# Error handling
+# ---------------------------------------------------------------------------
+
+def test_unknown_mode_raises(pair_api, snap):
+    with pytest.raises(ValueError):
+        list(pair_api.pair_blocks(snap, mode='not-a-mode'))
+
+
+def test_callback_returning_wrong_length_raises(pair_api, snap):
+    with pytest.raises(ValueError):
+        pair_api.pair_reduce(snap, lambda i, j, dx, r: np.ones(len(i) + 1))
+
+
+def test_callback_returning_inconsistent_shape_raises(pair_api, snap):
+    """The trailing shape is fixed by the first block and may not change."""
+    state = {'n': 0}
+
+    def wobbly(i, j, dx, r):
+        state['n'] += 1
+        return np.ones(len(i)) if state['n'] == 1 else np.ones((len(i), 3))
+
+    with pytest.raises(ValueError):
+        pair_api.pair_reduce(snap, wobbly, blocksize=53)
+
+
+# ---------------------------------------------------------------------------
+# Vectorised kernel access
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("kernel_name", ['CubicSplineKernel',
+                                         'WendlandC2Kernel'])
+def test_kernel_value_is_vectorised(kernel_name):
+    """``kernel.value(r, h)`` takes arrays and matches the scalar ``get_value``."""
+    kernel = pynbody.sph.kernels.create_kernel(kernel_name)
+    r = np.linspace(0.0, 3.0, 41)
+    h = 1.3
+
+    npt.assert_allclose(kernel.value(r, h),
+                        [kernel.get_value(ri / h, h) for ri in r], rtol=1e-12)
+
+
+def test_kernel_value_accepts_per_pair_smoothing():
+    """Both arguments vary per pair, so both must broadcast."""
+    kernel = pynbody.sph.kernels.create_kernel('CubicSplineKernel')
+    r = np.linspace(0.1, 2.0, 20)
+    h = np.linspace(0.8, 1.5, 20)
+
+    npt.assert_allclose(kernel.value(r, h),
+                        [kernel.get_value(ri / hi, hi)
+                         for ri, hi in zip(r, h)], rtol=1e-12)
+
+
+@pytest.mark.parametrize("kernel_name", ['CubicSplineKernel',
+                                         'WendlandC2Kernel'])
+def test_kernel_gradient_matches_finite_difference(kernel_name):
+    kernel = pynbody.sph.kernels.create_kernel(kernel_name)
+    h = 1.1
+    r = np.linspace(0.15, 1.85, 30)  # avoid r=0 and the support boundary
+    eps = 1e-6
+
+    numerical = (kernel.value(r + eps, h) - kernel.value(r - eps, h)) / (2 * eps)
+    npt.assert_allclose(kernel.gradient(r, h), numerical, rtol=1e-5, atol=1e-9)
+
+
+@pytest.mark.parametrize("kernel_name", ['CubicSplineKernel',
+                                         'WendlandC2Kernel'])
+def test_kernel_is_normalised(kernel_name):
+    """4 pi int W(r,h) r^2 dr == 1, which pins down the h convention."""
+    kernel = pynbody.sph.kernels.create_kernel(kernel_name)
+    h = 1.7
+    r = np.linspace(0, 2 * h, 200001)
+    integral = 4 * np.pi * _trapezoid(kernel.value(r, h) * r ** 2, r)
+    npt.assert_allclose(integral, 1.0, rtol=1e-5)
+
+
+def test_kernel_vanishes_outside_support():
+    kernel = pynbody.sph.kernels.create_kernel('CubicSplineKernel')
+    h = 0.9
+    r = np.array([2 * h, 2.5 * h, 10 * h])
+    npt.assert_array_equal(kernel.value(r, h), np.zeros(3))
+    npt.assert_array_equal(kernel.gradient(r, h), np.zeros(3))
+
+
+def test_kernel_agrees_with_the_reference_cubic_spline():
+    """Ties the proposed kernel API to the normalisation assumed above."""
+    kernel = pynbody.sph.kernels.create_kernel('CubicSplineKernel')
+    r = np.linspace(0.0, 2.5, 60)
+    h = 1.15
+
+    npt.assert_allclose(kernel.value(r, h), _reference_kernel_value(r, h),
+                        rtol=1e-12)
+    npt.assert_allclose(kernel.gradient(r, h),
+                        _reference_kernel_gradient(r, h), rtol=1e-12)
+
+
+@pytest.mark.parametrize("kernel_name", ['CubicSplineKernel',
+                                         'WendlandC2Kernel'])
+def test_cxx_kernel_gradient_normalisation_matches_its_value(kernel_name):
+    """The C++ kernel's gradient must carry the same normalisation as its value.
+
+    smDivQty and smCurlQty multiply ``Kernel::gradient`` by the same
+    ``1/(pi h^n)`` factor that smDensity applies to ``Kernel::operator()``, so
+    if the two disagree by a constant, every divergence and curl computed with
+    that kernel is silently wrong by that factor.
+
+    This is a regression test: ``WendlandC2Kernel::gradient`` in kernels.hpp
+    once omitted the 21/16 prefactor that its ``operator()`` includes, which
+    made :meth:`~pynbody.kdtree.KDTree.sph_divergence` and
+    :meth:`~pynbody.kdtree.KDTree.sph_curl` wrong by 16/21 for that kernel
+    while the cubic spline was unaffected -- so no existing test caught it.
+
+    Comparing against the python kernel grounds out in code that does not
+    share the bug: :func:`test_kernel_gradient_matches_finite_difference` ties
+    ``gradient`` to ``value``, and :func:`test_kernel_value_is_vectorised` and
+    :func:`test_kernel_is_normalised` tie ``value`` to the long-standing
+    scalar ``get_value`` and to its own normalisation integral.
+    """
+    npart = 3000
+    f = pynbody.new(gas=npart)
+    np.random.seed(5)
+    f['pos'] = np.random.normal(scale=8.0, size=(npart, 3))
+    f['mass'] = np.random.uniform(0.5, 1.5, size=npart)
+    f['vel'] = np.random.normal(size=(npart, 3))
+    f['rho']
+
+    f.kdtree.set_kernel(kernel_name)
+    assert type(f.kdtree.kernel).__name__ == kernel_name
+
+    m = np.asarray(f['mass'], dtype=np.float64)
+    rho = np.asarray(f['rho'], dtype=np.float64)
+    h = np.asarray(f['smooth'], dtype=np.float64)
+    vel = np.asarray(f['vel'], dtype=np.float64)
+    kernel = f.kdtree.kernel
+
+    # grad_i W = (dW/dr) (x_i - x_j)/r = -(dW/dr) dx/r
+    def divergence(i, j, dx, r):
+        dv_dot_dx = np.einsum('kl,kl->k', vel[j] - vel[i], dx)
+        return -(m[j] / rho[j]) * dv_dot_dx * kernel.gradient(r, h[i]) / r
+
+    def curl(i, j, dx, r):
+        cross = np.cross(vel[j] - vel[i], dx)
+        return (m[j] / rho[j] * kernel.gradient(r, h[i]) / r)[:, None] * cross
+
+    nsmooth = pynbody.config['sph']['smooth-particles']
+
+    npt.assert_allclose(f.kdtree.pair_reduce(divergence, mode='gather'),
+                        np.asarray(f.kdtree.sph_divergence(f['vel'], nsmooth)),
+                        rtol=1e-8)
+
+    npt.assert_allclose(f.kdtree.pair_reduce(curl, mode='gather'),
+                        np.asarray(f.kdtree.sph_curl(f['vel'], nsmooth)),
+                        rtol=1e-8)
+
+
+def test_tree_exposes_the_kernel_it_uses(snap):
+    """The user must be able to reach the kernel the C++ code is using."""
+    snap.build_tree()
+
+    snap.kdtree.set_kernel('WendlandC2Kernel')
+    assert isinstance(snap.kdtree.kernel,
+                      pynbody.sph.kernels.WendlandC2Kernel)
+
+    snap.kdtree.set_kernel('CubicSplineKernel')
+    assert isinstance(snap.kdtree.kernel,
+                      pynbody.sph.kernels.CubicSplineKernel)
