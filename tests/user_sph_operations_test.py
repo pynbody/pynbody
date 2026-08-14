@@ -2,32 +2,34 @@
 
 These cover:
 
-  * ``KDTree.pair_blocks(mode, blocksize)`` -- iterate over neighbour pairs in
-    blocks, as flat numpy arrays;
-  * ``KDTree.pair_reduce(func, mode, blocksize, dtype)`` -- accumulate a
-    user-supplied pairwise function over those pairs;
-  * ``KernelBase.value(r, h)`` / ``KernelBase.gradient(r, h)`` -- vectorised
-    kernel evaluation, and ``KDTree.kernel`` to reach the kernel the tree is
-    actually using.
+  * :meth:`pynbody.kdtree.KDTree.pair_blocks` -- iterating over neighbour
+    pairs in blocks, as flat numpy arrays;
+  * :meth:`pynbody.kdtree.KDTree.pair_reduce` -- accumulating a user-supplied
+    pairwise function over those pairs;
+  * :meth:`pynbody.sph.kernels.KernelBase.value` and
+    :meth:`~pynbody.sph.kernels.KernelBase.gradient` -- vectorised kernel
+    evaluation, and :attr:`pynbody.kdtree.KDTree.kernel` to reach the kernel
+    the tree is actually using.
 
 Together these let a user express operations such as SPH artificial viscosity
-and artificial conduction without a Python-level loop over ``KDTree.nn()``.
+and artificial conduction without a python-level loop over ``KDTree.nn()``.
 
-Most tests run against two implementations, selected by the ``pair_api``
-fixture:
+Most tests run against two implementations, supplied by the ``pairs`` fixture,
+which maps a snapshot onto an object exposing the pair API:
 
-  ``reference``  a brute-force O(N^2) implementation, defined in this file.
-                 It *is* the specification of the pair set and of the
-                 accumulation.
-  ``kdtree``     the real ``KDTree`` methods, backed by the C++ tree walk.
+  ``reference``  :class:`ReferencePairs`, a brute-force O(N^2) implementation
+                 defined in this file. It is the specification of both the
+                 pair set and the accumulation, and knows nothing of the
+                 KDTree.
+  ``kdtree``     the snapshot's own ``kdtree``, backed by the C++ tree walk.
 
-Applying identical assertions to both is what checks the C++ implementation
-against the reference; :func:`test_matches_reference_pair_set` and friends
-additionally compare the two head-to-head.
+:class:`ReferencePairs` mirrors the KDTree methods signature-for-signature, so
+applying one test body to both is what checks the C++ implementation against
+the specification.
 
-The pair-set tests deliberately do not depend on the kernel API (they use a
-reference kernel defined here), and the kernel tests do not depend on the pair
-API, so that a failure points at one thing or the other.
+The pair-set tests deliberately avoid the kernel API, using a reference kernel
+defined here, and the kernel tests avoid the pair API, so that a failure points
+at one thing or the other.
 """
 
 import numpy as np
@@ -60,64 +62,69 @@ def _boxsize_of(f):
     return float(boxsize)
 
 
-def _reference_all_pairs(pos, h, boxsize, mode):
-    """Brute-force enumeration of the pair set, O(N^2).
-
-    ``symmetric`` yields each unordered pair ``{a, b}`` with
-    ``r <= max(2h_a, 2h_b)`` exactly once, canonicalised to ``i < j``.
-    ``gather`` yields each ordered pair ``(a, b)`` with ``r <= 2h_a``.
-
-    The boundary is inclusive, matching smBallGather. Note that ``r == 2h``
-    occurs by construction, since h is half the distance to the nth
-    neighbour, so pairs sitting exactly on it are not a rare edge case.
-    """
-    if mode not in ('symmetric', 'gather'):
-        raise ValueError(f"unknown mode {mode!r}")
-
-    i_list, j_list, dx_list = [], [], []
-
-    for a in range(len(pos)):
-        dx = _minimum_image(pos - pos[a], boxsize)
-        r = np.sqrt(np.einsum('kl,kl->k', dx, dx))
-
-        if mode == 'symmetric':
-            within = r <= np.maximum(2.0 * h[a], 2.0 * h)
-            within[:a + 1] = False          # each unordered pair once, i < j
-        else:
-            within = r <= 2.0 * h[a]
-            within[a] = False               # no self-pairs
-
-        b = np.flatnonzero(within)
-        i_list.append(np.full(len(b), a, dtype=np.int64))
-        j_list.append(b.astype(np.int64))
-        dx_list.append(dx[b])
-
-    return (np.concatenate(i_list), np.concatenate(j_list),
-            np.concatenate(dx_list))
-
-
-def _scatter_add(out, idx, contrib):
-    """``out[idx] += contrib``, summing over repeated entries of ``idx``."""
+def _scatter_add(out, index, contrib):
+    """``out[index] += contrib``, summing over repeated entries of ``index``."""
     npart = out.shape[0]
     if out.ndim == 1:
-        out += np.bincount(idx, weights=contrib, minlength=npart)
+        out += np.bincount(index, weights=contrib, minlength=npart)
     else:
         for k in range(out.shape[1]):
-            out[:, k] += np.bincount(idx, weights=contrib[:, k],
+            out[:, k] += np.bincount(index, weights=contrib[:, k],
                                      minlength=npart)
 
 
-class ReferenceImplementation:
-    """Brute-force implementation of the proposed API."""
+class ReferencePairs:
+    """Brute-force stand-in for the pair methods of :class:`pynbody.kdtree.KDTree`.
 
-    name = 'reference'
+    Every candidate pair is enumerated directly, so this depends on nothing but
+    the positions and smoothing lengths -- in particular, not on the KDTree.
+    The method signatures match KDTree's, so a single test body can exercise
+    either implementation.
+    """
 
-    @staticmethod
-    def pair_blocks(f, mode='symmetric', blocksize=1 << 20):
-        i_all, j_all, dx_all = _reference_all_pairs(
-            np.asarray(f['pos'], dtype=np.float64),
-            np.asarray(f['smooth'], dtype=np.float64),
-            _boxsize_of(f), mode)
+    def __init__(self, f):
+        self._npart = len(f)
+        self._pos = np.asarray(f['pos'], dtype=np.float64)
+        self._h = np.asarray(f['smooth'], dtype=np.float64)
+        self._boxsize = _boxsize_of(f)
+
+    def _all_pairs(self, mode):
+        """Enumerate the whole pair set, O(N^2).
+
+        ``symmetric`` gives each unordered pair ``{a, b}`` with
+        ``r <= max(2h_a, 2h_b)`` once, canonicalised to ``i < j``; ``gather``
+        gives each ordered pair ``(a, b)`` with ``r <= 2h_a``.
+
+        The boundary is inclusive, matching smBallGather. Note ``r == 2h``
+        arises by construction, h being half the distance to the nth
+        neighbour, so pairs sitting exactly on it are not a rare edge case.
+        """
+        if mode not in ('symmetric', 'gather'):
+            raise ValueError(f"unknown mode {mode!r}")
+
+        i_list, j_list, dx_list = [], [], []
+
+        for a in range(self._npart):
+            dx = _minimum_image(self._pos - self._pos[a], self._boxsize)
+            r = np.sqrt(np.einsum('kl,kl->k', dx, dx))
+
+            if mode == 'symmetric':
+                within = r <= np.maximum(2.0 * self._h[a], 2.0 * self._h)
+                within[:a + 1] = False      # each unordered pair once, i < j
+            else:
+                within = r <= 2.0 * self._h[a]
+                within[a] = False           # no self-pairs
+
+            b = np.flatnonzero(within)
+            i_list.append(np.full(len(b), a, dtype=np.int64))
+            j_list.append(b.astype(np.int64))
+            dx_list.append(dx[b])
+
+        return (np.concatenate(i_list), np.concatenate(j_list),
+                np.concatenate(dx_list))
+
+    def pair_blocks(self, mode='symmetric', blocksize=1 << 18):
+        i_all, j_all, dx_all = self._all_pairs(mode)
 
         for s in range(0, len(i_all), blocksize):
             sl = slice(s, s + blocksize)
@@ -127,57 +134,33 @@ class ReferenceImplementation:
                 arr.flags.writeable = False
             yield i, j, dx, r
 
-    @classmethod
-    def pair_reduce(cls, f, func, mode='symmetric', blocksize=1 << 20,
+    def pair_reduce(self, func, mode='symmetric', blocksize=1 << 18,
                     dtype=np.float64):
-        out = np.zeros(len(f), dtype=dtype)
+        out = np.zeros(self._npart, dtype=dtype)
         trailing = None
 
-        for i, j, dx, r in cls.pair_blocks(f, mode, blocksize):
-            res = func(i, j, dx, r)
-            ci, cj = res if isinstance(res, tuple) else (res, None)
-            ci = np.asarray(ci)
+        for i, j, dx, r in self.pair_blocks(mode, blocksize):
+            result = func(i, j, dx, r)
+            contrib_i, contrib_j = (result if isinstance(result, tuple)
+                                    else (result, None))
+            contrib_i = np.asarray(contrib_i)
 
-            if len(ci) != len(i):
-                raise ValueError("callback returned %d values for a block of "
-                                 "%d pairs" % (len(ci), len(i)))
             if trailing is None:
-                trailing = ci.shape[1:]
-                out = np.zeros((len(f),) + trailing, dtype=dtype)
-            elif ci.shape[1:] != trailing:
-                raise ValueError("callback returned trailing shape %s; the "
-                                 "first block gave %s"
-                                 % (ci.shape[1:], trailing))
+                trailing = contrib_i.shape[1:]
+                out = np.zeros((self._npart,) + trailing, dtype=dtype)
 
-            _scatter_add(out, i, ci)
-            if cj is not None:
-                _scatter_add(out, j, np.asarray(cj))
+            _scatter_add(out, i, contrib_i)
+            if contrib_j is not None:
+                _scatter_add(out, j, np.asarray(contrib_j))
 
         return out
 
 
-class KDTreeImplementation:
-    """The proposed KDTree methods."""
-
-    name = 'kdtree'
-
-    @staticmethod
-    def pair_blocks(f, mode='symmetric', blocksize=1 << 20):
-        f.build_tree()
-        return f.kdtree.pair_blocks(mode=mode, blocksize=blocksize)
-
-    @staticmethod
-    def pair_reduce(f, func, mode='symmetric', blocksize=1 << 20,
-                    dtype=np.float64):
-        f.build_tree()
-        return f.kdtree.pair_reduce(func, mode=mode, blocksize=blocksize,
-                                    dtype=dtype)
-
-
 # Reference cubic spline, matching pynbody's normalisation:
 #     W(r, h) = f(r/h) / (pi h^3),  support at r = 2h
-# Used by the cross-checks against pynbody's own C++ density and divergence, so
-# that those tests exercise the pair set rather than the proposed kernel API.
+# The cross-checks against pynbody's own C++ density and divergence use these
+# rather than KernelBase.value/gradient, so that they test the pair set and the
+# accumulation without also depending on the kernel API.
 
 def _reference_kernel_value(r, h):
     q = np.asarray(r, dtype=np.float64) / h
@@ -198,10 +181,12 @@ def _reference_kernel_gradient(r, h):
 # Fixtures
 # ---------------------------------------------------------------------------
 
-@pytest.fixture(params=[ReferenceImplementation, KDTreeImplementation],
-                ids=lambda impl: impl.name)
-def pair_api(request):
-    return request.param
+@pytest.fixture(params=['reference', 'kdtree'])
+def pairs(request):
+    """Map a snapshot onto an object exposing ``pair_blocks``/``pair_reduce``."""
+    if request.param == 'reference':
+        return ReferencePairs
+    return lambda f: f.kdtree
 
 
 @pytest.fixture
@@ -244,8 +229,8 @@ def _collect(blocks):
 
 
 def _pair_keys(i, j):
-    """A sorted key per pair, for order-insensitive comparison of pair sets."""
-    return np.sort(i.astype(np.int64) * (1 << 32) + j.astype(np.int64))
+    """One integer key per pair, for order-insensitive comparison."""
+    return i.astype(np.int64) * (1 << 32) + j.astype(np.int64)
 
 
 #: Pairs closer than this (relative) to the r == 2h boundary are treated as
@@ -278,9 +263,9 @@ def _away_from_boundary(i, j, r, h, mode, rtol=BOUNDARY_RTOL):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])
-def test_pair_blocks_shapes_and_dtypes(pair_api, snap, mode):
+def test_pair_blocks_shapes_and_dtypes(pairs, snap, mode):
     seen_any = False
-    for i, j, dx, r in pair_api.pair_blocks(snap, mode=mode, blocksize=500):
+    for i, j, dx, r in pairs(snap).pair_blocks(mode=mode, blocksize=500):
         seen_any = True
         nblock = len(i)
         assert nblock <= 500
@@ -294,50 +279,51 @@ def test_pair_blocks_shapes_and_dtypes(pair_api, snap, mode):
 
 
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])
-def test_pair_blocks_r_is_consistent_with_dx(pair_api, snap, mode):
+def test_pair_blocks_r_is_consistent_with_dx(pairs, snap, mode):
     """``r`` must be exactly ``|dx|``, so the callback may use either."""
-    _, _, dx, r = _collect(pair_api.pair_blocks(snap, mode=mode))
+    _, _, dx, r = _collect(pairs(snap).pair_blocks(mode=mode))
     npt.assert_allclose(r, np.sqrt(np.einsum('kl,kl->k', dx, dx)), rtol=1e-14)
 
 
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])
-def test_pair_blocks_excludes_self_pairs(pair_api, snap, mode):
-    i, j, _, r = _collect(pair_api.pair_blocks(snap, mode=mode))
+def test_pair_blocks_excludes_self_pairs(pairs, snap, mode):
+    i, j, _, r = _collect(pairs(snap).pair_blocks(mode=mode))
     assert (i != j).all()
     assert (r > 0).all(), "with self-pairs excluded, r is never zero"
 
 
-def test_pair_blocks_arrays_are_read_only(pair_api, snap):
+def test_pair_blocks_arrays_are_read_only(pairs, snap):
     """The callback must not be able to corrupt pynbody's internal buffers."""
-    for block in pair_api.pair_blocks(snap):
+    for block in pairs(snap).pair_blocks():
         for name, arr in zip(('i', 'j', 'dx', 'r'), block):
             assert not arr.flags.writeable, f"{name} should be read-only"
         break
 
 
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])
-def test_pair_blocks_blocksize_is_respected(pair_api, snap, mode):
+def test_pair_blocks_blocksize_is_respected(pairs, snap, mode):
     sizes = [len(b[0]) for b in
-             pair_api.pair_blocks(snap, mode=mode, blocksize=137)]
+             pairs(snap).pair_blocks(mode=mode, blocksize=137)]
     assert len(sizes) > 1, "test is only meaningful with several blocks"
     assert max(sizes) <= 137
 
 
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])
-def test_pair_blocks_invariant_to_blocksize(pair_api, snap, mode):
+def test_pair_blocks_invariant_to_blocksize(pairs, snap, mode):
     """Blocking is an implementation detail; the pair set cannot depend on it."""
-    i1, j1, _, r1 = _collect(pair_api.pair_blocks(snap, mode=mode,
-                                                  blocksize=1 << 20))
-    i2, j2, _, r2 = _collect(pair_api.pair_blocks(snap, mode=mode,
-                                                  blocksize=97))
-    npt.assert_array_equal(_pair_keys(i1, j1), _pair_keys(i2, j2))
+    i1, j1, _, r1 = _collect(pairs(snap).pair_blocks(mode=mode,
+                                                     blocksize=1 << 20))
+    i2, j2, _, r2 = _collect(pairs(snap).pair_blocks(mode=mode, blocksize=97))
+
+    npt.assert_array_equal(np.sort(_pair_keys(i1, j1)),
+                           np.sort(_pair_keys(i2, j2)))
     npt.assert_allclose(np.sort(r1), np.sort(r2), rtol=1e-14)
 
 
-def test_pair_blocks_is_deterministic(pair_api, snap):
+def test_pair_blocks_is_deterministic(pairs, snap):
     """Same tree and blocksize => identical blocks, so results are reproducible."""
-    first = list(pair_api.pair_blocks(snap, blocksize=311))
-    second = list(pair_api.pair_blocks(snap, blocksize=311))
+    first = list(pairs(snap).pair_blocks(blocksize=311))
+    second = list(pairs(snap).pair_blocks(blocksize=311))
 
     assert len(first) == len(second)
     for block1, block2 in zip(first, second):
@@ -350,18 +336,17 @@ def test_pair_blocks_is_deterministic(pair_api, snap):
 # ---------------------------------------------------------------------------
 
 def _assert_pair_set_matches_reference(f, i, j, r, mode):
-    """Compare a pair set to the brute-force reference, away from the boundary."""
+    """Compare a pair set against the brute-force reference, off the boundary."""
     h = np.asarray(f['smooth'], dtype=np.float64)
-    pos = np.asarray(f['pos'], dtype=np.float64)
-
-    exp_i, exp_j, exp_dx = _reference_all_pairs(pos, h, _boxsize_of(f), mode)
-    exp_r = np.sqrt(np.einsum('kl,kl->k', exp_dx, exp_dx))
+    exp_i, exp_j, _, exp_r = _collect(ReferencePairs(f).pair_blocks(mode=mode))
 
     got = _away_from_boundary(i, j, r, h, mode)
     expected = _away_from_boundary(exp_i, exp_j, exp_r, h, mode)
 
-    npt.assert_array_equal(_pair_keys(i[got], j[got]),
-                           _pair_keys(exp_i[expected], exp_j[expected]))
+    npt.assert_array_equal(np.sort(_pair_keys(i[got], j[got])),
+                           np.sort(_pair_keys(exp_i[expected],
+                                              exp_j[expected])))
+    npt.assert_allclose(np.sort(r[got]), np.sort(exp_r[expected]), rtol=1e-12)
 
     # Each particle contributes at most one boundary pair, namely its own nth
     # neighbour, which is what defines its smoothing length. Anything much
@@ -373,9 +358,9 @@ def _assert_pair_set_matches_reference(f, i, j, r, mode):
         % ((~got).sum(), len(i), len(f)))
 
 
-def test_symmetric_mode_pair_set(pair_api, snap):
+def test_symmetric_mode_pair_set(pairs, snap):
     """symmetric mode == {a<b : r <= max(2h_a, 2h_b)}, each pair exactly once."""
-    i, j, _, r = _collect(pair_api.pair_blocks(snap, mode='symmetric'))
+    i, j, _, r = _collect(pairs(snap).pair_blocks(mode='symmetric'))
 
     assert (i < j).all(), "symmetric pairs must be canonicalised to i < j"
     keys = _pair_keys(i, j)
@@ -384,9 +369,9 @@ def test_symmetric_mode_pair_set(pair_api, snap):
     _assert_pair_set_matches_reference(snap, i, j, r, 'symmetric')
 
 
-def test_gather_mode_pair_set(pair_api, snap):
+def test_gather_mode_pair_set(pairs, snap):
     """gather mode == ordered pairs {(a,b) : r <= 2h_a}."""
-    i, j, _, r = _collect(pair_api.pair_blocks(snap, mode='gather'))
+    i, j, _, r = _collect(pairs(snap).pair_blocks(mode='gather'))
 
     h = np.asarray(snap['smooth'], dtype=np.float64)
     assert (r <= 2.0 * h[i] * (1 + 1e-12)).all(), \
@@ -395,35 +380,34 @@ def test_gather_mode_pair_set(pair_api, snap):
     _assert_pair_set_matches_reference(snap, i, j, r, 'gather')
 
 
-def test_the_two_modes_cover_the_same_unordered_pairs(pair_api, snap):
-    gi, gj, _, _ = _collect(pair_api.pair_blocks(snap, mode='gather'))
-    si, sj, _, _ = _collect(pair_api.pair_blocks(snap, mode='symmetric'))
+def test_the_two_modes_cover_the_same_unordered_pairs(pairs, snap):
+    gi, gj, _, _ = _collect(pairs(snap).pair_blocks(mode='gather'))
+    si, sj, _, _ = _collect(pairs(snap).pair_blocks(mode='symmetric'))
 
     gather_unordered = set(zip(np.minimum(gi, gj).tolist(),
                                np.maximum(gi, gj).tolist()))
     assert gather_unordered == set(zip(si.tolist(), sj.tolist()))
 
 
-def test_gather_mode_visits_some_pairs_from_only_one_side(pair_api, snap):
-    """Where h_a << h_b, (a,b) is a gather pair but (b,a) is not."""
-    gi, gj, _, _ = _collect(pair_api.pair_blocks(snap, mode='gather'))
+def test_the_two_modes_differ_where_smoothing_lengths_differ(pairs, snap):
+    """Check this snapshot can actually tell the two searches apart.
+
+    Where ``h_a << h_b``, the pair is inside b's kernel but not a's. Such pairs
+    are reached from one side only in gather mode, and are exactly what a
+    symmetric search must find but a gather search would miss. Without any of
+    them present, the mode tests above would pass vacuously.
+    """
+    gi, gj, _, _ = _collect(pairs(snap).pair_blocks(mode='gather'))
     ordered = set(zip(gi.tolist(), gj.tolist()))
+    assert sum(1 for (a, b) in ordered if (b, a) not in ordered) > 0, \
+        "no singly-counted gather pairs in this snapshot"
 
-    one_sided = sum(1 for (a, b) in ordered if (b, a) not in ordered)
-    assert one_sided > 0, "expected at least one singly-counted gather pair"
-
-
-def test_symmetric_mode_includes_pairs_reachable_only_from_the_larger_h(
-        pair_api, snap):
-    """The point of symmetric mode: pairs with r > 2h_i but r < 2h_j."""
-    i, j, _, r = _collect(pair_api.pair_blocks(snap, mode='symmetric'))
+    i, j, _, r = _collect(pairs(snap).pair_blocks(mode='symmetric'))
     h = np.asarray(snap['smooth'], dtype=np.float64)
-
     one_sided = ((r > 2.0 * h[i]) & (r < 2.0 * h[j])) | \
                 ((r > 2.0 * h[j]) & (r < 2.0 * h[i]))
-    assert one_sided.sum() > 0, (
-        "no one-sided pairs in this snapshot, so the test cannot tell a "
-        "symmetric search from a gather search")
+    assert one_sided.sum() > 0, \
+        "no pairs reachable only from the larger smoothing length"
 
 
 # ---------------------------------------------------------------------------
@@ -431,10 +415,9 @@ def test_symmetric_mode_includes_pairs_reachable_only_from_the_larger_h(
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])
-def test_pair_blocks_displacement_is_minimum_image(pair_api, periodic_snap,
-                                                   mode):
+def test_pair_blocks_displacement_is_minimum_image(pairs, periodic_snap, mode):
     """``dx`` must be wrapped; computing ``pos[j]-pos[i]`` by hand is wrong."""
-    i, j, dx, r = _collect(pair_api.pair_blocks(periodic_snap, mode=mode))
+    i, j, dx, r = _collect(pairs(periodic_snap).pair_blocks(mode=mode))
     boxsize = _boxsize_of(periodic_snap)
     pos = np.asarray(periodic_snap['pos'], dtype=np.float64)
 
@@ -443,10 +426,10 @@ def test_pair_blocks_displacement_is_minimum_image(pair_api, periodic_snap,
     assert (np.abs(dx) <= boxsize / 2 + 1e-12).all()
 
 
-def test_pair_blocks_finds_pairs_across_the_periodic_boundary(pair_api,
+def test_pair_blocks_finds_pairs_across_the_periodic_boundary(pairs,
                                                               periodic_snap):
     """Some pairs must have an unwrapped separation of nearly a box length."""
-    i, j, _, r = _collect(pair_api.pair_blocks(periodic_snap))
+    i, j, _, r = _collect(pairs(periodic_snap).pair_blocks())
     pos = np.asarray(periodic_snap['pos'], dtype=np.float64)
     d = pos[j] - pos[i]
     unwrapped = np.sqrt(np.einsum('kl,kl->k', d, d))
@@ -459,17 +442,17 @@ def test_pair_blocks_finds_pairs_across_the_periodic_boundary(pair_api,
 # pair_reduce: accumulation semantics
 # ---------------------------------------------------------------------------
 
-def test_pair_reduce_counts_pairs_per_particle(pair_api, snap):
+def test_pair_reduce_counts_pairs_per_particle(pairs, snap):
     """A callback returning 1.0 counts pairs, i.e. repeated indices sum.
 
     This is the ``np.bincount`` versus ``out[i] += c`` trap: the latter keeps
     only one contribution per particle per block.
     """
-    counts = pair_api.pair_reduce(
-        snap, lambda i, j, dx, r: (np.ones(len(i)), np.ones(len(j))),
+    counts = pairs(snap).pair_reduce(
+        lambda i, j, dx, r: (np.ones(len(i)), np.ones(len(j))),
         mode='symmetric', blocksize=97)
 
-    i, j, _, _ = _collect(pair_api.pair_blocks(snap, mode='symmetric'))
+    i, j, _, _ = _collect(pairs(snap).pair_blocks(mode='symmetric'))
     expected = (np.bincount(i, minlength=len(snap))
                 + np.bincount(j, minlength=len(snap)))
 
@@ -477,33 +460,33 @@ def test_pair_reduce_counts_pairs_per_particle(pair_api, snap):
     assert counts.sum() == 2 * len(i)
 
 
-def test_pair_reduce_single_return_accumulates_at_i_only(pair_api, snap):
+def test_pair_reduce_single_return_accumulates_at_i_only(pairs, snap):
     """Returning one array rather than a tuple means 'accumulate at i'."""
-    at_i = pair_api.pair_reduce(snap, lambda i, j, dx, r: np.ones(len(i)),
-                                mode='gather')
-    i, _, _, _ = _collect(pair_api.pair_blocks(snap, mode='gather'))
+    at_i = pairs(snap).pair_reduce(lambda i, j, dx, r: np.ones(len(i)),
+                                   mode='gather')
+    i, _, _, _ = _collect(pairs(snap).pair_blocks(mode='gather'))
     npt.assert_array_equal(at_i, np.bincount(i, minlength=len(snap)))
 
 
-def test_pair_reduce_output_shape_scalar_and_vector(pair_api, snap):
+def test_pair_reduce_output_shape_scalar_and_vector(pairs, snap):
     m = np.asarray(snap['mass'], dtype=np.float64)
 
-    scalar = pair_api.pair_reduce(snap, lambda i, j, dx, r: m[j] / r)
+    scalar = pairs(snap).pair_reduce(lambda i, j, dx, r: m[j] / r)
     assert scalar.shape == (len(snap),)
 
-    vector = pair_api.pair_reduce(
-        snap, lambda i, j, dx, r: (m[j] / r ** 3)[:, None] * dx)
+    vector = pairs(snap).pair_reduce(
+        lambda i, j, dx, r: (m[j] / r ** 3)[:, None] * dx)
     assert vector.shape == (len(snap), 3)
 
 
-def test_pair_reduce_output_covers_every_particle(pair_api, snap):
+def test_pair_reduce_output_covers_every_particle(pairs, snap):
     """Output is always length N, whatever the pair distribution."""
-    out = pair_api.pair_reduce(snap, lambda i, j, dx, r: np.zeros(len(i)))
+    out = pairs(snap).pair_reduce(lambda i, j, dx, r: np.zeros(len(i)))
     assert out.shape == (len(snap),)
     npt.assert_array_equal(out, 0.0)
 
 
-def test_pair_reduce_invariant_to_blocksize(pair_api, snap):
+def test_pair_reduce_invariant_to_blocksize(pairs, snap):
     """A particle's pairs straddle block boundaries; that must not matter."""
     m = np.asarray(snap['mass'], dtype=np.float64)
     u = np.asarray(snap['u'], dtype=np.float64)
@@ -512,14 +495,14 @@ def test_pair_reduce_invariant_to_blocksize(pair_api, snap):
         c = m[j] * (u[j] - u[i]) / r
         return c, -c
 
-    npt.assert_allclose(pair_api.pair_reduce(snap, func, blocksize=1 << 20),
-                        pair_api.pair_reduce(snap, func, blocksize=53),
+    npt.assert_allclose(pairs(snap).pair_reduce(func, blocksize=1 << 20),
+                        pairs(snap).pair_reduce(func, blocksize=53),
                         rtol=1e-12)
 
 
-def test_pair_reduce_dtype_is_respected(pair_api, snap):
-    out = pair_api.pair_reduce(snap, lambda i, j, dx, r: np.ones(len(i)),
-                               dtype=np.float32)
+def test_pair_reduce_dtype_is_respected(pairs, snap):
+    out = pairs(snap).pair_reduce(lambda i, j, dx, r: np.ones(len(i)),
+                                  dtype=np.float32)
     assert out.dtype == np.float32
 
 
@@ -527,7 +510,7 @@ def test_pair_reduce_dtype_is_respected(pair_api, snap):
 # pair_reduce: the conservation property that motivates the design
 # ---------------------------------------------------------------------------
 
-def test_antisymmetric_reduction_conserves_exactly(pair_api, snap):
+def test_antisymmetric_reduction_conserves_exactly(pairs, snap):
     """An antisymmetric callback conserves energy to roundoff, by construction.
 
     Because each unordered pair is visited once and both ends are accumulated
@@ -545,14 +528,14 @@ def test_antisymmetric_reduction_conserves_exactly(pair_api, snap):
         c = v_d * (u[j] - u[i]) * g
         return m[j] * c, -m[i] * c
 
-    du_dt = pair_api.pair_reduce(snap, conduction_like, mode='symmetric')
+    du_dt = pairs(snap).pair_reduce(conduction_like, mode='symmetric')
 
     terms = m * du_dt
     residual = np.abs(terms.sum()) / np.abs(terms).sum()
     assert residual < 1e-13, f"energy residual {residual:.3e} is too large"
 
 
-def test_symmetric_reduction_of_positive_definite_term_stays_positive(pair_api,
+def test_symmetric_reduction_of_positive_definite_term_stays_positive(pairs,
                                                                       snap):
     """The viscous form is positive definite; that must survive the reduction."""
     m = np.asarray(snap['mass'], dtype=np.float64)
@@ -564,31 +547,29 @@ def test_symmetric_reduction_of_positive_definite_term_stays_positive(pair_api,
         c = mu ** 2 * (1.0 / h[i] ** 4 + 1.0 / h[j] ** 4)
         return m[j] * c, m[i] * c
 
-    assert (pair_api.pair_reduce(snap, viscosity_like) >= 0).all()
+    assert (pairs(snap).pair_reduce(viscosity_like) >= 0).all()
 
 
 # ---------------------------------------------------------------------------
-# pair_reduce cross-checked against pynbody's existing C++ SPH operations.
-# These use the reference kernel, so they test the pair set and the
-# accumulation rather than the proposed kernel API.
+# pair_reduce cross-checked against pynbody's existing C++ SPH operations
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("snap_name", ['snap', 'periodic_snap'])
-def test_pair_reduce_reproduces_density(pair_api, request, snap_name):
+def test_pair_reduce_reproduces_density(pairs, request, snap_name):
     """rho_i = sum_j m_j W(r, h_i), including the self-contribution."""
     f = request.getfixturevalue(snap_name)
     m = np.asarray(f['mass'], dtype=np.float64)
     h = np.asarray(f['smooth'], dtype=np.float64)
 
-    rho = pair_api.pair_reduce(
-        f, lambda i, j, dx, r: m[j] * _reference_kernel_value(r, h[i]),
+    rho = pairs(f).pair_reduce(
+        lambda i, j, dx, r: m[j] * _reference_kernel_value(r, h[i]),
         mode='gather')
     rho += m * _reference_kernel_value(np.zeros(len(f)), h)
 
     npt.assert_allclose(rho, np.asarray(f['rho'], dtype=np.float64), rtol=1e-9)
 
 
-def test_pair_reduce_reproduces_sph_divergence(pair_api, snap):
+def test_pair_reduce_reproduces_sph_divergence(pairs, snap):
     """Reproduce KDTree.sph_divergence, which uses the m_j/rho_j gather form.
 
         div v_i = sum_j (m_j/rho_j) (v_j - v_i) . grad_i W(r, h_i)
@@ -604,7 +585,7 @@ def test_pair_reduce_reproduces_sph_divergence(pair_api, snap):
         dv_dot_dx = np.einsum('kl,kl->k', vel[j] - vel[i], dx)
         return -(m[j] / rho[j]) * dv_dot_dx * _reference_kernel_gradient(r, h[i]) / r
 
-    div = pair_api.pair_reduce(snap, divergence, mode='gather')
+    div = pairs(snap).pair_reduce(divergence, mode='gather')
     expected = np.asarray(snap.kdtree.sph_divergence(
         snap['vel'], pynbody.config['sph']['smooth-particles']))
 
@@ -614,22 +595,6 @@ def test_pair_reduce_reproduces_sph_divergence(pair_api, snap):
 # ---------------------------------------------------------------------------
 # Head-to-head comparison of the two implementations
 # ---------------------------------------------------------------------------
-
-@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
-def test_matches_reference_pair_set(snap, mode):
-    h = np.asarray(snap['smooth'], dtype=np.float64)
-
-    ri, rj, _, rr = _collect(ReferenceImplementation.pair_blocks(snap,
-                                                                 mode=mode))
-    ki, kj, _, kr = _collect(KDTreeImplementation.pair_blocks(snap, mode=mode))
-
-    ref_ok = _away_from_boundary(ri, rj, rr, h, mode)
-    kd_ok = _away_from_boundary(ki, kj, kr, h, mode)
-
-    npt.assert_array_equal(_pair_keys(ri[ref_ok], rj[ref_ok]),
-                           _pair_keys(ki[kd_ok], kj[kd_ok]))
-    npt.assert_allclose(np.sort(rr[ref_ok]), np.sort(kr[kd_ok]), rtol=1e-12)
-
 
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])
 def test_boundary_disagreements_carry_no_kernel_weight(snap, mode):
@@ -642,85 +607,77 @@ def test_boundary_disagreements_carry_no_kernel_weight(snap, mode):
     h = np.asarray(snap['smooth'], dtype=np.float64)
     kernel = snap.kdtree.kernel
 
-    ri, rj, _, rr = _collect(ReferenceImplementation.pair_blocks(snap,
-                                                                 mode=mode))
-    ki, kj, _, kr = _collect(KDTreeImplementation.pair_blocks(snap, mode=mode))
+    reference = _collect(ReferencePairs(snap).pair_blocks(mode=mode))
+    kdtree = _collect(snap.kdtree.pair_blocks(mode=mode))
 
-    ref_keys = _pair_keys(ri, rj)
-    kd_keys = _pair_keys(ki, kj)
-    disputed = np.setxor1d(ref_keys, kd_keys)
+    keys = [_pair_keys(i, j) for i, j, _, _ in (reference, kdtree)]
+    disputed = np.setxor1d(*keys)
 
     if len(disputed) == 0:
         pytest.skip("the two implementations agree exactly on this snapshot")
 
-    # locate the disputed pairs in whichever set contains them
-    for keys, i, j, r in ((ref_keys, ri, rj, rr), (kd_keys, ki, kj, kr)):
-        order = np.argsort(i.astype(np.int64) * (1 << 32) + j.astype(np.int64))
-        i, j, r = i[order], j[order], r[order]
-        sel = np.isin(keys, disputed)
+    for key, (i, j, _, r) in zip(keys, (reference, kdtree)):
+        sel = np.isin(key, disputed)
         if not sel.any():
             continue
 
-        threshold = _boundary_threshold(i[sel], j[sel], h, mode)
-        npt.assert_allclose(r[sel], threshold, rtol=1e-12)
+        npt.assert_allclose(r[sel], _boundary_threshold(i[sel], j[sel], h, mode),
+                            rtol=1e-12)
 
         # both the kernel and its gradient vanish there, for either smoothing
         for h_side in (h[i[sel]], h[j[sel]]):
-            weight = np.abs(kernel.value(r[sel], h_side))
-            grad = np.abs(kernel.gradient(r[sel], h_side))
-            assert (weight[r[sel] >= 2 * h_side] == 0).all()
-            assert (grad[r[sel] >= 2 * h_side] == 0).all()
+            outside = r[sel] >= 2 * h_side
+            assert (kernel.value(r[sel], h_side)[outside] == 0).all()
+            assert (kernel.gradient(r[sel], h_side)[outside] == 0).all()
 
 
-def test_matches_reference_reduction(snap):
-    """A realistic kernel-weighted sum agrees exactly, boundary notwithstanding."""
-    m = np.asarray(snap['mass'], dtype=np.float64)
-    u = np.asarray(snap['u'], dtype=np.float64)
-    h = np.asarray(snap['smooth'], dtype=np.float64)
-    kernel = snap.kdtree.kernel
+@pytest.mark.parametrize("snap_name", ['snap', 'periodic_snap'])
+def test_matches_reference_reduction(request, snap_name):
+    """Realistic kernel-weighted sums agree, boundary ambiguity notwithstanding.
 
-    def func(i, j, dx, r):
-        # as in any real SPH sum, the kernel gradient multiplies every term,
-        # so pairs sitting on r == 2h contribute exactly zero
+    As in any real SPH sum the kernel gradient multiplies every term, so pairs
+    sitting on r == 2h contribute exactly zero and the comparison is exact.
+    """
+    f = request.getfixturevalue(snap_name)
+    m = np.asarray(f['mass'], dtype=np.float64)
+    h = np.asarray(f['smooth'], dtype=np.float64)
+    kernel = f.kdtree.kernel
+
+    def scalar(i, j, dx, r):
         g = kernel.gradient(r, h[i]) + kernel.gradient(r, h[j])
-        c = (u[j] - u[i]) * g
+        c = (h[j] - h[i]) * g
         return m[j] * c, -m[i] * c
 
-    npt.assert_allclose(ReferenceImplementation.pair_reduce(snap, func),
-                        KDTreeImplementation.pair_reduce(snap, func),
-                        rtol=1e-11)
-
-
-def test_matches_reference_in_periodic_box(periodic_snap):
-    m = np.asarray(periodic_snap['mass'], dtype=np.float64)
-    h = np.asarray(periodic_snap['smooth'], dtype=np.float64)
-    kernel = periodic_snap.kdtree.kernel
-
-    def func(i, j, dx, r):
+    def vector(i, j, dx, r):
         g = kernel.gradient(r, h[i]) + kernel.gradient(r, h[j])
         c = (m[j] * g / r)[:, None] * dx
         return c, -(m[i] / m[j])[:, None] * c
 
-    npt.assert_allclose(
-        ReferenceImplementation.pair_reduce(periodic_snap, func),
-        KDTreeImplementation.pair_reduce(periodic_snap, func), rtol=1e-11)
+    for func in (scalar, vector):
+        npt.assert_allclose(ReferencePairs(f).pair_reduce(func),
+                            f.kdtree.pair_reduce(func), rtol=1e-11)
 
 
 # ---------------------------------------------------------------------------
 # Error handling
 # ---------------------------------------------------------------------------
 
-def test_unknown_mode_raises(pair_api, snap):
+def test_unknown_mode_raises(snap):
     with pytest.raises(ValueError):
-        list(pair_api.pair_blocks(snap, mode='not-a-mode'))
+        snap.kdtree.pair_blocks(mode='not-a-mode')
 
 
-def test_callback_returning_wrong_length_raises(pair_api, snap):
+def test_invalid_blocksize_raises(snap):
     with pytest.raises(ValueError):
-        pair_api.pair_reduce(snap, lambda i, j, dx, r: np.ones(len(i) + 1))
+        snap.kdtree.pair_blocks(blocksize=0)
 
 
-def test_callback_returning_inconsistent_shape_raises(pair_api, snap):
+def test_callback_returning_wrong_length_raises(snap):
+    with pytest.raises(ValueError):
+        snap.kdtree.pair_reduce(lambda i, j, dx, r: np.ones(len(i) + 1))
+
+
+def test_callback_returning_inconsistent_shape_raises(snap):
     """The trailing shape is fixed by the first block and may not change."""
     state = {'n': 0}
 
@@ -729,7 +686,7 @@ def test_callback_returning_inconsistent_shape_raises(pair_api, snap):
         return np.ones(len(i)) if state['n'] == 1 else np.ones((len(i), 3))
 
     with pytest.raises(ValueError):
-        pair_api.pair_reduce(snap, wobbly, blocksize=53)
+        snap.kdtree.pair_reduce(wobbly, blocksize=53)
 
 
 # ---------------------------------------------------------------------------
@@ -791,7 +748,7 @@ def test_kernel_vanishes_outside_support():
 
 
 def test_kernel_agrees_with_the_reference_cubic_spline():
-    """Ties the proposed kernel API to the normalisation assumed above."""
+    """Tie the kernel API to the normalisation assumed by the cross-checks."""
     kernel = pynbody.sph.kernels.create_kernel('CubicSplineKernel')
     r = np.linspace(0.0, 2.5, 60)
     h = 1.15
