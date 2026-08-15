@@ -343,3 +343,112 @@ def test_kdtree_float64_rounding(npart=1000):
     f.build_tree()
 
     _ = f['smooth']
+
+
+def _weighting_test_snapshot(npart=8000):
+    f = pynbody.new(gas=npart)
+    np.random.seed(2024)
+    # a strong density gradient, so that rho_i and rho_j differ across a kernel
+    r = 10.0 * np.random.uniform(size=npart)
+    d = np.random.normal(size=(npart, 3))
+    d /= np.linalg.norm(d, axis=1)[:, None]
+    f['pos'] = d * r[:, None]
+    f['mass'] = np.random.uniform(0.5, 1.5, size=npart)
+    f['vel'] = np.random.normal(size=(npart, 3))
+    f['rho']
+    return f
+
+
+def test_mass_weighting_reproduces_a_constant_field():
+    """The 'self' weighting has an exact partition of unity, 'neighbour' does not.
+
+    rho_i is by definition sum_j m_j W_ij, so weighting each neighbour by
+    m_j/rho_i makes the interpolant reproduce a constant exactly. Weighting by
+    m_j/rho_j -- the usual SPH volume element -- only does so approximately.
+    """
+    f = _weighting_test_snapshot()
+    constant = pynbody.array.SimArray(np.full(len(f), 3.25))
+    inner = np.linalg.norm(np.asarray(f['pos'], dtype=np.float64), axis=1) < 8.0
+
+    exact = np.asarray(f.kdtree.sph_mean(constant, 32, weighting='mass'))
+    usual = np.asarray(f.kdtree.sph_mean(constant, 32,
+                                         weighting='volume'))
+
+    npt.assert_allclose(exact[inner], 3.25, rtol=1e-12)
+    assert np.abs(usual[inner] - 3.25).max() > 1e-6, \
+        "the two weightings should differ where the density varies"
+
+
+@pytest.mark.parametrize("operation", ['sph_mean', 'sph_dispersion',
+                                       'sph_divergence', 'sph_curl'])
+def test_weighting_is_accepted_and_changes_the_result(operation):
+    """Every operation that divides by a density takes the option."""
+    f = _weighting_test_snapshot()
+    qty = f['vel'] if operation in ('sph_divergence', 'sph_curl') else f['vx']
+    call = getattr(f.kdtree, operation)
+
+    default = np.asarray(call(qty, 32))
+    neighbour = np.asarray(call(qty, 32, weighting='volume'))
+    self_ = np.asarray(call(qty, 32, weighting='mass'))
+
+    # the default must not have changed
+    npt.assert_array_equal(default, neighbour)
+
+    inner = np.linalg.norm(np.asarray(f['pos'], dtype=np.float64), axis=1) < 8.0
+    assert not np.allclose(neighbour[inner], self_[inner]), \
+        "%s should depend on the weighting where the density varies" % operation
+    assert np.isfinite(self_).all()
+
+
+def test_unknown_weighting_raises():
+    f = _weighting_test_snapshot(1000)
+    with pytest.raises(ValueError):
+        f.kdtree.sph_mean(f['vx'], 32, weighting='not-a-weighting')
+
+
+@pytest.mark.parametrize("operation", ['sph_divergence', 'sph_curl'])
+def test_divergence_and_curl_use_the_periodic_minimum_image(operation):
+    """Displacements must be wrapped, as the neighbour search itself is.
+
+    Regression test: smDivQty and smCurlQty differenced the stored positions
+    directly, while the ball-gather that found the neighbour works in the
+    minimum image. For a pair straddling a box face the two disagree by a box
+    length, so every particle within 2h of a face came out wrong -- which on
+    a cosmological volume is a substantial fraction of them.
+    """
+    npart = 6000
+    f = pynbody.new(gas=npart)
+    rng = np.random.default_rng(12)
+    f['pos'] = rng.uniform(0, 10.0, size=(npart, 3))
+    f['pos'].units = 'kpc'
+    f['mass'] = rng.uniform(0.5, 1.5, size=npart)
+    f['vel'] = rng.normal(size=(npart, 3))
+    f.properties['boxsize'] = pynbody.units.Unit('10 kpc')
+    f['rho']
+
+    m = np.asarray(f['mass'], dtype=np.float64)
+    rho = np.asarray(f['rho'], dtype=np.float64)
+    h = np.asarray(f['smooth'], dtype=np.float64)
+    vel = np.asarray(f['vel'], dtype=np.float64)
+    kernel = f.kdtree.kernel
+
+    # pair_blocks supplies minimum-imaged displacements, so this is the
+    # independent statement of what the C++ ought to produce
+    def divergence(i, j, dx, r):
+        w = (m[j] / rho[i]) * kernel.gradient(r, h[i]) / r
+        if operation == 'sph_divergence':
+            # smDivQty forms (x_i - x_j) . (v_j - v_i), i.e. -(dx . dv)
+            return -w * np.einsum('kl,kl->k', vel[j] - vel[i], dx)
+        # smCurlQty forms (x_i - x_j) x (v_j - v_i), i.e. +(dv x dx)
+        return w[:, None] * np.cross(vel[j] - vel[i], dx)
+
+    expected = f.kdtree.pair_reduce(divergence, mode='gather')
+    got = np.asarray(getattr(f.kdtree, operation)(f['vel'], 32,
+                                                  weighting='mass'))
+
+    # the particles that would have been wrong are the ones near a face
+    pos = np.asarray(f['pos'], dtype=np.float64)
+    near_face = ((pos < 2 * h[:, None]) | (pos > 10.0 - 2 * h[:, None])).any(axis=1)
+    assert near_face.mean() > 0.2, "test needs plenty of particles near a face"
+
+    npt.assert_allclose(got, expected, rtol=1e-8, atol=1e-12)

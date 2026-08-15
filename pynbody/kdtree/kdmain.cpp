@@ -618,13 +618,15 @@ PyObject *get_arrayref(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  Py_INCREF(*existing);
-
+  // the NULL check must come first: Py_INCREF dereferences its argument, so
+  // asking for an array that has never been set would otherwise segfault
   if (*existing == NULL) {
     Py_INCREF(Py_None);
     return Py_None;
-  } else
-    return ((PyObject *) *existing);
+  }
+
+  Py_INCREF(*existing);
+  return ((PyObject *) *existing);
 }
 
 PyObject *domain_decomposition(PyObject *self, PyObject *args) {
@@ -702,8 +704,11 @@ template <typename Tf, typename Tq> struct typed_populate {
 
     PyObject *kdobj, *smxobj;
 
-    PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid,
-                     &kernel_id);
+    int self_density_weighting = 0;
+
+    if (!PyArg_ParseTuple(args, "OOiii|i", &kdobj, &smxobj, &propid, &procid,
+                          &kernel_id, &self_density_weighting))
+      return nullptr;
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
     smx_global = (SmoothingContext<Tf> *)PyCapsule_GetPointer(smxobj, NULL);
 
@@ -729,6 +734,9 @@ template <typename Tf, typename Tq> struct typed_populate {
 
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings = false;
+    // overflow is handled by growing the buffer and retrying, below
+    smx_local->suppressOverflowWarning = true;
+    smx_local->selfDensityWeighting = (self_density_weighting != 0);
     smx_local->pi = 0;
 
     smx_global->warnings = false;
@@ -783,8 +791,19 @@ template <typename Tf, typename Tq> struct typed_populate {
         // retrieve the existing smoothing length
         hsm = GETSMOOTH(Tf, i);
 
-        // use it to get nearest neighbours
+        // use it to get nearest neighbours, growing the buffer if this
+        // particle turns out to enclose more than it currently holds. The
+        // initial size assumes the smoothing lengths came from our own
+        // nearest-neighbour search; one taken from a snapshot may enclose any
+        // number of particles. Each thread owns its own buffer, so this needs
+        // no synchronisation.
+        smx_local->warnings = false;
         nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
+        while (smx_local->warnings) {
+          smx_local->warnings = false;
+          smx_local->growNeighbourBuffer();
+          nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
+        }
 
         // calculate the density
         (*pSmFn)(smx_local, i, nCnt);
@@ -856,6 +875,9 @@ template <typename T> struct typed_pair_start {
     if (smx == nullptr)
       return nullptr; // smInit sets the error message
     smx->warnings = false;
+    // smFillPairBlock grows the neighbour buffer and retries rather than
+    // treating an overflow as an error, so the usual warning would be noise
+    smx->suppressOverflowWarning = true;
 
     auto pc = new PairContext<T>(smx, blocksize, mode);
 

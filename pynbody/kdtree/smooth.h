@@ -63,11 +63,37 @@ public:
       dxList(3 * nListSize), pMutex(copy.pMutex),
       smx_global(const_cast<SmoothingContext<T>*>(&copy)),
       priorityQueue(std::make_unique<PriorityQueue<T>>(nSmooth, kd->nActive)),
-      pKernel(copy.pKernel) { }
+      pKernel(copy.pKernel),
+      selfDensityWeighting(copy.selfDensityWeighting) { }
       // copy constructor takes a pointer to the global context
+
+  bool selfDensityWeighting = false;
+  // false: weight each neighbour by its own volume m_j/rho_j, the usual SPH
+  // interpolant. true: weight by m_j/rho_i, the form hydro codes use, whose
+  // partition of unity is exact because rho_i is itself sum_j m_j W_ij.
+
+  bool suppressOverflowWarning = false;
+  // Set when the caller is prepared to grow the neighbour buffer and retry,
+  // so that a too-small buffer is a routine event rather than a hard error.
 
   void setupKernel(int kernel_id) {
     pKernel = kernels::Kernel<T>::create(kernel_id, nSmooth);
+  }
+
+  void growNeighbourBuffer() {
+    /* Double the space available to a single ball-gather.
+     *
+     * The initial size is derived from the configured number of smoothing
+     * neighbours, which is only meaningful when the smoothing lengths came
+     * from pynbody's own nearest-neighbour search. Where they instead come
+     * from a snapshot, an h can enclose arbitrarily many particles -- a
+     * particle whose h was set in a sparse region and which now sits beside a
+     * dense one, for instance -- so the buffer has to be able to grow.
+     */
+    nListSize *= 2;
+    fList.resize(nListSize);
+    pList.resize(nListSize);
+    dxList.resize(3 * nListSize);
   }
 };
 
@@ -265,7 +291,7 @@ inline npy_intp smBallGatherStoreResultInSmx(SmoothingContext<T>* smx, T fDist2,
                                              npy_intp particleIndex,
                                              npy_intp foundIndex) {
   if (foundIndex >= smx->nListSize) {
-    if (!smx->warnings)
+    if (!smx->warnings && !smx->suppressOverflowWarning)
       fprintf(stderr, "Smooth - particle cache too small for local density - "
                       "results will be incorrect\n");
     smx->warnings = true;
@@ -420,13 +446,21 @@ void smFillPairBlock(PairContext<T> *pc) {
       T fBall2Search = 4 * hi * hi;
       fBall2Search *= (1 + 16 * std::numeric_limits<T>::epsilon());
 
+      // Retry with a larger buffer for as long as this particle's neighbours
+      // do not fit. Doubling keeps the total cost amortised, and the buffer
+      // then stays large enough for subsequent particles.
+      smx->warnings = false;
       pc->pendingCount =
           smBallGather<T, smBallGatherStoreResultInSmx>(smx, fBall2Search, ri);
+      while (smx->warnings) {
+        smx->warnings = false;
+        smx->growNeighbourBuffer();
+        pc->pendingCount =
+            smBallGather<T, smBallGatherStoreResultInSmx>(smx, fBall2Search, ri);
+      }
+
       pc->pendingIndex = 0;
       pc->havePending = true;
-
-      if (smx->warnings)
-        return; // neighbour buffer overflowed; caller raises
     }
 
     npy_intp ia = kd->particleOffsets[pc->pendingParticle];
@@ -827,7 +861,7 @@ void smMeanQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord,
               rs * mass * GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]) / rho);
   }
@@ -855,7 +889,7 @@ void smMeanQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     for (k = 0; k < 3; ++k) {
       ACCUM2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k,
                  rs * mass * GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k) /
@@ -891,9 +925,13 @@ void smCurlQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     pj_iord = kd->particleOffsets[pj];
-    dx = x - GET2<Tf>(kd->pNumpyPos, pj_iord, 0);
-    dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
-    dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
+    // Take the displacement recorded by the ball-gather rather than
+    // differencing the stored positions: the gather works in the periodic
+    // minimum image, so for a pair straddling a box face the raw difference
+    // is a whole box length while r2 below is small.
+    dx = -smx->dxList[3 * j + 0];
+    dy = -smx->dxList[3 * j + 1];
+    dz = -smx->dxList[3 * j + 2];
 
     r2 = smx->fList[j];
     q2 = r2 * ih2;
@@ -905,7 +943,7 @@ void smCurlQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs *= fNorm;
 
     mass = GET<Tf>(kd->pNumpyMass, pj_iord);
-    rho = GET<Tf>(kd->pNumpyDen, pj_iord);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : pj_iord);
 
     for (k = 0; k < 3; ++k)
       dqty[k] = GET2<Tq>(kd->pNumpyQty, pj_iord, k) - qty_i[k];
@@ -946,9 +984,13 @@ void smDivQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     pj_iord = kd->particleOffsets[pj];
-    dx = x - GET2<Tf>(kd->pNumpyPos, pj_iord, 0);
-    dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
-    dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
+    // Take the displacement recorded by the ball-gather rather than
+    // differencing the stored positions: the gather works in the periodic
+    // minimum image, so for a pair straddling a box face the raw difference
+    // is a whole box length while r2 below is small.
+    dx = -smx->dxList[3 * j + 0];
+    dy = -smx->dxList[3 * j + 1];
+    dz = -smx->dxList[3 * j + 2];
 
     r2 = smx->fList[j];
     q2 = r2 * ih2;
@@ -958,7 +1000,7 @@ void smDivQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs *= fNorm;
 
     mass = GET<Tf>(kd->pNumpyMass, pj_iord);
-    rho = GET<Tf>(kd->pNumpyDen, pj_iord);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : pj_iord);
 
     for (k = 0; k < 3; ++k)
       dqty[k] = GET2<Tq>(kd->pNumpyQty, pj_iord, k) - qty_i[k];
@@ -998,7 +1040,7 @@ void smDispQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     for (k = 0; k < 3; ++k)
       mean[k] += rs * mass * GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k) / rho;
   }
@@ -1011,7 +1053,7 @@ void smDispQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     for (k = 0; k < 3; ++k) {
       tdiff = mean[k] - GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k);
       ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord,
@@ -1052,7 +1094,7 @@ void smDispQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
 
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     mean += rs * mass * GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]) / rho;
   }
 
@@ -1064,7 +1106,7 @@ void smDispQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     tdiff = mean - GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]);
     ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord, rs * mass * tdiff * tdiff / rho);
   }
