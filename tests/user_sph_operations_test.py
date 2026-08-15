@@ -357,6 +357,42 @@ def test_pair_blocks_handles_far_more_neighbours_than_the_default_buffer():
     assert len(i) == npart * (npart - 1) // 2
 
 
+def test_smoothing_operations_handle_more_neighbours_than_the_default_buffer():
+    """The same buffer limits sph_divergence, sph_curl, sph_mean and rho.
+
+    These share the gather used by pair_blocks, so they fail the same way once
+    the smoothing lengths come from a snapshot rather than from pynbody's own
+    search. Regression test: on a FLAMINGO snapshot both sph_divergence and
+    sph_curl raised "Buffer overflow in smoothing operation".
+
+    Ordinary pynbody usage does not reach this, because the smoothing lengths
+    are recomputed to hold exactly the configured neighbour count; it takes an
+    externally supplied h, which pair_blocks now makes routine.
+    """
+    npart = 1200
+    f = pynbody.new(gas=npart)
+    np.random.seed(101)
+    f['pos'] = np.random.normal(size=(npart, 3))
+    f['mass'] = np.ones(npart)
+    f['vel'] = np.random.normal(size=(npart, 3))
+    f['rho'] = np.ones(npart)
+    f['smooth'] = np.full(npart, 100.0)         # encloses the whole snapshot
+
+    assert npart - 1 > int(pynbody.config['sph']['smooth-particles']) + 500
+
+    f.build_tree()
+    for name in ('smooth', 'mass', 'rho'):
+        f.kdtree.set_array_ref(name, np.asarray(f[name],
+                                                dtype=f['pos'].dtype))
+
+    nsmooth = int(pynbody.config['sph']['smooth-particles'])
+    div = f.kdtree.sph_divergence(f['vel'], nsmooth)
+    curl = f.kdtree.sph_curl(f['vel'], nsmooth)
+
+    assert np.isfinite(div).all() and np.isfinite(curl).all()
+    assert div.shape == (npart,) and curl.shape == (npart, 3)
+
+
 @pytest.mark.parametrize("npart", [200, 200000])
 @pytest.mark.parametrize("trailing", [(), (3,)])
 def test_scatter_add_agrees_across_both_strategies(npart, trailing):

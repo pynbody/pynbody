@@ -729,6 +729,8 @@ template <typename Tf, typename Tq> struct typed_populate {
 
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings = false;
+    // overflow is handled by growing the buffer and retrying, below
+    smx_local->suppressOverflowWarning = true;
     smx_local->pi = 0;
 
     smx_global->warnings = false;
@@ -783,8 +785,19 @@ template <typename Tf, typename Tq> struct typed_populate {
         // retrieve the existing smoothing length
         hsm = GETSMOOTH(Tf, i);
 
-        // use it to get nearest neighbours
+        // use it to get nearest neighbours, growing the buffer if this
+        // particle turns out to enclose more than it currently holds. The
+        // initial size assumes the smoothing lengths came from our own
+        // nearest-neighbour search; one taken from a snapshot may enclose any
+        // number of particles. Each thread owns its own buffer, so this needs
+        // no synchronisation.
+        smx_local->warnings = false;
         nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
+        while (smx_local->warnings) {
+          smx_local->warnings = false;
+          smx_local->growNeighbourBuffer();
+          nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
+        }
 
         // calculate the density
         (*pSmFn)(smx_local, i, nCnt);
