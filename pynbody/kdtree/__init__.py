@@ -892,7 +892,7 @@ class KDTree:
         ----------
 
         array : pynbody.array.SimArray
-            Quantity to compute curl of.
+            Quantity to compute the divergence of.
 
         nsmooth : int
             Number of neighbours to use when smoothing.
@@ -917,7 +917,7 @@ class KDTree:
         Returns
         -------
         pynbody.array.SimArray:
-            The curl of the input array.
+            The divergence of the input array.
         """
         return self._sph_differential_operator(array, "div", nsmooth,
                                               density_weighting)
