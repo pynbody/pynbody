@@ -454,14 +454,23 @@ class KDTree:
             Which pairs to generate.
 
             * ``'symmetric'`` (default): every unordered pair with
-              :math:`r < \max(2 h_i, 2 h_j)`, exactly once, canonicalised so
-              that ``i < j``. This is what SPH operators involving both
+              :math:`r \leq \max(2 h_i, 2 h_j)`, exactly once, canonicalised
+              so that ``i < j``. This is what SPH operators involving both
               smoothing lengths require, such as artificial viscosity or
               conduction.
-            * ``'gather'``: every ordered pair with :math:`r < 2 h_i`. Both
+            * ``'gather'``: every ordered pair with :math:`r \leq 2 h_i`. Both
               ``(a, b)`` and ``(b, a)`` appear when each lies inside the
               other's kernel. This is the neighbour set used by the density
               estimate and by :meth:`sph_mean`.
+
+            The boundary is inclusive, matching the neighbour search used by
+            the density estimate, so that a gather over ``nSmooth`` neighbours
+            really does yield ``nSmooth`` of them. This is worth noting because
+            :math:`r = 2h` is not a rare edge case: smoothing lengths are half
+            the distance to the nth neighbour, so exactly one neighbour of
+            every particle sits on the boundary. Nothing physical depends on
+            which side they fall, since both :math:`W` and :math:`dW/dr` vanish
+            there.
 
         blocksize : int
             Maximum number of pairs per block. Blocks are arbitrary cuts of a
@@ -570,7 +579,9 @@ class KDTree:
             Maximum number of pairs handed to ``func`` at once.
 
         dtype : numpy dtype
-            Data type of the output array.
+            Data type of the output array. Accumulation is always performed in
+            double precision, and the result converted on return, so that the
+            answer does not depend on ``blocksize``.
 
         Returns
         -------
@@ -628,7 +639,11 @@ class KDTree:
 
             if trailing is None:
                 trailing = contrib_i.shape[1:]
-                out = np.zeros((npart,) + trailing, dtype=dtype)
+                # Accumulate in float64 whatever the requested output type:
+                # np.bincount produces float64, and casting each block down to
+                # an integer dtype as it arrived would truncate the partial
+                # sums independently, making the result depend on blocksize.
+                out = np.zeros((npart,) + trailing, dtype=np.float64)
             elif contrib_i.shape[1:] != trailing:
                 raise ValueError("pair_reduce callback returned trailing shape "
                                  "%s, but the first block gave %s"
@@ -640,9 +655,9 @@ class KDTree:
 
         if out is None:
             # no pairs at all, so the trailing shape was never established
-            out = np.zeros(npart, dtype=dtype)
+            return np.zeros(npart, dtype=dtype)
 
-        return out
+        return out.astype(dtype, copy=False)
 
     def sph_mean(self, array, nsmooth=64):
         r"""Calculate the SPH mean of a simulation array.

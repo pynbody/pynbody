@@ -252,7 +252,11 @@ inline npy_intp smBallGatherStoreResultInList(SmoothingContext<T>* smx, T fDist2
                                               npy_intp particleIndex,
                                               npy_intp foundIndex) {
   smx->result->push_back(smx->kd->particleOffsets[particleIndex]);
-  return particleIndex + 1;
+  // smBallGather treats the return value as the next write position, so it
+  // must count results found, not particles scanned. Callers of this variant
+  // read smx->result and discard the count, so this has never mattered in
+  // practice, but the inconsistency is a trap for any future caller.
+  return foundIndex + 1;
 }
 
 template<typename T>
@@ -349,13 +353,14 @@ class PairContext {
    *
    * Pairs are produced by walking each particle in turn and ball-gathering its
    * own kernel volume, exactly as the density calculation does. In 'gather'
-   * mode every ordered pair (a, b) with r < 2 h_a is emitted. In 'symmetric'
+   * mode every ordered pair (a, b) with r <= 2 h_a is emitted. In 'symmetric'
    * mode each unordered pair is emitted exactly once, canonicalised to i < j,
    * using a purely local test: while walking particle a and finding neighbour
-   * b, emit iff (a < b) or (r >= 2 h_b). In the latter case b's own walk will
+   * b, emit iff (a < b) or (r > 2 h_b). In the latter case b's own walk will
    * not find a, so nobody else will emit the pair; in the former case the two
-   * walks would both find it, and the lower index breaks the tie. This needs
-   * no communication between walks and no global de-duplication.
+   * walks would both find it, and the lower index breaks the tie. Note that
+   * equality, r == 2 h_b, therefore falls to b's walk rather than a's. This
+   * needs no communication between walks and no global de-duplication.
    */
 public:
   SmoothingContext<T> *smx; // owned

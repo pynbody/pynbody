@@ -136,7 +136,7 @@ class ReferencePairs:
 
     def pair_reduce(self, func, mode='symmetric', blocksize=1 << 18,
                     dtype=np.float64):
-        out = np.zeros(self._npart, dtype=dtype)
+        out = np.zeros(self._npart, dtype=np.float64)
         trailing = None
 
         for i, j, dx, r in self.pair_blocks(mode, blocksize):
@@ -147,13 +147,14 @@ class ReferencePairs:
 
             if trailing is None:
                 trailing = contrib_i.shape[1:]
-                out = np.zeros((self._npart,) + trailing, dtype=dtype)
+                # accumulate in float64, convert on return; see KDTree.pair_reduce
+                out = np.zeros((self._npart,) + trailing, dtype=np.float64)
 
             _scatter_add(out, i, contrib_i)
             if contrib_j is not None:
                 _scatter_add(out, j, np.asarray(contrib_j))
 
-        return out
+        return out.astype(dtype, copy=False)
 
 
 # Reference cubic spline, matching pynbody's normalisation:
@@ -500,10 +501,46 @@ def test_pair_reduce_invariant_to_blocksize(pairs, snap):
                         rtol=1e-12)
 
 
-def test_pair_reduce_dtype_is_respected(pairs, snap):
+@pytest.mark.parametrize("dtype", [np.float64, np.float32, np.int64])
+def test_pair_reduce_dtype_is_respected(pairs, snap, dtype):
+    """Any reasonable output dtype works, integers included.
+
+    Integer output is the case that constrains the implementation: bincount
+    returns float64, so converting each block as it arrives would truncate the
+    partial sums independently and make the answer depend on blocksize. The
+    accumulation therefore has to stay in double precision until the end.
+    """
     out = pairs(snap).pair_reduce(lambda i, j, dx, r: np.ones(len(i)),
-                                  dtype=np.float32)
-    assert out.dtype == np.float32
+                                  dtype=dtype)
+    assert out.dtype == dtype
+
+    i, _, _, _ = _collect(pairs(snap).pair_blocks())
+    npt.assert_array_equal(out, np.bincount(i, minlength=len(snap)))
+
+
+def test_pair_reduce_integer_output_truncates_once_not_per_block(pairs, snap):
+    """Integer output must truncate the total, not each block separately.
+
+    Converting each block to the output dtype as it arrived would discard a
+    fraction every time, so the shortfall would grow with the number of
+    blocks. Accumulating in double precision and converting once bounds the
+    total truncation by one unit however the pairs happen to be grouped.
+
+    Exact equality between blocksizes is not achievable here and is not
+    claimed: the float64 partial sums themselves differ in the last bit with
+    summation order, which can tip a value either side of an integer.
+    """
+    def fractional(i, j, dx, r):
+        return 0.6 * np.ones(len(i))
+
+    exact = pairs(snap).pair_reduce(fractional, blocksize=1 << 20)
+    assert exact.max() > 5.0, "test needs several units to truncate away"
+
+    # blocksize 3 gives roughly ten blocks per particle, so per-block
+    # truncation would lose several units rather than at most one
+    truncated = pairs(snap).pair_reduce(fractional, blocksize=3,
+                                        dtype=np.int64)
+    assert (np.abs(exact - truncated) < 1.0 + 1e-9).all()
 
 
 # ---------------------------------------------------------------------------
