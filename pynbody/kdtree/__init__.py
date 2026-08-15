@@ -109,16 +109,16 @@ class KDTree:
     _pair_modes = {'gather': PAIR_MODE_GATHER,
                    'symmetric': PAIR_MODE_SYMMETRIC}
 
-    _density_weightings = {'neighbour': 0, 'self': 1}
+    _weightings = {'volume': 0, 'mass': 1}
 
     @classmethod
-    def _density_weighting_to_flag(cls, density_weighting):
+    def _weighting_to_flag(cls, weighting):
         try:
-            return cls._density_weightings[density_weighting]
+            return cls._weightings[weighting]
         except KeyError:
             raise ValueError(
-                "Unknown density_weighting %r; should be one of %s"
-                % (density_weighting, sorted(cls._density_weightings))) from None
+                "Unknown weighting %r; should be one of %s"
+                % (weighting, sorted(cls._weightings))) from None
 
     def __init__(self, pos, mass, leafsize=32, boxsize=None, num_threads=None, shared_mem=False):
         """Create a KDTree
@@ -403,8 +403,8 @@ class KDTree:
 
 
 
-    def populate(self, mode, nn, density_weighting='neighbour'):
-        """Create the KDTree and perform the operation specified by `mode`.
+    def populate(self, mode, nn, weighting='volume'):
+        r"""Create the KDTree and perform the operation specified by `mode`.
 
         Parameters
         --------
@@ -412,10 +412,10 @@ class KDTree:
             Specify operation to perform (compute smoothing lengths, density, SPH mean, or SPH dispersion).
         nn : int
             Number of neighbours to be considered when smoothing.
-        density_weighting : str
-            Which density to divide each neighbour's contribution by; see
-            :meth:`sph_mean`. Ignored when computing smoothing lengths or
-            densities, which do not use one.
+        weighting : str
+            Whether to take the volume-weighted or the mass-weighted average
+            over the kernel; see :meth:`sph_mean` for what the two mean and
+            when they differ.
 
             .. versionadded:: 2.6.0
         """
@@ -424,7 +424,7 @@ class KDTree:
         if nn is None:
             nn = 64
 
-        self_weighting = self._density_weighting_to_flag(density_weighting)
+        self_weighting = self._weighting_to_flag(weighting)
 
         smx = kdmain.nn_start(self.kdtree, int(nn), self.boxsize)
 
@@ -692,7 +692,7 @@ class KDTree:
 
         return out.astype(dtype, copy=False)
 
-    def sph_mean(self, array, nsmooth=64, density_weighting='neighbour'):
+    def sph_mean(self, array, nsmooth=64, weighting='volume'):
         r"""Calculate the SPH mean of a simulation array.
 
         Given a kernel W, this calculates
@@ -714,20 +714,26 @@ class KDTree:
         nsmooth:
             Number of neighbours to use when smoothing.
 
-        density_weighting : str
-            Which density divides each neighbour's contribution.
+        weighting : str
+            Which average over the kernel to compute. The two agree where the
+            density is nearly constant across a kernel, and differ where it is
+            not.
 
-            * ``'neighbour'`` (default): weight by the neighbour's own volume,
-              :math:`m_j/\\rho_j`. This is the usual SPH interpolant, and is
-              consistent with the other smoothing operations here.
-            * ``'self'``: weight by :math:`m_j/\\rho_i`. Because
-              :math:`\\rho_i` is itself :math:`\\sum_j m_j W_{ij}`, this form
-              reproduces a constant field exactly, and it is what SPH
-              simulation codes use internally. Choose it to reproduce a
-              quantity as the code that wrote the snapshot computed it.
+            * ``'volume'`` (default): the volume-weighted average,
+              :math:`\int f W \, dV`, taking each neighbour's own volume
+              :math:`m_j/\rho_j`. This is the direct discretisation of the
+              smoothing integral.
+            * ``'mass'``: the mass-weighted average,
+              :math:`\int f \rho W \, dV / \int \rho W \, dV`, taking
+              :math:`m_j/\rho_i`. Since :math:`\rho_i` is itself
+              :math:`\sum_j m_j W_{ij}`, the weights sum to one exactly, so
+              this reproduces a constant field exactly and can never fall
+              outside the range of its input.
 
-            The two agree wherever the density varies little across a kernel,
-            and differ substantially where it does not.
+            For a divergence, ``'mass'`` is the form that satisfies the
+            continuity equation exactly, and so is the one appearing in the
+            SPH equations of motion. Use it to reproduce a quantity as the
+            simulation code itself computed it.
 
             .. versionadded:: 2.6.0
 
@@ -747,14 +753,14 @@ class KDTree:
 
         logger.info("Smoothing array with %d nearest neighbours" % nsmooth)
         start = time.time()
-        self.populate("qty_mean", nsmooth, density_weighting)
+        self.populate("qty_mean", nsmooth, weighting)
         end = time.time()
 
         logger.info("SPH smooth done in %5.3g s" % (end - start))
 
         return output
 
-    def sph_dispersion(self, array, nsmooth=64, density_weighting='neighbour'):
+    def sph_dispersion(self, array, nsmooth=64, weighting='volume'):
         r"""Calculate the SPH dispersion of a simulation array.
 
         Given a kernel W, this routine computes the smoothed quantity:
@@ -782,20 +788,10 @@ class KDTree:
         nsmooth: int
             Number of neighbours to use when smoothing.
 
-        density_weighting : str
-            Which density divides each neighbour's contribution.
-
-            * ``'neighbour'`` (default): weight by the neighbour's own volume,
-              :math:`m_j/\\rho_j`. This is the usual SPH interpolant, and is
-              consistent with the other smoothing operations here.
-            * ``'self'``: weight by :math:`m_j/\\rho_i`. Because
-              :math:`\\rho_i` is itself :math:`\\sum_j m_j W_{ij}`, this form
-              reproduces a constant field exactly, and it is what SPH
-              simulation codes use internally. Choose it to reproduce a
-              quantity as the code that wrote the snapshot computed it.
-
-            The two agree wherever the density varies little across a kernel,
-            and differ substantially where it does not.
+        weighting : str
+            Whether to take the volume-weighted or the mass-weighted average
+            over the kernel; see :meth:`sph_mean` for what the two mean and
+            when they differ.
 
             .. versionadded:: 2.6.0
 
@@ -814,7 +810,7 @@ class KDTree:
 
         logger.info("Getting dispersion of array with %d nearest neighbours" % nsmooth)
         start = time.time()
-        self.populate("qty_disp", nsmooth, density_weighting)
+        self.populate("qty_disp", nsmooth, weighting)
         end = time.time()
 
         logger.info("SPH dispersion done in %5.3g s" % (end - start))
@@ -822,7 +818,7 @@ class KDTree:
         return output
 
     def _sph_differential_operator(self, array, op, nsmooth=64,
-                                   density_weighting='neighbour'):
+                                   weighting='volume'):
         if op == "div":
             op_label = "divergence"
             output = np.empty(len(array), dtype=array.dtype)
@@ -841,15 +837,15 @@ class KDTree:
 
         logger.info("Getting %s of array with %d nearest neighbours" % (op_label, nsmooth))
         start = time.time()
-        self.populate("qty_%s" % op, nsmooth, density_weighting)
+        self.populate("qty_%s" % op, nsmooth, weighting)
         end = time.time()
 
         logger.info(f"SPH {op_label} done in {end - start:5.3g} s")
 
         return output
 
-    def sph_curl(self, array, nsmooth=64, density_weighting='neighbour'):
-        """Calculate the curl of a given array using SPH smoothing.
+    def sph_curl(self, array, nsmooth=64, weighting='volume'):
+        r"""Calculate the curl of a given array using SPH smoothing.
 
         Parameters
         ----------
@@ -860,20 +856,10 @@ class KDTree:
         nsmooth : int
             Number of neighbours to use when smoothing.
 
-        density_weighting : str
-            Which density divides each neighbour's contribution.
-
-            * ``'neighbour'`` (default): weight by the neighbour's own volume,
-              :math:`m_j/\\rho_j`. This is the usual SPH interpolant, and is
-              consistent with the other smoothing operations here.
-            * ``'self'``: weight by :math:`m_j/\\rho_i`. Because
-              :math:`\\rho_i` is itself :math:`\\sum_j m_j W_{ij}`, this form
-              reproduces a constant field exactly, and it is what SPH
-              simulation codes use internally. Choose it to reproduce a
-              quantity as the code that wrote the snapshot computed it.
-
-            The two agree wherever the density varies little across a kernel,
-            and differ substantially where it does not.
+        weighting : str
+            Whether to take the volume-weighted or the mass-weighted average
+            over the kernel; see :meth:`sph_mean` for what the two mean and
+            when they differ.
 
             .. versionadded:: 2.6.0
 
@@ -883,10 +869,10 @@ class KDTree:
             The curl of the input array.
         """
         return self._sph_differential_operator(array, "curl", nsmooth,
-                                              density_weighting)
+                                              weighting)
 
-    def sph_divergence(self, array, nsmooth=64, density_weighting='neighbour'):
-        """Calculate the divergence of a given array using SPH smoothing.
+    def sph_divergence(self, array, nsmooth=64, weighting='volume'):
+        r"""Calculate the divergence of a given array using SPH smoothing.
 
         Parameters
         ----------
@@ -897,20 +883,10 @@ class KDTree:
         nsmooth : int
             Number of neighbours to use when smoothing.
 
-        density_weighting : str
-            Which density divides each neighbour's contribution.
-
-            * ``'neighbour'`` (default): weight by the neighbour's own volume,
-              :math:`m_j/\\rho_j`. This is the usual SPH interpolant, and is
-              consistent with the other smoothing operations here.
-            * ``'self'``: weight by :math:`m_j/\\rho_i`. Because
-              :math:`\\rho_i` is itself :math:`\\sum_j m_j W_{ij}`, this form
-              reproduces a constant field exactly, and it is what SPH
-              simulation codes use internally. Choose it to reproduce a
-              quantity as the code that wrote the snapshot computed it.
-
-            The two agree wherever the density varies little across a kernel,
-            and differ substantially where it does not.
+        weighting : str
+            Whether to take the volume-weighted or the mass-weighted average
+            over the kernel; see :meth:`sph_mean` for what the two mean and
+            when they differ.
 
             .. versionadded:: 2.6.0
 
@@ -920,7 +896,7 @@ class KDTree:
             The divergence of the input array.
         """
         return self._sph_differential_operator(array, "div", nsmooth,
-                                              density_weighting)
+                                              weighting)
 
     def __del__(self):
         if hasattr(self, "kdtree"):

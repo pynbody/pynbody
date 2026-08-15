@@ -925,9 +925,13 @@ void smCurlQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     pj_iord = kd->particleOffsets[pj];
-    dx = x - GET2<Tf>(kd->pNumpyPos, pj_iord, 0);
-    dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
-    dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
+    // Take the displacement recorded by the ball-gather rather than
+    // differencing the stored positions: the gather works in the periodic
+    // minimum image, so for a pair straddling a box face the raw difference
+    // is a whole box length while r2 below is small.
+    dx = -smx->dxList[3 * j + 0];
+    dy = -smx->dxList[3 * j + 1];
+    dz = -smx->dxList[3 * j + 2];
 
     r2 = smx->fList[j];
     q2 = r2 * ih2;
@@ -980,9 +984,13 @@ void smDivQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     pj_iord = kd->particleOffsets[pj];
-    dx = x - GET2<Tf>(kd->pNumpyPos, pj_iord, 0);
-    dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
-    dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
+    // Take the displacement recorded by the ball-gather rather than
+    // differencing the stored positions: the gather works in the periodic
+    // minimum image, so for a pair straddling a box face the raw difference
+    // is a whole box length while r2 below is small.
+    dx = -smx->dxList[3 * j + 0];
+    dy = -smx->dxList[3 * j + 1];
+    dz = -smx->dxList[3 * j + 2];
 
     r2 = smx->fList[j];
     q2 = r2 * ih2;
