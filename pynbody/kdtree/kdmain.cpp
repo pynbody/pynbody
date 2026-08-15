@@ -618,13 +618,15 @@ PyObject *get_arrayref(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  Py_INCREF(*existing);
-
+  // the NULL check must come first: Py_INCREF dereferences its argument, so
+  // asking for an array that has never been set would otherwise segfault
   if (*existing == NULL) {
     Py_INCREF(Py_None);
     return Py_None;
-  } else
-    return ((PyObject *) *existing);
+  }
+
+  Py_INCREF(*existing);
+  return ((PyObject *) *existing);
 }
 
 PyObject *domain_decomposition(PyObject *self, PyObject *args) {

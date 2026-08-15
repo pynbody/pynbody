@@ -1,6 +1,13 @@
 """
 Efficient 3D KDTree implementation for fast geometrical calculations such as neighbour lists and smoothing lengths.
 
+As well as the smoothing operations built on it -- :meth:`~KDTree.sph_mean`,
+:meth:`~KDTree.sph_dispersion`, :meth:`~KDTree.sph_divergence` and
+:meth:`~KDTree.sph_curl` -- the tree can hand neighbour pairs back to python,
+so that pairwise SPH operations pynbody does not itself provide can be written
+without a python-level loop over particles. See :meth:`~KDTree.pair_reduce`
+and :meth:`~KDTree.pair_blocks`.
+
 """
 import logging
 import time
@@ -36,12 +43,12 @@ def _scatter_add(out, index, contrib):
     contribution per repeated index.
 
     Which of the two viable methods is faster depends strongly on how the
-    length of the output compares with the length of the block.
-    ``np.bincount`` allocates and fills a whole length-N temporary on every
-    call, so it wins only while N is comparable to the block size; once the
-    output is much the longer of the two -- which for pair sums means any
-    large snapshot -- that temporary dominates everything else, and the
-    in-place scatter of ``np.add.at`` is faster by two orders of magnitude.
+    length of ``out`` compares with the length of the block. ``np.bincount``
+    allocates and fills a temporary as long as ``out`` on every call, so it
+    wins only while the two lengths are comparable; once ``out`` is much the
+    longer -- which for pair sums means any large snapshot -- that temporary
+    dominates everything else, and the in-place scatter of ``np.add.at`` is
+    faster by two orders of magnitude.
     """
     npart = out.shape[0]
 
@@ -71,7 +78,7 @@ class KDTree:
     KDTree can also be used to accelerate geometrical queries on a snapshot, e.g.:
 
     >>> f = pynbody.load('my_snapshot')
-    >>> f.build_kdtree()
+    >>> f.build_tree()
     >>> f[pynbody.filt.Sphere('10 kpc')]
 
     See :ref:`performance of filters <filters_tutorial_performance_implications>` for more information.
@@ -408,10 +415,15 @@ class KDTree:
 
         Parameters
         --------
-        mode : str (see `kdtree.smooth_operation_to_id`)
-            Specify operation to perform (compute smoothing lengths, density, SPH mean, or SPH dispersion).
+        mode : str
+            Operation to perform; see :meth:`smooth_operation_to_id` for the
+            accepted names, which cover smoothing lengths, density, SPH mean,
+            dispersion, divergence and curl.
         nn : int
-            Number of neighbours to be considered when smoothing.
+            Number of neighbours the smoothing lengths correspond to. Note
+            this does not itself select the neighbours: except when computing
+            smoothing lengths, those are whichever particles lie within the
+            kernel. See :meth:`sph_mean`.
         weighting : str
             Whether to take the volume-weighted or the mass-weighted average
             over the kernel; see :meth:`sph_mean` for what the two mean and
@@ -477,9 +489,15 @@ class KDTree:
         per pair, so per-particle quantities are used via fancy indexing, e.g.
         ``rho[i]`` is the density of the first particle of each pair.
 
-        Smoothing lengths are taken from the ``smooth`` array currently
-        associated with the tree, so accessing ``f['smooth']`` (or ``f['rho']``)
-        before calling this is what fixes the pair set.
+        The pair set is fixed by the smoothing lengths associated with the
+        tree. Where pynbody derives those itself, accessing ``f['smooth']``
+        associates them automatically. Where they instead come from the
+        snapshot file, they must be associated explicitly, since reading them
+        does not involve the tree at all::
+
+            f.build_tree()
+            f.kdtree.set_array_ref('smooth',
+                                   f['smooth'].in_units(f['pos'].units))
 
         Parameters
         ----------
@@ -491,14 +509,15 @@ class KDTree:
               so that ``i < j``. This is what SPH operators involving both
               smoothing lengths require, such as artificial viscosity or
               conduction.
-            * ``'gather'``: every ordered pair with :math:`r \leq 2 h_i`. Both
-              ``(a, b)`` and ``(b, a)`` appear when each lies inside the
-              other's kernel. This is the neighbour set used by the density
-              estimate and by :meth:`sph_mean`.
+            * ``'gather'``: every ordered pair with :math:`r \leq 2 h_i`,
+              where :math:`h` is the smoothing length. A pair appears in both
+              orderings when each particle lies inside the other's kernel.
+              This is the neighbour set used by the density estimate and by
+              :meth:`sph_mean`.
 
             The boundary is inclusive, matching the neighbour search used by
-            the density estimate, so that a gather over ``nSmooth`` neighbours
-            really does yield ``nSmooth`` of them. This is worth noting because
+            the density estimate, so that a gather over ``n`` neighbours really
+            does yield ``n`` of them. This is worth noting because
             :math:`r = 2h` is not a rare edge case: smoothing lengths are half
             the distance to the nth neighbour, so exactly one neighbour of
             every particle sits on the boundary. Nothing physical depends on
@@ -537,9 +556,12 @@ class KDTree:
             raise ValueError("blocksize must be at least 1")
 
         if self.get_array_ref('smooth') is None:
-            raise ValueError("No smoothing lengths are associated with this "
-                             "KDTree; access the 'smooth' array of your "
-                             "snapshot before generating pairs")
+            raise ValueError(
+                "No smoothing lengths are associated with this KDTree. If "
+                "pynbody derives them, access the 'smooth' array of your "
+                "snapshot first; if they come from the snapshot file, "
+                "associate them with set_array_ref('smooth', ...), converted "
+                "to the units of the 'pos' array.")
 
         # validation above happens eagerly, rather than on first iteration
         return self._pair_blocks_generator(self._pair_modes[mode], blocksize)
@@ -572,14 +594,15 @@ class KDTree:
         while ``func`` is called once per block of pairs and works on flat
         numpy arrays.
 
-        The result is an array ``out`` with
+        For every pair, ``func`` returns a contribution :math:`c_i` for the
+        first particle and :math:`c_j` for the second. Each particle's result
+        is the sum of the contributions from every pair it takes part in, at
+        whichever end it appears:
 
         .. math::
 
-            \mathrm{out}[a] = \sum_{\mathrm{pairs}\ (a, j)} c_i
-                            + \sum_{\mathrm{pairs}\ (i, a)} c_j
-
-        where :math:`(c_i, c_j)` is what ``func`` returned for each pair.
+            \mathrm{out}[k] = \sum_{\mathrm{pairs}\ (k,\, j)} c_i
+                             \;+ \sum_{\mathrm{pairs}\ (i,\, k)} c_j
 
         Parameters
         ----------
@@ -624,6 +647,10 @@ class KDTree:
 
         Notes
         -----
+        The neighbour search releases the GIL, but a python callback cannot,
+        so ``func`` runs on a single thread. Writing it against flat arrays,
+        rather than one particle at a time, is what keeps that from mattering.
+
         In ``'symmetric'`` mode each pair is visited exactly once and both ends
         are accumulated from that single visit. Returning an antisymmetric
         contribution ``(m[j] * c, -m[i] * c)`` therefore conserves
@@ -712,7 +739,12 @@ class KDTree:
             Quantity to smooth (compute SPH interpolation at particles position).
 
         nsmooth:
-            Number of neighbours to use when smoothing.
+            Number of neighbours the smoothing lengths correspond to. Note
+            that this does not itself select the neighbours: those are
+            whichever particles lie within the kernel, as set by the smoothing
+            lengths. It sizes the internal neighbour buffer, and sets the
+            neighbour count that kernels needing one (such as Wendland C2) are
+            normalised for.
 
         weighting : str
             Which average over the kernel to compute.
@@ -793,7 +825,12 @@ class KDTree:
             Quantity to compute dispersion of.
 
         nsmooth: int
-            Number of neighbours to use when smoothing.
+            Number of neighbours the smoothing lengths correspond to. Note
+            that this does not itself select the neighbours: those are
+            whichever particles lie within the kernel, as set by the smoothing
+            lengths. It sizes the internal neighbour buffer, and sets the
+            neighbour count that kernels needing one (such as Wendland C2) are
+            normalised for.
 
         weighting : str
             Whether to take the volume-weighted or the mass-weighted average
@@ -861,7 +898,12 @@ class KDTree:
             Quantity to compute curl of.
 
         nsmooth : int
-            Number of neighbours to use when smoothing.
+            Number of neighbours the smoothing lengths correspond to. Note
+            that this does not itself select the neighbours: those are
+            whichever particles lie within the kernel, as set by the smoothing
+            lengths. It sizes the internal neighbour buffer, and sets the
+            neighbour count that kernels needing one (such as Wendland C2) are
+            normalised for.
 
         weighting : str
             Whether to take the volume-weighted or the mass-weighted average
@@ -888,7 +930,12 @@ class KDTree:
             Quantity to compute the divergence of.
 
         nsmooth : int
-            Number of neighbours to use when smoothing.
+            Number of neighbours the smoothing lengths correspond to. Note
+            that this does not itself select the neighbours: those are
+            whichever particles lie within the kernel, as set by the smoothing
+            lengths. It sizes the internal neighbour buffer, and sets the
+            neighbour count that kernels needing one (such as Wendland C2) are
+            normalised for.
 
         weighting : str
             Whether to take the volume-weighted or the mass-weighted average
