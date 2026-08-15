@@ -702,8 +702,11 @@ template <typename Tf, typename Tq> struct typed_populate {
 
     PyObject *kdobj, *smxobj;
 
-    PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid,
-                     &kernel_id);
+    int self_density_weighting = 0;
+
+    if (!PyArg_ParseTuple(args, "OOiii|i", &kdobj, &smxobj, &propid, &procid,
+                          &kernel_id, &self_density_weighting))
+      return nullptr;
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
     smx_global = (SmoothingContext<Tf> *)PyCapsule_GetPointer(smxobj, NULL);
 
@@ -731,6 +734,7 @@ template <typename Tf, typename Tq> struct typed_populate {
     smx_local->warnings = false;
     // overflow is handled by growing the buffer and retrying, below
     smx_local->suppressOverflowWarning = true;
+    smx_local->selfDensityWeighting = (self_density_weighting != 0);
     smx_local->pi = 0;
 
     smx_global->warnings = false;

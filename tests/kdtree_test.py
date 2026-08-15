@@ -343,3 +343,64 @@ def test_kdtree_float64_rounding(npart=1000):
     f.build_tree()
 
     _ = f['smooth']
+
+
+def _weighting_test_snapshot(npart=8000):
+    f = pynbody.new(gas=npart)
+    np.random.seed(2024)
+    # a strong density gradient, so that rho_i and rho_j differ across a kernel
+    r = 10.0 * np.random.uniform(size=npart)
+    d = np.random.normal(size=(npart, 3))
+    d /= np.linalg.norm(d, axis=1)[:, None]
+    f['pos'] = d * r[:, None]
+    f['mass'] = np.random.uniform(0.5, 1.5, size=npart)
+    f['vel'] = np.random.normal(size=(npart, 3))
+    f['rho']
+    return f
+
+
+def test_density_weighting_self_reproduces_a_constant_field():
+    """The 'self' weighting has an exact partition of unity, 'neighbour' does not.
+
+    rho_i is by definition sum_j m_j W_ij, so weighting each neighbour by
+    m_j/rho_i makes the interpolant reproduce a constant exactly. Weighting by
+    m_j/rho_j -- the usual SPH volume element -- only does so approximately.
+    """
+    f = _weighting_test_snapshot()
+    constant = pynbody.array.SimArray(np.full(len(f), 3.25))
+    inner = np.linalg.norm(np.asarray(f['pos'], dtype=np.float64), axis=1) < 8.0
+
+    exact = np.asarray(f.kdtree.sph_mean(constant, 32, density_weighting='self'))
+    usual = np.asarray(f.kdtree.sph_mean(constant, 32,
+                                         density_weighting='neighbour'))
+
+    npt.assert_allclose(exact[inner], 3.25, rtol=1e-12)
+    assert np.abs(usual[inner] - 3.25).max() > 1e-6, \
+        "the two weightings should differ where the density varies"
+
+
+@pytest.mark.parametrize("operation", ['sph_mean', 'sph_dispersion',
+                                       'sph_divergence', 'sph_curl'])
+def test_density_weighting_is_accepted_and_changes_the_result(operation):
+    """Every operation that divides by a density takes the option."""
+    f = _weighting_test_snapshot()
+    qty = f['vel'] if operation in ('sph_divergence', 'sph_curl') else f['vx']
+    call = getattr(f.kdtree, operation)
+
+    default = np.asarray(call(qty, 32))
+    neighbour = np.asarray(call(qty, 32, density_weighting='neighbour'))
+    self_ = np.asarray(call(qty, 32, density_weighting='self'))
+
+    # the default must not have changed
+    npt.assert_array_equal(default, neighbour)
+
+    inner = np.linalg.norm(np.asarray(f['pos'], dtype=np.float64), axis=1) < 8.0
+    assert not np.allclose(neighbour[inner], self_[inner]), \
+        "%s should depend on the weighting where the density varies" % operation
+    assert np.isfinite(self_).all()
+
+
+def test_unknown_density_weighting_raises():
+    f = _weighting_test_snapshot(1000)
+    with pytest.raises(ValueError):
+        f.kdtree.sph_mean(f['vx'], 32, density_weighting='not-a-weighting')

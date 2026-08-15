@@ -109,6 +109,17 @@ class KDTree:
     _pair_modes = {'gather': PAIR_MODE_GATHER,
                    'symmetric': PAIR_MODE_SYMMETRIC}
 
+    _density_weightings = {'neighbour': 0, 'self': 1}
+
+    @classmethod
+    def _density_weighting_to_flag(cls, density_weighting):
+        try:
+            return cls._density_weightings[density_weighting]
+        except KeyError:
+            raise ValueError(
+                "Unknown density_weighting %r; should be one of %s"
+                % (density_weighting, sorted(cls._density_weightings))) from None
+
     def __init__(self, pos, mass, leafsize=32, boxsize=None, num_threads=None, shared_mem=False):
         """Create a KDTree
 
@@ -392,7 +403,7 @@ class KDTree:
 
 
 
-    def populate(self, mode, nn):
+    def populate(self, mode, nn, density_weighting='neighbour'):
         """Create the KDTree and perform the operation specified by `mode`.
 
         Parameters
@@ -401,11 +412,19 @@ class KDTree:
             Specify operation to perform (compute smoothing lengths, density, SPH mean, or SPH dispersion).
         nn : int
             Number of neighbours to be considered when smoothing.
+        density_weighting : str
+            Which density to divide each neighbour's contribution by; see
+            :meth:`sph_mean`. Ignored when computing smoothing lengths or
+            densities, which do not use one.
+
+            .. versionadded:: 2.6.0
         """
 
 
         if nn is None:
             nn = 64
+
+        self_weighting = self._density_weighting_to_flag(density_weighting)
 
         smx = kdmain.nn_start(self.kdtree, int(nn), self.boxsize)
 
@@ -417,7 +436,8 @@ class KDTree:
 
 
             if self.num_threads == 1:
-                kdmain.populate(self.kdtree, smx, propid, 0, self._kernel_id)
+                kdmain.populate(self.kdtree, smx, propid, 0, self._kernel_id,
+                                self_weighting)
             else:
                 util.thread_map(
                     kdmain.populate,
@@ -425,7 +445,8 @@ class KDTree:
                     [smx] * self.num_threads,
                     [propid] * self.num_threads,
                     list(range(0, self.num_threads)),
-                    [self._kernel_id] * self.num_threads
+                    [self._kernel_id] * self.num_threads,
+                    [self_weighting] * self.num_threads
                 )
         finally:
             # Free C-structures memory
@@ -671,7 +692,7 @@ class KDTree:
 
         return out.astype(dtype, copy=False)
 
-    def sph_mean(self, array, nsmooth=64):
+    def sph_mean(self, array, nsmooth=64, density_weighting='neighbour'):
         r"""Calculate the SPH mean of a simulation array.
 
         Given a kernel W, this calculates
@@ -693,6 +714,23 @@ class KDTree:
         nsmooth:
             Number of neighbours to use when smoothing.
 
+        density_weighting : str
+            Which density divides each neighbour's contribution.
+
+            * ``'neighbour'`` (default): weight by the neighbour's own volume,
+              :math:`m_j/\\rho_j`. This is the usual SPH interpolant, and is
+              consistent with the other smoothing operations here.
+            * ``'self'``: weight by :math:`m_j/\\rho_i`. Because
+              :math:`\\rho_i` is itself :math:`\\sum_j m_j W_{ij}`, this form
+              reproduces a constant field exactly, and it is what SPH
+              simulation codes use internally. Choose it to reproduce a
+              quantity as the code that wrote the snapshot computed it.
+
+            The two agree wherever the density varies little across a kernel,
+            and differ substantially where it does not.
+
+            .. versionadded:: 2.6.0
+
         Returns
         -------
         output : pynbody.array.SimArray
@@ -709,14 +747,14 @@ class KDTree:
 
         logger.info("Smoothing array with %d nearest neighbours" % nsmooth)
         start = time.time()
-        self.populate("qty_mean", nsmooth)
+        self.populate("qty_mean", nsmooth, density_weighting)
         end = time.time()
 
         logger.info("SPH smooth done in %5.3g s" % (end - start))
 
         return output
 
-    def sph_dispersion(self, array, nsmooth=64):
+    def sph_dispersion(self, array, nsmooth=64, density_weighting='neighbour'):
         r"""Calculate the SPH dispersion of a simulation array.
 
         Given a kernel W, this routine computes the smoothed quantity:
@@ -744,6 +782,23 @@ class KDTree:
         nsmooth: int
             Number of neighbours to use when smoothing.
 
+        density_weighting : str
+            Which density divides each neighbour's contribution.
+
+            * ``'neighbour'`` (default): weight by the neighbour's own volume,
+              :math:`m_j/\\rho_j`. This is the usual SPH interpolant, and is
+              consistent with the other smoothing operations here.
+            * ``'self'``: weight by :math:`m_j/\\rho_i`. Because
+              :math:`\\rho_i` is itself :math:`\\sum_j m_j W_{ij}`, this form
+              reproduces a constant field exactly, and it is what SPH
+              simulation codes use internally. Choose it to reproduce a
+              quantity as the code that wrote the snapshot computed it.
+
+            The two agree wherever the density varies little across a kernel,
+            and differ substantially where it does not.
+
+            .. versionadded:: 2.6.0
+
         Returns
         -------
         output : pynbody.array.SimArray
@@ -759,14 +814,15 @@ class KDTree:
 
         logger.info("Getting dispersion of array with %d nearest neighbours" % nsmooth)
         start = time.time()
-        self.populate("qty_disp", nsmooth)
+        self.populate("qty_disp", nsmooth, density_weighting)
         end = time.time()
 
         logger.info("SPH dispersion done in %5.3g s" % (end - start))
 
         return output
 
-    def _sph_differential_operator(self, array, op, nsmooth=64):
+    def _sph_differential_operator(self, array, op, nsmooth=64,
+                                   density_weighting='neighbour'):
         if op == "div":
             op_label = "divergence"
             output = np.empty(len(array), dtype=array.dtype)
@@ -785,14 +841,14 @@ class KDTree:
 
         logger.info("Getting %s of array with %d nearest neighbours" % (op_label, nsmooth))
         start = time.time()
-        self.populate("qty_%s" % op, nsmooth)
+        self.populate("qty_%s" % op, nsmooth, density_weighting)
         end = time.time()
 
         logger.info(f"SPH {op_label} done in {end - start:5.3g} s")
 
         return output
 
-    def sph_curl(self, array, nsmooth=64):
+    def sph_curl(self, array, nsmooth=64, density_weighting='neighbour'):
         """Calculate the curl of a given array using SPH smoothing.
 
         Parameters
@@ -804,14 +860,32 @@ class KDTree:
         nsmooth : int
             Number of neighbours to use when smoothing.
 
+        density_weighting : str
+            Which density divides each neighbour's contribution.
+
+            * ``'neighbour'`` (default): weight by the neighbour's own volume,
+              :math:`m_j/\\rho_j`. This is the usual SPH interpolant, and is
+              consistent with the other smoothing operations here.
+            * ``'self'``: weight by :math:`m_j/\\rho_i`. Because
+              :math:`\\rho_i` is itself :math:`\\sum_j m_j W_{ij}`, this form
+              reproduces a constant field exactly, and it is what SPH
+              simulation codes use internally. Choose it to reproduce a
+              quantity as the code that wrote the snapshot computed it.
+
+            The two agree wherever the density varies little across a kernel,
+            and differ substantially where it does not.
+
+            .. versionadded:: 2.6.0
+
         Returns
         -------
         pynbody.array.SimArray:
             The curl of the input array.
         """
-        return self._sph_differential_operator(array, "curl", nsmooth)
+        return self._sph_differential_operator(array, "curl", nsmooth,
+                                              density_weighting)
 
-    def sph_divergence(self, array, nsmooth=64):
+    def sph_divergence(self, array, nsmooth=64, density_weighting='neighbour'):
         """Calculate the divergence of a given array using SPH smoothing.
 
         Parameters
@@ -823,12 +897,30 @@ class KDTree:
         nsmooth : int
             Number of neighbours to use when smoothing.
 
+        density_weighting : str
+            Which density divides each neighbour's contribution.
+
+            * ``'neighbour'`` (default): weight by the neighbour's own volume,
+              :math:`m_j/\\rho_j`. This is the usual SPH interpolant, and is
+              consistent with the other smoothing operations here.
+            * ``'self'``: weight by :math:`m_j/\\rho_i`. Because
+              :math:`\\rho_i` is itself :math:`\\sum_j m_j W_{ij}`, this form
+              reproduces a constant field exactly, and it is what SPH
+              simulation codes use internally. Choose it to reproduce a
+              quantity as the code that wrote the snapshot computed it.
+
+            The two agree wherever the density varies little across a kernel,
+            and differ substantially where it does not.
+
+            .. versionadded:: 2.6.0
+
         Returns
         -------
         pynbody.array.SimArray:
             The curl of the input array.
         """
-        return self._sph_differential_operator(array, "div", nsmooth)
+        return self._sph_differential_operator(array, "div", nsmooth,
+                                              density_weighting)
 
     def __del__(self):
         if hasattr(self, "kdtree"):

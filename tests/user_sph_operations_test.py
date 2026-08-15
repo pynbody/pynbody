@@ -709,12 +709,15 @@ def test_pair_reduce_reproduces_density(pairs, request, snap_name):
     npt.assert_allclose(rho, np.asarray(f['rho'], dtype=np.float64), rtol=1e-9)
 
 
-def test_pair_reduce_reproduces_sph_divergence(pairs, snap):
-    """Reproduce KDTree.sph_divergence, which uses the m_j/rho_j gather form.
+@pytest.mark.parametrize("density_weighting", ['neighbour', 'self'])
+def test_pair_reduce_reproduces_sph_divergence(pairs, snap, density_weighting):
+    """Reproduce KDTree.sph_divergence, in both of its weighting conventions.
 
-        div v_i = sum_j (m_j/rho_j) (v_j - v_i) . grad_i W(r, h_i)
+        div v_i = sum_j V_j (v_j - v_i) . grad_i W(r, h_i)
 
-    with grad_i W = (dW/dr) * (-dx/r), since dx points from i towards j.
+    with grad_i W = (dW/dr) * (-dx/r), since dx points from i towards j, and
+    the volume element V_j being either m_j/rho_j ('neighbour') or m_j/rho_i
+    ('self', the form SPH simulation codes use).
     """
     m = np.asarray(snap['mass'], dtype=np.float64)
     rho = np.asarray(snap['rho'], dtype=np.float64)
@@ -722,12 +725,14 @@ def test_pair_reduce_reproduces_sph_divergence(pairs, snap):
     vel = np.asarray(snap['vel'], dtype=np.float64)
 
     def divergence(i, j, dx, r):
+        volume = m[j] / (rho[i] if density_weighting == 'self' else rho[j])
         dv_dot_dx = np.einsum('kl,kl->k', vel[j] - vel[i], dx)
-        return -(m[j] / rho[j]) * dv_dot_dx * _reference_kernel_gradient(r, h[i]) / r
+        return -volume * dv_dot_dx * _reference_kernel_gradient(r, h[i]) / r
 
     div = pairs(snap).pair_reduce(divergence, mode='gather')
     expected = np.asarray(snap.kdtree.sph_divergence(
-        snap['vel'], pynbody.config['sph']['smooth-particles']))
+        snap['vel'], pynbody.config['sph']['smooth-particles'],
+        density_weighting=density_weighting))
 
     npt.assert_allclose(div, expected, rtol=1e-8)
 
