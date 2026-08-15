@@ -321,6 +321,73 @@ def test_pair_blocks_invariant_to_blocksize(pairs, snap, mode):
     npt.assert_allclose(np.sort(r1), np.sort(r2), rtol=1e-14)
 
 
+def test_pair_blocks_handles_far_more_neighbours_than_the_default_buffer():
+    """A smoothing length from a snapshot may enclose any number of particles.
+
+    The gather buffer starts out sized from the configured neighbour count,
+    which says nothing about how many particles an arbitrary h encloses. This
+    is a regression test: a FLAMINGO snapshot, whose h comes from SWIFT rather
+    than from pynbody's own neighbour search, raised "Buffer overflow while
+    gathering neighbour pairs" here. The estimate that the density implies is
+    not an upper bound either -- a particle whose h was fixed in a sparse
+    region and which now sits beside a dense one encloses far more than
+    rho * h^3 suggests.
+    """
+    npart = 1200
+    f = pynbody.new(gas=npart)
+    np.random.seed(99)
+    f['pos'] = np.random.normal(size=(npart, 3))
+    f['mass'] = np.ones(npart)
+
+    # every kernel spans the whole distribution, so each particle has
+    # npart - 1 neighbours
+    f['smooth'] = np.full(npart, 100.0)
+    f.build_tree()
+    f.kdtree.set_array_ref('smooth',
+                           np.asarray(f['smooth'], dtype=f['pos'].dtype))
+
+    default_buffer = int(pynbody.config['sph']['smooth-particles']) + 500
+    assert npart - 1 > default_buffer, "test must exceed the initial buffer"
+
+    i, _, _, _ = _collect(f.kdtree.pair_blocks(mode='gather'))
+    npt.assert_array_equal(np.bincount(i, minlength=npart),
+                           np.full(npart, npart - 1))
+
+    i, _, _, _ = _collect(f.kdtree.pair_blocks(mode='symmetric'))
+    assert len(i) == npart * (npart - 1) // 2
+
+
+@pytest.mark.parametrize("npart", [200, 200000])
+@pytest.mark.parametrize("trailing", [(), (3,)])
+def test_scatter_add_agrees_across_both_strategies(npart, trailing):
+    """The accumulation must not depend on which strategy is chosen.
+
+    ``_scatter_add`` switches on the ratio of output length to block length:
+    ``np.bincount`` allocates a length-N temporary on every call, so it pays
+    only while N is comparable to the block, whereas for a large snapshot the
+    in-place ``np.add.at`` is faster by two orders of magnitude. Both branches
+    are exercised here, against an independent reference.
+    """
+    from pynbody.kdtree import _scatter_add
+
+    rng = np.random.default_rng(4)
+    nblock = 5000
+    index = rng.integers(0, npart, nblock)
+    contrib = rng.normal(size=(nblock,) + trailing)
+
+    got = np.zeros((npart,) + trailing)
+    _scatter_add(got, index, contrib)
+
+    if trailing:
+        expected = np.stack(
+            [np.bincount(index, weights=contrib[:, k], minlength=npart)
+             for k in range(trailing[0])], axis=1)
+    else:
+        expected = np.bincount(index, weights=contrib, minlength=npart)
+
+    npt.assert_allclose(got, expected, rtol=1e-12)
+
+
 def test_pair_blocks_is_deterministic(pairs, snap):
     """Same tree and blocksize => identical blocks, so results are reproducible."""
     first = list(pairs(snap).pair_blocks(blocksize=311))

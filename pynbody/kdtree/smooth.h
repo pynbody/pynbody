@@ -66,8 +66,28 @@ public:
       pKernel(copy.pKernel) { }
       // copy constructor takes a pointer to the global context
 
+  bool suppressOverflowWarning = false;
+  // Set when the caller is prepared to grow the neighbour buffer and retry,
+  // so that a too-small buffer is a routine event rather than a hard error.
+
   void setupKernel(int kernel_id) {
     pKernel = kernels::Kernel<T>::create(kernel_id, nSmooth);
+  }
+
+  void growNeighbourBuffer() {
+    /* Double the space available to a single ball-gather.
+     *
+     * The initial size is derived from the configured number of smoothing
+     * neighbours, which is only meaningful when the smoothing lengths came
+     * from pynbody's own nearest-neighbour search. Where they instead come
+     * from a snapshot, an h can enclose arbitrarily many particles -- a
+     * particle whose h was set in a sparse region and which now sits beside a
+     * dense one, for instance -- so the buffer has to be able to grow.
+     */
+    nListSize *= 2;
+    fList.resize(nListSize);
+    pList.resize(nListSize);
+    dxList.resize(3 * nListSize);
   }
 };
 
@@ -265,7 +285,7 @@ inline npy_intp smBallGatherStoreResultInSmx(SmoothingContext<T>* smx, T fDist2,
                                              npy_intp particleIndex,
                                              npy_intp foundIndex) {
   if (foundIndex >= smx->nListSize) {
-    if (!smx->warnings)
+    if (!smx->warnings && !smx->suppressOverflowWarning)
       fprintf(stderr, "Smooth - particle cache too small for local density - "
                       "results will be incorrect\n");
     smx->warnings = true;
@@ -420,13 +440,21 @@ void smFillPairBlock(PairContext<T> *pc) {
       T fBall2Search = 4 * hi * hi;
       fBall2Search *= (1 + 16 * std::numeric_limits<T>::epsilon());
 
+      // Retry with a larger buffer for as long as this particle's neighbours
+      // do not fit. Doubling keeps the total cost amortised, and the buffer
+      // then stays large enough for subsequent particles.
+      smx->warnings = false;
       pc->pendingCount =
           smBallGather<T, smBallGatherStoreResultInSmx>(smx, fBall2Search, ri);
+      while (smx->warnings) {
+        smx->warnings = false;
+        smx->growNeighbourBuffer();
+        pc->pendingCount =
+            smBallGather<T, smBallGatherStoreResultInSmx>(smx, fBall2Search, ri);
+      }
+
       pc->pendingIndex = 0;
       pc->havePending = true;
-
-      if (smx->warnings)
-        return; // neighbour buffer overflowed; caller raises
     }
 
     npy_intp ia = kd->particleOffsets[pc->pendingParticle];

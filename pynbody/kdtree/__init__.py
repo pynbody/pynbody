@@ -32,16 +32,28 @@ KDNode = np.dtype([
 def _scatter_add(out, index, contrib):
     """Perform ``out[index] += contrib``, summing over repeated indices.
 
-    ``np.add.at`` would do this, but is very slow; ``out[index] += contrib``
-    is wrong, since it keeps only one contribution per repeated index.
+    Note ``out[index] += contrib`` will not do, since it keeps only one
+    contribution per repeated index.
+
+    Which of the two viable methods is faster depends strongly on how the
+    length of the output compares with the length of the block.
+    ``np.bincount`` allocates and fills a whole length-N temporary on every
+    call, so it wins only while N is comparable to the block size; once the
+    output is much the longer of the two -- which for pair sums means any
+    large snapshot -- that temporary dominates everything else, and the
+    in-place scatter of ``np.add.at`` is faster by two orders of magnitude.
     """
     npart = out.shape[0]
-    if out.ndim == 1:
-        out += np.bincount(index, weights=contrib, minlength=npart)
+
+    if npart <= 4 * len(index):
+        if out.ndim == 1:
+            out += np.bincount(index, weights=contrib, minlength=npart)
+        else:
+            for k in range(out.shape[1]):
+                out[:, k] += np.bincount(index, weights=contrib[..., k],
+                                         minlength=npart)
     else:
-        for k in range(out.shape[1]):
-            out[:, k] += np.bincount(index, weights=contrib[..., k],
-                                     minlength=npart)
+        np.add.at(out, index, contrib)
 
 
 class KDTree:

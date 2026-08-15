@@ -856,6 +856,9 @@ template <typename T> struct typed_pair_start {
     if (smx == nullptr)
       return nullptr; // smInit sets the error message
     smx->warnings = false;
+    // smFillPairBlock grows the neighbour buffer and retries rather than
+    // treating an overflow as an error, so the usual warning would be noise
+    smx->suppressOverflowWarning = true;
 
     auto pc = new PairContext<T>(smx, blocksize, mode);
 
