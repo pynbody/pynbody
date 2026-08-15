@@ -699,7 +699,7 @@ class KDTree:
 
         .. math::
 
-          r_i = \sum_{j=0}^{N_{smooth}}\left( \frac{m_j}{\rho_j} q_i W(|x_i - x_j|, s_i) \right)
+          r_i = \sum_{j=0}^{N_{smooth}}\left( \frac{m_j}{\rho_j} q_j W(|x_i - x_j|, s_i) \right)
 
         where r is the result of the smoothing, m is the mass array, rho is the density array, q is the input array,
         s_i is the smoothing length, and W is the kernel function.
@@ -715,20 +715,27 @@ class KDTree:
             Number of neighbours to use when smoothing.
 
         weighting : str
-            Which average over the kernel to compute. The two agree where the
-            density is nearly constant across a kernel, and differ where it is
-            not.
+            Which average over the kernel to compute.
 
-            * ``'volume'`` (default): the volume-weighted average,
-              :math:`\int f W \, dV`, taking each neighbour's own volume
-              :math:`m_j/\rho_j`. This is the direct discretisation of the
-              smoothing integral.
-            * ``'mass'``: the mass-weighted average,
-              :math:`\int f \rho W \, dV / \int \rho W \, dV`, taking
-              :math:`m_j/\rho_i`. Since :math:`\rho_i` is itself
-              :math:`\sum_j m_j W_{ij}`, the weights sum to one exactly, so
-              this reproduces a constant field exactly and can never fall
-              outside the range of its input.
+            Writing :math:`i` for the particle whose value is being computed
+            and :math:`j` for each of its neighbours, both options evaluate
+            :math:`\sum_j V_j q_j W(|x_i - x_j|, s_i)`, differing only in the
+            volume :math:`V_j` given to each neighbour:
+
+            * ``'volume'`` (default): :math:`V_j = m_j/\rho_j`, each
+              neighbour's own volume. The sum is then the direct
+              discretisation of the smoothing integral, giving the
+              volume-weighted average :math:`\int q W \, dV`.
+            * ``'mass'``: :math:`V_j = m_j/\rho_i`, using the density at the
+              particle being evaluated, which gives the mass-weighted average
+              :math:`\int q \rho W \, dV / \int \rho W \, dV`. Since
+              :math:`\rho_i` is itself :math:`\sum_j m_j W(|x_i - x_j|, s_i)`,
+              the weights here sum to one exactly, so this reproduces a
+              constant field exactly and can never return a value outside the
+              range of its input.
+
+            The two agree where the density is nearly constant across a
+            kernel, and differ where it is not.
 
             For a divergence, ``'mass'`` is the form that satisfies the
             continuity equation exactly, and so is the one appearing in the
@@ -767,13 +774,13 @@ class KDTree:
 
         .. math::
 
-          r_i = \sum_{j=0}^{N_{smooth}}\left( \frac{m_j}{\rho_j} q_i W(|x_i - x_j|, s_i) \right)
+          r_i = \sum_{j=0}^{N_{smooth}}\left( \frac{m_j}{\rho_j} q_j W(|x_i - x_j|, s_i) \right)
 
         Then the squared root of the SPH smoothed variance:
 
         .. math::
 
-          d_i = \left\{ \sum_{j=0}^{N_{smooth}} \frac{m_j}{\rho_j} (q_i - r_i)^2 W(|x_i - x_j|, s_i) \right\}^{1/2}
+          d_i = \left\{ \sum_{j=0}^{N_{smooth}} \frac{m_j}{\rho_j} (q_j - r_i)^2 W(|x_i - x_j|, s_i) \right\}^{1/2}
 
         where d_i is the calculated dispersion, m is the mass array, rho is the density array, q is the input array,
         s_i is the smoothing length, and W is the kernel function.
