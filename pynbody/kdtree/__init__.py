@@ -29,6 +29,21 @@ KDNode = np.dtype([
     ('pUpper', np.intp)
 ])
 
+def _scatter_add(out, index, contrib):
+    """Perform ``out[index] += contrib``, summing over repeated indices.
+
+    ``np.add.at`` would do this, but is very slow; ``out[index] += contrib``
+    is wrong, since it keeps only one contribution per repeated index.
+    """
+    npart = out.shape[0]
+    if out.ndim == 1:
+        out += np.bincount(index, weights=contrib, minlength=npart)
+    else:
+        for k in range(out.shape[1]):
+            out[:, k] += np.bincount(index, weights=contrib[..., k],
+                                     minlength=npart)
+
+
 class KDTree:
     """KDTree can be used for smoothing, interpolating and geometrical queries.
 
@@ -75,6 +90,12 @@ class KDTree:
     PROPID_QTYDISP_ND = 6
     PROPID_QTYDIV  = 7
     PROPID_QTYCURL = 8
+
+    PAIR_MODE_GATHER = 0
+    PAIR_MODE_SYMMETRIC = 1
+
+    _pair_modes = {'gather': PAIR_MODE_GATHER,
+                   'symmetric': PAIR_MODE_SYMMETRIC}
 
     def __init__(self, pos, mass, leafsize=32, boxsize=None, num_threads=None, shared_mem=False):
         """Create a KDTree
@@ -331,7 +352,31 @@ class KDTree:
             used. For more information see the documentation for :class:`pynbody.sph.kernels.create_kernel`.
         """
         from ..sph import kernels
-        self._kernel_id = kernels.create_kernel(kernel).get_c_kernel_id()
+        self._kernel = kernels.create_kernel(kernel)
+        self._kernel_id = self._kernel.get_c_kernel_id()
+
+    @property
+    def kernel(self):
+        """The SPH kernel currently in use by this tree.
+
+        .. versionadded:: 2.6.0
+
+        This is the same kernel object that the C++ smoothing routines are
+        using, so evaluating it from python (via
+        :meth:`~pynbody.sph.kernels.KernelBase.value` and
+        :meth:`~pynbody.sph.kernels.KernelBase.gradient`) is guaranteed to be
+        consistent with results from e.g. :meth:`sph_mean` or the ``rho``
+        array. This is what makes it possible to write a
+        :meth:`pair_reduce` callback without re-deriving the kernel
+        normalisation by hand.
+
+        See :meth:`set_kernel` to change it.
+        """
+        if getattr(self, '_kernel', None) is None:
+            # e.g. a tree restored by deserialize, which only stores the id
+            from ..sph import kernels
+            self._kernel = kernels.create_kernel_from_c_id(self._kernel_id)
+        return self._kernel
 
 
 
@@ -373,6 +418,246 @@ class KDTree:
         finally:
             # Free C-structures memory
             kdmain.nn_stop(self.kdtree, smx)
+
+    def pair_blocks(self, mode='symmetric', blocksize=1<<18):
+        r"""Iterate over neighbour pairs, in blocks, as flat numpy arrays.
+
+        .. versionadded:: 2.6.0
+
+        This is the low-level primitive underlying :meth:`pair_reduce`. Use it
+        directly when you want to do something with the pairs other than sum
+        over them.
+
+        Each iteration yields a tuple ``(i, j, dx, r)`` of arrays with the same
+        leading length ``nblock <= blocksize``:
+
+        =======  ======================  ==================================
+        name     shape / dtype           meaning
+        =======  ======================  ==================================
+        ``i``    ``(nblock,)`` intp      index of the first particle of each pair
+        ``j``    ``(nblock,)`` intp      index of the second particle of each pair
+        ``dx``   ``(nblock, 3)`` f8      periodic-wrapped ``pos[j] - pos[i]``
+        ``r``    ``(nblock,)`` f8        ``|dx|``, always strictly positive
+        =======  ======================  ==================================
+
+        Note that ``i`` and ``j`` are *arrays* of particle indices, one entry
+        per pair, so per-particle quantities are used via fancy indexing, e.g.
+        ``rho[i]`` is the density of the first particle of each pair.
+
+        Smoothing lengths are taken from the ``smooth`` array currently
+        associated with the tree, so accessing ``f['smooth']`` (or ``f['rho']``)
+        before calling this is what fixes the pair set.
+
+        Parameters
+        ----------
+        mode : str
+            Which pairs to generate.
+
+            * ``'symmetric'`` (default): every unordered pair with
+              :math:`r \leq \max(2 h_i, 2 h_j)`, exactly once, canonicalised
+              so that ``i < j``. This is what SPH operators involving both
+              smoothing lengths require, such as artificial viscosity or
+              conduction.
+            * ``'gather'``: every ordered pair with :math:`r \leq 2 h_i`. Both
+              ``(a, b)`` and ``(b, a)`` appear when each lies inside the
+              other's kernel. This is the neighbour set used by the density
+              estimate and by :meth:`sph_mean`.
+
+            The boundary is inclusive, matching the neighbour search used by
+            the density estimate, so that a gather over ``nSmooth`` neighbours
+            really does yield ``nSmooth`` of them. This is worth noting because
+            :math:`r = 2h` is not a rare edge case: smoothing lengths are half
+            the distance to the nth neighbour, so exactly one neighbour of
+            every particle sits on the boundary. Nothing physical depends on
+            which side they fall, since both :math:`W` and :math:`dW/dr` vanish
+            there.
+
+        blocksize : int
+            Maximum number of pairs per block. Blocks are arbitrary cuts of a
+            single stream of pairs, so a given particle's pairs will in general
+            straddle a block boundary. Larger blocks amortise the per-block
+            numpy overhead at the cost of memory; in practice throughput is
+            insensitive to this over a wide range, so the default is chosen to
+            keep the buffers small.
+
+        Yields
+        ------
+        tuple
+            ``(i, j, dx, r)`` as described above. The arrays are read-only, and
+            are not reused between blocks.
+
+        Examples
+        --------
+        Counting the neighbours of each particle:
+
+        >>> counts = np.zeros(len(f), dtype=int)
+        >>> for i, j, dx, r in f.kdtree.pair_blocks(mode='gather'):
+        ...     counts += np.bincount(i, minlength=len(f))
+
+        """
+        if mode not in self._pair_modes:
+            raise ValueError("Unknown pair iteration mode %r; should be one of %s"
+                             % (mode, sorted(self._pair_modes)))
+
+        blocksize = int(blocksize)
+        if blocksize < 1:
+            raise ValueError("blocksize must be at least 1")
+
+        if self.get_array_ref('smooth') is None:
+            raise ValueError("No smoothing lengths are associated with this "
+                             "KDTree; access the 'smooth' array of your "
+                             "snapshot before generating pairs")
+
+        # validation above happens eagerly, rather than on first iteration
+        return self._pair_blocks_generator(self._pair_modes[mode], blocksize)
+
+    def _pair_blocks_generator(self, mode_id, blocksize):
+        # nsmooth only sizes the neighbour buffer; the pair set itself is
+        # determined by the smoothing lengths
+        nsmooth = min(int(config['sph']['smooth-particles']), len(self._pos))
+        boxsize = -1.0 if self.boxsize is None else float(self.boxsize)
+
+        context = kdmain.pair_start(self.kdtree, mode_id, blocksize, nsmooth,
+                                    boxsize)
+        try:
+            while True:
+                block = kdmain.pair_next(self.kdtree, context)
+                if block is None:
+                    break
+                yield block
+        finally:
+            kdmain.pair_stop(self.kdtree, context)
+
+    def pair_reduce(self, func, mode='symmetric', blocksize=1<<18,
+                    dtype=np.float64):
+        r"""Accumulate a user-supplied pairwise function over all neighbour pairs.
+
+        .. versionadded:: 2.6.0
+
+        This lets arbitrary pairwise SPH operations be expressed without a
+        python-level loop over particles. The neighbour search runs in C++,
+        while ``func`` is called once per block of pairs and works on flat
+        numpy arrays.
+
+        The result is an array ``out`` with
+
+        .. math::
+
+            \mathrm{out}[a] = \sum_{\mathrm{pairs}\ (a, j)} c_i
+                            + \sum_{\mathrm{pairs}\ (i, a)} c_j
+
+        where :math:`(c_i, c_j)` is what ``func`` returned for each pair.
+
+        Parameters
+        ----------
+        func : callable
+            Called as ``func(i, j, dx, r)`` with one block of pairs at a time;
+            see :meth:`pair_blocks` for the meaning and shapes of the
+            arguments. Per-particle quantities are reached by closing over them
+            and indexing with ``i`` or ``j``.
+
+            It must return either
+
+            * a single array, of shape ``(nblock,)`` or ``(nblock, k)``, whose
+              values are accumulated at ``i``; or
+            * a tuple ``(contrib_i, contrib_j)`` of two such arrays, which are
+              accumulated at ``i`` and at ``j`` respectively.
+
+            The trailing shape is fixed by the first block and may not vary.
+
+            ``func`` must be a pure function of its arguments: it must not
+            mutate them, carry state between calls, or assume anything about
+            which pairs are grouped into a block. In particular it cannot
+            perform a reduction over all of a particle's neighbours, since they
+            need not all be present in the same block; compute such quantities
+            in a separate pass first.
+
+        mode : str
+            ``'symmetric'`` (default) or ``'gather'``; see :meth:`pair_blocks`.
+
+        blocksize : int
+            Maximum number of pairs handed to ``func`` at once.
+
+        dtype : numpy dtype
+            Data type of the output array. Accumulation is always performed in
+            double precision, and the result converted on return, so that the
+            answer does not depend on ``blocksize``.
+
+        Returns
+        -------
+        numpy.ndarray
+            Shape ``(N,)`` or ``(N, k)``, where ``N`` is the number of
+            particles in the tree.
+
+        Notes
+        -----
+        In ``'symmetric'`` mode each pair is visited exactly once and both ends
+        are accumulated from that single visit. Returning an antisymmetric
+        contribution ``(m[j] * c, -m[i] * c)`` therefore conserves
+        :math:`\sum_a m_a\, \mathrm{out}[a]` to roundoff as an algebraic
+        identity, rather than approximately.
+
+        Examples
+        --------
+        SPH artificial conduction, which requires both smoothing lengths and so
+        uses the symmetric pair set:
+
+        >>> m, rho, p, u, h = (f.g[k] for k in ('mass','rho','p','u','smooth'))
+        >>> W = f.g.kdtree.kernel
+        >>> def conduction(i, j, dx, r):
+        ...     mu = np.einsum('kl,kl->k', f.g['vel'][j] - f.g['vel'][i], dx) / r
+        ...     v_d = 0.5 * (np.abs(mu)
+        ...                  + np.sqrt(2 * np.abs(p[i] - p[j]) / (rho[i] + rho[j])))
+        ...     # note gradient() is dW/dr, which is negative; the usual form of
+        ...     # this equation is written in terms of its magnitude
+        ...     g = -(W.gradient(r, h[i]) / rho[i] + W.gradient(r, h[j]) / rho[j])
+        ...     c = v_d * (u[j] - u[i]) * g
+        ...     return m[j] * c, -m[i] * c
+        >>> du_dt = f.g.kdtree.pair_reduce(conduction)
+
+        The returned contributions are antisymmetric, so this conserves energy
+        exactly; ``(m * du_dt).sum()`` vanishes to roundoff.
+
+        """
+        npart = len(self._pos)
+        out = None
+        trailing = None
+
+        for i, j, dx, r in self.pair_blocks(mode=mode, blocksize=blocksize):
+            result = func(i, j, dx, r)
+            if isinstance(result, tuple):
+                contrib_i, contrib_j = result
+            else:
+                contrib_i, contrib_j = result, None
+
+            contrib_i = np.asarray(contrib_i)
+
+            if len(contrib_i) != len(i):
+                raise ValueError("pair_reduce callback returned %d values for "
+                                 "a block of %d pairs"
+                                 % (len(contrib_i), len(i)))
+
+            if trailing is None:
+                trailing = contrib_i.shape[1:]
+                # Accumulate in float64 whatever the requested output type:
+                # np.bincount produces float64, and casting each block down to
+                # an integer dtype as it arrived would truncate the partial
+                # sums independently, making the result depend on blocksize.
+                out = np.zeros((npart,) + trailing, dtype=np.float64)
+            elif contrib_i.shape[1:] != trailing:
+                raise ValueError("pair_reduce callback returned trailing shape "
+                                 "%s, but the first block gave %s"
+                                 % (contrib_i.shape[1:], trailing))
+
+            _scatter_add(out, i, contrib_i)
+            if contrib_j is not None:
+                _scatter_add(out, j, np.asarray(contrib_j))
+
+        if out is None:
+            # no pairs at all, so the trailing shape was never established
+            return np.zeros(npart, dtype=dtype)
+
+        return out.astype(dtype, copy=False)
 
     def sph_mean(self, array, nsmooth=64):
         r"""Calculate the SPH mean of a simulation array.
