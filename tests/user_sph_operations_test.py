@@ -367,6 +367,26 @@ def test_pair_blocks_blocksize_is_respected(pairs, snap, mode):
     assert max(sizes) <= 137
 
 
+@pytest.mark.parametrize("blocksize", [1, 3, 17])
+def test_pair_blocks_respects_a_blocksize_below_the_thread_count(snap,
+                                                                 blocksize):
+    """Fewer slots than threads caps the threads, rather than growing the block.
+
+    Each walk needs a slice of the block to write into, so a block smaller
+    than the thread count would otherwise have to be enlarged to give every
+    walk a slot, quietly exceeding the blocksize the caller asked for.
+    """
+    blocks = list(snap.kdtree.pair_blocks(blocksize=blocksize, num_threads=20))
+    assert max(len(b[0]) for b in blocks) <= blocksize
+
+    # capping the threads repartitions the particles, so check nothing is lost
+    i, j, _, _ = _collect(blocks)
+    exp_i, exp_j, _, _ = _collect(
+        snap.kdtree.pair_blocks(blocksize=1 << 20, num_threads=1))
+    npt.assert_array_equal(np.sort(_pair_keys(i, j)),
+                           np.sort(_pair_keys(exp_i, exp_j)))
+
+
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])
 def test_pair_blocks_invariant_to_blocksize(pairs, snap, mode):
     """Blocking is an implementation detail; the pair set cannot depend on it."""

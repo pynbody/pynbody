@@ -587,6 +587,8 @@ class KDTree:
             own setting. Each walks a separate range of particles and fills
             its own slice of the block, so the consumer still sees an ordinary
             sequence of blocks and is never called from more than one thread.
+            It is capped at ``blocksize``, since each walk needs a slot of its
+            own to write into, and at the number of particles.
 
             The pair set does not depend on this, but the order the pairs
             arrive in does, so a sum accumulated over the blocks can differ in
@@ -662,7 +664,11 @@ class KDTree:
         # spatially coherent too. Load balances itself: every context fills a
         # whole block before returning, so they all do the same amount of work
         # per round regardless of how the particles are distributed.
-        num_threads = max(1, min(num_threads, npart))
+        #
+        # Never more walks than there are slots in a block for them to write
+        # into, since each needs at least one; blocksize would otherwise be
+        # exceeded rather than respected.
+        num_threads = max(1, min(num_threads, npart, blocksize))
         edges = [(i * npart) // num_threads for i in range(num_threads + 1)]
 
         all_contexts = [
@@ -671,11 +677,8 @@ class KDTree:
             for i in range(num_threads)
         ]
         # When the caller has undertaken not to keep the blocks, one buffer
-        # serves the whole walk. Note every walk gets at least one slot even
-        # when the block is smaller than the number of walks, so the buffer
-        # has to be able to hold that case too.
-        buffers = (self._make_pair_buffers(max(blocksize, num_threads))
-                   if reuse_buffer else None)
+        # serves the whole walk
+        buffers = self._make_pair_buffers(blocksize) if reuse_buffer else None
         try:
             contexts = all_contexts
             while contexts:
@@ -716,7 +719,9 @@ class KDTree:
         ``buffers`` is the memory to write into, or None to allocate some.
         """
         n_walks = len(contexts)
-        per_thread = max(1, blocksize // n_walks)
+        # the generator caps the number of walks at blocksize, so each gets at
+        # least one slot here and the block as a whole stays within blocksize
+        per_thread = blocksize // n_walks
         capacity = per_thread * n_walks
 
         bufs = (self._make_pair_buffers(capacity) if buffers is None
@@ -832,7 +837,7 @@ class KDTree:
         That makes ``func`` worth optimising for any serious work with
         large numbers of particles. For example, a numba function may
         be appropriate, perhaps using ``@numba.njit(parallel=True)``
-        to enable threading within the block-procesing part of the overall
+        to enable threading within the block-processing part of the overall
         algorithm:
 
         >>> @numba.njit(parallel=True)                       # doctest: +SKIP
