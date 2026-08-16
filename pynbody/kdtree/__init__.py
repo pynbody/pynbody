@@ -6,7 +6,8 @@ As well as the smoothing operations built on it -- :meth:`~KDTree.sph_mean`,
 :meth:`~KDTree.sph_curl` -- the tree can hand neighbour pairs back to python,
 so that pairwise SPH operations pynbody does not itself provide can be written
 without a python-level loop over particles. See :meth:`~KDTree.pair_reduce`
-and :meth:`~KDTree.pair_blocks`.
+and :meth:`~KDTree.pair_blocks`, and :func:`buffered_kernel` for driving the
+former from a compiled per-pair kernel.
 
 """
 import logging
@@ -36,31 +37,64 @@ KDNode = np.dtype([
     ('pUpper', np.intp)
 ])
 
-def _scatter_add(out, index, contrib):
-    """Perform ``out[index] += contrib``, summing over repeated indices.
 
-    Note ``out[index] += contrib`` will not do, since it keeps only one
-    contribution per repeated index.
+def buffered_kernel(kernel, *args, ncols=None, both_ends=True):
+    r"""Adapt a pair kernel that writes into output arrays for :meth:`KDTree.pair_reduce`.
 
-    Which of the two viable methods is faster depends strongly on how the
-    length of ``out`` compares with the length of the block. ``np.bincount``
-    allocates and fills a temporary as long as ``out`` on every call, so it
-    wins only while the two lengths are comparable; once ``out`` is much the
-    longer -- which for pair sums means any large snapshot -- that temporary
-    dominates everything else, and the in-place scatter of ``np.add.at`` is
-    faster by two orders of magnitude.
+    .. versionadded:: 2.6.0
+
+    :meth:`~KDTree.pair_reduce` expects a callback that *returns* its
+    contributions. A compiled kernel usually cannot allocate, and wants to be
+    handed somewhere to write instead. This wraps one of the latter kind so
+    that it can be used as the former, providing the output arrays and reusing
+    them from block to block::
+
+        >>> du_dt = tree.pair_reduce(                        # doctest: +SKIP
+        ...     buffered_kernel(conduction, m, rho, u, h),
+        ...     mode='symmetric')
+
+    ``kernel`` is called as ``kernel(i, j, dx, r, *args, out_i, out_j)``, or
+    without ``out_j`` if ``both_ends`` is False. See
+    :meth:`~KDTree.pair_reduce` for a worked example.
+
+    Parameters
+    ----------
+    kernel : callable
+        Takes the four pair arrays, then ``args``, then one or two output
+        arrays. It must write **every** element of them: they are reused
+        between blocks and are not cleared, so anything left unwritten is
+        whatever the previous block put there.
+    *args : arrays
+        Passed through to ``kernel`` between the pair arrays and the output
+        arrays. Typically the per-particle quantities the kernel needs.
+    ncols : int, optional
+        Give the output arrays this trailing dimension, for a kernel that
+        accumulates several quantities at once. By default they are flat.
+    both_ends : bool
+        Whether the kernel contributes to both particles of each pair, as an
+        operator using both smoothing lengths does. Set False in ``'gather'``
+        mode, where only the first of each pair accumulates.
+
+    Returns
+    -------
+    callable
+        A callback suitable for :meth:`~KDTree.pair_reduce`.
     """
-    npart = out.shape[0]
+    buffers = []
 
-    if npart <= 4 * len(index):
-        if out.ndim == 1:
-            out += np.bincount(index, weights=contrib, minlength=npart)
-        else:
-            for k in range(out.shape[1]):
-                out[:, k] += np.bincount(index, weights=contrib[..., k],
-                                         minlength=npart)
-    else:
-        np.add.at(out, index, contrib)
+    def callback(i, j, dx, r):
+        n = len(i)
+        # allocated on the first block, which is the largest, and reused
+        # thereafter; a later block can only be shorter
+        if not buffers or len(buffers[0]) < n:
+            shape = (n,) if ncols is None else (n, ncols)
+            buffers[:] = [np.empty(shape) for _ in range(2 if both_ends else 1)]
+
+        out = [b[:n] for b in buffers]
+        kernel(i, j, dx, r, *args, *out)
+        return tuple(out) if both_ends else out[0]
+
+    return callback
 
 
 class KDTree:
@@ -559,7 +593,7 @@ class KDTree:
             **a block is only valid until the next one is generated**. Anything
             that has to outlive the current iteration must then be copied.
 
-            Only worth setting for a loop that finishes with each block before
+            Worth setting for a loop that finishes with each block before
             asking for the next, which is the usual case; it is what
             :meth:`pair_reduce` does internally.
 
@@ -744,12 +778,11 @@ class KDTree:
             which pairs are grouped into a block. In particular it cannot
             perform a reduction over all of a particle's neighbours, since they
             need not all be present in the same block; compute such quantities
-            in a separate pass first.
+            in a separate pass first.  Nor may it keep hold of the arrays it is
+            passed.
 
-            Nor may it keep hold of the arrays it is passed. Blocks here all
-            share one buffer -- which is what makes them cheap to produce --
-            so their contents are written over as soon as ``func`` returns.
-            Use :meth:`pair_blocks` directly if you need blocks that last.
+            Use :meth:`pair_blocks` directly if you need blocks that last beyond
+            the function lifetime.
 
         mode : str
             ``'symmetric'`` (default) or ``'gather'``; see :meth:`pair_blocks`.
@@ -764,6 +797,8 @@ class KDTree:
 
         num_threads : int, optional
             How many threads gather pairs at once; see :meth:`pair_blocks`.
+            This only affects the internal pair production; only one call to
+            `func` is made per block, on the calling thread.
             The result can differ in its last bits between thread counts,
             since they change the order in which pairs are summed.
 
@@ -780,14 +815,11 @@ class KDTree:
         cannot be run that way, since a python callback holds the GIL, so it
         gets each block on a single thread.
 
-        That makes ``func`` the part worth optimising once the blocks are
-        large. Writing it against the flat arrays rather than particle by
-        particle is the first thing; beyond that, a compiled kernel is
-        typically an order of magnitude quicker than the equivalent chain of
-        numpy expressions, which allocates a temporary the length of the block
-        at every step. A numba function is the easiest way there, and
-        ``@numba.njit(parallel=True)`` will recover the threading over the
-        pairs within a block that the GIL denies to python:
+        That makes ``func`` worth optimising for any serious work with
+        large numbers of particles. For example, a numba function may
+        be appropriate, perhaps using ``@numba.njit(parallel=True)``
+        to enable threading within the block-procesing part of the overall
+        algorithm:
 
         >>> @numba.njit(parallel=True)                       # doctest: +SKIP
         ... def kernel(i, j, dx, r, q, out):
@@ -824,6 +856,42 @@ class KDTree:
         The returned contributions are antisymmetric, so this conserves energy
         exactly; ``(m * du_dt).sum()`` vanishes to roundoff.
 
+        The same calculation with a compiled kernel, which is worth doing for
+        anything but a one-off: each of those numpy expressions allocates an
+        array the length of the block, and there are a dozen of them, whereas
+        the loop below allocates nothing and threads over the pairs.
+        :func:`buffered_kernel` provides the two output arrays and reuses them
+        from block to block, so the kernel need only fill them in:
+
+        >>> import numba                                     # doctest: +SKIP
+        >>> @numba.njit                                      # doctest: +SKIP
+        ... def abs_grad_w(r, h):
+        ...     # |dW/dr| for the kernel in use, written out for numba
+        ...     ...
+        >>> @numba.njit(parallel=True)                       # doctest: +SKIP
+        ... def conduction(i, j, dx, r, m, rho, p, u, h, vel, out_i, out_j):
+        ...     for k in numba.prange(len(i)):
+        ...         a, b = i[k], j[k]
+        ...         mu = ((vel[b, 0] - vel[a, 0]) * dx[k, 0]
+        ...               + (vel[b, 1] - vel[a, 1]) * dx[k, 1]
+        ...               + (vel[b, 2] - vel[a, 2]) * dx[k, 2]) / r[k]
+        ...         v_d = 0.5 * (abs(mu) + np.sqrt(2 * abs(p[a] - p[b])
+        ...                                        / (rho[a] + rho[b])))
+        ...         g = (abs_grad_w(r[k], h[a]) / rho[a]
+        ...              + abs_grad_w(r[k], h[b]) / rho[b])
+        ...         c = v_d * (u[b] - u[a]) * g
+        ...         out_i[k] = m[b] * c
+        ...         out_j[k] = -m[a] * c
+        >>> du_dt = f.g.kdtree.pair_reduce(                  # doctest: +SKIP
+        ...     buffered_kernel(conduction, m, rho, p, u, h, f.g['vel']),
+        ...     mode='symmetric')
+
+        ``numba.prange`` is safe here because iteration ``k`` writes only
+        element ``k``. Note that it would not be safe to accumulate onto
+        particles this way -- ``out[i[k]] += ...`` -- since a particle belongs
+        to many pairs and the iterations would race; that accumulation is what
+        pair_reduce does for you, serially.
+
         """
         npart = len(self._pos)
         out = None
@@ -850,18 +918,17 @@ class KDTree:
             if trailing is None:
                 trailing = contrib_i.shape[1:]
                 # Accumulate in float64 whatever the requested output type:
-                # np.bincount produces float64, and casting each block down to
-                # an integer dtype as it arrived would truncate the partial
-                # sums independently, making the result depend on blocksize.
+                # casting each block down to an integer dtype as it arrived
+                # would truncate the partial sums independently, making the
+                # result depend on blocksize.
                 out = np.zeros((npart,) + trailing, dtype=np.float64)
             elif contrib_i.shape[1:] != trailing:
                 raise ValueError("pair_reduce callback returned trailing shape "
                                  "%s, but the first block gave %s"
                                  % (contrib_i.shape[1:], trailing))
-
-            _scatter_add(out, i, contrib_i)
+            np.add.at(out, i, contrib_i)
             if contrib_j is not None:
-                _scatter_add(out, j, np.asarray(contrib_j))
+                np.add.at(out, j, contrib_j)
 
         if out is None:
             # no pairs at all, so the trailing shape was never established

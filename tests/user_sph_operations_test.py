@@ -433,35 +433,51 @@ def test_smoothing_operations_handle_more_neighbours_than_the_default_buffer():
     assert div.shape == (npart,) and curl.shape == (npart, 3)
 
 
-@pytest.mark.parametrize("npart", [200, 200000])
-@pytest.mark.parametrize("trailing", [(), (3,)])
-def test_scatter_add_agrees_across_both_strategies(npart, trailing):
-    """The accumulation must not depend on which strategy is chosen.
+@pytest.mark.parametrize("ncols", [None, 3])
+def test_buffered_kernel_matches_returning_the_contributions(snap, ncols):
+    """The helper is a convenience, so it must not change the answer."""
+    snap.build_tree()
+    m = np.asarray(snap['mass'], dtype=np.float64)
+    u = np.asarray(snap['u'], dtype=np.float64)
 
-    ``_scatter_add`` switches on the ratio of output length to block length:
-    ``np.bincount`` allocates a length-N temporary on every call, so it pays
-    only while N is comparable to the block, whereas for a large snapshot the
-    in-place ``np.add.at`` is faster by two orders of magnitude. Both branches
-    are exercised here, against an independent reference.
-    """
-    from pynbody.kdtree import _scatter_add
+    def weight(i, j, r):
+        w = m[j] * (u[j] - u[i]) / r
+        return w if ncols is None else np.outer(w, [1.0, 2.0, 3.0])
 
-    rng = np.random.default_rng(4)
-    nblock = 5000
-    index = rng.integers(0, npart, nblock)
-    contrib = rng.normal(size=(nblock,) + trailing)
+    def returning(i, j, dx, r):
+        c = weight(i, j, r)
+        return c, -c
 
-    got = np.zeros((npart,) + trailing)
-    _scatter_add(got, index, contrib)
+    def writing(i, j, dx, r, mass, energy, out_i, out_j):
+        out_i[...] = weight(i, j, r)
+        out_j[...] = -out_i
 
-    if trailing:
-        expected = np.stack(
-            [np.bincount(index, weights=contrib[:, k], minlength=npart)
-             for k in range(trailing[0])], axis=1)
-    else:
-        expected = np.bincount(index, weights=contrib, minlength=npart)
+    expected = snap.kdtree.pair_reduce(returning, blocksize=137)
+    got = snap.kdtree.pair_reduce(
+        pynbody.kdtree.buffered_kernel(writing, m, u, ncols=ncols),
+        blocksize=137)
 
-    npt.assert_allclose(got, expected, rtol=1e-12)
+    assert expected.shape == got.shape
+    npt.assert_allclose(got, expected, rtol=1e-13)
+
+
+def test_buffered_kernel_can_contribute_to_one_end_only(snap):
+    """'gather' mode accumulates only the first particle of each pair."""
+    snap.build_tree()
+    m = np.asarray(snap['mass'], dtype=np.float64)
+
+    def returning(i, j, dx, r):
+        return m[j] / r
+
+    def writing(i, j, dx, r, mass, out_i):
+        out_i[...] = mass[j] / r
+
+    expected = snap.kdtree.pair_reduce(returning, mode='gather', blocksize=137)
+    got = snap.kdtree.pair_reduce(
+        pynbody.kdtree.buffered_kernel(writing, m, both_ends=False),
+        mode='gather', blocksize=137)
+
+    npt.assert_allclose(got, expected, rtol=1e-13)
 
 
 def test_pair_blocks_is_deterministic(pairs, snap):
