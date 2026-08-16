@@ -63,7 +63,9 @@ def buffered_kernel(kernel, *args, ncols=None, both_ends=True):
         Takes the four pair arrays, then ``args``, then one or two output
         arrays. It must write **every** element of them: they are reused
         between blocks and are not cleared, so anything left unwritten is
-        whatever the previous block put there.
+        whatever the previous block put there. The output arrays are
+        ``float64``, whatever the precision of the tree, matching what
+        :meth:`~KDTree.pair_reduce` accumulates into.
     *args : arrays
         Passed through to ``kernel`` between the pair arrays and the output
         arrays. Typically the per-particle quantities the kernel needs.
@@ -519,13 +521,21 @@ class KDTree:
         =======  ======================  ==================================
         ``i``    ``(nblock,)`` intp      index of the first particle of each pair
         ``j``    ``(nblock,)`` intp      index of the second particle of each pair
-        ``dx``   ``(nblock, 3)`` f8      periodic-wrapped ``pos[j] - pos[i]``
-        ``r``    ``(nblock,)`` f8        ``|dx|``, always strictly positive
+        ``dx``   ``(nblock, 3)`` float   periodic-wrapped ``pos[j] - pos[i]``
+        ``r``    ``(nblock,)`` float     ``|dx|``, always strictly positive
         =======  ======================  ==================================
 
         Note that ``i`` and ``j`` are *arrays* of particle indices, one entry
         per pair, so per-particle quantities are used via fancy indexing, e.g.
         ``rho[i]`` is the density of the first particle of each pair.
+
+        The geometry, ``dx`` and ``r``, has the dtype of the positions the tree
+        was built from: ``float32`` for a single-precision snapshot and
+        ``float64`` for a double-precision one. The whole walk is carried out
+        in that precision, so a single-precision tree offers no less accuracy
+        here than it does anywhere else, but a callback that mixes these arrays
+        with per-particle quantities of its own should either work in the same
+        precision or promote them explicitly.
 
         The pair set is fixed by the smoothing lengths associated with the
         tree. Where pynbody derives those itself, accessing ``f['smooth']``
@@ -682,13 +692,17 @@ class KDTree:
             for c in all_contexts:
                 kdmain.pair_stop(self.kdtree, c)
 
-    @staticmethod
-    def _make_pair_buffers(capacity):
-        """Somewhere for the walks to write ``capacity`` pairs."""
+    def _make_pair_buffers(self, capacity):
+        """Somewhere for the walks to write ``capacity`` pairs.
+
+        The geometry is written in the precision of the positions the tree was
+        built from, which is the only precision the walk has to offer.
+        """
+        float_type = self._pos.dtype
         return (np.empty(capacity, dtype=np.intp),
                 np.empty(capacity, dtype=np.intp),
-                np.empty((capacity, 3), dtype=np.float64),
-                np.empty(capacity, dtype=np.float64))
+                np.empty((capacity, 3), dtype=float_type),
+                np.empty(capacity, dtype=float_type))
 
     def _fill_one_block(self, contexts, blocksize, buffers):
         """Run every walk once, and gather what they produced into one block.

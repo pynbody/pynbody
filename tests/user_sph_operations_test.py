@@ -223,6 +223,24 @@ def periodic_snap():
     return f
 
 
+@pytest.fixture
+def single_precision_snap():
+    """A float32 snapshot, so that the tree -- and the pair walk -- is float32."""
+    npart = 300
+    f = pynbody.new(gas=npart)
+    for name, ndim in (('pos', 3), ('mass', 1), ('vel', 3)):
+        f._create_array(name, ndim, np.float32)
+
+    np.random.seed(1339)
+    f['pos'] = np.random.normal(scale=10.0, size=(npart, 3))
+    f['mass'] = np.random.uniform(0.5, 1.5, size=npart)
+    f['vel'] = np.random.normal(size=(npart, 3))
+    f['smooth']
+
+    assert f['pos'].dtype == np.float32 and f['smooth'].dtype == np.float32
+    return f
+
+
 def _collect(blocks):
     """Concatenate an iterator of pair blocks into single arrays."""
     parts = list(blocks)
@@ -495,18 +513,23 @@ def test_pair_blocks_is_deterministic(pairs, snap):
 # pair_blocks: which pairs are in the set
 # ---------------------------------------------------------------------------
 
-def _assert_pair_set_matches_reference(f, i, j, r, mode):
-    """Compare a pair set against the brute-force reference, off the boundary."""
+def _assert_pair_set_matches_reference(f, i, j, r, mode, rtol=BOUNDARY_RTOL):
+    """Compare a pair set against the brute-force reference, off the boundary.
+
+    ``rtol`` sets both the width of the ambiguous band around ``r == 2h`` and
+    the tolerance on ``r`` itself, so a single-precision tree can be compared
+    against the same double-precision reference.
+    """
     h = np.asarray(f['smooth'], dtype=np.float64)
     exp_i, exp_j, _, exp_r = _collect(ReferencePairs(f).pair_blocks(mode=mode))
 
-    got = _away_from_boundary(i, j, r, h, mode)
-    expected = _away_from_boundary(exp_i, exp_j, exp_r, h, mode)
+    got = _away_from_boundary(i, j, r, h, mode, rtol=rtol)
+    expected = _away_from_boundary(exp_i, exp_j, exp_r, h, mode, rtol=rtol)
 
     npt.assert_array_equal(np.sort(_pair_keys(i[got], j[got])),
                            np.sort(_pair_keys(exp_i[expected],
                                               exp_j[expected])))
-    npt.assert_allclose(np.sort(r[got]), np.sort(exp_r[expected]), rtol=1e-12)
+    npt.assert_allclose(np.sort(r[got]), np.sort(exp_r[expected]), rtol=rtol)
 
     # Each particle contributes at most one boundary pair, namely its own nth
     # neighbour, which is what defines its smoothing length. Anything much
@@ -596,6 +619,85 @@ def test_pair_blocks_finds_pairs_across_the_periodic_boundary(pairs,
 
     assert (unwrapped > 2 * r).sum() > 0, (
         "no boundary-straddling pairs, so periodicity is untested here")
+
+
+# ---------------------------------------------------------------------------
+# pair_blocks: single-precision trees
+#
+# The walk is carried out in the precision of the positions the tree was built
+# from, and hands ``dx`` and ``r`` back in it. These check the float32 case
+# against the same double-precision reference as everything above, so the
+# tolerance is set by float32 rather than by the walk.
+# ---------------------------------------------------------------------------
+
+#: Two evaluations of the same distance, one in float32 and one in float64,
+#: agree to about this much. Used both as the tolerance on ``r`` and as the
+#: width of the ambiguous band around the ``r == 2h`` boundary.
+SINGLE_PRECISION_RTOL = 1e-6
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_pair_blocks_geometry_follows_the_tree_precision(single_precision_snap,
+                                                         mode):
+    seen_any = False
+    for i, j, dx, r in single_precision_snap.kdtree.pair_blocks(mode=mode,
+                                                                blocksize=97):
+        seen_any = True
+        assert dx.dtype == np.float32 and r.dtype == np.float32
+        assert np.issubdtype(i.dtype, np.integer)
+        assert np.issubdtype(j.dtype, np.integer)
+        assert dx.shape == (len(i), 3) and r.shape == (len(i),)
+        npt.assert_allclose(r, np.sqrt(np.einsum('kl,kl->k', dx, dx)),
+                            rtol=SINGLE_PRECISION_RTOL)
+    assert seen_any, "no pairs were generated at all"
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_single_precision_pair_set_matches_reference(single_precision_snap,
+                                                     mode):
+    """A float32 tree must find the same pairs, to within float32."""
+    i, j, _, r = _collect(single_precision_snap.kdtree.pair_blocks(mode=mode))
+
+    if mode == 'symmetric':
+        assert (i < j).all()
+    _assert_pair_set_matches_reference(single_precision_snap, i, j,
+                                       np.asarray(r, dtype=np.float64), mode,
+                                       rtol=SINGLE_PRECISION_RTOL)
+
+
+def test_single_precision_gather_includes_the_boundary_neighbour(
+        single_precision_snap):
+    """Each particle's nth neighbour, sitting exactly on r == 2h, is included.
+
+    That is what makes a gather over ``n`` neighbours yield ``n`` of them, and
+    it only holds while the comparison stays in the tree's own precision: ``h``
+    is stored as float32, so ``2h`` is the float32-rounded distance to the nth
+    neighbour, whereas the double-precision square root of the same float32
+    ``r^2`` lands above it about half the time.
+    """
+    f = single_precision_snap
+    i, j, _, r = _collect(f.kdtree.pair_blocks(mode='gather'))
+    h = np.asarray(f['smooth'])
+
+    on_boundary = r == 2 * h[i]
+    assert on_boundary.sum() >= len(f), (
+        "only %d of %d particles found a neighbour at exactly r == 2h"
+        % (on_boundary.sum(), len(f)))
+
+
+def test_single_precision_pair_reduce_reproduces_density(single_precision_snap):
+    """The float32 pairs still add up, end to end: rho_i = sum_j m_j W(r, h_i)."""
+    f = single_precision_snap
+    m = np.asarray(f['mass'], dtype=np.float64)
+    h = np.asarray(f['smooth'], dtype=np.float64)
+
+    rho = f.kdtree.pair_reduce(
+        lambda i, j, dx, r: m[j] * _reference_kernel_value(r, h[i]),
+        mode='gather')
+    rho += m * _reference_kernel_value(np.zeros(len(f)), h)
+
+    npt.assert_allclose(rho, np.asarray(f['rho'], dtype=np.float64),
+                        rtol=1e-4)
 
 
 # ---------------------------------------------------------------------------
