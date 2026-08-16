@@ -134,6 +134,14 @@ template <> const char np_kind<KDNode>() { return 'V'; }
 
 template <> const char np_kind<npy_intp>() { return 'i'; }
 
+template <typename T> int np_typenum() { return NPY_NOTYPE; }
+
+template <> int np_typenum<double>() { return NPY_DOUBLE; }
+
+template <> int np_typenum<float>() { return NPY_FLOAT; }
+
+template <> int np_typenum<npy_intp>() { return NPY_INTP; }
+
 template <typename T> const char py_kind() { return '?'; }
 
 template <> const char py_kind<double>() { return 'd'; }
@@ -890,17 +898,18 @@ template <typename T> struct typed_pair_start {
   }
 };
 
-/* Validate one of the output buffers python has supplied, and return a
+/* Validate one of the output buffers python has supplied, and return a typed
    pointer to its data. The walk writes into these directly, so they have to
    be exactly the right type and laid out contiguously. */
-static void *pairOutputBuffer(PyObject *obj, const char *name, int typenum,
-                              int ndim, npy_intp expected) {
+template <typename Tbuf>
+static Tbuf *pairOutputBuffer(PyObject *obj, const char *name, int ndim,
+                              npy_intp expected) {
   if (!PyArray_Check(obj)) {
     PyErr_Format(PyExc_TypeError, "pair output %s must be a numpy array", name);
     return nullptr;
   }
   PyArrayObject *ar = (PyArrayObject *)obj;
-  if (PyArray_TYPE(ar) != typenum || PyArray_NDIM(ar) != ndim ||
+  if (PyArray_TYPE(ar) != np_typenum<Tbuf>() || PyArray_NDIM(ar) != ndim ||
       !PyArray_ISCARRAY(ar)) {
     PyErr_Format(PyExc_TypeError,
                  "pair output %s has the wrong type or layout", name);
@@ -912,7 +921,7 @@ static void *pairOutputBuffer(PyObject *obj, const char *name, int typenum,
                  "pair output %s has the wrong shape", name);
     return nullptr;
   }
-  return PyArray_DATA(ar);
+  return static_cast<Tbuf *>(PyArray_DATA(ar));
 }
 
 template <typename T> struct typed_pair_next {
@@ -928,21 +937,23 @@ template <typename T> struct typed_pair_next {
       return nullptr;
     }
 
-    // The caller owns the memory; this is just where to put the pairs.
+    // The caller owns the memory; this is just where to put the pairs. The
+    // displacements and separations come back in the tree's own precision, so
+    // for a single-precision tree these must be float32 arrays.
     npy_intp capacity = PyArray_Check(oI) ? PyArray_DIM((PyArrayObject *)oI, 0)
                                           : 0;
-    void *bufI = pairOutputBuffer(oI, "i", NPY_INTP, 1, capacity);
-    void *bufJ = pairOutputBuffer(oJ, "j", NPY_INTP, 1, capacity);
-    void *bufDx = pairOutputBuffer(oDx, "dx", NPY_DOUBLE, 2, capacity);
-    void *bufR = pairOutputBuffer(oR, "r", NPY_DOUBLE, 1, capacity);
+    npy_intp *bufI = pairOutputBuffer<npy_intp>(oI, "i", 1, capacity);
+    npy_intp *bufJ = pairOutputBuffer<npy_intp>(oJ, "j", 1, capacity);
+    T *bufDx = pairOutputBuffer<T>(oDx, "dx", 2, capacity);
+    T *bufR = pairOutputBuffer<T>(oR, "r", 1, capacity);
     if (bufI == nullptr || bufJ == nullptr || bufDx == nullptr ||
         bufR == nullptr)
       return nullptr;
 
-    pc->outI = static_cast<npy_intp *>(bufI);
-    pc->outJ = static_cast<npy_intp *>(bufJ);
-    pc->outDx = static_cast<double *>(bufDx);
-    pc->outR = static_cast<double *>(bufR);
+    pc->outI = bufI;
+    pc->outJ = bufJ;
+    pc->outDx = bufDx;
+    pc->outR = bufR;
     pc->capacity = capacity;
 
     Py_BEGIN_ALLOW_THREADS;

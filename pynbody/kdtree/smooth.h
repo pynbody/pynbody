@@ -404,10 +404,12 @@ public:
   /* Where the current block is written. The caller supplies the memory --
    * python allocates one buffer for the round and hands each walk its own
    * slice of it -- so the walk writes each pair straight to its final
-   * destination, and nothing here owns or allocates anything.
+   * destination, and nothing here owns or allocates anything. The geometry
+   * is handed back in the tree's own precision T, since that is all the
+   * positions it was built from can support.
    */
   npy_intp *outI, *outJ;
-  double *outDx, *outR;
+  T *outDx, *outR;
   npy_intp capacity;
   npy_intp outCount;
 
@@ -476,7 +478,7 @@ void smFillPairBlock(PairContext<T> *pc) {
     }
 
     npy_intp ia = kd->particleOffsets[pc->pendingParticle];
-    double hi = static_cast<double>(GET<T>(kd->pNumpySmooth, ia));
+    T hi = GET<T>(kd->pNumpySmooth, ia);
 
     while (pc->pendingIndex < pc->pendingCount &&
            pc->outCount < pc->capacity) {
@@ -492,25 +494,30 @@ void smFillPairBlock(PairContext<T> *pc) {
       // excluding the boundary, would strand those pairs on the wrong side by
       // an ulp. The inclusive test matches smBallGather, so a gather over
       // nSmooth neighbours really does yield nSmooth of them.
-      double r = sqrt(static_cast<double>(smx->fList[k]));
-      if (!(r <= 2.0 * hi))
+      //
+      // The whole comparison stays in T. Promoting r to double would break
+      // the exact hit: h is stored as T, so 2 h is the T-rounded distance to
+      // the nth neighbour, whereas a double sqrt of the T-rounded r^2 lands
+      // wherever the extra bits fall -- and half the time that is above it.
+      T r = std::sqrt(smx->fList[k]);
+      if (!(r <= 2 * hi))
         continue;
 
       npy_intp emitI = ia, emitJ = jb;
       bool flip = false;
 
       if (pc->mode == PAIR_MODE_SYMMETRIC && ia > jb) {
-        double hj = static_cast<double>(GET<T>(kd->pNumpySmooth, jb));
-        if (r <= 2.0 * hj)
+        T hj = GET<T>(kd->pNumpySmooth, jb);
+        if (r <= 2 * hj)
           continue; // jb's own walk finds ia, and will emit the pair
         emitI = jb;
         emitJ = ia;
         flip = true;
       }
 
-      double d0 = static_cast<double>(smx->dxList[3 * k + 0]);
-      double d1 = static_cast<double>(smx->dxList[3 * k + 1]);
-      double d2 = static_cast<double>(smx->dxList[3 * k + 2]);
+      T d0 = smx->dxList[3 * k + 0];
+      T d1 = smx->dxList[3 * k + 1];
+      T d2 = smx->dxList[3 * k + 2];
       if (flip) {
         // dx must always point from the emitted i towards the emitted j
         d0 = -d0;
