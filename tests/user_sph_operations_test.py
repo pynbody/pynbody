@@ -123,7 +123,10 @@ class ReferencePairs:
         return (np.concatenate(i_list), np.concatenate(j_list),
                 np.concatenate(dx_list))
 
-    def pair_blocks(self, mode='symmetric', blocksize=1 << 18):
+    def pair_blocks(self, mode='symmetric', blocksize=1 << 18,
+                    reuse_buffer=False):
+        # reuse_buffer is permission to overwrite a block once the next is
+        # asked for, not a promise to do so, so it is honoured by ignoring it
         i_all, j_all, dx_all = self._all_pairs(mode)
 
         for s in range(0, len(i_all), blocksize):
@@ -299,6 +302,43 @@ def test_pair_blocks_arrays_are_read_only(pairs, snap):
         for name, arr in zip(('i', 'j', 'dx', 'r'), block):
             assert not arr.flags.writeable, f"{name} should be read-only"
         break
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_pair_blocks_reuse_buffer_yields_the_same_pairs(pairs, snap, mode):
+    """Reusing the buffer is an allocation strategy, nothing more."""
+    def stream(**kwargs):
+        return [tuple(a.copy() for a in b)
+                for b in pairs(snap).pair_blocks(mode=mode, blocksize=137,
+                                                 **kwargs)]
+
+    separate = stream()
+    shared = stream(reuse_buffer=True)
+
+    assert len(separate) == len(shared) > 1
+    for block1, block2 in zip(separate, shared):
+        for arr1, arr2 in zip(block1, block2):
+            npt.assert_array_equal(arr1, arr2)
+
+
+def test_pair_blocks_only_reuses_the_buffer_when_asked(snap):
+    """By default a block must still be intact once the next has arrived."""
+    snap.build_tree()
+
+    kept = list(snap.kdtree.pair_blocks(blocksize=137))
+    assert len(kept) > 1, "test is only meaningful with several blocks"
+    assert not np.shares_memory(kept[0][0], kept[1][0])
+
+    # ... and what was kept must be what was originally generated, which we
+    # establish independently by copying each block as it arrives
+    streamed = [i.copy() for i, _, _, _ in
+                snap.kdtree.pair_blocks(blocksize=137, reuse_buffer=True)]
+    npt.assert_array_equal(np.concatenate([b[0] for b in kept]),
+                           np.concatenate(streamed))
+
+    shared = list(snap.kdtree.pair_blocks(blocksize=137, reuse_buffer=True))
+    assert np.shares_memory(shared[0][0], shared[1][0]), \
+        "reuse_buffer should let the blocks share memory"
 
 
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])

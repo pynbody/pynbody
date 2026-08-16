@@ -465,7 +465,7 @@ class KDTree:
             kdmain.nn_stop(self.kdtree, smx)
 
     def pair_blocks(self, mode='symmetric', blocksize=1<<18,
-                    num_threads=None):
+                    num_threads=None, reuse_buffer=False):
         r"""Iterate over neighbour pairs, in blocks, as flat numpy arrays.
 
         .. versionadded:: 2.6.0
@@ -473,6 +473,9 @@ class KDTree:
         This is the low-level primitive underlying :meth:`pair_reduce`. Use it
         directly when you want to do something with the pairs other than sum
         over them.
+
+        The pairs are gathered in parallel, but handed over one block at a
+        time, so the loop below is an ordinary sequential one.
 
         Each iteration yields a tuple ``(i, j, dx, r)`` of arrays with the same
         leading length ``nblock <= blocksize``:
@@ -526,41 +529,55 @@ class KDTree:
             there.
 
         blocksize : int
-            Maximum number of pairs per block. Blocks are arbitrary cuts of a
-            single stream of pairs, so a given particle's pairs will in general
-            straddle a block boundary. Larger blocks amortise the per-block
-            numpy overhead at the cost of memory; in practice throughput is
-            insensitive to this over a wide range, so the default is chosen to
-            keep the buffers small. It counts the whole block however many
-            threads are gathering it, so neither the memory nor the size of
-            the blocks the caller sees depends on the thread count.
+            Maximum number of pairs per block. Blocks are arbitrary cuts of
+            the pair set, so a given particle's pairs will in general straddle
+            a block boundary. Larger blocks amortise the per-block overhead at
+            the cost of memory; in practice throughput is insensitive to this
+            over a wide range, so the default is chosen to keep the buffers
+            small. It counts the whole block however many threads are
+            gathering it, so neither the memory nor the size of the blocks the
+            caller sees depends on the thread count.
 
         num_threads : int, optional
             How many threads gather pairs at once, defaulting to the tree's
             own setting. Each walks a separate range of particles and fills
-            its own block, and the blocks are handed over one at a time, so
-            the consumer still sees an ordinary sequence of blocks and is
-            never called from more than one thread.
+            its own slice of the block, so the consumer still sees an ordinary
+            sequence of blocks and is never called from more than one thread.
 
             The pair set does not depend on this, but the order the pairs
             arrive in does, so a sum accumulated over the blocks can differ in
             its last bits between thread counts. Pass ``num_threads=1`` if
             that matters.
 
-            .. versionadded:: 2.6.0
+        reuse_buffer : bool
+            Whether each block may be written over the last one.
+
+            By default every block gets memory of its own, so blocks can be
+            kept and used after the iteration has moved on. Setting this to
+            True instead writes them all into a single buffer, which saves
+            allocating and faulting in fresh memory for every block, but means
+            **a block is only valid until the next one is generated**. Anything
+            that has to outlive the current iteration must then be copied.
+
+            Only worth setting for a loop that finishes with each block before
+            asking for the next, which is the usual case; it is what
+            :meth:`pair_reduce` does internally.
 
         Yields
         ------
         tuple
-            ``(i, j, dx, r)`` as described above. The arrays are read-only, and
-            are not reused between blocks.
+            ``(i, j, dx, r)`` as described above. The arrays are read-only,
+            and are separate from one block to the next unless
+            ``reuse_buffer`` says otherwise.
 
         Examples
         --------
-        Counting the neighbours of each particle:
+        Counting the neighbours of each particle. Each block is finished with
+        before the next is asked for, so the buffer may be reused:
 
         >>> counts = np.zeros(len(f), dtype=int)
-        >>> for i, j, dx, r in f.kdtree.pair_blocks(mode='gather'):
+        >>> for i, j, dx, r in f.kdtree.pair_blocks(mode='gather',
+        ...                                         reuse_buffer=True):
         ...     counts += np.bincount(i, minlength=len(f))
 
         """
@@ -585,9 +602,11 @@ class KDTree:
 
         # validation above happens eagerly, rather than on first iteration
         return self._pair_blocks_generator(self._pair_modes[mode], blocksize,
-                                           int(num_threads))
+                                           int(num_threads),
+                                           bool(reuse_buffer))
 
-    def _pair_blocks_generator(self, mode_id, blocksize, num_threads):
+    def _pair_blocks_generator(self, mode_id, blocksize, num_threads,
+                               reuse_buffer):
         # nsmooth only sizes the neighbour buffer; the pair set itself is
         # determined by the smoothing lengths
         nsmooth = min(int(config['sph']['smooth-particles']), len(self._pos))
@@ -607,10 +626,16 @@ class KDTree:
                               edges[i], edges[i + 1])
             for i in range(num_threads)
         ]
+        # When the caller has undertaken not to keep the blocks, one buffer
+        # serves the whole walk. Note every walk gets at least one slot even
+        # when the block is smaller than the number of walks, so the buffer
+        # has to be able to hold that case too.
+        buffers = (self._make_pair_buffers(max(blocksize, num_threads))
+                   if reuse_buffer else None)
         try:
             contexts = all_contexts
             while contexts:
-                filled = self._fill_one_block(contexts, blocksize)
+                filled = self._fill_one_block(contexts, blocksize, buffers)
                 if filled is None:
                     break
                 pairs, counts, per_thread = filled
@@ -623,7 +648,15 @@ class KDTree:
             for c in all_contexts:
                 kdmain.pair_stop(self.kdtree, c)
 
-    def _fill_one_block(self, contexts, blocksize):
+    @staticmethod
+    def _make_pair_buffers(capacity):
+        """Somewhere for the walks to write ``capacity`` pairs."""
+        return (np.empty(capacity, dtype=np.intp),
+                np.empty(capacity, dtype=np.intp),
+                np.empty((capacity, 3), dtype=np.float64),
+                np.empty(capacity, dtype=np.float64))
+
+    def _fill_one_block(self, contexts, blocksize, buffers):
         """Run every walk once, and gather what they produced into one block.
 
         The walks share a single buffer, each writing into its own slice, so
@@ -631,16 +664,15 @@ class KDTree:
         per thread. Whatever the thread count, the consumer therefore sees the
         same sequence of similarly sized blocks, and pays its per-block costs
         once rather than once per thread.
+
+        ``buffers`` is the memory to write into, or None to allocate some.
         """
         n_walks = len(contexts)
         per_thread = max(1, blocksize // n_walks)
         capacity = per_thread * n_walks
 
-        i = np.empty(capacity, dtype=np.intp)
-        j = np.empty(capacity, dtype=np.intp)
-        dx = np.empty((capacity, 3), dtype=np.float64)
-        r = np.empty(capacity, dtype=np.float64)
-        bufs = (i, j, dx, r)
+        bufs = (self._make_pair_buffers(capacity) if buffers is None
+                else tuple(b[:capacity] for b in buffers))
 
         bounds = [(k * per_thread, (k + 1) * per_thread) for k in range(n_walks)]
         if n_walks == 1:
@@ -714,6 +746,11 @@ class KDTree:
             need not all be present in the same block; compute such quantities
             in a separate pass first.
 
+            Nor may it keep hold of the arrays it is passed. Blocks here all
+            share one buffer -- which is what makes them cheap to produce --
+            so their contents are written over as soon as ``func`` returns.
+            Use :meth:`pair_blocks` directly if you need blocks that last.
+
         mode : str
             ``'symmetric'`` (default) or ``'gather'``; see :meth:`pair_blocks`.
 
@@ -725,6 +762,11 @@ class KDTree:
             double precision, and the result converted on return, so that the
             answer does not depend on ``blocksize``.
 
+        num_threads : int, optional
+            How many threads gather pairs at once; see :meth:`pair_blocks`.
+            The result can differ in its last bits between thread counts,
+            since they change the order in which pairs are summed.
+
         Returns
         -------
         numpy.ndarray
@@ -733,9 +775,27 @@ class KDTree:
 
         Notes
         -----
-        The neighbour search releases the GIL, but a python callback cannot,
-        so ``func`` runs on a single thread. Writing it against flat arrays,
-        rather than one particle at a time, is what keeps that from mattering.
+        The pairs are gathered in parallel: several threads walk separate
+        ranges of the particles and fill a block between them. ``func`` itself
+        cannot be run that way, since a python callback holds the GIL, so it
+        gets each block on a single thread.
+
+        That makes ``func`` the part worth optimising once the blocks are
+        large. Writing it against the flat arrays rather than particle by
+        particle is the first thing; beyond that, a compiled kernel is
+        typically an order of magnitude quicker than the equivalent chain of
+        numpy expressions, which allocates a temporary the length of the block
+        at every step. A numba function is the easiest way there, and
+        ``@numba.njit(parallel=True)`` will recover the threading over the
+        pairs within a block that the GIL denies to python:
+
+        >>> @numba.njit(parallel=True)                       # doctest: +SKIP
+        ... def kernel(i, j, dx, r, q, out):
+        ...     for k in numba.prange(len(i)):
+        ...         out[k] = q[j[k]] - q[i[k]]
+
+        Such a kernel writes its result into an array the caller supplies,
+        which ``func`` then returns.
 
         In ``'symmetric'`` mode each pair is visited exactly once and both ends
         are accumulated from that single visit. Returning an antisymmetric
@@ -769,8 +829,11 @@ class KDTree:
         out = None
         trailing = None
 
+        # Each block is finished with before the next is asked for, so they
+        # can all share one buffer; see the note on func, above.
         for i, j, dx, r in self.pair_blocks(mode=mode, blocksize=blocksize,
-                                            num_threads=num_threads):
+                                            num_threads=num_threads,
+                                            reuse_buffer=True):
             result = func(i, j, dx, r)
             if isinstance(result, tuple):
                 contrib_i, contrib_j = result
