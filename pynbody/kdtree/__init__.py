@@ -464,7 +464,8 @@ class KDTree:
             # Free C-structures memory
             kdmain.nn_stop(self.kdtree, smx)
 
-    def pair_blocks(self, mode='symmetric', blocksize=1<<18):
+    def pair_blocks(self, mode='symmetric', blocksize=1<<18,
+                    num_threads=None):
         r"""Iterate over neighbour pairs, in blocks, as flat numpy arrays.
 
         .. versionadded:: 2.6.0
@@ -530,7 +531,23 @@ class KDTree:
             straddle a block boundary. Larger blocks amortise the per-block
             numpy overhead at the cost of memory; in practice throughput is
             insensitive to this over a wide range, so the default is chosen to
-            keep the buffers small.
+            keep the buffers small. It counts the whole block however many
+            threads are gathering it, so neither the memory nor the size of
+            the blocks the caller sees depends on the thread count.
+
+        num_threads : int, optional
+            How many threads gather pairs at once, defaulting to the tree's
+            own setting. Each walks a separate range of particles and fills
+            its own block, and the blocks are handed over one at a time, so
+            the consumer still sees an ordinary sequence of blocks and is
+            never called from more than one thread.
+
+            The pair set does not depend on this, but the order the pairs
+            arrive in does, so a sum accumulated over the blocks can differ in
+            its last bits between thread counts. Pass ``num_threads=1`` if
+            that matters.
+
+            .. versionadded:: 2.6.0
 
         Yields
         ------
@@ -563,28 +580,97 @@ class KDTree:
                 "associate them with set_array_ref('smooth', ...), converted "
                 "to the units of the 'pos' array.")
 
-        # validation above happens eagerly, rather than on first iteration
-        return self._pair_blocks_generator(self._pair_modes[mode], blocksize)
+        if num_threads is None:
+            num_threads = self.num_threads
 
-    def _pair_blocks_generator(self, mode_id, blocksize):
+        # validation above happens eagerly, rather than on first iteration
+        return self._pair_blocks_generator(self._pair_modes[mode], blocksize,
+                                           int(num_threads))
+
+    def _pair_blocks_generator(self, mode_id, blocksize, num_threads):
         # nsmooth only sizes the neighbour buffer; the pair set itself is
         # determined by the smoothing lengths
         nsmooth = min(int(config['sph']['smooth-particles']), len(self._pos))
         boxsize = -1.0 if self.boxsize is None else float(self.boxsize)
+        npart = len(self._pos)
 
-        context = kdmain.pair_start(self.kdtree, mode_id, blocksize, nsmooth,
-                                    boxsize)
+        # One context per thread, each walking a contiguous range of the tree
+        # ordering. Tree order is spatially coherent, so the ranges are
+        # spatially coherent too. Load balances itself: every context fills a
+        # whole block before returning, so they all do the same amount of work
+        # per round regardless of how the particles are distributed.
+        num_threads = max(1, min(num_threads, npart))
+        edges = [(i * npart) // num_threads for i in range(num_threads + 1)]
+
+        all_contexts = [
+            kdmain.pair_start(self.kdtree, mode_id, nsmooth, boxsize,
+                              edges[i], edges[i + 1])
+            for i in range(num_threads)
+        ]
         try:
-            while True:
-                block = kdmain.pair_next(self.kdtree, context)
-                if block is None:
+            contexts = all_contexts
+            while contexts:
+                filled = self._fill_one_block(contexts, blocksize)
+                if filled is None:
                     break
-                yield block
+                pairs, counts, per_thread = filled
+                yield pairs
+                # a walk that stopped short of its capacity has reached the end
+                # of its range, so there is no point asking it again
+                contexts = [c for c, n in zip(contexts, counts)
+                            if n == per_thread]
         finally:
-            kdmain.pair_stop(self.kdtree, context)
+            for c in all_contexts:
+                kdmain.pair_stop(self.kdtree, c)
+
+    def _fill_one_block(self, contexts, blocksize):
+        """Run every walk once, and gather what they produced into one block.
+
+        The walks share a single buffer, each writing into its own slice, so
+        that what comes back is one contiguous block of pairs rather than one
+        per thread. Whatever the thread count, the consumer therefore sees the
+        same sequence of similarly sized blocks, and pays its per-block costs
+        once rather than once per thread.
+        """
+        n_walks = len(contexts)
+        per_thread = max(1, blocksize // n_walks)
+        capacity = per_thread * n_walks
+
+        i = np.empty(capacity, dtype=np.intp)
+        j = np.empty(capacity, dtype=np.intp)
+        dx = np.empty((capacity, 3), dtype=np.float64)
+        r = np.empty(capacity, dtype=np.float64)
+        bufs = (i, j, dx, r)
+
+        bounds = [(k * per_thread, (k + 1) * per_thread) for k in range(n_walks)]
+        if n_walks == 1:
+            counts = [kdmain.pair_next(self.kdtree, contexts[0], *bufs)]
+        else:
+            slices = [[b[lo:hi] for lo, hi in bounds] for b in bufs]
+            counts = util.thread_map(kdmain.pair_next,
+                                     [self.kdtree] * n_walks, contexts,
+                                     *slices)
+
+        # Close up the gaps left by any walk that did not fill its slice. Only
+        # the last round of a walk's range can leave one, so this is usually a
+        # no-op; where it is not, each move is towards the front of the buffer.
+        total = 0
+        for (lo, _), n in zip(bounds, counts):
+            if n and lo != total:
+                for b in bufs:
+                    b[total:total + n] = b[lo:lo + n]
+            total += n
+
+        if total == 0:
+            return None
+
+        out = tuple(b[:total] for b in bufs)
+        for b in out:
+            b.flags.writeable = False   # the callback must not corrupt these
+        return out, counts, per_thread
 
     def pair_reduce(self, func, mode='symmetric', blocksize=1<<18,
-                    dtype=np.float64):
+                    dtype=np.float64, num_threads=None):
         r"""Accumulate a user-supplied pairwise function over all neighbour pairs.
 
         .. versionadded:: 2.6.0
@@ -683,7 +769,8 @@ class KDTree:
         out = None
         trailing = None
 
-        for i, j, dx, r in self.pair_blocks(mode=mode, blocksize=blocksize):
+        for i, j, dx, r in self.pair_blocks(mode=mode, blocksize=blocksize,
+                                            num_threads=num_threads):
             result = func(i, j, dx, r)
             if isinstance(result, tuple):
                 contrib_i, contrib_j = result
