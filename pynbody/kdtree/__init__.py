@@ -6,7 +6,8 @@ As well as the smoothing operations built on it -- :meth:`~KDTree.sph_mean`,
 :meth:`~KDTree.sph_curl` -- the tree can hand neighbour pairs back to python,
 so that pairwise SPH operations pynbody does not itself provide can be written
 without a python-level loop over particles. See :meth:`~KDTree.pair_reduce`
-and :meth:`~KDTree.pair_blocks`.
+and :meth:`~KDTree.pair_blocks`, and :func:`buffered_kernel` for driving the
+former from a compiled per-pair kernel.
 
 """
 import logging
@@ -36,31 +37,66 @@ KDNode = np.dtype([
     ('pUpper', np.intp)
 ])
 
-def _scatter_add(out, index, contrib):
-    """Perform ``out[index] += contrib``, summing over repeated indices.
 
-    Note ``out[index] += contrib`` will not do, since it keeps only one
-    contribution per repeated index.
+def buffered_kernel(kernel, *args, ncols=None, both_ends=True):
+    r"""Adapt a pair kernel that writes into output arrays for :meth:`KDTree.pair_reduce`.
 
-    Which of the two viable methods is faster depends strongly on how the
-    length of ``out`` compares with the length of the block. ``np.bincount``
-    allocates and fills a temporary as long as ``out`` on every call, so it
-    wins only while the two lengths are comparable; once ``out`` is much the
-    longer -- which for pair sums means any large snapshot -- that temporary
-    dominates everything else, and the in-place scatter of ``np.add.at`` is
-    faster by two orders of magnitude.
+    .. versionadded:: 2.6.0
+
+    :meth:`~KDTree.pair_reduce` expects a callback that *returns* its
+    contributions. A compiled kernel usually cannot allocate, and wants to be
+    handed somewhere to write instead. This wraps one of the latter kind so
+    that it can be used as the former, providing the output arrays and reusing
+    them from block to block::
+
+        >>> du_dt = tree.pair_reduce(                        # doctest: +SKIP
+        ...     buffered_kernel(conduction, m, rho, u, h),
+        ...     mode='symmetric')
+
+    ``kernel`` is called as ``kernel(i, j, dx, r, *args, out_i, out_j)``, or
+    without ``out_j`` if ``both_ends`` is False. See
+    :meth:`~KDTree.pair_reduce` for a worked example.
+
+    Parameters
+    ----------
+    kernel : callable
+        Takes the four pair arrays, then ``args``, then one or two output
+        arrays. It must write **every** element of them: they are reused
+        between blocks and are not cleared, so anything left unwritten is
+        whatever the previous block put there. The output arrays are
+        ``float64``, whatever the precision of the tree, matching what
+        :meth:`~KDTree.pair_reduce` accumulates into.
+    *args : arrays
+        Passed through to ``kernel`` between the pair arrays and the output
+        arrays. Typically the per-particle quantities the kernel needs.
+    ncols : int, optional
+        Give the output arrays this trailing dimension, for a kernel that
+        accumulates several quantities at once. By default they are flat.
+    both_ends : bool
+        Whether the kernel contributes to both particles of each pair, as an
+        operator using both smoothing lengths does. Set False in ``'gather'``
+        mode, where only the first of each pair accumulates.
+
+    Returns
+    -------
+    callable
+        A callback suitable for :meth:`~KDTree.pair_reduce`.
     """
-    npart = out.shape[0]
+    buffers = []
 
-    if npart <= 4 * len(index):
-        if out.ndim == 1:
-            out += np.bincount(index, weights=contrib, minlength=npart)
-        else:
-            for k in range(out.shape[1]):
-                out[:, k] += np.bincount(index, weights=contrib[..., k],
-                                         minlength=npart)
-    else:
-        np.add.at(out, index, contrib)
+    def callback(i, j, dx, r):
+        n = len(i)
+        # allocated on the first block, which is the largest, and reused
+        # thereafter; a later block can only be shorter
+        if not buffers or len(buffers[0]) < n:
+            shape = (n,) if ncols is None else (n, ncols)
+            buffers[:] = [np.empty(shape) for _ in range(2 if both_ends else 1)]
+
+        out = [b[:n] for b in buffers]
+        kernel(i, j, dx, r, *args, *out)
+        return tuple(out) if both_ends else out[0]
+
+    return callback
 
 
 class KDTree:
@@ -464,7 +500,8 @@ class KDTree:
             # Free C-structures memory
             kdmain.nn_stop(self.kdtree, smx)
 
-    def pair_blocks(self, mode='symmetric', blocksize=1<<18):
+    def pair_blocks(self, mode='symmetric', blocksize=1<<18,
+                    num_threads=None, reuse_buffer=False):
         r"""Iterate over neighbour pairs, in blocks, as flat numpy arrays.
 
         .. versionadded:: 2.6.0
@@ -472,6 +509,9 @@ class KDTree:
         This is the low-level primitive underlying :meth:`pair_reduce`. Use it
         directly when you want to do something with the pairs other than sum
         over them.
+
+        The pairs are gathered in parallel, but handed over one block at a
+        time, so the loop below is an ordinary sequential one.
 
         Each iteration yields a tuple ``(i, j, dx, r)`` of arrays with the same
         leading length ``nblock <= blocksize``:
@@ -481,13 +521,21 @@ class KDTree:
         =======  ======================  ==================================
         ``i``    ``(nblock,)`` intp      index of the first particle of each pair
         ``j``    ``(nblock,)`` intp      index of the second particle of each pair
-        ``dx``   ``(nblock, 3)`` f8      periodic-wrapped ``pos[j] - pos[i]``
-        ``r``    ``(nblock,)`` f8        ``|dx|``, always strictly positive
+        ``dx``   ``(nblock, 3)`` float   periodic-wrapped ``pos[j] - pos[i]``
+        ``r``    ``(nblock,)`` float     ``|dx|``, always strictly positive
         =======  ======================  ==================================
 
         Note that ``i`` and ``j`` are *arrays* of particle indices, one entry
         per pair, so per-particle quantities are used via fancy indexing, e.g.
         ``rho[i]`` is the density of the first particle of each pair.
+
+        The geometry, ``dx`` and ``r``, has the dtype of the positions the tree
+        was built from: ``float32`` for a single-precision snapshot and
+        ``float64`` for a double-precision one. The whole walk is carried out
+        in that precision, so a single-precision tree offers no less accuracy
+        here than it does anywhere else, but a callback that mixes these arrays
+        with per-particle quantities of its own should either work in the same
+        precision or promote them explicitly.
 
         The pair set is fixed by the smoothing lengths associated with the
         tree. Where pynbody derives those itself, accessing ``f['smooth']``
@@ -525,25 +573,57 @@ class KDTree:
             there.
 
         blocksize : int
-            Maximum number of pairs per block. Blocks are arbitrary cuts of a
-            single stream of pairs, so a given particle's pairs will in general
-            straddle a block boundary. Larger blocks amortise the per-block
-            numpy overhead at the cost of memory; in practice throughput is
-            insensitive to this over a wide range, so the default is chosen to
-            keep the buffers small.
+            Maximum number of pairs per block. Blocks are arbitrary cuts of
+            the pair set, so a given particle's pairs will in general straddle
+            a block boundary. Larger blocks amortise the per-block overhead at
+            the cost of memory; in practice throughput is insensitive to this
+            over a wide range, so the default is chosen to keep the buffers
+            small. It counts the whole block however many threads are
+            gathering it, so neither the memory nor the size of the blocks the
+            caller sees depends on the thread count.
+
+        num_threads : int, optional
+            How many threads gather pairs at once, defaulting to the tree's
+            own setting. Each walks a separate range of particles and fills
+            its own slice of the block, so the consumer still sees an ordinary
+            sequence of blocks and is never called from more than one thread.
+            It is capped at ``blocksize``, since each walk needs a slot of its
+            own to write into, and at the number of particles.
+
+            The pair set does not depend on this, but the order the pairs
+            arrive in does, so a sum accumulated over the blocks can differ in
+            its last bits between thread counts. Pass ``num_threads=1`` if
+            that matters.
+
+        reuse_buffer : bool
+            Whether each block may be written over the last one.
+
+            By default every block gets memory of its own, so blocks can be
+            kept and used after the iteration has moved on. Setting this to
+            True instead writes them all into a single buffer, which saves
+            allocating and faulting in fresh memory for every block, but means
+            **a block is only valid until the next one is generated**. Anything
+            that has to outlive the current iteration must then be copied.
+
+            Worth setting for a loop that finishes with each block before
+            asking for the next, which is the usual case; it is what
+            :meth:`pair_reduce` does internally.
 
         Yields
         ------
         tuple
-            ``(i, j, dx, r)`` as described above. The arrays are read-only, and
-            are not reused between blocks.
+            ``(i, j, dx, r)`` as described above. The arrays are read-only,
+            and are separate from one block to the next unless
+            ``reuse_buffer`` says otherwise.
 
         Examples
         --------
-        Counting the neighbours of each particle:
+        Counting the neighbours of each particle. Each block is finished with
+        before the next is asked for, so the buffer may be reused:
 
         >>> counts = np.zeros(len(f), dtype=int)
-        >>> for i, j, dx, r in f.kdtree.pair_blocks(mode='gather'):
+        >>> for i, j, dx, r in f.kdtree.pair_blocks(mode='gather',
+        ...                                         reuse_buffer=True):
         ...     counts += np.bincount(i, minlength=len(f))
 
         """
@@ -563,28 +643,119 @@ class KDTree:
                 "associate them with set_array_ref('smooth', ...), converted "
                 "to the units of the 'pos' array.")
 
-        # validation above happens eagerly, rather than on first iteration
-        return self._pair_blocks_generator(self._pair_modes[mode], blocksize)
+        if num_threads is None:
+            num_threads = self.num_threads
 
-    def _pair_blocks_generator(self, mode_id, blocksize):
+        # validation above happens eagerly, rather than on first iteration
+        return self._pair_blocks_generator(self._pair_modes[mode], blocksize,
+                                           int(num_threads),
+                                           bool(reuse_buffer))
+
+    def _pair_blocks_generator(self, mode_id, blocksize, num_threads,
+                               reuse_buffer):
         # nsmooth only sizes the neighbour buffer; the pair set itself is
         # determined by the smoothing lengths
         nsmooth = min(int(config['sph']['smooth-particles']), len(self._pos))
         boxsize = -1.0 if self.boxsize is None else float(self.boxsize)
+        npart = len(self._pos)
 
-        context = kdmain.pair_start(self.kdtree, mode_id, blocksize, nsmooth,
-                                    boxsize)
+        # One context per thread, each walking a contiguous range of the tree
+        # ordering. Tree order is spatially coherent, so the ranges are
+        # spatially coherent too. Load balances itself: every context fills a
+        # whole block before returning, so they all do the same amount of work
+        # per round regardless of how the particles are distributed.
+        #
+        # Never more walks than there are slots in a block for them to write
+        # into, since each needs at least one; blocksize would otherwise be
+        # exceeded rather than respected.
+        num_threads = max(1, min(num_threads, npart, blocksize))
+        edges = [(i * npart) // num_threads for i in range(num_threads + 1)]
+
+        all_contexts = [
+            kdmain.pair_start(self.kdtree, mode_id, nsmooth, boxsize,
+                              edges[i], edges[i + 1])
+            for i in range(num_threads)
+        ]
+        # When the caller has undertaken not to keep the blocks, one buffer
+        # serves the whole walk
+        buffers = self._make_pair_buffers(blocksize) if reuse_buffer else None
         try:
-            while True:
-                block = kdmain.pair_next(self.kdtree, context)
-                if block is None:
+            contexts = all_contexts
+            while contexts:
+                filled = self._fill_one_block(contexts, blocksize, buffers)
+                if filled is None:
                     break
-                yield block
+                pairs, counts, per_thread = filled
+                yield pairs
+                # a walk that stopped short of its capacity has reached the end
+                # of its range, so there is no point asking it again
+                contexts = [c for c, n in zip(contexts, counts)
+                            if n == per_thread]
         finally:
-            kdmain.pair_stop(self.kdtree, context)
+            for c in all_contexts:
+                kdmain.pair_stop(self.kdtree, c)
+
+    def _make_pair_buffers(self, capacity):
+        """Somewhere for the walks to write ``capacity`` pairs.
+
+        The geometry is written in the precision of the positions the tree was
+        built from, which is the only precision the walk has to offer.
+        """
+        float_type = self._pos.dtype
+        return (np.empty(capacity, dtype=np.intp),
+                np.empty(capacity, dtype=np.intp),
+                np.empty((capacity, 3), dtype=float_type),
+                np.empty(capacity, dtype=float_type))
+
+    def _fill_one_block(self, contexts, blocksize, buffers):
+        """Run every walk once, and gather what they produced into one block.
+
+        The walks share a single buffer, each writing into its own slice, so
+        that what comes back is one contiguous block of pairs rather than one
+        per thread. Whatever the thread count, the consumer therefore sees the
+        same sequence of similarly sized blocks, and pays its per-block costs
+        once rather than once per thread.
+
+        ``buffers`` is the memory to write into, or None to allocate some.
+        """
+        n_walks = len(contexts)
+        # the generator caps the number of walks at blocksize, so each gets at
+        # least one slot here and the block as a whole stays within blocksize
+        per_thread = blocksize // n_walks
+        capacity = per_thread * n_walks
+
+        bufs = (self._make_pair_buffers(capacity) if buffers is None
+                else tuple(b[:capacity] for b in buffers))
+
+        bounds = [(k * per_thread, (k + 1) * per_thread) for k in range(n_walks)]
+        if n_walks == 1:
+            counts = [kdmain.pair_next(self.kdtree, contexts[0], *bufs)]
+        else:
+            slices = [[b[lo:hi] for lo, hi in bounds] for b in bufs]
+            counts = util.thread_map(kdmain.pair_next,
+                                     [self.kdtree] * n_walks, contexts,
+                                     *slices)
+
+        # Close up the gaps left by any walk that did not fill its slice. Only
+        # the last round of a walk's range can leave one, so this is usually a
+        # no-op; where it is not, each move is towards the front of the buffer.
+        total = 0
+        for (lo, _), n in zip(bounds, counts):
+            if n and lo != total:
+                for b in bufs:
+                    b[total:total + n] = b[lo:lo + n]
+            total += n
+
+        if total == 0:
+            return None
+
+        out = tuple(b[:total] for b in bufs)
+        for b in out:
+            b.flags.writeable = False   # the callback must not corrupt these
+        return out, counts, per_thread
 
     def pair_reduce(self, func, mode='symmetric', blocksize=1<<18,
-                    dtype=np.float64):
+                    dtype=np.float64, num_threads=None):
         r"""Accumulate a user-supplied pairwise function over all neighbour pairs.
 
         .. versionadded:: 2.6.0
@@ -626,7 +797,11 @@ class KDTree:
             which pairs are grouped into a block. In particular it cannot
             perform a reduction over all of a particle's neighbours, since they
             need not all be present in the same block; compute such quantities
-            in a separate pass first.
+            in a separate pass first.  Nor may it keep hold of the arrays it is
+            passed.
+
+            Use :meth:`pair_blocks` directly if you need blocks that last beyond
+            the function lifetime.
 
         mode : str
             ``'symmetric'`` (default) or ``'gather'``; see :meth:`pair_blocks`.
@@ -639,6 +814,13 @@ class KDTree:
             double precision, and the result converted on return, so that the
             answer does not depend on ``blocksize``.
 
+        num_threads : int, optional
+            How many threads gather pairs at once; see :meth:`pair_blocks`.
+            This only affects the internal pair production; only one call to
+            `func` is made per block, on the calling thread.
+            The result can differ in its last bits between thread counts,
+            since they change the order in which pairs are summed.
+
         Returns
         -------
         numpy.ndarray
@@ -647,9 +829,24 @@ class KDTree:
 
         Notes
         -----
-        The neighbour search releases the GIL, but a python callback cannot,
-        so ``func`` runs on a single thread. Writing it against flat arrays,
-        rather than one particle at a time, is what keeps that from mattering.
+        The pairs are gathered in parallel: several threads walk separate
+        ranges of the particles and fill a block between them. ``func`` itself
+        cannot be run that way, since a python callback holds the GIL, so it
+        gets each block on a single thread.
+
+        That makes ``func`` worth optimising for any serious work with
+        large numbers of particles. For example, a numba function may
+        be appropriate, perhaps using ``@numba.njit(parallel=True)``
+        to enable threading within the block-processing part of the overall
+        algorithm:
+
+        >>> @numba.njit(parallel=True)                       # doctest: +SKIP
+        ... def kernel(i, j, dx, r, q, out):
+        ...     for k in numba.prange(len(i)):
+        ...         out[k] = q[j[k]] - q[i[k]]
+
+        Such a kernel writes its result into an array the caller supplies,
+        which ``func`` then returns.
 
         In ``'symmetric'`` mode each pair is visited exactly once and both ends
         are accumulated from that single visit. Returning an antisymmetric
@@ -678,12 +875,52 @@ class KDTree:
         The returned contributions are antisymmetric, so this conserves energy
         exactly; ``(m * du_dt).sum()`` vanishes to roundoff.
 
+        The same calculation with a compiled kernel, which is worth doing for
+        anything but a one-off: each of those numpy expressions allocates an
+        array the length of the block, and there are a dozen of them, whereas
+        the loop below allocates nothing and threads over the pairs.
+        :func:`buffered_kernel` provides the two output arrays and reuses them
+        from block to block, so the kernel need only fill them in:
+
+        >>> import numba                                     # doctest: +SKIP
+        >>> @numba.njit                                      # doctest: +SKIP
+        ... def abs_grad_w(r, h):
+        ...     # |dW/dr| for the kernel in use, written out for numba
+        ...     ...
+        >>> @numba.njit(parallel=True)                       # doctest: +SKIP
+        ... def conduction(i, j, dx, r, m, rho, p, u, h, vel, out_i, out_j):
+        ...     for k in numba.prange(len(i)):
+        ...         a, b = i[k], j[k]
+        ...         mu = ((vel[b, 0] - vel[a, 0]) * dx[k, 0]
+        ...               + (vel[b, 1] - vel[a, 1]) * dx[k, 1]
+        ...               + (vel[b, 2] - vel[a, 2]) * dx[k, 2]) / r[k]
+        ...         v_d = 0.5 * (abs(mu) + np.sqrt(2 * abs(p[a] - p[b])
+        ...                                        / (rho[a] + rho[b])))
+        ...         g = (abs_grad_w(r[k], h[a]) / rho[a]
+        ...              + abs_grad_w(r[k], h[b]) / rho[b])
+        ...         c = v_d * (u[b] - u[a]) * g
+        ...         out_i[k] = m[b] * c
+        ...         out_j[k] = -m[a] * c
+        >>> du_dt = f.g.kdtree.pair_reduce(                  # doctest: +SKIP
+        ...     buffered_kernel(conduction, m, rho, p, u, h, f.g['vel']),
+        ...     mode='symmetric')
+
+        ``numba.prange`` is safe here because iteration ``k`` writes only
+        element ``k``. Note that it would not be safe to accumulate onto
+        particles this way -- ``out[i[k]] += ...`` -- since a particle belongs
+        to many pairs and the iterations would race; that accumulation is what
+        pair_reduce does for you, serially.
+
         """
         npart = len(self._pos)
         out = None
         trailing = None
 
-        for i, j, dx, r in self.pair_blocks(mode=mode, blocksize=blocksize):
+        # Each block is finished with before the next is asked for, so they
+        # can all share one buffer; see the note on func, above.
+        for i, j, dx, r in self.pair_blocks(mode=mode, blocksize=blocksize,
+                                            num_threads=num_threads,
+                                            reuse_buffer=True):
             result = func(i, j, dx, r)
             if isinstance(result, tuple):
                 contrib_i, contrib_j = result
@@ -700,18 +937,17 @@ class KDTree:
             if trailing is None:
                 trailing = contrib_i.shape[1:]
                 # Accumulate in float64 whatever the requested output type:
-                # np.bincount produces float64, and casting each block down to
-                # an integer dtype as it arrived would truncate the partial
-                # sums independently, making the result depend on blocksize.
+                # casting each block down to an integer dtype as it arrived
+                # would truncate the partial sums independently, making the
+                # result depend on blocksize.
                 out = np.zeros((npart,) + trailing, dtype=np.float64)
             elif contrib_i.shape[1:] != trailing:
                 raise ValueError("pair_reduce callback returned trailing shape "
                                  "%s, but the first block gave %s"
                                  % (contrib_i.shape[1:], trailing))
-
-            _scatter_add(out, i, contrib_i)
+            np.add.at(out, i, contrib_i)
             if contrib_j is not None:
-                _scatter_add(out, j, np.asarray(contrib_j))
+                np.add.at(out, j, contrib_j)
 
         if out is None:
             # no pairs at all, so the trailing shape was never established

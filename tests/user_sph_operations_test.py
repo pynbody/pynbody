@@ -123,7 +123,10 @@ class ReferencePairs:
         return (np.concatenate(i_list), np.concatenate(j_list),
                 np.concatenate(dx_list))
 
-    def pair_blocks(self, mode='symmetric', blocksize=1 << 18):
+    def pair_blocks(self, mode='symmetric', blocksize=1 << 18,
+                    reuse_buffer=False):
+        # reuse_buffer is permission to overwrite a block once the next is
+        # asked for, not a promise to do so, so it is honoured by ignoring it
         i_all, j_all, dx_all = self._all_pairs(mode)
 
         for s in range(0, len(i_all), blocksize):
@@ -220,6 +223,24 @@ def periodic_snap():
     return f
 
 
+@pytest.fixture
+def single_precision_snap():
+    """A float32 snapshot, so that the tree -- and the pair walk -- is float32."""
+    npart = 300
+    f = pynbody.new(gas=npart)
+    for name, ndim in (('pos', 3), ('mass', 1), ('vel', 3)):
+        f._create_array(name, ndim, np.float32)
+
+    np.random.seed(1339)
+    f['pos'] = np.random.normal(scale=10.0, size=(npart, 3))
+    f['mass'] = np.random.uniform(0.5, 1.5, size=npart)
+    f['vel'] = np.random.normal(size=(npart, 3))
+    f['smooth']
+
+    assert f['pos'].dtype == np.float32 and f['smooth'].dtype == np.float32
+    return f
+
+
 def _collect(blocks):
     """Concatenate an iterator of pair blocks into single arrays."""
     parts = list(blocks)
@@ -302,11 +323,68 @@ def test_pair_blocks_arrays_are_read_only(pairs, snap):
 
 
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_pair_blocks_reuse_buffer_yields_the_same_pairs(pairs, snap, mode):
+    """Reusing the buffer is an allocation strategy, nothing more."""
+    def stream(**kwargs):
+        return [tuple(a.copy() for a in b)
+                for b in pairs(snap).pair_blocks(mode=mode, blocksize=137,
+                                                 **kwargs)]
+
+    separate = stream()
+    shared = stream(reuse_buffer=True)
+
+    assert len(separate) == len(shared) > 1
+    for block1, block2 in zip(separate, shared):
+        for arr1, arr2 in zip(block1, block2):
+            npt.assert_array_equal(arr1, arr2)
+
+
+def test_pair_blocks_only_reuses_the_buffer_when_asked(snap):
+    """By default a block must still be intact once the next has arrived."""
+    snap.build_tree()
+
+    kept = list(snap.kdtree.pair_blocks(blocksize=137))
+    assert len(kept) > 1, "test is only meaningful with several blocks"
+    assert not np.shares_memory(kept[0][0], kept[1][0])
+
+    # ... and what was kept must be what was originally generated, which we
+    # establish independently by copying each block as it arrives
+    streamed = [i.copy() for i, _, _, _ in
+                snap.kdtree.pair_blocks(blocksize=137, reuse_buffer=True)]
+    npt.assert_array_equal(np.concatenate([b[0] for b in kept]),
+                           np.concatenate(streamed))
+
+    shared = list(snap.kdtree.pair_blocks(blocksize=137, reuse_buffer=True))
+    assert np.shares_memory(shared[0][0], shared[1][0]), \
+        "reuse_buffer should let the blocks share memory"
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
 def test_pair_blocks_blocksize_is_respected(pairs, snap, mode):
     sizes = [len(b[0]) for b in
              pairs(snap).pair_blocks(mode=mode, blocksize=137)]
     assert len(sizes) > 1, "test is only meaningful with several blocks"
     assert max(sizes) <= 137
+
+
+@pytest.mark.parametrize("blocksize", [1, 3, 17])
+def test_pair_blocks_respects_a_blocksize_below_the_thread_count(snap,
+                                                                 blocksize):
+    """Fewer slots than threads caps the threads, rather than growing the block.
+
+    Each walk needs a slice of the block to write into, so a block smaller
+    than the thread count would otherwise have to be enlarged to give every
+    walk a slot, quietly exceeding the blocksize the caller asked for.
+    """
+    blocks = list(snap.kdtree.pair_blocks(blocksize=blocksize, num_threads=20))
+    assert max(len(b[0]) for b in blocks) <= blocksize
+
+    # capping the threads repartitions the particles, so check nothing is lost
+    i, j, _, _ = _collect(blocks)
+    exp_i, exp_j, _, _ = _collect(
+        snap.kdtree.pair_blocks(blocksize=1 << 20, num_threads=1))
+    npt.assert_array_equal(np.sort(_pair_keys(i, j)),
+                           np.sort(_pair_keys(exp_i, exp_j)))
 
 
 @pytest.mark.parametrize("mode", ['symmetric', 'gather'])
@@ -393,35 +471,51 @@ def test_smoothing_operations_handle_more_neighbours_than_the_default_buffer():
     assert div.shape == (npart,) and curl.shape == (npart, 3)
 
 
-@pytest.mark.parametrize("npart", [200, 200000])
-@pytest.mark.parametrize("trailing", [(), (3,)])
-def test_scatter_add_agrees_across_both_strategies(npart, trailing):
-    """The accumulation must not depend on which strategy is chosen.
+@pytest.mark.parametrize("ncols", [None, 3])
+def test_buffered_kernel_matches_returning_the_contributions(snap, ncols):
+    """The helper is a convenience, so it must not change the answer."""
+    snap.build_tree()
+    m = np.asarray(snap['mass'], dtype=np.float64)
+    u = np.asarray(snap['u'], dtype=np.float64)
 
-    ``_scatter_add`` switches on the ratio of output length to block length:
-    ``np.bincount`` allocates a length-N temporary on every call, so it pays
-    only while N is comparable to the block, whereas for a large snapshot the
-    in-place ``np.add.at`` is faster by two orders of magnitude. Both branches
-    are exercised here, against an independent reference.
-    """
-    from pynbody.kdtree import _scatter_add
+    def weight(i, j, r):
+        w = m[j] * (u[j] - u[i]) / r
+        return w if ncols is None else np.outer(w, [1.0, 2.0, 3.0])
 
-    rng = np.random.default_rng(4)
-    nblock = 5000
-    index = rng.integers(0, npart, nblock)
-    contrib = rng.normal(size=(nblock,) + trailing)
+    def returning(i, j, dx, r):
+        c = weight(i, j, r)
+        return c, -c
 
-    got = np.zeros((npart,) + trailing)
-    _scatter_add(got, index, contrib)
+    def writing(i, j, dx, r, mass, energy, out_i, out_j):
+        out_i[...] = weight(i, j, r)
+        out_j[...] = -out_i
 
-    if trailing:
-        expected = np.stack(
-            [np.bincount(index, weights=contrib[:, k], minlength=npart)
-             for k in range(trailing[0])], axis=1)
-    else:
-        expected = np.bincount(index, weights=contrib, minlength=npart)
+    expected = snap.kdtree.pair_reduce(returning, blocksize=137)
+    got = snap.kdtree.pair_reduce(
+        pynbody.kdtree.buffered_kernel(writing, m, u, ncols=ncols),
+        blocksize=137)
 
-    npt.assert_allclose(got, expected, rtol=1e-12)
+    assert expected.shape == got.shape
+    npt.assert_allclose(got, expected, rtol=1e-13)
+
+
+def test_buffered_kernel_can_contribute_to_one_end_only(snap):
+    """'gather' mode accumulates only the first particle of each pair."""
+    snap.build_tree()
+    m = np.asarray(snap['mass'], dtype=np.float64)
+
+    def returning(i, j, dx, r):
+        return m[j] / r
+
+    def writing(i, j, dx, r, mass, out_i):
+        out_i[...] = mass[j] / r
+
+    expected = snap.kdtree.pair_reduce(returning, mode='gather', blocksize=137)
+    got = snap.kdtree.pair_reduce(
+        pynbody.kdtree.buffered_kernel(writing, m, both_ends=False),
+        mode='gather', blocksize=137)
+
+    npt.assert_allclose(got, expected, rtol=1e-13)
 
 
 def test_pair_blocks_is_deterministic(pairs, snap):
@@ -439,18 +533,23 @@ def test_pair_blocks_is_deterministic(pairs, snap):
 # pair_blocks: which pairs are in the set
 # ---------------------------------------------------------------------------
 
-def _assert_pair_set_matches_reference(f, i, j, r, mode):
-    """Compare a pair set against the brute-force reference, off the boundary."""
+def _assert_pair_set_matches_reference(f, i, j, r, mode, rtol=BOUNDARY_RTOL):
+    """Compare a pair set against the brute-force reference, off the boundary.
+
+    ``rtol`` sets both the width of the ambiguous band around ``r == 2h`` and
+    the tolerance on ``r`` itself, so a single-precision tree can be compared
+    against the same double-precision reference.
+    """
     h = np.asarray(f['smooth'], dtype=np.float64)
     exp_i, exp_j, _, exp_r = _collect(ReferencePairs(f).pair_blocks(mode=mode))
 
-    got = _away_from_boundary(i, j, r, h, mode)
-    expected = _away_from_boundary(exp_i, exp_j, exp_r, h, mode)
+    got = _away_from_boundary(i, j, r, h, mode, rtol=rtol)
+    expected = _away_from_boundary(exp_i, exp_j, exp_r, h, mode, rtol=rtol)
 
     npt.assert_array_equal(np.sort(_pair_keys(i[got], j[got])),
                            np.sort(_pair_keys(exp_i[expected],
                                               exp_j[expected])))
-    npt.assert_allclose(np.sort(r[got]), np.sort(exp_r[expected]), rtol=1e-12)
+    npt.assert_allclose(np.sort(r[got]), np.sort(exp_r[expected]), rtol=rtol)
 
     # Each particle contributes at most one boundary pair, namely its own nth
     # neighbour, which is what defines its smoothing length. Anything much
@@ -540,6 +639,85 @@ def test_pair_blocks_finds_pairs_across_the_periodic_boundary(pairs,
 
     assert (unwrapped > 2 * r).sum() > 0, (
         "no boundary-straddling pairs, so periodicity is untested here")
+
+
+# ---------------------------------------------------------------------------
+# pair_blocks: single-precision trees
+#
+# The walk is carried out in the precision of the positions the tree was built
+# from, and hands ``dx`` and ``r`` back in it. These check the float32 case
+# against the same double-precision reference as everything above, so the
+# tolerance is set by float32 rather than by the walk.
+# ---------------------------------------------------------------------------
+
+#: Two evaluations of the same distance, one in float32 and one in float64,
+#: agree to about this much. Used both as the tolerance on ``r`` and as the
+#: width of the ambiguous band around the ``r == 2h`` boundary.
+SINGLE_PRECISION_RTOL = 1e-6
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_pair_blocks_geometry_follows_the_tree_precision(single_precision_snap,
+                                                         mode):
+    seen_any = False
+    for i, j, dx, r in single_precision_snap.kdtree.pair_blocks(mode=mode,
+                                                                blocksize=97):
+        seen_any = True
+        assert dx.dtype == np.float32 and r.dtype == np.float32
+        assert np.issubdtype(i.dtype, np.integer)
+        assert np.issubdtype(j.dtype, np.integer)
+        assert dx.shape == (len(i), 3) and r.shape == (len(i),)
+        npt.assert_allclose(r, np.sqrt(np.einsum('kl,kl->k', dx, dx)),
+                            rtol=SINGLE_PRECISION_RTOL)
+    assert seen_any, "no pairs were generated at all"
+
+
+@pytest.mark.parametrize("mode", ['symmetric', 'gather'])
+def test_single_precision_pair_set_matches_reference(single_precision_snap,
+                                                     mode):
+    """A float32 tree must find the same pairs, to within float32."""
+    i, j, _, r = _collect(single_precision_snap.kdtree.pair_blocks(mode=mode))
+
+    if mode == 'symmetric':
+        assert (i < j).all()
+    _assert_pair_set_matches_reference(single_precision_snap, i, j,
+                                       np.asarray(r, dtype=np.float64), mode,
+                                       rtol=SINGLE_PRECISION_RTOL)
+
+
+def test_single_precision_gather_includes_the_boundary_neighbour(
+        single_precision_snap):
+    """Each particle's nth neighbour, sitting exactly on r == 2h, is included.
+
+    That is what makes a gather over ``n`` neighbours yield ``n`` of them, and
+    it only holds while the comparison stays in the tree's own precision: ``h``
+    is stored as float32, so ``2h`` is the float32-rounded distance to the nth
+    neighbour, whereas the double-precision square root of the same float32
+    ``r^2`` lands above it about half the time.
+    """
+    f = single_precision_snap
+    i, j, _, r = _collect(f.kdtree.pair_blocks(mode='gather'))
+    h = np.asarray(f['smooth'])
+
+    on_boundary = r == 2 * h[i]
+    assert on_boundary.sum() >= len(f), (
+        "only %d of %d particles found a neighbour at exactly r == 2h"
+        % (on_boundary.sum(), len(f)))
+
+
+def test_single_precision_pair_reduce_reproduces_density(single_precision_snap):
+    """The float32 pairs still add up, end to end: rho_i = sum_j m_j W(r, h_i)."""
+    f = single_precision_snap
+    m = np.asarray(f['mass'], dtype=np.float64)
+    h = np.asarray(f['smooth'], dtype=np.float64)
+
+    rho = f.kdtree.pair_reduce(
+        lambda i, j, dx, r: m[j] * _reference_kernel_value(r, h[i]),
+        mode='gather')
+    rho += m * _reference_kernel_value(np.zeros(len(f)), h)
+
+    npt.assert_allclose(rho, np.asarray(f['rho'], dtype=np.float64),
+                        rtol=1e-4)
 
 
 # ---------------------------------------------------------------------------

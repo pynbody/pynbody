@@ -390,8 +390,10 @@ class PairContext {
    */
 public:
   SmoothingContext<T> *smx; // owned
-  npy_intp blocksize;
   int mode;
+
+  npy_intp firstParticle;   // range of particles (in tree order) this context
+  npy_intp lastParticle;    // walks; [firstParticle, lastParticle)
 
   npy_intp nextParticle;    // next particle (in tree order) to be walked
   npy_intp pendingParticle; // particle whose neighbour list we are part-way through
@@ -399,18 +401,33 @@ public:
   npy_intp pendingIndex;    // how far through that neighbour list we have got
   bool havePending;
 
-  std::vector<npy_intp> outI, outJ;
-  std::vector<double> outDx, outR;
+  /* Where the current block is written. The caller supplies the memory --
+   * python allocates one buffer for the round and hands each walk its own
+   * slice of it -- so the walk writes each pair straight to its final
+   * destination, and nothing here owns or allocates anything. The geometry
+   * is handed back in the tree's own precision T, since that is all the
+   * positions it was built from can support.
+   */
+  npy_intp *outI, *outJ;
+  T *outDx, *outR;
+  npy_intp capacity;
+  npy_intp outCount;
 
-  PairContext(SmoothingContext<T> *smx, npy_intp blocksize, int mode)
-      : smx(smx), blocksize(blocksize), mode(mode), nextParticle(0),
-        pendingParticle(0), pendingCount(0), pendingIndex(0),
-        havePending(false) {
-    outI.reserve(blocksize);
-    outJ.reserve(blocksize);
-    outDx.reserve(3 * blocksize);
-    outR.reserve(blocksize);
-  }
+  /* Several contexts may walk disjoint particle ranges at the same time, one
+   * per thread, in the manner of smInitThreadLocalCopy for the smoothing
+   * operations. Each owns its own SmoothingContext, so the neighbour buffers
+   * and priority queue are private; the tree itself is only read. Because the
+   * decision to emit a pair is local to the walk that finds it -- see the
+   * comment above on the symmetric mode -- partitioning the particles across
+   * contexts still emits every pair exactly once.
+   */
+  PairContext(SmoothingContext<T> *smx, int mode, npy_intp firstParticle,
+              npy_intp lastParticle)
+      : smx(smx), mode(mode), firstParticle(firstParticle),
+        lastParticle(lastParticle), nextParticle(firstParticle),
+        pendingParticle(firstParticle), pendingCount(0), pendingIndex(0),
+        havePending(false), outI(nullptr), outJ(nullptr), outDx(nullptr),
+        outR(nullptr), capacity(0), outCount(0) {}
 
   ~PairContext() { delete smx; }
 };
@@ -421,16 +438,13 @@ void smFillPairBlock(PairContext<T> *pc) {
   SmoothingContext<T> *smx = pc->smx;
   KDContext *kd = smx->kd;
 
-  pc->outI.clear();
-  pc->outJ.clear();
-  pc->outDx.clear();
-  pc->outR.clear();
+  pc->outCount = 0;
 
-  while (static_cast<npy_intp>(pc->outI.size()) < pc->blocksize) {
+  while (pc->outCount < pc->capacity) {
 
     if (!pc->havePending) {
-      if (pc->nextParticle >= kd->nActive)
-        break; // every particle has been walked
+      if (pc->nextParticle >= pc->lastParticle)
+        break; // every particle in this context's range has been walked
       pc->pendingParticle = pc->nextParticle++;
 
       npy_intp ia = kd->particleOffsets[pc->pendingParticle];
@@ -464,10 +478,10 @@ void smFillPairBlock(PairContext<T> *pc) {
     }
 
     npy_intp ia = kd->particleOffsets[pc->pendingParticle];
-    double hi = static_cast<double>(GET<T>(kd->pNumpySmooth, ia));
+    T hi = GET<T>(kd->pNumpySmooth, ia);
 
     while (pc->pendingIndex < pc->pendingCount &&
-           static_cast<npy_intp>(pc->outI.size()) < pc->blocksize) {
+           pc->outCount < pc->capacity) {
       npy_intp k = pc->pendingIndex++;
       npy_intp jb = kd->particleOffsets[smx->pList[k]];
 
@@ -480,25 +494,30 @@ void smFillPairBlock(PairContext<T> *pc) {
       // excluding the boundary, would strand those pairs on the wrong side by
       // an ulp. The inclusive test matches smBallGather, so a gather over
       // nSmooth neighbours really does yield nSmooth of them.
-      double r = sqrt(static_cast<double>(smx->fList[k]));
-      if (!(r <= 2.0 * hi))
+      //
+      // The whole comparison stays in T. Promoting r to double would break
+      // the exact hit: h is stored as T, so 2 h is the T-rounded distance to
+      // the nth neighbour, whereas a double sqrt of the T-rounded r^2 lands
+      // wherever the extra bits fall -- and half the time that is above it.
+      T r = std::sqrt(smx->fList[k]);
+      if (!(r <= 2 * hi))
         continue;
 
       npy_intp emitI = ia, emitJ = jb;
       bool flip = false;
 
       if (pc->mode == PAIR_MODE_SYMMETRIC && ia > jb) {
-        double hj = static_cast<double>(GET<T>(kd->pNumpySmooth, jb));
-        if (r <= 2.0 * hj)
+        T hj = GET<T>(kd->pNumpySmooth, jb);
+        if (r <= 2 * hj)
           continue; // jb's own walk finds ia, and will emit the pair
         emitI = jb;
         emitJ = ia;
         flip = true;
       }
 
-      double d0 = static_cast<double>(smx->dxList[3 * k + 0]);
-      double d1 = static_cast<double>(smx->dxList[3 * k + 1]);
-      double d2 = static_cast<double>(smx->dxList[3 * k + 2]);
+      T d0 = smx->dxList[3 * k + 0];
+      T d1 = smx->dxList[3 * k + 1];
+      T d2 = smx->dxList[3 * k + 2];
       if (flip) {
         // dx must always point from the emitted i towards the emitted j
         d0 = -d0;
@@ -506,12 +525,13 @@ void smFillPairBlock(PairContext<T> *pc) {
         d2 = -d2;
       }
 
-      pc->outI.push_back(emitI);
-      pc->outJ.push_back(emitJ);
-      pc->outDx.push_back(d0);
-      pc->outDx.push_back(d1);
-      pc->outDx.push_back(d2);
-      pc->outR.push_back(r);
+      npy_intp o = pc->outCount++;
+      pc->outI[o] = emitI;
+      pc->outJ[o] = emitJ;
+      pc->outDx[3 * o + 0] = d0;
+      pc->outDx[3 * o + 1] = d1;
+      pc->outDx[3 * o + 2] = d2;
+      pc->outR[o] = r;
     }
 
     if (pc->pendingIndex >= pc->pendingCount)

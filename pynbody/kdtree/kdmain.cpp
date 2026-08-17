@@ -134,6 +134,14 @@ template <> const char np_kind<KDNode>() { return 'V'; }
 
 template <> const char np_kind<npy_intp>() { return 'i'; }
 
+template <typename T> int np_typenum() { return NPY_NOTYPE; }
+
+template <> int np_typenum<double>() { return NPY_DOUBLE; }
+
+template <> int np_typenum<float>() { return NPY_FLOAT; }
+
+template <> int np_typenum<npy_intp>() { return NPY_INTP; }
+
 template <typename T> const char py_kind() { return '?'; }
 
 template <> const char py_kind<double>() { return 'd'; }
@@ -841,12 +849,12 @@ template <typename T> struct typed_pair_start {
   static PyObject *call(PyObject *self, PyObject *args) {
     PyObject *kdobj;
     int mode;
-    npy_intp blocksize;
     int nSmooth;
     double period;
+    npy_intp firstParticle = 0, lastParticle = -1;
 
-    if (!PyArg_ParseTuple(args, "Oinid", &kdobj, &mode, &blocksize, &nSmooth,
-                          &period))
+    if (!PyArg_ParseTuple(args, "Oiid|nn", &kdobj, &mode, &nSmooth, &period,
+                          &firstParticle, &lastParticle))
       return nullptr;
 
     KDContext *kd = static_cast<KDContext *>(PyCapsule_GetPointer(kdobj, NULL));
@@ -860,8 +868,13 @@ template <typename T> struct typed_pair_start {
       return nullptr;
     }
 
-    if (blocksize < 1) {
-      PyErr_SetString(PyExc_ValueError, "blocksize must be at least 1");
+    if (lastParticle < 0)
+      lastParticle = kd->nActive;
+
+    if (firstParticle < 0 || lastParticle > kd->nActive ||
+        firstParticle > lastParticle) {
+      PyErr_SetString(PyExc_ValueError,
+                      "particle range does not lie within the tree");
       return nullptr;
     }
 
@@ -879,17 +892,43 @@ template <typename T> struct typed_pair_start {
     // treating an overflow as an error, so the usual warning would be noise
     smx->suppressOverflowWarning = true;
 
-    auto pc = new PairContext<T>(smx, blocksize, mode);
+    auto pc = new PairContext<T>(smx, mode, firstParticle, lastParticle);
 
     return PyCapsule_New(pc, NULL, NULL);
   }
 };
 
+/* Validate one of the output buffers python has supplied, and return a typed
+   pointer to its data. The walk writes into these directly, so they have to
+   be exactly the right type and laid out contiguously. */
+template <typename Tbuf>
+static Tbuf *pairOutputBuffer(PyObject *obj, const char *name, int ndim,
+                              npy_intp expected) {
+  if (!PyArray_Check(obj)) {
+    PyErr_Format(PyExc_TypeError, "pair output %s must be a numpy array", name);
+    return nullptr;
+  }
+  PyArrayObject *ar = (PyArrayObject *)obj;
+  if (PyArray_TYPE(ar) != np_typenum<Tbuf>() || PyArray_NDIM(ar) != ndim ||
+      !PyArray_ISCARRAY(ar)) {
+    PyErr_Format(PyExc_TypeError,
+                 "pair output %s has the wrong type or layout", name);
+    return nullptr;
+  }
+  if (PyArray_DIM(ar, 0) != expected ||
+      (ndim == 2 && PyArray_DIM(ar, 1) != 3)) {
+    PyErr_Format(PyExc_ValueError,
+                 "pair output %s has the wrong shape", name);
+    return nullptr;
+  }
+  return static_cast<Tbuf *>(PyArray_DATA(ar));
+}
+
 template <typename T> struct typed_pair_next {
   static PyObject *call(PyObject *self, PyObject *args) {
-    PyObject *kdobj, *pcobj;
+    PyObject *kdobj, *pcobj, *oI, *oJ, *oDx, *oR;
 
-    if (!PyArg_ParseTuple(args, "OO", &kdobj, &pcobj))
+    if (!PyArg_ParseTuple(args, "OOOOOO", &kdobj, &pcobj, &oI, &oJ, &oDx, &oR))
       return nullptr;
 
     auto pc = static_cast<PairContext<T> *>(PyCapsule_GetPointer(pcobj, NULL));
@@ -897,6 +936,25 @@ template <typename T> struct typed_pair_next {
       PyErr_SetString(PyExc_ValueError, "Invalid pair iteration context");
       return nullptr;
     }
+
+    // The caller owns the memory; this is just where to put the pairs. The
+    // displacements and separations come back in the tree's own precision, so
+    // for a single-precision tree these must be float32 arrays.
+    npy_intp capacity = PyArray_Check(oI) ? PyArray_DIM((PyArrayObject *)oI, 0)
+                                          : 0;
+    npy_intp *bufI = pairOutputBuffer<npy_intp>(oI, "i", 1, capacity);
+    npy_intp *bufJ = pairOutputBuffer<npy_intp>(oJ, "j", 1, capacity);
+    T *bufDx = pairOutputBuffer<T>(oDx, "dx", 2, capacity);
+    T *bufR = pairOutputBuffer<T>(oR, "r", 1, capacity);
+    if (bufI == nullptr || bufJ == nullptr || bufDx == nullptr ||
+        bufR == nullptr)
+      return nullptr;
+
+    pc->outI = bufI;
+    pc->outJ = bufJ;
+    pc->outDx = bufDx;
+    pc->outR = bufR;
+    pc->capacity = capacity;
 
     Py_BEGIN_ALLOW_THREADS;
     smFillPairBlock<T>(pc);
@@ -910,54 +968,9 @@ template <typename T> struct typed_pair_next {
       return nullptr;
     }
 
-    npy_intp n = static_cast<npy_intp>(pc->outI.size());
-    if (n == 0) {
-      // the fill loop only stops early when the buffer is full, so an empty
-      // block means every particle has been walked
-      Py_INCREF(Py_None);
-      return Py_None;
-    }
-
-    npy_intp dims1[1] = {n};
-    npy_intp dims2[2] = {n, 3};
-
-    PyObject *arI = PyArray_SimpleNew(1, dims1, NPY_INTP);
-    PyObject *arJ = PyArray_SimpleNew(1, dims1, NPY_INTP);
-    PyObject *arDx = PyArray_SimpleNew(2, dims2, NPY_DOUBLE);
-    PyObject *arR = PyArray_SimpleNew(1, dims1, NPY_DOUBLE);
-
-    if (arI == nullptr || arJ == nullptr || arDx == nullptr || arR == nullptr) {
-      Py_XDECREF(arI);
-      Py_XDECREF(arJ);
-      Py_XDECREF(arDx);
-      Py_XDECREF(arR);
-      return nullptr;
-    }
-
-    std::copy(pc->outI.begin(), pc->outI.end(),
-              static_cast<npy_intp *>(PyArray_DATA((PyArrayObject *)arI)));
-    std::copy(pc->outJ.begin(), pc->outJ.end(),
-              static_cast<npy_intp *>(PyArray_DATA((PyArrayObject *)arJ)));
-    std::copy(pc->outDx.begin(), pc->outDx.end(),
-              static_cast<double *>(PyArray_DATA((PyArrayObject *)arDx)));
-    std::copy(pc->outR.begin(), pc->outR.end(),
-              static_cast<double *>(PyArray_DATA((PyArrayObject *)arR)));
-
-    // the callback must not be able to corrupt what it is handed
-    PyArray_CLEARFLAGS((PyArrayObject *)arI, NPY_ARRAY_WRITEABLE);
-    PyArray_CLEARFLAGS((PyArrayObject *)arJ, NPY_ARRAY_WRITEABLE);
-    PyArray_CLEARFLAGS((PyArrayObject *)arDx, NPY_ARRAY_WRITEABLE);
-    PyArray_CLEARFLAGS((PyArrayObject *)arR, NPY_ARRAY_WRITEABLE);
-
-    PyObject *result = PyTuple_Pack(4, arI, arJ, arDx, arR);
-
-    // PyTuple_Pack takes its own references
-    Py_DECREF(arI);
-    Py_DECREF(arJ);
-    Py_DECREF(arDx);
-    Py_DECREF(arR);
-
-    return result;
+    // Fewer than capacity means this walk has reached the end of its range;
+    // the fill loop only stops early for that reason.
+    return PyLong_FromSsize_t(static_cast<Py_ssize_t>(pc->outCount));
   }
 };
 
