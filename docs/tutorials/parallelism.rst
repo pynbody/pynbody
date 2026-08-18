@@ -138,6 +138,7 @@ To find out in advance which halos are affected, use
 those halos in a halo catalogue ``h`` that are complete, one would write:
 
 .. sourcecode:: python
+
   for halo_number in h.complete_keys():
       halo = h[halo_number]
       ...
@@ -152,9 +153,10 @@ halo number, use :meth:`~pynbody.halo.HaloCatalogue.get_complete_mask`.
 
     Establishing which halos are complete requires the particle lists for all halos, so the methods above call
     :meth:`~pynbody.halo.HaloCatalogue.load_all` for you. Note also that not all halo finder formats are able
-    to detect missing particles; in such cases, it is not possible to determine whether a halo is complete or not. Then,
-    pynbody will return those particles that it knows about, and raise a warning if you try to
-    access completeness information.
+    to detect missing particles; a catalogue built from an array of halo numbers, one per particle (such as a
+    ``.grp`` file, or HOP output), sees only the particles which were loaded. Such a catalogue reports every
+    halo as complete, so on a partially loaded snapshot it may hand back a halo holding fewer particles than
+    the halo finder assigned to it.
 
 
 
