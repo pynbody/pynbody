@@ -427,7 +427,7 @@ def test_unmatched_iords_in_complete_snapshot_are_an_error(snap_with_iords, load
     halos = SimpleIordBasedHaloCatalogue(snap_with_iords, [[0, 1, 2], [3, 4, 1000]])
 
     with pytest.raises(pynbody.halo.details.iord_mapping.IllegalIordError,
-                       match="snapshot is fully loaded"):
+                       match="particle IDs as iords"):
         if load_all:
             halos.load_all()
         else:
@@ -764,6 +764,33 @@ def test_long_iord_to_pos_map():
     assert isinstance(iord_to_fpos, halo.details.iord_mapping.IordToOffsetSparse)
     assert (iord_to_fpos.map_ignoring_order([0, 10, 20, 300]) == np.array([0, 2, 1, 3])).all()
     assert iord_to_fpos.map_ignoring_order(300) == 3
+
+
+def test_empty_iord_to_pos_map():
+    """A snapshot which loaded nothing can find nothing; the reductions used to choose a mapper have no
+    identity on an empty array, so the case is handled explicitly."""
+    from pynbody.halo.details import iord_mapping
+
+    mapper = iord_mapping.make_iord_to_offset_mapper(np.array([], dtype=np.int64))
+
+    assert (mapper.map_ignoring_order([0, 5, 100], allow_missing=True) == iord_mapping.NO_OFFSET).all()
+    assert mapper.map_ignoring_order(3, allow_missing=True) == iord_mapping.NO_OFFSET
+    assert len(mapper.map_ignoring_order(np.array([], dtype=np.int64), allow_missing=True)) == 0
+
+    with pytest.raises(iord_mapping.IllegalIordError):
+        mapper.map_ignoring_order([0, 5, 100])
+
+
+def test_catalogue_against_empty_selection(snap_with_iords):
+    """Selecting no particles at all leaves every halo incomplete, rather than failing to build a mapper"""
+    empty = snap_with_iords[:0]
+    halos = SimpleIordBasedHaloCatalogue(empty, [[0, 1, 2], [3, 4, 5]])
+
+    assert len(halos.complete_keys()) == 0
+    assert not halos.get_complete_mask().any()
+
+    with pytest.raises(halo.IncompleteHaloError):
+        halos[1]
 
 
 @pytest.fixture(params=['dense', 'sparse'])

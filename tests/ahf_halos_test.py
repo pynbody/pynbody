@@ -376,13 +376,30 @@ def test_ahf_refuses_subsnap(partially_loaded_ahf_snapshot):
         pynbody.halo.ahf.AHFCatalogue(full[:1000])
 
 
-def test_ramses_ahf_refuses_partially_loaded_snapshot():
-    """Ramses snapshots partially load by selecting cpu files, and have their own AHF offset mapping"""
-    partial = pynbody.load("testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110", cpus=[1])
+@pytest.mark.parametrize("kwargs", [{"cpus": [1]}, {"with_gas": False}, {"maxlevel": 1}],
+                         ids=["cpus", "with_gas", "maxlevel"])
+def test_ramses_ahf_refuses_partially_loaded_snapshot(kwargs):
+    """Ramses drops particles by cpu file or by AMR cell, and its own AHF offset mapping survives neither.
+
+    Without the refusal these produce out-of-range offsets, and hence an obscure IndexError deep inside
+    the subsnap machinery, rather than an explanation of what is wrong."""
+    partial = pynbody.load("testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110", **kwargs)
     assert partial.is_partially_loaded()
 
     with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
         pynbody.halo.ahf.AHFCatalogue(partial)
+
+
+def test_ahf_refuses_copy_on_access_wrapping_a_view():
+    """Wrapping a view for copy-on-access must not disguise it as a complete snapshot"""
+    from pynbody.snapshot.copy_on_access import CopyOnAccessSimSnap
+
+    full = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    wrapped = CopyOnAccessSimSnap(full[:1000])
+
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        pynbody.halo.ahf.AHFCatalogue(wrapped,
+                                      filename="testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_halos")
 
 
 def test_ahf_wrong_id_convention_is_reported(partially_loaded_ahf_snapshot):
@@ -395,9 +412,9 @@ def test_ahf_wrong_id_convention_is_reported(partially_loaded_ahf_snapshot):
     halos = pynbody.halo.ahf.AHFCatalogue(full, use_iord=True)
 
     with pytest.raises(pynbody.halo.details.iord_mapping.IllegalIordError,
-                       match="snapshot is fully loaded"):
+                       match="particle IDs as iords"):
         halos.load_all()
 
     with pytest.raises(pynbody.halo.details.iord_mapping.IllegalIordError,
-                       match="snapshot is fully loaded"):
+                       match="particle IDs as iords"):
         _ = pynbody.halo.ahf.AHFCatalogue(full, use_iord=True)[1]

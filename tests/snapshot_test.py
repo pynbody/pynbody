@@ -402,6 +402,31 @@ def test_is_partially_loaded_for_ramses_cpu_selection():
     assert pynbody.load(path, cpus=[1]).is_partially_loaded()
 
 
+@pytest.mark.parametrize("kwargs", [{"with_gas": False}, {"maxlevel": 1}],
+                         ids=["with_gas", "maxlevel"])
+def test_is_partially_loaded_for_ramses_gas_selection(kwargs):
+    """Dropping or truncating the AMR cells leaves out particles the halo finder knows about"""
+    pynbody.test_utils.ensure_test_data_available("ramses")
+    path = "testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110"
+
+    partial = pynbody.load(path, **kwargs)
+    assert len(partial.gas) < len(pynbody.load(path).gas)
+    assert partial.is_partially_loaded()
+
+
+def test_is_partially_loaded_for_copy_on_access():
+    """A copy-on-access wrapper holds exactly what it wraps, so it inherits its partial-loading status"""
+    from pynbody.snapshot.copy_on_access import CopyOnAccessSimSnap
+
+    full = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+
+    assert not CopyOnAccessSimSnap(full).is_partially_loaded()
+
+    wrapped_view = CopyOnAccessSimSnap(full[:100])
+    assert wrapped_view.is_partially_loaded()
+    assert wrapped_view[:10].is_partially_loaded()
+
+
 def test_is_partially_loaded_for_one_file_of_a_set():
     """Opening a single file of a multi-file snapshot gives only the particles in that file"""
     pynbody.test_utils.ensure_test_data_available("swift")

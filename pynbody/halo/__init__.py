@@ -188,9 +188,10 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
       Internally, *pynbody* converts between these using a :class:`details.number_mapping.HaloNumberMapper` object,
       which is set up in the :meth:`__init__` method.
     * Particle indices should be returned from methods like :meth:`_get_particle_indices_one_halo` as zero-relative
-      offsets within the snapshot, not particle IDs or 'iord's. Many halo finders output particle IDs which must
-      therefore be mapped. To aid this, call :meth:`_init_iord_to_fpos` in your :meth:`__init__` method, which creates
-      a mapper as :attr:`_iord_to_fpos`. See :mod:`details.iord_mapping` for more information.
+      offsets within the in-memory SimSnap representation of the snapshot, not particle IDs, 'iord's, or the
+      position on disk. Many halo finders output particle IDs which must therefore be mapped. To aid this, 
+      call :meth:`_init_iord_to_fpos` in your :meth:`__init__` method, which creates a mapper as 
+      :attr:`_iord_to_fpos`. See :mod:`details.iord_mapping` for more information.
     * If the snapshot is partially loaded, a halo may refer to particles that are not present. Rather than mapping
       particle IDs with :attr:`_iord_to_fpos` directly, use :meth:`_map_iords_to_fpos_one_halo` (in
       :meth:`_get_particle_indices_one_halo`), which raises an :class:`IncompleteHaloError`; and
@@ -201,7 +202,14 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
       :class:`IncompleteHaloError` is still raised if an affected halo is accessed. Those counts are also what
       :meth:`complete_keys` reports to the user, so no further work is needed to support it.
     * If, on the other hand, the format identifies its particles by position within the snapshot rather than
-      by ID, missing particles cannot be detected at all. Such subclasses should set the class attribute
+      by ID, those positions refer to particles which are not all present, and cannot in general be mapped
+      onto those which are. Such subclasses should set the class attribute
+      :attr:`_uses_file_position_addressing` to True, so that construction is refused with a
+      :class:`details.particle_indices.PartialLoadingNotSupportedError` rather than the wrong particles being
+      returned.
+    * A third category expresses halo membership through an array covering only the particles which were
+      loaded, such as a halo number per particle. Such a catalogue is usable, but has no way of knowing that
+      the halo finder assigned further particles which are absent. These subclasses should set
       :attr:`_can_determine_completeness` to False, so that users are warned instead of being told that every
       halo is complete.
     * Catalogues which are views onto another catalogue, and therefore delegate :meth:`load_all` rather than
@@ -381,9 +389,11 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         Note that halo *properties* remain available for all halos, including incomplete ones; it is only
         access to the particles which fails.
 
-        Some catalogue formats identify their particles by position within the snapshot rather than by ID, and
-        so are unable to tell whether any particles are missing. These report all their halos as complete, and
-        issue a RuntimeWarning to that effect.
+        Some catalogue formats express halo membership through an array covering only the particles which
+        were loaded, such as a halo number per particle, and so are unable to tell whether the halo finder
+        assigned further particles which are absent. These report all their halos as complete, and issue a
+        RuntimeWarning to that effect. (Formats which instead identify their particles by position within the
+        snapshot cannot be used with a partially loaded snapshot at all; they refuse to load.)
 
         Parameters
         ----------

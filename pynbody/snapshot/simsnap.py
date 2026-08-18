@@ -624,7 +624,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         """Return True if this snapshot holds only some of the particles in the file it came from.
 
         This is the case either because the file was partially loaded (e.g. by passing ``take`` to
-        :func:`~pynbody.snapshot.load`, or by loading only some of the files of a multi-file snapshot), or
+        :func:`~pynbody.snapshot.load`, by loading only some of the files of a multi-file snapshot, or by
+        passing a loader option which excludes particles, such as ramses' ``with_gas`` and ``maxlevel``), or
         because this is a view onto part of a snapshot (e.g. ``f[:100]`` or ``f.dm``).
 
         Code which identifies particles by their position within the file, rather than by their ID, cannot be

@@ -48,6 +48,14 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
         self._dont_try_accessing = []
         self.properties = copy.deepcopy(base.properties)
 
+        # This snapshot holds exactly the particles that base holds, in base's order, so it inherits base's
+        # partial-loading status. Without this, wrapping a view or a partial load would present as a complete
+        # snapshot, and halo catalogues which address particles by file position would silently return the
+        # wrong particles. A view of base counts as a selection within the files that were opened, hence
+        # partial_load; whether the whole file set was opened is a property of the files themselves.
+        self.partial_load = base is not base.ancestor or base.ancestor.partial_load
+        self.incomplete_file_set = base.ancestor.incomplete_file_set
+
 
     def _load_array(self, array_name, fam=None):
         if (array_name, fam) in self._dont_try_accessing:
