@@ -14,3 +14,9 @@ docs/*png
 pynbody/**/*.c
 pynbody/**/*.cpp
 !pynbody/openmp/direct_omp.c
+*.npy
+*.npz
+*.png
+docs/reference/_autosummary/*.rst
+docs/tutorials/.ipynb_checkpoints
+.idea

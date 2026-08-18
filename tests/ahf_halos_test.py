@@ -12,6 +12,7 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.halo.details.iord_mapping
 import pynbody.test_utils
 
 
@@ -382,3 +383,21 @@ def test_ramses_ahf_refuses_partially_loaded_snapshot():
 
     with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
         pynbody.halo.ahf.AHFCatalogue(partial)
+
+
+def test_ahf_wrong_id_convention_is_reported(partially_loaded_ahf_snapshot):
+    """Forcing use_iord on a catalogue which stores offsets must not masquerade as a partial load.
+
+    The snapshot is complete, so nothing can be missing from it; the IDs simply are not iords, and saying
+    so is far more useful than reporting most of the halos as incomplete."""
+    full, _ = partially_loaded_ahf_snapshot
+
+    halos = pynbody.halo.ahf.AHFCatalogue(full, use_iord=True)
+
+    with pytest.raises(pynbody.halo.details.iord_mapping.IllegalIordError,
+                       match="snapshot is fully loaded"):
+        halos.load_all()
+
+    with pytest.raises(pynbody.halo.details.iord_mapping.IllegalIordError,
+                       match="snapshot is fully loaded"):
+        _ = pynbody.halo.ahf.AHFCatalogue(full, use_iord=True)[1]

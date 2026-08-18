@@ -197,6 +197,33 @@ def test_binary_search():
         mask = (indices != len(b))
         np.testing.assert_array_equal(a[mask], b[indices[mask]])
 
+@pytest.mark.parametrize("needle_dtype", [np.int32, np.int64, np.uint64])
+@pytest.mark.parametrize("haystack_dtype", [np.int32, np.int64, np.uint64])
+@pytest.mark.parametrize("sorter_dtype", [np.int32, np.int64, np.uint64])
+def test_binary_search_dtype_combinations(needle_dtype, haystack_dtype, sorter_dtype):
+    """Every supported integer dtype must be accepted in each argument, including mixtures.
+
+    Halo catalogues routinely mix them: SWIFT stores iord as uint64, while for example VELOCIraptor stores
+    its particle IDs as int64."""
+    b = np.array([5, 3, 1, 2, 8], dtype=haystack_dtype)
+    b_argsort = np.argsort(b).astype(sorter_dtype)
+    a = np.array([1, 3, 8], dtype=needle_dtype)
+
+    indices = pynbody.util.binary_search(a, b, b_argsort)
+
+    np.testing.assert_array_equal(b[indices], a)
+
+
+def test_binary_search_with_large_unsigned_values():
+    """uint64 values above the int64 range must not be mangled by a signed comparison"""
+    b = np.array([2 ** 63 + 5, 2 ** 63 + 3, 1, 2], dtype=np.uint64)
+    b_argsort = np.argsort(b)
+    a = np.sort(np.array([1, 2 ** 63 + 3], dtype=np.uint64))
+
+    indices = pynbody.util.binary_search(a, b, b_argsort)
+
+    np.testing.assert_array_equal(b[indices], a)
+
 def test_is_sorted():
     """Unit test for is_sorted function"""
     # Pathological cases

@@ -387,6 +387,65 @@ def test_subhalo_catalogue_completeness_with_no_subhalos(incomplete_halos):
     assert len(subhalos.complete_keys()) == 0
 
 
+class SimpleIordBasedHaloCatalogue(halo.HaloCatalogue):
+    """A catalogue which, like the real ones, names its particles by iord rather than by position"""
+
+    def __init__(self, sim, iords_per_halo):
+        self._iords_per_halo = [np.asarray(iords) for iords in iords_per_halo]
+        number_mapper = pynbody.halo.details.number_mapping.SimpleHaloNumberMapper(1, len(self._iords_per_halo))
+        super().__init__(sim, number_mapper)
+        self._init_iord_to_fpos()
+
+    def _get_all_particle_indices(self):
+        return self._assemble_particle_indices(
+            (self._map_iords_to_fpos(iords) for iords in self._iords_per_halo),
+            num_halos=len(self._iords_per_halo),
+            num_particles=sum(len(iords) for iords in self._iords_per_halo)
+        )
+
+    def _get_particle_indices_one_halo(self, halo_number):
+        index = self.number_mapper.number_to_index(halo_number)
+        return self._map_iords_to_fpos_one_halo(self._iords_per_halo[index], halo_number)
+
+    def get_properties_one_halo(self, i):
+        return {}
+
+
+@pytest.fixture
+def snap_with_iords():
+    f = pynbody.new(dm=100)
+    f['iord'] = np.arange(100)
+    return f
+
+
+@pytest.mark.parametrize("load_all", [True, False])
+def test_unmatched_iords_in_complete_snapshot_are_an_error(snap_with_iords, load_all):
+    """A fully loaded snapshot has nothing missing, so an unmatched ID means the IDs aren't iords at all.
+
+    Reporting the halo as incomplete would send the user looking for a partial load that isn't there, so
+    the mismatch is raised instead."""
+    halos = SimpleIordBasedHaloCatalogue(snap_with_iords, [[0, 1, 2], [3, 4, 1000]])
+
+    with pytest.raises(pynbody.halo.details.iord_mapping.IllegalIordError,
+                       match="snapshot is fully loaded"):
+        if load_all:
+            halos.load_all()
+        else:
+            halos[2]
+
+
+def test_unmatched_iords_in_partial_snapshot_are_incompleteness(snap_with_iords):
+    """The same catalogue against a partially loaded snapshot reports incompleteness rather than raising"""
+    partial = snap_with_iords[:50]
+    halos = SimpleIordBasedHaloCatalogue(partial, [[0, 1, 2], [3, 4, 60]])
+
+    assert (halos.complete_keys() == [1]).all()
+    assert len(halos[1]) == 3
+
+    with pytest.raises(halo.IncompleteHaloError):
+        halos[2]
+
+
 def test_halo_number_mapper():
     halo_numbers = np.array([-5, -3, 0, 10])
     mapper = pynbody.halo.details.number_mapping.MonotonicHaloNumberMapper(halo_numbers)

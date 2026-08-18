@@ -76,7 +76,11 @@ from numpy.typing import NDArray
 
 from .. import array, snapshot, units, util
 from ..util import iter_subclasses
-from .details.iord_mapping import NO_OFFSET, make_iord_to_offset_mapper
+from .details.iord_mapping import (
+    NO_OFFSET,
+    IllegalIordError,
+    make_iord_to_offset_mapper,
+)
 from .details.number_mapping import (
     HaloNumberMapper,
     MonotonicHaloNumberMapper,
@@ -532,6 +536,11 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         that were discarded. A non-zero count should be recorded in the ``num_missing_particles`` argument of
         :class:`~pynbody.halo.details.particle_indices.HaloParticleIndices`, so that the affected halos are
         flagged as incomplete rather than silently returning too few particles.
+
+        Particles may only go missing because the snapshot is partially loaded. If it is not, everything the
+        catalogue names must be present, and an unmatched ID means the IDs are not being interpreted as the
+        snapshot's iords; an :class:`~pynbody.halo.details.iord_mapping.IllegalIordError` is then raised
+        rather than misreporting the halo as incomplete.
         """
         fpos = self._iord_to_fpos.map_ignoring_order(iords, allow_missing=True)
 
@@ -539,7 +548,14 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         # missing, without allocating a mask in the usual case that nothing is
         if len(fpos) > 0 and fpos.min() < 0:
             present = fpos != NO_OFFSET
-            return fpos[present], len(fpos) - int(present.sum())
+            num_missing = len(fpos) - int(present.sum())
+            if not self.base.is_partially_loaded():
+                raise IllegalIordError(
+                    f"{num_missing} of the {len(fpos)} particle ID(s) in a halo of this catalogue do not "
+                    f"correspond to any particle in the snapshot. Most likely {type(self).__name__} is not "
+                    f"interpreting the catalogue's particle IDs as iords of this snapshot correctly."
+                )
+            return fpos[present], num_missing
         else:
             return fpos, 0
 

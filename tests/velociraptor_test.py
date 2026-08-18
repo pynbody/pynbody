@@ -110,3 +110,74 @@ def test_swift_velociraptor_select_catalogue_with_filename():
     assert isinstance(h, pynbody.halo.velociraptor.VelociraptorCatalogue)
     h.load_all()
     assert len(h) == 209
+
+
+# VELOCIraptor stores its particle IDs as int64, while SWIFT snapshots store iord as uint64; the tests below
+# also guard against that mismatch resurfacing as a failure to map the IDs at all.
+
+
+@pytest.fixture
+def partially_loaded_swift_with_velociraptor():
+    """A SWIFT snapshot loaded fully and with only some of its cells, plus their catalogues"""
+    full = pynbody.load("testdata/SWIFT/snap_0150.hdf5")
+    partial = pynbody.load("testdata/SWIFT/snap_0150.hdf5", take_swift_cells=list(range(32)))
+    assert partial.is_partially_loaded()
+    yield full, partial
+
+
+def test_velociraptor_id_dtype_differs_from_snapshot(partially_loaded_swift_with_velociraptor):
+    """Control for the tests below: they are only meaningful while the two dtypes disagree"""
+    full, _ = partially_loaded_swift_with_velociraptor
+    catalogue = pynbody.halo.velociraptor.VelociraptorCatalogue(full)
+
+    assert catalogue._part_ids['Particle_IDs'].dtype == np.int64
+    assert full['iord'].dtype == np.uint64
+
+
+@pytest.mark.filterwarnings("ignore:Accessing multiple halos")
+@pytest.mark.parametrize("load_all", [True, False])
+def test_velociraptor_partial_loading(partially_loaded_swift_with_velociraptor, load_all):
+    """Halos wholly within the loaded cells are readable; those which are not are flagged, not truncated"""
+    full, partial = partially_loaded_swift_with_velociraptor
+    halos = pynbody.halo.velociraptor.VelociraptorCatalogue(partial)
+    reference = pynbody.halo.velociraptor.VelociraptorCatalogue(full)
+    reference.load_all()
+
+    if load_all:
+        halos.load_all()
+
+    complete_keys = halos.complete_keys()
+    assert 0 < len(complete_keys) < len(halos)
+
+    for halo_number in halos.keys():
+        if halo_number in complete_keys:
+            assert (np.sort(halos[halo_number]['iord'])
+                    == np.sort(reference[halo_number]['iord'])).all()
+        else:
+            with pytest.raises(pynbody.halo.IncompleteHaloError):
+                _ = halos[halo_number]
+
+
+@pytest.mark.filterwarnings("ignore:Accessing multiple halos")
+def test_velociraptor_partial_loading_with_unbound(partially_loaded_swift_with_velociraptor):
+    """The unbound particle list is mapped through the same machinery, and must agree"""
+    full, partial = partially_loaded_swift_with_velociraptor
+    halos = pynbody.halo.velociraptor.VelociraptorCatalogue(partial, include_unbound=True)
+    reference = pynbody.halo.velociraptor.VelociraptorCatalogue(full, include_unbound=True)
+    reference.load_all()
+
+    halos.load_all()
+
+    complete_keys = halos.complete_keys()
+    assert len(complete_keys) > 0
+
+    for halo_number in complete_keys:
+        assert (np.sort(halos[halo_number]['iord'])
+                == np.sort(reference[halo_number]['iord'])).all()
+
+
+def test_velociraptor_complete_when_fully_loaded(partially_loaded_swift_with_velociraptor):
+    full, _ = partially_loaded_swift_with_velociraptor
+    halos = pynbody.halo.velociraptor.VelociraptorCatalogue(full)
+
+    assert (halos.complete_keys() == halos.keys()).all()
