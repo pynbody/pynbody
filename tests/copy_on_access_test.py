@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
@@ -162,3 +163,62 @@ def test_only_try_loading_once():
 
     with pytest.raises(OSError, match="Previously tried"):
         f_c.dm._load_array('nonexistent')
+
+
+def test_loadable_keys_reports_nd_arrays_not_their_slices():
+    """The 1D slices that accompany an in-memory ND array must not be advertised as loadable.
+
+    A file-backed snapshot offers the blocks it stores, i.e. 'vel' but never 'vz', and code that
+    inspects loadable_keys() to decide what a snapshot can provide relies on that.
+    """
+    f = pynbody.new(10)
+    f['pos'] = np.random.normal(size=(10, 3))
+    f['vel'] = np.random.normal(size=(10, 3))
+    f['mass'] = np.ones(10)
+
+    f_c = f.get_copy_on_access_simsnap()
+
+    assert set(f_c.loadable_keys()) == {'pos', 'vel', 'mass'}
+
+
+def test_slices_of_nd_arrays_still_load():
+    """Hiding the slice names from loadable_keys must not stop them being accessible."""
+    f = pynbody.new(10)
+    f['vel'] = np.random.normal(size=(10, 3))
+
+    f_c = f.get_copy_on_access_simsnap()
+    assert 'vz' not in f_c.loadable_keys()
+    assert 'vz' not in f_c.keys()
+
+    npt.assert_allclose(f_c['vz'], f['vel'][:, 2])
+    # asking for the slice brings in the whole parent array
+    assert 'vel' in f_c.keys()
+
+
+def test_loaded_slices_are_views_onto_the_nd_array():
+    """A slice must be a view onto the copy's own ND array, not an independently stored copy.
+
+    Loading is triggered by the slice name here, which is the case most at risk of ending up with
+    'vx' and 'vel' as two unrelated arrays.
+    """
+    f = pynbody.new(10)
+    f['vel'] = np.random.normal(size=(10, 3))
+    original_vel = np.array(f['vel'])
+
+    f_c = f.get_copy_on_access_simsnap()
+    f_c['vx']  # noqa - triggers the load via the slice name rather than the parent
+
+    for i, name in enumerate(['vx', 'vy', 'vz']):
+        assert np.shares_memory(f_c[name], f_c['vel'][:, i])
+
+    # ...and the consequence that actually matters: writes are seen from both directions
+    f_c['vel'][:, 0] = np.arange(10)
+    npt.assert_allclose(f_c['vx'], np.arange(10))
+
+    f_c['vy'] = np.arange(10, 20)
+    npt.assert_allclose(f_c['vel'][:, 1], np.arange(10, 20))
+
+    # the copy remains isolated from the snapshot it copied from, which is the whole point of
+    # copy-on-access: none of those writes may reach the original
+    assert not np.shares_memory(f_c['vel'], f['vel'])
+    npt.assert_allclose(f['vel'], original_vel)
