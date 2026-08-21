@@ -52,6 +52,30 @@ def test_copy_on_access_subsnap_emulating_class():
 
     assert 'foo' not in f.keys()
 
+
+def test_derivable_keys_includes_underlying_class():
+    """derivable_keys must agree with find_deriving_function about what can be derived.
+
+    See issue #1021: the mixin widens derivation to the emulated class, so a copy-on-access view could
+    derive an array whose name was missing from derivable_keys(), and hence from all_keys().
+    """
+    f = pynbody.new(10, class_=ExampleSnap)
+    f['blob'] = np.arange(10)
+
+    f_sub = f[[2, 3, 4]].get_copy_on_access_simsnap()
+
+    assert f_sub.find_deriving_function('foo') is not None
+    assert 'foo' in f_sub.derivable_keys()
+    assert 'foo' in f_sub.all_keys()
+
+    # the arrays derivable for any SimSnap are still reported
+    assert 'r' in f_sub.derivable_keys()
+
+    # and nothing is invented
+    assert 'not_a_derived_array' not in f_sub.derivable_keys()
+    assert f_sub.derivable_keys().count('foo') == 1
+
+
 def test_copy_on_access_subsnap_emulating_class_two_layers_down():
     f = pynbody.new(10, class_=ExampleSnap)
     f['blob'] = np.arange(10)
