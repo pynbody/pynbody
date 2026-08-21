@@ -23,6 +23,21 @@ class UnderlyingClassMixin:
         else:
             return super().find_deriving_function(name)
 
+    def derivable_keys(self):
+        """Returns a list of arrays which can be lazy-evaluated, including those of the underlying class.
+
+        .. versionchanged:: 2.6.0
+
+          Derived arrays belonging to the underlying class are now reported. Previously only the mixed-in
+          class's own MRO was searched, so ``derivable_keys`` disagreed with
+          :meth:`find_deriving_function` about what could be derived. See issue #1021.
+        """
+        res = super().derivable_keys()
+        underlying = self._derived_array_registry.get(self._underlying_class, {})
+        res += [name for name in underlying if name not in res]
+        return res
+
+
 class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
     """SimSnap that copies data from another SimSnap when that data is needed.
 
