@@ -177,9 +177,14 @@ def test_neighbour_list():
     t = f.g.kdtree
     n_neigh = 32
 
-    generator_nn = t.nn(n_neigh)
-    n = next(generator_nn)
-    # print(n)
+    # The tree returns particles in its own internal order, which is an
+    # implementation detail; pick out a specific particle so that the expected
+    # values below do not depend on it.
+    for position, n in enumerate(t.nn(n_neigh)):
+        if n[0] == 9:
+            break
+    else:
+        raise AssertionError("particle 9 was not returned by the neighbour list generator")
 
     p_idx = n[0]       # particle index in snapshot arrays
     hsml = n[1]        # smoothing length
@@ -205,7 +210,7 @@ def test_neighbour_list():
                         rtol=1e-6)
 
     neighbour_list_all = t.all_nn(n_neigh)
-    assert n == neighbour_list_all[0]
+    assert n == neighbour_list_all[position]
     for nl in neighbour_list_all:
         assert len(nl[2]) == n_neigh   # always find n_neigh neighbours
         idx_self = nl[2].index(nl[0])  # index of self in the neighbour list (not necessarily the first element)
@@ -226,33 +231,69 @@ def test_div_curl_smoothing(div_curl):
     assert f.g['vorticity'].units == f.g['vel'].units/f.g['pos'].units
 
 def test_kdtree_parallel_build():
-    """Check that parallel tree build results in identical tree to serial build."""
+    """Check that the parallel tree build results in an identical tree to the serial build.
+
+    Positions here are float64 and drawn from a continuous distribution, so no two
+    particles share a coordinate and the tree is fully determined. Thread counts
+    that are not a power of two are included, since the build no longer rounds
+    down to one.
+    """
     f = pynbody.new(dm=5000)
     f['pos'] = np.random.uniform(size=(5000,3))
     f['mass'] = np.random.uniform(size=5000)
 
     f.build_tree(1)
-    result_one_thread = f.kdtree.serialize()
+    leafsize, boxsize, kdn1, poff1, kernel = f.kdtree.serialize()
 
-    _, _, kdn1, poff1, _ = result_one_thread
+    for num_threads in (2, 3, 4, 5, 8, 16):
+        del f.kdtree
+        f.build_tree(num_threads)
+        _, _, kdn, poff, _ = f.kdtree.serialize()
 
-    del f.kdtree
-
-    f.build_tree(4)
-    result_four_threads = f.kdtree.serialize()
-    _, _, kdn4, poff4, _ = result_four_threads
-
-    assert (kdn1['pLower'] == kdn4['pLower']).all()
-    assert (kdn1['pUpper'] == kdn4['pUpper']).all()
-    assert (kdn1['iDim'] == kdn4['iDim']).all()
-    npt.assert_allclose(kdn1['bnd']['fMin'], kdn4['bnd']['fMin'])
-    npt.assert_allclose(kdn1['bnd']['fMax'], kdn4['bnd']['fMax'])
-    npt.assert_allclose(kdn1['fSplit'], kdn4['fSplit'])
-    assert (poff1 == poff4).all()
+        assert (kdn1['pLower'] == kdn['pLower']).all()
+        assert (kdn1['pUpper'] == kdn['pUpper']).all()
+        assert (kdn1['iDim'] == kdn['iDim']).all()
+        npt.assert_allclose(kdn1['bnd']['fMin'], kdn['bnd']['fMin'])
+        npt.assert_allclose(kdn1['bnd']['fMax'], kdn['bnd']['fMax'])
+        npt.assert_allclose(kdn1['fSplit'], kdn['fSplit'])
+        assert (poff1 == poff).all()
 
 
+def test_kdtree_parallel_build_with_tied_coordinates():
+    """A tree built from particles sharing coordinates must still be a valid tree.
 
+    Which of a set of tied particles ends up on each side of a split is not
+    defined, so the tree may differ between thread counts here; it must
+    nevertheless partition every node correctly and use each particle once.
+    """
+    n = 20000
+    pos = np.random.randint(0, 4, size=(n, 3)).astype(np.float64)  # heavily tied
+    f = pynbody.new(dm=n)
+    f['pos'] = pos
+    f['mass'] = np.ones(n)
 
+    for num_threads in (1, 2, 3, 4, 8):
+        if hasattr(f, 'kdtree'):
+            del f.kdtree
+        f.build_tree(num_threads)
+        kdn = f.kdtree.kdnodes
+        offsets = f.kdtree.particle_offsets
+
+        assert sorted(offsets.tolist()) == list(range(n))
+
+        nsplit = len(kdn) // 2
+        for i in range(1, nsplit):
+            node = kdn[i]
+            if node['iDim'] < 0 or node['pUpper'] <= node['pLower']:
+                continue
+            m = (node['pLower'] + node['pUpper']) // 2
+            d = node['iDim']
+            low = pos[offsets[node['pLower']:m + 1], d]
+            high = pos[offsets[m + 1:node['pUpper'] + 1], d]
+            assert low.max() <= node['fSplit']
+            assert high.min() >= node['fSplit']
+            # the split must halve the node, which the tree layout relies on
+            assert (m - node['pLower'] + 1) - (node['pUpper'] - m) in (0, 1)
 
 
 @pytest.mark.parametrize("npart", [1, 10, 100, 1000, 100000])

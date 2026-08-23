@@ -156,7 +156,7 @@ struct KDContext {
 void kdCountNodes(KDContext *kd);
 
 template <typename T> void kdBuildTree(KDContext*, int num_threads);
-template <typename T> void kdBuildNode(KDContext*, npy_intp, int);
+template <typename T> void kdBuildNode(KDContext*, npy_intp);
 
 void kdCombine(KDNode *p1, KDNode *p2, KDNode *pOut);
 
