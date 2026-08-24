@@ -364,6 +364,12 @@ template <typename T> void kdBuildTree(KDContext* kd, int num_threads) {
   assert(kd->nNodes > 0);
   assert(kd->kdNodes != NULL);
 
+  // A thread is only ever any use if there is a subtree to give it, so there
+  // is nothing to be gained from a pool bigger than the number of leaves. In
+  // particular a tree that is a single leaf spawns no threads at all.
+  if (num_threads > kd->nSplit)
+    num_threads = (int)kd->nSplit;
+
   ThreadPool pool(num_threads);
   const int nThreads = pool.size();
 

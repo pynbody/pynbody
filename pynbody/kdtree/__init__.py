@@ -182,7 +182,7 @@ class KDTree:
         num_threads : int, optional
             Number of threads to use when building tree (if None, use configured/detected number of processors).
 
-            .. versionchanged:: 2.7.0
+            .. versionchanged:: 2.6.0
                 Any number of threads is now used in full. Previously the build
                 rounded this down to a power of two, and spent the early part of
                 the build on fewer threads than requested. Building with more
@@ -229,6 +229,10 @@ class KDTree:
     def _set_num_threads(self, num_threads):
         if num_threads is None:
             num_threads = int(config["number_of_threads"])
+        num_threads = int(num_threads)
+        if num_threads < 1:
+            raise ValueError(
+                f"Number of threads must be at least one, not {num_threads}")
         self.num_threads = num_threads
         return num_threads
 

@@ -259,6 +259,33 @@ def test_kdtree_parallel_build():
         assert (poff1 == poff).all()
 
 
+@pytest.mark.parametrize("num_threads", [0, -1])
+def test_kdtree_rejects_non_positive_num_threads(num_threads):
+    """A thread count below one must be rejected rather than silently doing nothing."""
+    f = pynbody.new(dm=100)
+    f['pos'] = np.random.uniform(size=(100, 3))
+    f['mass'] = np.ones(100)
+
+    with pytest.raises(ValueError):
+        f.build_tree(num_threads)
+
+
+@pytest.mark.parametrize("npart", [1, 2, 33, 200])
+def test_kdtree_build_more_threads_than_work(npart):
+    """Asking for more threads than the tree can use must still build it correctly."""
+    f = pynbody.new(dm=npart)
+    f['pos'] = np.random.uniform(size=(npart, 3))
+    f['mass'] = np.ones(npart)
+
+    f.build_tree(64)
+    offsets = f.kdtree.particle_offsets
+    assert sorted(offsets.tolist()) == list(range(npart))
+
+    del f.kdtree
+    f.build_tree(1)
+    npt.assert_array_equal(offsets, f.kdtree.particle_offsets)
+
+
 def test_kdtree_parallel_build_with_tied_coordinates():
     """A tree built from particles sharing coordinates must still be a valid tree.
 
