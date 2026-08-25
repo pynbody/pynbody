@@ -186,8 +186,12 @@ class KDTree:
                 Any number of threads is now used in full. Previously the build
                 rounded this down to a power of two, and spent the early part of
                 the build on fewer threads than requested. Building with more
-                than one thread temporarily needs one extra ``intp`` per
-                particle while the top of the tree is laid out.
+                than one thread temporarily allocates one extra ``intp`` per
+                particle while the top of the tree is laid out. That is freed
+                before the node array fills up, so the effect on peak memory
+                is smaller than the allocation and is often nothing at all;
+                past a million or so particles it adds at most 3 bytes per
+                particle.
 
             .. note::
                 The tree does not depend on ``num_threads`` unless particles
