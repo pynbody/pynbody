@@ -181,17 +181,33 @@ class KDTree:
             Boxsize (default None)
         num_threads : int, optional
             Number of threads to use when building tree (if None, use configured/detected number of processors).
+
+            .. versionchanged:: 2.6.0
+                Any number of threads is now used in full. Previously the build
+                rounded this down to a power of two, and spent the early part of
+                the build on fewer threads than requested. Building with more
+                than one thread temporarily allocates one extra ``intp`` per
+                particle while the top of the tree is laid out. That is freed
+                before the node array fills up, so the effect on peak memory
+                is smaller than the allocation and is often nothing at all;
+                past a million or so particles it adds at most 3 bytes per
+                particle.
+
+            .. note::
+                The tree does not depend on ``num_threads`` unless particles
+                share a coordinate value exactly. Where they do, which of them
+                ends up on each side of a split is not defined, so the tree --
+                while still correct -- may differ from one thread count to
+                another. Exact ties are common in single precision positions
+                once there are more than a few hundred thousand particles, and
+                essentially absent in double precision. Build with
+                ``num_threads=1`` if you need a bit-for-bit reproducible tree
+                from single precision positions.
         shared_mem : bool, optional
             Whether to keep kdtree in shared memory so that it can be shared between processes (default False).
         """
 
         num_threads = self._set_num_threads(num_threads)
-
-        # get a power of 2 for num_threads to pass to the constructor, because
-        # otherwise the workload will not be balanced across threads and they
-        # will be wasted
-        num_threads_init = 2 ** int(np.log2(num_threads))
-
 
         self.leafsize = int(leafsize)
         self.kdtree = kdmain.init(pos, mass, self.leafsize)
@@ -208,7 +224,7 @@ class KDTree:
             self.kdnodes = np.zeros(nodes, dtype=KDNode)
             self.particle_offsets = np.empty(len(pos), dtype=np.intp)
 
-        kdmain.build(self.kdtree, self.kdnodes, self.particle_offsets, num_threads_init)
+        kdmain.build(self.kdtree, self.kdnodes, self.particle_offsets, num_threads)
 
         self.boxsize = boxsize
         self._pos = pos
@@ -217,6 +233,10 @@ class KDTree:
     def _set_num_threads(self, num_threads):
         if num_threads is None:
             num_threads = int(config["number_of_threads"])
+        num_threads = int(num_threads)
+        if num_threads < 1:
+            raise ValueError(
+                f"Number of threads must be at least one, not {num_threads}")
         self.num_threads = num_threads
         return num_threads
 

@@ -300,10 +300,6 @@ PyObject * build_or_import(PyObject *self, PyObject *args, bool import_mode) {
 
   if(!import_mode) {
     Py_BEGIN_ALLOW_THREADS;
-    for (npy_intp i = 0; i < kd->nParticles; i++) {
-      kd->particleOffsets[i] = i;
-    }
-
     if (kd->nBitDepth == 64)
       kdBuildTree<double>(kd, num_threads);
     else
