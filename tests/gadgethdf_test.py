@@ -245,3 +245,30 @@ def test_load_copy_issue_955(snap):
 
     snap_cop = snap[boundary_slice].load_copy()
     assert (snap_cop['iord'] == snap[boundary_slice]['iord']).all()
+
+
+@pytest.mark.parametrize('filename',
+                         ["testdata/gadget3/data/snapshot_103/snap_103.hdf5",
+                          "testdata/gadget3/snap_028_z000p000.0.hdf5"])
+def test_remote_open(remote_kwargs, filename):
+    """
+    Try opening local and remote versions of the same file
+    """
+    # Open the local HDF5 file
+    local_snap = pynbody.load(filename)
+    assert isinstance(local_snap._hdf_files[0], h5py.File)
+
+    # Open the same file through the server and check we didn't just open the local file again
+    remote_snap = pynbody.load(filename, **remote_kwargs)
+    import hdfstream
+    assert isinstance(remote_snap._hdf_files[0], hdfstream.RemoteFile)
+
+    # Compare file contents
+    assert len(local_snap) == len(remote_snap)
+    assert local_snap.families() == remote_snap.families()
+    assert local_snap.loadable_keys() == remote_snap.loadable_keys()
+    for fam in local_snap.families():
+        assert len(local_snap[fam]) == len(remote_snap[fam])
+        assert local_snap[fam].loadable_keys() == remote_snap[fam].loadable_keys()
+        assert np.all(local_snap[fam]["pos"] == remote_snap[fam]["pos"])
+        assert np.all(local_snap[fam]["iord"] == remote_snap[fam]["iord"])

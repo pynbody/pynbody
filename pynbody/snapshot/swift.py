@@ -10,9 +10,9 @@ from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager
 
 class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
 
-    def __init__(self, filename, mode='r', take_swift_cells=None, take_region=None):
+    def __init__(self, filename, mode='r', take_swift_cells=None, take_region=None, **kwargs):
 
-        super().__init__(filename, mode)
+        super().__init__(filename, mode, **kwargs)
 
         if take_swift_cells is not None and take_region is not None:
             raise ValueError("Either take_swift_cells or take_region must be specified, not both")
@@ -184,7 +184,7 @@ class SwiftSnap(GadgetHDFSnap):
 
     _namemapper_config_section = 'swift-name-mapping'
 
-    def __init__(self, filename, take_swift_cells=None, take_region=None):
+    def __init__(self, filename, take_swift_cells=None, take_region=None, **kwargs):
         """Initialise a SWIFT snapshot.
 
         Extra parameters can be passed to the multi file manager by
@@ -193,10 +193,11 @@ class SwiftSnap(GadgetHDFSnap):
         """
         self._take_swift_cells = take_swift_cells
         self._take_region = take_region
-        super().__init__(filename)
+        super().__init__(filename, **kwargs)
 
-    def _init_hdf_filemanager(self, filename):
-        self._hdf_files = self._multifile_manager_class(filename, take_swift_cells=self._take_swift_cells, take_region=self._take_region)
+    def _init_hdf_filemanager(self, filename, **kwargs):
+        self._hdf_files = self._multifile_manager_class(filename, take_swift_cells=self._take_swift_cells,
+                                                        take_region=self._take_region, **kwargs)
 
     def _get_take_parameter(self, **kwargs):
         return self._hdf_files.get_take_parameter(list(self._families_ordered()), self._family_to_group_map)
@@ -298,16 +299,7 @@ class SwiftSnap(GadgetHDFSnap):
         Here we check that we have the expected number of keys (given by the
         NumberOfFields attribute) and assume that they're all datasets.
         """
-        if "NumberOfFields" in group.attrs:
-            if group.attrs["NumberOfFields"][0] == len(group):
-                return list(group.keys())
-            else:
-                # NumberOfFields can be wrong if we wrote a new field to the snapshot, for example.
-                warnings.warn(f"The NumberOfFields attribute of group {group.name} does not match the number of keys in the group",
-                              RuntimeWarning)
-                return GadgetHDFSnap._get_hdf_allarray_keys(group)
-        else:
-            raise ValueError(f"The expected NumberOfFields attribute of group {group.name} is not present")
+        return list(group.keys())
 
     def write_array(self, *args, **kwargs):
         """
