@@ -338,7 +338,11 @@ def test_complete_keys_avoids_efficiency_warning(incomplete_halos):
 
 
 class SimpleHaloCatalogueWithoutCompletenessInformation(SimpleHaloCatalogue):
-    """A catalogue of the kind that identifies its particles by position rather than by ID"""
+    """A catalogue of the kind whose membership is an array covering only the particles that were loaded.
+
+    That is the halo-number-per-particle case, e.g. a .grp file: usable, but with no way to tell that the
+    finder assigned further particles which are absent. Catalogues addressing particles by *file position*
+    are a different category, and set _uses_file_position_addressing instead."""
 
     _can_determine_completeness = False
 
@@ -560,6 +564,54 @@ def test_portable_state_round_trip_without_properties():
 
     assert h_recreated.get_properties_all_halos() == {}
     assert len(h_recreated[1]) == len(h[1])
+
+
+def test_portable_state_round_trip_preserves_incompleteness():
+    """Halos which cannot be loaded must still be flagged after a transfer, not silently truncated"""
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogueWithIncompleteHalos(f)
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(h.get_portable_state()), f)
+
+    assert (h_recreated.complete_keys() == h.complete_keys()).all()
+    assert (h_recreated.get_complete_mask() == h.get_complete_mask()).all()
+
+    for halo_number in SimpleHaloCatalogueWithIncompleteHalos.incomplete_halo_numbers:
+        with pytest.raises(halo.IncompleteHaloError):
+            _ = h_recreated[halo_number]
+
+
+def test_portable_state_round_trip_preserves_inability_to_determine_completeness():
+    """A catalogue which cannot detect missing particles must not appear able to once transferred"""
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogueWithoutCompletenessInformation(f)
+
+    state = h.get_portable_state()
+    assert state['can_determine_completeness'] is False
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(state), f)
+
+    assert h_recreated._can_determine_completeness is False
+    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
+        assert (h_recreated.complete_keys() == h_recreated.keys()).all()
+
+
+def test_portable_catalogue_does_not_address_particles_by_file_position():
+    """The offsets in a state are resolved against the snapshot, so a partially loaded one is no obstacle.
+
+    What matters is that the simulation presents the same particles in the same order as the one the state
+    came from, which is the caller's responsibility; there is nothing here that refers to a file, so the
+    refusal that applies to file-position catalogues must not fire."""
+    f = pynbody.new(dm=100)
+    state = SimpleHaloCatalogueWithAllProperties(f).get_portable_state()
+
+    subsnap = f[:]
+    assert subsnap.is_partially_loaded() # a view, so it counts as partial; see SimSnap.is_partially_loaded
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(state), subsnap)
+
+    assert h_recreated._uses_file_position_addressing is False
+    assert len(h_recreated[1]) > 0
 
 
 def test_portable_state_arrays_can_be_mapped():

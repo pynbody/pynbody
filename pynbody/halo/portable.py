@@ -6,12 +6,13 @@ catalogue needs to be handed to another process (for example by a parallel task 
 <https://pynbody.github.io/tangos/>`_, which loads a catalogue once and shares it between workers).
 
 To make this possible, :meth:`~pynbody.halo.HaloCatalogue.get_portable_state` expresses everything that a
-catalogue knows -- its halo numbering, the particles belonging to each halo, any information about particles
+catalogue knows -- its halo numbering, the particles belonging to each halo, what it knows about particles
 that are missing from the snapshot, and any halo finder properties -- as a dictionary of numpy arrays and
-python primitives. The recipient does not need to understand the role of any of these arrays; it needs only to
-get them to the other end (e.g. by putting them into shared memory), where
-:meth:`~pynbody.halo.HaloCatalogue.from_portable_state` turns them back into a live catalogue, attached to a
-specified simulation, in the form of a :class:`PortableHaloCatalogue`.
+python primitives. That includes the limits of its knowledge: a catalogue which cannot detect missing
+particles says so, rather than appearing to have become able to. The recipient does not need to understand
+the role of any of these arrays; it needs only to get them to the other end (e.g. by putting them into shared
+memory), where :meth:`~pynbody.halo.HaloCatalogue.from_portable_state` turns them back into a live catalogue,
+attached to a specified simulation, in the form of a :class:`PortableHaloCatalogue`.
 
 """
 
@@ -41,6 +42,13 @@ class PortableHaloCatalogue(HaloCatalogue):
     files; all the information they have is what was in the state dictionary they were created from.
     """
 
+    _uses_file_position_addressing = False
+    """Never true, whatever the originating catalogue did.
+
+    Halo membership arrives here as offsets into the snapshot the state was generated from, already resolved
+    by that catalogue; nothing is expressed relative to a file. The requirement is instead that *sim* presents
+    the same particles in the same order, which the caller asserts by passing it."""
+
     def __init__(self, sim, state: dict):
         """Create a halo catalogue for *sim* from the *state* dictionary of another catalogue.
 
@@ -63,6 +71,11 @@ class PortableHaloCatalogue(HaloCatalogue):
 
         self._index_lists = HaloParticleIndices.from_portable_state(state['particle_indices'])
         self._original_class_name = state.get('catalogue_class')
+
+        # A catalogue which could not tell whether particles were missing does not become able to by being
+        # transferred, so the capability travels with the state. Without this, such a catalogue would report
+        # every halo as complete at the far end, and without the warning that says why.
+        self._can_determine_completeness = state.get('can_determine_completeness', True)
 
         properties = state.get('properties')
         if properties:

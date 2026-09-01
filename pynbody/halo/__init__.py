@@ -291,7 +291,9 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
         The state includes the halo numbering, the particles belonging to each halo, any information about
         particles that are missing from the snapshot (see
-        :class:`~pynbody.halo.details.particle_indices.IncompleteHaloError`), and the halo finder properties
+        :class:`~pynbody.halo.details.particle_indices.IncompleteHaloError`), whether this catalogue is able
+        to detect such particles at all (:attr:`_can_determine_completeness`, so that a catalogue which
+        cannot does not appear to have become able to once transferred), and the halo finder properties
         that are available from :meth:`get_properties_all_halos`. Properties which are only available one halo
         at a time, i.e. those provided by catalogues which implement :meth:`get_properties_one_halo` without
         :meth:`get_properties_all_halos`, are not included.
@@ -309,6 +311,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
         state = {'version': PORTABLE_STATE_VERSION,
                  'catalogue_class': type(self).__name__,
+                 'can_determine_completeness': self._can_determine_completeness,
                  'number_mapper': self.number_mapper.get_portable_state(),
                  'particle_indices': self._index_lists.get_portable_state()}
 
