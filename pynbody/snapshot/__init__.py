@@ -27,6 +27,16 @@ def load(filename, *args, **kwargs) -> SimSnap:
         A list of SimSnap subclasses to try, in order. The first class which is capable of loading the file
         is used. If not specified, the ordering is as specified in the configuration files.
 
+    take : optional, np.ndarray[int] | slice
+        If specified, only the particles with the given indices are loaded. This can be used to load a subset of
+        the snapshot, e.g. for a halo or a region of interest. The indices refer to the order in which the
+        particles lie on disk, and must be strictly ascending; an array which repeats or reorders them, or a
+        slice with a negative step, is rejected.
+
+    take_region : optional, pynbody.filt.Filter
+        If specified, a sub-region including the particles with the given spatial filter are loaded. Currently
+        only Swift snapshots have the required spatial index to support this option.
+
     *args, **kwargs :
         Other arguments and keyword arguments are passed to the class constructor that is used to load the file.
 

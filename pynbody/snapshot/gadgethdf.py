@@ -49,6 +49,10 @@ for hdf_groups in _default_type_map.values():
 
 _max_buf = 1024 * 512 # max_chunk for chunk.LoadControl
 
+# HDF5 chunk cache to use when opening files; see _open_hdf_file below
+_chunk_cache_nbytes = int(config_parser.get('gadgethdf', 'chunk-cache-nbytes'))
+_chunk_cache_nslots = int(config_parser.get('gadgethdf', 'chunk-cache-nslots'))
+
 class _DummyHDFData:
 
     """A stupid class to allow emulation of mass arrays for particles
@@ -72,6 +76,18 @@ class _DummyHDFData:
         target[:] = self.value
 
 
+def _open_hdf_file(filename, mode='r'):
+    """Open an HDF5 file with a chunk cache large enough for partial reads to be efficient.
+
+    Snapshots are routinely written as compressed chunks that are megabytes in size, sometimes spanning
+    an entire dataset. If the chunk cache (1MB by default) is smaller than one chunk, HDF5 re-reads and
+    re-decompresses the whole chunk for *every* partial read, so partial loading becomes orders of
+    magnitude slower than reading the entire file. Note that HDF5 allocates cache lazily, so a generous
+    limit costs nothing when reads are sequential.
+    """
+    return h5py.File(filename, mode, rdcc_nbytes=_chunk_cache_nbytes, rdcc_nslots=_chunk_cache_nslots)
+
+
 class _GadgetHdfMultiFileManager:
     _nfiles_groupname = "Header"
     _nfiles_attrname = "NumFilesPerSnapshot"
@@ -87,7 +103,7 @@ class _GadgetHdfMultiFileManager:
             self._numfiles = 1
         else:
             filename0 = self._make_filename_for_cpu(filename, 0)
-            file0 = h5py.File(filename0, mode)
+            file0 = _open_hdf_file(filename0, mode)
             self._numfiles = self._get_num_files(file0)
             if hasattr(self._numfiles, "__len__"):
                 assert len(self._numfiles) == 1
@@ -114,7 +130,7 @@ class _GadgetHdfMultiFileManager:
     def __iter__(self) :
         for i in range(self._numfiles) :
             if i not in self._open_files:
-                self._cache_file(i, h5py.File(self._filenames[i], self._mode))
+                self._cache_file(i, _open_hdf_file(self._filenames[i], self._mode))
             yield self._open_files[i]
 
     def __getitem__(self, i) :
