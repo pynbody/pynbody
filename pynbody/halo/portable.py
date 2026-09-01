@@ -102,16 +102,8 @@ class PortableHaloCatalogue(HaloCatalogue):
 def map_arrays(state, mapper, types=np.ndarray):
     """Return a copy of a portable state, with every numpy array in it replaced by ``mapper(array)``.
 
-    This is a convenience for code that transfers a state elsewhere, such as a parallel task manager copying
-    the arrays into shared memory. It saves the caller from having to know the structure of the state, let
-    alone the meaning of the individual arrays. For example, to transfer a catalogue using pynbody's own
-    shared memory support::
-
-        packed = map_arrays(map_arrays(state, to_shared_memory), pynbody.array.shared.pack)
-
-    and, in the receiving process, undo the packing with the *types* argument::
-
-        state = map_arrays(packed, pynbody.array.shared.unpack, types=type_of_packed_arrays)
+    This is a convenience for code that transfers a state elsewhere, e.g. via shared memory. It saves the
+    caller from having to know the structure of the state, let alone the meaning of the individual arrays.
 
     Parameters
     ----------

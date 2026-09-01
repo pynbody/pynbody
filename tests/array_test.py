@@ -345,8 +345,17 @@ def test_issue_485_2():
     np.testing.assert_allclose(sigvt, np.array([28.49997711, 18.84262276,  0.]), rtol=1e-6)
     np.testing.assert_allclose(rxy, np.array([1136892.125, 1606893.625, 1610494.75]), rtol=1e-6)
 
+def test_shared_reference_legacy_names():
+    """The pre-2.7 names must keep working: external code, notably tangos, imports them.
+
+    They are aliases rather than wrappers, so identity is the strongest statement of that."""
+    assert pyn_array.shared.pack is pyn_array.shared.to_shared_reference
+    assert pyn_array.shared.unpack is pyn_array.shared.from_shared_reference
+    assert pyn_array.shared._deconstructed_shared_array is pyn_array.shared.SharedArrayReference
+
+
 def _test_and_alter_shared_value(array_info):
-    array = pynbody.array.shared.unpack(array_info)
+    array = pynbody.array.shared.from_shared_reference(array_info)
     assert (array[:] == np.arange(3)[: , np.newaxis] * np.arange(5)[np.newaxis, :]).all()
     array[:] = np.arange(3)[:, np.newaxis]
 
@@ -366,7 +375,7 @@ def test_shared_arrays():
 
     import multiprocessing as mp
     context = mp.get_context('spawn')
-    p = context.Process(target=_test_and_alter_shared_value, args=(pyn_array.shared.pack(ar),))
+    p = context.Process(target=_test_and_alter_shared_value, args=(pyn_array.shared.to_shared_reference(ar),))
     p.start()
     p.join()
 
@@ -406,8 +415,8 @@ def test_shared_array_ownership():
     ar = pyn_array.array_factory((10,), int, True, True)
     assert pyn_array.shared.get_num_shared_arrays_owned() == 1 + baseline_num_shared_arrays
 
-    array_info = pyn_array.shared.pack(ar)
-    ar2 = pynbody.array.shared.unpack(array_info)
+    array_info = pyn_array.shared.to_shared_reference(ar)
+    ar2 = pynbody.array.shared.from_shared_reference(array_info)
     del ar2
 
     gc.collect()

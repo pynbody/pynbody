@@ -637,9 +637,10 @@ def test_portable_state_arrays_can_be_mapped():
 def _rebuild_catalogue_in_subprocess(packed_state, result_queue):
     """Rebuild a catalogue that has been transferred through shared memory, and report on what it contains"""
     import pynbody
-    from pynbody.array.shared import _deconstructed_shared_array, unpack
+    from pynbody.array.shared import SharedArrayReference, from_shared_reference
 
-    state = pynbody.halo.portable.map_arrays(packed_state, unpack, types=_deconstructed_shared_array)
+    state = pynbody.halo.portable.map_arrays(packed_state, from_shared_reference,
+                                            types=SharedArrayReference)
 
     f = pynbody.new(dm=100)
     h = pynbody.halo.HaloCatalogue.from_portable_state(state, f)
@@ -668,7 +669,7 @@ def test_portable_state_transferred_through_shared_memory():
         return shared_ar
 
     state = pynbody.halo.portable.map_arrays(h.get_portable_state(), to_shared_memory)
-    packed_state = pynbody.halo.portable.map_arrays(state, pynbody.array.shared.pack)
+    packed_state = pynbody.halo.portable.map_arrays(state, pynbody.array.shared.to_shared_reference)
 
     context = mp.get_context('spawn')
     result_queue = context.Queue()
