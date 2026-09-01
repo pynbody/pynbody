@@ -636,7 +636,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         Note that a view which happens to contain all the particles of its ancestor is still reported as
         partially loaded, since it may present them in a different order.
 
-        .. versionadded:: 2.6.0
+        .. versionadded:: 2.7.0
 
         """
         ancestor = self.ancestor
