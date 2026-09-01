@@ -72,19 +72,22 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     _persistent = ["kdtree", "_immediate_cache", "_kdtree_derived_smoothing"]
 
     partial_load = False
-    """True if only some of the particles in the file(s) that were opened have been read.
+    """True if the particles held no longer correspond, one-to-one and in order, with those in :attr:`filename`.
 
-    Set by loaders which support partial loading. Note that this specifically describes selection *within* the
-    files opened, so that the particle ordering no longer corresponds to that of :attr:`filename`; see
-    :attr:`incomplete_file_set` for the case where not all the snapshot's files were opened at all, and
-    :meth:`is_partially_loaded`, which should normally be preferred as it covers both, plus views."""
+    Set by loaders which select particles within the files they open, and by ramses when it reads a subset of
+    the cpu files or drops the gas. What these have in common is that an index into this snapshot no longer
+    addresses the same particle in the file, so operations which re-read the file by index -- :meth:`load_copy`,
+    and writing arrays back -- must refuse. See :attr:`incomplete_file_set` for the case where particles are
+    missing but that correspondence survives, and :meth:`is_partially_loaded`, which should normally be
+    preferred as it covers both, plus views."""
 
     incomplete_file_set = False
     """True if the snapshot is spread over several files, of which only some have been opened.
 
-    Set by loaders which can be pointed at a single file of a multi-file snapshot. Such a snapshot is
-    internally consistent, but does not contain all the particles that other tools (for example halo finders)
-    will consider it to have."""
+    Set by loaders which can be pointed at a single file of a multi-file snapshot. Here :attr:`filename` is
+    that one file, and the particles held are exactly its contents in its order, so re-reading it by index
+    remains valid; but the snapshot does not contain all the particles that other tools (for example halo
+    finders) will consider the output to have."""
 
     # These 3D arrays get four views automatically created, one reflecting the
     # full Nx3 data, the others reflecting Nx1 slices of it

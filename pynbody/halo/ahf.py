@@ -98,11 +98,10 @@ class AHFCatalogue(HaloCatalogue):
         self._only_stat = only_stat
         self._try_writing_fpos = write_fpos
 
-        # If we are not using iords, the AHF particle ids are offsets within the snapshot's families, so we
-        # already know a partially loaded snapshot is unusable. Check now, before going looking for files, so
-        # that the user gets a useful explanation rather than a failure to locate the catalogue. (If we *are*
-        # using iords, whether the ids are mapped also depends on the file format revision, established below.)
-        self._uses_file_position_addressing = not use_iord
+        # Check now, before going looking for files, so that a partially loaded snapshot gets a useful
+        # explanation rather than a failure to locate the catalogue -- but only on what is already certain,
+        # since the format revision is not yet known. The check is repeated below with the final answer.
+        self._determine_file_position_addressing(format_revision_known=False)
         self._refuse_if_snapshot_partially_loaded(sim)
 
         if only_stat:
@@ -127,11 +126,9 @@ class AHFCatalogue(HaloCatalogue):
 
         number_mapper = self._setup_halo_numbering(halo_numbers)
 
-        # only the new format maps its particle IDs; otherwise they are interpreted as offsets within the
-        # snapshot's families, which is only meaningful if all the particles are present
-        self._uses_file_position_addressing = not (self._use_iord and self._is_new_format)
+        self._determine_file_position_addressing(format_revision_known=True)
 
-        super().__init__(sim, number_mapper) # rechecks partial loading, now the file format is known
+        super().__init__(sim, number_mapper) # re-runs the refusal check, now with the final answer
 
         self._remap_host_halo_property()
 
@@ -205,6 +202,23 @@ class AHFCatalogue(HaloCatalogue):
                 host_halo[mask] = self.number_mapper.index_to_number(
                     self._ahf_own_number_mapper.number_to_index(host_halo[mask])
                 )
+
+    def _determine_file_position_addressing(self, format_revision_known: bool) -> None:
+        """Record whether this catalogue identifies its particles by file position rather than by iord.
+
+        AHF writes iords only in its newer file format; otherwise the particle ids are offsets within the
+        snapshot's families, which are meaningful only if every particle is present.
+
+        The format revision is not known until the catalogue files have been located, and for a view such as
+        ``f[:100]`` they cannot be located at all, since the filename no longer corresponds to the snapshot.
+        So this is called twice: once with ``format_revision_known=False``, which refuses only what is
+        certain whatever the revision turns out to be, and again once it is established. The second answer is
+        never less restrictive than the first, so nothing which should be refused is admitted in between.
+        """
+        if format_revision_known:
+            self._uses_file_position_addressing = not (self._use_iord and self._is_new_format)
+        else:
+            self._uses_file_position_addressing = not self._use_iord
 
     def _determine_format_revision_from_filename(self):
         if self._ahfBasename.split("z")[-2][-1] == ".":

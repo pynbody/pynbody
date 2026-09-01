@@ -130,9 +130,7 @@ too few particles.
 This is possible only for halo finders which identify their particles by ID. Some formats instead express
 halo membership as positions within the snapshot file, which are meaningless unless every particle is
 present. Those catalogues refuse to load against a partially loaded snapshot, raising a
-:class:`~pynbody.halo.details.particle_indices.PartialLoadingNotSupportedError`, rather than silently
-returning the wrong particles. At the time of writing this affects the SubFind HDF catalogues, AHF where it
-is not using iords, and Subfind where the snapshot is taken to be ordered.
+:class:`~pynbody.halo.details.particle_indices.PartialLoadingNotSupportedError`.
 
 Whether a snapshot holds all the particles in its file can be tested directly with
 :meth:`~pynbody.snapshot.simsnap.SimSnap.is_partially_loaded`. Note that a view onto a snapshot, such as

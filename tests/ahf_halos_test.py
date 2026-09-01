@@ -362,6 +362,23 @@ def test_ahf_refuses_partially_loaded_snapshot(partially_loaded_ahf_snapshot):
         pynbody.halo.ahf.AHFCatalogue(partial)
 
 
+def test_ahf_refuses_partially_loaded_snapshot_using_old_format_iords(partially_loaded_ahf_snapshot):
+    """use_iord is not sufficient on its own: only the newer AHF format actually writes iords.
+
+    With use_iord=True the early check cannot refuse, since the answer still depends on the file format
+    revision, which is unknown until the catalogue files have been located. So the refusal for this
+    combination can only come from the recheck in HaloCatalogue.__init__. The test data is new-format, so the
+    old format is forced here."""
+    _, partial = partially_loaded_ahf_snapshot
+
+    class OldFormatAHFCatalogue(pynbody.halo.ahf.AHFCatalogue):
+        def _determine_format_revision_from_filename(self):
+            self._is_new_format = False
+
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        OldFormatAHFCatalogue(partial, use_iord=True)
+
+
 def test_ahf_refuses_subsnap(partially_loaded_ahf_snapshot):
     """A view onto part of a snapshot is no more usable than a partial load"""
     full, _ = partially_loaded_ahf_snapshot
