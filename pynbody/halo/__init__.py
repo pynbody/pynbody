@@ -86,13 +86,21 @@ from numpy.typing import NDArray
 
 from .. import array, snapshot, units, util
 from ..util import iter_subclasses
-from .details.iord_mapping import NO_OFFSET, make_iord_to_offset_mapper
+from .details.iord_mapping import (
+    NO_OFFSET,
+    IllegalIordError,
+    make_iord_to_offset_mapper,
+)
 from .details.number_mapping import (
     HaloNumberMapper,
     MonotonicHaloNumberMapper,
     create_halo_number_mapper,
 )
-from .details.particle_indices import HaloParticleIndices, IncompleteHaloError
+from .details.particle_indices import (
+    HaloParticleIndices,
+    IncompleteHaloError,
+    PartialLoadingNotSupportedError,
+)
 
 if TYPE_CHECKING:
     from .subhalo_catalogue import SubhaloCatalogue
@@ -190,30 +198,75 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
       Internally, *pynbody* converts between these using a :class:`details.number_mapping.HaloNumberMapper` object,
       which is set up in the :meth:`__init__` method.
     * Particle indices should be returned from methods like :meth:`_get_particle_indices_one_halo` as zero-relative
-      offsets within the snapshot, not particle IDs or 'iord's. Many halo finders output particle IDs which must
-      therefore be mapped. To aid this, call :meth:`_init_iord_to_fpos` in your :meth:`__init__` method, which creates
-      a mapper as :attr:`_iord_to_fpos`. See :mod:`details.iord_mapping` for more information.
+      offsets within the in-memory SimSnap representation of the snapshot, not particle IDs, 'iord's, or the
+      position on disk. Many halo finders output particle IDs which must therefore be mapped. To aid this, 
+      call :meth:`_init_iord_to_fpos` in your :meth:`__init__` method, which creates a mapper as 
+      :attr:`_iord_to_fpos`. See :mod:`details.iord_mapping` for more information.
     * If the snapshot is partially loaded, a halo may refer to particles that are not present. Rather than mapping
       particle IDs with :attr:`_iord_to_fpos` directly, use :meth:`_map_iords_to_fpos_one_halo` (in
       :meth:`_get_particle_indices_one_halo`), which raises an :class:`IncompleteHaloError`; and
       :meth:`_map_iords_to_fpos` (in :meth:`_get_all_particle_indices`), which discards and counts the missing
-      particles. Pass those counts to :class:`details.particle_indices.HaloParticleIndices` as
-      ``num_missing_particles``, so that loading all halos does not fail, while an
-      :class:`IncompleteHaloError` is still raised if an affected halo is accessed.
+      particles. The counts are passed to :class:`details.particle_indices.HaloParticleIndices` as
+      ``num_missing_particles``, most easily by assembling the index list with
+      :meth:`_assemble_particle_indices`, so that loading all halos does not fail, while an
+      :class:`IncompleteHaloError` is still raised if an affected halo is accessed. Those counts are also what
+      :meth:`complete_keys` reports to the user, so no further work is needed to support it.
+    * If, on the other hand, the format identifies its particles by position within the snapshot rather than
+      by ID, those positions refer to particles which are not all present, and cannot in general be mapped
+      onto those which are. Such subclasses should set the class attribute
+      :attr:`_uses_file_position_addressing` to True, so that construction is refused with a
+      :class:`details.particle_indices.PartialLoadingNotSupportedError` rather than the wrong particles being
+      returned.
+    * A third category expresses halo membership through an array covering only the particles which were
+      loaded, such as a halo number per particle. Such a catalogue is usable, but has no way of knowing that
+      the halo finder assigned further particles which are absent. These subclasses should set
+      :attr:`_can_determine_completeness` to False, so that users are warned instead of being told that every
+      halo is complete.
+    * Catalogues which are views onto another catalogue, and therefore delegate :meth:`load_all` rather than
+      populating their own particle index lists, must provide their own :meth:`_get_complete_mask` (mapping the
+      underlying catalogue's answer into their own halo indexing) and :meth:`_is_loaded`.
 
     """
 
+    _can_determine_completeness = True
+    """Whether this catalogue is able to tell that particles are missing from the snapshot.
+
+    Catalogues which identify their particles by ID can tell; those which rely on an array defined only for
+    the particles which have been loaded cannot. Subclasses in the latter category should set this to False,
+    so that users are warned rather than being given a completeness answer which is really an assumption.
+    See :meth:`complete_keys`."""
+
+    _uses_file_position_addressing = False
+    """Whether this catalogue identifies its particles by position within the file rather than by ID.
+
+    Such a catalogue cannot be used with a partially loaded snapshot, since its positions refer to particles
+    which are not all present, and there is in general no way to map them onto those which are. Subclasses in
+    this category should set this to True (before calling ``super().__init__``, if it depends on how the
+    catalogue is configured), and construction is then refused for such snapshots."""
+
+    def _refuse_if_snapshot_partially_loaded(self, sim):
+        """Raise if this catalogue addresses particles by file position but the snapshot is partially loaded.
+
+        This is called by :meth:`__init__`. Subclasses which do significant work (such as locating and opening
+        their files) before calling ``super().__init__`` may call it earlier, so that the user gets this
+        explanation rather than a confusing failure of that earlier work."""
+        if self._uses_file_position_addressing and sim.is_partially_loaded():
+            raise PartialLoadingNotSupportedError(type(self).__name__)
+
     def __init__(self, sim, number_mapper):
+        self._refuse_if_snapshot_partially_loaded(sim)
+
         self._base: weakref[snapshot.SimSnap] = weakref.ref(sim)
         self.number_mapper: HaloNumberMapper = number_mapper
         self._index_lists: HaloParticleIndices | None = None
+        self._complete_mask: NDArray[bool] | None = None
         self._properties: dict | None = None
         self._cached_halos: dict[int, Halo] = {}
         self._persistent_units = None
 
     def load_all(self):
         """Loads all halos, which is normally more efficient if a large fraction of them will be accessed."""
-        if not self._index_lists:
+        if self._index_lists is None:
             index_lists = self._get_all_particle_indices()
             properties = self.get_properties_all_halos(with_units=True)
             if isinstance(index_lists, tuple):
@@ -347,7 +400,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         )
 
     def _get_particle_indices_one_halo_using_list_if_available(self, halo_number, halo_index) -> NDArray[int]:
-        if self._index_lists:
+        if self._index_lists is not None:
             return self._index_lists.get_particle_index_list_for_halo(halo_index, halo_number)
         else:
             if len(self._cached_halos) == 5:
@@ -386,9 +439,131 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     def __repr__(self):
         return f"<{type(self).__name__}, length {len(self)}>"
 
-    def keys(self):
-        """Return an iterable of all halo numbers in the catalogue."""
-        return self.number_mapper.all_numbers
+    def keys(self) -> NDArray[int]:
+        """Return an array of all halo numbers in the catalogue, whether or not they can be loaded.
+
+        If the snapshot has been partially loaded, some of these halos may refer to particles that are not
+        present, and cannot be retrieved; see :meth:`complete_keys`.
+
+        The returned array is read-only, since it may be a view of the catalogue's internal numbering.
+        """
+        all_numbers = np.asarray(self.number_mapper.all_numbers).view()
+        all_numbers.flags.writeable = False
+        return all_numbers
+
+    def complete_keys(self, load_all_if_required=True) -> NDArray[int]:
+        """Return an array of the halo numbers which can actually be retrieved from the snapshot.
+
+        This is a subset of :meth:`keys`, in the same order, from which halos referring to particles that are
+        not present in the snapshot have been excluded. Accessing such halos raises an
+        :class:`~pynbody.halo.details.particle_indices.IncompleteHaloError`; this normally happens only if the
+        snapshot has been partially loaded.
+
+        Note that halo *properties* remain available for all halos, including incomplete ones; it is only
+        access to the particles which fails.
+
+        Some catalogue formats express halo membership through an array covering only the particles which
+        were loaded, such as a halo number per particle, and so are unable to tell whether the halo finder
+        assigned further particles which are absent. These report all their halos as complete, and issue a
+        RuntimeWarning to that effect. (Formats which instead identify their particles by position within the
+        snapshot cannot be used with a partially loaded snapshot at all; they refuse to load.)
+
+        Parameters
+        ----------
+
+        load_all_if_required : bool
+            Establishing which halos are complete requires the particle lists for all halos, so
+            :meth:`load_all` is called if it has not been already. If this is undesirable (e.g. because the
+            catalogue is very large), pass False to raise a RuntimeError instead.
+
+        .. versionadded:: 2.7.0
+
+        """
+        all_numbers = self.keys()
+        complete_mask = self.get_complete_mask(load_all_if_required)
+
+        # NB the halo numbers are not necessarily in halo index order (see NonMonotonicHaloNumberMapper),
+        # so the mask must be explicitly mapped rather than applied directly
+        all_indices = self.number_mapper.number_to_index(all_numbers)
+
+        return all_numbers[complete_mask[all_indices]]
+
+    def is_complete(self, halo_number, load_all_if_required=True) -> bool:
+        """Return True if the specified halo can actually be retrieved from the snapshot.
+
+        See :meth:`complete_keys` for more information, including the meaning of the
+        ``load_all_if_required`` argument.
+
+        .. versionadded:: 2.7.0
+
+        """
+        halo_index = self.number_mapper.number_to_index(halo_number)
+        return bool(self.get_complete_mask(load_all_if_required)[halo_index])
+
+    def get_complete_mask(self, load_all_if_required=True) -> NDArray[bool]:
+        """Return a boolean mask, in halo index order, of the halos which can be retrieved from the snapshot.
+
+        This is the underlying information from which :meth:`complete_keys` and :meth:`is_complete` are
+        derived. Since it is in index order, it can be used to filter the arrays returned by
+        :meth:`get_properties_all_halos`. (See the class documentation for the distinction between halo
+        numbers and indices.)
+
+        See :meth:`complete_keys` for the meaning of the ``load_all_if_required`` argument. The returned array
+        is cached and read-only.
+
+        .. versionadded:: 2.7.0
+
+        """
+        if not self._can_determine_completeness:
+            warnings.warn(f"{type(self).__name__} is unable to tell whether particles are missing from the "
+                          f"snapshot, so all halos are being reported as complete. If the snapshot has been "
+                          f"partially loaded, halos may silently contain fewer particles than the halo finder "
+                          f"assigned to them.", RuntimeWarning)
+            if self._complete_mask is None:
+                complete_mask = np.ones(len(self), dtype=bool)
+                complete_mask.flags.writeable = False
+                self._complete_mask = complete_mask
+            return self._complete_mask
+
+        if self._complete_mask is None:
+            if not self._is_loaded():
+                if not load_all_if_required:
+                    raise RuntimeError("Establishing which halos are complete requires the particle lists for "
+                                       "all halos. Either call load_all() first, or pass "
+                                       "load_all_if_required=True.")
+                self.load_all()
+
+            complete_mask = np.asarray(self._get_complete_mask())
+
+            if complete_mask.dtype != bool or complete_mask.shape != (len(self),):
+                raise ValueError(f"{type(self).__name__}._get_complete_mask returned a {complete_mask.dtype} "
+                                 f"array of shape {complete_mask.shape}; expected a boolean array of shape "
+                                 f"({len(self)},)")
+
+            complete_mask.flags.writeable = False # it is cached, and handed out repeatedly
+            self._complete_mask = complete_mask
+
+        return self._complete_mask
+
+    def _is_loaded(self) -> bool:
+        """Return True if the particle lists underlying this catalogue have been loaded.
+
+        Catalogues which are views onto another catalogue should override this alongside
+        :meth:`_get_complete_mask`."""
+        return self._index_lists is not None
+
+    def _get_complete_mask(self) -> NDArray[bool]:
+        """Return a boolean array, in halo index order, flagging the halos whose particles are all present.
+
+        This is the hook underlying :meth:`get_complete_mask`, and is called only once the catalogue has been
+        loaded; it should not itself trigger loading. The default implementation uses the particle index
+        lists, so catalogues which are views onto another catalogue must override it (see also
+        :meth:`_is_loaded`)."""
+        if self._index_lists is None:
+            raise NotImplementedError(f"{type(self).__name__} is unable to establish which of its halos are "
+                                      f"complete; it should provide its own _get_complete_mask implementation")
+
+        return self._index_lists.get_complete_mask()
 
     def __getitem__(self, item) -> Halo | SubhaloCatalogue:
         from .subhalo_catalogue import SubhaloCatalogue
@@ -413,6 +588,12 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
                 self._iord_to_fpos = make_iord_to_offset_mapper(self.base['iord'])
 
             else:
+                if self.base.is_partially_loaded():
+                    # without particle IDs we would have to take the catalogue's values as file positions,
+                    # which are meaningless if not all the particles are present
+                    raise PartialLoadingNotSupportedError(
+                        f"{type(self).__name__}, with no iord array available,")
+
                 warnings.warn("No iord array available; assuming halo catalogue is using sequential particle IDs",
                               RuntimeWarning)
 
@@ -438,6 +619,11 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         that were discarded. A non-zero count should be recorded in the ``num_missing_particles`` argument of
         :class:`~pynbody.halo.details.particle_indices.HaloParticleIndices`, so that the affected halos are
         flagged as incomplete rather than silently returning too few particles.
+
+        Particles may only go missing because the snapshot is partially loaded. If it is not, everything the
+        catalogue names must be present, and an unmatched ID means the IDs are not being interpreted as the
+        snapshot's iords; an :class:`~pynbody.halo.details.iord_mapping.IllegalIordError` is then raised
+        rather than misreporting the halo as incomplete.
         """
         fpos = self._iord_to_fpos.map_ignoring_order(iords, allow_missing=True)
 
@@ -445,7 +631,14 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         # missing, without allocating a mask in the usual case that nothing is
         if len(fpos) > 0 and fpos.min() < 0:
             present = fpos != NO_OFFSET
-            return fpos[present], len(fpos) - int(present.sum())
+            num_missing = len(fpos) - int(present.sum())
+            if not self.base.is_partially_loaded():
+                raise IllegalIordError(
+                    f"{num_missing} of the {len(fpos)} particle ID(s) in a halo of this catalogue do not "
+                    f"correspond to any particle in the snapshot. Most likely {type(self).__name__} is not "
+                    f"interpreting the catalogue's particle IDs as iords of this snapshot correctly."
+                )
+            return fpos[present], num_missing
         else:
             return fpos, 0
 
@@ -462,6 +655,50 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         if num_missing > 0:
             raise IncompleteHaloError(halo_number, num_missing)
         return fpos
+
+    def _assemble_particle_indices(self, mapped_iords_per_halo, num_halos, num_particles,
+                                   sort=False) -> HaloParticleIndices:
+        """Assemble the index list for all halos, given their particles' file positions.
+
+        This is a convenience function for subclasses to use when implementing
+        :meth:`_get_all_particle_indices`. Particles which are not present in the snapshot have already been
+        discarded by :meth:`_map_iords_to_fpos`, so the index list is compacted, and the halos which have lost
+        particles are flagged as incomplete.
+
+        Parameters
+        ----------
+
+        mapped_iords_per_halo : iterable
+            An iterable of ``(file_positions, num_missing)`` pairs, one per halo in halo index order, as
+            returned by :meth:`_map_iords_to_fpos`.
+
+        num_halos : int
+            The number of halos, i.e. the number of items in ``mapped_iords_per_halo``.
+
+        num_particles : int
+            The total number of particles assigned to halos by the halo finder. This is used to allocate the
+            index list, and may be an overestimate if particles are missing from the snapshot.
+
+        sort : bool
+            If True, sort each halo's file positions into ascending order.
+
+        """
+        particle_ids = np.empty(num_particles, dtype=np.intp)
+        boundaries = np.empty((num_halos, 2), dtype=np.intp)
+        num_missing_particles = np.zeros(num_halos, dtype=np.intp)
+
+        start = 0
+        for halo_index, (fpos, num_missing) in enumerate(mapped_iords_per_halo):
+            stop = start + len(fpos)
+            particle_ids[start:stop] = np.sort(fpos) if sort else fpos
+            boundaries[halo_index] = (start, stop)
+            num_missing_particles[halo_index] = num_missing
+            start = stop
+
+        # NB this is a view rather than a copy, so that nothing is duplicated in the usual case that all the
+        # particles are present and the whole array is in use anyway
+        return HaloParticleIndices(particle_ids[:start], boundaries,
+                                   num_missing_particles=num_missing_particles)
 
     def _get_subhalo_catalogue(self, parent_halo_number: int) -> SubhaloCatalogue:
         from .subhalo_catalogue import SubhaloCatalogue

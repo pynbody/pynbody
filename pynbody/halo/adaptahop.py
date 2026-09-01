@@ -217,24 +217,19 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
                 fpu.skip(Nskip)     # skip over attributes
 
     def _get_all_particle_indices(self):
-        particle_ids = np.empty(self._npart.sum(), dtype=self._length_type)
-        particle_slices = np.empty((len(self), 2), dtype=self._length_type)
-        start = 0
-
-        with FortranFile(self._fname) as fpu:
+        def mapped_iords_per_halo(fpu):
             for i in range(len(self)):
                 fpu.seek(self._file_offsets[i])
                 npart = fpu.read_int32_or_64()
+                yield self._map_iords_to_fpos(self._read_member_helper(fpu, npart))
 
-                stop = start+npart
-                particle_ids[start:stop] = self._iord_to_fpos.map_ignoring_order(self._read_member_helper(fpu, npart))
-                particle_slices[i] = [start, stop]
-                start = stop
+        with FortranFile(self._fname) as fpu:
+            index_list = self._assemble_particle_indices(mapped_iords_per_halo(fpu), num_halos=len(self),
+                                                         num_particles=self._npart.sum())
 
-        assert stop == len(particle_ids)
-        assert (particle_ids < len(self.base)).all()
+        assert (index_list.particle_index_list < len(self.base)).all()
 
-        return HaloParticleIndices(particle_ids, particle_slices)
+        return index_list
 
     def _get_particle_indices_one_halo(self, halo_number):
         halo_index = self.number_mapper.number_to_index(halo_number)
@@ -245,7 +240,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
 
             assert npart == self._npart[halo_index]
 
-            return self._iord_to_fpos.map_ignoring_order(self._read_member_helper(fpu, npart))
+            return self._map_iords_to_fpos_one_halo(self._read_member_helper(fpu, npart), halo_number)
 
 
     def _read_member_helper(self, fpu, expected_size):

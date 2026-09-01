@@ -1,16 +1,19 @@
 import shutil
+from contextlib import contextmanager
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import h5py
 import numpy as np
 import numpy.testing as npt
 import pytest
-from pytest import raises
+from pytest import raises, warns
 
 import pynbody
 import pynbody.halo.velociraptor
 import pynbody.snapshot.swift
 import pynbody.test_utils
+from pynbody.test_utils.split_swift_snapshot import ensure_split_snapshot_exists
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -136,33 +139,6 @@ def test_swift_multifile_partial_loading():
                           [ 12.14706372,  38.8390906 ,  76.86117397],
                           [ 16.59894837,  36.67247821,  85.82433427],
                           [  9.79404938,  52.28051827,  81.30710868]])
-
-def test_coalesce_cells_into_slices():
-    """Cells that are adjacent on disk must be merged into a single slice.
-
-    Each slice becomes a mapping in the virtual dataset, and reading from a virtual dataset costs a
-    roughly fixed overhead per mapping touched, so failing to merge makes partial loads very slow."""
-    coalesce = pynbody.snapshot.swift.SwiftMultiFileManager._coalesce_cells_into_slices
-
-    # a contiguous run of cells becomes a single slice, whatever order it is presented in
-    assert coalesce(np.array([0, 10, 25]), np.array([10, 15, 5])) == [slice(0, 30)]
-    assert coalesce(np.array([25, 0, 10]), np.array([5, 10, 15])) == [slice(0, 30)]
-
-    # gaps are respected
-    assert coalesce(np.array([0, 10, 40]), np.array([10, 15, 5])) == [slice(0, 25), slice(40, 45)]
-
-    # empty cells neither generate slices nor break up a run
-    assert coalesce(np.array([0, 10, 10]), np.array([10, 0, 15])) == [slice(0, 25)]
-    assert coalesce(np.array([0, 10]), np.array([0, 0])) == []
-
-
-def test_partial_loading_uses_minimal_virtual_mappings():
-    """Check contiguous cells result in a single mapping per array; see test_coalesce_cells_into_slices"""
-    f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", take_swift_cells=np.arange(0, 256))
-    for group_name in ('PartType0', 'PartType1'):
-        dataset = f._hdf_files._hdf_vfile[group_name]['ParticleIDs']
-        assert len(dataset.virtual_sources()) == 1
-
 
 def test_swift_multifile_partial_loading_order_insensitive():
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
@@ -293,7 +269,12 @@ def test_load_planetary():
           [35.47905534, 55.80711974, 68.81765962],
           [35.50355171, 60.95662443, 54.52549088]])
 
-
+def test_load_planetary_region():
+    # The planetary example is an incomplete snapshot with all cell counts
+    # equal to zero, so this should fail
+    with raises(ValueError) as excinfo:
+        f = pynbody.load("testdata/SWIFT/planetary.hdf5", take_region=pynbody.filt.Sphere(10., (60., 60., 60.)))
+    assert "No spatial index" in str(excinfo.value)
 
 def test_planetary_physical_units():
     f = pynbody.load("testdata/SWIFT/planetary.hdf5")
@@ -308,3 +289,276 @@ def test_planetary_physical_units():
           [222.85219794, 391.8567664 , 395.02856333],
           [226.0370616 , 355.54715989, 438.43730943],
           [226.19312796, 388.35465427, 347.38190241]])
+
+
+@pytest.fixture
+def multifile_with_multiple_types():
+    """
+    Split a snapshot with gas and dark matter over multiple files
+    """
+    nr_files = 8
+    input_snapshot = "./testdata/SWIFT/snap_0150.hdf5"
+    output_dir = "./testdata/SWIFT/multi_file_multi_type"
+    output_name = "split_snap_0150.0.hdf5"
+    rng = np.random.default_rng(0)
+    cell_file_index = rng.integers(nr_files, size=512)
+    return ensure_split_snapshot_exists(input_snapshot, nr_files, output_dir, output_name,
+                                        cell_file_index)
+
+@pytest.mark.parametrize('test_region',
+                         [pynbody.filt.Sphere(50., (50., 50., 50.)),
+                         pynbody.filt.Cuboid(-20.0)]) # note the cuboid test region wraps around the box
+def test_swift_take_region_multiple_files_and_types(test_region, multifile_with_multiple_types):
+    f = pynbody.load(multifile_with_multiple_types, take_region = test_region)
+    f_full = pynbody.load(multifile_with_multiple_types)
+    assert len(f_full) == 524288
+    assert len(f) < len(f_full)
+    assert np.all(f[test_region]['iord'] == f_full[test_region]['iord'])
+    assert len(f.families())==2
+    assert len(f_full.families())==2
+
+
+@pytest.fixture(params=[
+    (1, True),  # all datasets have non-zero size when nr_files==1
+    (8, True),  # multi file with all datasets present
+    (8, False), # multi file with zero sized datasets omitted
+])
+def snapshot_with_sparse_gas(request, tmp_path):
+    # Create a snapshot where only one cell has gas particles
+    nr_files, write_zero_size_datasets = request.param
+    input_snapshot = "./testdata/SWIFT/snap_0150.hdf5"
+    output_dir = f"./testdata/SWIFT/sparse_gas/nfiles_{nr_files}{'_zero_size' if write_zero_size_datasets else ''}"
+    output_name = "split_snap_0150.0.hdf5"
+    rng = np.random.default_rng(0)
+    cell_file_index = rng.integers(nr_files, size=512)
+    gas_mask = np.zeros(512, dtype=bool)
+    gas_mask[337] = True # Only keep the gas in this cell
+    return ensure_split_snapshot_exists(input_snapshot, nr_files, output_dir,
+                                        output_name, cell_file_index,
+                                        write_zero_size_datasets=write_zero_size_datasets,
+                                        cell_mask={"PartType0" : gas_mask})
+
+
+def test_swift_open_snapshot_with_sparse_gas(snapshot_with_sparse_gas):
+    # Make sure we can open a snapshot where some files have datasets
+    # which would contain zero particles and therefore might not have
+    # been written at all.
+    f = pynbody.load(snapshot_with_sparse_gas)
+    assert len(f.families()) == 2
+    assert "gas" in f.families()
+    assert "dm" in f.families()
+    for name in ("pos", "vel", "mass", "iord", "grp"):
+        assert name in f.dm.loadable_keys()
+        assert name in f.gas.loadable_keys()
+
+
+@pytest.mark.parametrize('test_params', [
+    (pynbody.filt.Sphere(10., (97.795, 44.452, 26.671)), True),  # contains gas
+    (pynbody.filt.Sphere(10., (30.000, 44.452, 26.671)), False), # contains no gas
+])
+def test_swift_open_region_with_sparse_gas(snapshot_with_sparse_gas, test_params):
+    test_region, expect_gas = test_params
+    f = pynbody.load(snapshot_with_sparse_gas, take_region=test_region)
+
+    # The families() method only reports families with >0 particles
+    assert len(f.families()) == (2 if expect_gas else 1)
+
+    # But we should still always have gas and dm families with arrays
+    for name in ("pos", "vel", "mass", "iord", "grp"):
+        assert name in f.dm.loadable_keys()
+        assert name in f.gas.loadable_keys()
+
+    # We should be able to read the gas coordinates, and get an empty array
+    # if the selection does not cover the region with gas.
+    gas_pos = f.gas["pos"]
+    assert gas_pos.shape == ((274,3) if expect_gas else (0,3)) # cell 337 has 274 gas particles
+
+    # Check that the gas coordinates we got are correct
+    if expect_gas:
+        f_full = pynbody.load("./testdata/SWIFT/snap_0150.hdf5", take_swift_cells=(337,))
+        assert np.all(gas_pos == f_full.gas["pos"])
+
+
+@pytest.fixture(params=[
+    (1, True),  # single file with empty gas datasets
+    (8, True),  # multi file with empty gas datasets
+])
+def snapshot_with_no_gas(request, tmp_path):
+    # Create a snapshot where the gas particle datasets exist
+    # but there are zero gas particles. This is to simulate how
+    # recent Swift versions always write out the same set of
+    # datasets in all snapshots, even if stars or black holes
+    # have not formed yet.
+    nr_files, write_zero_size_datasets = request.param
+    input_snapshot = "./testdata/SWIFT/snap_0150.hdf5"
+    output_dir = f"./testdata/SWIFT/no_gas/nfiles_{nr_files}{'_zero_size' if write_zero_size_datasets else ''}"
+    output_name = "split_snap_0150.0.hdf5"
+    rng = np.random.default_rng(0)
+    cell_file_index = rng.integers(nr_files, size=512)
+    gas_mask = np.zeros(512, dtype=bool) # discard all gas
+    return ensure_split_snapshot_exists(input_snapshot, nr_files, output_dir,
+                                        output_name, cell_file_index,
+                                        write_zero_size_datasets=write_zero_size_datasets,
+                                        cell_mask={"PartType0" : gas_mask})
+
+
+def test_swift_open_snapshot_with_no_gas(snapshot_with_no_gas):
+    f = pynbody.load(snapshot_with_no_gas)
+
+    # The families() method only reports families with >0 particles
+    assert len(f.families()) == 1
+    assert "dm" in f.families()
+
+    # But we should still always have gas and dm families with arrays
+    for name in ("pos", "vel", "mass", "iord", "grp"):
+        assert name in f.dm.loadable_keys()
+        assert name in f.gas.loadable_keys()
+
+    # We should be able to read the gas coordinates, and get an empty array
+    gas_pos = f.gas["pos"]
+    assert gas_pos.shape == (0,3)
+
+    # Check we can read the DM particles correctly.
+    # Ordering of the cells will differ in the multi file case.
+    f_full = pynbody.load("./testdata/SWIFT/snap_0150.hdf5")
+    def sorted_dm_coords(snap):
+        order = np.argsort(snap.dm["iord"])
+        return snap.dm["pos"][order,:]
+    assert np.all(sorted_dm_coords(f) == sorted_dm_coords(f_full))
+
+
+@pytest.fixture(scope="function")
+def copied_snapshot():
+    with TemporaryDirectory(dir="testdata/SWIFT", prefix=".snap_0150_copy.") as tmp:
+        tmp_snap = Path(tmp) / "snap_0150.hdf5"
+        shutil.copy("./testdata/SWIFT/snap_0150.hdf5", tmp_snap)
+        yield tmp_snap
+        # Try to ensure the snapshot is closed so we can delete the file
+        # (Windows locks files that are open)
+        import gc
+        gc.collect()
+
+def test_swift_no_number_of_fields(copied_snapshot):
+    """Check that we reject snapshots where the NumberOfFields attribute is missing"""
+    with h5py.File(copied_snapshot, "r+") as f:
+        del f["PartType1"].attrs["NumberOfFields"]
+    with raises(ValueError):
+        snap = pynbody.load(copied_snapshot)
+
+def test_swift_wrong_number_of_fields(copied_snapshot):
+    """Check that we warn on snapshots where the NumberOfFields attribute is wrong"""
+    with h5py.File(copied_snapshot, "r+") as f:
+        f["PartType1"].attrs["NumberOfFields"] += 1
+    with warns(RuntimeWarning):
+        snap = pynbody.load(copied_snapshot)
+
+
+@pytest.mark.parametrize('metadata_change', [
+    # Dataset,                         index,   new value
+    ("Cells/Counts/PartType0",         395,     811),    # wrong total number of particles (cell 395 has 810 particles)
+    ("Cells/Files/PartType0",          5,      -1),      # negative file index for cell 5
+    ("Cells/Files/PartType0",          5,       1),      # file index too large for cell 5 (it's a single file snapshot)
+    ("Cells/OffsetsInFile/PartType1",  503,     261672), # offset+count too large (cell 503 has 473 particles, there are 262144 total)
+    ("Cells/OffsetsInFile/PartType1",  1,      -1),      # negative offset for cell 1
+])
+def test_swift_wrong_cell_metadata(copied_snapshot, metadata_change):
+    """Check that we reject snapshots where cell metadata fails consistency checks"""
+    dset, index, value = metadata_change
+
+    # Modify the cell metadata
+    with h5py.File(copied_snapshot, "r+") as f:
+        f[dset][index] = value
+
+    # Reading a region fails because the cell metadata is incorrect
+    with raises(ValueError):
+        snap = pynbody.load(copied_snapshot, take_region=pynbody.filt.Sphere(50., (50., 50., 50.)))
+
+    # Reading the full snapshot does not require the cell metadata, so it still works
+    snap = pynbody.load(copied_snapshot)
+    assert isinstance(snap, pynbody.snapshot.swift.SwiftSnap)
+
+
+@contextmanager
+def tmp_directory_copy(src_dir):
+    """Make a temporary copy of a directory containing snapshot files"""
+    src_dir = Path(src_dir)
+    with TemporaryDirectory(dir=src_dir.parent, prefix=f".{src_dir.name}.") as tmp_dir:
+        dest_dir = Path(tmp_dir) / src_dir.name
+        shutil.copytree(src_dir, dest_dir)
+        yield dest_dir
+
+
+@pytest.fixture
+def writable_sparse_gas(snapshot_with_sparse_gas):
+    with tmp_directory_copy(Path(snapshot_with_sparse_gas).parent) as tmp:
+        try:
+            yield tmp / Path(snapshot_with_sparse_gas).name
+        finally:
+            # Ensure HDF5 files are closed
+            import gc
+            gc.collect()
+
+
+def test_swift_add_field(writable_sparse_gas):
+    """
+    Check that the snapshot is still readable if we write a new field
+
+    Use the sparse gas fixture so we test single and multi file snapshots
+    and cases with and without zero sized datasets present.
+    """
+    # Open the snapshot and write a new array
+    snap = pynbody.load(writable_sparse_gas)
+    test_array = np.random.uniform(0, 1, len(snap))
+    snap['test_array'] = test_array
+    snap['test_array'].write()
+
+    # Check it can still be loaded back in
+    snap = pynbody.load(writable_sparse_gas)
+    assert np.all(snap['test_array'] == test_array)
+
+    # Should have a new array for all groups with a ParticleIDs dataset, even
+    # if the group contains no particles.
+    for f in snap._hdf_files:
+        for group_name, group in f.items():
+            if group_name.startswith("PartType"):
+                assert "test_array" in group
+                assert group["ParticleIDs"].shape == group["test_array"].shape
+
+
+def test_swift_add_field_for_family(writable_sparse_gas):
+    """
+    Test writing a new field for one family only.
+
+    Use the sparse gas fixture so we test single and multi file snapshots
+    and cases with and without zero sized datasets present.
+    """
+    # Open the snapshot and write a new array
+    snap = pynbody.load(writable_sparse_gas)
+    test_array = np.random.uniform(0, 1, len(snap.gas))
+    snap.gas['test_array'] = test_array
+    snap.gas['test_array'].write()
+
+    # Check it can still be loaded back in
+    snap = pynbody.load(writable_sparse_gas)
+    assert np.all(snap.gas['test_array'] == test_array)
+
+    # Should have a new array for all gas groups, even if there are zero
+    # gas particles
+    for f in snap._hdf_files:
+        for group_name, group in f.items():
+            if group_name == "PartType0":
+                assert "test_array" in group
+                assert group["ParticleIDs"].shape == group["test_array"].shape
+            elif group_name.startswith("PartType"):
+                assert "test_array" not in group
+
+
+def test_swift_write_array_to_region(copied_snapshot):
+
+    # Open a region in the snapshot and create a new array
+    snap = pynbody.load(copied_snapshot, take_region=pynbody.filt.Sphere(50., (50., 50., 50.)))
+    snap['test_array'] = np.random.uniform(0, 1, len(snap))
+
+    # Writing the new array should not work
+    with pytest.raises(NotImplementedError):
+        snap['test_array'].write()

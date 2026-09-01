@@ -171,8 +171,8 @@ def partially_loaded_halos(snap):
     hbt_filename = pynbody.halo.hbtplus.HBTPlusCatalogue._infer_hbt_filename(snap)
     partial_snap = snap[:len(snap) // 2] # NB must be kept alive; catalogues only hold a weak reference
 
-    def make_catalogue():
-        return pynbody.halo.hbtplus.HBTPlusCatalogue(partial_snap, filename=hbt_filename)
+    def make_catalogue(**kwargs):
+        return pynbody.halo.hbtplus.HBTPlusCatalogue(partial_snap, filename=hbt_filename, **kwargs)
 
     return make_catalogue
 
@@ -287,6 +287,46 @@ def test_fully_loaded_halos_are_never_incomplete(halos):
     halos.load_all()
     assert not any(halos._index_lists.is_halo_incomplete(i) for i in range(len(halos)))
     assert len(halos[1]) > 0
+
+
+@pytest.mark.parametrize('load_all', [True, False], ids=['load_all', 'no_load_all'])
+def test_complete_keys_matches_accessible_halos(partially_loaded_halos, load_all):
+    """complete_keys reports exactly the halos which can be retrieved, without having to try them"""
+    halos = partially_loaded_halos()
+    if load_all:
+        halos.load_all()
+
+    complete, incomplete = _split_complete_and_incomplete(halos)
+
+    assert len(incomplete) > 0, "Test requires at least one halo with particles outside the loaded region"
+    assert list(halos.complete_keys()) == complete
+    assert not set(halos.complete_keys()).intersection(incomplete)
+
+
+@pytest.mark.parametrize('halo_numbers', [None, 'length-order', 'track'])
+def test_complete_keys_with_alternative_numbering(partially_loaded_halos, halo_numbers):
+    """Completeness follows the halo numbers, which are not necessarily in halo index order"""
+    halos = partially_loaded_halos(halo_numbers=halo_numbers)
+    complete, incomplete = _split_complete_and_incomplete(halos)
+
+    assert len(incomplete) > 0, "Test requires at least one halo with particles outside the loaded region"
+    assert list(halos.complete_keys()) == complete
+
+
+def test_complete_keys_on_fully_loaded_catalogue(halos):
+    """An ordinary catalogue describes all of its halos as complete"""
+    assert (halos.complete_keys() == halos.keys()).all()
+    assert halos.is_complete(halos.keys()[0])
+
+
+def test_complete_keys_of_combined_catalogue(halos_length_ordered, subfind_groups):
+    """The combined catalogue and its subhalo views delegate completeness to the catalogues they wrap"""
+    combined = halos_length_ordered.with_groups_from(subfind_groups)
+
+    assert (combined.complete_keys() == subfind_groups.keys()).all()
+
+    subhalos = combined[0].subhalos
+    assert (subhalos.complete_keys() == subhalos.keys()).all()
 
 def test_load_from_filename(snap):
     filename: pathlib.Path = snap.filename

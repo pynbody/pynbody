@@ -31,6 +31,8 @@ public:
   npy_intp nListSize;
   std::vector<T> fList;
   std::vector<npy_intp> pList;
+  std::vector<T> dxList; // 3 entries per neighbour: the periodic-wrapped
+                         // displacement from the search centre to the neighbour
 
   npy_intp pin = 0, pi = 0, pNext = 0; // particle indices for distributed loops (TODO: rationalise)
   npy_intp nCurrent = 0; // particle indices for distributed loops (TODO: rationalise)
@@ -49,6 +51,7 @@ public:
 
   SmoothingContext(KDContext* kd, npy_intp nSmooth, T fPeriod[3]) : kd(kd), nSmooth(nSmooth), fPeriod{fPeriod[0], fPeriod[1], fPeriod[2]},
       nListSize(nSmooth + RESMOOTH_SAFE), fList(nListSize), pList(nListSize),
+      dxList(3 * nListSize),
       pMutex(std::make_shared<std::mutex>()),
       priorityQueue(std::make_unique<PriorityQueue<T>>(nSmooth, kd->nActive)) {
 
@@ -56,14 +59,41 @@ public:
 
   SmoothingContext(const SmoothingContext<T> &copy) : kd(copy.kd), nSmooth(copy.nSmooth),
       fPeriod{copy.fPeriod[0], copy.fPeriod[1], copy.fPeriod[2]},
-      nListSize(copy.nListSize), fList(nListSize), pList(nListSize), pMutex(copy.pMutex),
+      nListSize(copy.nListSize), fList(nListSize), pList(nListSize),
+      dxList(3 * nListSize), pMutex(copy.pMutex),
       smx_global(const_cast<SmoothingContext<T>*>(&copy)),
       priorityQueue(std::make_unique<PriorityQueue<T>>(nSmooth, kd->nActive)),
-      pKernel(copy.pKernel) { }
+      pKernel(copy.pKernel),
+      selfDensityWeighting(copy.selfDensityWeighting) { }
       // copy constructor takes a pointer to the global context
+
+  bool selfDensityWeighting = false;
+  // false: weight each neighbour by its own volume m_j/rho_j, the usual SPH
+  // interpolant. true: weight by m_j/rho_i, the form hydro codes use, whose
+  // partition of unity is exact because rho_i is itself sum_j m_j W_ij.
+
+  bool suppressOverflowWarning = false;
+  // Set when the caller is prepared to grow the neighbour buffer and retry,
+  // so that a too-small buffer is a routine event rather than a hard error.
 
   void setupKernel(int kernel_id) {
     pKernel = kernels::Kernel<T>::create(kernel_id, nSmooth);
+  }
+
+  void growNeighbourBuffer() {
+    /* Double the space available to a single ball-gather.
+     *
+     * The initial size is derived from the configured number of smoothing
+     * neighbours, which is only meaningful when the smoothing lengths came
+     * from pynbody's own nearest-neighbour search. Where they instead come
+     * from a snapshot, an h can enclose arbitrarily many particles -- a
+     * particle whose h was set in a sparse region and which now sits beside a
+     * dense one, for instance -- so the buffer has to be able to grow.
+     */
+    nListSize *= 2;
+    fList.resize(nListSize);
+    pList.resize(nListSize);
+    dxList.resize(3 * nListSize);
   }
 };
 
@@ -244,18 +274,24 @@ void smBallSearch(SmoothingContext<T> *smx, T *ri) {
 
 template<typename T>
 inline npy_intp smBallGatherStoreResultInList(SmoothingContext<T>* smx, T fDist2,
+                                              T dx, T dy, T dz,
                                               npy_intp particleIndex,
                                               npy_intp foundIndex) {
   smx->result->push_back(smx->kd->particleOffsets[particleIndex]);
-  return particleIndex + 1;
+  // smBallGather treats the return value as the next write position, so it
+  // must count results found, not particles scanned. Callers of this variant
+  // read smx->result and discard the count, so this has never mattered in
+  // practice, but the inconsistency is a trap for any future caller.
+  return foundIndex + 1;
 }
 
 template<typename T>
 inline npy_intp smBallGatherStoreResultInSmx(SmoothingContext<T>* smx, T fDist2,
+                                             T dx, T dy, T dz,
                                              npy_intp particleIndex,
                                              npy_intp foundIndex) {
   if (foundIndex >= smx->nListSize) {
-    if (!smx->warnings)
+    if (!smx->warnings && !smx->suppressOverflowWarning)
       fprintf(stderr, "Smooth - particle cache too small for local density - "
                       "results will be incorrect\n");
     smx->warnings = true;
@@ -263,12 +299,18 @@ inline npy_intp smBallGatherStoreResultInSmx(SmoothingContext<T>* smx, T fDist2,
   }
   smx->fList[foundIndex] = fDist2;
   smx->pList[foundIndex] = particleIndex;
+  // smBallGather computes (search centre - neighbour); store the displacement
+  // pointing from the search centre towards the neighbour instead.
+  smx->dxList[3 * foundIndex + 0] = -dx;
+  smx->dxList[3 * foundIndex + 1] = -dy;
+  smx->dxList[3 * foundIndex + 2] = -dz;
   return foundIndex + 1;
 }
 
 
 template <typename T,
-          npy_intp (*storeResultFunction)(SmoothingContext<T> *, T, npy_intp, npy_intp)>
+          npy_intp (*storeResultFunction)(SmoothingContext<T> *, T, T, T, T,
+                                          npy_intp, npy_intp)>
 npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
   /* Gather all particles within the specified radius, using the storeResultFunction callback
    * to store the results. */
@@ -308,7 +350,7 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
         dz = sz - GET2<T>(kd->pNumpyPos, p[pj], 2);
         fDist2 = dx * dx + dy * dy + dz * dz;
         if (fDist2 <= fBall2) {
-          nCnt = storeResultFunction(smx, fDist2, pj, nCnt);
+          nCnt = storeResultFunction(smx, fDist2, dx, dy, dz, pj, nCnt);
         }
       }
     }
@@ -326,6 +368,176 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
 
 template <typename T>
 PyObject *getReturnParticleList(SmoothingContext<T> * smx);
+
+
+#define PAIR_MODE_GATHER 0
+#define PAIR_MODE_SYMMETRIC 1
+
+template <typename T>
+class PairContext {
+  /* Iteration state for streaming neighbour pairs back to python in blocks.
+   *
+   * Pairs are produced by walking each particle in turn and ball-gathering its
+   * own kernel volume, exactly as the density calculation does. In 'gather'
+   * mode every ordered pair (a, b) with r <= 2 h_a is emitted. In 'symmetric'
+   * mode each unordered pair is emitted exactly once, canonicalised to i < j,
+   * using a purely local test: while walking particle a and finding neighbour
+   * b, emit iff (a < b) or (r > 2 h_b). In the latter case b's own walk will
+   * not find a, so nobody else will emit the pair; in the former case the two
+   * walks would both find it, and the lower index breaks the tie. Note that
+   * equality, r == 2 h_b, therefore falls to b's walk rather than a's. This
+   * needs no communication between walks and no global de-duplication.
+   */
+public:
+  SmoothingContext<T> *smx; // owned
+  int mode;
+
+  npy_intp firstParticle;   // range of particles (in tree order) this context
+  npy_intp lastParticle;    // walks; [firstParticle, lastParticle)
+
+  npy_intp nextParticle;    // next particle (in tree order) to be walked
+  npy_intp pendingParticle; // particle whose neighbour list we are part-way through
+  npy_intp pendingCount;    // number of neighbours found for it
+  npy_intp pendingIndex;    // how far through that neighbour list we have got
+  bool havePending;
+
+  /* Where the current block is written. The caller supplies the memory --
+   * python allocates one buffer for the round and hands each walk its own
+   * slice of it -- so the walk writes each pair straight to its final
+   * destination, and nothing here owns or allocates anything. The geometry
+   * is handed back in the tree's own precision T, since that is all the
+   * positions it was built from can support.
+   */
+  npy_intp *outI, *outJ;
+  T *outDx, *outR;
+  npy_intp capacity;
+  npy_intp outCount;
+
+  /* Several contexts may walk disjoint particle ranges at the same time, one
+   * per thread, in the manner of smInitThreadLocalCopy for the smoothing
+   * operations. Each owns its own SmoothingContext, so the neighbour buffers
+   * and priority queue are private; the tree itself is only read. Because the
+   * decision to emit a pair is local to the walk that finds it -- see the
+   * comment above on the symmetric mode -- partitioning the particles across
+   * contexts still emits every pair exactly once.
+   */
+  PairContext(SmoothingContext<T> *smx, int mode, npy_intp firstParticle,
+              npy_intp lastParticle)
+      : smx(smx), mode(mode), firstParticle(firstParticle),
+        lastParticle(lastParticle), nextParticle(firstParticle),
+        pendingParticle(firstParticle), pendingCount(0), pendingIndex(0),
+        havePending(false), outI(nullptr), outJ(nullptr), outDx(nullptr),
+        outR(nullptr), capacity(0), outCount(0) {}
+
+  ~PairContext() { delete smx; }
+};
+
+
+template <typename T>
+void smFillPairBlock(PairContext<T> *pc) {
+  SmoothingContext<T> *smx = pc->smx;
+  KDContext *kd = smx->kd;
+
+  pc->outCount = 0;
+
+  while (pc->outCount < pc->capacity) {
+
+    if (!pc->havePending) {
+      if (pc->nextParticle >= pc->lastParticle)
+        break; // every particle in this context's range has been walked
+      pc->pendingParticle = pc->nextParticle++;
+
+      npy_intp ia = kd->particleOffsets[pc->pendingParticle];
+      T hi = GET<T>(kd->pNumpySmooth, ia);
+      T ri[3];
+      for (int k = 0; k < 3; ++k)
+        ri[k] = GET2<T>(kd->pNumpyPos, ia, k);
+
+      // Search slightly beyond 2h. Membership is decided below on r itself
+      // rather than on r^2, and the two can disagree by an ulp; widening here
+      // guarantees no candidate is discarded before that exact test is
+      // applied. Surplus candidates are then filtered out.
+      T fBall2Search = 4 * hi * hi;
+      fBall2Search *= (1 + 16 * std::numeric_limits<T>::epsilon());
+
+      // Retry with a larger buffer for as long as this particle's neighbours
+      // do not fit. Doubling keeps the total cost amortised, and the buffer
+      // then stays large enough for subsequent particles.
+      smx->warnings = false;
+      pc->pendingCount =
+          smBallGather<T, smBallGatherStoreResultInSmx>(smx, fBall2Search, ri);
+      while (smx->warnings) {
+        smx->warnings = false;
+        smx->growNeighbourBuffer();
+        pc->pendingCount =
+            smBallGather<T, smBallGatherStoreResultInSmx>(smx, fBall2Search, ri);
+      }
+
+      pc->pendingIndex = 0;
+      pc->havePending = true;
+    }
+
+    npy_intp ia = kd->particleOffsets[pc->pendingParticle];
+    T hi = GET<T>(kd->pNumpySmooth, ia);
+
+    while (pc->pendingIndex < pc->pendingCount &&
+           pc->outCount < pc->capacity) {
+      npy_intp k = pc->pendingIndex++;
+      npy_intp jb = kd->particleOffsets[smx->pList[k]];
+
+      if (jb == ia)
+        continue; // no self-pairs
+
+      // Membership is tested on r, not r^2, and inclusively. Smoothing lengths
+      // are defined as half the distance to the nth neighbour, so r == 2h is
+      // hit exactly for one neighbour of every particle; deciding on r^2, or
+      // excluding the boundary, would strand those pairs on the wrong side by
+      // an ulp. The inclusive test matches smBallGather, so a gather over
+      // nSmooth neighbours really does yield nSmooth of them.
+      //
+      // The whole comparison stays in T. Promoting r to double would break
+      // the exact hit: h is stored as T, so 2 h is the T-rounded distance to
+      // the nth neighbour, whereas a double sqrt of the T-rounded r^2 lands
+      // wherever the extra bits fall -- and half the time that is above it.
+      T r = std::sqrt(smx->fList[k]);
+      if (!(r <= 2 * hi))
+        continue;
+
+      npy_intp emitI = ia, emitJ = jb;
+      bool flip = false;
+
+      if (pc->mode == PAIR_MODE_SYMMETRIC && ia > jb) {
+        T hj = GET<T>(kd->pNumpySmooth, jb);
+        if (r <= 2 * hj)
+          continue; // jb's own walk finds ia, and will emit the pair
+        emitI = jb;
+        emitJ = ia;
+        flip = true;
+      }
+
+      T d0 = smx->dxList[3 * k + 0];
+      T d1 = smx->dxList[3 * k + 1];
+      T d2 = smx->dxList[3 * k + 2];
+      if (flip) {
+        // dx must always point from the emitted i towards the emitted j
+        d0 = -d0;
+        d1 = -d1;
+        d2 = -d2;
+      }
+
+      npy_intp o = pc->outCount++;
+      pc->outI[o] = emitI;
+      pc->outJ[o] = emitJ;
+      pc->outDx[3 * o + 0] = d0;
+      pc->outDx[3 * o + 1] = d1;
+      pc->outDx[3 * o + 2] = d2;
+      pc->outR[o] = r;
+    }
+
+    if (pc->pendingIndex >= pc->pendingCount)
+      pc->havePending = false;
+  }
+}
 
 
 template <typename T>
@@ -669,7 +881,7 @@ void smMeanQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord,
               rs * mass * GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]) / rho);
   }
@@ -697,7 +909,7 @@ void smMeanQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     for (k = 0; k < 3; ++k) {
       ACCUM2<Tq>(kd->pNumpyQtySmoothed, pi_iord, k,
                  rs * mass * GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k) /
@@ -733,9 +945,13 @@ void smCurlQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     pj_iord = kd->particleOffsets[pj];
-    dx = x - GET2<Tf>(kd->pNumpyPos, pj_iord, 0);
-    dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
-    dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
+    // Take the displacement recorded by the ball-gather rather than
+    // differencing the stored positions: the gather works in the periodic
+    // minimum image, so for a pair straddling a box face the raw difference
+    // is a whole box length while r2 below is small.
+    dx = -smx->dxList[3 * j + 0];
+    dy = -smx->dxList[3 * j + 1];
+    dz = -smx->dxList[3 * j + 2];
 
     r2 = smx->fList[j];
     q2 = r2 * ih2;
@@ -747,7 +963,7 @@ void smCurlQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs *= fNorm;
 
     mass = GET<Tf>(kd->pNumpyMass, pj_iord);
-    rho = GET<Tf>(kd->pNumpyDen, pj_iord);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : pj_iord);
 
     for (k = 0; k < 3; ++k)
       dqty[k] = GET2<Tq>(kd->pNumpyQty, pj_iord, k) - qty_i[k];
@@ -788,9 +1004,13 @@ void smDivQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
   for (j = 0; j < nSmooth; ++j) {
     pj = smx->pList[j];
     pj_iord = kd->particleOffsets[pj];
-    dx = x - GET2<Tf>(kd->pNumpyPos, pj_iord, 0);
-    dy = y - GET2<Tf>(kd->pNumpyPos, pj_iord, 1);
-    dz = z - GET2<Tf>(kd->pNumpyPos, pj_iord, 2);
+    // Take the displacement recorded by the ball-gather rather than
+    // differencing the stored positions: the gather works in the periodic
+    // minimum image, so for a pair straddling a box face the raw difference
+    // is a whole box length while r2 below is small.
+    dx = -smx->dxList[3 * j + 0];
+    dy = -smx->dxList[3 * j + 1];
+    dz = -smx->dxList[3 * j + 2];
 
     r2 = smx->fList[j];
     q2 = r2 * ih2;
@@ -800,7 +1020,7 @@ void smDivQty(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs *= fNorm;
 
     mass = GET<Tf>(kd->pNumpyMass, pj_iord);
-    rho = GET<Tf>(kd->pNumpyDen, pj_iord);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : pj_iord);
 
     for (k = 0; k < 3; ++k)
       dqty[k] = GET2<Tq>(kd->pNumpyQty, pj_iord, k) - qty_i[k];
@@ -840,7 +1060,7 @@ void smDispQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     for (k = 0; k < 3; ++k)
       mean[k] += rs * mass * GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k) / rho;
   }
@@ -853,7 +1073,7 @@ void smDispQtyND(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     for (k = 0; k < 3; ++k) {
       tdiff = mean[k] - GET2<Tq>(kd->pNumpyQty, kd->particleOffsets[pj], k);
       ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord,
@@ -894,7 +1114,7 @@ void smDispQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
 
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     mean += rs * mass * GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]) / rho;
   }
 
@@ -906,7 +1126,7 @@ void smDispQty1D(SmoothingContext<Tf> * smx, npy_intp pi, int nSmooth) {
     rs = kernel(r2);
     rs *= fNorm;
     mass = GET<Tf>(kd->pNumpyMass, kd->particleOffsets[pj]);
-    rho = GET<Tf>(kd->pNumpyDen, kd->particleOffsets[pj]);
+    rho = GET<Tf>(kd->pNumpyDen, smx->selfDensityWeighting ? pi_iord : kd->particleOffsets[pj]);
     tdiff = mean - GET<Tq>(kd->pNumpyQty, kd->particleOffsets[pj]);
     ACCUM<Tq>(kd->pNumpyQtySmoothed, pi_iord, rs * mass * tdiff * tdiff / rho);
   }

@@ -23,7 +23,25 @@ class IncompleteHaloError(RuntimeError):
             num_description = f"{num_missing_particles} of its particles are"
 
         super().__init__(f"{halo_description} cannot be loaded because {num_description} not present in the "
-                         f"snapshot. This normally means the snapshot has been partially loaded.")
+                         f"snapshot. This normally means the snapshot has been partially loaded. Use the "
+                         f"catalogue's complete_keys() method to get the halo numbers which can be loaded.")
+
+
+class PartialLoadingNotSupportedError(RuntimeError):
+    """Raised when a halo catalogue cannot be used because the snapshot has been partially loaded.
+
+    Some halo finder formats identify a halo's particles by their position within the snapshot file rather
+    than by their particle ID. If the snapshot has been partially loaded, those positions refer to particles
+    which are not all present, and there is in general no way of mapping them onto those which are. Rather
+    than returning the wrong particles, such catalogues refuse to load."""
+
+    def __init__(self, catalogue_description=None):
+        catalogue_description = catalogue_description or "This halo catalogue"
+
+        super().__init__(f"{catalogue_description} identifies its particles by their position within the "
+                         f"snapshot file, and so cannot be used with a snapshot that has been partially "
+                         f"loaded. Either load the whole snapshot, or use a halo finder format which "
+                         f"identifies its particles by ID.")
 
 
 class HaloParticleIndices:
@@ -78,6 +96,12 @@ class HaloParticleIndices:
     def is_halo_incomplete(self, halo_index) -> bool:
         """Return True if particles are missing from the snapshot for the specified halo index"""
         return self.get_num_missing_particles_for_halo(halo_index) > 0
+
+    def get_complete_mask(self) -> npt.NDArray[bool]:
+        """Return a boolean mask, in halo index order, of the halos with no missing particles"""
+        if self.num_missing_particles is None:
+            return np.ones(len(self), dtype=bool)
+        return np.asarray(self.num_missing_particles) == 0
 
     def get_particle_index_list_for_halo(self, halo_index, halo_number=None, allow_incomplete=False):
         """Get the index list for the specified halo index

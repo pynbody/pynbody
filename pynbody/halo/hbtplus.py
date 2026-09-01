@@ -196,25 +196,15 @@ class HBTPlusCatalogue(HaloCatalogue):
 
     def _get_all_particle_indices(self) -> HaloParticleIndices | tuple[np.ndarray, np.ndarray]:
         self._init_iord_to_fpos()
-        num_halos = len(self._file["SubhaloParticles"])
-        indices = np.empty(self._file["Subhalos"]["Nbound"].sum(),
-                           dtype=self._file["SubhaloParticles"][0].dtype)
-        boundaries = np.empty((num_halos, 2), dtype=np.intp)
 
         # if the snapshot is partially loaded, some halos may refer to particles that aren't present; these
-        # are dropped and counted here, so that accessing the affected halos raises an IncompleteHaloError
-        num_missing_particles = np.zeros(num_halos, dtype=np.intp)
-
-        start = 0
-        for i, halo_parts in enumerate(self._file['SubhaloParticles'][:]):
-            fpos, num_missing_particles[i] = self._map_iords_to_fpos(halo_parts)
-            end = start + len(fpos)
-            indices[start:end] = np.sort(fpos)
-            boundaries[i] = (start,end)
-            start = end
-
-        return HaloParticleIndices(indices[:start], boundaries,
-                                   num_missing_particles=num_missing_particles)
+        # are dropped and counted, so that accessing the affected halos raises an IncompleteHaloError
+        return self._assemble_particle_indices(
+            (self._map_iords_to_fpos(halo_parts) for halo_parts in self._file['SubhaloParticles'][:]),
+            num_halos=len(self._file["SubhaloParticles"]),
+            num_particles=self._file["Subhalos"]["Nbound"].sum(),
+            sort=True
+        )
 
     def with_groups_from(self, other: HaloCatalogue) -> HaloCatalogue:
         """Return a new catalogue that combines an HBT+ halo catalogue with a parent group catalogue.
@@ -294,6 +284,17 @@ class HBTPlusCatalogueWithGroups(HaloCatalogue):
     def load_all(self):
         self._hbt_cat.load_all()
         self._group_cat.load_all()
+
+    @property
+    def _can_determine_completeness(self):
+        return self._group_cat._can_determine_completeness
+
+    def _is_loaded(self):
+        return self._group_cat._is_loaded()
+
+    def _get_complete_mask(self):
+        # our particles come from the group catalogue, whose halo numbering (and therefore indexing) we share
+        return self._group_cat.get_complete_mask(load_all_if_required=False)
 
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
         return self._group_cat._get_particle_indices_one_halo(halo_number)

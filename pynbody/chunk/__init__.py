@@ -84,9 +84,28 @@ class LoadControl:
         self._generate_family_order()
 
         if isinstance(clauses, slice):
-            self._ids = np.arange(clauses.start, clauses.stop, clauses.step, dtype=np.int64)
+            # A slice indexes the particles as they lie on disk, so normalise it against that count before
+            # expanding it. Without this, the omitted start/step of an everyday slice such as slice(10) reach
+            # np.arange as None, and negative bounds like slice(-100, None) are taken literally.
+            disk_num_particles = self._disk_family_slice[self._ordered_families[-1]].stop
+            start, stop, step = clauses.indices(disk_num_particles)
+            if step < 0:
+                raise ValueError("A slice passed as 'take' must select particles in the order they appear on "
+                                 "disk, so a negative step is not supported.")
+            self._ids = np.arange(start, stop, step, dtype=np.int64)
         elif hasattr(clauses, "__len__"):
-            self._ids = np.asarray(clauses, dtype=np.int64) 
+            self._ids = np.asarray(clauses, dtype=np.int64)
+            # Readers walk the file forwards, mapping ids onto the chunk currently being read, so ids which
+            # go backwards are meaningless to them: tipsy happens to return the right particles anyway, while
+            # gadgethdf fails with an IndexError from deep inside its chunk handling. Repeated ids do
+            # currently load, but yield a snapshot containing the same particle twice, which breaks the
+            # assumption of a one-to-one iord mapping that the halo machinery relies on. Reject both here,
+            # where the problem can still be explained.
+            if len(self._ids) > 1 and (self._ids[1:] <= self._ids[:-1]).any():
+                raise ValueError("The particle ids passed as 'take' must be strictly ascending, since they "
+                                 "index the particles in the order they appear on disk. If you are not "
+                                 "already sure of the order, pass np.unique(ids), which sorts and "
+                                 "de-duplicates them.")
         else:
             self._ids = None  # no partial loading!
 
@@ -234,7 +253,7 @@ class LoadControl:
         i = 0
         next_dip = disk_interrupt_points[i]
         for nread_disk, disk_slice, mem_slice in self.iterate(families_on_disk, families_in_memory, multiskip):
-            while next_dip and fpos + nread_disk > next_dip:
+            while (next_dip is not None) and fpos + nread_disk > next_dip:
                 # an interrupt falls in the middle of our slice
                 # work out what to read first
                 len_pre = next_dip - fpos

@@ -12,6 +12,7 @@ import numpy.testing as npt
 import pytest
 
 import pynbody
+import pynbody.halo.details.iord_mapping
 import pynbody.test_utils
 
 
@@ -327,3 +328,110 @@ def test_ahf_dosort_kwarg(snap_with_non_sequential_halos):
     assert len(h)==1411
     assert len(h[1])==502300
     assert len(h[20])==3272
+
+
+# The AHF catalogues in the test data store their particles as offsets within the snapshot's families, not
+# as particle IDs (i.e. use_iord is False, which is the default for anything other than a gadget snapshot).
+# Those offsets are meaningless unless every particle is present, so such catalogues refuse to load against a
+# partially loaded snapshot rather than silently returning the wrong particles.
+
+
+@pytest.fixture
+def partially_loaded_ahf_snapshot():
+    """A tipsy snapshot with an AHF catalogue, loaded fully and partially"""
+    full = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    take = np.concatenate((np.arange(0, len(full.gas)),
+                           np.arange(len(full.gas) + 5000, len(full) // 2)))
+    partial = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024", take=take)
+    yield full, partial
+
+
+def test_ahf_loads_from_complete_snapshot(partially_loaded_ahf_snapshot):
+    """Control for the tests below: the same catalogue loads without complaint when nothing is missing"""
+    full, _ = partially_loaded_ahf_snapshot
+    halos = pynbody.halo.ahf.AHFCatalogue(full)
+
+    assert not halos._use_iord, "These tests are only meaningful if AHF is using offsets, not iords"
+    assert len(halos[1]) > 0
+
+
+def test_ahf_refuses_partially_loaded_snapshot(partially_loaded_ahf_snapshot):
+    _, partial = partially_loaded_ahf_snapshot
+
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        pynbody.halo.ahf.AHFCatalogue(partial)
+
+
+def test_ahf_refuses_partially_loaded_snapshot_using_old_format_iords(partially_loaded_ahf_snapshot):
+    """use_iord is not sufficient on its own: only the newer AHF format actually writes iords.
+
+    With use_iord=True the early check cannot refuse, since the answer still depends on the file format
+    revision, which is unknown until the catalogue files have been located. So the refusal for this
+    combination can only come from the recheck in HaloCatalogue.__init__. The test data is new-format, so the
+    old format is forced here."""
+    _, partial = partially_loaded_ahf_snapshot
+
+    class OldFormatAHFCatalogue(pynbody.halo.ahf.AHFCatalogue):
+        def _determine_format_revision_from_filename(self):
+            self._is_new_format = False
+
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        OldFormatAHFCatalogue(partial, use_iord=True)
+
+
+def test_ahf_refuses_subsnap(partially_loaded_ahf_snapshot):
+    """A view onto part of a snapshot is no more usable than a partial load"""
+    full, _ = partially_loaded_ahf_snapshot
+
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        pynbody.halo.ahf.AHFCatalogue(full[:1000],
+                                      filename="testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_halos")
+
+    # the refusal must come before the catalogue goes looking for its files, so that the user is told what
+    # is actually wrong rather than that no catalogue could be found
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        pynbody.halo.ahf.AHFCatalogue(full[:1000])
+
+
+@pytest.mark.parametrize("kwargs", [{"cpus": [1]}, {"with_gas": False}, {"maxlevel": 1}],
+                         ids=["cpus", "with_gas", "maxlevel"])
+def test_ramses_ahf_refuses_partially_loaded_snapshot(kwargs):
+    """Ramses drops particles by cpu file or by AMR cell, and its own AHF offset mapping survives neither.
+
+    Without the refusal these produce out-of-range offsets, and hence an obscure IndexError deep inside
+    the subsnap machinery, rather than an explanation of what is wrong."""
+    partial = pynbody.load("testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110", **kwargs)
+    assert partial.is_partially_loaded()
+
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        pynbody.halo.ahf.AHFCatalogue(partial)
+
+
+def test_ahf_refuses_copy_on_access_wrapping_a_view():
+    """Wrapping a view for copy-on-access must not disguise it as a complete snapshot"""
+    from pynbody.snapshot.copy_on_access import CopyOnAccessSimSnap
+
+    full = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    wrapped = CopyOnAccessSimSnap(full[:1000])
+
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        pynbody.halo.ahf.AHFCatalogue(wrapped,
+                                      filename="testdata/gasoline_ahf/g15784.lr.01024.z0.000.AHF_halos")
+
+
+def test_ahf_wrong_id_convention_is_reported(partially_loaded_ahf_snapshot):
+    """Forcing use_iord on a catalogue which stores offsets must not masquerade as a partial load.
+
+    The snapshot is complete, so nothing can be missing from it; the IDs simply are not iords, and saying
+    so is far more useful than reporting most of the halos as incomplete."""
+    full, _ = partially_loaded_ahf_snapshot
+
+    halos = pynbody.halo.ahf.AHFCatalogue(full, use_iord=True)
+
+    with pytest.raises(pynbody.halo.details.iord_mapping.IllegalIordError,
+                       match="particle IDs as iords"):
+        halos.load_all()
+
+    with pytest.raises(pynbody.halo.details.iord_mapping.IllegalIordError,
+                       match="particle IDs as iords"):
+        _ = pynbody.halo.ahf.AHFCatalogue(full, use_iord=True)[1]

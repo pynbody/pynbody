@@ -49,7 +49,9 @@ class IordToOffset(abc.ABC):
     def map_ignoring_order(self, i: np.ndarray | int, allow_missing: bool = False) -> np.ndarray | int:
         """Given an array of iord values, return the corresponding fpos values.
 
-        Warning: The returned values are not guaranteed to be in the same order as the input iord array.
+        .. warning::
+
+            The returned values are not guaranteed to be in the same order as the input iord array.
 
         Parameters
         ----------
@@ -181,6 +183,11 @@ def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToOffset:
     If any of my_iord_values are not in the iord array, an :class:`IllegalIordError` is raised, unless
     ``allow_missing=True`` is passed, in which case :data:`NO_OFFSET` is returned in their place.
     """
+
+    if len(iord) == 0:
+        # nothing has been loaded, so nothing can be found. An empty dense lookup table reports every query
+        # as missing, which is exactly right; the reductions below would meanwhile have no identity.
+        return IordToOffsetDense(iord, max_iord=-1)
 
     min_iord = int(iord.min())
     max_iord = int(iord.max())

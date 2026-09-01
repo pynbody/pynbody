@@ -12,6 +12,11 @@ class HaloNumberCatalogue(HaloCatalogue):
 
     This is the output format used by SKID, for example.
     """
+
+    # the array of halo numbers covers only the particles which have been loaded, so a halo which extends
+    # outside a partially-loaded snapshot is indistinguishable from one which does not
+    _can_determine_completeness = False
+
     def __init__(self, sim, array='grp', ignore=None, **kwargs):
         """Construct a GrpCatalogue, extracting halos based on a simulation-wide integer array with their numbers
 
