@@ -40,6 +40,10 @@ PyObject *nn_rewind(PyObject *self, PyObject *args);
 
 PyObject *populate(PyObject *self, PyObject *args);
 
+PyObject *pair_start(PyObject *self, PyObject *args);
+PyObject *pair_next(PyObject *self, PyObject *args);
+PyObject *pair_stop(PyObject *self, PyObject *args);
+
 PyObject *domain_decomposition(PyObject *self, PyObject *args);
 PyObject *set_arrayref(PyObject *self, PyObject *args);
 PyObject *get_arrayref(PyObject *self, PyObject *args);
@@ -81,6 +85,10 @@ static PyMethodDef kdmain_methods[] = {
      "domain_decomposition"},
 
     {"populate", populate, METH_VARARGS, "populate"},
+
+    {"pair_start", pair_start, METH_VARARGS, "pair_start"},
+    {"pair_next", pair_next, METH_VARARGS, "pair_next"},
+    {"pair_stop", pair_stop, METH_VARARGS, "pair_stop"},
 
     {NULL, NULL, 0, NULL}};
 
@@ -125,6 +133,14 @@ template <> const char np_kind<float>() { return 'f'; }
 template <> const char np_kind<KDNode>() { return 'V'; }
 
 template <> const char np_kind<npy_intp>() { return 'i'; }
+
+template <typename T> int np_typenum() { return NPY_NOTYPE; }
+
+template <> int np_typenum<double>() { return NPY_DOUBLE; }
+
+template <> int np_typenum<float>() { return NPY_FLOAT; }
+
+template <> int np_typenum<npy_intp>() { return NPY_INTP; }
 
 template <typename T> const char py_kind() { return '?'; }
 
@@ -284,10 +300,6 @@ PyObject * build_or_import(PyObject *self, PyObject *args, bool import_mode) {
 
   if(!import_mode) {
     Py_BEGIN_ALLOW_THREADS;
-    for (npy_intp i = 0; i < kd->nParticles; i++) {
-      kd->particleOffsets[i] = i;
-    }
-
     if (kd->nBitDepth == 64)
       kdBuildTree<double>(kd, num_threads);
     else
@@ -610,13 +622,15 @@ PyObject *get_arrayref(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  Py_INCREF(*existing);
-
+  // the NULL check must come first: Py_INCREF dereferences its argument, so
+  // asking for an array that has never been set would otherwise segfault
   if (*existing == NULL) {
     Py_INCREF(Py_None);
     return Py_None;
-  } else
-    return ((PyObject *) *existing);
+  }
+
+  Py_INCREF(*existing);
+  return ((PyObject *) *existing);
 }
 
 PyObject *domain_decomposition(PyObject *self, PyObject *args) {
@@ -694,8 +708,11 @@ template <typename Tf, typename Tq> struct typed_populate {
 
     PyObject *kdobj, *smxobj;
 
-    PyArg_ParseTuple(args, "OOiii", &kdobj, &smxobj, &propid, &procid,
-                     &kernel_id);
+    int self_density_weighting = 0;
+
+    if (!PyArg_ParseTuple(args, "OOiii|i", &kdobj, &smxobj, &propid, &procid,
+                          &kernel_id, &self_density_weighting))
+      return nullptr;
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
     smx_global = (SmoothingContext<Tf> *)PyCapsule_GetPointer(smxobj, NULL);
 
@@ -721,6 +738,9 @@ template <typename Tf, typename Tq> struct typed_populate {
 
     smx_local = smInitThreadLocalCopy(smx_global);
     smx_local->warnings = false;
+    // overflow is handled by growing the buffer and retrying, below
+    smx_local->suppressOverflowWarning = true;
+    smx_local->selfDensityWeighting = (self_density_weighting != 0);
     smx_local->pi = 0;
 
     smx_global->warnings = false;
@@ -775,8 +795,19 @@ template <typename Tf, typename Tq> struct typed_populate {
         // retrieve the existing smoothing length
         hsm = GETSMOOTH(Tf, i);
 
-        // use it to get nearest neighbours
+        // use it to get nearest neighbours, growing the buffer if this
+        // particle turns out to enclose more than it currently holds. The
+        // initial size assumes the smoothing lengths came from our own
+        // nearest-neighbour search; one taken from a snapshot may enclose any
+        // number of particles. Each thread owns its own buffer, so this needs
+        // no synchronisation.
+        smx_local->warnings = false;
         nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
+        while (smx_local->warnings) {
+          smx_local->warnings = false;
+          smx_local->growNeighbourBuffer();
+          nCnt = smBallGather<Tf, smBallGatherStoreResultInSmx>(smx_local, 4 * hsm * hsm, ri);
+        }
 
         // calculate the density
         (*pSmFn)(smx_local, i, nCnt);
@@ -802,6 +833,159 @@ template <typename Tf, typename Tq> struct typed_populate {
       Py_INCREF(Py_None);
       return Py_None;
     }
+  }
+};
+
+/*==========================================================================*/
+/* pair_start / pair_next / pair_stop                                       */
+/*                                                                          */
+/* Stream neighbour pairs back to python in blocks of flat numpy arrays.    */
+/*==========================================================================*/
+template <typename T> struct typed_pair_start {
+  static PyObject *call(PyObject *self, PyObject *args) {
+    PyObject *kdobj;
+    int mode;
+    int nSmooth;
+    double period;
+    npy_intp firstParticle = 0, lastParticle = -1;
+
+    if (!PyArg_ParseTuple(args, "Oiid|nn", &kdobj, &mode, &nSmooth, &period,
+                          &firstParticle, &lastParticle))
+      return nullptr;
+
+    KDContext *kd = static_cast<KDContext *>(PyCapsule_GetPointer(kdobj, NULL));
+    if (kd == nullptr) {
+      PyErr_SetString(PyExc_ValueError, "Invalid KDContext object");
+      return nullptr;
+    }
+
+    if (mode != PAIR_MODE_GATHER && mode != PAIR_MODE_SYMMETRIC) {
+      PyErr_SetString(PyExc_ValueError, "Unknown pair iteration mode");
+      return nullptr;
+    }
+
+    if (lastParticle < 0)
+      lastParticle = kd->nActive;
+
+    if (firstParticle < 0 || lastParticle > kd->nActive ||
+        firstParticle > lastParticle) {
+      PyErr_SetString(PyExc_ValueError,
+                      "particle range does not lie within the tree");
+      return nullptr;
+    }
+
+    if (checkArray<T>((PyObject *)kd->pNumpySmooth, "smooth"))
+      return nullptr;
+
+    if (period <= 0)
+      period = std::numeric_limits<double>::max();
+
+    SmoothingContext<T> *smx = smInit<T>(kd, nSmooth, static_cast<T>(period));
+    if (smx == nullptr)
+      return nullptr; // smInit sets the error message
+    smx->warnings = false;
+    // smFillPairBlock grows the neighbour buffer and retries rather than
+    // treating an overflow as an error, so the usual warning would be noise
+    smx->suppressOverflowWarning = true;
+
+    auto pc = new PairContext<T>(smx, mode, firstParticle, lastParticle);
+
+    return PyCapsule_New(pc, NULL, NULL);
+  }
+};
+
+/* Validate one of the output buffers python has supplied, and return a typed
+   pointer to its data. The walk writes into these directly, so they have to
+   be exactly the right type and laid out contiguously. */
+template <typename Tbuf>
+static Tbuf *pairOutputBuffer(PyObject *obj, const char *name, int ndim,
+                              npy_intp expected) {
+  if (!PyArray_Check(obj)) {
+    PyErr_Format(PyExc_TypeError, "pair output %s must be a numpy array", name);
+    return nullptr;
+  }
+  PyArrayObject *ar = (PyArrayObject *)obj;
+  if (PyArray_TYPE(ar) != np_typenum<Tbuf>() || PyArray_NDIM(ar) != ndim ||
+      !PyArray_ISCARRAY(ar)) {
+    PyErr_Format(PyExc_TypeError,
+                 "pair output %s has the wrong type or layout", name);
+    return nullptr;
+  }
+  if (PyArray_DIM(ar, 0) != expected ||
+      (ndim == 2 && PyArray_DIM(ar, 1) != 3)) {
+    PyErr_Format(PyExc_ValueError,
+                 "pair output %s has the wrong shape", name);
+    return nullptr;
+  }
+  return static_cast<Tbuf *>(PyArray_DATA(ar));
+}
+
+template <typename T> struct typed_pair_next {
+  static PyObject *call(PyObject *self, PyObject *args) {
+    PyObject *kdobj, *pcobj, *oI, *oJ, *oDx, *oR;
+
+    if (!PyArg_ParseTuple(args, "OOOOOO", &kdobj, &pcobj, &oI, &oJ, &oDx, &oR))
+      return nullptr;
+
+    auto pc = static_cast<PairContext<T> *>(PyCapsule_GetPointer(pcobj, NULL));
+    if (pc == nullptr) {
+      PyErr_SetString(PyExc_ValueError, "Invalid pair iteration context");
+      return nullptr;
+    }
+
+    // The caller owns the memory; this is just where to put the pairs. The
+    // displacements and separations come back in the tree's own precision, so
+    // for a single-precision tree these must be float32 arrays.
+    npy_intp capacity = PyArray_Check(oI) ? PyArray_DIM((PyArrayObject *)oI, 0)
+                                          : 0;
+    npy_intp *bufI = pairOutputBuffer<npy_intp>(oI, "i", 1, capacity);
+    npy_intp *bufJ = pairOutputBuffer<npy_intp>(oJ, "j", 1, capacity);
+    T *bufDx = pairOutputBuffer<T>(oDx, "dx", 2, capacity);
+    T *bufR = pairOutputBuffer<T>(oR, "r", 1, capacity);
+    if (bufI == nullptr || bufJ == nullptr || bufDx == nullptr ||
+        bufR == nullptr)
+      return nullptr;
+
+    pc->outI = bufI;
+    pc->outJ = bufJ;
+    pc->outDx = bufDx;
+    pc->outR = bufR;
+    pc->capacity = capacity;
+
+    Py_BEGIN_ALLOW_THREADS;
+    smFillPairBlock<T>(pc);
+    Py_END_ALLOW_THREADS;
+
+    if (pc->smx->warnings) {
+      PyErr_SetString(PyExc_RuntimeError,
+                      "Buffer overflow while gathering neighbour pairs. This "
+                      "probably means some smoothing lengths are very large "
+                      "compared to the typical particle separation.");
+      return nullptr;
+    }
+
+    // Fewer than capacity means this walk has reached the end of its range;
+    // the fill loop only stops early for that reason.
+    return PyLong_FromSsize_t(static_cast<Py_ssize_t>(pc->outCount));
+  }
+};
+
+template <typename T> struct typed_pair_stop {
+  static PyObject *call(PyObject *self, PyObject *args) {
+    PyObject *kdobj, *pcobj;
+
+    if (!PyArg_ParseTuple(args, "OO", &kdobj, &pcobj))
+      return nullptr;
+
+    auto pc = static_cast<PairContext<T> *>(PyCapsule_GetPointer(pcobj, NULL));
+    if (pc == nullptr) {
+      PyErr_SetString(PyExc_ValueError, "Invalid pair iteration context");
+      return nullptr;
+    }
+    delete pc; // also deletes the owned SmoothingContext
+
+    Py_INCREF(Py_None);
+    return Py_None;
   }
 };
 
@@ -879,4 +1063,16 @@ PyObject *populate(PyObject *self, PyObject *args) {
 
 PyObject *particles_in_sphere(PyObject *self, PyObject *args) {
   return type_dispatcher_2<typed_particles_in_sphere>(self, args);
+}
+
+PyObject *pair_start(PyObject *self, PyObject *args) {
+  return type_dispatcher_1<typed_pair_start>(self, args);
+}
+
+PyObject *pair_next(PyObject *self, PyObject *args) {
+  return type_dispatcher_1<typed_pair_next>(self, args);
+}
+
+PyObject *pair_stop(PyObject *self, PyObject *args) {
+  return type_dispatcher_1<typed_pair_stop>(self, args);
 }

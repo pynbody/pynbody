@@ -23,11 +23,26 @@ class UnderlyingClassMixin:
         else:
             return super().find_deriving_function(name)
 
+    def derivable_keys(self):
+        """Returns a list of arrays which can be lazy-evaluated, including those of the underlying class.
+
+        .. versionchanged:: 2.6.0
+
+          Derived arrays belonging to the underlying class are now reported. Previously only the mixed-in
+          class's own MRO was searched, so ``derivable_keys`` disagreed with
+          :meth:`find_deriving_function` about what could be derived. See issue #1021.
+        """
+        res = super().derivable_keys()
+        underlying = self._derived_array_registry.get(self._underlying_class, {})
+        res += [name for name in underlying if name not in res]
+        return res
+
+
 class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
     """SimSnap that copies data from another SimSnap when that data is needed.
 
     To the user, data which is already loaded in the underlying snapshot presents merely as 'loadable'
-    (i.e. in loadable_keys)."""
+    (i.e. in :meth:`loadable_keys`)."""
 
     def __init__(self, base: SimSnap, underlying_class=None):
         self._copy_from = base
@@ -63,8 +78,26 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
             raise OSError("Not found in underlying snapshot") from e
 
     def loadable_keys(self, fam=None):
+        """Return the names of the arrays that can be copied from the underlying snapshot.
+
+        Only ND arrays are named, not the 1D slices that accompany them: ``vel`` is reported but
+        ``vz`` is not, matching what a snapshot loaded from disk offers. The slices remain
+        accessible, since a request for one is mapped onto its parent when it is loaded.
+
+        .. versionchanged:: 2.6.0
+
+          The 1D slices of ND arrays are no longer reported. Previously, an in-memory ``vel`` in
+          the underlying snapshot caused ``vx``, ``vy`` and ``vz`` to be listed as loadable as
+          well, which no file-backed snapshot does. Code inspecting ``loadable_keys`` to establish
+          what a snapshot can provide consequently got a different answer for a copy-on-access
+          view than for the snapshot it was copying from.
+        """
         if fam is None:
             loaded_keys_in_parent = self._copy_from.keys()
         else:
             loaded_keys_in_parent = self._copy_from.family_keys(fam)
-        return list(set(self._copy_from.loadable_keys(fam)).union(loaded_keys_in_parent))
+        keys = set(self._copy_from.loadable_keys(fam)).union(loaded_keys_in_parent)
+
+        # A 1D name is only dropped when its parent is genuinely present, so that a name which
+        # merely looks like a slice is left alone.
+        return [k for k in keys if self._array_name_1D_to_ND(k) not in keys]
