@@ -446,6 +446,20 @@ class TipsySnap(SimSnap):
                 t = snapshot.properties['a']
             else:
                 t = snapshot.properties['time']
+                if isinstance(snapshot, TipsySnap) and isinstance(t, units.UnitBase):
+                    # On loading, TipsySnap.properties['time'] is derived from the raw
+                    # header value by multiplying by the paramfile-inferred time unit
+                    # (see settime/__init__ above), so it is expressed in "physical"
+                    # units rather than the raw internal units the header expects.
+                    # Convert back to those raw units here, otherwise every write
+                    # bakes in an extra, spurious factor of the time unit.
+                    time_unit = snapshot.infer_original_units('yr')
+                    try:
+                        t = t.ratio(time_unit, **snapshot.conversion_context())
+                    except units.UnitsException:
+                        warnings.warn(
+                            "Could not convert time to the tipsy file's internal units; "
+                            "writing the value verbatim, which may be incorrect.", RuntimeWarning)
         except KeyError:
             warnings.warn(
                 "Time is unknown: writing zero in header", RuntimeWarning)
