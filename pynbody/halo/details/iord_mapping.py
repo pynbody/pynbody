@@ -49,7 +49,9 @@ class IordToOffset(abc.ABC):
     def map_ignoring_order(self, i: np.ndarray | int, allow_missing: bool = False) -> np.ndarray | int:
         """Given an array of iord values, return the corresponding fpos values.
 
-        Warning: The returned values are not guaranteed to be in the same order as the input iord array.
+        .. warning::
+
+            The returned values are not guaranteed to be in the same order as the input iord array.
 
         Parameters
         ----------

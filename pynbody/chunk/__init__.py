@@ -91,8 +91,7 @@ class LoadControl:
             start, stop, step = clauses.indices(disk_num_particles)
             if step < 0:
                 raise ValueError("A slice passed as 'take' must select particles in the order they appear on "
-                                 "disk, so a negative step is not supported. Reverse the snapshot after "
-                                 "loading it instead.")
+                                 "disk, so a negative step is not supported.")
             self._ids = np.arange(start, stop, step, dtype=np.int64)
         elif hasattr(clauses, "__len__"):
             self._ids = np.asarray(clauses, dtype=np.int64)

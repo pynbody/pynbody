@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 import pynbody
@@ -50,6 +51,30 @@ def test_copy_on_access_subsnap_emulating_class():
     assert (f_sub['foo'] == [7, 8, 9]).all()
 
     assert 'foo' not in f.keys()
+
+
+def test_derivable_keys_includes_underlying_class():
+    """derivable_keys must agree with find_deriving_function about what can be derived.
+
+    See issue #1021: the mixin widens derivation to the emulated class, so a copy-on-access view could
+    derive an array whose name was missing from derivable_keys(), and hence from all_keys().
+    """
+    f = pynbody.new(10, class_=ExampleSnap)
+    f['blob'] = np.arange(10)
+
+    f_sub = f[[2, 3, 4]].get_copy_on_access_simsnap()
+
+    assert f_sub.find_deriving_function('foo') is not None
+    assert 'foo' in f_sub.derivable_keys()
+    assert 'foo' in f_sub.all_keys()
+
+    # the arrays derivable for any SimSnap are still reported
+    assert 'r' in f_sub.derivable_keys()
+
+    # and nothing is invented
+    assert 'not_a_derived_array' not in f_sub.derivable_keys()
+    assert f_sub.derivable_keys().count('foo') == 1
+
 
 def test_copy_on_access_subsnap_emulating_class_two_layers_down():
     f = pynbody.new(10, class_=ExampleSnap)
@@ -162,3 +187,62 @@ def test_only_try_loading_once():
 
     with pytest.raises(OSError, match="Previously tried"):
         f_c.dm._load_array('nonexistent')
+
+
+def test_loadable_keys_reports_nd_arrays_not_their_slices():
+    """The 1D slices that accompany an in-memory ND array must not be advertised as loadable.
+
+    A file-backed snapshot offers the blocks it stores, i.e. 'vel' but never 'vz', and code that
+    inspects loadable_keys() to decide what a snapshot can provide relies on that.
+    """
+    f = pynbody.new(10)
+    f['pos'] = np.random.normal(size=(10, 3))
+    f['vel'] = np.random.normal(size=(10, 3))
+    f['mass'] = np.ones(10)
+
+    f_c = f.get_copy_on_access_simsnap()
+
+    assert set(f_c.loadable_keys()) == {'pos', 'vel', 'mass'}
+
+
+def test_slices_of_nd_arrays_still_load():
+    """Hiding the slice names from loadable_keys must not stop them being accessible."""
+    f = pynbody.new(10)
+    f['vel'] = np.random.normal(size=(10, 3))
+
+    f_c = f.get_copy_on_access_simsnap()
+    assert 'vz' not in f_c.loadable_keys()
+    assert 'vz' not in f_c.keys()
+
+    npt.assert_allclose(f_c['vz'], f['vel'][:, 2])
+    # asking for the slice brings in the whole parent array
+    assert 'vel' in f_c.keys()
+
+
+def test_loaded_slices_are_views_onto_the_nd_array():
+    """A slice must be a view onto the copy's own ND array, not an independently stored copy.
+
+    Loading is triggered by the slice name here, which is the case most at risk of ending up with
+    'vx' and 'vel' as two unrelated arrays.
+    """
+    f = pynbody.new(10)
+    f['vel'] = np.random.normal(size=(10, 3))
+    original_vel = np.array(f['vel'])
+
+    f_c = f.get_copy_on_access_simsnap()
+    f_c['vx']  # noqa - triggers the load via the slice name rather than the parent
+
+    for i, name in enumerate(['vx', 'vy', 'vz']):
+        assert np.shares_memory(f_c[name], f_c['vel'][:, i])
+
+    # ...and the consequence that actually matters: writes are seen from both directions
+    f_c['vel'][:, 0] = np.arange(10)
+    npt.assert_allclose(f_c['vx'], np.arange(10))
+
+    f_c['vy'] = np.arange(10, 20)
+    npt.assert_allclose(f_c['vel'][:, 1], np.arange(10, 20))
+
+    # the copy remains isolated from the snapshot it copied from, which is the whole point of
+    # copy-on-access: none of those writes may reach the original
+    assert not np.shares_memory(f_c['vel'], f['vel'])
+    npt.assert_allclose(f['vel'], original_vel)

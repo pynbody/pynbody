@@ -138,9 +138,9 @@ Whether a snapshot holds all the particles in its file can be tested directly wi
 :meth:`~pynbody.snapshot.simsnap.SimSnap.is_partially_loaded`. Note that a view onto a snapshot, such as
 ``f[:100]`` or ``f.dm``, counts as partially loaded for this purpose.
 
-.. versionadded:: 2.6.0
+.. versionadded:: 2.7.0
 
-    A systematic treatment of incomplete halos was added in pynbody 2.6.0.
+    A systematic treatment of incomplete halos was added in pynbody 2.7.0.
 
 
 To find out in advance which halos are affected, use

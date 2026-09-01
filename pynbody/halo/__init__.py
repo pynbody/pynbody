@@ -403,7 +403,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             :meth:`load_all` is called if it has not been already. If this is undesirable (e.g. because the
             catalogue is very large), pass False to raise a RuntimeError instead.
 
-        .. versionadded:: 2.6.0
+        .. versionadded:: 2.7.0
 
         """
         all_numbers = self.keys()
@@ -411,9 +411,9 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
         # NB the halo numbers are not necessarily in halo index order (see NonMonotonicHaloNumberMapper),
         # so the mask must be explicitly mapped rather than applied directly
-        all_indices = np.asarray(self.number_mapper.number_to_index(all_numbers), dtype=np.intp)
+        all_indices = self.number_mapper.number_to_index(all_numbers)
 
-        return np.asarray(all_numbers)[complete_mask[all_indices]]
+        return all_numbers[complete_mask[all_indices]]
 
     def is_complete(self, halo_number, load_all_if_required=True) -> bool:
         """Return True if the specified halo can actually be retrieved from the snapshot.
@@ -421,7 +421,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         See :meth:`complete_keys` for more information, including the meaning of the
         ``load_all_if_required`` argument.
 
-        .. versionadded:: 2.6.0
+        .. versionadded:: 2.7.0
 
         """
         halo_index = self.number_mapper.number_to_index(halo_number)
@@ -438,7 +438,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         See :meth:`complete_keys` for the meaning of the ``load_all_if_required`` argument. The returned array
         is cached and read-only.
 
-        .. versionadded:: 2.6.0
+        .. versionadded:: 2.7.0
 
         """
         if not self._can_determine_completeness:
