@@ -146,3 +146,48 @@ def test_halo_array(halos, use_index):
         else:
             halo_num_or_index = h.properties['halo_number']
         assert np.all(h['grp_array'] == halo_num_or_index)
+
+
+@pytest.fixture
+def partially_loaded_groups():
+    """A subfind catalogue for a snapshot from which only some of the particles are available.
+
+    Some groups then refer to particles that are not present, and cannot be fully constructed."""
+    f = pynbody.load("testdata/subfind/snapshot_019")
+    # NB the second half is taken, so that the iords are not sequential and reordering therefore takes place;
+    # the partial snapshot must also be kept alive, since catalogues only hold a weak reference to it
+    partial_snap = f[len(f) // 2:]
+    yield pynbody.halo.subfind.SubfindCatalogue(partial_snap, subhalos=False,
+                                                filename="testdata/subfind/groups_019")
+
+
+def test_incomplete_groups_are_flagged(partially_loaded_groups):
+    """Groups which extend outside the loaded region are identified, and the rest remain accessible"""
+    complete_keys = partially_loaded_groups.complete_keys()
+
+    assert 0 < len(complete_keys) < len(partially_loaded_groups.keys())
+
+    for halo_number in partially_loaded_groups.keys()[:20]:
+        if halo_number in complete_keys:
+            assert len(partially_loaded_groups[halo_number]) > 0
+        else:
+            with pytest.raises(pynbody.halo.IncompleteHaloError):
+                partially_loaded_groups[halo_number]
+
+
+def test_incomplete_groups_contain_only_present_particles(partially_loaded_groups):
+    """The particles which are present are still stored, and are those the halo finder assigned"""
+    index_lists = partially_loaded_groups._get_all_particle_indices_cached()
+    halo_index = np.flatnonzero(~partially_loaded_groups.get_complete_mask())[0]
+
+    present = index_lists.get_particle_index_list_for_halo(halo_index, allow_incomplete=True)
+    num_missing = index_lists.get_num_missing_particles_for_halo(halo_index)
+
+    assert len(present) > 0
+    assert len(present) + num_missing == partially_loaded_groups.get_properties_all_halos()['group_len'][halo_index]
+
+
+def test_complete_groups_match_full_snapshot(partially_loaded_groups, groups):
+    """A group which is entirely inside the loaded region has exactly the particles it would otherwise have"""
+    halo_number = partially_loaded_groups.complete_keys()[0]
+    assert (np.sort(partially_loaded_groups[halo_number]['iord']) == np.sort(groups[halo_number]['iord'])).all()

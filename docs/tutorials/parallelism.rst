@@ -127,6 +127,15 @@ particles to a halo which have not been read from disk. Such a halo is *incomple
 raises an :class:`~pynbody.halo.details.particle_indices.IncompleteHaloError` rather than silently returning
 too few particles.
 
+This is possible only for halo finders which identify their particles by ID. Some formats instead express
+halo membership as positions within the snapshot file, which are meaningless unless every particle is
+present. Those catalogues refuse to load against a partially loaded snapshot, raising a
+:class:`~pynbody.halo.details.particle_indices.PartialLoadingNotSupportedError`.
+
+Whether a snapshot holds all the particles in its file can be tested directly with
+:meth:`~pynbody.snapshot.simsnap.SimSnap.is_partially_loaded`. Note that a view onto a snapshot, such as
+``f[:100]`` or ``f.dm``, counts as partially loaded for this purpose.
+
 .. versionadded:: 2.7.0
 
     A systematic treatment of incomplete halos was added in pynbody 2.7.0.
@@ -152,11 +161,10 @@ halo number, use :meth:`~pynbody.halo.HaloCatalogue.get_complete_mask`.
 .. note::
 
     Establishing which halos are complete requires the particle lists for all halos, so the methods above call
-    :meth:`~pynbody.halo.HaloCatalogue.load_all` for you. Note also that not all halo finder formats are able
-    to detect missing particles; a catalogue built from an array of halo numbers, one per particle (such as a
-    ``.grp`` file, or HOP output), sees only the particles which were loaded. Such a catalogue reports every
-    halo as complete, so on a partially loaded snapshot it may hand back a halo holding fewer particles than
-    the halo finder assigned to it.
+    :meth:`~pynbody.halo.HaloCatalogue.load_all` for you. Note also that a catalogue built from an array of
+    halo numbers, one per particle (such as a ``.grp`` file, or HOP output), cannot detect missing particles,
+    since the array covers only the particles which were loaded. Such a catalogue will return those particles
+    that it knows about, and raise a warning if you try to access completeness information.
 
 
 

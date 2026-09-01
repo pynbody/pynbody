@@ -184,6 +184,11 @@ def make_iord_to_offset_mapper(iord: np.ndarray) -> IordToOffset:
     ``allow_missing=True`` is passed, in which case :data:`NO_OFFSET` is returned in their place.
     """
 
+    if len(iord) == 0:
+        # nothing has been loaded, so nothing can be found. An empty dense lookup table reports every query
+        # as missing, which is exactly right; the reductions below would meanwhile have no identity.
+        return IordToOffsetDense(iord, max_iord=-1)
+
     min_iord = int(iord.min())
     max_iord = int(iord.max())
 

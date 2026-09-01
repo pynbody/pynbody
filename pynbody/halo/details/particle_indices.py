@@ -27,6 +27,23 @@ class IncompleteHaloError(RuntimeError):
                          f"catalogue's complete_keys() method to get the halo numbers which can be loaded.")
 
 
+class PartialLoadingNotSupportedError(RuntimeError):
+    """Raised when a halo catalogue cannot be used because the snapshot has been partially loaded.
+
+    Some halo finder formats identify a halo's particles by their position within the snapshot file rather
+    than by their particle ID. If the snapshot has been partially loaded, those positions refer to particles
+    which are not all present, and there is in general no way of mapping them onto those which are. Rather
+    than returning the wrong particles, such catalogues refuse to load."""
+
+    def __init__(self, catalogue_description=None):
+        catalogue_description = catalogue_description or "This halo catalogue"
+
+        super().__init__(f"{catalogue_description} identifies its particles by their position within the "
+                         f"snapshot file, and so cannot be used with a snapshot that has been partially "
+                         f"loaded. Either load the whole snapshot, or use a halo finder format which "
+                         f"identifies its particles by ID.")
+
+
 class HaloParticleIndices:
     def __init__(self, particle_ids: npt.NDArray[int] = None, boundaries: np.ndarray[(Any, 2), int] = None,
                  num_missing_particles: npt.NDArray[int] = None):

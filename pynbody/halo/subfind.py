@@ -70,6 +70,10 @@ class SubfindCatalogue(HaloCatalogue):
         else:
             self._ordered = bool((sim['iord']==np.arange(len(sim))).all())
 
+        # when the snapshot is taken to be ordered, the catalogue's particle IDs are used directly as offsets
+        # into it, which is only meaningful if all the particles are present
+        self._uses_file_position_addressing = self._ordered
+
         self._halos = {}
 
         self.dtype_int = sim['iord'].dtype
@@ -116,9 +120,11 @@ class SubfindCatalogue(HaloCatalogue):
 
         if not self._ordered:
             self._init_iord_to_fpos()
-            for a, b in boundaries:
-                ids[a:b] = self._iord_to_fpos.map_ignoring_order(ids[a:b])
-                # must be done segmented in case iord_to_fpos doesn't preserve input order
+            # must be done segmented in case iord_to_fpos doesn't preserve input order
+            return self._assemble_particle_indices(
+                (self._map_iords_to_fpos(ids[a:b]) for a, b in boundaries),
+                num_halos=len(boundaries), num_particles=len(ids)
+            )
 
         return particle_indices.HaloParticleIndices(ids, boundaries)
 
