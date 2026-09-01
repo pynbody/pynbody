@@ -350,7 +350,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             :meth:`load_all` is called if it has not been already. If this is undesirable (e.g. because the
             catalogue is very large), pass False to raise a RuntimeError instead.
 
-        .. versionadded:: 2.6.0
+        .. versionadded:: 2.7.0
 
         """
         all_numbers = self.keys()
@@ -368,7 +368,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         See :meth:`complete_keys` for more information, including the meaning of the
         ``load_all_if_required`` argument.
 
-        .. versionadded:: 2.6.0
+        .. versionadded:: 2.7.0
 
         """
         halo_index = self.number_mapper.number_to_index(halo_number)
@@ -385,7 +385,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         See :meth:`complete_keys` for the meaning of the ``load_all_if_required`` argument. The returned array
         is cached and read-only.
 
-        .. versionadded:: 2.6.0
+        .. versionadded:: 2.7.0
 
         """
         if self._complete_mask is None:

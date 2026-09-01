@@ -127,9 +127,9 @@ particles to a halo which have not been read from disk. Such a halo is *incomple
 raises an :class:`~pynbody.halo.details.particle_indices.IncompleteHaloError` rather than silently returning
 too few particles.
 
-.. versionadded:: 2.6.0
+.. versionadded:: 2.7.0
 
-    A systematic treatment of incomplete halos was added in pynbody 2.6.0.
+    A systematic treatment of incomplete halos was added in pynbody 2.7.0.
 
 
 To find out in advance which halos are affected, use
