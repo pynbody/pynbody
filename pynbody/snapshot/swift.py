@@ -5,7 +5,7 @@ import h5py
 import numpy as np
 
 from .. import halo, units, util
-from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager, _open_hdf_file
+from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager
 
 
 class SwiftMultiFileManager(_GadgetHdfMultiFileManager):

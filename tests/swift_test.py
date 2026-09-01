@@ -140,7 +140,6 @@ def test_swift_multifile_partial_loading():
                           [ 16.59894837,  36.67247821,  85.82433427],
                           [  9.79404938,  52.28051827,  81.30710868]])
 
-
 def test_swift_multifile_partial_loading_order_insensitive():
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
                      take_swift_cells=[0, 5, 20, 200])

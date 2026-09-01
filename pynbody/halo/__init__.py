@@ -358,9 +358,9 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
         # NB the halo numbers are not necessarily in halo index order (see NonMonotonicHaloNumberMapper),
         # so the mask must be explicitly mapped rather than applied directly
-        all_indices = np.asarray(self.number_mapper.number_to_index(all_numbers), dtype=np.intp)
+        all_indices = self.number_mapper.number_to_index(all_numbers)
 
-        return np.asarray(all_numbers)[complete_mask[all_indices]]
+        return all_numbers[complete_mask[all_indices]]
 
     def is_complete(self, halo_number, load_all_if_required=True) -> bool:
         """Return True if the specified halo can actually be retrieved from the snapshot.
