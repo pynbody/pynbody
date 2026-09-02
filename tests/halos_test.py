@@ -18,7 +18,7 @@ from pynbody import halo
 
 @pytest.fixture(scope='module', autouse=True)
 def get_data():
-    pynbody.test_utils.ensure_test_data_available("ramses")
+    pynbody.test_utils.ensure_test_data_available("ramses", "gasoline_ahf")
 
 
 class SimpleHaloCatalogue(halo.HaloCatalogue):
@@ -42,7 +42,10 @@ class SimpleHaloCatalogue(halo.HaloCatalogue):
 
         boundaries = np.vstack((start,stop)).T
 
-        return pynbody.halo.details.particle_indices.HaloParticleIndices(particle_ids=indexes, boundaries=boundaries)
+        # NB _adopt_array puts these into shared memory if the snapshot is using it, which is what lets the
+        # catalogue be handed to another process without copying; a real implementation should do the same
+        return pynbody.halo.details.particle_indices.HaloParticleIndices(
+            particle_ids=self._adopt_array(indexes), boundaries=self._adopt_array(boundaries))
 
     def get_properties_one_halo(self, i):
         return {'testproperty': 1.5*i, 'testproperty_with_units': 2.0*i*pynbody.units.Mpc}
@@ -74,7 +77,7 @@ class SimpleHaloCatalogueWithIncompleteHalos(SimpleHaloCatalogue):
 
     def _get_all_particle_indices(self):
         indices = super()._get_all_particle_indices()
-        num_missing = np.zeros(len(self.number_mapper), dtype=np.intp)
+        num_missing = self._array_factory(len(self.number_mapper), np.intp, zeros=True)
         for halo_number in self.incomplete_halo_numbers:
             num_missing[self.number_mapper.number_to_index(halo_number)] = halo_number
         indices.num_missing_particles = num_missing
@@ -816,6 +819,221 @@ def test_portable_catalogue_repr():
     f = pynbody.new(dm=100)
     h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(SimpleHaloCatalogue(f).get_portable_state(), f)
     assert repr(h_recreated) == "<PortableHaloCatalogue from SimpleHaloCatalogue, length 9>"
+
+def _snapshot_with_grp_array(shared):
+    f = pynbody.new(dm=100)
+    f['grp'] = np.arange(100) % 10
+    if shared:
+        # NB must come before the catalogue is loaded, since it only affects subsequent allocations
+        f.enable_shared_arrays()
+    return f
+
+
+def _all_arrays_in_state(state, path=''):
+    """Yield (path, value) for every numpy array or shared array reference in a portable state"""
+    if isinstance(state, dict):
+        for key, value in state.items():
+            yield from _all_arrays_in_state(value, f"{path}/{key}")
+    elif isinstance(state, list):
+        for i, value in enumerate(state):
+            yield from _all_arrays_in_state(value, f"{path}/{i}")
+    elif isinstance(state, (np.ndarray, pynbody.array.shared.SharedArrayReference)):
+        yield path, state
+
+
+def test_shared_arrays_flag_is_visible_from_subsnaps():
+    """The flag lives on the underlying snapshot, so a view must give the same answer as its ancestor"""
+    f = pynbody.new(dm=100)
+    assert not f.uses_shared_arrays()
+    assert not f[:50].uses_shared_arrays()
+
+    f.enable_shared_arrays()
+    assert f.uses_shared_arrays()
+    assert f[:50].uses_shared_arrays()
+    assert f.dm.uses_shared_arrays()
+
+
+@pytest.mark.parametrize("shared", [True, False])
+def test_index_lists_allocated_in_shared_memory(shared):
+    """A catalogue on a snapshot using shared arrays puts its index lists in shared memory directly"""
+    f = _snapshot_with_grp_array(shared)
+    h = f.halos()
+    h.load_all()
+
+    index_lists = h._index_lists
+    for array in (index_lists.particle_index_list, index_lists.particle_index_list_boundaries):
+        assert pynbody.array.shared.is_shared_array(array) == shared
+
+    del h, f
+    gc.collect()
+
+
+@pytest.mark.parametrize("shared", [True, False])
+def test_assembled_index_lists_allocated_in_shared_memory(shared):
+    """The same for a catalogue which assembles its index lists from per-halo particle IDs"""
+    f = pynbody.new(dm=100)
+    f['iord'] = np.arange(100)
+    if shared:
+        f.enable_shared_arrays()
+
+    h = SimpleHaloCatalogueWithIncompleteHalos(f)
+    h.load_all()
+
+    index_lists = h._index_lists
+    assert index_lists.num_missing_particles is not None
+    for array in (index_lists.particle_index_list, index_lists.particle_index_list_boundaries,
+                  index_lists.num_missing_particles):
+        assert pynbody.array.shared.is_shared_array(array) == shared
+
+    del h, f
+    gc.collect()
+
+
+def test_index_lists_in_shared_memory_from_file_based_finder():
+    """The same, for a catalogue read from a halo finder's own files"""
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    f.enable_shared_arrays()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        h = f.halos()
+        h.load_all()
+
+    assert isinstance(h, pynbody.halo.ahf.AHFCatalogue)
+    index_lists = h._index_lists
+    assert pynbody.array.shared.is_shared_array(index_lists.particle_index_list)
+    assert pynbody.array.shared.is_shared_array(index_lists.particle_index_list_boundaries)
+
+    # ... including the finder's own properties, which are read from file and so have to be copied in
+    state = h.get_portable_state()
+    assert len(state['properties']) > 0
+    for path, array in _all_arrays_in_state(state):
+        assert pynbody.array.shared.is_shared_array(array), f"{path} is not in shared memory"
+
+    del h, f, state, index_lists
+    gc.collect()
+
+
+def test_portable_state_of_shared_catalogue_needs_no_copy():
+    """Every array of the state can be referenced directly, without an intervening copy"""
+    f = _snapshot_with_grp_array(shared=True)
+    h = SimpleHaloCatalogueWithAllProperties(f)
+
+    state = h.get_portable_state()
+
+    # the state must hand out the arrays the catalogue is really using, not copies of them
+    assert state['particle_indices']['particle_index_list'] is h._index_lists.particle_index_list
+
+    arrays = dict(_all_arrays_in_state(state))
+    assert len(arrays) > 0
+    for path, array in arrays.items():
+        assert pynbody.array.shared.is_shared_array(array), f"{path} is not in shared memory"
+
+    references = pynbody.halo.portable.map_arrays(state, pynbody.array.shared.to_shared_reference)
+    referenced = dict(_all_arrays_in_state(references))
+
+    assert set(referenced.keys()) == set(arrays.keys())
+    for path, reference in referenced.items():
+        assert isinstance(reference, pynbody.array.shared.SharedArrayReference), f"{path} is not a reference"
+
+    del h, f, state, arrays, references, referenced
+    gc.collect()
+
+
+def test_shared_portable_state_round_trips_in_process():
+    """Rebuilding from a state whose arrays are in shared memory gives back an equivalent catalogue"""
+    f = _snapshot_with_grp_array(shared=True)
+    h = SimpleHaloCatalogueWithAllProperties(f)
+
+    # NB the state must be kept alive: it owns the shared memory that the references merely describe
+    state = h.get_portable_state()
+    references = pynbody.halo.portable.map_arrays(state, pynbody.array.shared.to_shared_reference)
+    recreated_state = pynbody.halo.portable.map_arrays(references,
+                                                       pynbody.array.shared.from_shared_reference,
+                                                       types=pynbody.array.shared.SharedArrayReference)
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(recreated_state, f)
+
+    assert (h_recreated.keys() == h.keys()).all()
+    for halo_number in h.keys():
+        assert (h_recreated[halo_number].get_index_list(f) == h[halo_number].get_index_list(f)).all()
+
+    properties = h_recreated.get_properties_all_halos()
+    original_properties = h.get_properties_all_halos()
+    assert (properties['mass'] == original_properties['mass']).all()
+    assert properties['mass'].units == original_properties['mass'].units
+    assert (properties['pos'] == original_properties['pos']).all()
+    for children, original_children in zip(properties['children'], original_properties['children']):
+        assert (children == original_children).all()
+
+    del h, h_recreated, f, state, recreated_state, references, properties, original_properties
+    gc.collect()
+
+
+def test_shared_catalogue_transferred_to_another_process_without_copying():
+    """End-to-end: the catalogue allocates in shared memory, and the state is referenced rather than copied"""
+    import multiprocessing as mp
+
+    f = pynbody.new(dm=100)
+    f.enable_shared_arrays()
+    h = SimpleHaloCatalogueWithIncompleteHalos(f)
+
+    # NB no copying pass here, unlike test_portable_state_transferred_through_shared_memory
+    state = h.get_portable_state()
+    packed_state = pynbody.halo.portable.map_arrays(state, pynbody.array.shared.to_shared_reference)
+
+    context = mp.get_context('spawn')
+    result_queue = context.Queue()
+    process = context.Process(target=_rebuild_catalogue_in_subprocess, args=(packed_state, result_queue))
+    process.start()
+    try:
+        num_halos, incomplete, index_lists = result_queue.get(timeout=120)
+    finally:
+        process.join(120)
+
+    assert process.exitcode == 0
+    assert num_halos == len(h)
+    assert incomplete == list(SimpleHaloCatalogueWithIncompleteHalos.incomplete_halo_numbers)
+
+    for halo_number, index_list in index_lists.items():
+        assert (index_list == h[halo_number].get_index_list(f)).all()
+
+    del h, f, state, packed_state
+    gc.collect()
+
+
+def test_portable_state_unshared_by_default():
+    """Without shared arrays enabled, nothing goes into shared memory"""
+    f = _snapshot_with_grp_array(shared=False)
+    h = SimpleHaloCatalogueWithAllProperties(f)
+
+    state = h.get_portable_state()
+
+    arrays = dict(_all_arrays_in_state(state))
+    assert len(arrays) > 0
+    for path, array in arrays.items():
+        assert not pynbody.array.shared.is_shared_array(array), f"{path} unexpectedly in shared memory"
+
+    with pytest.raises(TypeError):
+        pynbody.halo.portable.map_arrays(state, pynbody.array.shared.to_shared_reference)
+
+
+def test_shared_array_identity_survives_portable_encoding():
+    """np.asarray would strip the shared-memory identity that the whole scheme depends on"""
+    from pynbody.halo.details.portable_arrays import as_portable_array
+
+    shared_array = pynbody.array.shared.make_shared_array((6,), np.int64, zeros=True)
+
+    assert as_portable_array(shared_array) is shared_array
+    assert not pynbody.array.shared.is_shared_array(np.asarray(shared_array))
+
+    # ... but a subclass pynbody doesn't know about is still reduced to a plain ndarray
+    assert type(as_portable_array(np.ma.masked_array([1, 2, 3]))) is np.ndarray
+    assert type(as_portable_array([1, 2, 3])) is np.ndarray
+
+    del shared_array
+    gc.collect()
+
 
 def test_halo_number_mapper():
     halo_numbers = np.array([-5, -3, 0, 10])

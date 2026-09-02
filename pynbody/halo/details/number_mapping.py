@@ -4,6 +4,8 @@ from typing import Union
 import numpy as np
 from numpy import typing as npt
 
+from .portable_arrays import as_portable_array
+
 #: Value of the ``type`` entry in a portable state that is to be interpreted as a plain list of halo numbers,
 #: in index order, rather than as a description of a specific mapper class.
 _FROM_HALO_NUMBERS = 'halo_numbers'
@@ -33,7 +35,7 @@ class HaloNumberMapper(ABC):
         .. versionadded:: 2.7.0
 
         """
-        return {'type': _FROM_HALO_NUMBERS, 'halo_numbers': np.asarray(self.all_numbers)}
+        return {'type': _FROM_HALO_NUMBERS, 'halo_numbers': as_portable_array(self.all_numbers)}
 
     @classmethod
     def from_portable_state(cls, state: dict) -> 'HaloNumberMapper':
@@ -100,7 +102,7 @@ class MonotonicHaloNumberMapper(HaloNumberMapper):
     def get_portable_state(self) -> dict:
         # NB the class is named explicitly, rather than taken from type(self), so that any subclass which
         # does not override this method is recreated as the class whose description is actually being stored
-        return {'type': 'MonotonicHaloNumberMapper', 'halo_numbers': np.asarray(self._halo_numbers)}
+        return {'type': 'MonotonicHaloNumberMapper', 'halo_numbers': as_portable_array(self._halo_numbers)}
 
     @classmethod
     def _from_portable_state(cls, state: dict) -> 'MonotonicHaloNumberMapper':
@@ -230,7 +232,7 @@ class NonMonotonicHaloNumberMapper(MonotonicHaloNumberMapper):
     def get_portable_state(self) -> dict:
         # the halo numbers in index order are enough to reconstruct the mapping; the orderings are
         # derived from them by __init__
-        return {'type': 'NonMonotonicHaloNumberMapper', 'halo_numbers': np.asarray(self.original_halo_numbers)}
+        return {'type': 'NonMonotonicHaloNumberMapper', 'halo_numbers': as_portable_array(self.original_halo_numbers)}
 
     def number_to_index(self, halo_number: Union[int, npt.NDArray[int]]) -> Union[int, npt.NDArray[int]]:
         halo_index_sorted = super().number_to_index(halo_number)

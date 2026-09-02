@@ -303,6 +303,37 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         Note that halo membership is expressed as offsets into the snapshot, so the state is only meaningful
         alongside a snapshot with the same particle ordering as the present one.
 
+        Shared memory and ownership
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        If the snapshot is using shared arrays (see
+        :meth:`~pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays`, which must be called *before* the
+        catalogue is loaded), the arrays in the state are already in shared memory. They can therefore be
+        handed to another process by :func:`pynbody.array.shared.to_shared_reference` without being copied
+        first, which matters because the particle index list is 8 bytes per particle in a halo and so runs
+        to gigabytes for a large simulation::
+
+            f.enable_shared_arrays()
+            h = f.halos()
+            references = map_arrays(h.get_portable_state(), to_shared_reference)
+
+        The index lists in the state are the very arrays the catalogue is using, not copies of them; the
+        property arrays are mostly so too, although a few are necessarily derived here (the concatenation of
+        a ragged property such as ``children``, for example) and are held only by the state. This process
+        therefore continues to own the shared memory, and unlinks it when the last reference goes away.
+        **Keep the state itself alive for as long as any other process may still be using the arrays** --
+        holding the catalogue is not enough, and neither is holding the references, which describe the memory
+        without keeping it. There is at present no way to hand ownership over instead:
+        :func:`~pynbody.array.shared.to_shared_reference` accepts ``transfer_ownership``, but
+        :func:`~pynbody.array.shared.from_shared_reference` refuses to act on the result.
+
+        .. versionchanged:: 2.7.1
+
+          The arrays in the state keep their shared-memory identity, where previously they were laundered
+          through ``np.asarray`` and so always had to be copied to reach another process. The corollary is
+          the ownership requirement above: a consumer which used to make its own shared copies, and could
+          then let the originating catalogue go, must now keep it alive.
+
         .. versionadded:: 2.7.0
 
         """
@@ -321,7 +352,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
                  'particle_indices': self._index_lists.get_portable_state()}
 
         if self._properties is not None:
-            state['properties'] = properties_to_portable_state(self._properties)
+            state['properties'] = properties_to_portable_state(self._properties, adopt=self._adopt_array)
 
         return state
 
@@ -347,6 +378,13 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
         :class:`~pynbody.halo.portable.PortableHaloCatalogue`
             A halo catalogue which behaves like the original, but does not refer to the halo finder's files.
+
+        Notes
+        -----
+
+        The catalogue uses the arrays in *state* directly; it does not copy them. If they are in shared
+        memory belonging to another process, that process must keep them alive for at least as long as this
+        catalogue is in use -- see :meth:`get_portable_state`.
         """
         from .portable import PortableHaloCatalogue
         return PortableHaloCatalogue(sim, state)
@@ -594,6 +632,40 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         """The snapshot object that this halo catalogue is based on."""
         return self._base()
 
+    def _uses_shared_arrays(self) -> bool:
+        """Whether arrays belonging to this catalogue should be allocated in shared memory.
+
+        This follows the snapshot the catalogue is attached to; see
+        :meth:`~pynbody.snapshot.simsnap.SimSnap.uses_shared_arrays`. If the snapshot has been
+        garbage collected, the answer is False."""
+        base = self.base
+        return base is not None and base.uses_shared_arrays()
+
+    def _array_factory(self, dims, dtype, zeros=False) -> array.SimArray:
+        """Allocate an array belonging to this catalogue, in shared memory if the snapshot uses it.
+
+        Subclasses should use this in preference to ``np.empty``/``np.zeros`` for anything whose size
+        scales with the number of particles or halos, so that the result can be handed to another
+        process without being copied. See :meth:`get_portable_state`."""
+        return array.array_factory(dims, dtype, zeros, self._uses_shared_arrays())
+
+    def _adopt_array(self, source: np.ndarray) -> np.ndarray:
+        """Return *source* in memory belonging to this catalogue, i.e. in shared memory where appropriate.
+
+        This is for arrays which numpy has already allocated on our behalf -- the result of ``argsort`` or
+        ``concatenate``, say -- and which therefore could not be created in shared memory up front. If the
+        snapshot is not using shared arrays, *source* is returned unchanged; otherwise it is copied, once,
+        into a shared array. Prefer :meth:`_array_factory` where the allocation can be made directly, since
+        that copies nothing."""
+        from ..array.shared import is_shared_array
+        if not self._uses_shared_arrays() or is_shared_array(source):
+            return source
+        destination = self._array_factory(source.shape, source.dtype)
+        # NB view as a plain ndarray so that any units on the source are not applied to the copy; where
+        # units matter they are recorded separately by whatever is doing the copying
+        destination[...] = np.asarray(source)
+        return destination
+
     def _init_iord_to_fpos(self):
         """Create a member array, _iord_to_fpos, that maps particle IDs to file positions.
 
@@ -697,10 +769,16 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         sort : bool
             If True, sort each halo's file positions into ascending order.
 
+        Notes
+        -----
+
+        The arrays are allocated with :meth:`_array_factory`, so they are in shared memory if the snapshot
+        is using it, and can then be transferred to another process without being copied.
+
         """
-        particle_ids = np.empty(num_particles, dtype=np.intp)
-        boundaries = np.empty((num_halos, 2), dtype=np.intp)
-        num_missing_particles = np.zeros(num_halos, dtype=np.intp)
+        particle_ids = self._array_factory(num_particles, np.intp)
+        boundaries = self._array_factory((num_halos, 2), np.intp)
+        num_missing_particles = self._array_factory(num_halos, np.intp, zeros=True)
 
         start = 0
         for halo_index, (fpos, num_missing) in enumerate(mapped_iords_per_halo):

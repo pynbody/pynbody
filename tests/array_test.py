@@ -354,6 +354,41 @@ def test_shared_reference_legacy_names():
     assert pyn_array.shared._deconstructed_shared_array is pyn_array.shared.SharedArrayReference
 
 
+def test_shared_reference_refuses_plain_array():
+    """A plain ndarray cannot be referenced, and must say so rather than being iterated element by element"""
+    shared_array = pyn_array.shared.make_shared_array((6,), np.int64, zeros=True)
+
+    assert isinstance(pyn_array.shared.to_shared_reference(shared_array),
+                      pyn_array.shared.SharedArrayReference)
+
+    # np.asarray gives a base-class view, which no longer knows where its memory came from
+    with pytest.raises(TypeError, match="Cannot make a shared reference"):
+        pyn_array.shared.to_shared_reference(np.asarray(shared_array))
+
+    with pytest.raises(TypeError, match="Cannot make a shared reference"):
+        pyn_array.shared.to_shared_reference(np.arange(6))
+
+    # a SimArray which is simply not in shared memory is refused too
+    with pytest.raises(TypeError, match="unless it was created in shared memory"):
+        pyn_array.shared.to_shared_reference(pyn_array.SimArray(np.arange(6)))
+
+    del shared_array
+    gc.collect()
+
+
+def test_is_shared_array():
+    shared_array = pyn_array.shared.make_shared_array((6,), np.int64, zeros=True)
+
+    assert pyn_array.shared.is_shared_array(shared_array)
+    assert pyn_array.shared.is_shared_array(shared_array[2:]) # a view can still be referenced
+    assert not pyn_array.shared.is_shared_array(np.asarray(shared_array))
+    assert not pyn_array.shared.is_shared_array(np.arange(6))
+    assert not pyn_array.shared.is_shared_array(pyn_array.SimArray(np.arange(6)))
+
+    del shared_array
+    gc.collect()
+
+
 def _test_and_alter_shared_value(array_info):
     array = pynbody.array.shared.from_shared_reference(array_info)
     assert (array[:] == np.arange(3)[: , np.newaxis] * np.arange(5)[np.newaxis, :]).all()

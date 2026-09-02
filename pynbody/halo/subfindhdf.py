@@ -447,8 +447,8 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             for g_ptype in g_ptypes:
                 tot_len += lengths[g_ptype].sum()
 
-        plist = np.empty(tot_len, dtype='int64')
-        boundaries = np.empty((len(self), 2), dtype='int64')
+        plist = self._array_factory(tot_len, np.int64)
+        boundaries = self._array_factory((len(self), 2), np.int64)
 
         location = 0
         for i in range(len(self)):

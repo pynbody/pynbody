@@ -202,6 +202,23 @@ def _register_sigterm_handler():
         signal.signal(signal.SIGTERM, _sigterm_handler)
         _sigterm_handler_is_registered = True
 
+def is_shared_array(ar) -> bool:
+    """Return True if *ar* is backed onto shared memory, and so can be passed to :func:`to_shared_reference`.
+
+    Views of a shared array count, since a reference describes the offset and strides as well as the
+    underlying memory. A base-class view (as returned by ``np.asarray``) does not, because it no longer
+    carries any record of where its memory came from.
+
+    .. versionadded:: 2.7.1
+
+    """
+    while isinstance(ar, SimArray):
+        if isinstance(ar, SharedMemorySimArray):
+            return True
+        ar = ar.base
+    return False
+
+
 def get_num_shared_arrays_owned():
     """Returns the number of shared arrays currently owned by this process.
 
@@ -233,12 +250,17 @@ def _shared_array_deconstruct(ar, transfer_ownership=False):
     process has it) to the reconstructing process. New code should use
     :func:`to_shared_reference` instead."""
 
-    assert isinstance(ar, SimArray)
+    if not isinstance(ar, SimArray):
+        raise TypeError(f"Cannot make a shared reference to a {type(ar).__name__}; it must be a SimArray "
+                        f"backed onto shared memory. Note that viewing a shared array as a plain ndarray "
+                        f"(e.g. with np.asarray) discards the record of where its memory came from.")
+
     ar_base = ar
     while isinstance(ar_base.base, SimArray):
         ar_base = ar_base.base
 
-    assert isinstance(ar_base, SharedMemorySimArray), "Cannot prepare an array for shared use unless it was created in shared memory"
+    if not isinstance(ar_base, SharedMemorySimArray):
+        raise TypeError("Cannot prepare an array for shared use unless it was created in shared memory")
 
     ownership_out = transfer_ownership and ar_base._shared_owner
     if transfer_ownership:
@@ -256,7 +278,10 @@ def _shared_array_deconstruct(ar, transfer_ownership=False):
 def _shared_array_reconstruct(X):
     dtype, dims, fname, ownership, offset, strides, num_bytes = X
 
-    assert not ownership # transferring ownership not actually supported in current implementation
+    if ownership:
+        raise NotImplementedError("Transferring ownership of shared memory between processes is not "
+                                  "supported. The process which created the array must keep it alive for "
+                                  "as long as any other process is using it.")
 
     new_ar = make_shared_array(dims, dtype, fname=fname, create=False, offset=offset, strides=strides, num_bytes=num_bytes)
 
@@ -267,7 +292,10 @@ def _recursive_shared_array_deconstruct(input, transfer_ownership=False) :
     """Works through items in input, deconstructing any shared memory arrays
     into transferrable references. New code should use :func:`to_shared_reference` instead."""
     output = []
-    if isinstance(input, SimArray):
+    if isinstance(input, np.ndarray):
+        # NB the test is for any ndarray, not just a SimArray: one that cannot be referenced must be
+        # rejected here rather than falling through to the loop below, which would iterate it and quietly
+        # return a python list of its every element
         return _shared_array_deconstruct(input, transfer_ownership)
 
     for item in input:
@@ -383,12 +411,34 @@ def to_shared_reference(array, transfer_ownership=False):
     transfer_ownership : bool
         If True, the receiving process will take over responsibility for cleaning up the shared memory.
 
+        .. warning::
+
+          This is not currently implemented at the receiving end: :func:`from_shared_reference` raises
+          ``NotImplementedError`` on a reference made with ``transfer_ownership=True`` (unless this process
+          did not own the memory in the first place, in which case there is nothing to transfer and the
+          argument has no effect). Whatever created the array must therefore keep it alive; there is at
+          present no way to hand that responsibility over.
+
     Returns
     -------
 
     array_description : SharedArrayReference
         A description of the array that can be passed between processes (e.g. using pickle to turn it into a short
         string that can be sent via a pipe).
+
+    Raises
+    ------
+
+    TypeError
+        If *array* is not backed onto shared memory. Note in particular that ``np.asarray`` on a shared array
+        returns a base-class view which has lost all record of where its memory came from; use
+        ``np.asanyarray`` instead, or check with :func:`is_shared_array`.
+
+        .. versionchanged:: 2.7.1
+
+          Previously a plain ``ndarray`` was silently iterated, returning a python list of its every
+          element rather than a reference.
+
     """
 
     return _recursive_shared_array_deconstruct(array, transfer_ownership)

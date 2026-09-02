@@ -250,8 +250,29 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         because there are sometimes limits on shared memory and cleaning it up can be unreliable if
         python is killed unexpectedly.
 
+        Only arrays allocated *after* this call are placed in shared memory; anything already loaded
+        stays where it is. It therefore needs to be called before the data you want to share is
+        created -- in particular, before loading a halo catalogue if you want its index lists to be
+        shared (see :meth:`~pynbody.halo.HaloCatalogue.get_portable_state`).
+
         For more information, see :ref:`parallelism`."""
         self._shared_arrays = True
+
+    def uses_shared_arrays(self) -> bool:
+        """Return True if new arrays associated with this snapshot are allocated in shared memory.
+
+        This is the flag set by :meth:`enable_shared_arrays`. It is stored on the underlying snapshot
+        rather than on each view of it, so asking a subsnap gives the same answer as asking its
+        :attr:`ancestor`.
+
+        Code which allocates memory that logically belongs to a snapshot -- for example a halo
+        catalogue's particle index lists -- should consult this to decide whether to use
+        :func:`pynbody.array.array_factory` with ``shared=True``.
+
+        .. versionadded:: 2.7.1
+
+        """
+        return self.ancestor._shared_arrays
 
     ############################################
     # THE BASICS: GETTING AND SETTING
@@ -1159,7 +1180,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             dims = (self._num_particles, ndim)
 
         if shared is None:
-            shared = self._shared_arrays
+            shared = self.uses_shared_arrays()
 
         if source_array is None:
             source_array = array.array_factory(dims, dtype, zeros, shared)
@@ -1262,7 +1283,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         # not be appropriate, so actually go ahead and create the family array
 
         if shared is None:
-            shared = self._shared_arrays
+            shared = self.uses_shared_arrays()
 
         if source_array is None:
             source_array = array.array_factory(dims, dtype, False, shared)

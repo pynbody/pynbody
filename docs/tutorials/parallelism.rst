@@ -312,3 +312,36 @@ and, in the receiving process, turned back into arrays by passing the reference 
     state = pynbody.halo.portable.map_arrays(references,
                                              pynbody.array.shared.from_shared_reference,
                                              types=pynbody.array.shared.SharedArrayReference)
+
+For this to work without copying anything, the catalogue's arrays must already be in shared memory. Call
+:meth:`~pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays` on the snapshot *before* loading the
+catalogue, and its particle index lists -- which are 8 bytes per particle in a halo, so gigabytes for a large
+simulation -- are allocated there directly:
+
+.. sourcecode:: python
+
+    f = pynbody.load('gasoline_ahf/g15784.lr.01024')
+    f.enable_shared_arrays()      # must come before f.halos()
+
+    h = f.halos()
+    state = h.get_portable_state()
+    references = pynbody.halo.portable.map_arrays(state, pynbody.array.shared.to_shared_reference)
+
+Whether a snapshot is using shared arrays can be checked with
+:meth:`~pynbody.snapshot.simsnap.SimSnap.uses_shared_arrays`. Without it,
+:func:`~pynbody.array.shared.to_shared_reference` raises a ``TypeError``, since there is no shared memory to
+refer to; the state can still be transferred, but only by copying it (e.g. by pickling it down a pipe, or by
+copying each array into shared memory first).
+
+.. versionadded:: 2.7.1
+
+    Halo catalogues allocate their index lists in shared memory when the snapshot asks for it, and the
+    portable state preserves that, so no copy is needed to hand a catalogue to another process.
+
+.. warning::
+
+    The process that generated the state owns the shared memory, and releases it when the last reference
+    within that process goes away. Keep the state alive for as long as any other process is still using
+    the catalogue: the references describe the memory but do not keep it allocated, and holding only the
+    originating :class:`~pynbody.halo.HaloCatalogue` is not enough either, since a few of the arrays in a
+    state are derived when it is generated rather than being arrays the catalogue itself holds.

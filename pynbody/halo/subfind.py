@@ -119,7 +119,7 @@ class SubfindCatalogue(HaloCatalogue):
 
     def _get_all_particle_indices(self):
         ids = self._read_ids()
-        boundaries = np.empty((len(self), 2), dtype=self.dtype_int)
+        boundaries = self._array_factory((len(self), 2), self.dtype_int)
         if self._subs:
             boundaries[:, 0] = self._subhalodat['sub_off']
             boundaries[:, 1] = self._subhalodat['sub_off'] + self._subhalodat['sub_len']
@@ -135,7 +135,9 @@ class SubfindCatalogue(HaloCatalogue):
                 num_halos=len(boundaries), num_particles=len(ids)
             )
 
-        return particle_indices.HaloParticleIndices(ids, boundaries)
+        # the ids are already the file positions in this case, so they become the index list directly; when
+        # shared arrays are in use they have to be copied into shared memory, having been read from file first
+        return particle_indices.HaloParticleIndices(self._adopt_array(ids), boundaries)
 
     def get_properties_one_halo(self, i):
 
@@ -215,7 +217,9 @@ class SubfindCatalogue(HaloCatalogue):
             return SubhaloCatalogue(self._subhalo_catalogue,
                                     self._get_children_of_group(parent_halo_number))
     def _read_ids(self):
-        data_ids = np.array([], dtype=self.dtype_int)
+        # NB accumulate then concatenate once; appending to a growing array copies everything read so far
+        # for every file, which is quadratic in the number of subfind outputs
+        ids_per_task = []
         iout = self._subfind_dir.split("_")[-1]
         for n in range(0, self._tasks):
             filename = os.path.join(
@@ -230,8 +234,10 @@ class SubfindCatalogue(HaloCatalogue):
             # TODO: include a check if both headers agree (they better)
             ids = np.fromfile(fd, dtype=self.dtype_int, sep="", count=-1)
             fd.close()
-            data_ids = np.append(data_ids, ids)
-        return data_ids
+            ids_per_task.append(ids)
+        if len(ids_per_task) == 0:
+            return np.array([], dtype=self.dtype_int)
+        return np.concatenate(ids_per_task)
 
     def _read_data(self, sim):
         halodat={}

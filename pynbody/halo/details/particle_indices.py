@@ -3,6 +3,8 @@ from typing import Any
 import numpy as np
 from numpy import typing as npt
 
+from .portable_arrays import as_portable_array
+
 
 class IncompleteHaloError(RuntimeError):
     """Raised when a halo cannot be constructed because some of its particles are not in the snapshot.
@@ -91,13 +93,17 @@ class HaloParticleIndices:
         Any information about particles that are missing from the snapshot is included, so that halos which
         are incomplete here remain flagged as incomplete after the round trip.
 
+        The arrays are the ones this object is actually using, not copies, and they keep their identity: an
+        index list which was allocated in shared memory is still recognisably in shared memory here, so that
+        a consumer can reference it rather than copying it.
+
         .. versionadded:: 2.7.0
 
         """
-        state = {'particle_index_list': np.asarray(self.particle_index_list),
-                 'particle_index_list_boundaries': np.asarray(self.particle_index_list_boundaries)}
+        state = {'particle_index_list': as_portable_array(self.particle_index_list),
+                 'particle_index_list_boundaries': as_portable_array(self.particle_index_list_boundaries)}
         if self.num_missing_particles is not None:
-            state['num_missing_particles'] = np.asarray(self.num_missing_particles)
+            state['num_missing_particles'] = as_portable_array(self.num_missing_particles)
         return state
 
     @classmethod
