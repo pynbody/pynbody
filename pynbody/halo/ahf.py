@@ -23,6 +23,15 @@ from .details.number_mapping import (
 class AHFCatalogue(HaloCatalogue):
     """
     Class to handle catalogues produced by Amiga Halo Finder (AHF).
+
+    .. versionchanged:: 2.7.0
+
+      Unless it is using particle IDs *and* the newer file format, AHF expresses halo membership as offsets
+      within the snapshot's families, and the catalogue now refuses to load against a partially loaded
+      snapshot, raising a
+      :class:`~pynbody.halo.details.particle_indices.PartialLoadingNotSupportedError`; previously the wrong
+      particles were returned. Where particle IDs are used, halos which extend beyond the loaded particles
+      are reported through :meth:`~pynbody.halo.HaloCatalogue.complete_keys`.
     """
 
     def __init__(self, sim, filename=None, make_grp=None, get_all_parts=None, use_iord=None, ahf_basename=None,

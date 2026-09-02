@@ -18,6 +18,13 @@ def load(filename, *args, **kwargs) -> SimSnap:
     This routine is the main entry point for loading snapshots. It will try to load the file using the appropriate
     class, based on inspection by the candidate subclasses. If no class can load the file, an OSError is raised.
 
+    .. versionchanged:: 2.7.0
+
+      ``take`` accepts a slice as well as an array of indices, and rejects indices which are not strictly
+      ascending. Previously a repeated or out-of-order index either produced a snapshot containing the same
+      particle twice, or failed with an ``IndexError`` from within the chunking machinery, depending on the
+      format.
+
     Parameters
     ----------
     filename : str

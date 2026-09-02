@@ -54,12 +54,24 @@ In addition, generic halo finders which output a list of halo numbers for each p
 :class:`~pynbody.halo.number_array.HaloNumberCatalogue`.
 
 
-
 .. note::
 
     The principal development of ``pynbody`` took place in the UK, and the spelling of "catalogue" is British English.
     However, since much code is written in American English, v2.0.0 introduced aliases such that all
     classes can be accessed with the American spelling ``HaloCatalog``, ``AdaptaHOPCatalog`` etc.
+
+
+Transferring a catalogue between processes
+------------------------------------------
+
+Any halo catalogue can be expressed as a dictionary of numpy arrays and python primitives, using
+:meth:`HaloCatalogue.get_portable_state`, and turned back into a live catalogue on a specified simulation using
+:meth:`HaloCatalogue.from_portable_state`. This makes it possible to load a catalogue once and hand it to other
+processes -- for example through shared memory -- without those processes needing access to the halo finder's
+files, or any knowledge of the role of the individual arrays. See :mod:`pynbody.halo.portable` for more
+information.
+
+.. versionadded:: 2.7.0
 
 
 """
@@ -268,6 +280,77 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             if self._persistent_units is not None:
                 self._cached_properties_to_physical_units(self._persistent_units)
 
+    def get_portable_state(self) -> dict:
+        """Express the entire catalogue as numpy arrays and python primitives.
+
+        The result is a dictionary whose values are numpy arrays, python primitives (such as strings and
+        integers), or nested dictionaries of the same. Nothing in it is tied to the present process, or to the
+        halo finder's files, so it may be transferred elsewhere -- for example to another process, by putting
+        the arrays into shared memory. The recipient does not need to know the role of any individual array;
+        it needs only to reproduce the structure at the other end, where
+        :meth:`from_portable_state` turns it back into a live halo catalogue attached to a specified
+        simulation.
+
+        The state includes the halo numbering, the particles belonging to each halo, any information about
+        particles that are missing from the snapshot (see
+        :class:`~pynbody.halo.details.particle_indices.IncompleteHaloError`), whether this catalogue is able
+        to detect such particles at all (:attr:`_can_determine_completeness`, so that a catalogue which
+        cannot does not appear to have become able to once transferred), and the halo finder properties
+        that are available from :meth:`get_properties_all_halos`. Properties which are only available one halo
+        at a time, i.e. those provided by catalogues which implement :meth:`get_properties_one_halo` without
+        :meth:`get_properties_all_halos`, are not included.
+
+        Note that halo membership is expressed as offsets into the snapshot, so the state is only meaningful
+        alongside a snapshot with the same particle ordering as the present one.
+
+        .. versionadded:: 2.7.0
+
+        """
+        from .portable import PORTABLE_STATE_VERSION, properties_to_portable_state
+
+        self.load_all()
+
+        if self._index_lists is None:
+            raise TypeError(f"A {type(self).__name__} cannot be turned into a portable state, because it does "
+                            f"not expose the particles belonging to all its halos")
+
+        state = {'version': PORTABLE_STATE_VERSION,
+                 'catalogue_class': type(self).__name__,
+                 'can_determine_completeness': self._can_determine_completeness,
+                 'number_mapper': self.number_mapper.get_portable_state(),
+                 'particle_indices': self._index_lists.get_portable_state()}
+
+        if self._properties is not None:
+            state['properties'] = properties_to_portable_state(self._properties)
+
+        return state
+
+    @classmethod
+    def from_portable_state(cls, state: dict, sim: snapshot.SimSnap) -> HaloCatalogue:
+        """Recreate a halo catalogue from a state dictionary, attaching it to the specified simulation.
+
+        .. versionadded:: 2.7.0
+
+        Parameters
+        ----------
+
+        state : dict
+            A dictionary previously returned by :meth:`get_portable_state`, possibly having been transferred
+            from another process.
+
+        sim : :class:`~pynbody.snapshot.simsnap.SimSnap`
+            The simulation to attach the catalogue to. It must have the same particle ordering as the
+            simulation the state was generated from, since halo membership is expressed as offsets into it.
+
+        Returns
+        -------
+
+        :class:`~pynbody.halo.portable.PortableHaloCatalogue`
+            A halo catalogue which behaves like the original, but does not refer to the halo finder's files.
+        """
+        from .portable import PortableHaloCatalogue
+        return PortableHaloCatalogue(sim, state)
+
     @util.deprecated("precalculate has been renamed to load_all")
     def precalculate(self):
         """Deprecated alias for :meth:`load_all`"""
@@ -373,6 +456,12 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         present, and cannot be retrieved; see :meth:`complete_keys`.
 
         The returned array is read-only, since it may be a view of the catalogue's internal numbering.
+
+        .. versionchanged:: 2.7.0
+
+          A read-only numpy array is returned. Previously this was whatever the catalogue's number mapper
+          held, and was writable, so code which modified it in place must now take a copy first.
+
         """
         all_numbers = np.asarray(self.number_mapper.all_numbers).view()
         all_numbers.flags.writeable = False
@@ -395,6 +484,8 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         RuntimeWarning to that effect. (Formats which instead identify their particles by position within the
         snapshot cannot be used with a partially loaded snapshot at all; they refuse to load.)
 
+        .. versionadded:: 2.7.0
+
         Parameters
         ----------
 
@@ -402,9 +493,6 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             Establishing which halos are complete requires the particle lists for all halos, so
             :meth:`load_all` is called if it has not been already. If this is undesirable (e.g. because the
             catalogue is very large), pass False to raise a RuntimeError instead.
-
-        .. versionadded:: 2.7.0
-
         """
         all_numbers = self.keys()
         complete_mask = self.get_complete_mask(load_all_if_required)
@@ -719,6 +807,7 @@ from . import (
     hbtplus,
     hop,
     number_array,
+    portable,
     rockstar,
     subfind,
     subfindhdf,

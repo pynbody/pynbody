@@ -295,8 +295,9 @@ a function of mass in this halo catalogue:
 
 .. note::
 
-    Pynbody includes infrastructure for analysing large simulations and halo catalogues using parallel processing.
-    This is used
+    Pynbody includes infrastructure for analysing large simulations and halo catalogues using parallel processing,
+    including a way to hand a loaded catalogue to another process; see the
+    :ref:`parallelism document <parallelism>`. This is used
     by its sister project, `tangos <https://pynbody.github.io/tangos/>`_, which offers a way to collate and analyse
     halo data across different timesteps and simulations, generating rich interactive databases which can then be
     queried and visualised in a variety of ways.

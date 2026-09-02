@@ -1,11 +1,14 @@
 """Test the generic halo catalogue mechanisms, using a very simple reference implementation"""
 
+import gc
+import pickle
 import warnings
 
 import numpy as np
 import pytest
 
 import pynbody
+import pynbody.array.shared
 import pynbody.halo.details.iord_mapping
 import pynbody.halo.details.number_mapping
 import pynbody.halo.details.particle_indices
@@ -335,7 +338,11 @@ def test_complete_keys_avoids_efficiency_warning(incomplete_halos):
 
 
 class SimpleHaloCatalogueWithoutCompletenessInformation(SimpleHaloCatalogue):
-    """A catalogue of the kind that identifies its particles by position rather than by ID"""
+    """A catalogue of the kind whose membership is an array covering only the particles that were loaded.
+
+    That is the halo-number-per-particle case, e.g. a .grp file: usable, but with no way to tell that the
+    finder assigned further particles which are absent. Catalogues addressing particles by *file position*
+    are a different category, and set _uses_file_position_addressing instead."""
 
     _can_determine_completeness = False
 
@@ -445,6 +452,370 @@ def test_unmatched_iords_in_partial_snapshot_are_incompleteness(snap_with_iords)
     with pytest.raises(halo.IncompleteHaloError):
         halos[2]
 
+
+class SimpleHaloCatalogueWithAllProperties(SimpleHaloCatalogue):
+    """A catalogue exposing properties for all halos at once, of the various kinds a halo finder may provide"""
+
+    def get_properties_all_halos(self, with_units=True) -> dict:
+        num_halos = len(self.number_mapper)
+        mass = np.arange(num_halos, dtype=float) * 1e10
+        if with_units:
+            mass = pynbody.array.SimArray(mass, "Msol")
+        return {'mass': mass,
+                'pos': np.arange(3 * num_halos, dtype=float).reshape((num_halos, 3)),
+                'children': [np.arange(i) for i in range(num_halos)]}
+
+
+def _assert_portable(state):
+    """Check that a portable state contains only things that can be transferred without further interpretation"""
+    assert isinstance(state, dict)
+    for key, value in state.items():
+        assert isinstance(key, str)
+        if isinstance(value, dict):
+            _assert_portable(value)
+        elif isinstance(value, list):
+            _assert_portable({str(i): v for i, v in enumerate(value)})
+        else:
+            assert isinstance(value, (np.ndarray, np.number, np.bool_, str, bytes, bool, int, float, complex,
+                                      type(None)))
+
+
+def _transfer(state):
+    """Mimic sending a portable state to another process, as a parallel task manager would"""
+    return pickle.loads(pickle.dumps(state))
+
+
+def test_portable_state_round_trip():
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogueWithAllProperties(f)
+
+    state = h.get_portable_state()
+    _assert_portable(state)
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(state), f)
+
+    assert isinstance(h_recreated, pynbody.halo.portable.PortableHaloCatalogue)
+    assert len(h_recreated) == len(h)
+    assert (h_recreated.keys() == h.keys()).all()
+
+    for halo_number in h.keys():
+        assert (h_recreated[halo_number].get_index_list(f) == h[halo_number].get_index_list(f)).all()
+
+    assert (h_recreated.get_group_array() == h.get_group_array()).all()
+
+
+def test_portable_state_round_trip_preserves_properties():
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogueWithAllProperties(f)
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(h.get_portable_state()), f)
+
+    properties = h_recreated.get_properties_all_halos()
+    original_properties = h.get_properties_all_halos()
+
+    assert (properties['mass'] == original_properties['mass']).all()
+    assert properties['mass'].units == "Msol"
+    assert (properties['pos'] == original_properties['pos']).all()
+
+    for children, original_children in zip(properties['children'], original_properties['children']):
+        assert (children == original_children).all()
+
+    # properties should also be accessible one halo at a time, with units
+    assert h_recreated[3].properties['mass'] == h[3].properties['mass']
+    assert (h_recreated[3].properties['children'] == h[3].properties['children']).all()
+
+    # ... and without units, if requested
+    assert not pynbody.units.has_unit(h_recreated.get_properties_all_halos(with_units=False)['mass'])
+
+
+def test_portable_properties_encoding():
+    """Halo properties of the various shapes a finder may provide survive a round trip"""
+    from pynbody.halo.portable import (
+        properties_from_portable_state,
+        properties_to_portable_state,
+    )
+
+    properties = {'mass': pynbody.array.SimArray(np.arange(3, dtype=float), "Msol"),
+                  'plain': np.arange(3),
+                  'children': [np.array([1, 2]), np.array([], dtype=np.int64), np.array([0])],
+                  'names': ['a', 'bb', 'ccc'],
+                  'finder': 'simple'}
+
+    state = properties_to_portable_state(properties)
+    _assert_portable(state)
+
+    recreated = properties_from_portable_state(_transfer(state))
+
+    assert (recreated['mass'] == properties['mass']).all()
+    assert recreated['mass'].units == "Msol"
+    assert (recreated['plain'] == properties['plain']).all()
+    assert not pynbody.units.has_unit(recreated['plain'])
+    for children, original_children in zip(recreated['children'], properties['children']):
+        assert (children == original_children).all()
+    assert list(recreated['names']) == properties['names']
+    assert recreated['finder'] == 'simple'
+
+
+def test_portable_state_round_trip_without_properties():
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogue(f) # only offers properties one halo at a time, so they can't be transferred
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(h.get_portable_state()), f)
+
+    assert h_recreated.get_properties_all_halos() == {}
+    assert len(h_recreated[1]) == len(h[1])
+
+
+def test_portable_state_round_trip_preserves_incompleteness():
+    """Halos which cannot be loaded must still be flagged after a transfer, not silently truncated"""
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogueWithIncompleteHalos(f)
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(h.get_portable_state()), f)
+
+    assert (h_recreated.complete_keys() == h.complete_keys()).all()
+    assert (h_recreated.get_complete_mask() == h.get_complete_mask()).all()
+
+    for halo_number in SimpleHaloCatalogueWithIncompleteHalos.incomplete_halo_numbers:
+        with pytest.raises(halo.IncompleteHaloError):
+            _ = h_recreated[halo_number]
+
+
+def test_portable_state_round_trip_preserves_inability_to_determine_completeness():
+    """A catalogue which cannot detect missing particles must not appear able to once transferred"""
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogueWithoutCompletenessInformation(f)
+
+    state = h.get_portable_state()
+    assert state['can_determine_completeness'] is False
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(state), f)
+
+    assert h_recreated._can_determine_completeness is False
+    with pytest.warns(RuntimeWarning, match="unable to tell whether particles are missing"):
+        assert (h_recreated.complete_keys() == h_recreated.keys()).all()
+
+
+def test_portable_catalogue_does_not_address_particles_by_file_position():
+    """The offsets in a state are resolved against the snapshot, so a partially loaded one is no obstacle.
+
+    What matters is that the simulation presents the same particles in the same order as the one the state
+    came from, which is the caller's responsibility; there is nothing here that refers to a file, so the
+    refusal that applies to file-position catalogues must not fire."""
+    f = pynbody.new(dm=100)
+    state = SimpleHaloCatalogueWithAllProperties(f).get_portable_state()
+
+    subsnap = f[:]
+    assert subsnap.is_partially_loaded() # a view, so it counts as partial; see SimSnap.is_partially_loaded
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(state), subsnap)
+
+    assert h_recreated._uses_file_position_addressing is False
+    assert len(h_recreated[1]) > 0
+
+
+def test_portable_state_arrays_can_be_mapped():
+    """A consumer can replace all the arrays in a state (e.g. with shared memory) without knowing their roles"""
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogueWithAllProperties(f)
+
+    mapped_arrays = []
+
+    def mapper(ar):
+        mapped_arrays.append(ar)
+        return ar.copy()
+
+    state = pynbody.halo.portable.map_arrays(h.get_portable_state(), mapper)
+
+    assert len(mapped_arrays) > 0
+    assert all(isinstance(ar, np.ndarray) for ar in mapped_arrays)
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(state, f)
+    assert (h_recreated[1].get_index_list(f) == h[1].get_index_list(f)).all()
+
+
+def _rebuild_catalogue_in_subprocess(packed_state, result_queue):
+    """Rebuild a catalogue that has been transferred through shared memory, and report on what it contains"""
+    import pynbody
+    from pynbody.array.shared import SharedArrayReference, from_shared_reference
+
+    state = pynbody.halo.portable.map_arrays(packed_state, from_shared_reference,
+                                            types=SharedArrayReference)
+
+    f = pynbody.new(dm=100)
+    h = pynbody.halo.HaloCatalogue.from_portable_state(state, f)
+
+    incomplete = []
+    index_lists = {}
+    for halo_number in h.keys():
+        try:
+            index_lists[int(halo_number)] = h[halo_number].get_index_list(f)
+        except pynbody.halo.IncompleteHaloError:
+            incomplete.append(int(halo_number))
+
+    result_queue.put((len(h), incomplete, index_lists))
+
+
+def test_portable_state_transferred_through_shared_memory():
+    """The intended use case: another process rebuilds the catalogue from arrays in shared memory"""
+    import multiprocessing as mp
+
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogueWithIncompleteHalos(f)
+
+    def to_shared_memory(ar):
+        shared_ar = pynbody.array.shared.make_shared_array(ar.shape, ar.dtype)
+        shared_ar[:] = ar
+        return shared_ar
+
+    state = pynbody.halo.portable.map_arrays(h.get_portable_state(), to_shared_memory)
+    packed_state = pynbody.halo.portable.map_arrays(state, pynbody.array.shared.to_shared_reference)
+
+    context = mp.get_context('spawn')
+    result_queue = context.Queue()
+    process = context.Process(target=_rebuild_catalogue_in_subprocess, args=(packed_state, result_queue))
+    process.start()
+    try:
+        num_halos, incomplete, index_lists = result_queue.get(timeout=120)
+    finally:
+        process.join(120)
+
+    assert process.exitcode == 0
+    assert num_halos == len(h)
+    assert incomplete == list(SimpleHaloCatalogueWithIncompleteHalos.incomplete_halo_numbers)
+
+    for halo_number, index_list in index_lists.items():
+        assert (index_list == h[halo_number].get_index_list(f)).all()
+
+    del state, packed_state
+    gc.collect()
+
+
+def test_portable_state_preserves_incompleteness(snap_for_incomplete_halos, incomplete_halos):
+    """Halos which are incomplete because of partial loading remain flagged as such after a round trip"""
+    state = incomplete_halos.get_portable_state()
+    assert 'num_missing_particles' in state['particle_indices']
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(state), snap_for_incomplete_halos)
+
+    for halo_number in h_recreated.keys():
+        if halo_number in SimpleHaloCatalogueWithIncompleteHalos.incomplete_halo_numbers:
+            with pytest.raises(halo.IncompleteHaloError) as excinfo:
+                _ = h_recreated[halo_number]
+            assert excinfo.value.halo_number == halo_number
+            assert excinfo.value.num_missing_particles == halo_number
+        else:
+            assert len(h_recreated[halo_number]) > 0
+
+
+def test_portable_state_without_incompleteness_information():
+    """Catalogues with no missing particles don't carry any completeness information around"""
+    f = pynbody.new(dm=100)
+    state = SimpleHaloCatalogue(f).get_portable_state()
+
+    assert 'num_missing_particles' not in state['particle_indices']
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(_transfer(state), f)
+    assert not h_recreated._index_lists.is_halo_incomplete(0)
+
+
+@pytest.mark.parametrize("halo_numbers", [np.arange(1, 10), np.array([-5, -3, 0, 10]), np.array([5, 2, 9, 1])])
+def test_portable_number_mapper_round_trip(halo_numbers):
+    mapper = pynbody.halo.details.number_mapping.create_halo_number_mapper(halo_numbers)
+
+    recreated = pynbody.halo.details.number_mapping.HaloNumberMapper.from_portable_state(
+        _transfer(mapper.get_portable_state()))
+
+    assert type(recreated) is type(mapper)
+    assert len(recreated) == len(mapper)
+    assert (recreated.all_numbers == mapper.all_numbers).all()
+    assert (recreated.number_to_index(halo_numbers) == mapper.number_to_index(halo_numbers)).all()
+    assert (recreated.index_to_number(np.arange(len(mapper)))
+            == mapper.index_to_number(np.arange(len(mapper)))).all()
+
+
+def test_portable_number_mapper_default_implementation():
+    """A mapper which doesn't describe itself can still be transferred, via its halo numbers"""
+
+    class ReversedHaloNumberMapper(pynbody.halo.details.number_mapping.HaloNumberMapper):
+        def __init__(self, num_halos):
+            self.num_halos = num_halos
+
+        def number_to_index(self, halo_number):
+            return self.num_halos - 1 - halo_number
+
+        def index_to_number(self, halo_index):
+            return self.num_halos - 1 - halo_index
+
+        def __len__(self):
+            return self.num_halos
+
+        def __iter__(self):
+            yield from self.all_numbers
+
+        @property
+        def all_numbers(self):
+            return np.arange(self.num_halos)[::-1]
+
+    mapper = ReversedHaloNumberMapper(5)
+    recreated = pynbody.halo.details.number_mapping.HaloNumberMapper.from_portable_state(
+        _transfer(mapper.get_portable_state()))
+
+    assert (recreated.all_numbers == mapper.all_numbers).all()
+    for halo_index in range(len(mapper)):
+        assert recreated.index_to_number(halo_index) == mapper.index_to_number(halo_index)
+        assert recreated.number_to_index(halo_index) == mapper.number_to_index(halo_index)
+
+
+def test_portable_number_mapper_with_no_halos():
+    mapper = pynbody.halo.details.number_mapping.HaloNumberMapper.from_portable_state(
+        {'type': 'halo_numbers', 'halo_numbers': np.array([], dtype=np.intp)})
+    assert len(mapper) == 0
+
+
+def test_portable_number_mapper_unknown_type():
+    with pytest.raises(ValueError, match="Unknown halo number mapper type"):
+        pynbody.halo.details.number_mapping.HaloNumberMapper.from_portable_state({'type': 'NotAMapper'})
+
+
+def test_portable_state_warns_about_untransferable_property():
+    class CatalogueWithUnusualProperty(SimpleHaloCatalogue):
+        def get_properties_all_halos(self, with_units=True) -> dict:
+            return {'mass': np.arange(len(self.number_mapper), dtype=float),
+                    'unusual': [{'not': 'transferable'}]}
+
+    f = pynbody.new(dm=100)
+    h = CatalogueWithUnusualProperty(f)
+
+    with pytest.warns(RuntimeWarning, match="cannot be transferred"):
+        state = h.get_portable_state()
+
+    assert 'mass' in state['properties']
+    assert 'unusual' not in state['properties']
+
+
+def test_portable_state_unavailable_for_view_catalogues():
+    """Catalogues that don't expose the particles of all their halos can't be made portable"""
+    f = pynbody.new(dm=100)
+    h = SimpleHaloCatalogue(f)
+
+    with pytest.raises(TypeError, match="cannot be turned into a portable state"):
+        h[1:3].get_portable_state()
+
+
+def test_portable_state_rejects_future_version():
+    f = pynbody.new(dm=100)
+    state = SimpleHaloCatalogue(f).get_portable_state()
+    state['version'] = pynbody.halo.portable.PORTABLE_STATE_VERSION + 1
+
+    with pytest.raises(ValueError, match="format version"):
+        pynbody.halo.HaloCatalogue.from_portable_state(state, f)
+
+
+def test_portable_catalogue_repr():
+    f = pynbody.new(dm=100)
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(SimpleHaloCatalogue(f).get_portable_state(), f)
+    assert repr(h_recreated) == "<PortableHaloCatalogue from SimpleHaloCatalogue, length 9>"
 
 def test_halo_number_mapper():
     halo_numbers = np.array([-5, -3, 0, 10])

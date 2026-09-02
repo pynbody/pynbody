@@ -87,7 +87,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     Set by loaders which can be pointed at a single file of a multi-file snapshot. Here :attr:`filename` is
     that one file, and the particles held are exactly its contents in its order, so re-reading it by index
     remains valid; but the snapshot does not contain all the particles that other tools (for example halo
-    finders) will consider the output to have."""
+    finders) will consider the output to have.
+
+    .. versionadded:: 2.7.0
+
+      Previously this case was indistinguishable from a complete single-file snapshot.
+    """
 
     # These 3D arrays get four views automatically created, one reflecting the
     # full Nx3 data, the others reflecting Nx1 slices of it

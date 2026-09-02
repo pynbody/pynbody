@@ -17,7 +17,13 @@ class IllegalIordError(ValueError):
     """Raised when a mapping is requested for iord values that do not appear in the snapshot.
 
     This most commonly arises when a halo catalogue refers to particles that have not been loaded, e.g.
-    because only a subset of the file (a region, or a subset of families) was loaded."""
+    because only a subset of the file (a region, or a subset of families) was loaded.
+
+    .. versionadded:: 2.7.0
+
+      Previously a bare :class:`ValueError` was raised, and it did not identify the offending IDs. Code
+      catching ``ValueError`` continues to work, since this is a subclass of it.
+    """
 
 
 def _describe_missing(iord_values: np.ndarray, missing: np.ndarray, max_examples: int = 5) -> str:
