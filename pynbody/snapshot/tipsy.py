@@ -135,7 +135,13 @@ class TipsySnap(SimSnap):
             pass
 
         if time_unit is not None:
-            self.properties['time'] *= time_unit
+            # Store as a SimArray (raw value + unit label) rather than folding the
+            # conversion into a bare Unit, consistent with how every other time-valued
+            # quantity (e.g. star['tform']) is represented. This keeps the raw,
+            # file-native value recoverable (needed so _write can round-trip it) while
+            # still allowing sim.properties['time'].in_units(...) to give the physical
+            # value, and lets it interoperate directly with other time SimArrays.
+            self.properties['time'] = array.SimArray(self.properties['time'], time_unit)
 
     def _load_main_file(self):
 
