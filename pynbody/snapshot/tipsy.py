@@ -135,7 +135,13 @@ class TipsySnap(SimSnap):
             pass
 
         if time_unit is not None:
-            self.properties['time'] *= time_unit
+            # Store as a SimArray (raw value + unit label) rather than folding the
+            # conversion into a bare Unit, consistent with how every other time-valued
+            # quantity (e.g. star['tform']) is represented. This keeps the raw,
+            # file-native value recoverable (needed so _write can round-trip it) while
+            # still allowing sim.properties['time'].in_units(...) to give the physical
+            # value, and lets it interoperate directly with other time SimArrays.
+            self.properties['time'] = array.SimArray(self.properties['time'], time_unit)
 
     def _load_main_file(self):
 
@@ -446,20 +452,6 @@ class TipsySnap(SimSnap):
                 t = snapshot.properties['a']
             else:
                 t = snapshot.properties['time']
-                if isinstance(snapshot, TipsySnap) and isinstance(t, units.UnitBase):
-                    # On loading, TipsySnap.properties['time'] is derived from the raw
-                    # header value by multiplying by the paramfile-inferred time unit
-                    # (see settime/__init__ above), so it is expressed in "physical"
-                    # units rather than the raw internal units the header expects.
-                    # Convert back to those raw units here, otherwise every write
-                    # bakes in an extra, spurious factor of the time unit.
-                    time_unit = snapshot.infer_original_units('yr')
-                    try:
-                        t = t.ratio(time_unit, **snapshot.conversion_context())
-                    except units.UnitsException:
-                        warnings.warn(
-                            "Could not convert time to the tipsy file's internal units; "
-                            "writing the value verbatim, which may be incorrect.", RuntimeWarning)
         except KeyError:
             warnings.warn(
                 "Time is unknown: writing zero in header", RuntimeWarning)

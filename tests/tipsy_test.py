@@ -216,10 +216,11 @@ def test_time_roundtrip_noncosmological(tmp_path):
     # regression test for https://github.com/pynbody/pynbody/issues/996
     #
     # A non-cosmological tipsy snapshot's properties['time'] is stored on disk as a raw
-    # value in the simulation's internal time unit, but pynbody exposes it already
-    # converted using the unit system implied by the sidecar .param file. Writing it back
-    # out must undo that conversion, otherwise the value written to (and subsequently read
-    # from) the header is wrong.
+    # value in the simulation's internal time unit. On load, pynbody represents it as a
+    # SimArray carrying that raw value with the paramfile-inferred unit attached (the
+    # same representation used for any other time-valued array, e.g. star['tform']), so
+    # that a plain float() of it -- and hence a subsequent write -- recovers the original
+    # header value, while .in_units(...) still gives the physical value.
     (tmp_path / "sim.param").write_text("dKpcUnit = 1000\ndMsolUnit = 1e15\nbComove = 0\n")
 
     f = pynbody.new(gas=10)
@@ -232,6 +233,8 @@ def test_time_roundtrip_noncosmological(tmp_path):
     f.write(fmt=pynbody.snapshot.tipsy.TipsySnap, filename=orig_filename, cosmological=False)
 
     f2 = pynbody.load(orig_filename)
+    assert isinstance(f2.properties['time'], pynbody.array.SimArray)
+    assert f2.properties['time'] == f2._header_t
     original_time_gyr = f2.properties['time'].in_units('Gyr')
 
     roundtrip_filename = str(tmp_path / "roundtrip.tipsy")
