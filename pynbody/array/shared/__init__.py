@@ -369,6 +369,10 @@ def remote_map(pool, fn, *iterables):
 def to_shared_reference(array, transfer_ownership=False):
     """Turn an array backed onto shared memory into something that can be passed between processes
 
+    .. versionchanged:: 2.7.0
+
+      Previously named ``pack``, which remains available as an alias.
+
     Parameters
     ----------
     array : SimArray
@@ -385,16 +389,16 @@ def to_shared_reference(array, transfer_ownership=False):
     array_description : SharedArrayReference
         A description of the array that can be passed between processes (e.g. using pickle to turn it into a short
         string that can be sent via a pipe).
-
-    .. versionchanged:: 2.7.0
-
-      Previously named ``pack``, which remains available as an alias.
     """
 
     return _recursive_shared_array_deconstruct(array, transfer_ownership)
 
 def from_shared_reference(array_description):
     """Reconstruct an array backed onto shared memory from a deconstructed array (returned by :func:`to_shared_reference`).
+
+    .. versionchanged:: 2.7.0
+
+      Previously named ``unpack``, which remains available as an alias.
 
     Parameters
     ----------
@@ -407,10 +411,6 @@ def from_shared_reference(array_description):
 
     array : SimArray
         A view on the same shared memory array that was passed in to :func:`to_shared_reference`.
-
-    .. versionchanged:: 2.7.0
-
-      Previously named ``unpack``, which remains available as an alias.
     """
 
     return _recursive_shared_array_reconstruct(array_description)

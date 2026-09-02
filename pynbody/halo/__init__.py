@@ -71,6 +71,8 @@ processes -- for example through shared memory -- without those processes needin
 files, or any knowledge of the role of the individual arrays. See :mod:`pynbody.halo.portable` for more
 information.
 
+.. versionadded:: 2.7.0
+
 
 """
 from __future__ import annotations
@@ -327,6 +329,8 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     def from_portable_state(cls, state: dict, sim: snapshot.SimSnap) -> HaloCatalogue:
         """Recreate a halo catalogue from a state dictionary, attaching it to the specified simulation.
 
+        .. versionadded:: 2.7.0
+
         Parameters
         ----------
 
@@ -343,9 +347,6 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
         :class:`~pynbody.halo.portable.PortableHaloCatalogue`
             A halo catalogue which behaves like the original, but does not refer to the halo finder's files.
-
-        .. versionadded:: 2.7.0
-
         """
         from .portable import PortableHaloCatalogue
         return PortableHaloCatalogue(sim, state)
@@ -483,6 +484,8 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         RuntimeWarning to that effect. (Formats which instead identify their particles by position within the
         snapshot cannot be used with a partially loaded snapshot at all; they refuse to load.)
 
+        .. versionadded:: 2.7.0
+
         Parameters
         ----------
 
@@ -490,9 +493,6 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             Establishing which halos are complete requires the particle lists for all halos, so
             :meth:`load_all` is called if it has not been already. If this is undesirable (e.g. because the
             catalogue is very large), pass False to raise a RuntimeError instead.
-
-        .. versionadded:: 2.7.0
-
         """
         all_numbers = self.keys()
         complete_mask = self.get_complete_mask(load_all_if_required)

@@ -110,6 +110,8 @@ def map_arrays(state, mapper, types=np.ndarray):
     This is a convenience for code that transfers a state elsewhere, e.g. via shared memory. It saves the
     caller from having to know the structure of the state, let alone the meaning of the individual arrays.
 
+    .. versionadded:: 2.7.0
+
     Parameters
     ----------
 
@@ -123,9 +125,6 @@ def map_arrays(state, mapper, types=np.ndarray):
     types : type | tuple[type]
         The types to be passed to *mapper*; anything else is left alone. This defaults to numpy arrays, but
         may be changed to reverse a mapping that has replaced them with something else.
-
-    .. versionadded:: 2.7.0
-
     """
     if isinstance(state, types):
         return mapper(state)
