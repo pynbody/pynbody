@@ -15,7 +15,16 @@ from .subhalo_catalogue import SubhaloCatalogue
 
 
 class SubfindCatalogue(HaloCatalogue):
-    """Handles catalogues produced by the SubFind halo finder (old versions that do not use HDF5 outputs)."""
+    """Handles catalogues produced by the SubFind halo finder (old versions that do not use HDF5 outputs).
+
+    .. versionchanged:: 2.7.0
+
+      Where the snapshot is taken to be ordered, halo membership is expressed as positions within the
+      snapshot file, and the catalogue now refuses to load against a partially loaded snapshot, raising a
+      :class:`~pynbody.halo.details.particle_indices.PartialLoadingNotSupportedError`; previously the wrong
+      particles were returned. Where particle IDs are used instead, halos which extend beyond the loaded
+      particles are reported through :meth:`~pynbody.halo.HaloCatalogue.complete_keys`.
+    """
 
     def __init__(self, sim, filename=None, subs=None, subhalos=False,  ordered=None, _inherit_data_from=None):
         """Initialise a SubFind catalogue

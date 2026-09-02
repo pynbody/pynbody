@@ -300,6 +300,9 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
         Note that halo membership is expressed as offsets into the snapshot, so the state is only meaningful
         alongside a snapshot with the same particle ordering as the present one.
+
+        .. versionadded:: 2.7.0
+
         """
         from .portable import PORTABLE_STATE_VERSION, properties_to_portable_state
 
@@ -340,6 +343,9 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
         :class:`~pynbody.halo.portable.PortableHaloCatalogue`
             A halo catalogue which behaves like the original, but does not refer to the halo finder's files.
+
+        .. versionadded:: 2.7.0
+
         """
         from .portable import PortableHaloCatalogue
         return PortableHaloCatalogue(sim, state)
@@ -449,6 +455,12 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         present, and cannot be retrieved; see :meth:`complete_keys`.
 
         The returned array is read-only, since it may be a view of the catalogue's internal numbering.
+
+        .. versionchanged:: 2.7.0
+
+          A read-only numpy array is returned. Previously this was whatever the catalogue's number mapper
+          held, and was writable, so code which modified it in place must now take a copy first.
+
         """
         all_numbers = np.asarray(self.number_mapper.all_numbers).view()
         all_numbers.flags.writeable = False

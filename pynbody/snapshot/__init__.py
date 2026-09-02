@@ -45,6 +45,13 @@ def load(filename, *args, **kwargs) -> SimSnap:
     SimSnap
         The loaded snapshot
 
+    .. versionchanged:: 2.7.0
+
+      ``take`` accepts a slice as well as an array of indices, and rejects indices which are not strictly
+      ascending. Previously a repeated or out-of-order index either produced a snapshot containing the same
+      particle twice, or failed with an ``IndexError`` from within the chunking machinery, depending on the
+      format.
+
     """
 
     filename = pathlib.Path(filename)

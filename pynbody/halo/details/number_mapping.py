@@ -28,7 +28,11 @@ class HaloNumberMapper(ABC):
 
         The default implementation stores the halo numbers in index order, which is always enough to recreate
         the mapping, if not necessarily the exact class. Subclasses override this where they can describe
-        themselves more compactly or more precisely."""
+        themselves more compactly or more precisely.
+
+        .. versionadded:: 2.7.0
+
+        """
         return {'type': _FROM_HALO_NUMBERS, 'halo_numbers': np.asarray(self.all_numbers)}
 
     @classmethod

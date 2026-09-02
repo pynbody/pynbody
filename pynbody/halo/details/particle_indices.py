@@ -8,7 +8,14 @@ class IncompleteHaloError(RuntimeError):
     """Raised when a halo cannot be constructed because some of its particles are not in the snapshot.
 
     This normally means the snapshot has been partially loaded (e.g. only a region, or a subset of families,
-    was read from disk) while the halo catalogue still refers to the particles that were left out."""
+    was read from disk) while the halo catalogue still refers to the particles that were left out.
+
+    .. versionadded:: 2.7.0
+
+      Previously such a halo was returned with the missing particles silently absent, or the load failed
+      with an :class:`~pynbody.halo.details.iord_mapping.IllegalIordError` from within the ID mapping.
+      See :meth:`~pynbody.halo.HaloCatalogue.complete_keys` to identify the affected halos in advance.
+    """
 
     def __init__(self, halo_number=None, num_missing_particles=None):
         self.halo_number = halo_number
@@ -33,7 +40,16 @@ class PartialLoadingNotSupportedError(RuntimeError):
     Some halo finder formats identify a halo's particles by their position within the snapshot file rather
     than by their particle ID. If the snapshot has been partially loaded, those positions refer to particles
     which are not all present, and there is in general no way of mapping them onto those which are. Rather
-    than returning the wrong particles, such catalogues refuse to load."""
+    than returning the wrong particles, such catalogues refuse to load.
+
+    .. versionadded:: 2.7.0
+
+      This is a deliberate behaviour change: combining one of these catalogues with a partially loaded
+      snapshot previously returned incorrect particles, or failed with an :class:`IndexError` from deep
+      within the subsnap machinery. It now raises immediately, at construction. Affected formats are the
+      SubFind HDF catalogues, AHF where it is not using particle IDs, and SubFind where the snapshot is
+      taken to be ordered.
+    """
 
     def __init__(self, catalogue_description=None):
         catalogue_description = catalogue_description or "This halo catalogue"
@@ -73,7 +89,11 @@ class HaloParticleIndices:
         transferred elsewhere in between (see :meth:`pynbody.halo.HaloCatalogue.get_portable_state`).
 
         Any information about particles that are missing from the snapshot is included, so that halos which
-        are incomplete here remain flagged as incomplete after the round trip."""
+        are incomplete here remain flagged as incomplete after the round trip.
+
+        .. versionadded:: 2.7.0
+
+        """
         state = {'particle_index_list': np.asarray(self.particle_index_list),
                  'particle_index_list_boundaries': np.asarray(self.particle_index_list_boundaries)}
         if self.num_missing_particles is not None:

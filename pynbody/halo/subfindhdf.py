@@ -29,6 +29,13 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         At present, the Gadget 4, Arepo and TNG subclasses of this class are not tested against multi-file
         outputs. If you encounter issues with these, please report them to the pynbody developers.
 
+    .. versionchanged:: 2.7.0
+
+      These catalogues now refuse to load against a partially loaded snapshot, raising a
+      :class:`~pynbody.halo.details.particle_indices.PartialLoadingNotSupportedError`. Halo membership is
+      expressed as positions within the snapshot file, which denote different particles once some are
+      absent; previously the wrong particles were returned.
+
     """
 
     # halo membership is expressed as offsets and lengths within the snapshot's own ordering, rather than as

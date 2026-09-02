@@ -14,6 +14,8 @@ the role of any of these arrays; it needs only to get them to the other end (e.g
 memory), where :meth:`~pynbody.halo.HaloCatalogue.from_portable_state` turns them back into a live catalogue,
 attached to a specified simulation, in the form of a :class:`PortableHaloCatalogue`.
 
+.. versionadded:: 2.7.0
+
 """
 
 from __future__ import annotations
@@ -40,6 +42,9 @@ class PortableHaloCatalogue(HaloCatalogue):
     Instances are normally created by :meth:`~pynbody.halo.HaloCatalogue.from_portable_state` rather than
     directly. They behave like any other halo catalogue, except that they never refer back to the halo finder's
     files; all the information they have is what was in the state dictionary they were created from.
+
+    .. versionadded:: 2.7.0
+
     """
 
     _uses_file_position_addressing = False
@@ -118,6 +123,9 @@ def map_arrays(state, mapper, types=np.ndarray):
     types : type | tuple[type]
         The types to be passed to *mapper*; anything else is left alone. This defaults to numpy arrays, but
         may be changed to reverse a mapping that has replaced them with something else.
+
+    .. versionadded:: 2.7.0
+
     """
     if isinstance(state, types):
         return mapper(state)
