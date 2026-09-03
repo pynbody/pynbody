@@ -175,17 +175,54 @@ Serial performance is not an obstacle: on gzip it matches h5py to within noise, 
 uncompressed contiguous data it was 3× *faster* here (it memory-maps rather than copying
 through HDF5's pipeline).
 
-**The filter-order bug** (reproducer: `pyfive_shuffle_bug.py`). pyfive assumes h5py's
-default filter order, shuffle → deflate → fletcher32. SWIFT writes its cell metadata as
-fletcher32 → shuffle → deflate, so after inflating, the 4-byte checksum is still attached
-and unshuffling a 4100-byte buffer at itemsize 8 computes 513 elements instead of 512:
+**The filter-order bug** (reproducer: `pyfive_shuffle_bug.py`, candidate fix:
+`pyfive-shuffle-remainder.patch`).
+
+`btree.py::_filter_chunk` undoes the pipeline in reverse order, which is right, but its
+shuffle branch assumes the buffer length is an exact multiple of `itemsize`:
+
+```python
+step = buffer_size // itemsize
+for j in range(itemsize):
+    unshuffled_buffer[j::itemsize] = chunk_buffer[j*step:(j+1)*step]
+```
+
+SWIFT writes fletcher32 → shuffle → deflate, so at the point the shuffle is undone the
+4-byte checksum is still attached: `buffer_size` is 4100 for 512 `int64` values, `step`
+is 512, but `unshuffled_buffer[j::8]` has 513 slots for `j < 4`:
 
 ```
 ValueError: attempt to assign bytes of size 512 to extended slice of size 513
 ```
 
-This hits `Cells/Counts`, which is exactly what `take_region=` reads. Worth reporting
-upstream.
+h5py's `create_dataset` keywords always emit shuffle *first*, which is why this ordering
+is rarely hit. This one hits `Cells/Counts`, which is exactly what `take_region=` reads.
+
+HDF5's own `H5Z_filter_shuffle` shuffles `floor(nbytes/itemsize)` whole elements and
+passes the trailing `nbytes % itemsize` bytes through unchanged. Mirroring that — bound
+the strided assignment and copy the remainder verbatim, 8 lines — makes the reproducer
+pass and reads all of SWIFT's `Cells/{Counts,Files,OffsetsInFile}` byte-identically to
+h5py, with no regression in pyfive's own suite (197 passed; the same 5 failures appear on
+pristine `main`, from a missing optional lzf codec and an unrelated vlen-string issue).
+
+**Upstream status: unreported, still live on `main` (`fc523da`).**
+
+* Searching pyfive issues and PRs for `"extended slice"` returns nothing, and none of the
+  13 open issues concerns the shuffle filter, filter ordering or fletcher32 (the nearest,
+  #89, is scale/offset filters).
+* Closed #128 "Fletcher32 filter broken" is a *different* defect — checksum arithmetic
+  (`sum1 = sum2 = 0` as Python ints, upcasting on wraparound) — fixed in PR #133.
+* Closed #140 is suggestively adjacent and may be this same defect surfacing: an
+  intermittent `ValueError` in exactly the `fletcher32_True-shuffle_True-compression_9`
+  parametrisation of `test_hdf5_filters`. It was closed by PR #142, which added
+  `@pytest.mark.flaky(reruns=3, only_rerun="ValueError")` — a mitigation, not a fix; a
+  maintainer recorded being "still quite puzzled why I'm not seeing any fails in the
+  nightly tests (just in PRs)". A rerun-on-`ValueError` marker would mask precisely this
+  failure class. Not confirmed to be the same bug, but worth handing over with the
+  reproducer.
+* The suite cannot catch it as written: `test_hdf5_filters` builds every file through
+  h5py's `create_dataset(shuffle=, fletcher32=, compression=)` keywords, which always
+  produce shuffle-first ordering. Filter order is never varied.
 
 ### hidefix — fastest, but a bigger bet
 
@@ -307,6 +344,7 @@ predicts those numbers.
 | `altlibs.py` | thread scaling of h5py vs pyfive vs hidefix vs PyTables |
 | `pyfive_patch.py` | pytest plugin swapping pyfive in for h5py in the GadgetHDF reader |
 | `pyfive_shuffle_bug.py` | minimal reproducer for pyfive's filter-order bug |
+| `pyfive-shuffle-remainder.patch` | candidate upstream fix, against pyfive `main` (`fc523da`) |
 
 Reproduce with e.g.
 

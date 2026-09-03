@@ -1,0 +1,25 @@
+diff --git a/pyfive/btree.py b/pyfive/btree.py
+index c3b2c88..fcf9737 100644
+--- a/pyfive/btree.py
++++ b/pyfive/btree.py
+@@ -282,12 +282,18 @@ class BTreeV1RawDataChunks(BTreeV1):
+                 chunk_buffer = zlib.decompress(chunk_buffer)
+             elif filter_id == SHUFFLE_FILTER:
+                 buffer_size = len(chunk_buffer)
+-                unshuffled_buffer = bytearray(buffer_size)
++                # HDF5's shuffle filter shuffles only whole elements and passes any
++                # trailing partial element through unchanged; a buffer that is not a
++                # multiple of itemsize arises when e.g. fletcher32 was applied before
++                # shuffle, leaving its 4-byte checksum still attached at this point.
+                 step = buffer_size // itemsize
++                shuffled_size = step * itemsize
++                unshuffled_buffer = bytearray(buffer_size)
+                 for j in range(itemsize):
+                     start = j * step
+                     end = (j + 1) * step
+-                    unshuffled_buffer[j::itemsize] = chunk_buffer[start:end]
++                    unshuffled_buffer[j:shuffled_size:itemsize] = chunk_buffer[start:end]
++                unshuffled_buffer[shuffled_size:] = chunk_buffer[shuffled_size:]
+                 chunk_buffer = unshuffled_buffer
+             elif filter_id == FLETCH32_FILTER:
+                 cls._verify_fletcher32(chunk_buffer)
