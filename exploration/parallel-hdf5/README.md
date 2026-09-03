@@ -130,6 +130,89 @@ recovers most of the parallelism for compressed data without processes.
 
 Only (c) can parallelise the *metadata* phase, because `H5Fopen` is under `phil` too.
 
+## 2b. Alternative HDF5 readers that *are* thread-safe
+
+Anything that links libhdf5 inherits the serialisation, h5py or not. The readers that
+scale are the ones that parse the HDF5 container themselves.
+
+8 × 64 MB gzip datasets, 4 threads, warm cache; all four verified byte-identical to h5py
+(`altlibs.py`):
+
+| reader | reads via | wall | cores busy | scales |
+|---|---|---|---|---|
+| h5py 3.16 | libhdf5 + `phil` | 3.37 s | 1.02 | no |
+| PyTables 3.11 | libhdf5 1.14.6 | 3.80 s | 1.02 | no |
+| pyfive 1.1.2 | pure Python + numpy | 0.82 s | 3.69 | **yes** |
+| hidefix 0.12 | Rust chunk index | 0.48 s | 3.77 | **yes** |
+
+"Cores busy" is CPU time over wall time — the number that gives the lock away. pyfive
+scales 3.8× from 1 to 4 threads; hidefix is already parallel *inside* one Python thread,
+hence its one-thread figure being 5× h5py's.
+
+### pyfive — the interesting one for pynbody
+
+[pyfive](https://github.com/NCAS-CMS/pyfive) is a pure-Python HDF5 *reader* (NCAS-CMS,
+numpy-only dependency, [JOSS paper](https://www.theoj.org/joss-papers/joss.09688/10.21105.joss.09688.pdf)).
+It parses the container in Python and reads through `mmap`/numpy, so there is no global
+lock; the pure-Python metadata walk is GIL-bound but small. On the API surface pynbody's
+loader touches it is very nearly a drop-in — `File`, group indexing, `attrs`, `shape`,
+`dtype`, and a `read_direct` with h5py's exact signature (verified for whole-dataset and
+partial `source_sel` reads).
+
+Substituting it for `gadgethdf._open_hdf_file` (`pyfive_patch.py`) and running pynbody's
+HDF5 suites gives 29/65 passing with a two-line shim. The failures are a short list of
+concrete gaps rather than scattered incompatibility:
+
+| gap | consequence |
+|---|---|
+| Read-only, no `write_array` | 7 failures. Structural — pynbody would keep h5py for writing |
+| Virtual datasets return `None` (shape/dtype advertised correctly) | SWIFT single-file virtual snapshots fail as a downstream `TypeError`. Guardable, but must be guarded |
+| Shuffle filter breaks when `fletcher32` is applied *first* | Blocks SWIFT `take_region=` today — see below |
+| `Dataset` has no `__len__` | Accounted for 54 failures before shimming; one line on either side |
+| File handles not closed deterministically | `ResourceWarning`s under pynbody's warning filters |
+
+Serial performance is not an obstacle: on gzip it matches h5py to within noise, and on
+uncompressed contiguous data it was 3× *faster* here (it memory-maps rather than copying
+through HDF5's pipeline).
+
+**The filter-order bug** (reproducer: `pyfive_shuffle_bug.py`). pyfive assumes h5py's
+default filter order, shuffle → deflate → fletcher32. SWIFT writes its cell metadata as
+fletcher32 → shuffle → deflate, so after inflating, the 4-byte checksum is still attached
+and unshuffling a 4100-byte buffer at itemsize 8 computes 513 elements instead of 512:
+
+```
+ValueError: attempt to assign bytes of size 512 to extended slice of size 513
+```
+
+This hits `Cells/Counts`, which is exactly what `take_region=` reads. Worth reporting
+upstream.
+
+### hidefix — fastest, but a bigger bet
+
+[hidefix](https://github.com/gauteh/hidefix) is a Rust reader with Python bindings that
+builds a serialisable chunk index (1.2 ms/file here, using libhdf5 once) and then reads
+without libhdf5, internally parallel. Quickest thing measured, but self-describes as
+experimental, has a thin Python API (`Index(path).dataset(name)[(slice(...),)]`, no
+`attrs`), and pulls in `xarray` and `netCDF4`.
+
+### Worth knowing about, wrong shape here
+
+`h5pyd` is genuinely concurrent but talks HTTP to an HSDS server. `kerchunk` /
+`VirtualiZarr` pre-scan an HDF5 file into a Zarr-style byte-range index, after which
+`zarr` + `numcodecs` read it with full thread parallelism — the same trick as strategy
+(a) above, productised and extended to compressed chunks. Worth a look if the byte-offset
+route is taken, since it is that idea already debugged.
+
+### What this changes
+
+pyfive is a more attractive execution backend than hand-rolled `pread`: it covers chunked
+and compressed datasets too, so it parallelises decompression as well as I/O, and needs no
+byte-offset bookkeeping. The plan/execute refactor is worth the same either way — it is
+what lets a backend be swapped in per file. The trade is a dependency whose feature
+coverage pynbody would have to keep testing, plus keeping h5py for writing and for what
+pyfive cannot read.
+
+
 ## 3. Will it help on a well-configured Lustre?
 
 **Yes, and for a structural reason rather than a marginal one.**
@@ -194,9 +277,11 @@ performance than about any real target, and should not be quoted.
    the redundant `_can_load`/`is_hdf5` probing.
 2. **Threaded raw-`pread` execution** for contiguous, unfiltered, non-virtual datasets,
    behind a config switch, with automatic fallback to the current serial path. Best
-   Lustre gain per unit of effort.
+   Lustre gain per unit of effort — but weigh it against a pyfive backend (§2b), which
+   covers compressed data too at the cost of a dependency.
 3. **Optionally, threaded inflate** via `read_direct_chunk` for chunked+compressed
-   datasets — the main win for compressed data and for laptops.
+   datasets — the main win for compressed data and for laptops. pyfive gets there for
+   free if its gaps (§2b) are closed; `read_direct_chunk` keeps it in-house.
 4. **Processes + shared memory only if needed** — the one option that also fixes the
    serialised metadata phase, but much the most invasive (it wants `SimSnap._create_array`
    to be able to allocate into a shared buffer, and `fork` around live HDF5 handles needs
@@ -219,6 +304,9 @@ predicts those numbers.
 | `gilmon.py` | measures GIL stalls during h5py reads |
 | `scale.py`, `scale2.py`, `philtest.py` | thread/process scaling, and the `phil` lock's effect |
 | `strategies.py` | side-by-side comparison of strategies (a)–(c) |
+| `altlibs.py` | thread scaling of h5py vs pyfive vs hidefix vs PyTables |
+| `pyfive_patch.py` | pytest plugin swapping pyfive in for h5py in the GadgetHDF reader |
+| `pyfive_shuffle_bug.py` | minimal reproducer for pyfive's filter-order bug |
 
 Reproduce with e.g.
 
