@@ -187,6 +187,8 @@ class LoadControl:
 
         """
 
+        self._max_chunk = max_chunk
+
         if self._ids is None:
             self._generate_null_chunks(max_chunk)
             return
@@ -389,3 +391,94 @@ class LoadControl:
                 else:
                     for nread_disk, disk_mask, mem_slice in self._family_chunks[current_family]:
                         yield nread_disk, None, None
+
+    def iterate_within(self, family: family.Family, disk_lo: int, disk_hi: int) \
+            -> Iterator[tuple[int, slice | np.ndarray | None, slice | None]]:
+        """Yields instructions for loading the part of a family lying at disk positions ``[disk_lo, disk_hi)``.
+
+        This performs the same function as :func:`iterate` for a single family, but restricted to a contiguous
+        window of that family's on-disk extent. It is intended for snapshots which are spanned across several
+        files: each file covers one such window, so the instructions for a given file can be generated (and the
+        file read) without walking through any of its predecessors.
+
+        A typical read loop, for one file covering family-relative disk positions ``[disk_lo, disk_hi)``, should
+        be as follows:
+
+        .. code-block:: python
+
+            offset = 0  # position within this file
+            for readlen, buffer_index, memory_index in ctl.iterate_within(fam, disk_lo, disk_hi):
+              if memory_index is None:
+                offset += readlen  # nothing wanted here; seek past it
+                continue
+              data = read_entries(file, start=offset, count=readlen)
+              target_array[mem_offset + memory_index.start : mem_offset + memory_index.stop] = data[buffer_index]
+              offset += readlen
+
+        Here ``mem_offset`` is where this family's in-memory data starts, since ``memory_index`` is relative to
+        the family (not to the file); consecutive windows therefore write to increasing, non-overlapping parts of
+        the destination.
+
+        Parameters
+        ----------
+        family : pynbody.family.Family
+            The family to read; must be one of those passed to the constructor
+        disk_lo : int
+            First disk position to consider, relative to the start of the family on disk
+        disk_hi : int
+            One past the last disk position to consider, relative to the start of the family on disk
+
+        Yields
+        ------
+        readlen : int
+            Number of entries to read from disk, starting from where the last instruction left off. The disk
+            cursor starts at ``disk_lo``, i.e. it is relative to the window rather than to the family.
+        buffer_index : slice | np.ndarray | None
+            Index into the buffer just read, or None if this particular read is to be ignored (skipped)
+        memory_index : slice | None
+            Slice to write into memory, relative to the start of the family, or None if ``buffer_index`` is None
+
+        """
+
+        if family not in self._disk_family_slice:
+            raise ValueError(f"Family {family} is not present on disk")
+
+        disk_slice = self._disk_family_slice[family]
+        family_length = disk_slice.stop - disk_slice.start
+        if not 0 <= disk_lo <= disk_hi <= family_length:
+            # Out of range would otherwise pass silently: a negative disk_lo yields destination
+            # slices that index backwards from the end of the array, and a disk_hi beyond the
+            # family tells the caller to read entries which are not there
+            raise ValueError(f"The window [{disk_lo}, {disk_hi}) does not lie within family "
+                             f"{family}, whose on-disk extent is [0, {family_length})")
+
+        num_disk = disk_hi - disk_lo
+        max_chunk = self._max_chunk
+
+        if self._ids is None:
+            # Mirrors _generate_null_chunks: with no partial loading, memory position equals disk position.
+            for p in range(0, num_disk, max_chunk):
+                nread = min(num_disk - p, max_chunk)
+                yield nread, slice(0, nread), slice(disk_lo + p, disk_lo + p + nread)
+            return
+
+        ids = self._family_ids[family]
+
+        # The ids are ascending, so the number of them below disk_lo is both where this window's selection
+        # starts within ids and how many memory slots all preceding windows consume between them. That is what
+        # makes the windows independent of each other.
+        i = int(np.searchsorted(ids, disk_lo))
+
+        p = 0
+        while p < num_disk:
+            # Mirrors _generate_chunks, whose chunks step by max_chunk - 1
+            p_end = p + min(num_disk - p, max_chunk - 1)
+            j = self._scan_for_next_stop(ids, i, disk_lo + p_end - 1)
+
+            if i != j:
+                yield p_end - p, ids[i:j] - (disk_lo + p), slice(i, j)
+            else:
+                yield p_end - p, None, None
+
+            i = j
+            p = p_end
