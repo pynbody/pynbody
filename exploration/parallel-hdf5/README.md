@@ -46,6 +46,73 @@ it. Verified against the serial loader for: full load, strided `take`, scattered
 `take` straddling a file boundary, `take` starting exactly on a `_max_buf` chunk
 boundary, single-particle `take`, and empty `take`.
 
+### How big is the materialised plan?
+
+Not big, and — the counterintuitive part — no bigger for a scattered `take` than for a
+full load. `_generate_chunks` advances `disk_ptr` by `max_chunk - 1` unconditionally,
+whatever the ids look like, so the chunk count is fixed by the on-disk length:
+
+    n_chunks = ceil(N_disk / (max_buf - 1))
+
+and `iterate_with_interrupts` adds at most one split per file boundary, giving
+`entries <= n_chunks + n_files`. Measured (200M particles, 64 files, so 382 + 63 = 445):
+
+| take pattern | selected | plan entries | tuple overhead |
+|---|---|---|---|
+| full load | 200,000,000 | 445 | 0.09 MB |
+| contiguous 1% block | 2,000,000 | 4 | 0.001 MB |
+| contiguous 50% block | 100,000,000 | 222 | 0.06 MB |
+| random 1% | 2,000,000 | 445 | 0.06 MB |
+| random 10% | 20,000,000 | 445 | 0.06 MB |
+
+Contiguous takes are *cheaper*, because chunks outside the block carry `mem_index=None`
+and drop out. For 1e10 particles across 4096 files it is ~23,000 entries; measured tuple
+overhead was 0.6 MB at 4,477 entries, so the plan's structure is never the problem.
+
+**The bytes.** The only real cost is the split masks: when a chunk straddles a file
+boundary both halves get freshly allocated — `index_before_slice` for the pre-part, and
+an explicit `copy.copy` for the post-part, needed because `d_slice_post -= len_pre` is
+in-place (the code says so). The bound is
+
+    fresh ~ min(n_files, n_chunks) * f * max_buf * 8,   capped at 8 * N_selected
+
+i.e. **at most one extra copy of the take array**. The ratio to the take array's own size
+saturates at exactly 1.00 once `n_files >= n_chunks`, and is below it otherwise (0.33 at
+64 files). Context: `LoadControl.__init__` already builds `_family_chunks` in full and
+holds `_ids`, `_family_ids` and every per-chunk mask resident — 2400 MB for that 50% take
+— with `iterate()` merely yielding from the pre-built list. So a materialised plan is
+about +33% on a footprint that exists today.
+
+**Two ways to make it ~free**, in preference order:
+
+1. *Plan per file rather than globally.* The executor wants per-file tasks anyway, so
+   generate each file's entries inside its task; peak becomes
+   `n_threads * f * max_buf * 8`, a few MB. The only global quantity is the running
+   memory write position, and that is a prefix sum of per-file selected counts, available
+   in `O(n_files log N_sel)` from `np.searchsorted` on `_family_ids` against the interrupt
+   points — no masks needed.
+2. *Keep the splits as views.* `concatenate_indexing(mask, slice)` already returns a view;
+   the copy exists only because the result is then shifted in place, and the plan entry
+   already carries an explicit disk offset the shift could fold into.
+
+**What actually bites on scattered takes is read amplification, not plan memory.**
+`_fill_from_fancy_index` reads the contiguous span from the first to the last selected id
+in a chunk, then subsets:
+
+| take pattern | kept | span read | amplification |
+|---|---|---|---|
+| contiguous 5% block | 1,000,000 | 1,000,000 | 1.0x |
+| random 1% | 200,000 | 19,991,021 | 100x |
+| random 0.1% | 20,000 | 19,894,004 | 995x |
+| every 1000th | 20,000 | 19,946,054 | 997x |
+
+This is pre-existing and unrelated to the refactor, but it reframes the case: scattered
+partial loads are bandwidth-bound on nearly all the bytes, so they benefit *more* from
+parallel reads, not less (consistent with the 5x measured on a scattered `take=`).
+Attacking the amplification itself would be a separate change — a finer `max_buf` for
+scattered selections, or an `H5Sselect_elements`-style point selection — and trades
+against HDF5 chunk-cache behaviour.
+
 ### Real complications to budget for
 
 | Issue | Cost |
@@ -341,6 +408,9 @@ predicts those numbers.
 | `gilmon.py` | measures GIL stalls during h5py reads |
 | `scale.py`, `scale2.py`, `philtest.py` | thread/process scaling, and the `phil` lock's effect |
 | `strategies.py` | side-by-side comparison of strategies (a)–(c) |
+| `plansize.py` | plan entry count and bytes vs take pattern |
+| `planscale.py` | how the plan scales with file count |
+| `planamp.py` | the one-copy memory bound, and read amplification for scattered takes |
 | `altlibs.py` | thread scaling of h5py vs pyfive vs hidefix vs PyTables |
 | `pyfive_patch.py` | pytest plugin swapping pyfive in for h5py in the GadgetHDF reader |
 | `pyfive_shuffle_bug.py` | minimal reproducer for pyfive's filter-order bug |
