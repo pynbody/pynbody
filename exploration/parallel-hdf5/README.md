@@ -113,6 +113,60 @@ Attacking the amplification itself would be a separate change — a finer `max_b
 scattered selections, or an `H5Sselect_elements`-style point selection — and trades
 against HDF5 chunk-cache behaviour.
 
+### What step 1 actually is
+
+Not a *replacement* for `iterate_with_interrupts`: that has a second caller,
+`grafic._read_grafic_file`, which uses it to skip Fortran record header/footer pairs at
+z-plane boundaries *within* a single file. That is a legitimate and quite different use,
+and it stays. Step 1 adds a per-file entry point that `gadgethdf` uses instead.
+
+Nor does the interrupt concept need reimplementing — it disappears. Once the file is an
+*input* rather than something discovered mid-stream there is no boundary to interrupt at:
+chunk *within* the file's disk range and chunks never straddle files. That removes
+`concatenate_indexing`, the mask copies measured above, and the class of off-by-one that
+produced #955.
+
+**The whole per-file computation.** For the family-relative disk range `[lo, hi)` of one
+file:
+
+```python
+k_lo, k_hi  = np.searchsorted(family_ids, [lo, hi])
+ids_in_file = family_ids[k_lo:k_hi]   # a view, not a copy
+mem_offset  = k_lo                    # count of preceding selected ids
+```
+
+`k_lo` does double duty: `_family_ids` is sorted, so the number of ids below `lo` *is* the
+number of memory slots already consumed. A file therefore needs no knowledge of its
+predecessors — which is what makes the tasks independent — at `O(log N_sel)` rather than a
+walk.
+
+Verified against the current path in `perfile_design.py`: identical disk-to-memory mapping
+for a full load, a contiguous block mid-file, random 1% and 60%, strided, single-particle,
+first-and-last, and empty takes, on a deliberately awkward layout
+`[1100000, 0, 300, 900000, 524288, 475412]` (an empty file, a 300-particle file, and one
+exactly `max_buf` long).
+
+**Shape of the change**
+
+* `LoadControl` gains e.g. `iterate_within(family, disk_lo, disk_hi)` yielding the same
+  `(readlen, disk_index, mem_index)` triples — `_generate_chunks`' inner loop over a
+  sub-range, plus the `searchsorted` above.
+* `_family_chunks` is no longer needed on this path (it stays for `iterate`, used by
+  tipsy, nchilada, grafic and ascii), which makes the plan-memory question moot.
+* `HDFArrayLoader.load_arrays` loses `_HDFFileIterator`, the `select_file` callback and
+  the `particle_offset` bookkeeping, reducing to: for each (group, file) → resolve
+  dataset, iterate within, fill. That is the loop a thread pool drops into unchanged.
+* No new metadata: `_file_interrupt_points` already supplies `[lo, hi)` per file.
+
+**Two things to watch.** Chunk boundaries move — currently a global per-family `max_buf`
+grid cut by files, afterwards a per-file grid — so read *granularity* changes even though
+the mapping does not; a file shorter than `max_buf` becomes one short read. Nothing in the
+tests asserts on read sizes (the one use of `_max_buf`, `gadgethdf_test.py:243`, is a data
+assertion about a take straddling a chunk boundary). And there is no `tests/chunk_test.py`
+at all: `LoadControl` has only indirect coverage through the readers, so direct tests for
+the new entry point belong in the same change — cheap, because
+`iterate_with_interrupts` is a ready-made oracle.
+
 ### Real complications to budget for
 
 | Issue | Cost |
@@ -411,6 +465,7 @@ predicts those numbers.
 | `plansize.py` | plan entry count and bytes vs take pattern |
 | `planscale.py` | how the plan scales with file count |
 | `planamp.py` | the one-copy memory bound, and read amplification for scattered takes |
+| `perfile_design.py` | checks the per-file searchsorted formulation matches the current mapping |
 | `altlibs.py` | thread scaling of h5py vs pyfive vs hidefix vs PyTables |
 | `pyfive_patch.py` | pytest plugin swapping pyfive in for h5py in the GadgetHDF reader |
 | `pyfive_shuffle_bug.py` | minimal reproducer for pyfive's filter-order bug |
