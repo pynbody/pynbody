@@ -233,12 +233,18 @@ def _shared_array_deconstruct(ar, transfer_ownership=False):
     process has it) to the reconstructing process. New code should use
     :func:`to_shared_reference` instead."""
 
-    assert isinstance(ar, SimArray)
+    if not isinstance(ar, SimArray):
+        raise TypeError(f"Cannot make a shared reference to a {type(ar).__name__}; it must be an array created "
+                        f"by make_shared_array, or a view of one. Note that np.asarray on a shared array "
+                        f"returns a base-class view, which no longer records where its memory came from; use "
+                        f"np.asanyarray instead if you need to pass it on.")
+
     ar_base = ar
     while isinstance(ar_base.base, SimArray):
         ar_base = ar_base.base
 
-    assert isinstance(ar_base, SharedMemorySimArray), "Cannot prepare an array for shared use unless it was created in shared memory"
+    if not isinstance(ar_base, SharedMemorySimArray):
+        raise TypeError("Cannot prepare an array for shared use unless it was created in shared memory")
 
     ownership_out = transfer_ownership and ar_base._shared_owner
     if transfer_ownership:
@@ -267,7 +273,10 @@ def _recursive_shared_array_deconstruct(input, transfer_ownership=False) :
     """Works through items in input, deconstructing any shared memory arrays
     into transferrable references. New code should use :func:`to_shared_reference` instead."""
     output = []
-    if isinstance(input, SimArray):
+    if isinstance(input, np.ndarray):
+        # NB the test is for any ndarray, not just a SimArray: one that cannot be referenced must be
+        # rejected by _shared_array_deconstruct rather than falling through to the loop below, which would
+        # iterate it and quietly return a python list of its every element
         return _shared_array_deconstruct(input, transfer_ownership)
 
     for item in input:
@@ -389,6 +398,18 @@ def to_shared_reference(array, transfer_ownership=False):
     array_description : SharedArrayReference
         A description of the array that can be passed between processes (e.g. using pickle to turn it into a short
         string that can be sent via a pipe).
+
+    Raises
+    ------
+
+    TypeError
+        If *array* is not backed onto shared memory.
+
+        .. versionchanged:: 2.7.1
+
+          Previously a plain ``ndarray`` was silently iterated, returning a python list of its every
+          element rather than a reference.
+
     """
 
     return _recursive_shared_array_deconstruct(array, transfer_ownership)
