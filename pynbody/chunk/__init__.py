@@ -443,8 +443,14 @@ class LoadControl:
         if family not in self._disk_family_slice:
             raise ValueError(f"Family {family} is not present on disk")
 
-        if disk_hi < disk_lo:
-            raise ValueError("disk_hi must not be less than disk_lo")
+        disk_slice = self._disk_family_slice[family]
+        family_length = disk_slice.stop - disk_slice.start
+        if not 0 <= disk_lo <= disk_hi <= family_length:
+            # Out of range would otherwise pass silently: a negative disk_lo yields destination
+            # slices that index backwards from the end of the array, and a disk_hi beyond the
+            # family tells the caller to read entries which are not there
+            raise ValueError(f"The window [{disk_lo}, {disk_hi}) does not lie within family "
+                             f"{family}, whose on-disk extent is [0, {family_length})")
 
         num_disk = disk_hi - disk_lo
         max_chunk = self._max_chunk

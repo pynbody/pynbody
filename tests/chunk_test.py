@@ -152,10 +152,22 @@ def test_iterate_within_rejects_unknown_family():
         list(control.iterate_within(family.gas, 0, 100))
 
 
-def test_iterate_within_rejects_reversed_range():
-    control = LoadControl({family.dm: slice(0, 1000)}, MAX_CHUNK, None)
+@pytest.mark.parametrize('disk_lo, disk_hi', [(500, 400),      # reversed
+                                              (-5, 10),        # negative start
+                                              (0, 1001),       # past the end of the family
+                                              (1001, 1002),    # wholly past the end
+                                              (-10, -5)])
+@pytest.mark.parametrize('take', [None, np.array([10, 990])])
+def test_iterate_within_rejects_windows_outside_the_family(disk_lo, disk_hi, take):
+    """Out-of-range windows would otherwise silently produce bad destination slices or over-long reads"""
+    control = LoadControl({family.dm: slice(0, 1000)}, MAX_CHUNK, take)
     with pytest.raises(ValueError):
-        list(control.iterate_within(family.dm, 500, 400))
+        list(control.iterate_within(family.dm, disk_lo, disk_hi))
+
+
+def test_iterate_within_accepts_the_whole_family_as_one_window():
+    control = LoadControl({family.dm: slice(0, 1000)}, MAX_CHUNK, None)
+    assert sum(readlen for readlen, _, _ in control.iterate_within(family.dm, 0, 1000)) == 1000
 
 
 @pytest.mark.parametrize('take_name', list(TAKE_PATTERNS.keys()))
