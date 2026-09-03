@@ -1087,6 +1087,34 @@ def test_grp_catalogue_with_ignore_value(snap_with_grp, do_load_all, ignore_valu
             if halo_number != ignore_value:
                 assert (h[halo_number]['id'] == f[f['grp'] == halo_number]['id']).all()
 
+
+@pytest.mark.parametrize("ignore_value", [None, -3, 7])
+def test_grp_catalogue_with_awkward_halo_numbers(ignore_value):
+    """Halo boundaries are derived from per-halo-number counts, so gaps and unequal sizes must line up.
+
+    The halo numbers here are non-contiguous, include negatives, and the halos have very different sizes,
+    so an off-by-one in the boundaries shows up as a halo getting another halo's particles."""
+    halo_number_per_particle = np.repeat([-3, -1, 0, 4, 7], [1, 17, 40, 2, 30])
+    np.random.seed(1337)
+    np.random.shuffle(halo_number_per_particle)
+
+    f = pynbody.new(dm=len(halo_number_per_particle))
+    f['grp'] = halo_number_per_particle
+    f['id'] = np.arange(len(f))
+
+    h = pynbody.halo.number_array.HaloNumberCatalogue(f, ignore=ignore_value)
+    h.load_all()
+
+    expected_numbers = [n for n in (-3, -1, 0, 4, 7) if n != ignore_value]
+    assert list(h.keys()) == expected_numbers
+
+    for halo_number in expected_numbers:
+        assert (np.sort(h[halo_number]['id']) == np.where(halo_number_per_particle == halo_number)[0]).all()
+
+    # every particle appears exactly once in the index list, whether or not its halo is ignored
+    assert (np.sort(h._index_lists.particle_index_list) == np.arange(len(f))).all()
+
+
 def test_grp_catalogue_cannot_determine_completeness(snap_with_grp):
     """The halo number array covers only the loaded particles, so completeness cannot be established"""
     h = pynbody.halo.number_array.HaloNumberCatalogue(snap_with_grp)

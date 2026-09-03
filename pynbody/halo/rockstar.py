@@ -97,12 +97,23 @@ class RockstarCatalogue(HaloCatalogue):
         return self._map_iords_to_fpos_one_halo(iords, halo_number)
 
     def _get_all_particle_indices(self):
-        iords = np.empty(0, dtype=int)
-        boundaries = np.empty((0, 2), dtype=int)
+        # NB accumulate then concatenate once; appending to a growing array copies everything read so far
+        # for every file, which is quadratic in the number of rockstar outputs
+        iords_per_cpu = []
+        boundaries_per_cpu = []
+        num_iords = 0
         for cpu in self._cpus:
             iords_this_cpu, boundaries_this_cpu = cpu.read_iords_for_all_halos()
-            boundaries = np.append(boundaries, boundaries_this_cpu + len(iords), axis=0)
-            iords = np.append(iords, iords_this_cpu)
+            boundaries_per_cpu.append(boundaries_this_cpu + num_iords)
+            iords_per_cpu.append(iords_this_cpu)
+            num_iords += len(iords_this_cpu)
+
+        if len(iords_per_cpu) > 0:
+            iords = np.concatenate(iords_per_cpu)
+            boundaries = np.concatenate(boundaries_per_cpu, axis=0)
+        else:
+            iords = np.empty(0, dtype=np.int64)
+            boundaries = np.empty((0, 2), dtype=np.int64)
 
         self._init_iord_to_fpos()
 

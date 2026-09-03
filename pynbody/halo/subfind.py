@@ -215,7 +215,9 @@ class SubfindCatalogue(HaloCatalogue):
             return SubhaloCatalogue(self._subhalo_catalogue,
                                     self._get_children_of_group(parent_halo_number))
     def _read_ids(self):
-        data_ids = np.array([], dtype=self.dtype_int)
+        # NB accumulate then concatenate once; appending to a growing array copies everything read so far
+        # for every file, which is quadratic in the number of subfind outputs
+        ids_per_task = []
         iout = self._subfind_dir.split("_")[-1]
         for n in range(0, self._tasks):
             filename = os.path.join(
@@ -230,8 +232,10 @@ class SubfindCatalogue(HaloCatalogue):
             # TODO: include a check if both headers agree (they better)
             ids = np.fromfile(fd, dtype=self.dtype_int, sep="", count=-1)
             fd.close()
-            data_ids = np.append(data_ids, ids)
-        return data_ids
+            ids_per_task.append(ids)
+        if len(ids_per_task) == 0:
+            return np.array([], dtype=self.dtype_int)
+        return np.concatenate(ids_per_task)
 
     def _read_data(self, sim):
         halodat={}

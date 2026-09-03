@@ -27,7 +27,9 @@ class HaloNumberCatalogue(HaloCatalogue):
         sim[array] # noqa - trigger lazy-loading and/or kick up a fuss if unavailable
         self._array = array
         self._ignore = ignore
-        self._halo_numbers = np.unique(sim[array])
+        # NB the counts come free from the same pass as the unique numbers, and save re-deriving the halo
+        # boundaries from a sorted copy of the whole per-particle array later on
+        self._halo_numbers, self._num_particles_per_halo_number = np.unique(sim[array], return_counts=True)
         number_mapper = create_halo_number_mapper(self._trim_array_for_ignore(self._halo_numbers))
         HaloCatalogue.__init__(self, sim, number_mapper=number_mapper)
 
@@ -49,12 +51,16 @@ class HaloNumberCatalogue(HaloCatalogue):
         halo_number_per_particle = self.base[self._array]
 
         particle_index_list = np.argsort(halo_number_per_particle, kind='mergesort')
-        start = np.searchsorted(halo_number_per_particle[particle_index_list], self._halo_numbers)
-        stop = np.concatenate((start[1:], [len(particle_index_list)]))
 
-        particle_index_list_boundaries = self._trim_array_for_ignore(
-            np.hstack((start[:, np.newaxis], stop[:, np.newaxis]))
-        )
+        # the sorted index list groups the particles by halo number in the order of self._halo_numbers, so
+        # the boundaries follow from the counts alone; deriving them instead from a sorted copy of the whole
+        # per-particle array costs an extra full-length temporary for nothing
+        boundaries = np.empty((len(self._halo_numbers), 2), dtype=np.intp)
+        np.cumsum(self._num_particles_per_halo_number, out=boundaries[:, 1])
+        boundaries[1:, 0] = boundaries[:-1, 1]
+        boundaries[:1, 0] = 0
+
+        particle_index_list_boundaries = self._trim_array_for_ignore(boundaries)
 
         return HaloParticleIndices(particle_ids = particle_index_list, boundaries = particle_index_list_boundaries)
 
