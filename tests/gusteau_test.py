@@ -3,9 +3,14 @@
 The two sample files are transcodings of the same CAMELS box, one from a SWIFT/EAGLE run and
 one from an IllustrisTNG/AREPO run, cut down to a single particle of each type. They therefore
 exercise both of the unit conventions that gusteau has to carry across from its source formats:
-the EAGLE file has no Hubble scalings, while the TNG file retains them.
+the EAGLE file has no Hubble scalings, while the TNG file retains them. The TNG file also
+exercises the spec's convention for a code which cannot supply an absolute simulation time.
 """
 
+import shutil
+
+import h5py
+import numpy as np
 import numpy.testing as npt
 import pytest
 
@@ -42,6 +47,20 @@ def test_gusteau_not_confused_with_other_hdf_formats():
     arepo = pynbody.load("testdata/arepo/agora_100.hdf5")
     assert not isinstance(arepo, pynbody.snapshot.gusteau.GusteauSnap)
     assert isinstance(arepo, pynbody.snapshot.gadgethdf.GadgetHDFSnap)
+
+
+@pytest.mark.parametrize("break_by", ["remove_group", "remove_source_attr"])
+def test_gusteau_identification_requires_spec_mandated_fields(tmp_path, break_by):
+    """Identification rests on the five required groups plus /Header.Source"""
+    broken = tmp_path / "broken.hdf5"
+    shutil.copy(EAGLE, broken)
+    with h5py.File(broken, "r+") as h:
+        if break_by == "remove_group":
+            del h["RunInfo"]
+        else:
+            del h["Header"].attrs["Source"]
+
+    assert not pynbody.snapshot.gusteau.GusteauSnap._can_load(broken)
 
 
 @pytest.mark.parametrize("filename", [EAGLE, TNG])
@@ -177,3 +196,54 @@ def test_gusteau_write_array_not_implemented(filename):
     f['test'] = 1.0
     with pytest.raises(NotImplementedError):
         f.write_array('test')
+
+
+def test_gusteau_bounding_box_is_origin_and_widths(tmp_path):
+    """/Header.Bounding_box is [x, y, z, dx, dy, dz], not a pair of opposite corners"""
+    shifted = tmp_path / "shifted.hdf5"
+    shutil.copy(EAGLE, shifted)
+    with h5py.File(shifted, "r+") as h:
+        box = np.array(h["Header"].attrs["Bounding_box"])
+        box[:3] = -0.5 * box[3:]  # recentre the volume on the origin, leaving the widths alone
+        h["Header"].attrs["Bounding_box"] = box
+
+    # moving the origin must not change the box size; reading the array as two opposite
+    # corners instead would give 1.5 times the true side length here
+    npt.assert_allclose(pynbody.load(shifted).properties['boxsize'].in_units("Mpc a"),
+                        pynbody.load(EAGLE).properties['boxsize'].in_units("Mpc a"))
+
+
+def test_gusteau_negative_time_means_scalefactor():
+    """A code with no absolute time may store -a instead, in which case we use the cosmology
+
+    The TNG sample does exactly this, so its age must come out equal to that of the EAGLE
+    sample, which is a transcoding of the same box at the same redshift and does supply a time.
+    """
+    tng = pynbody.load(TNG)
+    assert tng._hdf_files[0]['Header'].attrs['Time'] < 0
+
+    npt.assert_allclose(tng.properties['time'].in_units("Gyr"),
+                        pynbody.load(EAGLE).properties['time'].in_units("Gyr"), rtol=1e-4)
+
+
+def test_gusteau_ignores_source_file_count(tmp_path):
+    """Num_files_per_snapshot describes the source snapshot; gusteau itself uses virtual datasets"""
+    spanned = tmp_path / "spanned.hdf5"
+    shutil.copy(EAGLE, spanned)
+    with h5py.File(spanned, "r+") as h:
+        h["Header"].attrs["Num_files_per_snapshot"] = 4
+
+    f = pynbody.load(spanned)
+    assert len(f) == 4
+    assert not f.is_partially_loaded()
+
+
+def test_gusteau_unknown_cosmology_parameters_are_omitted(tmp_path):
+    """The 'best effort' cosmology attributes use -1 to mean 'not known'"""
+    unknown = tmp_path / "unknown.hdf5"
+    shutil.copy(EAGLE, unknown)
+    with h5py.File(unknown, "r+") as h:
+        h["Cosmology"].attrs["Omega_baryon"] = -1.0
+
+    assert 'omegaB0' not in pynbody.load(unknown).properties.keys()
+    assert 'omegaB0' in pynbody.load(EAGLE).properties.keys()
