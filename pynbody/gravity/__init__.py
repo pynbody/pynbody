@@ -28,6 +28,12 @@ def direct(f: SimSnap, ipos: np.ndarray, eps: float | SimArray | None = None, nu
 
     3. ``f.properties['eps']`` (scalar or unit)
 
+    .. versionchanged:: 2.7.2
+
+      The positions, masses and softenings need not share a numpy dtype; single and double
+      precision may be mixed freely, and the result takes the precision of ``ipos``. Previously
+      any mismatch raised a buffer dtype error.
+
 
     Parameters
     ----------
