@@ -198,6 +198,29 @@ def test_gusteau_write_array_not_implemented(filename):
         f.write_array('test')
 
 
+def test_gusteau_boxsize_takes_the_coordinate_scalings():
+    """The bounding box shares the cosmological scalings of the Coordinates datasets
+
+    The gusteau spec fixes only the bounding box's unit conversion, leaving the a- and h-scalings
+    implicit (see GusteauSnap._get_boxsize). The two samples are transcodings of the same 25 Mpc/h
+    CAMELS box but disagree about Hubble scalings -- EAGLE stores 37.25 in units of Mpc, TNG
+    stores 25000 in units of ckpc/h -- so they agree on the physical box only under this reading.
+    """
+    for filename in (EAGLE, TNG):
+        f = pynbody.load(filename)
+        context = f.conversion_context()
+        boxsize = f.properties['boxsize']
+
+        npt.assert_allclose(boxsize.in_units("Mpc a h^-1", **context), 25.0, rtol=1e-6)
+
+        # the box must be usable against the positions: they lie within it, and wrapping (which
+        # compares the two directly) brings everything into [-L/2, L/2]
+        side = float(boxsize.in_units(f['pos'].units, **context))
+        assert (np.asarray(f['pos']) >= 0).all() and (np.asarray(f['pos']) <= side).all()
+        f.wrap()
+        assert np.abs(np.asarray(f['pos'])).max() <= 0.5 * side
+
+
 def test_gusteau_bounding_box_is_origin_and_widths(tmp_path):
     """/Header.Bounding_box is [x, y, z, dx, dy, dz], not a pair of opposite corners"""
     shifted = tmp_path / "shifted.hdf5"

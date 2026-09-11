@@ -169,12 +169,19 @@ class GusteauSnap(SwiftSnap):
         Gusteau stores ``/Header.Bounding_box`` as an origin followed by widths, i.e.
         ``[x, y, z, dx, dy, dz]`` in 3D, truncated to ``[x, dx]`` in 1D and so on.
 
-        The spec fixes the bounding box's unit conversion (multiply by ``/Units.Unit_length_CGS``)
-        but says nothing about its cosmological scalings, which for a dataset are recorded in the
-        dataset's own ``a_scale_exponent`` and ``h_scale_exponent``. We therefore take the box to
-        share the units of the coordinates, which is the reading the spec's own description of
-        ``Coordinates`` -- a position "within the periodic simulation domain of BoxSize" --
-        implies, and the only one under which pynbody can wrap positions into the box.
+        The bounding box shares the units of the ``Coordinates`` datasets, including their
+        ``a_scale_exponent`` and ``h_scale_exponent`` cosmological scalings. This is the only
+        reading under which a box side and a particle coordinate are directly comparable, as the
+        spec's description of ``Coordinates`` -- a position "within the periodic simulation domain
+        of BoxSize" -- requires, and pynbody needs it to wrap positions into the box.
+
+        Note that v0.3.0 of the spec leaves this implicit: it fixes the bounding box's unit
+        conversion (multiply by ``/Units.Unit_length_CGS``) but says nothing about the
+        cosmological scalings, which have nowhere to live on an attribute. It matters whenever
+        the originating code scales its lengths by the Hubble parameter -- for the
+        IllustrisTNG-sourced test snapshot the two readings differ by 1/h -- and the spec authors
+        confirm that taking them from ``Coordinates`` is intended. A later version of the spec
+        may well say so directly.
         """
         bounding_box = np.asarray(header.underlying['Bounding_box'])
         side_lengths = bounding_box[dimension:2 * dimension]
