@@ -388,7 +388,7 @@ def to_3d_grid(int nx, int ny, int nz,
 
     cdef fixed_input_type pixel_dx = (x2-x1)/nx
     cdef fixed_input_type pixel_dy = (y2-y1)/ny
-    cdef fixed_input_type pixel_dz = (z2-z1)/ny
+    cdef fixed_input_type pixel_dz = (z2-z1)/nz
     cdef fixed_input_type x_start = x1+pixel_dx/2
     cdef fixed_input_type y_start = y1+pixel_dy/2
     cdef fixed_input_type z_start = z1+pixel_dz/2
