@@ -237,6 +237,32 @@ def test_partial_load_empty_family_issue_1005():
     assert gas_pos.shape == (4, 3)
     assert dm_pos2.shape == (0, 3)
 
+def test_pressure_without_on_equation_of_state():
+    # Regression test: some GadgetHDF variants do not write an OnEquationOfState
+    # array at all. The pressure derivation should fall back to assuming there is
+    # no equation-of-state floor, rather than raising a KeyError.
+    shutil.copy('testdata/gadget3/data/snapshot_103/snap_103.hdf5',
+                'testdata/gadget3/data/snapshot_103/snap_103_no_eos.hdf5')
+    f = h5py.File('testdata/gadget3/data/snapshot_103/snap_103_no_eos.hdf5', 'r+')
+    del f['PartType0']['OnEquationOfState']
+    f.close()
+
+    snap_with_eos = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103.hdf5')
+    snap_no_eos = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103_no_eos.hdf5')
+
+    assert 'OnEquationOfState' not in snap_no_eos.gas.loadable_keys()
+
+    p_no_eos = snap_no_eos.gas['p']
+
+    # the reference snapshot has particles on the equation of state, so the two
+    # pressure arrays should genuinely differ where that floor kicks in
+    oneos = snap_with_eos.gas['OnEquationOfState'] == 1.
+    assert oneos.any()
+
+    p_expected = snap_with_eos.gas['rho'].in_units('m_p cm**-3') * snap_with_eos.gas['temp'].in_units('K')
+    npt.assert_allclose(p_no_eos, p_expected)
+
+
 def test_load_copy_issue_955(snap):
     # condition: A single-file snapshot with a PartType length greater than max_buf; 
     # select a slice across chunk boundary

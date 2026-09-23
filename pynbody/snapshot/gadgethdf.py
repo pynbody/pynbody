@@ -1471,10 +1471,11 @@ def p(sim) :
     critdens = 0.1 * units.m_p / units.cm**3 ## m_p cm^-3
     gammaeff = 4./3.
 
-    oneos = sim.g['OnEquationOfState'] == 1.
-
     p = sim.g['rho'].in_units('m_p cm**-3') * sim.g['temp'].in_units('K')
-    p[oneos] = critpres * (sim.g['rho'][oneos].in_units('m_p cm**-3')/critdens)**gammaeff
+
+    if 'OnEquationOfState' in sim.g.loadable_keys():
+        oneos = sim.g['OnEquationOfState'] == 1.
+        p[oneos] = critpres * (sim.g['rho'][oneos].in_units('m_p cm**-3')/critdens)**gammaeff
 
     return p
 
