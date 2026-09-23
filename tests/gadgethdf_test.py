@@ -259,8 +259,33 @@ def test_pressure_without_on_equation_of_state():
     oneos = snap_with_eos.gas['OnEquationOfState'] == 1.
     assert oneos.any()
 
-    p_expected = snap_with_eos.gas['rho'].in_units('m_p cm**-3') * snap_with_eos.gas['temp'].in_units('K')
+    p_expected = snap_with_eos.gas['u'] * snap_with_eos.gas['rho'] * (2./3)
     npt.assert_allclose(p_no_eos, p_expected)
+
+
+def test_pressure_derivation(snap):
+    # The pressure must be a genuine physical pressure (energy per unit volume),
+    # not an array whose units happen to look plausible but are not actually
+    # convertible to a real pressure (see issue where the formula was missing
+    # a Boltzmann constant and mean molecular weight factor).
+    snap.physical_units()
+    p = snap.gas['p']
+    p.in_units('erg cm**-3')  # raises UnitsException if not a real pressure
+
+    oneos = snap.gas['OnEquationOfState'] == 1.
+    assert oneos.any()
+    assert (~oneos).any()
+
+    # off the equation of state, pressure should be the standard ideal-gas
+    # p = (gamma - 1) * u * rho
+    npt.assert_allclose(p[~oneos], (snap.gas['u'] * snap.gas['rho'] * (2./3))[~oneos])
+
+    # on the equation of state, pressure should follow the imposed polytropic
+    # floor, P/k_B = 2300 K cm^-3 * (rho / (0.1 m_p cm^-3))^(4/3)
+    critpres = 2300. * units.k * units.K / units.cm**3
+    critdens = 0.1 * units.m_p / units.cm**3
+    expected_oneos = critpres * (snap.gas['rho'][oneos].in_units('m_p cm**-3') / critdens) ** (4./3)
+    npt.assert_allclose(p[oneos], expected_oneos.in_units(p.units))
 
 
 def test_load_copy_issue_955(snap):
