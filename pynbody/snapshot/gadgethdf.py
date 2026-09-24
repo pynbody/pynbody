@@ -1467,14 +1467,15 @@ def u(self) :
 def p(sim) :
     """Calculate the pressure for gas particles, including polytropic equation of state gas"""
 
-    critpres = 2300. * units.K * units.m_p / units.cm**3 ## m_p K cm^-3
+    critpres = 2300. * units.k * units.K / units.cm**3 ## P0/k_B = 2300 K cm^-3, Schaye & Dalla Vecchia 2008
     critdens = 0.1 * units.m_p / units.cm**3 ## m_p cm^-3
     gammaeff = 4./3.
 
-    oneos = sim.g['OnEquationOfState'] == 1.
+    p = sim.g['u'] * sim.g['rho'] * (2./3)
 
-    p = sim.g['rho'].in_units('m_p cm**-3') * sim.g['temp'].in_units('K')
-    p[oneos] = critpres * (sim.g['rho'][oneos].in_units('m_p cm**-3')/critdens)**gammaeff
+    if 'OnEquationOfState' in sim.g.loadable_keys():
+        oneos = sim.g['OnEquationOfState'] == 1.
+        p[oneos] = critpres * (sim.g['rho'][oneos].in_units('m_p cm**-3')/critdens)**gammaeff
 
     return p
 
