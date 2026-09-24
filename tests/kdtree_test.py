@@ -349,6 +349,52 @@ def test_particles_in_sphere(npart, offset, radius, dtype):
 
     assert (np.sort(particles) == np.sort(particles_compare)).all()
 
+def _minimum_image_sphere(pos, cen, radius, boxsize):
+    offset = np.asarray(pos, dtype=np.float64) - np.asarray(cen, dtype=np.float64)
+    offset -= boxsize * np.round(offset / boxsize)
+    return np.where((offset ** 2).sum(axis=1) <= radius ** 2)[0]
+
+
+def _make_periodic_uniform(npart, origin, dtype=np.float64, boxsize=1.0, seed=1337):
+    f = pynbody.new(dm=npart)
+    f._create_array('pos', 3, dtype)
+    f._create_array('mass', 1, dtype)
+    rng = np.random.default_rng(seed)
+    f['pos'] = rng.uniform(origin, origin + boxsize, size=(npart, 3))
+    f['mass'] = 1.0
+    f.properties['boxsize'] = boxsize
+    f.build_tree()
+    return f
+
+
+@pytest.mark.parametrize("origin", [0.0, -0.5, -0.7])
+@pytest.mark.parametrize("centre", [(0.9, 0.5, 0.5), (0.3, 0.95, 0.99), (-0.7, 0.5, 0.5),
+                                    (1.3, -0.2, 0.5), (2.9, 0.5, -1.05)])
+@pytest.mark.parametrize("radius", [0.01, 0.05, 0.2])
+def test_particles_in_sphere_centre_outside_particle_domain(origin, centre, radius):
+    """Centres need not lie in the same period as the particles, e.g. a centre expressed in [0, L)
+    when the particles have been wrapped into [-L/2, L/2). This used to return too few (often zero)
+    particles once the centre lay further than about the radius outside the particles' extent."""
+    f = _make_periodic_uniform(20000, origin)
+    particles = np.sort(f.kdtree.particles_in_sphere(centre, radius))
+    npt.assert_array_equal(particles, _minimum_image_sphere(f['pos'], centre, radius, 1.0))
+
+    # and through the filter, which uses the tree when present:
+    npt.assert_array_equal(f[pynbody.filt.Sphere(radius, centre)].get_index_list(f), particles)
+
+
+@pytest.mark.parametrize("npart", [50, 2000, 50000])
+@pytest.mark.parametrize("centre", [(0.5, 0.5, 0.5), (0.95, 0.5, 0.5), (0.0, 0.99, 0.02)])
+@pytest.mark.parametrize("radius", [0.3, 0.45, 0.5, 0.55, 0.7, 0.9])
+def test_particles_in_sphere_large_radius(npart, centre, radius):
+    """When the sphere is large compared with the box, or leaf cells are large compared with the box,
+    particles in a single leaf can have different nearest images of the centre. This used to miss
+    particles."""
+    f = _make_periodic_uniform(npart, 0.0)
+    particles = np.sort(f.kdtree.particles_in_sphere(centre, radius))
+    npt.assert_array_equal(particles, _minimum_image_sphere(f['pos'], centre, radius, 1.0))
+
+
 def test_kdtree_from_existing_kdtree(npart=1000):
     f = _make_test_gaussian(npart)
 

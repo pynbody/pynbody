@@ -11,6 +11,8 @@
 #include <iostream>
 #include <queue>
 #include <cmath>
+#include <algorithm>
+#include <limits>
 
 #define RESMOOTH_SAFE 500
 #define WORKUNIT 1000
@@ -308,6 +310,40 @@ inline npy_intp smBallGatherStoreResultInSmx(SmoothingContext<T>* smx, T fDist2,
 }
 
 
+template <typename T>
+inline bool smIsPeriodic(T period) {
+  // Non-periodic contexts store the largest representable value (or infinity,
+  // once a double sentinel has been narrowed to float) as their period.
+  return std::isfinite(period) && period < std::numeric_limits<T>::max();
+}
+
+template <typename T>
+inline T smWrapIntoDomain(T x, double lower, T period) {
+  // Shift x by a whole number of periods so that it lies in [lower, lower+period).
+  if (!smIsPeriodic(period))
+    return x;
+  return x - period * std::floor((x - lower) / period);
+}
+
+template <typename T>
+inline T smMinimumImage(T dx, T period) {
+  // Map a displacement with |dx| < period onto its minimum image. For a
+  // non-periodic context, period/2 is never exceeded so dx is unchanged.
+  T half = period / 2;
+  if (dx > half)
+    return dx - period;
+  else if (dx < -half)
+    return dx + period;
+  return dx;
+}
+
+template <typename T>
+inline bool smCellNeedsMinimumImage(const Boundary &bnd, int dim, T s, T period) {
+  // True if some point of the cell lies more than half a period from s along
+  // dim, so that s may not be the nearest image for every particle in it.
+  return std::max(std::abs(s - bnd.fMin[dim]), std::abs(s - bnd.fMax[dim])) > period / 2;
+}
+
 template <typename T,
           npy_intp (*storeResultFunction)(SmoothingContext<T> *, T, T, T, T,
                                           npy_intp, npy_intp)>
@@ -326,9 +362,15 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
   lx = smx->fPeriod[0];
   ly = smx->fPeriod[1];
   lz = smx->fPeriod[2];
-  x = ri[0];
-  y = ri[1];
-  z = ri[2];
+
+  // INTERSECT only considers the images x and x +/- L of the search centre,
+  // and assumes the centre lies in the same period as the particles. Move it
+  // into the period starting at the lower edge of the root cell (which
+  // smCheckFits guarantees spans no more than one period) so that centres
+  // given in another convention, e.g. [0, L) rather than [-L/2, L/2), work.
+  x = smWrapIntoDomain(ri[0], c[ROOT].bnd.fMin[0], lx);
+  y = smWrapIntoDomain(ri[1], c[ROOT].bnd.fMin[1], ly);
+  z = smWrapIntoDomain(ri[2], c[ROOT].bnd.fMin[2], lz);
 
   // fBall2 = std::nextafter(fBall2, std::numeric_limits<T>::max());
 
@@ -344,10 +386,25 @@ npy_intp smBallGather(SmoothingContext<T> * smx, T fBall2, T *ri) {
       cp = LOWER(cp);
       continue;
     } else {
+      // INTERSECT picks one image (sx, sy, sz) for the whole cell. That is
+      // exact for every particle in the cell unless the cell reaches more than
+      // half a period from that image, in which case different particles can
+      // have different nearest images (e.g. large balls, or large cells in
+      // sparse trees). Then fall back to a per-particle minimum image; starting
+      // from the wrapped centre, a single fold suffices.
+      bool fold = false;
+      if (smCellNeedsMinimumImage(c[cp].bnd, 0, sx, lx)) { sx = x; fold = true; }
+      if (smCellNeedsMinimumImage(c[cp].bnd, 1, sy, ly)) { sy = y; fold = true; }
+      if (smCellNeedsMinimumImage(c[cp].bnd, 2, sz, lz)) { sz = z; fold = true; }
       for (pj = c[cp].pLower; pj <= c[cp].pUpper; ++pj) {
         dx = sx - GET2<T>(kd->pNumpyPos, p[pj], 0);
         dy = sy - GET2<T>(kd->pNumpyPos, p[pj], 1);
         dz = sz - GET2<T>(kd->pNumpyPos, p[pj], 2);
+        if (fold) {
+          dx = smMinimumImage(dx, lx);
+          dy = smMinimumImage(dy, ly);
+          dz = smMinimumImage(dz, lz);
+        }
         fDist2 = dx * dx + dy * dy + dz * dz;
         if (fDist2 <= fBall2) {
           nCnt = storeResultFunction(smx, fDist2, dx, dy, dz, pj, nCnt);
