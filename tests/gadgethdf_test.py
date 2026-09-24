@@ -1,4 +1,5 @@
 import gc
+import os
 import shutil
 
 import h5py
@@ -9,6 +10,8 @@ import pytest
 import pynbody
 import pynbody.test_utils
 from pynbody import units
+from pynbody.snapshot import gadgethdf
+from pynbody.util import hdf_bulk_read
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -245,3 +248,65 @@ def test_load_copy_issue_955(snap):
 
     snap_cop = snap[boundary_slice].load_copy()
     assert (snap_cop['iord'] == snap[boundary_slice]['iord']).all()
+
+
+@pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
+@pytest.mark.filterwarnings("ignore:Masses are either stored in the header")
+@pytest.mark.parametrize("filename, load_kwargs",
+                         [("testdata/gadget3/data/snapshot_103/snap_103.hdf5", {}),
+                          ("testdata/gadget3/snap_028_z000p000.0.hdf5", {}),
+                          ("testdata/gadget3/snap_028_z000p000.0.hdf5", {'take': np.arange(0, 400000, 7)}),
+                          ("testdata/arepo/agora_100.hdf5", {})])
+def test_bulk_read_backends_agree(monkeypatch, filename, load_kwargs):
+    """Reading bulk data through pyfive gives exactly what h5py gives, and pyfive is really used"""
+    arrays = {}
+    readers = {}
+    original_open = hdf_bulk_read.BulkReader.open
+    for backend in ['h5py', 'pyfive']:
+        monkeypatch.setattr(gadgethdf, "_bulk_read_backend", backend)
+        opened = []
+        monkeypatch.setattr(hdf_bulk_read.BulkReader, "open",
+                            lambda self, dataset: opened.append(original_open(self, dataset)) or opened[-1])
+        f = pynbody.load(filename, **load_kwargs)
+        # arrays present for every family, so that no rows are left for which the file provides no data
+        arrays[backend] = {}
+        for k in f.loadable_keys():
+            try:
+                arrays[backend][k] = np.asarray(f[k])
+            except Exception as e:
+                arrays[backend][k] = type(e)  # e.g. inconsistent unit metadata, which must fail the same way
+        readers[backend] = opened
+
+    assert all(isinstance(r, h5py.Dataset) for r in readers['h5py'])
+    if hdf_bulk_read.pyfive_available():
+        assert not any(isinstance(r, h5py.Dataset) for r in readers['pyfive'])
+
+    assert arrays['h5py'].keys() == arrays['pyfive'].keys()
+    for k in arrays['h5py']:
+        a, b = arrays['h5py'][k], arrays['pyfive'][k]
+        if isinstance(a, type):
+            assert a == b
+        else:
+            assert a.dtype == b.dtype
+            npt.assert_array_equal(a, b)
+
+
+def test_write_then_read_through_pyfive():
+    """Writing an array must not leave the bulk reader holding stale metadata"""
+    filename = 'testdata/gadget3/data/snapshot_103/snap_103_bulk_copy.hdf5'
+    shutil.copy('testdata/gadget3/data/snapshot_103/snap_103.hdf5', filename)
+    try:
+        snap = pynbody.load(filename)
+        snap.dm['pos']  # the bulk reader now has the file open
+        snap['bulk_test_array'] = np.arange(len(snap), dtype=np.float64)
+        snap['bulk_test_array'].write()
+        snap.gas['pos']  # and reads from it again after the write
+
+        snap2 = pynbody.load(filename)
+        with pytest.warns(UserWarning, match="Unable to infer units from HDF attributes"):
+            npt.assert_array_equal(snap2['bulk_test_array'], np.arange(len(snap2)))
+        npt.assert_array_equal(snap2['pos'], snap['pos'])
+        del snap, snap2
+    finally:
+        gc.collect()
+        os.remove(filename)

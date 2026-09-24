@@ -24,6 +24,7 @@ import warnings
 import numpy as np
 
 from .. import chunk, config_parser, family, units, util
+from ..util import hdf_bulk_read
 from . import SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
@@ -52,6 +53,11 @@ _max_buf = 1024 * 512 # max_chunk for chunk.LoadControl
 # HDF5 chunk cache to use when opening files; see _open_hdf_file below
 _chunk_cache_nbytes = int(config_parser.get('gadgethdf', 'chunk-cache-nbytes'))
 _chunk_cache_nslots = int(config_parser.get('gadgethdf', 'chunk-cache-nslots'))
+
+# Library used for bulk reads of particle data; see _GadgetHdfMultiFileManager.open_for_bulk_read
+_bulk_read_backend = config_parser.get('gadgethdf', 'bulk-read-backend', fallback='pyfive').strip().lower()
+if _bulk_read_backend not in ('pyfive', 'h5py'):
+    raise ValueError(f"gadgethdf bulk-read-backend must be 'pyfive' or 'h5py', not {_bulk_read_backend!r}")
 
 class _DummyHDFData:
 
@@ -101,6 +107,8 @@ class _GadgetHdfMultiFileManager:
         filename = str(filename)
         self._mode = mode
         self._open_files = {}
+        self._bulk_reader = hdf_bulk_read.BulkReader(use_pyfive=(_bulk_read_backend == 'pyfive'),
+                                                     cache_nbytes=_chunk_cache_nbytes)
         if h5py.is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1
@@ -191,8 +199,18 @@ class _GadgetHdfMultiFileManager:
         for item in self:
             yield item.parent
 
+    def open_for_bulk_read(self, dataset):
+        """Return an object through which to read the data in an h5py dataset from one of these files.
+
+        Where it can, this reads through pyfive, which (unlike h5py) does not serialise reads. See
+        :meth:`pynbody.util.hdf_bulk_read.BulkReader.open`."""
+        return self._bulk_reader.open(dataset)
+
     def reopen_in_mode(self, mode):
         if mode!=self._mode:
+            # pyfive parses a file's metadata once, when it is opened, so must not be left holding files that are
+            # about to be written to
+            self._bulk_reader.close()
             self._open_files = {}
             self._mode = mode
 
@@ -465,6 +483,8 @@ class HDFArrayLoader:
                                 # round trip (an expensive one on a parallel filesystem)
                                 dataset = self._get_dataset_from_translated_names(sim, hdf_group,
                                                                                   translated_names)
+                                if dataset is not None and not isinstance(dataset, _DummyHDFData):
+                                    dataset = self._hdf_files.open_for_bulk_read(dataset)
                                 dataset_resolved = True
                             if dataset is not None:
                                 target_array = sim_fam_array[i0 + mem_index.start : i0 + mem_index.stop]
