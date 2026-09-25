@@ -4,7 +4,7 @@ import warnings
 import h5py
 import numpy as np
 
-from .. import halo, units, util
+from .. import units, util
 from .gadgethdf import GadgetHDFSnap, _GadgetHdfMultiFileManager
 
 
@@ -181,6 +181,12 @@ class SwiftSnap(GadgetHDFSnap):
     _length_unit_key = 'Unit length in cgs (U_L)'
     _mass_unit_key = 'Unit mass in cgs (U_M)'
     _time_unit_key = 'Unit time in cgs (U_t)'
+    _temperature_unit_key = 'Unit temperature in cgs (U_T)'
+
+    _cosmological_flag_key = 'Cosmological run'
+    _fof_group_id_default_key = 'FOF:group_id_default'
+    _scalefactor_unitvar_name = 'a-scale'
+    _hubble_unitvar_name = 'h-scale'
 
     _namemapper_config_section = 'swift-name-mapping'
 
@@ -203,7 +209,7 @@ class SwiftSnap(GadgetHDFSnap):
 
     def _is_cosmological(self):
         cosmo = ExtractScalarWrapper(self._hdf_files[0]['Cosmology'].attrs)
-        return cosmo['Cosmological run'] == 1
+        return cosmo[self._cosmological_flag_key] == 1
     def _init_properties(self):
         params = ExtractScalarWrapper(self._hdf_files[0]['Parameters'].attrs)
         header = ExtractScalarWrapper(self._hdf_files[0]['Header'].attrs)
@@ -234,11 +240,16 @@ class SwiftSnap(GadgetHDFSnap):
         # position, velocity and time units that swift does not respect for cosmo sims.
 
 
+    @classmethod
+    def _unit_name_from_exponent_attr_name(cls, attr_name):
+        """Return the unit variable named by an HDF exponent attribute, e.g. 'U_L' for 'U_L exponent'."""
+        return attr_name.split(" ")[0]
+
     def _get_units_from_hdf_attr(self, hdfattrs):
         this_unit = units.Unit("1")
         for k in hdfattrs.keys():
             if k.endswith('exponent'):
-                unitname = k.split(" ")[0]
+                unitname = self._unit_name_from_exponent_attr_name(k)
                 exponent = util.fractions.Fraction.from_float(float(ExtractScalarWrapper(hdfattrs)[k])).limit_denominator()
 
                 if exponent != 0:
@@ -248,10 +259,10 @@ class SwiftSnap(GadgetHDFSnap):
 
     def _init_unit_information(self):
         atr = ExtractScalarWrapper(self._hdf_files.get_unit_attrs())
-        dist_unit = atr['Unit length in cgs (U_L)'] * units.cm
-        mass_unit = atr['Unit mass in cgs (U_M)'] * units.g
-        time_unit = atr['Unit time in cgs (U_t)'] * units.s
-        temp_unit = atr['Unit temperature in cgs (U_T)'] * units.K
+        dist_unit = atr[self._length_unit_key] * units.cm
+        mass_unit = atr[self._mass_unit_key] * units.g
+        time_unit = atr[self._time_unit_key] * units.s
+        temp_unit = atr[self._temperature_unit_key] * units.K
         vel_unit = dist_unit / time_unit
 
         unitvar = {'U_V': vel_unit,
@@ -259,13 +270,14 @@ class SwiftSnap(GadgetHDFSnap):
                    'U_M': mass_unit,
                    'U_t': time_unit,
                    'U_T': temp_unit,
-                   'a-scale': 1.0, # non-cosmo sims bizarrely still have non-zero scalefactor exponents
-                   'h-scale': 1.0,}
+                   # non-cosmo sims bizarrely still have non-zero scalefactor exponents
+                   self._scalefactor_unitvar_name: 1.0,
+                   self._hubble_unitvar_name: 1.0,}
 
         if self._is_cosmological():
             unitvar.update({
-                'a-scale': units.a,
-                'h-scale': units.h
+                self._scalefactor_unitvar_name: units.a,
+                self._hubble_unitvar_name: units.h
             })
 
 
@@ -280,10 +292,14 @@ class SwiftSnap(GadgetHDFSnap):
         self._file_units_system = [vel_unit, dist_unit, mass_unit, temp_unit]
 
     def halos(self, **kwargs):
+        # imported here, not at module level, to avoid a circular import: pynbody.halo needs
+        # pynbody.snapshot.subsnap, which is not available while the snapshot modules load
+        from .. import halo
+
         h = super().halos(**kwargs)
 
         if isinstance(h, halo.number_array.HaloNumberCatalogue):
-            ignore = int(self._hdf_files.get_parameter_attrs()['FOF:group_id_default'])
+            ignore = int(self._hdf_files.get_parameter_attrs()[self._fof_group_id_default_key])
             return halo.number_array.HaloNumberCatalogue(self, ignore=ignore, **kwargs)
 
         return h

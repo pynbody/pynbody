@@ -41,6 +41,8 @@ test_data_packages = {
                 'archive_name': 'gizmo.tar.gz'},
     'grafic': {'verify_path': 'grafic_test',
                 'archive_name': 'grafic.tar.gz'},
+    'gusteau_tiny': {'verify_path': 'gusteau_tiny',
+                     'archive_name': 'gusteau_tiny.tar.gz'},
     'lpicola': {'verify_path': 'lpicola',
                 'archive_name': 'lpicola.tar.gz'},
     'nchilada': {'verify_path': 'nchilada_test',
