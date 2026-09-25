@@ -491,7 +491,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         It serves two purposes; first it prevents overwriting of family names (so you can't
         write to, for instance, f.dm). Second, it implements persistent objects -- properties
         which are shared between two equivalent SubSnaps."""
-        if name in family.family_names():
+        if family.is_family_name(name):
             raise AttributeError("Cannot assign family name " + name)
 
         if name in SimSnap._persistent:

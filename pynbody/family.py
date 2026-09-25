@@ -16,6 +16,7 @@ import functools
 from . import config_parser
 
 _registry = []
+_family_name_set = set() # names (not aliases) of all families, for fast membership testing
 
 
 def family_names(with_aliases=False):
@@ -43,6 +44,13 @@ def family_names(with_aliases=False):
             for a in o.aliases:
                 l.append(a)
     return l
+
+
+def is_family_name(name):
+    """Returns True if the given string is the name (not an alias) of a particle family.
+
+    Equivalent to ``name in family_names()``, but faster."""
+    return name in _family_name_set
 
 
 def get_family(name, create=False):
@@ -115,6 +123,7 @@ class Family:
         self.name = name
         self.aliases = aliases
         _registry.append(self)
+        _family_name_set.add(name)
 
     def __repr__(self):
         return "<Family " + self.name + ">"
