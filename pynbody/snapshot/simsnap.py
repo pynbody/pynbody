@@ -1815,7 +1815,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             if units.is_unit_like(boxsize):
                 boxsize = float(boxsize.in_units(self['pos'].units))
         else:
-            boxsize = -1.0  # represents infinite box
+            boxsize = None  # non-periodic
         return boxsize
 
 

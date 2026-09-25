@@ -149,6 +149,17 @@ template <> const char py_kind<double>() { return 'd'; }
 template <> const char py_kind<float>() { return 'f'; }
 
 
+bool checkPeriod(double period) {
+  // The period must be positive; infinity means non-periodic. Sets a Python
+  // exception and returns false otherwise (including for NaN).
+  if (!(period > 0)) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Period must be positive, or infinite for a non-periodic tree");
+    return false;
+  }
+  return true;
+}
+
 template <typename T> int checkArray(PyObject *check, const char *name, npy_intp size=0, bool require_c_contiguous=false) {
   /* Checks that the passed object is a numpy array of the correct type, with the correct size (if specified), and is C-contiguous (if required)
   Returns 0 if the check passes, 1 if it fails (in which case an exception will have been set).
@@ -364,14 +375,13 @@ template<typename T> struct typed_nn_start {
     */
 
     int nSmooth;
-    double period = -1.0; // non-positive or omitted means non-periodic
+    double period = std::numeric_limits<double>::infinity(); // non-periodic if omitted
 
     if (!PyArg_ParseTuple(args, "Oi|d", &kdobj, &nSmooth, &period))
       return nullptr;
+    if (!checkPeriod(period))
+      return nullptr;
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
-
-    if (period <= 0)
-      period = std::numeric_limits<double>::infinity();
 
     if (nSmooth > PyArray_DIM(kd->pNumpyPos, 0)) {
       PyErr_SetString(
@@ -873,8 +883,8 @@ template <typename T> struct typed_pair_start {
     if (checkArray<T>((PyObject *)kd->pNumpySmooth, "smooth"))
       return nullptr;
 
-    if (period <= 0)
-      period = std::numeric_limits<double>::infinity();
+    if (!checkPeriod(period))
+      return nullptr;
 
     SmoothingContext<T> *smx = smInit<T>(kd, nSmooth, static_cast<T>(period));
     if (smx == nullptr)

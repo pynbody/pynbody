@@ -1,5 +1,6 @@
 import copy
 import gc
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -414,6 +415,46 @@ def test_kdtree_without_boxsize():
     tree.set_array_ref('smooth', np.zeros(1000))
     first = next(iter(tree.nn(8)))
     assert len(first[2]) == 8
+
+
+def test_non_periodic_representation():
+    """Non-periodic trees store boxsize None and pass an infinite period to C; C rejects non-positive periods"""
+    f = pynbody.new(dm=1000)
+    f['pos'] = np.random.default_rng(1337).uniform(-0.5, 0.5, size=(1000, 3))
+    f['mass'] = 1.0
+    f.build_tree()
+    assert f.kdtree.boxsize is None
+    assert f.kdtree._period_for_c() == np.inf
+
+    from pynbody.kdtree import kdmain
+    for bad_period in (-1.0, 0.0, np.nan):
+        with pytest.raises(ValueError, match="Period must be positive"):
+            kdmain.nn_start(f.kdtree.kdtree, 1, bad_period)
+
+    # legacy non-positive boxsize is still accepted by KDTree itself
+    tree = pynbody.kdtree.KDTree(f['pos'], f['mass'], boxsize=-1.0)
+    assert tree._period_for_c() == np.inf
+    assert len(tree.particles_in_sphere([0.45, 0.0, 0.0], 0.1)) > 0
+
+
+def test_deserialize_boxsize_comparison():
+    f = pynbody.new(dm=1000)
+    f['pos'] = np.random.default_rng(1337).uniform(-0.5, 0.5, size=(1000, 3))
+    f['mass'] = 1.0
+    f.build_tree()
+    leafsize, boxsize, kdnodes, offsets, kernel_id = f.kdtree.serialize()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        # None and the legacy -1 both mean non-periodic, so should be treated as matching
+        pynbody.kdtree.KDTree.deserialize(f['pos'], f['mass'], (leafsize, None, kdnodes, offsets, kernel_id),
+                                          boxsize=-1.0)
+        pynbody.kdtree.KDTree.deserialize(f['pos'], f['mass'], (leafsize, -1.0, kdnodes, offsets, kernel_id),
+                                          boxsize=None)
+
+    with pytest.warns(UserWarning, match="does not match"):
+        pynbody.kdtree.KDTree.deserialize(f['pos'], f['mass'], (leafsize, None, kdnodes, offsets, kernel_id),
+                                          boxsize=1.0)
 
 
 def test_periodicity_disabled_warning_emitted_once():
