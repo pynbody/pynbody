@@ -885,7 +885,14 @@ has_units = has_unit
 
 def get_item_with_unit(array, item):
     if has_unit(array) and len(array.shape)==1:
-        return array[item]*array.units
+        u = array.units
+        value = array[item]
+        if isinstance(u, CompositeUnit) and isinstance(value, np.generic):
+            # Equivalent to value*u, but avoids the (relatively slow) simplify() step, since u is already
+            # simplified. Convert to a python scalar, as value*u would, so that the scale is not stuck in
+            # low precision (e.g. float32 overflows when expressed in SI)
+            return CompositeUnit(value.item() * u._scale, list(u._bases), list(u._powers))
+        return value*u
     else:
         return array[item]
 
