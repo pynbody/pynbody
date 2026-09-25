@@ -127,7 +127,7 @@ class Halo(snapshot.subsnap.IndexedSubSnap):
     all of these.
     """
 
-    def __init__(self, halo_number, properties, halo_catalogue, *args, convert_properties=True, **kwa):
+    def __init__(self, halo_number, properties, halo_catalogue, *args, **kwa):
         super().__init__(*args, **kwa)
         self._halo_catalogue = halo_catalogue
         self._halo_number = halo_number
@@ -135,11 +135,8 @@ class Halo(snapshot.subsnap.IndexedSubSnap):
         self.properties = copy.copy(self.properties)
         self.properties['halo_number'] = halo_number
         self.properties.update(properties)
-
-        # Inherit autoconversion from parent. The catalogue can skip this if it knows the properties are
-        # already in the right units, since converting them one halo at a time is slow.
-        if convert_properties:
-            self._autoconvert_properties()
+        # NB properties are expected to be supplied in the base snapshot's units; see
+        # HaloCatalogue._get_properties_one_halo_in_base_units
 
     @property
     @util.deprecated("The sub property has been renamed to subhalos")
@@ -430,12 +427,10 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
     def _get_halo(self, halo_number) -> Halo:
         halo_index = self.number_mapper.number_to_index(halo_number)
-        properties_in_base_units = self._cached_properties_match_base_units()
         return Halo(halo_number,
-                    self._get_properties_one_halo_using_cache_if_available(halo_number, halo_index),
+                    self._get_properties_one_halo_in_base_units(halo_number, halo_index),
                     self, self.base,
-                    self._get_particle_indices_one_halo_using_list_if_available(halo_number, halo_index),
-                    convert_properties=not properties_in_base_units)
+                    self._get_particle_indices_one_halo_using_list_if_available(halo_number, halo_index))
 
     def get_dummy_halo(self, halo_number) -> DummyHalo:
         """Return a DummyHalo object containing only the halo properties, no particle information"""
@@ -801,21 +796,29 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
                 if isinstance(self._properties[k], array.SimArray) and units.has_unit(self._properties[k]):
                     self.base._autoconvert_array_unit(self._properties[k], all_units)
 
-    def _cached_properties_match_base_units(self) -> bool:
-        """Ensure the cached property arrays follow the base snapshot's units, returning True if they do.
+    def _convert_cached_properties_to_base_units(self):
+        """Ensure the cached property arrays follow the base snapshot's persistent units, if any.
 
         Converting the arrays once is much faster than converting the properties of each halo as it is
         constructed."""
-        if self._properties is None:
-            return False
         dims = self.base.ancestor._autoconvert
-        if dims is None:
-            return False
+        if self._properties is None or dims is None:
+            return
         converted_for = self._properties_converted_for
         if converted_for is None or converted_for[0] is not self._properties or converted_for[1] is not dims:
             self._cached_properties_to_physical_units(dims)
             self._properties_converted_for = (self._properties, dims)
-        return True
+
+    def _get_properties_one_halo_in_base_units(self, halo_number, halo_index) -> dict:
+        """Get the properties for a single halo, converted to follow the base snapshot's persistent units"""
+        if self._properties is not None:
+            self._convert_cached_properties_to_base_units()
+            return self._get_properties_one_halo_using_cache_if_available(halo_number, halo_index)
+        else:
+            # copy, so that any dictionary held by the underlying implementation is not modified
+            properties = dict(self.get_properties_one_halo(halo_number))
+            self.base._autoconvert_properties_dict(properties)
+            return properties
 
 
     @classmethod

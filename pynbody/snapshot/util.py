@@ -70,16 +70,20 @@ class ContainerWithPhysicalUnitsOption:
 
 
     def _autoconvert_properties(self, dims=None):
+        self._autoconvert_properties_dict(self.properties, dims)
+
+    def _autoconvert_properties_dict(self, properties, dims=None):
+        """Convert the values in the given properties dictionary in place, using this object's conversion context"""
         dims = self._get_dims(dims)
         if dims is None:
             return
 
-        for k, v in list(self.properties.items()):
+        for k, v in list(properties.items()):
             if isinstance(v, units.UnitBase):
                 new_unit = self._cached_unit_conversion(v, dims, ucut=3)
                 if new_unit is not None:
                     new_unit *= v.ratio(new_unit, **self.conversion_context())
-                    self.properties[k] = new_unit
+                    properties[k] = new_unit
             elif isinstance(v, array.SimArray):
                 self._autoconvert_array_unit(v, dims)
 
