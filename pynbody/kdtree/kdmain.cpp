@@ -364,17 +364,14 @@ template<typename T> struct typed_nn_start {
     */
 
     int nSmooth;
-    double period;
+    double period = -1.0; // non-positive or omitted means non-periodic
 
-    PyArg_ParseTuple(args, "Oi|d", &kdobj, &nSmooth, &period);
+    if (!PyArg_ParseTuple(args, "Oi|d", &kdobj, &nSmooth, &period))
+      return nullptr;
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
 
     if (period <= 0)
       period = std::numeric_limits<double>::infinity();
-
-
-
-    double fPeriod[3] = {period, period, period};
 
     if (nSmooth > PyArray_DIM(kd->pNumpyPos, 0)) {
       PyErr_SetString(
@@ -383,8 +380,7 @@ template<typename T> struct typed_nn_start {
       return NULL;
     }
 
-    smCheckPeriodicityAndWarn(kd, fPeriod);
-
+    // smInit checks the period against the particle extent, and warns
     smx = smInit<T>(kd, nSmooth, period);
     if (smx == nullptr) return nullptr; // smInit sets the error message
     smSmoothInitStep(smx);

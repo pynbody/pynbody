@@ -240,6 +240,10 @@ class KDTree:
         self.num_threads = num_threads
         return num_threads
 
+    def _period_for_c(self):
+        """The box size in the form the C++ code expects, where a non-positive value means non-periodic."""
+        return -1.0 if self.boxsize is None else float(self.boxsize)
+
     def serialize(self):
         """Produce a serialized description of the tree"""
         return self.leafsize, self.boxsize, self.kdnodes, self.particle_offsets, self._kernel_id
@@ -288,7 +292,7 @@ class KDTree:
         indices : array_like
             Indices of the particles within the sphere.
         """
-        smx = kdmain.nn_start(self.kdtree, 1, self.boxsize)
+        smx = kdmain.nn_start(self.kdtree, 1, self._period_for_c())
 
         particle_ids = kdmain.particles_in_sphere(self.kdtree, smx, center[0], center[1], center[2], radius)
 
@@ -322,7 +326,7 @@ class KDTree:
         if nn is None:
             nn = 64
 
-        smx = kdmain.nn_start(self.kdtree, int(nn), self.boxsize)
+        smx = kdmain.nn_start(self.kdtree, int(nn), self._period_for_c())
         kdmain.domain_decomposition(self.kdtree, 1)
 
         while True:
@@ -494,7 +498,7 @@ class KDTree:
 
         self_weighting = self._weighting_to_flag(weighting)
 
-        smx = kdmain.nn_start(self.kdtree, int(nn), self.boxsize)
+        smx = kdmain.nn_start(self.kdtree, int(nn), self._period_for_c())
 
         try:
             propid = self.smooth_operation_to_id(mode)
@@ -676,7 +680,7 @@ class KDTree:
         # nsmooth only sizes the neighbour buffer; the pair set itself is
         # determined by the smoothing lengths
         nsmooth = min(int(config['sph']['smooth-particles']), len(self._pos))
-        boxsize = -1.0 if self.boxsize is None else float(self.boxsize)
+        boxsize = self._period_for_c()
         npart = len(self._pos)
 
         # One context per thread, each walking a contiguous range of the tree

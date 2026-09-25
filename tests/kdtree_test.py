@@ -395,6 +395,39 @@ def test_particles_in_sphere_large_radius(npart, centre, radius):
     npt.assert_array_equal(particles, _minimum_image_sphere(f['pos'], centre, radius, 1.0))
 
 
+def test_kdtree_without_boxsize():
+    """A KDTree constructed directly with boxsize=None is non-periodic. nn_start used to fail to parse
+    the None, leaving the period uninitialised and raising a SystemError."""
+    rng = np.random.default_rng(1337)
+    pos = rng.uniform(-0.5, 0.5, size=(1000, 3))
+    mass = np.ones(1000)
+    tree = pynbody.kdtree.KDTree(pos, mass, boxsize=None)
+
+    particles = np.sort(tree.particles_in_sphere([0.45, 0.0, 0.0], 0.2))
+    npt.assert_array_equal(particles, np.where(((pos - [0.45, 0.0, 0.0]) ** 2).sum(axis=1) <= 0.2 ** 2)[0])
+
+    # a periodic tree would find particles through the x = 0.5 boundary; this one must not
+    assert (pos[particles, 0] < 0.65).all()
+    assert len(tree.particles_in_sphere([0.7, 0.0, 0.0], 0.1)) == 0
+
+    # the neighbour search goes through the same entry point
+    tree.set_array_ref('smooth', np.zeros(1000))
+    first = next(iter(tree.nn(8)))
+    assert len(first[2]) == 8
+
+
+def test_periodicity_disabled_warning_emitted_once():
+    f = pynbody.new(dm=1000)
+    f['pos'] = np.random.default_rng(1337).uniform(-0.6, 0.6, size=(1000, 3))
+    f['mass'] = 1.0
+    f.properties['boxsize'] = 1.0 # smaller than the particle extent
+    f.build_tree()
+
+    with pytest.warns(RuntimeWarning, match="disabling periodicity") as record:
+        f.kdtree.particles_in_sphere([0.0, 0.0, 0.0], 0.1)
+    assert len([w for w in record if "disabling periodicity" in str(w.message)]) == 1
+
+
 def test_kdtree_from_existing_kdtree(npart=1000):
     f = _make_test_gaussian(npart)
 
