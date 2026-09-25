@@ -370,7 +370,7 @@ template<typename T> struct typed_nn_start {
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
 
     if (period <= 0)
-      period = std::numeric_limits<double>::max();
+      period = std::numeric_limits<double>::infinity();
 
 
 
@@ -878,7 +878,7 @@ template <typename T> struct typed_pair_start {
       return nullptr;
 
     if (period <= 0)
-      period = std::numeric_limits<double>::max();
+      period = std::numeric_limits<double>::infinity();
 
     SmoothingContext<T> *smx = smInit<T>(kd, nSmooth, static_cast<T>(period));
     if (smx == nullptr)

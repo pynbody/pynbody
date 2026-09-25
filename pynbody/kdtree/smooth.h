@@ -129,7 +129,7 @@ void smCheckPeriodicityAndWarn(KDContext* kd, T fPeriod[3]) {
                  "For more information about this warning, see the module documentation for KDTree, \r\n"
                  "https://pynbody.readthedocs.io/latest/reference/_autosummary/pynbody.kdtree.KDTree.html",
                  1);
-    fPeriod[0] = fPeriod[1] = fPeriod[2] = std::numeric_limits<T>::max();
+    fPeriod[0] = fPeriod[1] = fPeriod[2] = std::numeric_limits<T>::infinity();
   }
 }
 
@@ -312,9 +312,8 @@ inline npy_intp smBallGatherStoreResultInSmx(SmoothingContext<T>* smx, T fDist2,
 
 template <typename T>
 inline bool smIsPeriodic(T period) {
-  // Non-periodic contexts store the largest representable value (or infinity,
-  // once a double sentinel has been narrowed to float) as their period.
-  return std::isfinite(period) && period < std::numeric_limits<T>::max();
+  // Non-periodic contexts store an infinite period.
+  return std::isfinite(period);
 }
 
 template <typename T>
@@ -328,7 +327,7 @@ inline T smWrapIntoDomain(T x, double lower, T period) {
 template <typename T>
 inline T smMinimumImage(T dx, T period) {
   // Map a displacement with |dx| < period onto its minimum image. For a
-  // non-periodic context, period/2 is never exceeded so dx is unchanged.
+  // non-periodic context the period is infinite, so dx is unchanged.
   T half = period / 2;
   if (dx > half)
     return dx - period;
