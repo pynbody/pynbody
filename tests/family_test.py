@@ -15,6 +15,34 @@ def test_pickle():
     import pickle
     assert pickle.loads(pickle.dumps(pynbody.family.gas)) is pynbody.family.gas
 
+def test_cannot_assign_family_name_or_alias():
+    f = pynbody.new(dm=10, gas=10)
+    for name in ('dm', 'd', 'dark', 'gas', 'g'):
+        with pytest.raises(AttributeError, match="Cannot assign family name or alias"):
+            setattr(f, name, 1)
+    with pytest.raises(AttributeError):
+        f.gas.d = 1
+
+    # the protection should not get in the way of assigning other attributes
+    f.some_other_attribute = 1
+    assert f.some_other_attribute == 1
+
+    # f.d should still refer to the dark matter
+    assert len(f.d) == 10
+
+def test_cannot_assign_new_family_alias():
+    pynbody.family.Family("test_family_for_aliases", aliases=["tffa"])
+    f = pynbody.new(dm=10)
+    with pytest.raises(AttributeError):
+        f.tffa = 1
+
+def test_unpickled_family_aliases_are_protected():
+    fam = pynbody.family.get_family("test_family_for_pickling", create=True)
+    fam.__setstate__({"aliases": ["tffp"]}) # as happens when unpickling creates the family
+    assert pynbody.family.is_family_name("tffp")
+    with pytest.raises(AttributeError):
+        pynbody.new(dm=10).tffp = 1
+
 def test_family_array_dtype() :
     # test for issue #186
     f = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024.gz')
