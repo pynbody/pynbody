@@ -1,5 +1,6 @@
 import copy
 import gc
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -348,6 +349,125 @@ def test_particles_in_sphere(npart, offset, radius, dtype):
     particles_compare = np.where(f['r']<radius)[0]
 
     assert (np.sort(particles) == np.sort(particles_compare)).all()
+
+def _minimum_image_sphere(pos, cen, radius, boxsize):
+    offset = np.asarray(pos, dtype=np.float64) - np.asarray(cen, dtype=np.float64)
+    offset -= boxsize * np.round(offset / boxsize)
+    return np.where((offset ** 2).sum(axis=1) <= radius ** 2)[0]
+
+
+def _make_periodic_uniform(npart, origin, dtype=np.float64, boxsize=1.0, seed=1337):
+    f = pynbody.new(dm=npart)
+    f._create_array('pos', 3, dtype)
+    f._create_array('mass', 1, dtype)
+    rng = np.random.default_rng(seed)
+    f['pos'] = rng.uniform(origin, origin + boxsize, size=(npart, 3))
+    f['mass'] = 1.0
+    f.properties['boxsize'] = boxsize
+    f.build_tree()
+    return f
+
+
+@pytest.mark.parametrize("origin", [0.0, -0.5, -0.7])
+@pytest.mark.parametrize("centre", [(0.9, 0.5, 0.5), (0.3, 0.95, 0.99), (-0.7, 0.5, 0.5),
+                                    (1.3, -0.2, 0.5), (2.9, 0.5, -1.05)])
+@pytest.mark.parametrize("radius", [0.01, 0.05, 0.2])
+def test_particles_in_sphere_centre_outside_particle_domain(origin, centre, radius):
+    """Centres need not lie in the same period as the particles, e.g. a centre expressed in [0, L)
+    when the particles have been wrapped into [-L/2, L/2). This used to return too few (often zero)
+    particles once the centre lay further than about the radius outside the particles' extent."""
+    f = _make_periodic_uniform(20000, origin)
+    particles = np.sort(f.kdtree.particles_in_sphere(centre, radius))
+    npt.assert_array_equal(particles, _minimum_image_sphere(f['pos'], centre, radius, 1.0))
+
+    # and through the filter, which uses the tree when present:
+    npt.assert_array_equal(f[pynbody.filt.Sphere(radius, centre)].get_index_list(f), particles)
+
+
+@pytest.mark.parametrize("npart", [50, 2000, 50000])
+@pytest.mark.parametrize("centre", [(0.5, 0.5, 0.5), (0.95, 0.5, 0.5), (0.0, 0.99, 0.02)])
+@pytest.mark.parametrize("radius", [0.3, 0.45, 0.5, 0.55, 0.7, 0.9])
+def test_particles_in_sphere_large_radius(npart, centre, radius):
+    """When the sphere is large compared with the box, or leaf cells are large compared with the box,
+    particles in a single leaf can have different nearest images of the centre. This used to miss
+    particles."""
+    f = _make_periodic_uniform(npart, 0.0)
+    particles = np.sort(f.kdtree.particles_in_sphere(centre, radius))
+    npt.assert_array_equal(particles, _minimum_image_sphere(f['pos'], centre, radius, 1.0))
+
+
+def test_kdtree_without_boxsize():
+    """A KDTree constructed directly with boxsize=None is non-periodic. nn_start used to fail to parse
+    the None, leaving the period uninitialised and raising a SystemError."""
+    rng = np.random.default_rng(1337)
+    pos = rng.uniform(-0.5, 0.5, size=(1000, 3))
+    mass = np.ones(1000)
+    tree = pynbody.kdtree.KDTree(pos, mass, boxsize=None)
+
+    particles = np.sort(tree.particles_in_sphere([0.45, 0.0, 0.0], 0.2))
+    npt.assert_array_equal(particles, np.where(((pos - [0.45, 0.0, 0.0]) ** 2).sum(axis=1) <= 0.2 ** 2)[0])
+
+    # a periodic tree would find particles through the x = 0.5 boundary; this one must not
+    assert (pos[particles, 0] < 0.65).all()
+    assert len(tree.particles_in_sphere([0.7, 0.0, 0.0], 0.1)) == 0
+
+    # the neighbour search goes through the same entry point
+    tree.set_array_ref('smooth', np.zeros(1000))
+    first = next(iter(tree.nn(8)))
+    assert len(first[2]) == 8
+
+
+def test_non_periodic_representation():
+    """Non-periodic trees store boxsize None and pass an infinite period to C; C rejects non-positive periods"""
+    f = pynbody.new(dm=1000)
+    f['pos'] = np.random.default_rng(1337).uniform(-0.5, 0.5, size=(1000, 3))
+    f['mass'] = 1.0
+    f.build_tree()
+    assert f.kdtree.boxsize is None
+    assert f.kdtree._period_for_c() == np.inf
+
+    from pynbody.kdtree import kdmain
+    for bad_period in (-1.0, 0.0, np.nan):
+        with pytest.raises(ValueError, match="Period must be positive"):
+            kdmain.nn_start(f.kdtree.kdtree, 1, bad_period)
+
+    # legacy non-positive boxsize is still accepted by KDTree itself
+    tree = pynbody.kdtree.KDTree(f['pos'], f['mass'], boxsize=-1.0)
+    assert tree._period_for_c() == np.inf
+    assert len(tree.particles_in_sphere([0.45, 0.0, 0.0], 0.1)) > 0
+
+
+def test_deserialize_boxsize_comparison():
+    f = pynbody.new(dm=1000)
+    f['pos'] = np.random.default_rng(1337).uniform(-0.5, 0.5, size=(1000, 3))
+    f['mass'] = 1.0
+    f.build_tree()
+    leafsize, boxsize, kdnodes, offsets, kernel_id = f.kdtree.serialize()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        # None and the legacy -1 both mean non-periodic, so should be treated as matching
+        pynbody.kdtree.KDTree.deserialize(f['pos'], f['mass'], (leafsize, None, kdnodes, offsets, kernel_id),
+                                          boxsize=-1.0)
+        pynbody.kdtree.KDTree.deserialize(f['pos'], f['mass'], (leafsize, -1.0, kdnodes, offsets, kernel_id),
+                                          boxsize=None)
+
+    with pytest.warns(UserWarning, match="does not match"):
+        pynbody.kdtree.KDTree.deserialize(f['pos'], f['mass'], (leafsize, None, kdnodes, offsets, kernel_id),
+                                          boxsize=1.0)
+
+
+def test_periodicity_disabled_warning_emitted_once():
+    f = pynbody.new(dm=1000)
+    f['pos'] = np.random.default_rng(1337).uniform(-0.6, 0.6, size=(1000, 3))
+    f['mass'] = 1.0
+    f.properties['boxsize'] = 1.0 # smaller than the particle extent
+    f.build_tree()
+
+    with pytest.warns(RuntimeWarning, match="disabling periodicity") as record:
+        f.kdtree.particles_in_sphere([0.0, 0.0, 0.0], 0.1)
+    assert len([w for w in record if "disabling periodicity" in str(w.message)]) == 1
+
 
 def test_kdtree_from_existing_kdtree(npart=1000):
     f = _make_test_gaussian(npart)
