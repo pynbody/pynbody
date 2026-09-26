@@ -488,11 +488,15 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     def __setattr__(self, name, val):
         """This function overrides the behaviour of setting f.X where f is a SimSnap object.
 
-        It serves two purposes; first it prevents overwriting of family names (so you can't
-        write to, for instance, f.dm). Second, it implements persistent objects -- properties
-        which are shared between two equivalent SubSnaps."""
+        It serves two purposes; first it prevents overwriting of family names and their aliases (so
+        you can't write to, for instance, f.dm or f.d). Second, it implements persistent objects --
+        properties which are shared between two equivalent SubSnaps.
+
+        .. versionchanged:: 2.7.2
+            Family aliases are now protected, as well as family names.
+        """
         if family.is_family_name(name):
-            raise AttributeError("Cannot assign family name " + name)
+            raise AttributeError("Cannot assign family name or alias " + name)
 
         if name in SimSnap._persistent:
             self.ancestor._set_persist(self._inclusion_hash, name, val)
