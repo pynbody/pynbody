@@ -42,18 +42,8 @@ class ContainerWithPhysicalUnitsOption:
                 )
             cls._units_conversion_cache[key] = new_unit
 
-        if new_unit is not None and not cls._units_identical(new_unit, from_unit):
+        if new_unit is not None and new_unit != from_unit:
             return new_unit
-
-    @staticmethod
-    def _units_identical(unit1, unit2):
-        """Equivalent to unit1 == unit2, but fast in the common case where both are built from the same bases"""
-        if isinstance(unit1, units.CompositeUnit) and isinstance(unit2, units.CompositeUnit) \
-                and len(unit1._bases) == len(unit2._bases) \
-                and all(b1 is b2 for b1, b2 in zip(unit1._bases, unit2._bases)) \
-                and unit1._powers == unit2._powers:
-            return unit1._scale == unit2._scale
-        return unit1 == unit2
 
     def _get_dims(self, dims=None):
         if dims is None:

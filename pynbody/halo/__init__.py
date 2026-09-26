@@ -135,8 +135,6 @@ class Halo(snapshot.subsnap.IndexedSubSnap):
         self.properties = copy.copy(self.properties)
         self.properties['halo_number'] = halo_number
         self.properties.update(properties)
-        # NB properties are expected to be supplied in the base snapshot's units; see
-        # HaloCatalogue._get_properties_one_halo_in_base_units
 
     @property
     @util.deprecated("The sub property has been renamed to subhalos")
@@ -385,12 +383,13 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     def get_properties_one_halo(self, halo_number) -> dict:
         """Returns a dictionary of properties for a single halo, given a halo_number.
 
-        The properties are in the same units as those of the corresponding :class:`Halo` object, i.e. they follow
-        any persistent :meth:`physical_units` conversion of the simulation or catalogue.
+        The units of the returned properties match those of the corresponding :class:`Halo` object. If
+        :meth:`physical_units` has been called persistently on the simulation or on this catalogue, the properties
+        are converted to those physical units. Otherwise, they are in the units provided by the halo finder.
 
         .. versionchanged:: 2.7.2
-            Properties are now always converted to follow the simulation's units. Previously, whether they were
-            converted depended on how the catalogue had been accessed.
+            Properties now always match the units of the corresponding :class:`Halo`. Previously, whether a
+            persistent :meth:`physical_units` conversion was applied depended on how the catalogue had been accessed.
         """
         return self._get_properties_one_halo_in_base_units(halo_number,
                                                            self.number_mapper.number_to_index(halo_number))
@@ -450,7 +449,8 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     def get_dummy_halo(self, halo_number) -> DummyHalo:
         """Return a DummyHalo object containing only the halo properties, no particle information
 
-        The properties are in the same units as those of the corresponding :class:`Halo` object."""
+        The units of the properties match those of the corresponding :class:`Halo` object; see
+        :meth:`get_properties_one_halo`."""
         h = DummyHalo()
         h.properties.update(self.get_properties_one_halo(halo_number))
         return h
