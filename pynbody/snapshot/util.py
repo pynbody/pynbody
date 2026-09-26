@@ -22,25 +22,25 @@ class ContainerWithPhysicalUnitsOption:
 
     @classmethod
     def _cached_unit_conversion(cls, from_unit, dims, ucut=3):
+        """Return the unit that from_unit should be converted to, or None if no conversion is required"""
         key = (
             from_unit.dimensionality_as_string(),
             tuple(dims),
             ucut,
         )
         if key in cls._units_conversion_cache:
-            return cls._units_conversion_cache[key]
-
-        try:
-            d = from_unit.dimensional_project(dims)
-        except units.UnitsException:
-            cls._units_conversion_cache[key] = None
-            return
-
-        new_unit = reduce(
-            lambda x, y: x * y,
-            [a ** b for a, b in zip(dims, d[:ucut])]
-        )
-        cls._units_conversion_cache[key] = new_unit
+            new_unit = cls._units_conversion_cache[key]
+        else:
+            try:
+                d = from_unit.dimensional_project(dims)
+            except units.UnitsException:
+                new_unit = None
+            else:
+                new_unit = reduce(
+                    lambda x, y: x * y,
+                    [a ** b for a, b in zip(dims, d[:ucut])]
+                )
+            cls._units_conversion_cache[key] = new_unit
 
         if new_unit is not None and new_unit != from_unit:
             return new_unit
@@ -70,16 +70,20 @@ class ContainerWithPhysicalUnitsOption:
 
 
     def _autoconvert_properties(self, dims=None):
+        self._autoconvert_properties_dict(self.properties, dims)
+
+    def _autoconvert_properties_dict(self, properties, dims=None):
+        """Convert the values in the given properties dictionary in place, using this object's conversion context"""
         dims = self._get_dims(dims)
         if dims is None:
             return
 
-        for k, v in list(self.properties.items()):
+        for k, v in list(properties.items()):
             if isinstance(v, units.UnitBase):
                 new_unit = self._cached_unit_conversion(v, dims, ucut=3)
                 if new_unit is not None:
                     new_unit *= v.ratio(new_unit, **self.conversion_context())
-                    self.properties[k] = new_unit
+                    properties[k] = new_unit
             elif isinstance(v, array.SimArray):
                 self._autoconvert_array_unit(v, dims)
 

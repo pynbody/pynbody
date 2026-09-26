@@ -230,7 +230,7 @@ class IndexingViewMixin:
         else:
             # Check the family index array is monotonically increasing
             # If not, the family slices cannot be implemented
-            if not all(np.diff(findex) >= 0):
+            if not np.all(np.diff(findex) >= 0):
                 raise ValueError(
                     "Families must retain the same ordering in the SubSnap")
 
@@ -239,11 +239,13 @@ class IndexingViewMixin:
         self._family_indices = {}
         self._num_particles = len(index_array)
 
-        # Find the locations of the family slices
-        for i, fam in enumerate(self._subsnap_base.ancestor.families()):
-            ids = np.where(findex == i)[0]
-            if len(ids) > 0:
-                new_slice = slice(ids.min(), ids.max() + 1)
+        # Find the locations of the family slices; findex is sorted, so each family is a contiguous block
+        families = self._subsnap_base.ancestor.families()
+        boundaries = np.searchsorted(findex, np.arange(len(families) + 1))
+        for i, fam in enumerate(families):
+            start, stop = boundaries[i], boundaries[i + 1]
+            if stop > start:
+                new_slice = slice(start, stop)
                 self._family_slice[fam] = new_slice
                 self._family_indices[fam] = np.asarray(index_array[
                                                        new_slice]) - self._subsnap_base._get_family_slice(fam).start

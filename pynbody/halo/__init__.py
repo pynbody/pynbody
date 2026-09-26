@@ -136,9 +136,6 @@ class Halo(snapshot.subsnap.IndexedSubSnap):
         self.properties['halo_number'] = halo_number
         self.properties.update(properties)
 
-        # Inherit autoconversion from parent
-        self._autoconvert_properties()
-
     @property
     @util.deprecated("The sub property has been renamed to subhalos")
     def sub(self):
@@ -265,20 +262,30 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         self._properties: dict | None = None
         self._cached_halos: dict[int, Halo] = {}
         self._persistent_units = None
+        self._properties_converted_for = None # (properties dict, autoconvert dims) that _properties matches
 
     def load_all(self):
         """Loads all halos, which is normally more efficient if a large fraction of them will be accessed."""
         if self._index_lists is None:
             index_lists = self._get_all_particle_indices()
-            properties = self.get_properties_all_halos(with_units=True)
             if isinstance(index_lists, tuple):
                 index_lists = HaloParticleIndices(*index_lists)
             self._index_lists = index_lists
-            if len(properties)>0:
-                self._properties = properties
+            self._load_all_properties()
 
+    def _load_all_properties(self) -> dict:
+        """Load the properties of all halos into the cache, if not already there, and return them.
+
+        If the catalogue does not provide properties for all halos at once, the cache is left empty, and an
+        empty dictionary is returned."""
+        if self._properties is not None:
+            return self._properties
+        properties = self.get_properties_all_halos(with_units=True)
+        if len(properties) > 0:
+            self._properties = properties
             if self._persistent_units is not None:
                 self._cached_properties_to_physical_units(self._persistent_units)
+        return properties
 
     def get_portable_state(self) -> dict:
         """Express the entire catalogue as numpy arrays and python primitives.
@@ -374,13 +381,27 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         raise NotImplementedError("This halo catalogue does not support loading all halos at once")
 
     def get_properties_one_halo(self, halo_number) -> dict:
-        """Returns a dictionary of properties for a single halo, given a halo_number """
+        """Returns a dictionary of properties for a single halo, given a halo_number.
 
-        # Default implementation: extract from all halos. Subclasses may override this if they can load properties
-        # for a single halo more efficiently.
-        self._properties = self.get_properties_all_halos(with_units=True)
-        return self._get_properties_one_halo_using_cache_if_available(halo_number,
-                                                                      self.number_mapper.number_to_index(halo_number))
+        The units of the returned properties match those of the corresponding :class:`Halo` object. If
+        :meth:`physical_units` has been called persistently on the simulation or on this catalogue, the properties
+        are converted to those physical units. Otherwise, they are in the units provided by the halo finder.
+
+        .. versionchanged:: 2.7.2
+            Properties now always match the units of the corresponding :class:`Halo`. Previously, whether a
+            persistent :meth:`physical_units` conversion was applied depended on how the catalogue had been accessed.
+        """
+        return self._get_properties_one_halo_in_base_units(halo_number,
+                                                           self.number_mapper.number_to_index(halo_number))
+
+    def _get_properties_one_halo(self, halo_number) -> dict:
+        """Returns a dictionary of properties for a single halo, in the units provided by the halo finder.
+
+        The default implementation extracts the properties from :meth:`get_properties_all_halos`. Subclasses may
+        override this if they can load properties for a single halo more efficiently."""
+        properties = self._load_all_properties()
+        halo_index = self.number_mapper.number_to_index(halo_number)
+        return {k: units.get_item_with_unit(properties[k], halo_index) for k in properties}
 
     def get_properties_all_halos(self, with_units=True) -> dict:
         """Returns a dictionary of properties for all halos.
@@ -392,13 +413,6 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         halo numbers which are used to access individual halos. To map between halo numbers and properties, use the
         .number_mapper object; or access individual property dictionaries by halo number using get_properties_one_halo."""
         return {}
-
-    def _get_properties_one_halo_using_cache_if_available(self, halo_number, halo_index):
-        if self._properties is None:
-            return self.get_properties_one_halo(halo_number)
-        else:
-            return {k: units.get_item_with_unit(self._properties[k],halo_index)
-                    for k in self._properties}
 
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
         """Get the index list for a single halo, given a halo_number.
@@ -428,12 +442,15 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     def _get_halo(self, halo_number) -> Halo:
         halo_index = self.number_mapper.number_to_index(halo_number)
         return Halo(halo_number,
-                    self._get_properties_one_halo_using_cache_if_available(halo_number, halo_index),
+                    self._get_properties_one_halo_in_base_units(halo_number, halo_index),
                     self, self.base,
                     self._get_particle_indices_one_halo_using_list_if_available(halo_number, halo_index))
 
     def get_dummy_halo(self, halo_number) -> DummyHalo:
-        """Return a DummyHalo object containing only the halo properties, no particle information"""
+        """Return a DummyHalo object containing only the halo properties, no particle information
+
+        The units of the properties match those of the corresponding :class:`Halo` object; see
+        :meth:`get_properties_one_halo`."""
         h = DummyHalo()
         h.properties.update(self.get_properties_one_halo(halo_number))
         return h
@@ -795,6 +812,36 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
             for k in self._properties:
                 if isinstance(self._properties[k], array.SimArray) and units.has_unit(self._properties[k]):
                     self.base._autoconvert_array_unit(self._properties[k], all_units)
+
+    def _convert_cached_properties_to_base_units(self):
+        """Ensure the cached property arrays follow the base snapshot's persistent units, if any.
+
+        Converting the arrays once is much faster than converting the properties of each halo as it is
+        constructed."""
+        dims = self.base.ancestor._autoconvert
+        if self._properties is None or dims is None:
+            return
+        converted_for = self._properties_converted_for
+        if converted_for is None or converted_for[0] is not self._properties or converted_for[1] is not dims:
+            self._cached_properties_to_physical_units(dims)
+            self._properties_converted_for = (self._properties, dims)
+
+    def _get_properties_one_halo_in_base_units(self, halo_number, halo_index) -> dict:
+        """Get the properties for a single halo, converted to follow the base snapshot's persistent units"""
+        if self._properties is not None:
+            self._convert_cached_properties_to_base_units()
+            return {k: units.get_item_with_unit(self._properties[k], halo_index) for k in self._properties}
+
+        if type(self).get_properties_one_halo is not HaloCatalogue.get_properties_one_halo:
+            # A subclass written before _get_properties_one_halo existed overrides the public method instead
+            properties = self.get_properties_one_halo(halo_number)
+        else:
+            properties = self._get_properties_one_halo(halo_number)
+
+        # copy, so that any dictionary held by the underlying implementation is not modified
+        properties = dict(properties)
+        self.base._autoconvert_properties_dict(properties)
+        return properties
 
 
     @classmethod
