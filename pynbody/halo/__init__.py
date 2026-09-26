@@ -388,7 +388,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
         The properties are in the same units as those of the corresponding :class:`Halo` object, i.e. they follow
         any persistent :meth:`physical_units` conversion of the simulation or catalogue.
 
-        .. versionchanged:: 2.7.1
+        .. versionchanged:: 2.7.2
             Properties are now always converted to follow the simulation's units. Previously, whether they were
             converted depended on how the catalogue had been accessed.
         """
