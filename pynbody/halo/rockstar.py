@@ -123,7 +123,7 @@ class RockstarCatalogue(HaloCatalogue):
             num_halos=len(boundaries), num_particles=len(iords)
         )
 
-    def get_properties_one_halo(self, halo_number):
+    def _get_properties_one_halo(self, halo_number):
         halo_index = self.number_mapper.number_to_index(halo_number)
         cpu = self._cpu_per_halo[halo_index]
         return self._cpus[cpu].read_properties_for_halo(halo_number)

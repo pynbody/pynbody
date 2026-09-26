@@ -22,28 +22,38 @@ class ContainerWithPhysicalUnitsOption:
 
     @classmethod
     def _cached_unit_conversion(cls, from_unit, dims, ucut=3):
+        """Return the unit that from_unit should be converted to, or None if no conversion is required"""
         key = (
             from_unit.dimensionality_as_string(),
             tuple(dims),
             ucut,
         )
         if key in cls._units_conversion_cache:
-            return cls._units_conversion_cache[key]
+            new_unit = cls._units_conversion_cache[key]
+        else:
+            try:
+                d = from_unit.dimensional_project(dims)
+            except units.UnitsException:
+                new_unit = None
+            else:
+                new_unit = reduce(
+                    lambda x, y: x * y,
+                    [a ** b for a, b in zip(dims, d[:ucut])]
+                )
+            cls._units_conversion_cache[key] = new_unit
 
-        try:
-            d = from_unit.dimensional_project(dims)
-        except units.UnitsException:
-            cls._units_conversion_cache[key] = None
-            return
-
-        new_unit = reduce(
-            lambda x, y: x * y,
-            [a ** b for a, b in zip(dims, d[:ucut])]
-        )
-        cls._units_conversion_cache[key] = new_unit
-
-        if new_unit is not None and new_unit != from_unit:
+        if new_unit is not None and not cls._units_identical(new_unit, from_unit):
             return new_unit
+
+    @staticmethod
+    def _units_identical(unit1, unit2):
+        """Equivalent to unit1 == unit2, but fast in the common case where both are built from the same bases"""
+        if isinstance(unit1, units.CompositeUnit) and isinstance(unit2, units.CompositeUnit) \
+                and len(unit1._bases) == len(unit2._bases) \
+                and all(b1 is b2 for b1, b2 in zip(unit1._bases, unit2._bases)) \
+                and unit1._powers == unit2._powers:
+            return unit1._scale == unit2._scale
+        return unit1 == unit2
 
     def _get_dims(self, dims=None):
         if dims is None:

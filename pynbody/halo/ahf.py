@@ -403,7 +403,7 @@ class AHFCatalogue(HaloCatalogue):
                                                    num_particles=npart_per_halo.sum())
 
 
-    def get_properties_one_halo(self, i):
+    def _get_properties_one_halo(self, i):
         index = self.number_mapper.number_to_index(i)
         return {key: self._halo_properties[key][index] for key in self._halo_properties}
 

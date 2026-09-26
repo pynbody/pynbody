@@ -137,7 +137,7 @@ class SubfindCatalogue(HaloCatalogue):
 
         return particle_indices.HaloParticleIndices(ids, boundaries)
 
-    def get_properties_one_halo(self, i):
+    def _get_properties_one_halo(self, i):
 
         extract = units.get_item_with_unit
 

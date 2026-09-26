@@ -154,7 +154,7 @@ class VelociraptorCatalogue(HaloCatalogue):
                                                     np.array([self._num_halos],
                                                              dtype=self._children_start_index.dtype)))
 
-    def get_properties_one_halo(self, halo_number) -> dict:
+    def _get_properties_one_halo(self, halo_number) -> dict:
         i_zerobased = self.number_mapper.number_to_index(halo_number)
         properties = {k: self._props[k][i_zerobased] * u
                       for k, u in zip(self._property_keys, self._property_units)}

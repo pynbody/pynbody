@@ -273,7 +273,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         # Could not read, throw an error
         raise RuntimeError("Could not read iord!")
 
-    def get_properties_one_halo(self, i):
+    def _get_properties_one_halo(self, i):
         index = self.number_mapper.number_to_index(i)
         offset = self._file_offsets[index]
 
