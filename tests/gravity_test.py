@@ -98,3 +98,138 @@ def test_direct_gravity_large_snapshot_no_segfault():
     pos = np.linspace(4, 10, 20)
     result = pynbody.gravity.midplane_rot_curve(snapshot.dm, pos)
     assert result is not None
+
+
+def _dtype_test_snapshot(npart=50, pos_dtype=np.float64, mass_dtype=np.float64,
+                         eps_dtype=None, eps_value=0.1, eps_units='kpc'):
+    """Build a small snapshot with independently specified dtypes for pos, mass and eps.
+
+    If eps_dtype is None, no eps array is created at all.
+    """
+    f = pynbody.new(dm=npart)
+
+    del f['pos']
+    del f['mass']
+
+    np.random.seed(0)
+    f['pos'] = np.random.normal(size=(npart, 3)).astype(pos_dtype)
+    f['pos'].units = 'kpc'
+    f['mass'] = np.ones(npart, dtype=mass_dtype)
+    f['mass'].units = 'Msol'
+
+    if eps_dtype is not None:
+        f['eps'] = pynbody.array.SimArray(np.full(npart, eps_value, dtype=eps_dtype), eps_units)
+
+    return f
+
+
+_IPOS = np.array([[0.5, 0.0, 0.0], [0.0, 1.0, 0.0], [-2.0, 0.0, 0.0]])
+
+
+@pytest.mark.parametrize("ipos_dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("eps_dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("mass_dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("pos_dtype", [np.float32, np.float64])
+def test_mixed_dtypes(pos_dtype, mass_dtype, eps_dtype, ipos_dtype):
+    """Positions, masses, softenings and evaluation points may each be single or double precision.
+
+    The kernel is compiled for every combination, so no input needs converting and none of these
+    16 cases should differ from the all-double answer by more than single-precision round-off.
+    """
+    reference = pynbody.gravity.direct(_dtype_test_snapshot(eps_dtype=np.float64), _IPOS)
+
+    f = _dtype_test_snapshot(pos_dtype=pos_dtype, mass_dtype=mass_dtype, eps_dtype=eps_dtype)
+    pot, accel = pynbody.gravity.direct(f, _IPOS.astype(ipos_dtype))
+
+    # the result takes its precision from the evaluation points
+    assert pot.dtype == ipos_dtype
+    assert accel.dtype == ipos_dtype
+
+    npt.assert_allclose(pot, reference[0], rtol=1e-5)
+    npt.assert_allclose(accel, reference[1], rtol=1e-5)
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_scalar_softening_adopts_snapshot_dtype(dtype):
+    """A scalar or unit softening has no dtype of its own, and must work in either precision"""
+    f = _dtype_test_snapshot(pos_dtype=dtype, mass_dtype=dtype)
+    ipos = np.array([[0.5, 0.0, 0.0]], dtype=dtype)
+
+    for eps in (0.1, '100 pc', 0.1 * pynbody.units.kpc):
+        f.properties['eps'] = eps
+        pot, _ = pynbody.gravity.direct(f, ipos)
+        assert pot.dtype == dtype
+
+
+def test_non_float_softening_raises():
+    """Only single and double precision have specialisations; anything else must fail, not be cast"""
+    f = _dtype_test_snapshot()
+    f['eps'] = pynbody.array.SimArray(np.ones(len(f), dtype=np.int32), 'kpc')
+    assert f['eps'].dtype == np.int32
+
+    with pytest.raises(TypeError):
+        pynbody.gravity.direct(f, _IPOS)
+
+
+def test_softening_without_units_is_taken_as_position_units():
+    """An array softening carrying no units is assumed to be in the position units.
+
+    This matches how a bare number in f.properties['eps'] is treated.
+    """
+    npart = 50
+    with_units = _dtype_test_snapshot(npart=npart, eps_dtype=np.float64, eps_value=0.1,
+                                      eps_units='kpc')
+
+    without_units = _dtype_test_snapshot(npart=npart)
+    without_units['eps'] = np.full(npart, 0.1)
+    assert not pynbody.units.has_units(without_units['eps'])
+
+    npt.assert_allclose(pynbody.gravity.direct(without_units, _IPOS)[0],
+                        pynbody.gravity.direct(with_units, _IPOS)[0], rtol=1e-10)
+
+
+def test_softening_array_of_wrong_length_raises():
+    f = _dtype_test_snapshot(npart=50)
+
+    with pytest.raises(ValueError, match="length"):
+        pynbody.gravity.direct(f, _IPOS, eps=np.ones(3))
+
+
+def test_softening_units_respected_for_subsnap():
+    """The softening of a subsnap must be converted into the position units.
+
+    IndexedSimArray is not a subclass of SimArray, so a subsnap softening used to bypass the
+    unit conversion entirely and be interpreted as though it were already in the position units.
+    """
+    npart = 50
+
+    in_kpc = _dtype_test_snapshot(npart=npart, eps_dtype=np.float64, eps_value=0.1, eps_units='kpc')
+    in_pc = _dtype_test_snapshot(npart=npart, eps_dtype=np.float64, eps_value=100.0, eps_units='pc')
+
+    # a sphere large enough to contain everything, so that the two calculations must agree exactly
+    subsnap = in_pc[pynbody.filt.Sphere('1000 kpc')]
+    assert len(subsnap) == npart
+    assert isinstance(subsnap['eps'], pynbody.array.IndexedSimArray)
+
+    npt.assert_allclose(pynbody.gravity.direct(subsnap, _IPOS)[0],
+                        pynbody.gravity.direct(in_kpc, _IPOS)[0], rtol=1e-10)
+
+
+def test_midplane_rot_curve_with_mixed_dtypes():
+    """The rotation curve is the route by which issue #1029 hit the dtype mismatch"""
+    f = _dtype_test_snapshot(pos_dtype=np.float64, eps_dtype=np.float32)
+    rxy = np.linspace(0.5, 2.0, 4)
+
+    v = pynbody.gravity.midplane_rot_curve(f, rxy)
+
+    assert len(v) == len(rxy)
+    assert np.all(np.isfinite(v))
+
+
+def test_all_direct_with_mixed_dtypes():
+    f = _dtype_test_snapshot(pos_dtype=np.float64, eps_dtype=np.float32)
+
+    pynbody.gravity.all_direct(f)
+
+    assert np.all(np.isfinite(f['phi']))
+    assert np.all(np.isfinite(f['acc']))
