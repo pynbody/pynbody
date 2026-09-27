@@ -93,8 +93,13 @@ def _open_hdf_file(filename, mode='r'):
     re-decompresses the whole chunk for *every* partial read, so partial loading becomes orders of
     magnitude slower than reading the entire file. Note that HDF5 allocates cache lazily, so a generous
     limit costs nothing when reads are sequential.
+
+    Files are opened by absolute path, so that HDF5 and pynbody's direct reader (see
+    pynbody.util.hdf_bulk_read) agree on where the sources of any virtual datasets are, whatever happens to the
+    current directory afterwards.
     """
-    return h5py.File(filename, mode, rdcc_nbytes=_chunk_cache_nbytes, rdcc_nslots=_chunk_cache_nslots)
+    return h5py.File(os.path.abspath(filename), mode, rdcc_nbytes=_chunk_cache_nbytes,
+                     rdcc_nslots=_chunk_cache_nslots)
 
 
 class _GadgetHdfMultiFileManager:

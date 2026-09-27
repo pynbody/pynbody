@@ -665,3 +665,20 @@ def test_swmr_is_left_to_hdf5(tmp_path, recwarn):
     with h5py.File(filename, "r", swmr=True) as f:
         assert isinstance(hdf_bulk_read.BulkReader().open(f["x"]), h5py.Dataset)
     assert len(recwarn) == 0
+
+
+@pytest.mark.parametrize("how", ["fileobj", "stdio", "core"])
+def test_vds_in_file_opened_other_ways(tmp_path, how):
+    """The virtual dataset's own file must be located before its sources can be; if the file is open other than
+    through the sec2 driver, pynbody cannot confirm where it is, so leaves the virtual dataset to HDF5"""
+    sources, _ = _make_sources(tmp_path, [5, 5], trailing=())
+    _make_vds(tmp_path / "virtual.h5", sources, [5, 5], trailing=())
+    filename = str(tmp_path / "virtual.h5")
+    with open(filename, "rb") as raw:
+        f = h5py.File(raw, "r") if how == "fileobj" else h5py.File(filename, "r", driver=how)
+        with f:
+            with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="driver"):
+                wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+            assert isinstance(wrapped, h5py.Dataset)
+            if how != "fileobj":  # reading a virtual dataset through a Python file object crashes h5py 3.16 itself
+                np.testing.assert_array_equal(wrapped[:], np.arange(10.0))

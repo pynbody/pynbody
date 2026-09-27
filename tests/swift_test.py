@@ -1,3 +1,4 @@
+import os
 import shutil
 from contextlib import contextmanager
 from pathlib import Path
@@ -600,3 +601,12 @@ def test_swift_write_array_to_region(copied_snapshot):
     # Writing the new array should not work
     with pytest.raises(NotImplementedError):
         snap['test_array'].write()
+
+
+def test_files_opened_by_absolute_path(monkeypatch):
+    """So that HDF5 and pynbody's direct reader agree on where the sources of virtual datasets are, even if the
+    current directory changes after loading"""
+    f = pynbody.load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
+    assert os.path.isabs(f._hdf_files[0].file.filename)
+    monkeypatch.chdir("testdata")
+    npt.assert_array_equal(f['iord'], pynbody.load("SWIFT/multifile_without_vds/snap_0000")['iord'])

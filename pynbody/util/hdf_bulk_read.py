@@ -44,6 +44,10 @@ contiguous block of whole rows of the virtual dataset, which covers the layouts 
 ``HDF5_VDS_PREFIX`` environment variable or a dataset access property) the virtual dataset is read through h5py,
 since HDF5's handling of those paths varies between versions. Any other layout is read through h5py, as is any source that cannot be
 found (HDF5 then fills its rows with the fill value) or that does not itself pass the checks above.
+
+Files must not be replaced on disk while they are open. Replacement of a file being read directly is detected on
+every read, but a source of a virtual dataset that is replaced after HDF5 has opened it cannot be, since pynbody
+opens sources by name.
 """
 
 from __future__ import annotations
@@ -234,7 +238,7 @@ def _file_identity(h5file) -> tuple[str, tuple]:
     try:
         held = os.fstat(h5file.id.get_vfd_handle())
         on_disk = os.stat(filename)
-    except (OSError, TypeError, ValueError) as e:
+    except (OSError, TypeError, ValueError, RuntimeError) as e:
         raise _CannotReadDirectly(f"pynbody could not confirm which file HDF5 has open ({e})")
     if (held.st_dev, held.st_ino) != (on_disk.st_dev, on_disk.st_ino):
         raise _CannotReadDirectly(f"the file at {filename} is not the one HDF5 has open (it may have been "
@@ -650,7 +654,12 @@ class _VirtualReader(_DirectReader):
         unsupported = "its virtual dataset layout is not one pynbody can decompose"
         if os.environ.get('HDF5_VDS_PREFIX') or dataset.id.get_access_plist().get_virtual_prefix():
             raise _CannotReadDirectly("a search path for the sources of virtual datasets has been configured")
-        # Source files are found relative to the directory of the virtual dataset's own file, so that must be known
+        # Source files are found relative to the directory of the virtual dataset's own file, so that must be known.
+        # (If it was opened by a relative path, and the current directory has since changed to one holding a link to
+        # the same file, this check cannot tell; pynbody opens files by absolute path, which avoids the question.)
+        if dataset.file.driver not in _supported_drivers:
+            raise _CannotReadDirectly(f"its file is open through the HDF5 '{dataset.file.driver}' driver, so pynbody "
+                                      f"cannot confirm where its source files are")
         virtual_filename, _ = _file_identity(dataset.file)
         fillvalue = _check_fill(dataset)
         try:
