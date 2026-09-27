@@ -391,6 +391,10 @@ class _DirectReader:
     def _read_rows_into(self, out: np.ndarray, start: int, stop: int):
         raise NotImplementedError
 
+    def is_compressed(self) -> bool:
+        """True if the data are compressed, so that decoding them takes appreciable CPU time"""
+        return False
+
     def prepare(self, start: int, stop: int):
         """Do, now, every HDF5 lookup that reading rows [start, stop) will need.
 
@@ -481,6 +485,9 @@ class _ChunkedReader(_DirectReader):
         self._cache = collections.OrderedDict()
         self._cache_lock = threading.Lock()
         self._chunk_info = {}  # chunk origin -> StoreInfo, for chunks looked up in advance by prepare()
+
+    def is_compressed(self):
+        return any(f['filter_id'] == _DEFLATE_FILTER for f in self._pipeline)
 
     def _chunk_origins(self, start, stop):
         """Origins of all chunks holding any of rows [start, stop), each with the part of those rows it holds"""
@@ -775,6 +782,14 @@ class _VirtualReader(_DirectReader):
         last = int(np.searchsorted(self._block_starts, stop, side='left'))
         return (self._blocks[i] for i in range(first, last))
 
+    def is_compressed(self):
+        # judged by the first source that can be read directly, on the assumption that all are stored alike
+        for block in self._blocks:
+            reader = self._get_source_reader(block)
+            if reader is not None:
+                return reader.is_compressed()
+        return False
+
     def prepare(self, start, stop):
         if self._use_h5py:
             return
@@ -914,3 +929,8 @@ def _resolve_virtual_source_filename(virtual_filename: str, source_filename: str
 
 VirtualDatasetReader = _VirtualReader
 """The class of reader returned by BulkReader.open for virtual datasets it reads from their sources"""
+
+
+def is_direct_reader(reader) -> bool:
+    """True if *reader* (as returned by BulkReader.open) reads directly, rather than being an h5py dataset"""
+    return isinstance(reader, _DirectReader)

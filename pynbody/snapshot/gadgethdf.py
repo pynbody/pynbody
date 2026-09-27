@@ -25,7 +25,7 @@ import warnings
 import numpy as np
 
 from .. import chunk, config_parser, family, units, util
-from ..util import hdf_bulk_read
+from ..util import hdf_bulk_read, hdf_read_strategy
 from . import SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
@@ -63,10 +63,32 @@ _chunk_cache_nslots = int(config_parser.get('gadgethdf', 'chunk-cache-nslots'))
 # Whether to read bulk particle data directly, bypassing libhdf5; see _GadgetHdfMultiFileManager.open_for_bulk_read
 _direct_bulk_read = config_parser.getboolean('gadgethdf', 'direct-bulk-read', fallback=True)
 
-# Number of threads reading bulk particle data concurrently; 1 reads serially. See HDFArrayLoader.load_arrays
-_bulk_read_threads = config_parser.getint('gadgethdf', 'bulk-read-threads', fallback=1)
-if _bulk_read_threads < 1:
-    raise ValueError(f"gadgethdf bulk-read-threads must be at least 1, not {_bulk_read_threads}")
+class _PlannedRead:
+    """One piece of an array to be read; see HDFArrayLoader._plan_reads"""
+
+    def __init__(self, file_key, path, dataset, read, rows):
+        self.file_key = file_key  # identifies the file the data come from, for sharing work between threads
+        self.path = path  # the file (for a virtual dataset, the file holding it)
+        self.dataset = dataset  # an h5py dataset, a direct reader (see pynbody.util.hdf_bulk_read), or _DummyHDFData
+        self.read = read  # a functools.partial of _HDFArrayFiller.fill_array_from_hdf_dataset
+        self.rows = rows  # (start, stop) of the rows of the dataset the read touches
+
+    def __call__(self):
+        self.read()
+
+    def prepare(self):
+        if hasattr(self.dataset, 'prepare'):
+            self.dataset.prepare(*self.rows)
+
+    @property
+    def is_direct(self):
+        return hdf_bulk_read.is_direct_reader(self.dataset)
+
+    @property
+    def is_constant(self):
+        """True if the 'read' only fills in a constant (e.g. masses given in the header), reading nothing"""
+        return isinstance(self.dataset, _DummyHDFData)
+
 
 class _DummyHDFData:
 
@@ -505,28 +527,44 @@ class HDFArrayLoader:
 
         """
 
-        threaded = _bulk_read_threads > 1
-        reads = self._plan_reads(all_fams_to_load, sim, array_name, translated_names, prepare=threaded)
-        if threaded:
-            tasks = self._group_reads_by_file(reads)
-            if len(tasks) > 1:
-                self._perform_reads_in_threads(tasks, _bulk_read_threads)
-                return
-        for _, read in reads:
-            read()
+        reads = self._plan_reads(all_fams_to_load, sim, array_name, translated_names)
+        strategy = hdf_read_strategy.choose_read_strategy(self._summarise(reads))
+        self.last_read_strategy = strategy
+        logger.debug("Reading %s with %d thread(s) because %s", array_name, strategy.threads, strategy.reason)
 
-    def _plan_reads(self, all_fams_to_load, sim, array_name, translated_names, prepare=False) -> list:
-        """Return the reads needed to load an array, as (file, read) pairs in the order they would be made serially.
+        if strategy.threads > 1:
+            # Make every HDF5 lookup the reads will need now, serially: from several threads at once they would only
+            # queue for h5py's lock, and the handing over of that lock is itself costly
+            for read in reads:
+                read.prepare()
+            self._perform_reads_in_threads(self._group_reads(reads, strategy.per_file), strategy.threads)
+        else:
+            for read in reads:
+                read()
 
-        Each read is a callable taking no arguments, and fills a separate part of the target array; there is one per
-        piece of up to _max_buf particles that pynbody.chunk.LoadControl yields for each file. *file* identifies where
-        the read's data come from: the path of the file, or for a virtual dataset (whose data come from other files,
-        a different one for each piece of a large dataset) a key unique to the read. All the HDF5 metadata lookups
-        happen here, so that the reads themselves only move and decode data.
+    @staticmethod
+    def _summarise(reads) -> hdf_read_strategy.ReadSummary:
+        """Describe the planned reads, for choosing how to perform them"""
+        reads = [read for read in reads if not read.is_constant]  # which cost next to nothing, however performed
+        paths = tuple(dict.fromkeys(read.path for read in reads))
+        compressed = False
+        for read in reads:
+            # (each dataset is asked once; a virtual dataset may need to look at one of its sources to answer)
+            if hasattr(read.dataset, 'is_compressed') and read.dataset.is_compressed():
+                compressed = True
+                break
+        return hdf_read_strategy.ReadSummary(paths=paths, num_reads=len(reads),
+                                             num_files=len({read.file_key for read in reads}),
+                                             all_direct=all(read.is_direct for read in reads),
+                                             compressed=compressed)
 
-        If *prepare* is True, the HDF5 lookups each read will need (such as the positions of chunks, and the source
-        files of virtual datasets) are made now, serially, rather than by the reads themselves: from several threads
-        at once they would only queue for h5py's lock, and the handing over of that lock is itself costly."""
+    def _plan_reads(self, all_fams_to_load, sim, array_name, translated_names) -> list[_PlannedRead]:
+        """Return the reads needed to load an array, in the order they would be made serially.
+
+        Each read fills a separate part of the target array; there is one per piece of up to _max_buf particles that
+        pynbody.chunk.LoadControl yields for each file. Its file_key identifies where its data come from: the path of
+        the file, or for a virtual dataset (whose data come from other files, a different one for each piece of a
+        large dataset) a key unique to the read."""
         reads = []
         for loading_fam in all_fams_to_load:
 
@@ -561,13 +599,13 @@ class HDFArrayLoader:
                                 file_key = hdf_group.file.filename
                                 dataset_resolved = True
                             if dataset is not None:
-                                if prepare and hasattr(dataset, 'prepare'):
-                                    dataset.prepare(*self._dataset_rows(buf_index, offset, array_filler))
                                 target_array = sim_fam_array[i0 + mem_index.start : i0 + mem_index.stop]
                                 read = functools.partial(array_filler.fill_array_from_hdf_dataset,
                                                          target_array, dataset, source_sel=buf_index, offset=offset)
                                 is_virtual = isinstance(dataset, hdf_bulk_read.VirtualDatasetReader)
-                                reads.append(((file_key, len(reads)) if is_virtual else file_key, read))
+                                reads.append(_PlannedRead((file_key, len(reads)) if is_virtual else file_key,
+                                                          file_key, dataset, read,
+                                                          self._dataset_rows(buf_index, offset, array_filler)))
                         # Advance even when nothing is copied, or the next read starts from the wrong
                         # position in the file. Refs #955
                         offset += readlen
@@ -593,31 +631,29 @@ class HDFArrayLoader:
         return start, stop
 
     @staticmethod
-    def _group_reads_by_file(reads) -> list[list]:
-        """Group (file, read) pairs into one task per file, in order of first appearance, each keeping its reads in order"""
+    def _group_reads(reads, per_file) -> list[list]:
+        """Group reads into tasks for threads: one per file (in order of first appearance, each keeping its reads in
+        order) if *per_file*, else one per read"""
+        if not per_file:
+            return [[read] for read in reads]
         tasks = {}
-        for file_key, read in reads:
-            tasks.setdefault(file_key, []).append(read)
+        for read in reads:
+            tasks.setdefault(read.file_key, []).append(read)
         return list(tasks.values())
 
     @staticmethod
     def _perform_reads_in_threads(tasks, num_threads):
-        """Perform tasks, each a list of reads, concurrently in a pool of *num_threads* threads.
+        """Perform tasks, each a list of reads made in order, concurrently in a pool of *num_threads* threads.
 
-        Each task holds the reads of one file and makes them in order, so that each thread streams through a file
-        of its own. On a parallel filesystem, where each file of a spanned snapshot usually lives on a different
-        server, that engages several servers at once while keeping every file's reads sequential (so the
-        filesystem's readahead keeps working); several threads sharing one file would contend for one server and
-        defeat readahead. (Pieces of a virtual dataset are separate tasks, since their data come from different
-        source files.) It also lets decompression proceed in parallel. This relies on the data being read directly
-        (see pynbody.util.hdf_bulk_read); datasets read through h5py are serialised by its lock whatever the number
-        of threads.
+        How many threads to use, and how to divide reads into tasks, is decided by the rules in
+        pynbody.util.hdf_read_strategy.
 
         Each read is given a plain ndarray view of its part of the target array, so that pynbody's array subclass
         is never manipulated from more than one thread. That is equivalent, because values read from a file
         carry no units for SimArray.__setitem__ to convert."""
         def perform(task):
-            for read in task:
+            for planned in task:
+                read = planned.read
                 target, dataset = read.args
                 read.func(target.view(np.ndarray), dataset, **read.keywords)
 
