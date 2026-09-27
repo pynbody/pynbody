@@ -435,3 +435,83 @@ def test_write_then_read_directly():
     finally:
         gc.collect()
         os.remove(filename)
+
+
+@pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
+@pytest.mark.filterwarnings("ignore:Masses are either stored in the header")
+@pytest.mark.parametrize("filename, load_kwargs",
+                         [("testdata/gadget3/snap_028_z000p000.0.hdf5", {}),
+                          ("testdata/gadget3/snap_028_z000p000.0.hdf5", {'take': np.arange(0, 400000, 7)}),
+                          ("testdata/arepo/agora_100.hdf5", {}),
+                          ("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", {}),
+                          ("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", {'take_swift_cells': [0, 5, 20, 200]}),
+                          ("testdata/SWIFT/multifile_without_vds/snap_0000", {}),
+                          ("testdata/SWIFT/snap_0150.hdf5",
+                           {'take_region': pynbody.filt.Sphere(20., (50., 50., 50.))})])
+@pytest.mark.parametrize("direct", [True, False])
+def test_threaded_loading_matches_serial(monkeypatch, filename, load_kwargs, direct):
+    monkeypatch.setattr(gadgethdf, "_direct_bulk_read", direct)
+    thread_pools_used = []
+    original_perform = gadgethdf.HDFArrayLoader._perform_reads_in_threads
+    monkeypatch.setattr(gadgethdf.HDFArrayLoader, "_perform_reads_in_threads",
+                        staticmethod(lambda reads, n: thread_pools_used.append(len(reads)) or original_perform(reads, n)))
+
+    arrays = {}
+    for threads in [1, 4]:
+        monkeypatch.setattr(gadgethdf, "_bulk_read_threads", threads)
+        f = pynbody.load(filename, **load_kwargs)
+        arrays[threads] = {}
+        for k in f.loadable_keys():
+            try:
+                arrays[threads][k] = np.asarray(f[k])
+            except Exception as e:
+                arrays[threads][k] = type(e)
+        if threads == 1:
+            assert thread_pools_used == []
+
+    if direct or "with_vds" not in filename:
+        # (read through h5py, a virtual dataset cannot be split into parts from different files, so is one read)
+        assert len(thread_pools_used) > 0
+    assert arrays[1].keys() == arrays[4].keys()
+    for k in arrays[1]:
+        a, b = arrays[1][k], arrays[4][k]
+        if isinstance(a, type):
+            assert a == b
+        else:
+            assert a.dtype == b.dtype
+            npt.assert_array_equal(a, b)
+
+
+def test_threaded_loading_propagates_errors(monkeypatch):
+    """An exception in one thread's read reaches the caller"""
+    monkeypatch.setattr(gadgethdf, "_bulk_read_threads", 4)
+    f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
+
+    def failing_fill(self, *args, **kwargs):
+        # (not an OSError, which SimSnap takes to mean that the array cannot be loaded, and swallows)
+        raise RuntimeError("simulated read failure")
+
+    monkeypatch.setattr(gadgethdf._HDFArrayFiller, "fill_array_from_hdf_dataset", failing_fill)
+    with pytest.raises(RuntimeError, match="simulated read failure"):
+        f['pos']
+
+
+@pytest.mark.parametrize("buf_index", [slice(3, 40), np.array([3, 4, 9, 10, 11, 25, 39]), np.array([], dtype=int)])
+@pytest.mark.parametrize("offset", [0, 100])
+def test_split_selection(buf_index, offset):
+    """Splitting a read at a virtual dataset's source boundaries covers exactly the same rows"""
+    boundaries = [offset + 10, offset + 11, offset + 30]
+    split_points = lambda start, stop: [p for p in boundaries if start < p < stop]
+    pieces = gadgethdf.HDFArrayLoader._split_selection(buf_index, offset, split_points)
+    selected = np.arange(buf_index.start, buf_index.stop) if isinstance(buf_index, slice) else buf_index
+    covered = []
+    expected_target_start = 0
+    for start, stop, sel in pieces:
+        assert start == expected_target_start
+        rows = np.arange(sel.start, sel.stop) if isinstance(sel, slice) else np.asarray(sel)
+        assert len(rows) == stop - start
+        # no piece straddles a boundary
+        assert not any(rows[0] + offset < p <= rows[-1] + offset for p in boundaries) if len(rows) else True
+        covered.extend(rows)
+        expected_target_start = stop
+    npt.assert_array_equal(covered, selected)

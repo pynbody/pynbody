@@ -125,6 +125,7 @@ class BulkReader:
         self._source_files = {}
         self._source_files_lock = threading.Lock()
         self._warned_reasons = set()
+        self._warned_lock = threading.Lock()
 
     @property
     def enabled(self) -> bool:
@@ -199,9 +200,11 @@ class BulkReader:
         else:
             logger.debug("Reading %s in %s through h5py because %s", dataset.name, dataset.file.filename, error)
             return
-        if key not in self._warned_reasons:
+        with self._warned_lock:
+            if key in self._warned_reasons:
+                return
             self._warned_reasons.add(key)
-            warnings.warn(message, BulkReadFallbackWarning, stacklevel=3)
+        warnings.warn(message, BulkReadFallbackWarning, stacklevel=3)
 
     def close(self):
         """Close any source files of virtual datasets opened by this reader.
@@ -645,6 +648,7 @@ class _VirtualReader(_DirectReader):
         self._fillvalue = fillvalue
         self._blocks = blocks
         self._block_starts = np.array([b.start for b in blocks], dtype=np.int64)
+        self._sources_lock = threading.Lock()  # pieces of one virtual dataset may be read concurrently
 
     @classmethod
     def plan(cls, dataset, bulk_reader: BulkReader) -> _VirtualReader:
@@ -711,11 +715,22 @@ class _VirtualReader(_DirectReader):
                 raise _CannotReadDirectly(unsupported)  # overlapping mappings
         return blocks
 
+    def split_points(self, start: int, stop: int) -> list[int]:
+        """Rows strictly between *start* and *stop* at which one source gives way to another.
+
+        Reads that are split at these points touch one source each, so can proceed concurrently."""
+        points = {edge for block in self._blocks for edge in (block.start, block.stop) if start < edge < stop}
+        return sorted(points)
+
     def _get_source_reader(self, block: _VirtualSourceBlock):
         """Return a direct reader for the block's source dataset, or None if it must be read through h5py"""
-        if block.reader_resolved:
+        with self._sources_lock:
+            if not block.reader_resolved:
+                block.reader = self._open_source_reader(block)
+                block.reader_resolved = True
             return block.reader
-        block.reader_resolved = True
+
+    def _open_source_reader(self, block: _VirtualSourceBlock):
         if block.filename is None:
             return None  # HDF5 will fill the block with the fill value
 
@@ -740,7 +755,6 @@ class _VirtualReader(_DirectReader):
         except _CannotReadDirectly as e:
             self._bulk_reader._report_fallback(source if isinstance(source, h5py.Dataset) else self._dataset, e)
             return None
-        block.reader = reader
         return reader
 
     def _read_rows_into(self, out, start, stop):

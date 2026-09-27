@@ -14,6 +14,7 @@ Spanned files are supported. To load a range of files ``snap.0.hdf5``, ``snap.1.
 pass the filename ``snap``. If you pass e.g. ``snap.2.hdf5``, only file 2 will be loaded.
 """
 
+import concurrent.futures
 import configparser
 import functools
 import itertools
@@ -61,6 +62,11 @@ _chunk_cache_nslots = int(config_parser.get('gadgethdf', 'chunk-cache-nslots'))
 
 # Whether to read bulk particle data directly, bypassing libhdf5; see _GadgetHdfMultiFileManager.open_for_bulk_read
 _direct_bulk_read = config_parser.getboolean('gadgethdf', 'direct-bulk-read', fallback=True)
+
+# Number of threads reading bulk particle data concurrently; 1 reads serially. See HDFArrayLoader.load_arrays
+_bulk_read_threads = config_parser.getint('gadgethdf', 'bulk-read-threads', fallback=1)
+if _bulk_read_threads < 1:
+    raise ValueError(f"gadgethdf bulk-read-threads must be at least 1, not {_bulk_read_threads}")
 
 class _DummyHDFData:
 
@@ -499,8 +505,24 @@ class HDFArrayLoader:
 
         """
 
+        threaded = _bulk_read_threads > 1
+        reads = self._plan_reads(all_fams_to_load, sim, array_name, translated_names, split_for_threads=threaded)
+        if threaded and len(reads) > 1:
+            self._perform_reads_in_threads(reads, _bulk_read_threads)
+        else:
+            for read in reads:
+                read()
+
+    def _plan_reads(self, all_fams_to_load, sim, array_name, translated_names, split_for_threads=False) -> list:
+        """Return the reads needed to load an array, each as a callable taking no arguments.
+
+        All the HDF5 metadata lookups happen here, so that the reads themselves only move and decode data. Each read
+        fills a separate part of the target array. If *split_for_threads* is True, reads of a dataset whose parts
+        come from different files (a virtual dataset) are also split where one file gives way to the next, so that
+        they can proceed concurrently."""
+        reads = []
         for loading_fam in all_fams_to_load:
-            
+
             sim_fam_array, array_filler = self._get_array_filler(array_name, loading_fam, sim, translated_names)
 
             i0 = 0 # start of the current hdf group's data within sim_fam_array
@@ -531,9 +553,17 @@ class HDFArrayLoader:
                                     dataset = self._hdf_files.open_for_bulk_read(dataset)
                                 dataset_resolved = True
                             if dataset is not None:
-                                target_array = sim_fam_array[i0 + mem_index.start : i0 + mem_index.stop]
-                                array_filler.fill_array_from_hdf_dataset(target_array, dataset,
-                                                                         source_sel=buf_index, offset=offset)
+                                mem_start = i0 + mem_index.start
+                                if split_for_threads and hasattr(dataset, 'split_points') \
+                                        and not array_filler.need_rescale:
+                                    pieces = self._split_selection(buf_index, offset, dataset.split_points)
+                                else:
+                                    pieces = [(0, mem_index.stop - mem_index.start, buf_index)]
+                                for piece_start, piece_stop, piece_sel in pieces:
+                                    target_array = sim_fam_array[mem_start + piece_start : mem_start + piece_stop]
+                                    reads.append(functools.partial(array_filler.fill_array_from_hdf_dataset,
+                                                                   target_array, dataset,
+                                                                   source_sel=piece_sel, offset=offset))
                         # Advance even when nothing is copied, or the next read starts from the wrong
                         # position in the file. Refs #955
                         offset += readlen
@@ -541,6 +571,49 @@ class HDFArrayLoader:
 
                 group_mem_slice = self._load_control.mem_family_slice[hdf_group_name]
                 i0 += group_mem_slice.stop - group_mem_slice.start
+        return reads
+
+    @staticmethod
+    def _split_selection(buf_index, offset, split_points):
+        """Split a selection of rows (a slice or sorted index array, relative to *offset*) where the dataset asks.
+
+        *split_points(start, stop)* gives the rows of the dataset strictly between start and stop at which to split.
+        Returns (start, stop, selection) for each piece, where [start, stop) is the piece's position among the
+        selected rows (and so in the target array)."""
+        if isinstance(buf_index, slice):
+            first, stop = buf_index.start, buf_index.stop
+            points = [p - offset for p in split_points(first + offset, stop + offset)]
+            edges = [first] + points + [stop]
+            return [(a - first, b - first, slice(a, b)) for a, b in zip(edges[:-1], edges[1:]) if b > a]
+        else:
+            indices = np.asarray(buf_index)
+            if len(indices) == 0:
+                return [(0, 0, buf_index)]
+            points = [p - offset for p in split_points(int(indices[0]) + offset, int(indices[-1]) + 1 + offset)]
+            cuts = [0] + [int(k) for k in np.searchsorted(indices, points)] + [len(indices)]
+            return [(a, b, indices[a:b]) for a, b in zip(cuts[:-1], cuts[1:]) if b > a]
+
+    @staticmethod
+    def _perform_reads_in_threads(reads, num_threads):
+        """Perform reads concurrently, in a pool of *num_threads* threads.
+
+        Reads of different files, or of different parts of a virtual dataset, can then overlap, which pays off where
+        a single reader cannot saturate the storage (for example, a parallel filesystem holding each file on a
+        different server, or a solid-state drive that needs several requests in flight) and when chunks must be
+        decompressed. This relies on the data being read directly (see pynbody.util.hdf_bulk_read); datasets read
+        through h5py are serialised by its lock whatever the number of threads.
+
+        Each read is given a plain ndarray view of its part of the target array, so that pynbody's array subclass
+        is never manipulated from more than one thread. That is equivalent, because values read from a file
+        carry no units for SimArray.__setitem__ to convert."""
+        def perform(read):
+            target, dataset = read.args
+            read.func(target.view(np.ndarray), dataset, **read.keywords)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads,
+                                                   thread_name_prefix="pynbody-hdf-read") as executor:
+            # list() waits for every read, and raises the first exception any of them raised
+            list(executor.map(perform, reads))
 
     def _get_array_filler(self, array_name: str, loading_fam: family.Family, sim: SimSnap, translated_names: list[str]):
         """
