@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import h5py
 import numpy as np
@@ -219,7 +220,7 @@ def test_replaced_file_uses_h5py(tmp_path):
         f["x"] = np.arange(10.0) * -1
     with h5py.File(filename, "r") as f:
         os.replace(tmp_path / "impostor.h5", filename)
-        with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="no longer the one HDF5 has open"):
+        with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="not the one HDF5 has open"):
             wrapped = hdf_bulk_read.BulkReader().open(f["x"])
         np.testing.assert_array_equal(wrapped[:], np.arange(10.0))
 
@@ -451,20 +452,216 @@ def test_unsupported_vds_layouts_fall_back_to_h5py(tmp_path, layout_kind):
 
 def test_resolve_virtual_source_filename(tmp_path, monkeypatch):
     (tmp_path / "vds").mkdir()
-    (tmp_path / "prefix").mkdir()
+    (tmp_path / "elsewhere").mkdir()
     virtual = str(tmp_path / "vds" / "virtual.h5")
-    for path in [tmp_path / "vds" / "a.h5", tmp_path / "prefix" / "a.h5", tmp_path / "vds" / "b.h5"]:
+    for path in [tmp_path / "vds" / "a.h5", tmp_path / "vds" / "b.h5", tmp_path / "elsewhere" / "c.h5"]:
         path.touch()
 
     resolve = hdf_bulk_read._resolve_virtual_source_filename
-    monkeypatch.delenv("HDF5_VDS_PREFIX", raising=False)
     assert resolve(virtual, ".") == virtual
     assert resolve(virtual, "a.h5") == str(tmp_path / "vds" / "a.h5")
     assert resolve(virtual, "missing.h5") is None
     # an absolute name that does not exist is looked for by its final component
     assert resolve(virtual, "/no/such/directory/b.h5") == str(tmp_path / "vds" / "b.h5")
+    # and, last of all, a name relative to the current directory, which is returned as an absolute path
+    monkeypatch.chdir(tmp_path / "elsewhere")
+    assert resolve(virtual, "c.h5") == str(tmp_path / "elsewhere" / "c.h5")
 
-    monkeypatch.setenv("HDF5_VDS_PREFIX", str(tmp_path / "prefix"))
-    assert resolve(virtual, "a.h5") == str(tmp_path / "prefix" / "a.h5")
-    monkeypatch.setenv("HDF5_VDS_PREFIX", "${ORIGIN}")
-    assert resolve(virtual, "a.h5") == str(tmp_path / "vds" / "a.h5")
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Regressions found by adversarial review
+
+
+def _libhdf5():
+    """The libhdf5 h5py was built against, for properties h5py cannot set, or None if it cannot be found"""
+    import ctypes
+    import glob
+    candidates = glob.glob(os.path.join(os.path.dirname(h5py.__file__) + ".libs", "libhdf5-*.so*"))
+    return ctypes.CDLL(candidates[0]) if candidates else None
+
+
+needs_libhdf5 = pytest.mark.skipif(_libhdf5() is None, reason="cannot locate libhdf5 to set properties h5py cannot")
+
+
+@needs_libhdf5
+@pytest.mark.parametrize("filters", [(2,), (1,), (3,), (2, 1)])
+def test_unfiltered_partial_edge_chunks(tmp_path, recwarn, filters):
+    """HDF5 can store partial edge chunks unfiltered (H5D_CHUNK_DONT_FILTER_PARTIAL_CHUNKS) while reporting a filter
+    mask of 0, and h5py cannot tell us so. With shuffle alone, decoding such a chunk gives plausible garbage."""
+    import ctypes
+    lib = _libhdf5()
+    lib.H5Pset_chunk_opts.argtypes = [ctypes.c_int64, ctypes.c_uint]
+    data = np.arange(103, dtype="<i4") * 1000003
+    dcpl = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
+    dcpl.set_chunk((10,))
+    for filter_id in filters:
+        {1: lambda: dcpl.set_deflate(4), 2: dcpl.set_shuffle, 3: dcpl.set_fletcher32}[filter_id]()
+    assert lib.H5Pset_chunk_opts(dcpl.id, 0x0002) >= 0
+    filename = tmp_path / "edge.h5"
+    with h5py.File(filename, "w") as f:
+        dataset_id = h5py.h5d.create(f.id, b"x", h5py.h5t.STD_I32LE, h5py.h5s.create_simple((103,)), dcpl=dcpl)
+        dataset_id.write(h5py.h5s.ALL, h5py.h5s.ALL, data)
+    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read._ChunkedReader)
+    assert len(recwarn) == 0  # the edge chunk is read through h5py, and the rest directly, without complaint
+
+
+@pytest.mark.skipif(os.name == "nt", reason="a file that is open cannot be replaced on Windows")
+@pytest.mark.parametrize("chunked", [False, True])
+def test_file_replaced_after_planning(tmp_path, chunked):
+    filename = tmp_path / "original.h5"
+    for name, sign in [("original.h5", 1), ("impostor.h5", -1)]:
+        with h5py.File(tmp_path / name, "w") as f:
+            f.create_dataset("x", data=np.arange(100.0) * sign, chunks=(10,) if chunked else None)
+    with h5py.File(filename, "r") as f:
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        os.replace(tmp_path / "impostor.h5", filename)
+        with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="has been replaced"):
+            np.testing.assert_array_equal(wrapped[10:14], np.arange(10.0, 14.0))
+
+
+def test_vds_opened_by_relative_path_then_chdir(tmp_path, monkeypatch):
+    """Sources are relative to the virtual file's directory, which must not be taken from a stale relative path"""
+    (tmp_path / "data").mkdir()
+    (tmp_path / "elsewhere").mkdir()
+    sources, _ = _make_sources(tmp_path / "data", [5, 5], trailing=())
+    _make_vds(tmp_path / "data" / "virtual.h5", sources, [5, 5], trailing=())
+    # a decoy with the same relative path, but from the other directory
+    _make_sources(tmp_path / "elsewhere", [5, 5], trailing=())
+    with h5py.File(tmp_path / "elsewhere" / "source.0.h5", "a") as f:
+        f["x"][...] *= -1
+    shutil.copy(tmp_path / "data" / "virtual.h5", tmp_path / "elsewhere" / "virtual.h5")
+
+    monkeypatch.chdir(tmp_path / "data")
+    with h5py.File("virtual.h5", "r") as f:
+        monkeypatch.chdir(tmp_path / "elsewhere")
+        with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="not the one HDF5 has open"):
+            wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        np.testing.assert_array_equal(wrapped[:], f["x"][:])
+
+
+@pytest.mark.parametrize("prefix", ["${ORIGIN}/sub", "${ORIGIN}", "absolute"])
+def test_vds_prefix_is_left_to_hdf5(tmp_path, monkeypatch, prefix):
+    (tmp_path / "sub").mkdir()
+    sources, _ = _make_sources(tmp_path, [5], trailing=())
+    _make_sources(tmp_path / "sub", [5], trailing=(), dtype=np.float64)
+    _make_vds(tmp_path / "virtual.h5", sources, [5], trailing=())
+    monkeypatch.setenv("HDF5_VDS_PREFIX", str(tmp_path / "sub") if prefix == "absolute" else prefix)
+    with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="search path"):
+        _check_vds(tmp_path / "virtual.h5", expect_direct=False)
+
+
+@needs_libhdf5
+def test_undefined_fill_value(tmp_path):
+    import ctypes
+    lib = _libhdf5()
+    lib.H5Pset_fill_value.argtypes = [ctypes.c_int64, ctypes.c_int64, ctypes.c_void_p]
+    dcpl = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
+    dcpl.set_chunk((10,))
+    assert lib.H5Pset_fill_value(dcpl.id, h5py.h5t.NATIVE_FLOAT.id, None) >= 0
+    filename = tmp_path / "undefined_fill.h5"
+    with h5py.File(filename, "w") as f:
+        h5py.h5d.create(f.id, b"x", h5py.h5t.IEEE_F32LE, h5py.h5s.create_simple((100,)), dcpl=dcpl)
+        f["x"][:] = np.arange(100)
+    with h5py.File(filename, "r") as f:
+        with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="no defined value"):
+            wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        np.testing.assert_array_equal(wrapped[:], np.arange(100.0))
+
+
+def test_fill_time_never(tmp_path):
+    """HDF5 leaves the destination untouched for unallocated chunks, rather than writing a fill value"""
+    dcpl = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
+    dcpl.set_chunk((10,))
+    dcpl.set_fill_time(h5py.h5d.FILL_TIME_NEVER)
+    dcpl.set_fill_value(np.array(-3.0))
+    filename = tmp_path / "never.h5"
+    with h5py.File(filename, "w") as f:
+        h5py.h5d.create(f.id, b"x", h5py.h5t.IEEE_F64LE, h5py.h5s.create_simple((100,)), dcpl=dcpl)
+        f["x"][0:10] = np.arange(10.0)
+    with h5py.File(filename, "r") as f:
+        with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="no defined value"):
+            wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        expected = np.full(10, 7.0)
+        f["x"].read_direct(expected, source_sel=np.s_[50:60])
+        got = np.full(10, 7.0)
+        wrapped.read_direct(got, source_sel=np.s_[50:60])
+    np.testing.assert_array_equal(got, expected)
+
+
+def test_vds_with_unlimited_mapping(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    for i in range(3):
+        with h5py.File(f"s{i}.h5", "w") as f:
+            f["d"] = np.arange(10.0) + 100 * i
+    unlimited = h5py.h5s.UNLIMITED
+    dcpl = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
+    virtual_space = h5py.h5s.create_simple((30,), (unlimited,))
+    virtual_space.select_hyperslab((0,), (unlimited,), (10,), (10,))
+    dcpl.set_virtual(virtual_space, b"s%b.h5", b"d", h5py.h5s.create_simple((10,)))
+    with h5py.File("unlimited.h5", "w", libver="latest") as f:
+        h5py.h5d.create(f.id, b"x", h5py.h5t.IEEE_F64LE, h5py.h5s.create_simple((30,), (unlimited,)), dcpl=dcpl)
+    with h5py.File("unlimited.h5", "r") as f:
+        with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="virtual dataset layout"):
+            wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        assert isinstance(wrapped, h5py.Dataset)
+        np.testing.assert_array_equal(wrapped[8:12], [8.0, 9.0, 100.0, 101.0])
+
+
+def test_extended_precision_is_left_to_hdf5(tmp_path):
+    filename = tmp_path / "longdouble.h5"
+    with h5py.File(filename, "w") as f:
+        f["x"] = np.arange(10, dtype=np.longdouble)
+    with h5py.File(filename, "r") as f:
+        if f["x"].dtype.itemsize not in (1, 2, 4, 8):
+            with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="extended-precision"):
+                wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+            np.testing.assert_array_equal(wrapped[2:5], f["x"][2:5])
+
+
+@pytest.mark.parametrize("from_dtype, to_dtype", [(">f4", "<f8"), ("<f4", ">f8"), ("<f2", "<f4"), ("<f2", "<f8"),
+                                                  ("<f4", "<f8"), (">i2", "<i8"), ("<i4", "<f8")])
+@pytest.mark.parametrize("chunked", [False, True])
+def test_widening_conversions_match_hdf5_bitwise(tmp_path, from_dtype, to_dtype, chunked):
+    """HDF5 replaces NaNs with a canonical NaN when it converts byte-swapped or half-precision floats"""
+    if np.dtype(from_dtype).kind == "f":
+        values = np.array([1.5, np.nan, -np.inf, 0.0, -0.0, 3.0], dtype=from_dtype)
+        values.view(f"u{values.itemsize}")[1] |= 1  # a NaN with a nonzero payload
+    else:
+        values = np.array([1, -2, 3, 32767, -32768, 0], dtype=from_dtype)
+    filename = tmp_path / "convert.h5"
+    with h5py.File(filename, "w") as f:
+        f.create_dataset("x", data=values, chunks=(2,) if chunked else None)
+    with h5py.File(filename, "r") as f:
+        expected = np.zeros(6, dtype=to_dtype)
+        f["x"].read_direct(expected)
+        got = np.zeros(6, dtype=to_dtype)
+        with np.errstate(invalid="raise"):
+            hdf_bulk_read.BulkReader().open(f["x"]).read_direct(got)
+    assert got.tobytes() == expected.tobytes()
+
+
+def test_one_reader_shared_between_threads(tmp_path):
+    import concurrent.futures
+    filename = tmp_path / "shared.h5"
+    with h5py.File(filename, "w") as f:
+        f.create_dataset("x", data=np.arange(20000.0), chunks=(100,))
+    with h5py.File(filename, "r") as f:
+        wrapped = hdf_bulk_read.BulkReader(cache_nbytes=3 * 800).open(f["x"])
+
+        def job(seed):
+            rng = np.random.default_rng(seed)
+            for _ in range(500):
+                start = int(rng.integers(0, 50)) * 100 + 50
+                np.testing.assert_array_equal(wrapped[start:start + 20], np.arange(start, start + 20.0))
+
+        with concurrent.futures.ThreadPoolExecutor(8) as executor:
+            list(executor.map(job, range(8)))
+
+
+def test_swmr_is_left_to_hdf5(tmp_path, recwarn):
+    filename = tmp_path / "swmr.h5"
+    with h5py.File(filename, "w", libver="latest") as f:
+        f.create_dataset("x", data=np.arange(50.0), maxshape=(None,), chunks=(64,))
+    with h5py.File(filename, "r", swmr=True) as f:
+        assert isinstance(hdf_bulk_read.BulkReader().open(f["x"]), h5py.Dataset)
+    assert len(recwarn) == 0

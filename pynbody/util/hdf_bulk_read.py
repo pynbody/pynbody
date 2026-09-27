@@ -11,17 +11,21 @@ Reading bytes from a file behind HDF5's back is only correct if pynbody understa
 :meth:`BulkReader.open` checks that before anything is read, and hands the dataset back to be read through h5py
 unless every check passes. The checks are:
 
-* the file is open read-only, through HDF5's default ``sec2`` driver (whose file addresses are plain byte offsets),
-  and the path pynbody would read is the very file HDF5 has open;
+* the file is open read-only (and not in SWMR mode), through HDF5's default ``sec2`` driver (whose file addresses
+  are plain byte offsets), and the path pynbody would read is the very file HDF5 has open -- which is checked
+  again on every read;
 * the dataset has a simple dataspace of at least one dimension, and its datatype is exactly the standard HDF5
-  representation of a numpy integer or floating-point type (so no padding, unusual precision, non-IEEE floats,
-  enumerations, compound or string types);
+  representation of a numpy integer or floating-point type of 1, 2, 4 or 8 bytes (so no padding, unusual
+  precision, non-IEEE or extended-precision floats, enumerations, compound or string types);
 * contiguous data lies wholly within the file, is not held in external files, and occupies exactly as many bytes
   as its elements;
 * chunked data uses no filters other than deflate, shuffle and fletcher32, and a shuffle filter's element size is
-  the datatype's;
+  the datatype's (a partial chunk at the edge of a dataset whose stored size is that of an unfiltered chunk is read
+  through h5py, since HDF5 can be told to leave such chunks unfiltered without recording that it has);
 * virtual datasets map contiguous blocks of whole rows from source datasets that pass the same checks, and have
-  the same datatype (see below).
+  the same datatype (see below);
+* the fill value is defined and is written into unallocated space (the default), so that parts of a dataset never
+  written read as that value.
 
 Where a check fails because of how the file was written, a :class:`BulkReadFallbackWarning` says so, once per
 reason per snapshot, and h5py is used. Datasets h5py is simply the better tool for (compact storage, which only
@@ -36,7 +40,9 @@ Virtual datasets, such as those in the single-file view SWIFT writes of a multi-
 their source datasets, which are then read like any other. This is supported where every mapping places a
 contiguous block of whole rows of the virtual dataset, which covers the layouts written by SWIFT and by
 :class:`pynbody.util.hdf_vds.HdfVdsMaker`. Source files are found by following HDF5's rules (see
-:func:`_resolve_virtual_source_filename`). Any other layout is read through h5py, as is any source that cannot be
+:func:`_resolve_virtual_source_filename`), except that if a search path has been configured (through the
+``HDF5_VDS_PREFIX`` environment variable or a dataset access property) the virtual dataset is read through h5py,
+since HDF5's handling of those paths varies between versions. Any other layout is read through h5py, as is any source that cannot be
 found (HDF5 then fills its rows with the fill value) or that does not itself pass the checks above.
 """
 
@@ -46,6 +52,7 @@ import collections
 import itertools
 import logging
 import os
+import threading
 import warnings
 import zlib
 
@@ -112,6 +119,7 @@ class BulkReader:
         self._enabled = enabled and h5py is not None
         self._cache_nbytes = cache_nbytes
         self._source_files = {}
+        self._source_files_lock = threading.Lock()
         self._warned_reasons = set()
 
     @property
@@ -153,11 +161,11 @@ class BulkReader:
         if layout == h5py.h5d.VIRTUAL:
             return _VirtualReader.plan(dataset, self)
 
-        filename = _check_file(dataset.file)
+        file = _check_file(dataset.file)
         if layout == h5py.h5d.CONTIGUOUS:
-            return _ContiguousReader(dataset, filename, self)
+            return _ContiguousReader(dataset, file, self)
         elif layout == h5py.h5d.CHUNKED:
-            return _ChunkedReader(dataset, filename, self, self._cache_nbytes)
+            return _ChunkedReader(dataset, file, self, self._cache_nbytes)
         elif layout == h5py.h5d.COMPACT:
             raise _CannotReadDirectly("it uses compact storage", warn=False)
         else:
@@ -165,9 +173,9 @@ class BulkReader:
 
     def _open_source(self, filename, dataset_name, virtual_dataset):
         """Open a source dataset of a virtual dataset through h5py"""
-        if filename == virtual_dataset.file.filename:
-            source_file = virtual_dataset.file
-        else:
+        if filename == os.path.abspath(virtual_dataset.file.filename):
+            return virtual_dataset.file[dataset_name]  # a source in the virtual dataset's own file ('.')
+        with self._source_files_lock:
             source_file = self._source_files.get(filename)
             if source_file is None:
                 source_file = h5py.File(filename, 'r')
@@ -196,9 +204,10 @@ class BulkReader:
 
         The reader remains usable, and reopens files as needed. Readers returned by :meth:`open` before the call
         should not be used afterwards."""
-        for f in self._source_files.values():
-            f.close()
-        self._source_files = {}
+        with self._source_files_lock:
+            for f in self._source_files.values():
+                f.close()
+            self._source_files = {}
 
 
 def _check_datatype(dataset):
@@ -207,6 +216,8 @@ def _check_datatype(dataset):
     if dtype.kind not in 'iuf' or dtype.fields is not None or dtype.subdtype is not None:
         raise _CannotReadDirectly(f"its datatype ({dtype}) is not a plain integer or floating-point type",
                                   warn=False)
+    if dtype.itemsize not in (1, 2, 4, 8):
+        raise _CannotReadDirectly(f"its datatype ({dtype}) is an extended-precision type, whose layout varies")
     stored_type = dataset.id.get_type()
     try:
         standard_type = h5py.h5t.py_create(dtype)
@@ -217,13 +228,8 @@ def _check_datatype(dataset):
         raise _CannotReadDirectly(f"its datatype is not stored in the standard way for {dtype}")
 
 
-def _check_file(h5file) -> str:
-    """Raise _CannotReadDirectly unless pynbody can read the file's bytes itself; return the path to read"""
-    if h5file.mode != 'r':
-        raise _CannotReadDirectly("the file is open for writing", warn=False)
-    if h5file.driver not in _supported_drivers:
-        raise _CannotReadDirectly(f"the file is open through the HDF5 '{h5file.driver}' driver")
-
+def _file_identity(h5file) -> tuple[str, tuple]:
+    """Return the absolute path of the file HDF5 has open, and its (device, inode), checking that they agree"""
     filename = os.path.abspath(h5file.filename)
     try:
         held = os.fstat(h5file.id.get_vfd_handle())
@@ -231,15 +237,45 @@ def _check_file(h5file) -> str:
     except (OSError, TypeError, ValueError) as e:
         raise _CannotReadDirectly(f"pynbody could not confirm which file HDF5 has open ({e})")
     if (held.st_dev, held.st_ino) != (on_disk.st_dev, on_disk.st_ino):
-        raise _CannotReadDirectly(f"the file at {filename} is no longer the one HDF5 has open")
-    return filename
+        raise _CannotReadDirectly(f"the file at {filename} is not the one HDF5 has open (it may have been "
+                                  f"replaced, or opened by a relative path from another directory)")
+    return filename, (held.st_dev, held.st_ino)
 
 
-def _read_bytes(filename, offset, nbytes, into=None):
-    """Read *nbytes* from *filename* at *offset*, into the writable buffer *into* if given, else returning bytes.
+def _check_file(h5file) -> tuple[str, tuple]:
+    """Raise _CannotReadDirectly unless pynbody can read the file's bytes itself; return its path and identity"""
+    if h5file.mode != 'r':
+        raise _CannotReadDirectly("the file is open for writing", warn=False)
+    if h5file.swmr_mode:
+        raise _CannotReadDirectly("the file is open in SWMR mode, so may be growing", warn=False)
+    if h5file.driver not in _supported_drivers:
+        raise _CannotReadDirectly(f"the file is open through the HDF5 '{h5file.driver}' driver")
+    return _file_identity(h5file)
 
-    Each read opens its own handle, so that reads may proceed in parallel."""
+
+def _check_fill(dataset):
+    """Raise _CannotReadDirectly unless space never written reads as a well-defined fill value; return it"""
+    plist = dataset.id.get_create_plist()
+    if plist.fill_value_defined() == h5py.h5d.FILL_VALUE_UNDEFINED or \
+            plist.get_fill_time() == h5py.h5d.FILL_TIME_NEVER:
+        raise _CannotReadDirectly("space in it that was never written has no defined value")
+    try:
+        return dataset.fillvalue
+    except (RuntimeError, OSError, ValueError, TypeError):
+        raise _CannotReadDirectly("its fill value could not be read")
+
+
+def _read_bytes(file, offset, nbytes, into=None):
+    """Read *nbytes* at *offset* from *file*, a (path, identity) pair, into the writable buffer *into* if given, else
+    returning bytes.
+
+    Each read opens its own handle, so that reads may proceed in parallel, and checks that the handle is to the
+    file HDF5 has open, in case the file at that path has been replaced since."""
+    filename, identity = file
     with open(filename, 'rb') as f:
+        st = os.fstat(f.fileno())
+        if (st.st_dev, st.st_ino) != identity:
+            raise _UnexpectedData(f"the file at {filename} has been replaced since HDF5 opened it")
         f.seek(offset)
         if into is None:
             data = f.read(nbytes)
@@ -325,15 +361,27 @@ class _DirectReader:
 
 
 def _conversion_is_exact(from_dtype, to_dtype) -> bool:
-    """True if every value of from_dtype converts to to_dtype exactly, so numpy and HDF5 must agree on it"""
-    return np.dtype(from_dtype) == np.dtype(to_dtype) or np.can_cast(from_dtype, to_dtype, casting='safe')
+    """True if numpy and HDF5 are known to agree bit for bit on converting from_dtype to to_dtype.
+
+    That requires the conversion to be exact for every value. Floating-point conversions must also be between
+    native-order types of at least 4 bytes: otherwise HDF5 uses its own conversion routines, which replace any NaN
+    with a canonical one where numpy preserves its payload."""
+    from_dtype, to_dtype = np.dtype(from_dtype), np.dtype(to_dtype)
+    if from_dtype == to_dtype:
+        return True
+    if not np.can_cast(from_dtype, to_dtype, casting='safe'):
+        return False
+    if from_dtype.kind == 'f':
+        return from_dtype.itemsize >= 4 and from_dtype.isnative and to_dtype.isnative
+    return True
 
 
 class _ContiguousReader(_DirectReader):
     """A contiguous dataset, read directly from the file."""
 
-    def __init__(self, dataset, filename, bulk_reader):
+    def __init__(self, dataset, file, bulk_reader):
         super().__init__(dataset, bulk_reader)
+        filename = file[0]
         plist = dataset.id.get_create_plist()
         if plist.get_external_count() > 0:
             raise _CannotReadDirectly("it is stored in external files")
@@ -346,15 +394,15 @@ class _ContiguousReader(_DirectReader):
             raise _CannotReadDirectly("its storage size does not match its shape and datatype")
         if self._offset + nbytes > os.path.getsize(filename):
             raise _CannotReadDirectly("its data extend beyond the end of the file")
-        self._filename = filename
+        self._file = file
 
     def _read_rows_into(self, out, start, stop):
         offset = self._offset + start * self._row_nbytes
         nbytes = (stop - start) * self._row_nbytes
         if out.dtype == self.dtype and out.flags.c_contiguous:
-            _read_bytes(self._filename, offset, nbytes, into=memoryview(out).cast('B'))
+            _read_bytes(self._file, offset, nbytes, into=memoryview(out.view(np.uint8)))
         else:
-            data = _read_bytes(self._filename, offset, nbytes)
+            data = _read_bytes(self._file, offset, nbytes)
             out[...] = np.frombuffer(data, dtype=self.dtype).reshape(out.shape)
 
 
@@ -369,7 +417,7 @@ class _ChunkedReader(_DirectReader):
     file in increasing order of rows.
     """
 
-    def __init__(self, dataset, filename, bulk_reader, cache_nbytes: int = _default_cache_nbytes):
+    def __init__(self, dataset, file, bulk_reader, cache_nbytes: int = _default_cache_nbytes):
         super().__init__(dataset, bulk_reader)
         plist = dataset.id.get_create_plist()
         self._pipeline = []
@@ -387,12 +435,13 @@ class _ChunkedReader(_DirectReader):
         if len(self._chunk_shape) != len(self.shape):
             raise _CannotReadDirectly("its chunks do not have the same number of dimensions as the dataset")
         self._chunk_nbytes = int(np.prod(self._chunk_shape, dtype=np.int64)) * self.dtype.itemsize
-        self._fillvalue = dataset.fillvalue
-        self._filename = filename
-        self._file_size = os.path.getsize(filename)
+        self._fillvalue = _check_fill(dataset)
+        self._file = file
+        self._file_size = os.path.getsize(file[0])
 
         self._cache_nbytes = cache_nbytes
         self._cache = collections.OrderedDict()
+        self._cache_lock = threading.Lock()
 
     def _read_rows_into(self, out, start, stop):
         rows_per_chunk = self._chunk_shape[0]
@@ -410,16 +459,19 @@ class _ChunkedReader(_DirectReader):
                 dest = out[(slice(row_lo - start, row_hi - start),) + trailing]
                 if chunk is None:
                     dest[...] = self._fillvalue
+                elif chunk is _READ_THROUGH_H5PY:
+                    dest[...] = self._dataset[(slice(row_lo, row_hi),) + trailing]
                 else:
                     dest[...] = chunk[(slice(row_lo - row_origin, row_hi - row_origin),) +
                                       tuple(slice(0, s.stop - s.start) for s in trailing)]
 
     def _get_chunk(self, origin, keep):
-        """Return the decoded chunk at *origin*, or None if it has never been written."""
-        chunk = self._cache.get(origin)
-        if chunk is not None:
-            self._cache.move_to_end(origin)
-            return chunk
+        """Return the decoded chunk at *origin*; None if it has never been written; or _READ_THROUGH_H5PY."""
+        with self._cache_lock:
+            chunk = self._cache.get(origin)
+            if chunk is not None:
+                self._cache.move_to_end(origin)
+                return chunk
 
         info = self._dataset.id.get_chunk_info_by_coord(origin)
         if info.byte_offset is None:
@@ -428,8 +480,14 @@ class _ChunkedReader(_DirectReader):
             raise _UnexpectedData(f"HDF5 reported the chunk at {origin} as being at {tuple(info.chunk_offset)}")
         if info.byte_offset + info.size > self._file_size:
             raise _UnexpectedData(f"the chunk at {origin} extends beyond the end of the file")
+        if info.size == self._chunk_nbytes and self._applies_filters(info.filter_mask) and \
+                any(o + c > n for o, c, n in zip(origin, self._chunk_shape, self.shape)):
+            # A partial chunk at the edge of the dataset, of exactly the size it would have unfiltered. HDF5 can be
+            # told (H5D_CHUNK_DONT_FILTER_PARTIAL_CHUNKS) to store such chunks unfiltered, without recording that it
+            # has, and h5py offers no way to find out whether it was; so only HDF5 can be sure how to read it.
+            return _READ_THROUGH_H5PY
 
-        raw = _read_bytes(self._filename, info.byte_offset, info.size)
+        raw = _read_bytes(self._file, info.byte_offset, info.size)
         decoded = decode_chunk(raw, info.filter_mask, self._pipeline, self.dtype.itemsize)
         if len(decoded) != self._chunk_nbytes:
             raise _UnexpectedData(f"the chunk at {origin} decoded to {len(decoded)} bytes, "
@@ -437,10 +495,18 @@ class _ChunkedReader(_DirectReader):
         chunk = np.frombuffer(decoded, dtype=self.dtype).reshape(self._chunk_shape)
 
         if keep and self._chunk_nbytes <= self._cache_nbytes:
-            while self._cache and (len(self._cache) + 1) * self._chunk_nbytes > self._cache_nbytes:
-                self._cache.popitem(last=False)
-            self._cache[origin] = chunk
+            with self._cache_lock:
+                while self._cache and (len(self._cache) + 1) * self._chunk_nbytes > self._cache_nbytes:
+                    self._cache.popitem(last=False)
+                self._cache[origin] = chunk
         return chunk
+
+    def _applies_filters(self, filter_mask):
+        """True if any filter of the pipeline applies to a chunk with the given filter mask"""
+        return any(not filter_mask & (1 << i) for i in range(len(self._pipeline)))
+
+
+_READ_THROUGH_H5PY = object()  # returned by _ChunkedReader._get_chunk for chunks only HDF5 can be sure of
 
 
 def decode_chunk(raw, filter_mask: int, pipeline: list, itemsize: int) -> np.ndarray:
@@ -570,9 +636,9 @@ class _VirtualReader(_DirectReader):
     the rows that source supplies, which gives exactly the result HDF5 would.
     """
 
-    def __init__(self, dataset, blocks: list[_VirtualSourceBlock], bulk_reader: BulkReader):
+    def __init__(self, dataset, blocks: list[_VirtualSourceBlock], bulk_reader: BulkReader, fillvalue):
         super().__init__(dataset, bulk_reader)
-        self._fillvalue = dataset.fillvalue
+        self._fillvalue = fillvalue
         self._blocks = blocks
         self._block_starts = np.array([b.start for b in blocks], dtype=np.int64)
 
@@ -581,17 +647,28 @@ class _VirtualReader(_DirectReader):
         """Work out how to read an h5py virtual dataset from its sources, or raise _CannotReadDirectly if its
         layout is not one this class handles (see the module docstring)."""
         shape = tuple(dataset.shape)
-        virtual_filename = dataset.file.filename
         unsupported = "its virtual dataset layout is not one pynbody can decompose"
+        if os.environ.get('HDF5_VDS_PREFIX') or dataset.id.get_access_plist().get_virtual_prefix():
+            raise _CannotReadDirectly("a search path for the sources of virtual datasets has been configured")
+        # Source files are found relative to the directory of the virtual dataset's own file, so that must be known
+        virtual_filename, _ = _file_identity(dataset.file)
+        fillvalue = _check_fill(dataset)
+        try:
+            blocks = cls._plan_blocks(dataset, shape, virtual_filename, unsupported)
+        except (RuntimeError, ValueError) as e:
+            # e.g. HDF5 cannot describe a selection of unlimited extent as a set of points
+            raise _CannotReadDirectly(unsupported) from e
+        return cls(dataset, blocks, bulk_reader, fillvalue)
+
+    @staticmethod
+    def _plan_blocks(dataset, shape, virtual_filename, unsupported) -> list[_VirtualSourceBlock]:
         blocks = []
-
         for source in dataset.virtual_sources():
-            if source.vspace.get_select_npoints() == 0:
-                continue  # e.g. a file holding no particles of this type, which supplies nothing
-
             if '%' in source.file_name or '%' in source.dset_name:
                 # printf-style patterns, which HDF5 expands for mappings with unlimited extents
                 raise _CannotReadDirectly(unsupported)
+            if source.vspace.get_select_npoints() == 0:
+                continue  # e.g. a file holding no particles of this type, which supplies nothing
 
             virtual_box = _selection_box(source.vspace, shape)
             if virtual_box is None:
@@ -623,8 +700,7 @@ class _VirtualReader(_DirectReader):
         for previous, following in zip(blocks[:-1], blocks[1:]):
             if previous.stop > following.start:
                 raise _CannotReadDirectly(unsupported)  # overlapping mappings
-
-        return cls(dataset, blocks, bulk_reader)
+        return blocks
 
     def _get_source_reader(self, block: _VirtualSourceBlock):
         """Return a direct reader for the block's source dataset, or None if it must be read through h5py"""
@@ -709,27 +785,24 @@ def _selection_box(space, extent=None) -> tuple[tuple, tuple] | None:
 def _resolve_virtual_source_filename(virtual_filename: str, source_filename: str) -> str | None:
     """Find a virtual dataset's source file, as HDF5 would, or return None if it does not exist.
 
-    HDF5 tries, in order: an absolute name as given; each directory listed in the ``HDF5_VDS_PREFIX`` environment
-    variable, with ``${ORIGIN}`` standing for the directory of the virtual dataset's own file; that directory
-    itself; and finally the name relative to the current directory. An absolute name that does not exist is
-    reduced to its final component and searched for in the same way. ``.`` means the virtual dataset's own file.
+    With no search path configured (see :meth:`_VirtualReader.plan`), HDF5 tries, in order: an absolute name as
+    given; the name relative to the directory of the virtual dataset's own file; and finally the name relative to the
+    current directory. An absolute name that does not exist is reduced to its final component and searched for in
+    the same way. ``.`` means the virtual dataset's own file. *virtual_filename* must be absolute, and so is the
+    result.
     """
     if source_filename == '.':
         return virtual_filename
 
-    origin = os.path.dirname(os.path.abspath(virtual_filename))
+    origin = os.path.dirname(virtual_filename)
     candidates = []
     if os.path.isabs(source_filename):
         candidates.append(source_filename)
         source_filename = os.path.basename(source_filename)
-
-    for prefix in os.environ.get('HDF5_VDS_PREFIX', '').split(os.pathsep):
-        if prefix:
-            candidates.append(os.path.join(prefix.replace('${ORIGIN}', origin), source_filename))
     candidates.append(os.path.join(origin, source_filename))
     candidates.append(source_filename)
 
     for candidate in candidates:
         if os.path.isfile(candidate):
-            return candidate
+            return os.path.abspath(candidate)
     return None
