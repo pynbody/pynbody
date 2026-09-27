@@ -171,16 +171,15 @@ def bulk_readers_opened(monkeypatch):
     return opened
 
 
-@pytest.mark.skipif(not hdf_bulk_read.pyfive_available(), reason="pyfive is not installed")
 @pytest.mark.parametrize("take_swift_cells", [None, [0, 5, 20, 200]])
 def test_swift_vds_is_read_from_its_sources(bulk_readers_opened, take_swift_cells):
-    """The virtual datasets of a SWIFT single-file view are decomposed and read from their source files by pyfive,
+    """The virtual datasets of a SWIFT single-file view are decomposed and read directly from their source files,
     rather than being read through libhdf5"""
     f = pynbody.load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", take_swift_cells=take_swift_cells)
     f2 = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000", take_swift_cells=take_swift_cells)
     for array_name in f.loadable_keys():
         npt.assert_array_equal(f[array_name], f2[array_name])
-    virtual_readers = [r for r in bulk_readers_opened if isinstance(r, hdf_bulk_read._VirtualDataset)]
+    virtual_readers = [r for r in bulk_readers_opened if isinstance(r, hdf_bulk_read._VirtualReader)]
     assert len(virtual_readers) == len(f.loadable_keys())
 
 
@@ -191,20 +190,20 @@ def test_swift_vds_is_read_from_its_sources(bulk_readers_opened, take_swift_cell
                           ("testdata/SWIFT/planetary.hdf5", {})])
 def test_swift_bulk_read_backends_agree(monkeypatch, bulk_readers_opened, filename, load_kwargs):
     arrays = {}
-    for backend in ['h5py', 'pyfive']:
-        monkeypatch.setattr(gadgethdf, "_bulk_read_backend", backend)
+    for backend in ['h5py', 'direct']:
+        monkeypatch.setattr(gadgethdf, "_direct_bulk_read", backend == 'direct')
         bulk_readers_opened.clear()
         f = pynbody.load(filename, **load_kwargs)
         arrays[backend] = {k: np.asarray(f[k]) for k in f.loadable_keys()}
-        if backend == 'pyfive' and hdf_bulk_read.pyfive_available():
+        if backend == 'direct':
             assert not any(isinstance(r, h5py.Dataset) for r in bulk_readers_opened)
         else:
             assert all(isinstance(r, h5py.Dataset) for r in bulk_readers_opened)
 
-    assert arrays['h5py'].keys() == arrays['pyfive'].keys()
+    assert arrays['h5py'].keys() == arrays['direct'].keys()
     for k in arrays['h5py']:
-        assert arrays['h5py'][k].dtype == arrays['pyfive'][k].dtype
-        npt.assert_array_equal(arrays['h5py'][k], arrays['pyfive'][k])
+        assert arrays['h5py'][k].dtype == arrays['direct'][k].dtype
+        npt.assert_array_equal(arrays['h5py'][k], arrays['direct'][k])
 
 
 def test_swift_fof_groups(load_kwargs):

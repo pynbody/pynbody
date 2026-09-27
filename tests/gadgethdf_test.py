@@ -384,12 +384,12 @@ def test_flattened_arrays(take, load_kwargs):
                           ("testdata/gadget3/snap_028_z000p000.0.hdf5", {'take': np.arange(0, 400000, 7)}),
                           ("testdata/arepo/agora_100.hdf5", {})])
 def test_bulk_read_backends_agree(monkeypatch, filename, load_kwargs):
-    """Reading bulk data through pyfive gives exactly what h5py gives, and pyfive is really used"""
+    """Reading bulk data directly gives exactly what h5py gives, and really is used"""
     arrays = {}
     readers = {}
     original_open = hdf_bulk_read.BulkReader.open
-    for backend in ['h5py', 'pyfive']:
-        monkeypatch.setattr(gadgethdf, "_bulk_read_backend", backend)
+    for backend in ['h5py', 'direct']:
+        monkeypatch.setattr(gadgethdf, "_direct_bulk_read", backend == 'direct')
         opened = []
         monkeypatch.setattr(hdf_bulk_read.BulkReader, "open",
                             lambda self, dataset: opened.append(original_open(self, dataset)) or opened[-1])
@@ -404,12 +404,11 @@ def test_bulk_read_backends_agree(monkeypatch, filename, load_kwargs):
         readers[backend] = opened
 
     assert all(isinstance(r, h5py.Dataset) for r in readers['h5py'])
-    if hdf_bulk_read.pyfive_available():
-        assert not any(isinstance(r, h5py.Dataset) for r in readers['pyfive'])
+    assert not any(isinstance(r, h5py.Dataset) for r in readers['direct'])
 
-    assert arrays['h5py'].keys() == arrays['pyfive'].keys()
+    assert arrays['h5py'].keys() == arrays['direct'].keys()
     for k in arrays['h5py']:
-        a, b = arrays['h5py'][k], arrays['pyfive'][k]
+        a, b = arrays['h5py'][k], arrays['direct'][k]
         if isinstance(a, type):
             assert a == b
         else:
@@ -417,7 +416,7 @@ def test_bulk_read_backends_agree(monkeypatch, filename, load_kwargs):
             npt.assert_array_equal(a, b)
 
 
-def test_write_then_read_through_pyfive():
+def test_write_then_read_directly():
     """Writing an array must not leave the bulk reader holding stale metadata"""
     filename = 'testdata/gadget3/data/snapshot_103/snap_103_bulk_copy.hdf5'
     shutil.copy('testdata/gadget3/data/snapshot_103/snap_103.hdf5', filename)

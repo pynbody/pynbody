@@ -59,10 +59,8 @@ _max_buf = 1024 * 512 # max_chunk for chunk.LoadControl
 _chunk_cache_nbytes = int(config_parser.get('gadgethdf', 'chunk-cache-nbytes'))
 _chunk_cache_nslots = int(config_parser.get('gadgethdf', 'chunk-cache-nslots'))
 
-# Library used for bulk reads of particle data; see _GadgetHdfMultiFileManager.open_for_bulk_read
-_bulk_read_backend = config_parser.get('gadgethdf', 'bulk-read-backend', fallback='pyfive').strip().lower()
-if _bulk_read_backend not in ('pyfive', 'h5py'):
-    raise ValueError(f"gadgethdf bulk-read-backend must be 'pyfive' or 'h5py', not {_bulk_read_backend!r}")
+# Whether to read bulk particle data directly, bypassing libhdf5; see _GadgetHdfMultiFileManager.open_for_bulk_read
+_direct_bulk_read = config_parser.getboolean('gadgethdf', 'direct-bulk-read', fallback=True)
 
 class _DummyHDFData:
 
@@ -113,8 +111,7 @@ class _GadgetHdfMultiFileManager:
         self._mode = mode
         self._open_files = {}
         self._remote_dir = remote_dir
-        self._bulk_reader = hdf_bulk_read.BulkReader(use_pyfive=(_bulk_read_backend == 'pyfive'),
-                                                     cache_nbytes=_chunk_cache_nbytes)
+        self._bulk_reader = hdf_bulk_read.BulkReader(enabled=_direct_bulk_read, cache_nbytes=_chunk_cache_nbytes)
         if self._is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1
@@ -228,14 +225,13 @@ class _GadgetHdfMultiFileManager:
     def open_for_bulk_read(self, dataset):
         """Return an object through which to read the data in an h5py dataset from one of these files.
 
-        Where it can, this reads through pyfive, which (unlike h5py) does not serialise reads. See
+        Where it is safe, this reads the data directly rather than through h5py, which serialises all reads. See
         :meth:`pynbody.util.hdf_bulk_read.BulkReader.open`."""
         return self._bulk_reader.open(dataset)
 
     def reopen_in_mode(self, mode):
         if mode!=self._mode:
-            # pyfive parses a file's metadata once, when it is opened, so must not be left holding files that are
-            # about to be written to
+            # release any files the bulk reader holds open, before they are reopened for writing
             self._bulk_reader.close()
             self._open_files = {}
             self._mode = mode

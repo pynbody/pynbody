@@ -1,36 +1,43 @@
-"""Bulk reads of HDF5 datasets through pyfive, falling back to h5py where pyfive cannot be trusted.
+"""Bulk reads of HDF5 datasets that bypass libhdf5, so that reads of different files can overlap.
 
-pynbody discovers the structure of an HDF5 snapshot (groups, attributes, dataset shapes) through h5py, but reads
-the bulk particle data through `pyfive <https://github.com/NCAS-CMS/pyfive>`_ wherever it safely can. pyfive
-parses the HDF5 container in Python and reads data with ordinary file I/O, opening a fresh file handle for each
-read. Unlike h5py, whose interpreter-wide lock serialises every call into libhdf5 (even calls on different
-files), it therefore places no obstacle in the way of reads overlapping.
+pynbody reads HDF5 snapshots through h5py, whose interpreter-wide lock serialises every call into libhdf5, even
+calls that concern different files. This module lets the bulk particle data be read without going through
+libhdf5. h5py is still used for everything it does cheaply: finding the dataset, its datatype, its storage layout,
+its filters, and the position in the file of its data or of each of its chunks. pynbody then reads the bytes itself
+and, for chunked datasets, undoes the filters itself (zlib, which releases the GIL, for deflate; numpy for shuffle
+and for verifying fletcher32 checksums).
 
-pyfive is used to parse each file's metadata, to find where the data lie, and to read contiguous datasets (which
-it does by memory mapping). Chunked datasets are decoded here rather than by pyfive, for two reasons: pyfive
-verifies fletcher32 checksums in a pure-Python loop over every 16-bit word, which makes it more than ten times
-slower than h5py on typical SWIFT output; and as of version 1.2.1 it rejects valid chunks whose checksum sums
-fold to ``0xFFFF``, which happens to roughly one chunk in every 30,000. Only pyfive's public, h5py-compatible
-chunk API (``get_chunk_info_by_coord`` and ``read_direct_chunk``) is used for this.
+Reading bytes from a file behind HDF5's back is only correct if pynbody understands exactly how they are stored, so
+:meth:`BulkReader.open` checks that before anything is read, and hands the dataset back to be read through h5py
+unless every check passes. The checks are:
 
-A dataset is read through h5py instead if any of the following hold:
+* the file is open read-only, through HDF5's default ``sec2`` driver (whose file addresses are plain byte offsets),
+  and the path pynbody would read is the very file HDF5 has open;
+* the dataset has a simple dataspace of at least one dimension, and its datatype is exactly the standard HDF5
+  representation of a numpy integer or floating-point type (so no padding, unusual precision, non-IEEE floats,
+  enumerations, compound or string types);
+* contiguous data lies wholly within the file, is not held in external files, and occupies exactly as many bytes
+  as its elements;
+* chunked data uses no filters other than deflate, shuffle and fletcher32, and a shuffle filter's element size is
+  the datatype's;
+* virtual datasets map contiguous blocks of whole rows from source datasets that pass the same checks, and have
+  the same datatype (see below).
 
-* pyfive is not installed, or has been disabled through the ``bulk-read-backend`` option in the ``[gadgethdf]``
-  section of the configuration;
-* it has a compound, string, reference or other non-numeric datatype;
-* it is chunked with a filter other than deflate, shuffle and fletcher32;
-* it is contiguous but has no storage address in the file, as happens with external storage (which pyfive would
-  silently read as fill values) and with datasets that were never written;
-* it uses compact storage, which only very small datasets do;
-* pyfive fails to parse it, or reports a different shape or dtype from h5py.
+Where a check fails because of how the file was written, a :class:`BulkReadFallbackWarning` says so, once per
+reason per snapshot, and h5py is used. Datasets h5py is simply the better tool for (compact storage, which only
+very small datasets use; scalars; datasets never written) are handed back without a warning.
 
-Virtual datasets, such as those in the single-file view SWIFT writes of a multi-file snapshot, are decomposed
-into their source datasets. Each source is opened directly in pyfive and read like any other dataset, so a read
-of a virtual dataset never goes through libhdf5. This is supported where every mapping places a contiguous block
-of whole rows of the virtual dataset, which covers the layouts written by SWIFT and by
-:class:`pynbody.util.hdf_vds.HdfVdsMaker`. Any other virtual layout is read through h5py. A source file that
-cannot be found is also read through h5py, which fills the missing region with the dataset's fill value,
-exactly as HDF5 itself would.
+Reads are checked as they happen, too: every read must return the number of bytes expected, every chunk must
+decode to exactly the size of a chunk, and fletcher32 checksums are verified. If anything is amiss, a warning is
+issued and that dataset is read through h5py from then on, so any disagreement between pynbody and HDF5 about a
+file is settled by HDF5.
+
+Virtual datasets, such as those in the single-file view SWIFT writes of a multi-file snapshot, are decomposed into
+their source datasets, which are then read like any other. This is supported where every mapping places a
+contiguous block of whole rows of the virtual dataset, which covers the layouts written by SWIFT and by
+:class:`pynbody.util.hdf_vds.HdfVdsMaker`. Source files are found by following HDF5's rules (see
+:func:`_resolve_virtual_source_filename`). Any other layout is read through h5py, as is any source that cannot be
+found (HDF5 then fills its rows with the fill value) or that does not itself pass the checks above.
 """
 
 from __future__ import annotations
@@ -39,6 +46,7 @@ import collections
 import itertools
 import logging
 import os
+import warnings
 import zlib
 
 import numpy as np
@@ -48,11 +56,6 @@ try:
 except ImportError:
     h5py = None
 
-try:
-    import pyfive
-except ImportError:
-    pyfive = None
-
 logger = logging.getLogger('pynbody.util.hdf_bulk_read')
 
 _DEFLATE_FILTER = 1
@@ -61,45 +64,60 @@ _FLETCHER32_FILTER = 3
 
 _supported_filters = {_DEFLATE_FILTER, _SHUFFLE_FILTER, _FLETCHER32_FILTER}
 
-_COMPACT_LAYOUT = 0
-_CONTIGUOUS_LAYOUT = 1
-_CHUNKED_LAYOUT = 2
-
-_UNDEFINED_ADDRESS = 2 ** 64 - 1
+# HDF5 drivers whose file addresses are byte offsets into a single ordinary file, which pynbody can check against
+# the file descriptor HDF5 holds. ('windows' is an alias of sec2 in some builds.)
+_supported_drivers = {'sec2', 'windows'}
 
 _default_cache_nbytes = 64 * 1024 * 1024
 
 
-def pyfive_available() -> bool:
-    """Return True if pyfive is installed and so can be used for bulk reads."""
-    return pyfive is not None
+class BulkReadFallbackWarning(UserWarning):
+    """Issued when pynbody reads a dataset through h5py because it cannot be sure of reading it correctly itself.
+
+    The data are still read correctly; but through h5py, reads cannot overlap."""
+
+
+class _CannotReadDirectly(Exception):
+    """Raised while planning a read when a dataset should be read through h5py instead.
+
+    *warn* is False when that is merely the better choice (e.g. for tiny datasets) rather than a limitation."""
+
+    def __init__(self, reason: str, warn: bool = True):
+        super().__init__(reason)
+        self.reason = reason
+        self.warn = warn
+
+
+class _UnexpectedData(Exception):
+    """Raised during a read when the file does not contain what its metadata led us to expect."""
 
 
 class BulkReader:
-    """Opens HDF5 datasets for bulk reading, preferring pyfive over h5py wherever it is safe.
+    """Opens HDF5 datasets for bulk reading, reading them directly wherever that is safe.
 
-    Each multi-file manager owns one of these. It caches the pyfive file objects, so that each file's metadata is
-    parsed only once, and must be closed (see :meth:`close`) before any of the files are modified through h5py.
+    Each multi-file manager owns one of these. It holds open any source files of virtual datasets, which
+    :meth:`close` releases.
     """
 
-    def __init__(self, use_pyfive: bool = True, cache_nbytes: int = _default_cache_nbytes):
+    def __init__(self, enabled: bool = True, cache_nbytes: int = _default_cache_nbytes):
         """Create a bulk reader.
 
         Parameters
         ----------
-        use_pyfive : bool
-            If False, or if pyfive is not installed, every dataset is read through h5py.
+        enabled : bool
+            If False, every dataset is read through h5py.
         cache_nbytes : int
-            The most decoded chunk data each chunked dataset keeps between reads. See :class:`_ChunkedDataset`.
+            The most decoded chunk data each chunked dataset keeps between reads. See :class:`_ChunkedReader`.
         """
-        self._use_pyfive = use_pyfive and pyfive is not None
+        self._enabled = enabled and h5py is not None
         self._cache_nbytes = cache_nbytes
-        self._pyfive_files = {}
+        self._source_files = {}
+        self._warned_reasons = set()
 
     @property
-    def uses_pyfive(self) -> bool:
-        """True if this reader reads through pyfive where it can, False if it always uses h5py."""
-        return self._use_pyfive
+    def enabled(self) -> bool:
+        """True if datasets are read directly where possible, False if everything is read through h5py."""
+        return self._enabled
 
     def open(self, dataset):
         """Return an object from which the data in *dataset* can be read.
@@ -113,89 +131,125 @@ class BulkReader:
         -------
         An object with ``shape``, ``dtype`` and ``ndim`` attributes, indexable by a slice along the first axis, and
         with an h5py-style ``read_direct(dest, source_sel=None)`` method, in which *source_sel* is None or a slice
-        along the first axis. It is backed by pyfive where possible; otherwise it is *dataset* itself.
+        along the first axis. It reads the data directly where that has been found to be safe; otherwise it is
+        *dataset* itself. Either way, it may only be used while the file containing *dataset* remains open,
+        since chunk positions are looked up through h5py as they are needed.
         """
-        if not self._use_pyfive or h5py is None or not isinstance(dataset, h5py.Dataset):
+        if not self._enabled or not isinstance(dataset, h5py.Dataset):
             return dataset
-        if not _is_plain_numeric(dataset.dtype) or dataset.ndim == 0:
-            return dataset
-        if dataset.is_virtual:
-            reader = _VirtualDataset.from_h5py(dataset, self)
-        elif dataset.external is not None:
-            reader = None
-        else:
-            reader = self.open_pyfive(dataset.file.filename, dataset.name, dataset.shape, dataset.dtype)
-        return dataset if reader is None else reader
-
-    def open_pyfive(self, filename: str, dataset_name: str, shape: tuple | None = None,
-                    dtype: np.dtype | None = None) -> _RowReader | None:
-        """Open the named dataset through pyfive, or return None if pyfive cannot be trusted to read it.
-
-        If *shape* or *dtype* are given, pyfive's view of the dataset must match them.
-        """
-        if not self._use_pyfive:
-            return None
         try:
-            pyfive_dataset = self._get_pyfive_file(filename)[dataset_name]
-        except Exception as e:
-            # pyfive has not been able to parse the file, or at least not this part of it. Whatever went wrong,
-            # h5py is still able to read the dataset, so there is no reason to fail here.
-            logger.debug("pyfive could not open %s in %s (%r); falling back to h5py", dataset_name, filename, e)
-            return None
+            return self._plan(dataset)
+        except _CannotReadDirectly as e:
+            self._report_fallback(dataset, e)
+            return dataset
 
-        if not _pyfive_can_read(pyfive_dataset):
-            return None
-        if shape is not None and tuple(pyfive_dataset.shape) != tuple(shape):
-            return None
-        if dtype is not None and np.dtype(pyfive_dataset.dtype) != np.dtype(dtype):
-            return None
-        if pyfive_dataset.id.layout_class == _CHUNKED_LAYOUT:
-            return _ChunkedDataset(pyfive_dataset, self._cache_nbytes)
+    def _plan(self, dataset):
+        """Return a direct reader for *dataset*, or raise _CannotReadDirectly"""
+        if dataset.id.get_space().get_simple_extent_type() != h5py.h5s.SIMPLE or dataset.ndim == 0:
+            raise _CannotReadDirectly("it is a scalar", warn=False)
+        _check_datatype(dataset)
+
+        layout = dataset.id.get_create_plist().get_layout()
+        if layout == h5py.h5d.VIRTUAL:
+            return _VirtualReader.plan(dataset, self)
+
+        filename = _check_file(dataset.file)
+        if layout == h5py.h5d.CONTIGUOUS:
+            return _ContiguousReader(dataset, filename, self)
+        elif layout == h5py.h5d.CHUNKED:
+            return _ChunkedReader(dataset, filename, self, self._cache_nbytes)
+        elif layout == h5py.h5d.COMPACT:
+            raise _CannotReadDirectly("it uses compact storage", warn=False)
         else:
-            return _ContiguousDataset(pyfive_dataset)
+            raise _CannotReadDirectly(f"it uses HDF5 storage layout {layout}, which pynbody does not know")
 
-    def _get_pyfive_file(self, filename):
-        f = self._pyfive_files.get(filename)
-        if f is None:
-            f = pyfive.File(filename)
-            self._pyfive_files[filename] = f
-        return f
+    def _open_source(self, filename, dataset_name, virtual_dataset):
+        """Open a source dataset of a virtual dataset through h5py"""
+        if filename == virtual_dataset.file.filename:
+            source_file = virtual_dataset.file
+        else:
+            source_file = self._source_files.get(filename)
+            if source_file is None:
+                source_file = h5py.File(filename, 'r')
+                self._source_files[filename] = source_file
+        return source_file[dataset_name]
+
+    def _report_fallback(self, dataset, error: _CannotReadDirectly | _UnexpectedData | Exception, reading=False):
+        if reading:
+            message = (f"pynbody could not read {dataset.name} in {dataset.file.filename} itself ({error}), "
+                       f"so is reading it through h5py instead")
+            key = (dataset.file.filename, dataset.name)
+        elif getattr(error, 'warn', True):
+            message = (f"pynbody is reading {dataset.name} in {dataset.file.filename}, and any other dataset for "
+                       f"the same reason, through h5py (which prevents reads from overlapping) because "
+                       f"{error.reason}")
+            key = error.reason
+        else:
+            logger.debug("Reading %s in %s through h5py because %s", dataset.name, dataset.file.filename, error)
+            return
+        if key not in self._warned_reasons:
+            self._warned_reasons.add(key)
+            warnings.warn(message, BulkReadFallbackWarning, stacklevel=3)
 
     def close(self):
-        """Close every pyfive file this reader holds open.
+        """Close any source files of virtual datasets opened by this reader.
 
-        The reader remains usable, and reopens files as needed. Datasets returned by :meth:`open` before the
-        call should not be used afterwards."""
-        for f in self._pyfive_files.values():
+        The reader remains usable, and reopens files as needed. Readers returned by :meth:`open` before the call
+        should not be used afterwards."""
+        for f in self._source_files.values():
             f.close()
-        self._pyfive_files = {}
+        self._source_files = {}
 
 
-def _is_plain_numeric(dtype) -> bool:
-    dtype = np.dtype(dtype)
-    return dtype.kind in 'biuf' and dtype.fields is None and dtype.subdtype is None
+def _check_datatype(dataset):
+    """Raise _CannotReadDirectly unless the dataset's stored bytes are exactly those of its numpy dtype"""
+    dtype = dataset.dtype
+    if dtype.kind not in 'iuf' or dtype.fields is not None or dtype.subdtype is not None:
+        raise _CannotReadDirectly(f"its datatype ({dtype}) is not a plain integer or floating-point type",
+                                  warn=False)
+    stored_type = dataset.id.get_type()
+    try:
+        standard_type = h5py.h5t.py_create(dtype)
+    except TypeError:
+        raise _CannotReadDirectly(f"its datatype ({dtype}) has no standard HDF5 equivalent")
+    # H5Tequal: same class, size, byte order, precision, offset, padding and, for floats, bit fields and bias
+    if not stored_type == standard_type:
+        raise _CannotReadDirectly(f"its datatype is not stored in the standard way for {dtype}")
 
 
-def _pyfive_can_read(pyfive_dataset) -> bool:
-    """Return True if pyfive can be trusted to read this dataset (see the module docstring)."""
-    if not isinstance(pyfive_dataset, pyfive.Dataset):
-        return False
-    if not _is_plain_numeric(pyfive_dataset.dtype):
-        return False
+def _check_file(h5file) -> str:
+    """Raise _CannotReadDirectly unless pynbody can read the file's bytes itself; return the path to read"""
+    if h5file.mode != 'r':
+        raise _CannotReadDirectly("the file is open for writing", warn=False)
+    if h5file.driver not in _supported_drivers:
+        raise _CannotReadDirectly(f"the file is open through the HDF5 '{h5file.driver}' driver")
 
-    dataset_id = pyfive_dataset.id
-    layout = dataset_id.layout_class
-    if layout == _CONTIGUOUS_LAYOUT:
-        # External storage has no address within the file, and pyfive would read it as fill values. The only
-        # other way to lack an address is never to have been written, which h5py handles equally well.
-        return getattr(dataset_id, 'data_offset', _UNDEFINED_ADDRESS) != _UNDEFINED_ADDRESS
-    elif layout == _CHUNKED_LAYOUT:
-        filters = {f['filter_id'] for f in (dataset_id.filter_pipeline or [])}
-        return filters <= _supported_filters
-    else:
-        # compact data is too small to be worth reading any other way than the simplest; and anything else
-        # (e.g. a virtual dataset nested inside a virtual dataset) is beyond what we handle here
-        return False
+    filename = os.path.abspath(h5file.filename)
+    try:
+        held = os.fstat(h5file.id.get_vfd_handle())
+        on_disk = os.stat(filename)
+    except (OSError, TypeError, ValueError) as e:
+        raise _CannotReadDirectly(f"pynbody could not confirm which file HDF5 has open ({e})")
+    if (held.st_dev, held.st_ino) != (on_disk.st_dev, on_disk.st_ino):
+        raise _CannotReadDirectly(f"the file at {filename} is no longer the one HDF5 has open")
+    return filename
+
+
+def _read_bytes(filename, offset, nbytes, into=None):
+    """Read *nbytes* from *filename* at *offset*, into the writable buffer *into* if given, else returning bytes.
+
+    Each read opens its own handle, so that reads may proceed in parallel."""
+    with open(filename, 'rb') as f:
+        f.seek(offset)
+        if into is None:
+            data = f.read(nbytes)
+            got = len(data)
+        else:
+            data = None
+            got = f.readinto(into)
+    if got != nbytes:
+        raise _UnexpectedData(f"expected {nbytes} bytes at offset {offset}, but the file supplied {got}")
+    return data
 
 
 def _row_range(source_sel, num_rows) -> tuple[int, int] | None:
@@ -211,11 +265,17 @@ def _row_range(source_sel, num_rows) -> tuple[int, int] | None:
     return None
 
 
-class _RowReader:
-    """Base class for datasets read in ranges of whole rows, presenting the subset of the h5py API pynbody uses."""
+class _DirectReader:
+    """Base class for direct readers of whole rows, presenting the subset of the h5py Dataset API pynbody uses.
 
-    shape: tuple
-    dtype: np.dtype
+    If a direct read goes wrong, the reader warns and passes that read, and all later ones, to h5py."""
+
+    def __init__(self, dataset, bulk_reader: BulkReader):
+        self._dataset = dataset
+        self._bulk_reader = bulk_reader
+        self.shape = tuple(dataset.shape)
+        self.dtype = np.dtype(dataset.dtype)
+        self._use_h5py = False
 
     @property
     def ndim(self):
@@ -223,74 +283,118 @@ class _RowReader:
 
     @property
     def size(self):
-        return int(np.prod(self.shape))
+        return int(np.prod(self.shape, dtype=np.int64))
 
     def __len__(self):
         return self.shape[0]
 
     def __getitem__(self, sel):
         rows = _row_range(sel, self.shape[0])
-        if rows is None:
-            raise TypeError(f"{type(self).__name__} can only be indexed by a contiguous range of rows")
-        out = np.empty((rows[1] - rows[0],) + tuple(self.shape[1:]), dtype=self.dtype)
-        self._read_rows_into(out, *rows)
+        if rows is None or self._use_h5py:
+            return self._dataset[sel]
+        out = np.empty((rows[1] - rows[0],) + self.shape[1:], dtype=self.dtype)
+        self._read(out, *rows)
         return out
 
     def read_direct(self, dest: np.ndarray, source_sel=None):
         """Read the selected rows into *dest*, which must have exactly the shape of the selection."""
         rows = _row_range(source_sel, self.shape[0])
-        if rows is None:
-            raise TypeError(f"{type(self).__name__} can only read a contiguous range of rows")
-        expected_shape = (rows[1] - rows[0],) + tuple(self.shape[1:])
+        if rows is None or self._use_h5py or not _conversion_is_exact(self.dtype, dest.dtype):
+            # a narrowing conversion might round or overflow differently in numpy and HDF5; leave it to HDF5
+            self._dataset.read_direct(dest, source_sel=source_sel)
+            return
+        expected_shape = (rows[1] - rows[0],) + self.shape[1:]
         if dest.shape != expected_shape:
             raise ValueError(f"Destination has shape {dest.shape} but the selection has shape {expected_shape}")
         # Write through a plain ndarray view: slicing an ndarray subclass (such as pynbody's SimArray) runs its
         # __array_finalize__, which can be far more expensive than copying the data
-        self._read_rows_into(dest.view(np.ndarray), *rows)
+        self._read(dest.view(np.ndarray), *rows)
+
+    def _read(self, out, start, stop):
+        if stop <= start:
+            return
+        try:
+            self._read_rows_into(out, start, stop)
+        except (_UnexpectedData, OSError, zlib.error) as e:
+            self._bulk_reader._report_fallback(self._dataset, e, reading=True)
+            self._use_h5py = True
+            out[...] = self._dataset[start:stop]
 
     def _read_rows_into(self, out: np.ndarray, start: int, stop: int):
         raise NotImplementedError
 
 
-class _ContiguousDataset(_RowReader):
-    """A contiguous dataset, read through pyfive (which memory maps it)."""
+def _conversion_is_exact(from_dtype, to_dtype) -> bool:
+    """True if every value of from_dtype converts to to_dtype exactly, so numpy and HDF5 must agree on it"""
+    return np.dtype(from_dtype) == np.dtype(to_dtype) or np.can_cast(from_dtype, to_dtype, casting='safe')
 
-    def __init__(self, pyfive_dataset):
-        self._dataset = pyfive_dataset
-        self.shape = tuple(pyfive_dataset.shape)
-        self.dtype = np.dtype(pyfive_dataset.dtype)
+
+class _ContiguousReader(_DirectReader):
+    """A contiguous dataset, read directly from the file."""
+
+    def __init__(self, dataset, filename, bulk_reader):
+        super().__init__(dataset, bulk_reader)
+        plist = dataset.id.get_create_plist()
+        if plist.get_external_count() > 0:
+            raise _CannotReadDirectly("it is stored in external files")
+        self._offset = dataset.id.get_offset()
+        if self._offset is None:
+            raise _CannotReadDirectly("it has never been written", warn=False)
+        self._row_nbytes = int(np.prod(self.shape[1:], dtype=np.int64)) * self.dtype.itemsize
+        nbytes = self.shape[0] * self._row_nbytes
+        if dataset.id.get_storage_size() != nbytes:
+            raise _CannotReadDirectly("its storage size does not match its shape and datatype")
+        if self._offset + nbytes > os.path.getsize(filename):
+            raise _CannotReadDirectly("its data extend beyond the end of the file")
+        self._filename = filename
 
     def _read_rows_into(self, out, start, stop):
-        if stop > start:
-            out[...] = self._dataset[start:stop]
+        offset = self._offset + start * self._row_nbytes
+        nbytes = (stop - start) * self._row_nbytes
+        if out.dtype == self.dtype and out.flags.c_contiguous:
+            _read_bytes(self._filename, offset, nbytes, into=memoryview(out).cast('B'))
+        else:
+            data = _read_bytes(self._filename, offset, nbytes)
+            out[...] = np.frombuffer(data, dtype=self.dtype).reshape(out.shape)
 
 
-class _ChunkedDataset(_RowReader):
-    """A chunked dataset, whose raw chunks are fetched by pyfive and decoded here (see the module docstring).
+class _ChunkedReader(_DirectReader):
+    """A chunked dataset, whose chunks are read directly from the file and decoded here.
 
-    pyfive has no equivalent of HDF5's chunk cache. Snapshot writers routinely use chunks of many megabytes
-    (sometimes one chunk for a whole dataset), while pynbody reads in pieces of at most ``_max_buf`` rows, so
-    without a cache a partial load would decompress the same chunk over and over. Chunks that extend beyond the
-    end of a read are therefore kept, least recently used first out, up to a total of *cache_nbytes*. Chunks
-    that a read consumes entirely are not kept, since pynbody reads each file in increasing order of rows.
+    Chunk positions are looked up through h5py as they are needed. HDF5's chunk cache is not involved, so this class
+    keeps its own: snapshot writers routinely use chunks of many megabytes (sometimes one for a whole dataset), while
+    pynbody reads in pieces of at most ``_max_buf`` rows, so without a cache a partial load would decompress the same
+    chunk over and over. Chunks that extend beyond the end of a read are therefore kept, least recently used first
+    out, up to a total of *cache_nbytes*. Chunks that a read consumes entirely are not kept, since pynbody reads each
+    file in increasing order of rows.
     """
 
-    def __init__(self, pyfive_dataset, cache_nbytes: int = _default_cache_nbytes):
-        self._id = pyfive_dataset.id
-        self.shape = tuple(pyfive_dataset.shape)
-        self.dtype = np.dtype(pyfive_dataset.dtype)
-        self._chunk_shape = tuple(int(c) for c in pyfive_dataset.chunks)
+    def __init__(self, dataset, filename, bulk_reader, cache_nbytes: int = _default_cache_nbytes):
+        super().__init__(dataset, bulk_reader)
+        plist = dataset.id.get_create_plist()
+        self._pipeline = []
+        for i in range(plist.get_nfilters()):
+            filter_id, _flags, client_data, name = plist.get_filter(i)
+            if filter_id not in _supported_filters:
+                name = name.decode(errors='replace') if isinstance(name, bytes) else name
+                raise _CannotReadDirectly(f"it uses the HDF5 filter '{name}' (id {filter_id}), which pynbody "
+                                          f"cannot decode itself")
+            if filter_id == _SHUFFLE_FILTER and tuple(client_data)[:1] != (self.dtype.itemsize,):
+                raise _CannotReadDirectly("its shuffle filter does not match its datatype")
+            self._pipeline.append({'filter_id': filter_id, 'client_data': tuple(client_data)})
+
+        self._chunk_shape = tuple(int(c) for c in dataset.chunks)
+        if len(self._chunk_shape) != len(self.shape):
+            raise _CannotReadDirectly("its chunks do not have the same number of dimensions as the dataset")
         self._chunk_nbytes = int(np.prod(self._chunk_shape, dtype=np.int64)) * self.dtype.itemsize
-        self._pipeline = list(self._id.filter_pipeline or [])
-        fillvalue = pyfive_dataset.fillvalue
-        self._fillvalue = 0 if fillvalue is None else fillvalue
+        self._fillvalue = dataset.fillvalue
+        self._filename = filename
+        self._file_size = os.path.getsize(filename)
 
         self._cache_nbytes = cache_nbytes
         self._cache = collections.OrderedDict()
 
     def _read_rows_into(self, out, start, stop):
-        if stop <= start:
-            return
         rows_per_chunk = self._chunk_shape[0]
         # chunk origins along each trailing axis, all of which are needed since reads are of whole rows
         trailing_origins = [range(0, n, c) for n, c in zip(self.shape[1:], self._chunk_shape[1:])]
@@ -317,14 +421,19 @@ class _ChunkedDataset(_RowReader):
             self._cache.move_to_end(origin)
             return chunk
 
-        try:
-            self._id.get_chunk_info_by_coord(origin)
-        except KeyError:
-            return None  # a chunk that has never been written, which reads as the fill value
-        filter_mask, raw = self._id.read_direct_chunk(origin)
-        decoded = decode_chunk(raw, filter_mask, self._pipeline, self.dtype.itemsize)
+        info = self._dataset.id.get_chunk_info_by_coord(origin)
+        if info.byte_offset is None:
+            return None  # never written, so reads as the fill value
+        if tuple(info.chunk_offset) != origin:
+            raise _UnexpectedData(f"HDF5 reported the chunk at {origin} as being at {tuple(info.chunk_offset)}")
+        if info.byte_offset + info.size > self._file_size:
+            raise _UnexpectedData(f"the chunk at {origin} extends beyond the end of the file")
+
+        raw = _read_bytes(self._filename, info.byte_offset, info.size)
+        decoded = decode_chunk(raw, info.filter_mask, self._pipeline, self.dtype.itemsize)
         if len(decoded) != self._chunk_nbytes:
-            raise OSError(f"Chunk at {origin} decoded to {len(decoded)} bytes, but {self._chunk_nbytes} were expected")
+            raise _UnexpectedData(f"the chunk at {origin} decoded to {len(decoded)} bytes, "
+                                  f"not {self._chunk_nbytes}")
         chunk = np.frombuffer(decoded, dtype=self.dtype).reshape(self._chunk_shape)
 
         if keep and self._chunk_nbytes <= self._cache_nbytes:
@@ -453,29 +562,27 @@ class _VirtualSourceBlock:
         self.reader_resolved = False
 
 
-class _VirtualDataset(_RowReader):
-    """A virtual dataset, read by reading each of its source datasets through pyfive.
+class _VirtualReader(_DirectReader):
+    """A virtual dataset, read by reading each of its source datasets directly.
 
-    Sources are opened lazily, so that a partial load touching only a few rows opens only the source files it
-    needs. A source pyfive cannot read (or cannot find) is read through the h5py virtual dataset instead, restricted
-    to the rows that source supplies, which gives exactly the result HDF5 would.
+    Sources are opened lazily, so that a partial load touching only a few rows opens only the source files it needs.
+    A source that cannot be found or read directly is read through the h5py virtual dataset instead, restricted to
+    the rows that source supplies, which gives exactly the result HDF5 would.
     """
 
-    def __init__(self, h5py_dataset, blocks: list[_VirtualSourceBlock], bulk_reader: BulkReader):
-        self._h5py_dataset = h5py_dataset
-        self.shape = tuple(h5py_dataset.shape)
-        self.dtype = np.dtype(h5py_dataset.dtype)
-        self._fillvalue = h5py_dataset.fillvalue
+    def __init__(self, dataset, blocks: list[_VirtualSourceBlock], bulk_reader: BulkReader):
+        super().__init__(dataset, bulk_reader)
+        self._fillvalue = dataset.fillvalue
         self._blocks = blocks
-        self._bulk_reader = bulk_reader
         self._block_starts = np.array([b.start for b in blocks], dtype=np.int64)
 
     @classmethod
-    def from_h5py(cls, dataset, bulk_reader: BulkReader) -> _VirtualDataset | None:
-        """Work out how to read an h5py virtual dataset through pyfive, or return None if its layout is not one
-        this class handles (see the module docstring)."""
+    def plan(cls, dataset, bulk_reader: BulkReader) -> _VirtualReader:
+        """Work out how to read an h5py virtual dataset from its sources, or raise _CannotReadDirectly if its
+        layout is not one this class handles (see the module docstring)."""
         shape = tuple(dataset.shape)
         virtual_filename = dataset.file.filename
+        unsupported = "its virtual dataset layout is not one pynbody can decompose"
         blocks = []
 
         for source in dataset.virtual_sources():
@@ -484,14 +591,14 @@ class _VirtualDataset(_RowReader):
 
             if '%' in source.file_name or '%' in source.dset_name:
                 # printf-style patterns, which HDF5 expands for mappings with unlimited extents
-                return None
+                raise _CannotReadDirectly(unsupported)
 
             virtual_box = _selection_box(source.vspace, shape)
             if virtual_box is None:
-                return None
+                raise _CannotReadDirectly(unsupported)
             v_start, v_stop = virtual_box
             if any(v_start[1:]) or tuple(v_stop[1:]) != shape[1:]:
-                return None  # does not map whole rows
+                raise _CannotReadDirectly(unsupported)  # does not map whole rows
 
             if source.src_space.get_select_type() == h5py.h5s.SEL_ALL:
                 source_start = 0
@@ -499,12 +606,12 @@ class _VirtualDataset(_RowReader):
             else:
                 source_box = _selection_box(source.src_space)
                 if source_box is None:
-                    return None
+                    raise _CannotReadDirectly(unsupported)
                 s_start, s_stop = source_box
                 if [b - a for a, b in zip(s_start, s_stop)] != [b - a for a, b in zip(v_start, v_stop)]:
-                    return None
+                    raise _CannotReadDirectly(unsupported)
                 if any(s_start[1:]):
-                    return None
+                    raise _CannotReadDirectly(unsupported)
                 source_start = s_start[0]
                 whole_source = False
 
@@ -515,29 +622,43 @@ class _VirtualDataset(_RowReader):
         blocks.sort(key=lambda b: b.start)
         for previous, following in zip(blocks[:-1], blocks[1:]):
             if previous.stop > following.start:
-                return None  # overlapping mappings
+                raise _CannotReadDirectly(unsupported)  # overlapping mappings
 
         return cls(dataset, blocks, bulk_reader)
 
     def _get_source_reader(self, block: _VirtualSourceBlock):
-        if not block.reader_resolved:
-            block.reader_resolved = True
-            if block.filename is not None:
-                reader = self._bulk_reader.open_pyfive(block.filename, block.dataset_name)
-                if reader is not None:
-                    if reader.shape[1:] != self.shape[1:]:
-                        reader = None
-                    elif block.whole_source and reader.shape[0] != block.stop - block.start:
-                        reader = None
-                    elif block.source_start + block.stop - block.start > reader.shape[0]:
-                        reader = None
-                block.reader = reader
-        return block.reader
+        """Return a direct reader for the block's source dataset, or None if it must be read through h5py"""
+        if block.reader_resolved:
+            return block.reader
+        block.reader_resolved = True
+        if block.filename is None:
+            return None  # HDF5 will fill the block with the fill value
+
+        try:
+            source = self._bulk_reader._open_source(block.filename, block.dataset_name, self._dataset)
+        except (OSError, KeyError) as e:
+            self._bulk_reader._report_fallback(self._dataset, e, reading=True)
+            return None
+        try:
+            if not isinstance(source, h5py.Dataset):
+                raise _CannotReadDirectly("a source of its virtual dataset is not a dataset")
+            if source.dtype != self.dtype:
+                raise _CannotReadDirectly("a source of its virtual dataset has a different datatype, so would need "
+                                          "converting")
+            if tuple(source.shape[1:]) != self.shape[1:] or \
+                    (block.whole_source and source.shape[0] != block.stop - block.start) or \
+                    block.source_start + block.stop - block.start > source.shape[0]:
+                raise _CannotReadDirectly("a source of its virtual dataset does not have the expected shape")
+            reader = self._bulk_reader._plan(source)
+            if isinstance(reader, _VirtualReader):
+                raise _CannotReadDirectly("a source of its virtual dataset is itself virtual")
+        except _CannotReadDirectly as e:
+            self._bulk_reader._report_fallback(source if isinstance(source, h5py.Dataset) else self._dataset, e)
+            return None
+        block.reader = reader
+        return reader
 
     def _read_rows_into(self, out, start, stop):
-        if stop <= start:
-            return
-
         first = max(int(np.searchsorted(self._block_starts, start, side='right')) - 1, 0)
         rows_covered = 0
         pieces = []
@@ -556,7 +677,7 @@ class _VirtualDataset(_RowReader):
             dest = out[piece_start - start:piece_stop - start]
             reader = self._get_source_reader(block)
             if reader is None:
-                dest[...] = self._h5py_dataset[piece_start:piece_stop]
+                dest[...] = self._dataset[piece_start:piece_stop]
             else:
                 source_start = block.source_start + piece_start - block.start
                 reader.read_direct(dest, source_sel=np.s_[source_start:source_start + piece_stop - piece_start])
