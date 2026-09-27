@@ -506,20 +506,24 @@ class HDFArrayLoader:
         """
 
         threaded = _bulk_read_threads > 1
-        reads = self._plan_reads(all_fams_to_load, sim, array_name, translated_names, split_for_threads=threaded)
+        reads = self._plan_reads(all_fams_to_load, sim, array_name, translated_names, prepare=threaded)
         if threaded and len(reads) > 1:
             self._perform_reads_in_threads(reads, _bulk_read_threads)
         else:
             for read in reads:
                 read()
 
-    def _plan_reads(self, all_fams_to_load, sim, array_name, translated_names, split_for_threads=False) -> list:
+    def _plan_reads(self, all_fams_to_load, sim, array_name, translated_names, prepare=False) -> list:
         """Return the reads needed to load an array, each as a callable taking no arguments.
 
         All the HDF5 metadata lookups happen here, so that the reads themselves only move and decode data. Each read
-        fills a separate part of the target array. If *split_for_threads* is True, reads of a dataset whose parts
-        come from different files (a virtual dataset) are also split where one file gives way to the next, so that
-        they can proceed concurrently."""
+        fills a separate part of the target array. There is one read per piece of up to _max_buf particles that
+        pynbody.chunk.LoadControl yields for each file, which is enough to keep several threads busy on any snapshot
+        large enough for threads to matter.
+
+        If *prepare* is True, the HDF5 lookups each read will need (such as the positions of chunks, and the source
+        files of virtual datasets) are made now, serially, rather than by the reads themselves: from several threads
+        at once they would only queue for h5py's lock, and the handing over of that lock is itself costly."""
         reads = []
         for loading_fam in all_fams_to_load:
 
@@ -553,17 +557,12 @@ class HDFArrayLoader:
                                     dataset = self._hdf_files.open_for_bulk_read(dataset)
                                 dataset_resolved = True
                             if dataset is not None:
-                                mem_start = i0 + mem_index.start
-                                if split_for_threads and hasattr(dataset, 'split_points') \
-                                        and not array_filler.need_rescale:
-                                    pieces = self._split_selection(buf_index, offset, dataset.split_points)
-                                else:
-                                    pieces = [(0, mem_index.stop - mem_index.start, buf_index)]
-                                for piece_start, piece_stop, piece_sel in pieces:
-                                    target_array = sim_fam_array[mem_start + piece_start : mem_start + piece_stop]
-                                    reads.append(functools.partial(array_filler.fill_array_from_hdf_dataset,
-                                                                   target_array, dataset,
-                                                                   source_sel=piece_sel, offset=offset))
+                                if prepare and hasattr(dataset, 'prepare'):
+                                    dataset.prepare(*self._dataset_rows(buf_index, offset, array_filler))
+                                target_array = sim_fam_array[i0 + mem_index.start : i0 + mem_index.stop]
+                                reads.append(functools.partial(array_filler.fill_array_from_hdf_dataset,
+                                                               target_array, dataset,
+                                                               source_sel=buf_index, offset=offset))
                         # Advance even when nothing is copied, or the next read starts from the wrong
                         # position in the file. Refs #955
                         offset += readlen
@@ -574,30 +573,25 @@ class HDFArrayLoader:
         return reads
 
     @staticmethod
-    def _split_selection(buf_index, offset, split_points):
-        """Split a selection of rows (a slice or sorted index array, relative to *offset*) where the dataset asks.
-
-        *split_points(start, stop)* gives the rows of the dataset strictly between start and stop at which to split.
-        Returns (start, stop, selection) for each piece, where [start, stop) is the piece's position among the
-        selected rows (and so in the target array)."""
+    def _dataset_rows(buf_index, offset, array_filler) -> tuple[int, int]:
+        """The range of rows of the dataset that a read will touch, as _HDFArrayFiller will read them"""
         if isinstance(buf_index, slice):
-            first, stop = buf_index.start, buf_index.stop
-            points = [p - offset for p in split_points(first + offset, stop + offset)]
-            edges = [first] + points + [stop]
-            return [(a - first, b - first, slice(a, b)) for a, b in zip(edges[:-1], edges[1:]) if b > a]
+            start, stop = buf_index.start, buf_index.stop
+        elif len(buf_index) == 0:
+            return 0, 0
         else:
-            indices = np.asarray(buf_index)
-            if len(indices) == 0:
-                return [(0, 0, buf_index)]
-            points = [p - offset for p in split_points(int(indices[0]) + offset, int(indices[-1]) + 1 + offset)]
-            cuts = [0] + [int(k) for k in np.searchsorted(indices, points)] + [len(indices)]
-            return [(a, b, indices[a:b]) for a, b in zip(cuts[:-1], cuts[1:]) if b > a]
+            start, stop = int(buf_index[0]), int(buf_index[-1]) + 1
+        start, stop = start + offset, stop + offset
+        if array_filler.need_rescale:
+            # e.g. a 3-vector stored as a flat array of three times the length
+            start, stop = int(start * array_filler.scaling_factor), int(stop * array_filler.scaling_factor)
+        return start, stop
 
     @staticmethod
     def _perform_reads_in_threads(reads, num_threads):
         """Perform reads concurrently, in a pool of *num_threads* threads.
 
-        Reads of different files, or of different parts of a virtual dataset, can then overlap, which pays off where
+        Reads of different files, or of different parts of a file (including a virtual dataset), can then overlap, which pays off where
         a single reader cannot saturate the storage (for example, a parallel filesystem holding each file on a
         different server, or a solid-state drive that needs several requests in flight) and when chunks must be
         decompressed. This relies on the data being read directly (see pynbody.util.hdf_bulk_read); datasets read

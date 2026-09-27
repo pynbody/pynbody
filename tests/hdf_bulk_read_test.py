@@ -702,3 +702,43 @@ def test_vds_in_file_opened_other_ways(tmp_path, how):
             assert isinstance(wrapped, h5py.Dataset)
             if how != "fileobj":  # reading a virtual dataset through a Python file object crashes h5py 3.16 itself
                 np.testing.assert_array_equal(wrapped[:], np.arange(10.0))
+
+
+def test_prepared_reads_make_no_hdf5_lookups(tmp_path, monkeypatch):
+    """After prepare(), reading a virtual dataset opens no files through h5py and looks up no chunks, so that reads
+    from several threads do not queue for h5py's lock"""
+    row_counts = [30] * 12
+    sources, arrays = _make_sources(tmp_path, row_counts)
+    _make_vds(tmp_path / "virtual.h5", sources, row_counts)
+    expected = np.concatenate(arrays)
+    with h5py.File(tmp_path / "virtual.h5", "r") as f:
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        wrapped.prepare(40, 200)
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError("an HDF5 lookup was made after prepare()")
+
+        class Forbidden:
+            def __getattr__(self, name):
+                forbidden()
+
+        monkeypatch.setattr(h5py, "File", forbidden)
+        prepared = [b.reader for b in wrapped._blocks if b.reader_resolved]
+        assert len(prepared) == 6  # the blocks overlapping rows 40 to 200, and only those
+        for reader in prepared:
+            reader._dataset = Forbidden()  # through which any chunk lookup would have to go
+        np.testing.assert_array_equal(wrapped[40:200], expected[40:200])
+        np.testing.assert_array_equal(wrapped[100:150], expected[100:150])
+
+
+def test_many_source_blocks(tmp_path):
+    """Reads touch only the blocks they overlap (checked on a virtual dataset with many small sources)"""
+    row_counts = [3] * 400
+    sources, arrays = _make_sources(tmp_path, row_counts, trailing=(), compress=False)
+    _make_vds(tmp_path / "virtual.h5", sources, row_counts, trailing=())
+    expected = np.concatenate(arrays)
+    with h5py.File(tmp_path / "virtual.h5", "r") as f:
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        np.testing.assert_array_equal(wrapped[601:607], expected[601:607])
+        assert sum(b.reader_resolved for b in wrapped._blocks) == 3
+        np.testing.assert_array_equal(wrapped[:], expected)

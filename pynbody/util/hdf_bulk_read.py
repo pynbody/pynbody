@@ -124,6 +124,7 @@ class BulkReader:
         self._cache_nbytes = cache_nbytes
         self._source_files = {}
         self._source_files_lock = threading.Lock()
+        self._file_checks = {}  # filename -> ((path, identity), size) or the _CannotReadDirectly it raised
         self._warned_reasons = set()
         self._warned_lock = threading.Lock()
 
@@ -162,29 +163,52 @@ class BulkReader:
             raise _CannotReadDirectly("it is a scalar", warn=False)
         _check_datatype(dataset)
 
+        h5file = dataset.file  # (h5py makes a new File object every time this is accessed, so do it once)
         layout = dataset.id.get_create_plist().get_layout()
         if layout == h5py.h5d.VIRTUAL:
-            return _VirtualReader.plan(dataset, self)
+            return _VirtualReader.plan(dataset, h5file, self)
 
-        file = _check_file(dataset.file)
+        file, file_size = self._check_file(h5file)
         if layout == h5py.h5d.CONTIGUOUS:
-            return _ContiguousReader(dataset, file, self)
+            return _ContiguousReader(dataset, file, file_size, self)
         elif layout == h5py.h5d.CHUNKED:
-            return _ChunkedReader(dataset, file, self, self._cache_nbytes)
+            return _ChunkedReader(dataset, file, file_size, self, self._cache_nbytes)
         elif layout == h5py.h5d.COMPACT:
             raise _CannotReadDirectly("it uses compact storage", warn=False)
         else:
             raise _CannotReadDirectly(f"it uses HDF5 storage layout {layout}, which pynbody does not know")
 
-    def _open_source(self, filename, dataset_name, virtual_dataset):
+    def _check_file(self, h5file):
+        """Check that a file can be read directly (see _check_file), remembering the answer for each file.
+
+        Every dataset in a file shares the answer, so this is worth caching: a snapshot's virtual datasets may
+        draw on thousands of source files. (The identity of the file on disk is checked again on every read.)"""
+        key = h5file.filename
+        result = self._file_checks.get(key)
+        if result is None:
+            try:
+                file = _check_file(h5file)
+                result = (file, os.path.getsize(file[0]))
+            except _CannotReadDirectly as e:
+                result = e
+            self._file_checks[key] = result
+        if isinstance(result, _CannotReadDirectly):
+            raise result
+        return result
+
+    def _open_source(self, filename, dataset_name, virtual_file, virtual_filename):
         """Open a source dataset of a virtual dataset through h5py"""
-        if filename == os.path.abspath(virtual_dataset.file.filename):
-            return virtual_dataset.file[dataset_name]  # a source in the virtual dataset's own file ('.')
-        with self._source_files_lock:
-            source_file = self._source_files.get(filename)
-            if source_file is None:
-                source_file = h5py.File(filename, 'r')
-                self._source_files[filename] = source_file
+        if filename == virtual_filename:
+            return virtual_file[dataset_name]  # a source in the virtual dataset's own file ('.')
+        source_file = self._source_files.get(filename)
+        if source_file is None:
+            # Opened outside the lock, so that threads opening different files do not queue for each other. If two
+            # threads open the same file at once, one copy is kept and the other closed.
+            opened = h5py.File(filename, 'r')
+            with self._source_files_lock:
+                source_file = self._source_files.setdefault(filename, opened)
+            if source_file is not opened:
+                opened.close()
         return source_file[dataset_name]
 
     def _report_fallback(self, dataset, error: _CannotReadDirectly | _UnexpectedData | Exception, reading=False):
@@ -215,6 +239,7 @@ class BulkReader:
             for f in self._source_files.values():
                 f.close()
             self._source_files = {}
+            self._file_checks = {}
 
 
 def _check_datatype(dataset):
@@ -366,6 +391,13 @@ class _DirectReader:
     def _read_rows_into(self, out: np.ndarray, start: int, stop: int):
         raise NotImplementedError
 
+    def prepare(self, start: int, stop: int):
+        """Do, now, every HDF5 lookup that reading rows [start, stop) will need.
+
+        Reads that are then made from several threads only move and decode data, rather than queueing for h5py's
+        lock. Calling this is optional: anything not prepared is looked up when it is needed."""
+        pass
+
 
 def _conversion_is_exact(from_dtype, to_dtype) -> bool:
     """True if numpy and HDF5 are known to agree bit for bit on converting from_dtype to to_dtype.
@@ -386,9 +418,8 @@ def _conversion_is_exact(from_dtype, to_dtype) -> bool:
 class _ContiguousReader(_DirectReader):
     """A contiguous dataset, read directly from the file."""
 
-    def __init__(self, dataset, file, bulk_reader):
+    def __init__(self, dataset, file, file_size, bulk_reader):
         super().__init__(dataset, bulk_reader)
-        filename = file[0]
         plist = dataset.id.get_create_plist()
         if plist.get_external_count() > 0:
             raise _CannotReadDirectly("it is stored in external files")
@@ -399,7 +430,7 @@ class _ContiguousReader(_DirectReader):
         nbytes = self.shape[0] * self._row_nbytes
         if dataset.id.get_storage_size() != nbytes:
             raise _CannotReadDirectly("its storage size does not match its shape and datatype")
-        if self._offset + nbytes > os.path.getsize(filename):
+        if self._offset + nbytes > file_size:
             raise _CannotReadDirectly("its data extend beyond the end of the file")
         self._file = file
 
@@ -424,7 +455,7 @@ class _ChunkedReader(_DirectReader):
     file in increasing order of rows.
     """
 
-    def __init__(self, dataset, file, bulk_reader, cache_nbytes: int = _default_cache_nbytes):
+    def __init__(self, dataset, file, file_size, bulk_reader, cache_nbytes: int = _default_cache_nbytes):
         super().__init__(dataset, bulk_reader)
         plist = dataset.id.get_create_plist()
         self._pipeline = []
@@ -444,11 +475,28 @@ class _ChunkedReader(_DirectReader):
         self._chunk_nbytes = int(np.prod(self._chunk_shape, dtype=np.int64)) * self.dtype.itemsize
         self._fillvalue = _check_fill(dataset)
         self._file = file
-        self._file_size = os.path.getsize(file[0])
+        self._file_size = file_size
 
         self._cache_nbytes = cache_nbytes
         self._cache = collections.OrderedDict()
         self._cache_lock = threading.Lock()
+        self._chunk_info = {}  # chunk origin -> StoreInfo, for chunks looked up in advance by prepare()
+
+    def _chunk_origins(self, start, stop):
+        """Origins of all chunks holding any of rows [start, stop), each with the part of those rows it holds"""
+        rows_per_chunk = self._chunk_shape[0]
+        # chunk origins along each trailing axis, all of which are needed since reads are of whole rows
+        trailing_origins = [range(0, n, c) for n, c in zip(self.shape[1:], self._chunk_shape[1:])]
+        for row_origin in range((start // rows_per_chunk) * rows_per_chunk, stop, rows_per_chunk):
+            for trailing_origin in itertools.product(*trailing_origins):
+                yield (row_origin,) + trailing_origin
+
+    def prepare(self, start, stop):
+        if self._use_h5py:
+            return
+        for origin in self._chunk_origins(start, stop):
+            if origin not in self._chunk_info:
+                self._chunk_info[origin] = self._dataset.id.get_chunk_info_by_coord(origin)
 
     def _read_rows_into(self, out, start, stop):
         rows_per_chunk = self._chunk_shape[0]
@@ -480,7 +528,9 @@ class _ChunkedReader(_DirectReader):
                 self._cache.move_to_end(origin)
                 return chunk
 
-        info = self._dataset.id.get_chunk_info_by_coord(origin)
+        info = self._chunk_info.get(origin)
+        if info is None:
+            info = self._dataset.id.get_chunk_info_by_coord(origin)
         if info.byte_offset is None:
             return None  # never written, so reads as the fill value
         if tuple(info.chunk_offset) != origin:
@@ -633,6 +683,7 @@ class _VirtualSourceBlock:
         self.whole_source = whole_source  # True if the mapping takes the entire source dataset
         self.reader = None
         self.reader_resolved = False
+        self.lock = threading.Lock()  # pieces of one virtual dataset may be read concurrently
 
 
 class _VirtualReader(_DirectReader):
@@ -643,15 +694,18 @@ class _VirtualReader(_DirectReader):
     the rows that source supplies, which gives exactly the result HDF5 would.
     """
 
-    def __init__(self, dataset, blocks: list[_VirtualSourceBlock], bulk_reader: BulkReader, fillvalue):
+    def __init__(self, dataset, h5file, virtual_filename, blocks: list[_VirtualSourceBlock], bulk_reader: BulkReader,
+                 fillvalue):
         super().__init__(dataset, bulk_reader)
+        self._file = h5file
+        self._filename = virtual_filename
         self._fillvalue = fillvalue
         self._blocks = blocks
         self._block_starts = np.array([b.start for b in blocks], dtype=np.int64)
-        self._sources_lock = threading.Lock()  # pieces of one virtual dataset may be read concurrently
+
 
     @classmethod
-    def plan(cls, dataset, bulk_reader: BulkReader) -> _VirtualReader:
+    def plan(cls, dataset, h5file, bulk_reader: BulkReader) -> _VirtualReader:
         """Work out how to read an h5py virtual dataset from its sources, or raise _CannotReadDirectly if its
         layout is not one this class handles (see the module docstring)."""
         shape = tuple(dataset.shape)
@@ -661,17 +715,17 @@ class _VirtualReader(_DirectReader):
         # Source files are found relative to the directory of the virtual dataset's own file, so that must be known.
         # (If it was opened by a relative path, and the current directory has since changed to one holding a link to
         # the same file, this check cannot tell; pynbody opens files by absolute path, which avoids the question.)
-        if dataset.file.driver not in _supported_drivers:
-            raise _CannotReadDirectly(f"its file is open through the HDF5 '{dataset.file.driver}' driver, so pynbody "
+        if h5file.driver not in _supported_drivers:
+            raise _CannotReadDirectly(f"its file is open through the HDF5 '{h5file.driver}' driver, so pynbody "
                                       f"cannot confirm where its source files are")
-        virtual_filename, _ = _file_identity(dataset.file)
+        virtual_filename, _ = _file_identity(h5file)
         fillvalue = _check_fill(dataset)
         try:
             blocks = cls._plan_blocks(dataset, shape, virtual_filename, unsupported)
         except (RuntimeError, ValueError) as e:
             # e.g. HDF5 cannot describe a selection of unlimited extent as a set of points
             raise _CannotReadDirectly(unsupported) from e
-        return cls(dataset, blocks, bulk_reader, fillvalue)
+        return cls(dataset, h5file, virtual_filename, blocks, bulk_reader, fillvalue)
 
     @staticmethod
     def _plan_blocks(dataset, shape, virtual_filename, unsupported) -> list[_VirtualSourceBlock]:
@@ -715,16 +769,26 @@ class _VirtualReader(_DirectReader):
                 raise _CannotReadDirectly(unsupported)  # overlapping mappings
         return blocks
 
-    def split_points(self, start: int, stop: int) -> list[int]:
-        """Rows strictly between *start* and *stop* at which one source gives way to another.
+    def _blocks_overlapping(self, start, stop):
+        """The blocks that can overlap rows [start, stop), found without walking the whole list"""
+        first = max(int(np.searchsorted(self._block_starts, start, side='right')) - 1, 0)
+        last = int(np.searchsorted(self._block_starts, stop, side='left'))
+        return (self._blocks[i] for i in range(first, last))
 
-        Reads that are split at these points touch one source each, so can proceed concurrently."""
-        points = {edge for block in self._blocks for edge in (block.start, block.stop) if start < edge < stop}
-        return sorted(points)
+    def prepare(self, start, stop):
+        if self._use_h5py:
+            return
+        for block in self._blocks_overlapping(start, stop):
+            piece_start, piece_stop = max(start, block.start), min(stop, block.stop)
+            if piece_stop > piece_start:
+                reader = self._get_source_reader(block)
+                if reader is not None:
+                    source_start = block.source_start + piece_start - block.start
+                    reader.prepare(source_start, source_start + piece_stop - piece_start)
 
     def _get_source_reader(self, block: _VirtualSourceBlock):
         """Return a direct reader for the block's source dataset, or None if it must be read through h5py"""
-        with self._sources_lock:
+        with block.lock:
             if not block.reader_resolved:
                 block.reader = self._open_source_reader(block)
                 block.reader_resolved = True
@@ -735,7 +799,7 @@ class _VirtualReader(_DirectReader):
             return None  # HDF5 will fill the block with the fill value
 
         try:
-            source = self._bulk_reader._open_source(block.filename, block.dataset_name, self._dataset)
+            source = self._bulk_reader._open_source(block.filename, block.dataset_name, self._file, self._filename)
         except (OSError, KeyError) as e:
             self._bulk_reader._report_fallback(self._dataset, e, reading=True)
             return None
@@ -758,12 +822,9 @@ class _VirtualReader(_DirectReader):
         return reader
 
     def _read_rows_into(self, out, start, stop):
-        first = max(int(np.searchsorted(self._block_starts, start, side='right')) - 1, 0)
         rows_covered = 0
         pieces = []
-        for block in self._blocks[first:]:
-            if block.start >= stop:
-                break
+        for block in self._blocks_overlapping(start, stop):
             piece_start, piece_stop = max(start, block.start), min(stop, block.stop)
             if piece_stop > piece_start:
                 pieces.append((block, piece_start, piece_stop))

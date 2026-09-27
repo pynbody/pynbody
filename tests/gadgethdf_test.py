@@ -469,8 +469,8 @@ def test_threaded_loading_matches_serial(monkeypatch, filename, load_kwargs, dir
         if threads == 1:
             assert thread_pools_used == []
 
-    if direct or "with_vds" not in filename:
-        # (read through h5py, a virtual dataset cannot be split into parts from different files, so is one read)
+    if "with_vds" not in filename:
+        # (the test snapshot's virtual datasets are small enough to be read in one piece, so need no thread pool)
         assert len(thread_pools_used) > 0
     assert arrays[1].keys() == arrays[4].keys()
     for k in arrays[1]:
@@ -494,24 +494,3 @@ def test_threaded_loading_propagates_errors(monkeypatch):
     monkeypatch.setattr(gadgethdf._HDFArrayFiller, "fill_array_from_hdf_dataset", failing_fill)
     with pytest.raises(RuntimeError, match="simulated read failure"):
         f['pos']
-
-
-@pytest.mark.parametrize("buf_index", [slice(3, 40), np.array([3, 4, 9, 10, 11, 25, 39]), np.array([], dtype=int)])
-@pytest.mark.parametrize("offset", [0, 100])
-def test_split_selection(buf_index, offset):
-    """Splitting a read at a virtual dataset's source boundaries covers exactly the same rows"""
-    boundaries = [offset + 10, offset + 11, offset + 30]
-    split_points = lambda start, stop: [p for p in boundaries if start < p < stop]
-    pieces = gadgethdf.HDFArrayLoader._split_selection(buf_index, offset, split_points)
-    selected = np.arange(buf_index.start, buf_index.stop) if isinstance(buf_index, slice) else buf_index
-    covered = []
-    expected_target_start = 0
-    for start, stop, sel in pieces:
-        assert start == expected_target_start
-        rows = np.arange(sel.start, sel.stop) if isinstance(sel, slice) else np.asarray(sel)
-        assert len(rows) == stop - start
-        # no piece straddles a boundary
-        assert not any(rows[0] + offset < p <= rows[-1] + offset for p in boundaries) if len(rows) else True
-        covered.extend(rows)
-        expected_target_start = stop
-    npt.assert_array_equal(covered, selected)
