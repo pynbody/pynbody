@@ -805,6 +805,16 @@ def _selection_box(space, extent=None) -> tuple[tuple, tuple] | None:
     return start, stop
 
 
+def _hdf5_considers_absolute(name: str) -> bool:
+    """Whether HDF5 treats a virtual dataset's source file name as absolute (H5_CHECK_ABSOLUTE).
+
+    This is HDF5's rule, not Python's: on Windows only a name starting with a drive letter, a colon and a separator
+    counts, whereas os.path.isabs has changed its answer for names like '/data/x.h5' between Python versions."""
+    if os.name == 'nt':
+        return len(name) >= 3 and name[0].isalpha() and name[1] == ':' and name[2] in '/\\'
+    return name.startswith('/')
+
+
 def _resolve_virtual_source_filename(virtual_filename: str, source_filename: str) -> str | None:
     """Find a virtual dataset's source file, as HDF5 would, or return None if it does not exist.
 
@@ -813,13 +823,23 @@ def _resolve_virtual_source_filename(virtual_filename: str, source_filename: str
     current directory. An absolute name that does not exist is reduced to its final component and searched for in
     the same way. ``.`` means the virtual dataset's own file. *virtual_filename* must be absolute, and so is the
     result.
+
+    Raises _CannotReadDirectly for names whose treatment is not clear-cut: on Windows, names that start with a
+    separator but no drive letter (including UNC paths), which HDF5 glues onto a directory in a way Windows then
+    reinterprets.
     """
     if source_filename == '.':
         return virtual_filename
 
+    absolute = _hdf5_considers_absolute(source_filename)
+    if os.name == 'nt' and not absolute and (source_filename[:1] in ('/', '\\') or
+                                             (len(source_filename) >= 2 and source_filename[1] == ':')):
+        raise _CannotReadDirectly("a source file of its virtual dataset is named in a way HDF5 and Windows may "
+                                  "interpret differently")
+
     origin = os.path.dirname(virtual_filename)
     candidates = []
-    if os.path.isabs(source_filename):
+    if absolute:
         candidates.append(source_filename)
         source_filename = os.path.basename(source_filename)
     candidates.append(os.path.join(origin, source_filename))

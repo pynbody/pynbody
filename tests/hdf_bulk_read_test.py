@@ -450,6 +450,20 @@ def test_unsupported_vds_layouts_fall_back_to_h5py(tmp_path, layout_kind):
         _check_vds(filename, expect_direct=False)
 
 
+def test_hdf5_absolute_names(monkeypatch):
+    """Absolute source names are recognised by HDF5's rule, whatever os.path.isabs says on this Python version"""
+    monkeypatch.setattr(hdf_bulk_read.os, "name", "nt")
+    assert hdf_bulk_read._hdf5_considers_absolute("C:\\data\\x.h5")
+    assert hdf_bulk_read._hdf5_considers_absolute("d:/data/x.h5")
+    assert not hdf_bulk_read._hdf5_considers_absolute("/data/x.h5")
+    assert not hdf_bulk_read._hdf5_considers_absolute("C:x.h5")
+    assert not hdf_bulk_read._hdf5_considers_absolute("x.h5")
+    monkeypatch.setattr(hdf_bulk_read.os, "name", "posix")
+    assert hdf_bulk_read._hdf5_considers_absolute("/data/x.h5")
+    assert not hdf_bulk_read._hdf5_considers_absolute("C:/data/x.h5")
+    assert not hdf_bulk_read._hdf5_considers_absolute("x.h5")
+
+
 def test_resolve_virtual_source_filename(tmp_path, monkeypatch):
     (tmp_path / "vds").mkdir()
     (tmp_path / "elsewhere").mkdir()
@@ -461,8 +475,14 @@ def test_resolve_virtual_source_filename(tmp_path, monkeypatch):
     assert resolve(virtual, ".") == virtual
     assert resolve(virtual, "a.h5") == str(tmp_path / "vds" / "a.h5")
     assert resolve(virtual, "missing.h5") is None
-    # an absolute name that does not exist is looked for by its final component
-    assert resolve(virtual, "/no/such/directory/b.h5") == str(tmp_path / "vds" / "b.h5")
+    # an absolute name (by HDF5's rules) that does not exist is looked for by its final component
+    missing_absolute = "C:/no/such/directory/b.h5" if os.name == "nt" else "/no/such/directory/b.h5"
+    assert resolve(virtual, missing_absolute) == str(tmp_path / "vds" / "b.h5")
+    if os.name == "nt":
+        # names HDF5 does not consider absolute, but Windows might reinterpret, are left to HDF5
+        for ambiguous in ["/no/such/directory/b.h5", "\\\\server\\share\\b.h5", "C:b.h5"]:
+            with pytest.raises(hdf_bulk_read._CannotReadDirectly):
+                resolve(virtual, ambiguous)
     # and, last of all, a name relative to the current directory, which is returned as an absolute path
     monkeypatch.chdir(tmp_path / "elsewhere")
     assert resolve(virtual, "c.h5") == str(tmp_path / "elsewhere" / "c.h5")
