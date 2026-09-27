@@ -527,7 +527,12 @@ def test_unfiltered_partial_edge_chunks(tmp_path, recwarn, filters):
 
 @pytest.mark.skipif(os.name == "nt", reason="a file that is open cannot be replaced on Windows")
 @pytest.mark.parametrize("chunked", [False, True])
-def test_file_replaced_after_planning(tmp_path, chunked):
+@pytest.mark.parametrize("kept_open", [True, False])
+def test_file_replaced_after_planning(tmp_path, monkeypatch, recwarn, chunked, kept_open):
+    """Replacing a file on disk after planning never changes what is read: a file kept open is still the file HDF5
+    has open, and a file opened for each read is checked to be it"""
+    if not kept_open:
+        monkeypatch.setattr(hdf_bulk_read, "_max_files_kept_open", lambda: 0)
     filename = tmp_path / "original.h5"
     for name, sign in [("original.h5", 1), ("impostor.h5", -1)]:
         with h5py.File(tmp_path / name, "w") as f:
@@ -535,8 +540,54 @@ def test_file_replaced_after_planning(tmp_path, chunked):
     with h5py.File(filename, "r") as f:
         wrapped = hdf_bulk_read.BulkReader().open(f["x"])
         os.replace(tmp_path / "impostor.h5", filename)
-        with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="has been replaced"):
-            np.testing.assert_array_equal(wrapped[10:14], np.arange(10.0, 14.0))
+        np.testing.assert_array_equal(wrapped[10:14], np.arange(10.0, 14.0))
+    fallbacks = [w for w in recwarn if issubclass(w.category, hdf_bulk_read.BulkReadFallbackWarning)]
+    if kept_open:
+        assert fallbacks == []
+    else:
+        assert len(fallbacks) == 1 and "has been replaced" in str(fallbacks[0].message)
+
+
+def test_files_are_opened_once(tmp_path, monkeypatch):
+    """Where positioned reads are available, each file is opened once however many reads are made"""
+    if not hasattr(os, "pread"):
+        pytest.skip("no os.pread on this platform")
+    filename = tmp_path / "many_chunks.h5"
+    with h5py.File(filename, "w") as f:
+        f.create_dataset("x", data=np.arange(10000.0), chunks=(100,), compression="gzip")
+        f["y"] = np.arange(5000.0)
+    opens = []
+    original_open = os.open
+    monkeypatch.setattr(hdf_bulk_read.os, "open", lambda *args, **kwargs: opens.append(args[0]) or
+                        original_open(*args, **kwargs))
+    reader = hdf_bulk_read.BulkReader()
+    with h5py.File(filename, "r") as f:
+        x, y = reader.open(f["x"]), reader.open(f["y"])
+        np.testing.assert_array_equal(np.concatenate([x[i:i + 700] for i in range(0, 10000, 700)]),
+                                      np.arange(10000.0))
+        np.testing.assert_array_equal(y[:], np.arange(5000.0))
+    assert len(opens) == 1  # one file, shared by both datasets and all 100 chunks
+    reader.close()
+
+
+def test_too_many_files_are_opened_per_read(tmp_path, monkeypatch):
+    monkeypatch.setattr(hdf_bulk_read, "_max_files_kept_open", lambda: 1)
+    reader = hdf_bulk_read.BulkReader()
+    handles = []
+    for i in range(3):
+        with h5py.File(tmp_path / f"f{i}.h5", "w") as f:
+            f["x"] = np.arange(10.0) + i
+    files = [h5py.File(tmp_path / f"f{i}.h5", "r") for i in range(3)]
+    try:
+        for i, f in enumerate(files):
+            wrapped = reader.open(f["x"])
+            handles.append(wrapped._file)
+            np.testing.assert_array_equal(wrapped[:], np.arange(10.0) + i)
+        assert [h._keep_open for h in handles] == [True, False, False]
+    finally:
+        reader.close()
+        for f in files:
+            f.close()
 
 
 def test_vds_opened_by_relative_path_then_chdir(tmp_path, monkeypatch):
@@ -742,3 +793,29 @@ def test_many_source_blocks(tmp_path):
         np.testing.assert_array_equal(wrapped[601:607], expected[601:607])
         assert sum(b.reader_resolved for b in wrapped._blocks) == 3
         np.testing.assert_array_equal(wrapped[:], expected)
+
+
+def test_reading_without_pread(tmp_path, monkeypatch):
+    """Where os.pread is unavailable (Windows), each thread reads through a handle of its own"""
+    import concurrent.futures
+    monkeypatch.delattr(hdf_bulk_read.os, "pread", raising=False)
+    monkeypatch.delattr(hdf_bulk_read.os, "preadv", raising=False)
+    filename = tmp_path / "no_pread.h5"
+    with h5py.File(filename, "w") as f:
+        f.create_dataset("x", data=np.arange(20000.0), chunks=(100,), compression="gzip")
+        f["y"] = np.arange(20000.0)
+    reader = hdf_bulk_read.BulkReader()
+    with h5py.File(filename, "r") as f:
+        for name in "xy":
+            wrapped = reader.open(f[name])
+
+            def job(start):
+                np.testing.assert_array_equal(wrapped[start:start + 1000], np.arange(start, start + 1000.0))
+
+            for _ in range(3):  # (a new pool of threads for each array, as the loader uses)
+                with concurrent.futures.ThreadPoolExecutor(4) as executor:
+                    list(executor.map(job, range(0, 19000, 500)))
+        # both datasets share one handle, which never has more files open than there were reads at once
+        assert 1 <= len(wrapped._file._all_thread_files) <= 4
+    reader.close()
+    assert wrapped._file._all_thread_files == []

@@ -124,7 +124,8 @@ class BulkReader:
         self._cache_nbytes = cache_nbytes
         self._source_files = {}
         self._source_files_lock = threading.Lock()
-        self._file_checks = {}  # filename -> ((path, identity), size) or the _CannotReadDirectly it raised
+        self._file_checks = {}  # filename -> _FileHandle, or the _CannotReadDirectly it raised
+        self._files_kept_open = 0
         self._warned_reasons = set()
         self._warned_lock = threading.Lock()
 
@@ -168,27 +169,31 @@ class BulkReader:
         if layout == h5py.h5d.VIRTUAL:
             return _VirtualReader.plan(dataset, h5file, self)
 
-        file, file_size = self._check_file(h5file)
+        file = self._check_file(h5file)
         if layout == h5py.h5d.CONTIGUOUS:
-            return _ContiguousReader(dataset, file, file_size, self)
+            return _ContiguousReader(dataset, file, self)
         elif layout == h5py.h5d.CHUNKED:
-            return _ChunkedReader(dataset, file, file_size, self, self._cache_nbytes)
+            return _ChunkedReader(dataset, file, self, self._cache_nbytes)
         elif layout == h5py.h5d.COMPACT:
             raise _CannotReadDirectly("it uses compact storage", warn=False)
         else:
             raise _CannotReadDirectly(f"it uses HDF5 storage layout {layout}, which pynbody does not know")
 
-    def _check_file(self, h5file):
-        """Check that a file can be read directly (see _check_file), remembering the answer for each file.
+    def _check_file(self, h5file) -> _FileHandle:
+        """Check that a file can be read directly (see _check_file), and return a handle through which to read it.
 
-        Every dataset in a file shares the answer, so this is worth caching: a snapshot's virtual datasets may
-        draw on thousands of source files. (The identity of the file on disk is checked again on every read.)"""
+        The answer, and the handle, are shared by every dataset in the file, which matters when a snapshot's virtual
+        datasets draw on thousands of source files. Up to _max_files_kept_open() files are kept open for positioned
+        reads; beyond that, files are opened afresh for each read."""
         key = h5file.filename
         result = self._file_checks.get(key)
         if result is None:
             try:
-                file = _check_file(h5file)
-                result = (file, os.path.getsize(file[0]))
+                filename, identity = _check_file(h5file)
+                keep_open = self._files_kept_open < _max_files_kept_open()
+                result = _FileHandle(filename, identity, keep_open)
+                if keep_open:
+                    self._files_kept_open += 1
             except _CannotReadDirectly as e:
                 result = e
             self._file_checks[key] = result
@@ -231,7 +236,7 @@ class BulkReader:
         warnings.warn(message, BulkReadFallbackWarning, stacklevel=3)
 
     def close(self):
-        """Close any source files of virtual datasets opened by this reader.
+        """Close every file this reader has opened (whether to read data, or as sources of virtual datasets).
 
         The reader remains usable, and reopens files as needed. Readers returned by :meth:`open` before the call
         should not be used afterwards."""
@@ -239,7 +244,11 @@ class BulkReader:
             for f in self._source_files.values():
                 f.close()
             self._source_files = {}
+            for handle in self._file_checks.values():
+                if isinstance(handle, _FileHandle):
+                    handle.close()
             self._file_checks = {}
+            self._files_kept_open = 0
 
 
 def _check_datatype(dataset):
@@ -297,17 +306,116 @@ def _check_fill(dataset):
         raise _CannotReadDirectly("its fill value could not be read")
 
 
-def _read_bytes(file, offset, nbytes, into=None):
-    """Read *nbytes* at *offset* from *file*, a (path, identity) pair, into the writable buffer *into* if given, else
-    returning bytes.
+def _max_files_kept_open() -> int:
+    """How many files a BulkReader keeps open at once, leaving most of the process's allowance for everything else"""
+    try:
+        import resource
+        soft_limit = resource.getrlimit(resource.RLIMIT_NOFILE)[0]
+        if soft_limit == resource.RLIM_INFINITY:
+            soft_limit = 4096
+    except (ImportError, ValueError, OSError):
+        soft_limit = 512  # e.g. on Windows, where the C runtime allows 512 by default
+    return max(min(256, soft_limit // 4), 0)
 
-    Each read opens its own handle, so that reads may proceed in parallel, and checks that the handle is to the
-    file HDF5 has open, in case the file at that path has been replaced since."""
-    filename, identity = file
-    with open(filename, 'rb') as f:
-        st = os.fstat(f.fileno())
-        if (st.st_dev, st.st_ino) != identity:
-            raise _UnexpectedData(f"the file at {filename} has been replaced since HDF5 opened it")
+
+class _FileHandle:
+    """A file whose bytes are read directly.
+
+    Where it can, this opens the file once and makes positioned reads (os.pread), which threads can share because
+    each read names its own position. That matters on parallel filesystems: opening a file costs a round trip to a
+    metadata server, and readahead (which makes sequential reads fast) is tracked per open file, so a file opened
+    afresh for every read is read far more slowly. Having opened the file, the handle also stays attached to it, so
+    that replacing the file on disk cannot change what is read.
+
+    Where os.pread is unavailable (Windows), the handle keeps a small pool of open files: each read borrows one
+    (opening another only if all are in use), so there are never more than there are reads in progress at once. If
+    *keep_open* is False (when too many files are open already), the file is instead opened for each read. Any file
+    opened after this handle was created is checked to be the file HDF5 has open.
+    """
+
+    def __init__(self, filename: str, identity: tuple, keep_open: bool = True):
+        self.filename = filename
+        self.identity = identity
+        self._fd = None
+        self._idle_files = []  # open files not in use by any read (where os.pread is unavailable)
+        self._all_thread_files = []  # every file opened for the pool, so that close() can close them
+        self._lock = threading.Lock()
+        self._keep_open = keep_open
+        if keep_open and hasattr(os, 'pread'):
+            self._fd = os.open(filename, os.O_RDONLY | getattr(os, 'O_CLOEXEC', 0))
+            try:
+                self._check(os.fstat(self._fd))
+            except _CannotReadDirectly:
+                os.close(self._fd)
+                raise
+            self.size = os.fstat(self._fd).st_size
+        else:
+            self.size = os.path.getsize(filename)
+
+    def _check(self, st):
+        if (st.st_dev, st.st_ino) != self.identity:
+            raise _CannotReadDirectly(f"the file at {self.filename} is not the one HDF5 has open")
+
+    def read(self, offset: int, nbytes: int, into=None):
+        """Read *nbytes* at *offset*, into the writable buffer *into* if given, else returning bytes"""
+        if self._fd is not None:
+            return self._pread(offset, nbytes, into)
+        if self._keep_open:
+            with self._lock:
+                f = self._idle_files.pop() if self._idle_files else None
+            if f is None:
+                f = open(self.filename, 'rb')
+                try:
+                    self._verify(os.fstat(f.fileno()))
+                except _UnexpectedData:
+                    f.close()
+                    raise
+                with self._lock:
+                    self._all_thread_files.append(f)
+            try:
+                return self._read_from(f, offset, nbytes, into)
+            finally:
+                with self._lock:
+                    self._idle_files.append(f)
+        with open(self.filename, 'rb') as f:
+            self._verify(os.fstat(f.fileno()))
+            return self._read_from(f, offset, nbytes, into)
+
+    def _verify(self, st):
+        if (st.st_dev, st.st_ino) != self.identity:
+            raise _UnexpectedData(f"the file at {self.filename} has been replaced since HDF5 opened it")
+
+    def _pread(self, offset, nbytes, into):
+        if into is None:
+            parts = []
+            got = 0
+            while got < nbytes:
+                part = os.pread(self._fd, nbytes - got, offset + got)
+                if not part:
+                    break
+                parts.append(part)
+                got += len(part)
+            data = parts[0] if len(parts) == 1 else b''.join(parts)
+        else:
+            view = memoryview(into).cast('B')
+            got = 0
+            while got < nbytes:
+                if hasattr(os, 'preadv'):
+                    n = os.preadv(self._fd, [view[got:]], offset + got)
+                else:
+                    part = os.pread(self._fd, nbytes - got, offset + got)
+                    n = len(part)
+                    view[got:got + n] = part
+                if n == 0:
+                    break
+                got += n
+            data = None
+        if got != nbytes:
+            raise _UnexpectedData(f"expected {nbytes} bytes at offset {offset}, but the file supplied {got}")
+        return data
+
+    @staticmethod
+    def _read_from(f, offset, nbytes, into):
         f.seek(offset)
         if into is None:
             data = f.read(nbytes)
@@ -315,9 +423,30 @@ def _read_bytes(file, offset, nbytes, into=None):
         else:
             data = None
             got = f.readinto(into)
-    if got != nbytes:
-        raise _UnexpectedData(f"expected {nbytes} bytes at offset {offset}, but the file supplied {got}")
-    return data
+        if got != nbytes:
+            raise _UnexpectedData(f"expected {nbytes} bytes at offset {offset}, but the file supplied {got}")
+        return data
+
+    def close(self):
+        if self._fd is not None:
+            os.close(self._fd)
+            self._fd = None
+        with self._lock:
+            for f in self._all_thread_files:
+                f.close()
+            self._all_thread_files = []
+            self._idle_files = []
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
+def _read_bytes(file: _FileHandle, offset, nbytes, into=None):
+    """Read *nbytes* at *offset* from *file*, into the writable buffer *into* if given, else returning bytes"""
+    return file.read(offset, nbytes, into)
 
 
 def _row_range(source_sel, num_rows) -> tuple[int, int] | None:
@@ -422,7 +551,7 @@ def _conversion_is_exact(from_dtype, to_dtype) -> bool:
 class _ContiguousReader(_DirectReader):
     """A contiguous dataset, read directly from the file."""
 
-    def __init__(self, dataset, file, file_size, bulk_reader):
+    def __init__(self, dataset, file, bulk_reader):
         super().__init__(dataset, bulk_reader)
         plist = dataset.id.get_create_plist()
         if plist.get_external_count() > 0:
@@ -434,7 +563,7 @@ class _ContiguousReader(_DirectReader):
         nbytes = self.shape[0] * self._row_nbytes
         if dataset.id.get_storage_size() != nbytes:
             raise _CannotReadDirectly("its storage size does not match its shape and datatype")
-        if self._offset + nbytes > file_size:
+        if self._offset + nbytes > file.size:
             raise _CannotReadDirectly("its data extend beyond the end of the file")
         self._file = file
 
@@ -459,7 +588,7 @@ class _ChunkedReader(_DirectReader):
     file in increasing order of rows.
     """
 
-    def __init__(self, dataset, file, file_size, bulk_reader, cache_nbytes: int = _default_cache_nbytes):
+    def __init__(self, dataset, file, bulk_reader, cache_nbytes: int = _default_cache_nbytes):
         super().__init__(dataset, bulk_reader)
         plist = dataset.id.get_create_plist()
         self._pipeline = []
@@ -479,7 +608,7 @@ class _ChunkedReader(_DirectReader):
         self._chunk_nbytes = int(np.prod(self._chunk_shape, dtype=np.int64)) * self.dtype.itemsize
         self._fillvalue = _check_fill(dataset)
         self._file = file
-        self._file_size = file_size
+        self._file_size = file.size
 
         self._cache_nbytes = cache_nbytes
         self._cache = collections.OrderedDict()
