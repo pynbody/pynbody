@@ -454,7 +454,7 @@ def test_threaded_loading_matches_serial(monkeypatch, filename, load_kwargs, dir
     thread_pools_used = []
     original_perform = gadgethdf.HDFArrayLoader._perform_reads_in_threads
     monkeypatch.setattr(gadgethdf.HDFArrayLoader, "_perform_reads_in_threads",
-                        staticmethod(lambda reads, n: thread_pools_used.append(len(reads)) or original_perform(reads, n)))
+                        staticmethod(lambda tasks, n: thread_pools_used.append(tasks) or original_perform(tasks, n)))
 
     arrays = {}
     for threads in [1, 4]:
@@ -469,8 +469,9 @@ def test_threaded_loading_matches_serial(monkeypatch, filename, load_kwargs, dir
         if threads == 1:
             assert thread_pools_used == []
 
-    if "with_vds" not in filename:
-        # (the test snapshot's virtual datasets are small enough to be read in one piece, so need no thread pool)
+    if "multifile_without_vds" in filename:
+        # Threads each read whole files, so a single-file snapshot is read serially; so is a virtual dataset small
+        # enough to be read in one piece, as in the test data
         assert len(thread_pools_used) > 0
     assert arrays[1].keys() == arrays[4].keys()
     for k in arrays[1]:
@@ -494,3 +495,26 @@ def test_threaded_loading_propagates_errors(monkeypatch):
     monkeypatch.setattr(gadgethdf._HDFArrayFiller, "fill_array_from_hdf_dataset", failing_fill)
     with pytest.raises(RuntimeError, match="simulated read failure"):
         f['pos']
+
+
+def test_threaded_tasks_are_per_file(monkeypatch):
+    """Each thread's task reads one file, in order, so that threads work on different files"""
+    monkeypatch.setattr(gadgethdf, "_bulk_read_threads", 4)
+    tasks_seen = []
+    original_perform = gadgethdf.HDFArrayLoader._perform_reads_in_threads
+    monkeypatch.setattr(gadgethdf.HDFArrayLoader, "_perform_reads_in_threads",
+                        staticmethod(lambda tasks, n: tasks_seen.append(tasks) or original_perform(tasks, n)))
+    f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
+    f['pos']
+    (tasks,) = tasks_seen
+    assert len(tasks) == len(f._hdf_files)
+    for task in tasks:
+        files = {read.args[1]._dataset.file.filename for read in task}
+        assert len(files) == 1
+        offsets = [read.keywords['offset'] + read.keywords['source_sel'].start for read in task]
+        assert offsets == sorted(offsets)
+
+
+def test_group_reads_by_file():
+    reads = [("a", 1), ("b", 2), ("a", 3), (("v", 3), 4), (("v", 4), 5), ("b", 6)]
+    assert gadgethdf.HDFArrayLoader._group_reads_by_file(reads) == [[1, 3], [2, 6], [4], [5]]

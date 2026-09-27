@@ -507,19 +507,22 @@ class HDFArrayLoader:
 
         threaded = _bulk_read_threads > 1
         reads = self._plan_reads(all_fams_to_load, sim, array_name, translated_names, prepare=threaded)
-        if threaded and len(reads) > 1:
-            self._perform_reads_in_threads(reads, _bulk_read_threads)
-        else:
-            for read in reads:
-                read()
+        if threaded:
+            tasks = self._group_reads_by_file(reads)
+            if len(tasks) > 1:
+                self._perform_reads_in_threads(tasks, _bulk_read_threads)
+                return
+        for _, read in reads:
+            read()
 
     def _plan_reads(self, all_fams_to_load, sim, array_name, translated_names, prepare=False) -> list:
-        """Return the reads needed to load an array, each as a callable taking no arguments.
+        """Return the reads needed to load an array, as (file, read) pairs in the order they would be made serially.
 
-        All the HDF5 metadata lookups happen here, so that the reads themselves only move and decode data. Each read
-        fills a separate part of the target array. There is one read per piece of up to _max_buf particles that
-        pynbody.chunk.LoadControl yields for each file, which is enough to keep several threads busy on any snapshot
-        large enough for threads to matter.
+        Each read is a callable taking no arguments, and fills a separate part of the target array; there is one per
+        piece of up to _max_buf particles that pynbody.chunk.LoadControl yields for each file. *file* identifies where
+        the read's data come from: the path of the file, or for a virtual dataset (whose data come from other files,
+        a different one for each piece of a large dataset) a key unique to the read. All the HDF5 metadata lookups
+        happen here, so that the reads themselves only move and decode data.
 
         If *prepare* is True, the HDF5 lookups each read will need (such as the positions of chunks, and the source
         files of virtual datasets) are made now, serially, rather than by the reads themselves: from several threads
@@ -555,14 +558,16 @@ class HDFArrayLoader:
                                                                                   translated_names)
                                 if dataset is not None and not isinstance(dataset, _DummyHDFData):
                                     dataset = self._hdf_files.open_for_bulk_read(dataset)
+                                file_key = hdf_group.file.filename
                                 dataset_resolved = True
                             if dataset is not None:
                                 if prepare and hasattr(dataset, 'prepare'):
                                     dataset.prepare(*self._dataset_rows(buf_index, offset, array_filler))
                                 target_array = sim_fam_array[i0 + mem_index.start : i0 + mem_index.stop]
-                                reads.append(functools.partial(array_filler.fill_array_from_hdf_dataset,
-                                                               target_array, dataset,
-                                                               source_sel=buf_index, offset=offset))
+                                read = functools.partial(array_filler.fill_array_from_hdf_dataset,
+                                                         target_array, dataset, source_sel=buf_index, offset=offset)
+                                is_virtual = isinstance(dataset, hdf_bulk_read.VirtualDatasetReader)
+                                reads.append(((file_key, len(reads)) if is_virtual else file_key, read))
                         # Advance even when nothing is copied, or the next read starts from the wrong
                         # position in the file. Refs #955
                         offset += readlen
@@ -588,26 +593,38 @@ class HDFArrayLoader:
         return start, stop
 
     @staticmethod
-    def _perform_reads_in_threads(reads, num_threads):
-        """Perform reads concurrently, in a pool of *num_threads* threads.
+    def _group_reads_by_file(reads) -> list[list]:
+        """Group (file, read) pairs into one task per file, in order of first appearance, each keeping its reads in order"""
+        tasks = {}
+        for file_key, read in reads:
+            tasks.setdefault(file_key, []).append(read)
+        return list(tasks.values())
 
-        Reads of different files, or of different parts of a file (including a virtual dataset), can then overlap, which pays off where
-        a single reader cannot saturate the storage (for example, a parallel filesystem holding each file on a
-        different server, or a solid-state drive that needs several requests in flight) and when chunks must be
-        decompressed. This relies on the data being read directly (see pynbody.util.hdf_bulk_read); datasets read
-        through h5py are serialised by its lock whatever the number of threads.
+    @staticmethod
+    def _perform_reads_in_threads(tasks, num_threads):
+        """Perform tasks, each a list of reads, concurrently in a pool of *num_threads* threads.
+
+        Each task holds the reads of one file and makes them in order, so that each thread streams through a file
+        of its own. On a parallel filesystem, where each file of a spanned snapshot usually lives on a different
+        server, that engages several servers at once while keeping every file's reads sequential (so the
+        filesystem's readahead keeps working); several threads sharing one file would contend for one server and
+        defeat readahead. (Pieces of a virtual dataset are separate tasks, since their data come from different
+        source files.) It also lets decompression proceed in parallel. This relies on the data being read directly
+        (see pynbody.util.hdf_bulk_read); datasets read through h5py are serialised by its lock whatever the number
+        of threads.
 
         Each read is given a plain ndarray view of its part of the target array, so that pynbody's array subclass
         is never manipulated from more than one thread. That is equivalent, because values read from a file
         carry no units for SimArray.__setitem__ to convert."""
-        def perform(read):
-            target, dataset = read.args
-            read.func(target.view(np.ndarray), dataset, **read.keywords)
+        def perform(task):
+            for read in task:
+                target, dataset = read.args
+                read.func(target.view(np.ndarray), dataset, **read.keywords)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads,
                                                    thread_name_prefix="pynbody-hdf-read") as executor:
-            # list() waits for every read, and raises the first exception any of them raised
-            list(executor.map(perform, reads))
+            # list() waits for every task, and raises the first exception any of them raised
+            list(executor.map(perform, tasks))
 
     def _get_array_filler(self, array_name: str, loading_fam: family.Family, sim: SimSnap, translated_names: list[str]):
         """

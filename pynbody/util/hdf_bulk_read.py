@@ -910,3 +910,7 @@ def _resolve_virtual_source_filename(virtual_filename: str, source_filename: str
         if os.path.isfile(candidate):
             return os.path.abspath(candidate)
     return None
+
+
+VirtualDatasetReader = _VirtualReader
+"""The class of reader returned by BulkReader.open for virtual datasets it reads from their sources"""
