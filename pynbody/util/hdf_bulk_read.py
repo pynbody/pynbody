@@ -337,7 +337,7 @@ class _FileHandle:
         self.filename = filename
         self.identity = identity
         self._fd = None
-        self._idle_files = []  # open files not in use by any read (where os.pread is unavailable)
+        self._idle_files = []  # open descriptors not in use by any read (where os.pread is unavailable)
         self._all_thread_files = []  # every file opened for the pool, so that close() can close them
         self._lock = threading.Lock()
         self._keep_open = keep_open
@@ -362,24 +362,32 @@ class _FileHandle:
             return self._pread(offset, nbytes, into)
         if self._keep_open:
             with self._lock:
-                f = self._idle_files.pop() if self._idle_files else None
-            if f is None:
-                f = open(self.filename, 'rb')
-                try:
-                    self._verify(os.fstat(f.fileno()))
-                except _UnexpectedData:
-                    f.close()
-                    raise
+                fd = self._idle_files.pop() if self._idle_files else None
+            if fd is None:
+                fd = self._open_and_verify()
                 with self._lock:
-                    self._all_thread_files.append(f)
+                    self._all_thread_files.append(fd)
             try:
-                return self._read_from(f, offset, nbytes, into)
+                return self._read_from(fd, offset, nbytes, into)
             finally:
                 with self._lock:
-                    self._idle_files.append(f)
-        with open(self.filename, 'rb') as f:
-            self._verify(os.fstat(f.fileno()))
-            return self._read_from(f, offset, nbytes, into)
+                    self._idle_files.append(fd)
+        fd = self._open_and_verify()
+        try:
+            return self._read_from(fd, offset, nbytes, into)
+        finally:
+            os.close(fd)
+
+    def _open_and_verify(self):
+        # Raw descriptors rather than Python file objects, so that a pool left to the garbage collector is closed by
+        # __del__ without file objects' ResourceWarnings
+        fd = os.open(self.filename, os.O_RDONLY | getattr(os, 'O_BINARY', 0))
+        try:
+            self._verify(os.fstat(fd))
+        except _UnexpectedData:
+            os.close(fd)
+            raise
+        return fd
 
     def _verify(self, st):
         if (st.st_dev, st.st_ino) != self.identity:
@@ -415,14 +423,18 @@ class _FileHandle:
         return data
 
     @staticmethod
-    def _read_from(f, offset, nbytes, into):
-        f.seek(offset)
-        if into is None:
-            data = f.read(nbytes)
-            got = len(data)
-        else:
-            data = None
-            got = f.readinto(into)
+    def _read_from(fd, offset, nbytes, into):
+        buffer = bytearray(nbytes) if into is None else into
+        view = memoryview(buffer).cast('B')
+        got = 0
+        with open(fd, 'rb', buffering=0, closefd=False) as f:
+            f.seek(offset)
+            while got < nbytes:
+                n = f.readinto(view[got:])
+                if not n:
+                    break
+                got += n
+        data = bytes(buffer) if into is None else None
         if got != nbytes:
             raise _UnexpectedData(f"expected {nbytes} bytes at offset {offset}, but the file supplied {got}")
         return data
@@ -432,8 +444,8 @@ class _FileHandle:
             os.close(self._fd)
             self._fd = None
         with self._lock:
-            for f in self._all_thread_files:
-                f.close()
+            for fd in self._all_thread_files:
+                os.close(fd)
             self._all_thread_files = []
             self._idle_files = []
 
