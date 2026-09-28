@@ -237,3 +237,27 @@ def test_negative_step_slice_take_rejected():
 def test_non_ascending_take_rejected(take):
     with pytest.raises(ValueError, match="strictly ascending"):
         LoadControl({family.dm: slice(0, 400)}, MAX_CHUNK, take)
+
+
+@pytest.mark.parametrize('take_name', list(TAKE_PATTERNS.keys()))
+def test_iterate_within_absolute_indices(take_name):
+    """With relative=False, buffer indices are disk positions within the family; arrays of them are views of the
+    control's own ids rather than copies"""
+    control = LoadControl({family.dm: slice(0, NUM_PARTICLES)}, MAX_CHUNK, TAKE_PATTERNS[take_name])
+    lo = 0
+    for hi in np.cumsum(FILE_LENGTHS):
+        relative = list(control.iterate_within(family.dm, lo, hi))
+        absolute = list(control.iterate_within(family.dm, lo, hi, relative=False))
+        assert len(relative) == len(absolute)
+        position = lo
+        for (readlen, rel, mem), (readlen_a, ab, mem_a) in zip(relative, absolute):
+            assert (readlen, mem) == (readlen_a, mem_a)
+            if rel is None:
+                assert ab is None
+            elif isinstance(rel, slice):
+                assert (ab.start - position, ab.stop - position) == (rel.start, rel.stop)
+            else:
+                npt.assert_array_equal(ab - position, rel)
+                assert ab.base is not None  # a view
+            position += readlen
+        lo = hi

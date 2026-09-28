@@ -638,20 +638,25 @@ def test_vds_divide(tmp_path):
         wrapped = hdf_bulk_read.BulkReader().open(f["x"])
         assert isinstance(wrapped, hdf_bulk_read.virtual._VirtualReader)
         destination = np.zeros((60, 3))
-        parts = wrapped.divide(slice(0, 60), destination)
-        kinds = [type(source).__name__ for source, _, _, _ in parts]
+        parts = wrapped.divide(slice(0, 60), 0, destination)
+        kinds = [type(source).__name__ for source, _, _, _, _ in parts]
         assert kinds == ["_ChunkedReader", "_ChunkedReader", "_ChunkedReader", "_Fill", "_ChunkedReader", "Dataset"]
-        assert [rows for _, rows, _, _ in parts] == [slice(0, 10), slice(0, 10), slice(10, 20), slice(30, 35),
-                                                     slice(0, 15), slice(50, 60)]
-        assert [os.path.basename(name) for _, _, _, name in parts] == \
+        assert [rows for _, rows, _, _, _ in parts] == [slice(0, 10), slice(0, 10), slice(10, 20), slice(30, 35),
+                                                        slice(0, 15), slice(50, 60)]
+        assert [os.path.basename(name) for _, _, _, _, name in parts] == \
             ["source.0.h5", "source.1.h5", "source.1.h5", "virtual.h5", "source.2.h5", "virtual.h5"]
-        assert [len(part) for _, _, part, _ in parts] == [10, 10, 10, 5, 15, 10]
-        for _, _, part, _ in parts:
+        assert [len(part) for _, _, _, part, _ in parts] == [10, 10, 10, 5, 15, 10]
+        for _, _, _, part, _ in parts:
             assert np.shares_memory(part, destination)
-        # index selections are divided alike, keeping only the parts with rows selected
-        parts = wrapped.divide(np.array([3, 12, 31, 36, 37]), np.zeros((5, 3)))
-        assert [(type(source).__name__, list(rows), len(part)) for source, rows, part, _ in parts] == \
+        # index selections (here counted from row 2) are divided alike, keeping only the parts with rows selected;
+        # each part's rows are a view of those given, with the offset adjusted to its source
+        rows = np.array([1, 10, 29, 34, 35])
+        parts = wrapped.divide(rows, 2, np.zeros((5, 3)))
+        assert [(type(source).__name__, list(part_rows + part_offset), len(part))
+                for source, part_rows, part_offset, part, _ in parts] == \
             [("_ChunkedReader", [3], 1), ("_ChunkedReader", [2], 1), ("_Fill", [31], 1), ("_ChunkedReader", [1, 2], 2)]
+        for _, part_rows, _, _, _ in parts:
+            assert np.shares_memory(part_rows, rows)
         expected = f["x"][:]
         hdf_bulk_read.BulkReader().read([hdf_bulk_read.ReadRequest(f["x"], slice(0, 60), destination)])
     np.testing.assert_array_equal(destination, expected)
@@ -1280,3 +1285,50 @@ def test_selections_convert_as_whole_reads_do(tmp_path, direct):
         hdf_bulk_read.BulkReader(enabled=direct).read([hdf_bulk_read.ReadRequest(f["x"], slice(0, len(data)), whole),
                                                         hdf_bulk_read.ReadRequest(f["x"], rows, part)])
     np.testing.assert_array_equal(part.view(np.uint32), whole[rows].view(np.uint32))
+
+
+@pytest.mark.parametrize("block_nbytes", [16 * 1024 * 1024, 100])
+@pytest.mark.parametrize("name", ["chunked", "contiguous", "compound"])
+def test_read_requests_with_offsets(tmp_path, monkeypatch, block_nbytes, name):
+    """Rows counted from an offset read as the rows plus the offset, without the rows being copied"""
+    monkeypatch.setattr(hdf_bulk_read.plan, "_gather_block_nbytes", block_nbytes)
+    data = _make_mixed_file(tmp_path / "x.h5")[name]
+    indices = np.array([0, 3, 4, 5, 40, 90])
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        a = np.zeros_like(data[:len(indices)])
+        b = np.zeros_like(data[:10])
+        hdf_bulk_read.BulkReader().read([hdf_bulk_read.ReadRequest(f[name], indices, a, offset=7),
+                                         hdf_bulk_read.ReadRequest(f[name], slice(0, 10), b, offset=20)])
+    np.testing.assert_array_equal(a, data[indices + 7])
+    np.testing.assert_array_equal(b, data[20:30])
+
+
+def test_offset_rows_are_not_copied(tmp_path):
+    _make_mixed_file(tmp_path / "x.h5")
+    indices = np.array([0, 3, 8, 12])
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        works = hdf_bulk_read.plan.plan([hdf_bulk_read.ReadRequest(f["chunked"], indices, np.zeros((4, 3)),
+                                                                   offset=100)], hdf_bulk_read.BulkReader().open)
+    (work,) = works
+    assert work.rows is indices and work.offset == 100 and work.span == (100, 113)
+
+
+@pytest.mark.parametrize("rows, offset", [(np.array([0, 5]), -1), (np.array([0, 5]), 4996), (slice(0, 10), 3995)])
+def test_offset_rows_beyond_the_dataset_are_refused(tmp_path, rows, offset):
+    _make_mixed_file(tmp_path / "x.h5")
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        n = len(rows) if isinstance(rows, np.ndarray) else 10
+        with pytest.raises(ValueError):
+            hdf_bulk_read.BulkReader().read([hdf_bulk_read.ReadRequest(f["contiguous"], rows, np.zeros(n), offset=offset)])
+
+
+def test_virtual_dataset_requests_with_offsets(tmp_path):
+    row_counts = [10, 20, 15]
+    sources, _ = _make_sources(tmp_path, row_counts)
+    _make_vds(tmp_path / "virtual.h5", sources, row_counts, gap=4, fillvalue=-1.0)
+    indices = np.array([0, 3, 12, 29, 30, 31, 33, 40, 50])
+    with h5py.File(tmp_path / "virtual.h5", "r") as f:
+        expected = f["x"][indices + 2]
+        destination = np.zeros_like(expected)
+        hdf_bulk_read.BulkReader().read([hdf_bulk_read.ReadRequest(f["x"], indices, destination, offset=2)])
+    np.testing.assert_array_equal(destination, expected)

@@ -131,20 +131,21 @@ class _VirtualReader(_DirectReader):
         last = int(np.searchsorted(self._block_starts, stop, side='left'))
         return (self._blocks[i] for i in range(first, last))
 
-    def divide(self, rows: slice | np.ndarray, destination: np.ndarray) -> list[tuple]:
-        """Divide reading *rows* into *destination* into parts, each read from one place.
+    def divide(self, rows: slice | np.ndarray, offset: int, destination: np.ndarray) -> list[tuple]:
+        """Divide reading *rows* (each plus *offset*) into *destination* into parts, each read from one place.
 
-        Returns (source, rows of the source, part of *destination*, the file the data come from) for each part, in
-        order. The source is a direct reader of a source dataset (with rows counted in that dataset); for rows no
-        source supplies, a _Fill; and for a source that cannot be read directly, the h5py virtual dataset itself
-        (with rows counted in it), so that HDF5 reads it (filling it with the fill value if it cannot be found).
-        *rows* is a slice, or a sorted array of rows."""
+        Returns (source, rows, offset, part of *destination*, the file the data come from) for each part, in order.
+        The source is a direct reader of a source dataset (with rows counted in that dataset); for rows no source
+        supplies, a _Fill; and for a source that cannot be read directly, the h5py virtual dataset itself (with
+        rows counted in it), so that HDF5 reads it (filling it with the fill value if it cannot be found). *rows*
+        is a slice (with *offset* 0), or a sorted array of rows, whose parts are returned as views of it, with
+        offsets adjusted to their sources."""
         if self._use_h5py:
-            return [(self._dataset, rows, destination, self._filename)]
+            return [(self._dataset, rows, offset, destination, self._filename)]
         if isinstance(rows, slice):
-            start, stop = rows.start, rows.stop
+            start, stop = rows.start + offset, rows.stop + offset
         else:
-            start, stop = int(rows[0]), int(rows[-1]) + 1
+            start, stop = int(rows[0]) + offset, int(rows[-1]) + 1 + offset
 
         # the intervals [lo, hi) of rows, in order, each with its source and the offset of its rows in the source
         intervals = []
@@ -167,13 +168,14 @@ class _VirtualReader(_DirectReader):
         parts = []
         if isinstance(rows, slice):
             for lo, hi, source, shift, filename in intervals:
-                parts.append((source, slice(lo + shift, hi + shift), destination[lo - start:hi - start], filename))
+                parts.append((source, slice(lo + shift, hi + shift), 0, destination[lo - start:hi - start],
+                              filename))
         else:
-            cuts = np.searchsorted(rows, [hi for _, hi, _, _, _ in intervals])
+            cuts = np.searchsorted(rows, [hi - offset for _, hi, _, _, _ in intervals])
             first = 0
             for (lo, hi, source, shift, filename), last in zip(intervals, cuts):
                 if last > first:
-                    parts.append((source, rows[first:last] + shift, destination[first:last], filename))
+                    parts.append((source, rows[first:last], offset + shift, destination[first:last], filename))
                 first = last
         return parts
 

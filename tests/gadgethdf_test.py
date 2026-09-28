@@ -568,8 +568,12 @@ def test_array_filler_requests(tmp_path, flattened):
         assert request.rows == (slice(6, 15) if flattened else slice(2, 5))
         assert request.destination.shape == ((9,) if flattened else (3, 3))
         assert np.shares_memory(request.destination, target)
-        request = filler.request(target[5:8], f["x"], np.array([0, 2, 7]), offset=1)
-        np.testing.assert_array_equal(request.rows, [3, 4, 5, 9, 10, 11, 24, 25, 26] if flattened else [1, 3, 8])
+        indices = np.array([0, 2, 7])
+        request = filler.request(target[5:8], f["x"], indices, offset=1)
+        np.testing.assert_array_equal(request.rows + request.offset,
+                                      [3, 4, 5, 9, 10, 11, 24, 25, 26] if flattened else [1, 3, 8])
+        if not flattened:
+            assert request.rows is indices  # (passed on, not copied)
         hdf_bulk_read.BulkReader().read([request])
     np.testing.assert_array_equal(target[5:8], np.arange(60.0).reshape(20, 3)[[1, 3, 8]])
 

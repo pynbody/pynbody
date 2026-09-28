@@ -275,17 +275,19 @@ class _HDFArrayFiller:
         """A request to read into *sim_array_to_fill* the elements *source_sel* of *hdf_dataset*; or None if there
         is nothing to read, because the array's elements have no values.
 
-        *source_sel* is a slice, or a sorted array of indices, counted from *offset*; or None for every element."""
+        *source_sel* is a slice, or a sorted array of indices, counted from *offset*; or None for every element. An
+        array is passed on as it is (not copied), so that the requests for a whole array, all made before any is
+        read, need little memory beyond the indices pynbody.chunk.LoadControl holds anyway."""
         if self.sim_element_size == 0:
             # e.g. an array of subfind groups, which has fewer entries than there are particles, is given elements of
             # size zero (see GadgetHDFSnap.__get_dtype_dims_and_units)
             return None
         if source_sel is None:
-            rows = slice(0, len(hdf_dataset))
+            rows, offset = slice(0, len(hdf_dataset)), 0
         elif isinstance(source_sel, slice):
-            rows = slice(source_sel.start + offset, source_sel.stop + offset)
+            rows, offset = slice(source_sel.start + offset, source_sel.stop + offset), 0
         else:
-            rows = np.asarray(source_sel, dtype=np.int64) + offset
+            rows = source_sel
         if self.need_rescale:
             # each element of the array is *factor* consecutive rows of the dataset
             factor = self.scaling_factor
@@ -296,10 +298,13 @@ class _HDFArrayFiller:
             if isinstance(rows, slice):
                 rows = slice(rows.start * factor, rows.stop * factor)
             else:
-                rows = (rows[:, np.newaxis] * factor + np.arange(factor)).reshape(-1)
+                # (this, unlike the rest, does copy the indices: but datasets stored this way are rare)
+                rows = ((np.asarray(rows, dtype=np.int64)[:, np.newaxis] + offset) * factor
+                        + np.arange(factor)).reshape(-1)
+                offset = 0
         num_rows = rows.stop - rows.start if isinstance(rows, slice) else len(rows)
         destination = np.reshape(sim_array_to_fill, (num_rows,) + tuple(hdf_dataset.shape[1:]), copy=False)
-        return hdf_bulk_read.ReadRequest(hdf_dataset, rows, destination)
+        return hdf_bulk_read.ReadRequest(hdf_dataset, rows, destination, offset=offset)
 
 
 class HDFArrayLoader:
@@ -444,8 +449,10 @@ class HDFArrayLoader:
                 for hdf_group, hi in zip(hdf_groups, file_boundaries):
                     dataset = None
                     dataset_resolved = False
-                    offset = 0 # read position within this file
-                    for readlen, buf_index, mem_index in self._load_control.iterate_within(hdf_group_name, lo, hi):
+                    # Each buf_index gives positions within the family (not within the piece, which would need a new
+                    # array for each piece); they lie within this file, whose first is lo
+                    for readlen, buf_index, mem_index in self._load_control.iterate_within(hdf_group_name, lo, hi,
+                                                                                            relative=False):
                         if mem_index is not None:
                             if not dataset_resolved:
                                 # Resolve only once we know we want something from this file: with partial
@@ -459,12 +466,9 @@ class HDFArrayLoader:
                                 if isinstance(dataset, _DummyHDFData):
                                     dataset.read_direct(target_array)
                                 else:
-                                    request = array_filler.request(target_array, dataset, buf_index, offset)
+                                    request = array_filler.request(target_array, dataset, buf_index, -lo)
                                     if request is not None:
                                         yield request
-                        # Advance even when nothing is copied, or the next read starts from the wrong
-                        # position in the file. Refs #955
-                        offset += readlen
                     lo = hi
 
                 group_mem_slice = self._load_control.mem_family_slice[hdf_group_name]
