@@ -8,6 +8,7 @@ import pytest
 
 from pynbody.util import hdf_bulk_read
 
+
 def _make_chunked(filename, data, chunks, filters=(), fillvalue=None, name="x"):
     """Write *data* as a chunked dataset with the given filters, applied on writing in the given order.
 
@@ -63,7 +64,7 @@ def test_chunked_matches_h5py(tmp_path, filters, dtype, shape, chunks):
     data = (rng.random(shape) * 200).astype(dtype)
     filename = tmp_path / "chunked.h5"
     _make_chunked(filename, data, chunks, filters)
-    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read._ChunkedReader)
+    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read.datasets._ChunkedReader)
 
 
 @pytest.mark.parametrize("pipeline", [(2, 1, 3), (3, 2, 1), (2, 1)], ids=lambda f: "filters-" + "-".join(map(str, f)))
@@ -90,14 +91,14 @@ def test_chunks_skipping_filters(tmp_path, pipeline):
             f["x"].id.write_direct_chunk((row, 0), chunk, filter_mask=mask)
     with h5py.File(filename, "r") as f:
         np.testing.assert_array_equal(f["x"][:], data)  # (the chunks are as HDF5 would have written them)
-    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read._ChunkedReader)
+    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read.datasets._ChunkedReader)
 
 
 def test_contiguous_matches_h5py(tmp_path):
     filename = tmp_path / "contiguous.h5"
     with h5py.File(filename, "w") as f:
         f["x"] = np.arange(3000, dtype=np.float64).reshape(1000, 3)
-    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read._ContiguousReader)
+    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read.datasets._ContiguousReader)
 
 
 @pytest.mark.parametrize("words", [[0xFFFF], [0xFFFF, 0x0000], [0x1234, 0xEDCB], [0, 0, 0]])
@@ -157,18 +158,18 @@ def test_fletcher32_of_planes_matches_unshuffled(element_size, kind, num_element
     else:  # the words 0x0001, 0xfffe, ... sum to multiples of 65535
         data = np.tile(np.array([0x00, 0x01, 0xFF, 0xFE], dtype=np.uint8), nbytes // 4 + 1)[:nbytes]
     planes = np.ascontiguousarray(data.reshape(num_elements, element_size).T)
-    assert hdf_bulk_read._fletcher32_of_planes(planes) == hdf_bulk_read.fletcher32(data)
+    assert hdf_bulk_read.decode._fletcher32_of_planes(planes) == hdf_bulk_read.fletcher32(data)
 
 
 @pytest.mark.parametrize("block_rows", [1, 3, 65536])
 def test_index_weighted_sums_are_exact(monkeypatch, block_rows):
-    monkeypatch.setattr(hdf_bulk_read, "_column_sum_block_rows", block_rows)
+    monkeypatch.setattr(hdf_bulk_read.decode, "_column_sum_block_rows", block_rows)
     rng = np.random.default_rng(1)
     for values in [rng.integers(0, 65536, 10 * 1024 + 17, dtype=np.uint16), np.full(5000, 0xFFFE, dtype=np.uint16),
                    rng.integers(0, 256, 3000, dtype=np.uint8), np.zeros(0, dtype=np.uint16)]:
         exact = values.astype(np.int64)
         index = np.arange(len(values), dtype=np.int64)
-        total, index_weighted = hdf_bulk_read._sum_and_index_weighted_sum(values)
+        total, index_weighted = hdf_bulk_read.decode._sum_and_index_weighted_sum(values)
         assert total == int(exact.sum())
         assert index_weighted == int((index * exact).sum()) % 65535
 
@@ -202,7 +203,7 @@ def test_unallocated_chunks_read_as_fillvalue(tmp_path):
         dataset = f.create_dataset("x", shape=(1000,), dtype=np.int32, chunks=(100,), fillvalue=-7,
                                    compression="gzip")
         dataset[250:420] = np.arange(170)
-    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read._ChunkedReader)
+    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read.datasets._ChunkedReader)
 
 
 def test_chunk_cache_avoids_repeated_decoding(tmp_path, monkeypatch):
@@ -211,8 +212,8 @@ def test_chunk_cache_avoids_repeated_decoding(tmp_path, monkeypatch):
     _make_chunked(filename, data, (10000,), (2, 1))
 
     decodes = []
-    original_decode = hdf_bulk_read.decode_chunk
-    monkeypatch.setattr(hdf_bulk_read, "decode_chunk", lambda *args, **kwargs: decodes.append(1) or original_decode(*args, **kwargs))
+    original_decode = hdf_bulk_read.decode.decode_chunk
+    monkeypatch.setattr(hdf_bulk_read.decode, "decode_chunk", lambda *args, **kwargs: decodes.append(1) or original_decode(*args, **kwargs))
 
     with h5py.File(filename, "r") as f:
         wrapped = hdf_bulk_read.BulkReader().open(f["x"])
@@ -246,7 +247,7 @@ def test_chunk_cache_empties_as_reads_consume_chunks(tmp_path):
 def test_chunk_locations(tmp_path, monkeypatch, lookups_before_indexing, prepared):
     """Chunks are found alike whether looked up one by one or through an index of all of them, including chunks
     never written, and along trailing axes"""
-    monkeypatch.setattr(hdf_bulk_read, "_chunk_lookups_before_indexing", lookups_before_indexing)
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_chunk_lookups_before_indexing", lookups_before_indexing)
     filename = tmp_path / "chunks.h5"
     with h5py.File(filename, "w") as f:
         dataset = f.create_dataset("x", shape=(1000, 5), dtype="f4", chunks=(30, 2), compression="gzip",
@@ -267,7 +268,7 @@ def test_chunk_locations(tmp_path, monkeypatch, lookups_before_indexing, prepare
 
 def test_chunk_locations_without_chunk_iter(tmp_path, monkeypatch):
     """Where h5py or HDF5 cannot iterate over chunks, they are looked up one by one"""
-    monkeypatch.setattr(hdf_bulk_read, "_chunk_lookups_before_indexing", 0)
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_chunk_lookups_before_indexing", 0)
     filename = tmp_path / "chunks.h5"
     data = np.arange(3000.0)
     _make_chunked(filename, data, (100,), (2, 1))
@@ -397,8 +398,8 @@ def test_userblock(tmp_path):
     with h5py.File(filename, "w", userblock_size=1024) as f:
         f["x"] = np.arange(300.0).reshape(100, 3)
         f.create_dataset("y", data=np.arange(300.0).reshape(100, 3), chunks=(10, 3), compression="gzip")
-    _check_reader_matches_h5py(filename, "x", hdf_bulk_read._ContiguousReader)
-    _check_reader_matches_h5py(filename, "y", hdf_bulk_read._ChunkedReader)
+    _check_reader_matches_h5py(filename, "x", hdf_bulk_read.datasets._ContiguousReader)
+    _check_reader_matches_h5py(filename, "y", hdf_bulk_read.datasets._ChunkedReader)
 
 
 def test_unexpected_data_falls_back_to_h5py(tmp_path, monkeypatch):
@@ -407,12 +408,12 @@ def test_unexpected_data_falls_back_to_h5py(tmp_path, monkeypatch):
         f.create_dataset("x", data=np.arange(1000.0), chunks=(100,), compression="gzip")
 
     def short_read(*args, **kwargs):
-        raise hdf_bulk_read._UnexpectedData("the file supplied too few bytes")
+        raise hdf_bulk_read.common._UnexpectedData("the file supplied too few bytes")
 
     with h5py.File(filename, "r") as f:
         wrapped = hdf_bulk_read.BulkReader().open(f["x"])
         np.testing.assert_array_equal(wrapped[0:10], np.arange(10.0))
-        monkeypatch.setattr(hdf_bulk_read, "_read_bytes", short_read)
+        monkeypatch.setattr(hdf_bulk_read.files, "_read_bytes", short_read)
         with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="too few bytes"):
             np.testing.assert_array_equal(wrapped[500:700], np.arange(500.0, 700.0))
         # and from then on the dataset is read through h5py, without further warnings
@@ -468,14 +469,14 @@ def test_chunks_into_converting_or_strided_destinations(tmp_path, filters, chunk
 
 
 def test_contiguous_conversion_is_done_in_blocks(tmp_path, monkeypatch):
-    monkeypatch.setattr(hdf_bulk_read, "_conversion_block_nbytes", 100)
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_conversion_block_nbytes", 100)
     data = np.arange(3000, dtype="<f4").reshape(1000, 3)
     filename = tmp_path / "contiguous.h5"
     with h5py.File(filename, "w") as f:
         f["x"] = data
     reads = []
-    original_read = hdf_bulk_read._read_bytes
-    monkeypatch.setattr(hdf_bulk_read, "_read_bytes",
+    original_read = hdf_bulk_read.files._read_bytes
+    monkeypatch.setattr(hdf_bulk_read.files, "_read_bytes",
                         lambda file, offset, nbytes, into=None: reads.append(nbytes) or
                         original_read(file, offset, nbytes, into))
     with h5py.File(filename, "r") as f:
@@ -488,7 +489,7 @@ def test_contiguous_conversion_is_done_in_blocks(tmp_path, monkeypatch):
 @pytest.mark.parametrize("nbytes", [None, 10, 8000, 8001, 10 ** 6])
 def test_decode_chunk_size_hint_is_only_a_hint(nbytes):
     raw = zlib.compress(np.arange(1000, dtype=np.float64).tobytes())
-    decoded = hdf_bulk_read.decode_chunk(raw, 0, [{'filter_id': 1}], 8, nbytes=nbytes)
+    decoded = hdf_bulk_read.decode.decode_chunk(raw, 0, [{'filter_id': 1}], 8, nbytes=nbytes)
     np.testing.assert_array_equal(decoded.view(np.float64), np.arange(1000.0))
 
 
@@ -572,7 +573,7 @@ def _check_vds(filename, expect_direct=True):
         dataset = f["x"]
         wrapped = reader.open(dataset)
         if expect_direct:
-            assert isinstance(wrapped, hdf_bulk_read._VirtualReader)
+            assert isinstance(wrapped, hdf_bulk_read.virtual._VirtualReader)
         else:
             assert isinstance(wrapped, h5py.Dataset)
         for sel in _row_selections(dataset.shape[0]) + [slice(0, 45), slice(44, 46), slice(40, 90)]:
@@ -598,7 +599,7 @@ def test_vds_sources_are_read_directly(tmp_path):
         np.testing.assert_array_equal(wrapped[50:60], arrays[1][5:15])
         opened = [b for b in wrapped._blocks if b.reader_resolved]
         assert len(opened) == 1  # only the source that was needed has been opened
-        assert isinstance(opened[0].reader, hdf_bulk_read._ChunkedReader)
+        assert isinstance(opened[0].reader, hdf_bulk_read.datasets._ChunkedReader)
 
 
 def test_vds_found_from_another_directory(tmp_path, monkeypatch):
@@ -635,7 +636,7 @@ def test_vds_source_segments(tmp_path):
     virtual, (s0, s1, s2) = str(tmp_path / "virtual.h5"), (str(tmp_path / f"source.{i}.h5") for i in range(3))
     with h5py.File(tmp_path / "virtual.h5", "r") as f:
         wrapped = hdf_bulk_read.BulkReader().open(f["x"])
-        assert isinstance(wrapped, hdf_bulk_read.VirtualDatasetReader)
+        assert isinstance(wrapped, hdf_bulk_read.virtual._VirtualReader)
         segments = [(row, os.path.normcase(os.path.realpath(name))) for row, name in wrapped.source_segments(0, 60)]
         assert segments == [(0, s0), (10, s1), (30, virtual), (35, s2), (50, virtual)] or \
             segments == [(row, os.path.normcase(os.path.realpath(name))) for row, name in
@@ -700,16 +701,16 @@ def test_unsupported_vds_layouts_fall_back_to_h5py(tmp_path, layout_kind):
 
 def test_hdf5_absolute_names(monkeypatch):
     """Absolute source names are recognised by HDF5's rule, whatever os.path.isabs says on this Python version"""
-    monkeypatch.setattr(hdf_bulk_read.os, "name", "nt")
-    assert hdf_bulk_read._hdf5_considers_absolute("C:\\data\\x.h5")
-    assert hdf_bulk_read._hdf5_considers_absolute("d:/data/x.h5")
-    assert not hdf_bulk_read._hdf5_considers_absolute("/data/x.h5")
-    assert not hdf_bulk_read._hdf5_considers_absolute("C:x.h5")
-    assert not hdf_bulk_read._hdf5_considers_absolute("x.h5")
-    monkeypatch.setattr(hdf_bulk_read.os, "name", "posix")
-    assert hdf_bulk_read._hdf5_considers_absolute("/data/x.h5")
-    assert not hdf_bulk_read._hdf5_considers_absolute("C:/data/x.h5")
-    assert not hdf_bulk_read._hdf5_considers_absolute("x.h5")
+    monkeypatch.setattr(hdf_bulk_read.files.os, "name", "nt")
+    assert hdf_bulk_read.virtual._hdf5_considers_absolute("C:\\data\\x.h5")
+    assert hdf_bulk_read.virtual._hdf5_considers_absolute("d:/data/x.h5")
+    assert not hdf_bulk_read.virtual._hdf5_considers_absolute("/data/x.h5")
+    assert not hdf_bulk_read.virtual._hdf5_considers_absolute("C:x.h5")
+    assert not hdf_bulk_read.virtual._hdf5_considers_absolute("x.h5")
+    monkeypatch.setattr(hdf_bulk_read.files.os, "name", "posix")
+    assert hdf_bulk_read.virtual._hdf5_considers_absolute("/data/x.h5")
+    assert not hdf_bulk_read.virtual._hdf5_considers_absolute("C:/data/x.h5")
+    assert not hdf_bulk_read.virtual._hdf5_considers_absolute("x.h5")
 
 
 def test_resolve_virtual_source_filename(tmp_path, monkeypatch):
@@ -719,7 +720,7 @@ def test_resolve_virtual_source_filename(tmp_path, monkeypatch):
     for path in [tmp_path / "vds" / "a.h5", tmp_path / "vds" / "b.h5", tmp_path / "elsewhere" / "c.h5"]:
         path.touch()
 
-    resolve = hdf_bulk_read._resolve_virtual_source_filename
+    resolve = hdf_bulk_read.virtual._resolve_virtual_source_filename
     assert resolve(virtual, ".") == virtual
     assert resolve(virtual, "a.h5") == str(tmp_path / "vds" / "a.h5")
     assert resolve(virtual, "missing.h5") is None
@@ -729,7 +730,7 @@ def test_resolve_virtual_source_filename(tmp_path, monkeypatch):
     if os.name == "nt":
         # names HDF5 does not consider absolute, but Windows might reinterpret, are left to HDF5
         for ambiguous in ["/no/such/directory/b.h5", "\\\\server\\share\\b.h5", "C:b.h5"]:
-            with pytest.raises(hdf_bulk_read._CannotReadDirectly):
+            with pytest.raises(hdf_bulk_read.common._CannotReadDirectly):
                 resolve(virtual, ambiguous)
     # and, last of all, a name relative to the current directory, which is returned as an absolute path
     monkeypatch.chdir(tmp_path / "elsewhere")
@@ -769,7 +770,7 @@ def test_unfiltered_partial_edge_chunks(tmp_path, recwarn, filters):
     with h5py.File(filename, "w") as f:
         dataset_id = h5py.h5d.create(f.id, b"x", h5py.h5t.STD_I32LE, h5py.h5s.create_simple((103,)), dcpl=dcpl)
         dataset_id.write(h5py.h5s.ALL, h5py.h5s.ALL, data)
-    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read._ChunkedReader)
+    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read.datasets._ChunkedReader)
     assert len(recwarn) == 0  # the edge chunk is read through h5py, and the rest directly, without complaint
 
 
@@ -780,7 +781,7 @@ def test_file_replaced_after_planning(tmp_path, monkeypatch, recwarn, chunked, k
     """Replacing a file on disk after planning never changes what is read: a file kept open is still the file HDF5
     has open, and a file opened for each read is checked to be it"""
     if not kept_open:
-        monkeypatch.setattr(hdf_bulk_read, "_max_files_kept_open", lambda: 0)
+        monkeypatch.setattr(hdf_bulk_read.files, "_max_files_kept_open", lambda: 0)
     filename = tmp_path / "original.h5"
     for name, sign in [("original.h5", 1), ("impostor.h5", -1)]:
         with h5py.File(tmp_path / name, "w") as f:
@@ -814,7 +815,7 @@ def test_files_that_cannot_be_opened(tmp_path, monkeypatch, recwarn, failures):
             raise OSError(errno.EMFILE, "Too many open files")
         return original_open(*args, **kwargs)
 
-    monkeypatch.setattr(hdf_bulk_read.os, "open", failing_open)
+    monkeypatch.setattr(hdf_bulk_read.files.os, "open", failing_open)
     with h5py.File(filename, "r") as f:
         wrapped = hdf_bulk_read.BulkReader().open(f["x"])
         np.testing.assert_array_equal(wrapped[:], data)
@@ -834,7 +835,7 @@ def test_files_are_opened_once(tmp_path, monkeypatch):
         f["y"] = np.arange(5000.0)
     opens = []
     original_open = os.open
-    monkeypatch.setattr(hdf_bulk_read.os, "open", lambda *args, **kwargs: opens.append(args[0]) or
+    monkeypatch.setattr(hdf_bulk_read.files.os, "open", lambda *args, **kwargs: opens.append(args[0]) or
                         original_open(*args, **kwargs))
     reader = hdf_bulk_read.BulkReader()
     with h5py.File(filename, "r") as f:
@@ -847,7 +848,7 @@ def test_files_are_opened_once(tmp_path, monkeypatch):
 
 
 def test_too_many_files_are_opened_per_read(tmp_path, monkeypatch):
-    monkeypatch.setattr(hdf_bulk_read, "_max_files_kept_open", lambda: 1)
+    monkeypatch.setattr(hdf_bulk_read.files, "_max_files_kept_open", lambda: 1)
     reader = hdf_bulk_read.BulkReader()
     handles = []
     for i in range(3):
@@ -994,7 +995,7 @@ def test_widening_conversions_match_hdf5_bitwise(tmp_path, from_dtype, to_dtype,
 def test_conversion_is_exact(from_dtype, to_dtype, exact):
     """Conversions numpy does itself must be exact for every value: integers too large for the float's mantissa
     are left to HDF5"""
-    assert hdf_bulk_read._conversion_is_exact(np.dtype(from_dtype), np.dtype(to_dtype)) == exact
+    assert hdf_bulk_read.datasets._conversion_is_exact(np.dtype(from_dtype), np.dtype(to_dtype)) == exact
 
 
 def test_unshuffle_writes_in_place():
@@ -1002,7 +1003,7 @@ def test_unshuffle_writes_in_place():
     elements = np.arange(40, dtype=np.uint8).reshape(10, 4)
     planes = np.ascontiguousarray(elements.T)
     backing = np.zeros(80, dtype=np.uint8)
-    hdf_bulk_read._unshuffle_planes_into(planes, backing[::2])
+    hdf_bulk_read.decode._unshuffle_planes_into(planes, backing[::2])
     np.testing.assert_array_equal(backing[::2], elements.reshape(-1))
     assert not backing[1::2].any()
 
@@ -1094,8 +1095,8 @@ def test_many_source_blocks(tmp_path):
 def test_reading_without_pread(tmp_path, monkeypatch):
     """Where os.pread is unavailable (Windows), each thread reads through a handle of its own"""
     import concurrent.futures
-    monkeypatch.delattr(hdf_bulk_read.os, "pread", raising=False)
-    monkeypatch.delattr(hdf_bulk_read.os, "preadv", raising=False)
+    monkeypatch.delattr(hdf_bulk_read.files.os, "pread", raising=False)
+    monkeypatch.delattr(hdf_bulk_read.files.os, "preadv", raising=False)
     filename = tmp_path / "no_pread.h5"
     with h5py.File(filename, "w") as f:
         f.create_dataset("x", data=np.arange(20000.0), chunks=(100,), compression="gzip")

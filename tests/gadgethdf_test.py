@@ -11,7 +11,8 @@ import pynbody
 import pynbody.test_utils
 from pynbody import units
 from pynbody.snapshot import gadgethdf
-from pynbody.util import hdf_bulk_read, hdf_read_strategy
+from pynbody.util import hdf_bulk_read
+from pynbody.util.hdf_bulk_read import strategy as hdf_read_strategy
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -662,8 +663,8 @@ def test_threads_sharing_files_decode_each_chunk_once(monkeypatch):
     monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: "ext4")
     monkeypatch.setattr(gadgethdf, "_max_buf", 1000)  # much smaller than the chunks, so that pieces share them
     decodes = []
-    original_decode = hdf_bulk_read.decode_chunk
-    monkeypatch.setattr(hdf_bulk_read, "decode_chunk",
+    original_decode = hdf_bulk_read.decode.decode_chunk
+    monkeypatch.setattr(hdf_bulk_read.decode, "decode_chunk",
                         lambda *args, **kwargs: decodes.append(1) or original_decode(*args, **kwargs))
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
     f.dm['pos']

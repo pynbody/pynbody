@@ -38,7 +38,7 @@ import functools
 import logging
 import os
 
-from .. import config_parser
+from ... import config_parser
 
 logger = logging.getLogger('pynbody.util.hdf_read_strategy')
 

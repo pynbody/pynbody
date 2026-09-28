@@ -26,7 +26,8 @@ import warnings
 import numpy as np
 
 from .. import chunk, config_parser, family, units, util
-from ..util import hdf_bulk_read, hdf_read_strategy
+from ..util import hdf_bulk_read
+from ..util.hdf_bulk_read import strategy as hdf_read_strategy
 from . import SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
@@ -614,7 +615,7 @@ class HDFArrayLoader:
                                 dataset_resolved = True
                             if dataset is not None:
                                 num_selected = mem_index.stop - mem_index.start
-                                if isinstance(dataset, hdf_bulk_read.VirtualDatasetReader):
+                                if isinstance(dataset, hdf_bulk_read.virtual._VirtualReader):
                                     pieces = self._split_at_sources(buf_index, offset, num_selected, array_filler,
                                                                     dataset)
                                 else:

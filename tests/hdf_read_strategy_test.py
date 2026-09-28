@@ -1,7 +1,7 @@
 import pytest
 
-from pynbody.util import hdf_read_strategy
-from pynbody.util.hdf_read_strategy import ReadSummary, choose_read_strategy
+from pynbody.util.hdf_bulk_read import strategy as hdf_read_strategy
+from pynbody.util.hdf_bulk_read.strategy import ReadSummary, choose_read_strategy
 
 
 @pytest.fixture(autouse=True)

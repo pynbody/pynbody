@@ -180,7 +180,7 @@ def test_swift_vds_is_read_from_its_sources(bulk_readers_opened, take_swift_cell
     f2 = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000", take_swift_cells=take_swift_cells)
     for array_name in f.loadable_keys():
         npt.assert_array_equal(f[array_name], f2[array_name])
-    virtual_readers = [r for r in bulk_readers_opened if isinstance(r, hdf_bulk_read._VirtualReader)]
+    virtual_readers = [r for r in bulk_readers_opened if isinstance(r, hdf_bulk_read.virtual._VirtualReader)]
     assert len(virtual_readers) == len(f.loadable_keys())
 
 
