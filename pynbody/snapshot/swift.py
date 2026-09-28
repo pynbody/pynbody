@@ -292,12 +292,11 @@ class SwiftSnap(GadgetHDFSnap):
     @staticmethod
     def _get_hdf_allarray_keys(group):
         """
-        Return all HDF array keys underneath group (includes nested groups)
+        Return all HDF array keys underneath group, assuming no nested groups.
 
         Swift snapshots do not have nested groups in the PartTypeX groups and
         checking the type of every key can be slow when there are many keys.
-        Here we check that we have the expected number of keys (given by the
-        NumberOfFields attribute) and assume that they're all datasets.
+        Here, all keys are assumed to be datasets.
         """
         return list(group.keys())
 
