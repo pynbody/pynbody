@@ -53,6 +53,7 @@ opens sources by name.
 from __future__ import annotations
 
 import collections
+import dataclasses
 import itertools
 import logging
 import os
@@ -86,6 +87,24 @@ _chunk_lookups_before_indexing = 8
 
 # Data that must be converted on their way into the destination are read this many bytes at a time
 _conversion_block_nbytes = 16 * 1024 * 1024
+
+
+@dataclasses.dataclass(frozen=True)
+class ReadProperties:
+    """What matters, for deciding how to perform them, about reading some rows of a dataset"""
+
+    direct: bool
+    """True if the rows are read directly, rather than through h5py"""
+
+    compressed: bool = False
+    """True if the rows are compressed, so that decoding them takes appreciable CPU time"""
+
+    chunk_nbytes: int = 0
+    """The size of the largest chunk to be decoded (0 if the data are not chunked), which is roughly half the memory
+    a thread reading them needs"""
+
+
+_THROUGH_H5PY = ReadProperties(direct=False)
 
 
 class BulkReadFallbackWarning(UserWarning):
@@ -551,6 +570,17 @@ class _DirectReader:
         """True if the data are compressed, so that decoding them takes appreciable CPU time"""
         return False
 
+    def properties(self, start: int, stop: int) -> ReadProperties:
+        """Describe reading rows [start, stop), for deciding how to perform the reads (see ReadProperties)"""
+        if self._use_h5py:
+            return _THROUGH_H5PY
+        return ReadProperties(direct=True, compressed=self.is_compressed())
+
+    def chunk_containing(self, row: int):
+        """Something identifying the chunk that holds *row*, equal for rows in the same chunk (so that reads sharing
+        a chunk can be kept together); or None if the data are not chunked"""
+        return None
+
     def prepare(self, start: int, stop: int):
         """Do, now, every HDF5 lookup that reading rows [start, stop) will need.
 
@@ -617,8 +647,8 @@ class _ChunkedReader(_DirectReader):
     keeps its own: snapshot writers routinely use chunks of many megabytes (sometimes one for a whole dataset), while
     pynbody reads in pieces of at most ``_max_buf`` rows, so without a cache a partial load would decompress the same
     chunk over and over. Chunks that extend beyond the end of a read are therefore kept, least recently used first
-    out, up to a total of *cache_nbytes*; and since pynbody reads each file in increasing order of rows, a chunk is
-    dropped again as soon as a read consumes the rest of it.
+    out, up to a total of *cache_nbytes* (or one chunk, if a chunk is larger than that); and since pynbody reads each
+    file in increasing order of rows, a chunk is dropped again as soon as a read consumes the rest of it.
     """
 
     def __init__(self, dataset, file, bulk_reader, cache_nbytes: int = _default_cache_nbytes):
@@ -655,6 +685,14 @@ class _ChunkedReader(_DirectReader):
 
     def is_compressed(self):
         return any(f['filter_id'] == _DEFLATE_FILTER for f in self._pipeline)
+
+    def properties(self, start, stop):
+        if self._use_h5py:
+            return _THROUGH_H5PY
+        return ReadProperties(direct=True, compressed=self.is_compressed(), chunk_nbytes=self._chunk_nbytes)
+
+    def chunk_containing(self, row):
+        return row // self._chunk_shape[0]
 
     def _chunk_origins(self, start, stop):
         """Origins of all chunks holding any of rows [start, stop), each with the part of those rows it holds"""
@@ -823,7 +861,9 @@ class _ChunkedReader(_DirectReader):
         else:
             chunk = _DecodedChunk(array=decoded)
 
-        if keep and self._chunk_nbytes <= self._cache_nbytes:
+        if keep:
+            # A chunk larger than the whole cache is still kept, alone, for the next read (which would otherwise
+            # decode it all again): its memory is taken already, and it is dropped once a read consumes the rest of it
             with self._cache_lock:
                 while self._cache and (len(self._cache) + 1) * self._chunk_nbytes > self._cache_nbytes:
                     self._cache.popitem(last=False)
@@ -1179,6 +1219,33 @@ class _VirtualReader(_DirectReader):
         if position < stop or not segments:
             add(position, self._filename)
         return segments
+
+    def properties(self, start, stop):
+        if self._use_h5py:
+            return _THROUGH_H5PY
+        direct, compressed, chunk_nbytes = True, False, 0
+        for block in self._blocks_overlapping(start, stop):
+            if min(stop, block.stop) <= max(start, block.start):
+                continue
+            reader = self._get_source_reader(block)
+            if reader is None:
+                if block.filename is not None:
+                    direct = False  # read through h5py (a block with no source file is just filled in)
+                continue
+            source_start = block.source_start + max(start, block.start) - block.start
+            source = reader.properties(source_start, source_start + min(stop, block.stop) - max(start, block.start))
+            direct = direct and source.direct
+            compressed = compressed or source.compressed
+            chunk_nbytes = max(chunk_nbytes, source.chunk_nbytes)
+        return ReadProperties(direct=direct, compressed=compressed, chunk_nbytes=chunk_nbytes)
+
+    def chunk_containing(self, row):
+        for block in self._blocks_overlapping(row, row + 1):
+            if block.start <= row < block.stop:
+                reader = self._get_source_reader(block)
+                chunk = None if reader is None else reader.chunk_containing(block.source_start + row - block.start)
+                return None if chunk is None else (block.filename, block.dataset_name, chunk)
+        return None
 
     def is_compressed(self):
         # judged by the first source that can be read directly, on the assumption that all are stored alike

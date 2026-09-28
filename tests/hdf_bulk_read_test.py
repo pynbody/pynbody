@@ -195,10 +195,10 @@ def test_chunk_cache_avoids_repeated_decoding(tmp_path, monkeypatch):
 
     decodes.clear()
     with h5py.File(filename, "r") as f:
-        wrapped = hdf_bulk_read.BulkReader(cache_nbytes=1000).open(f["x"])  # too small to hold the chunk
+        wrapped = hdf_bulk_read.BulkReader(cache_nbytes=1000).open(f["x"])  # too small to hold the chunk...
         wrapped[0:700]
         wrapped[700:1400]
-    assert len(decodes) == 2
+    assert len(decodes) == 1  # ...which is kept all the same, alone, for the next read
 
 
 def test_chunk_cache_empties_as_reads_consume_chunks(tmp_path):

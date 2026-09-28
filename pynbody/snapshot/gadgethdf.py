@@ -81,9 +81,19 @@ class _PlannedRead:
         if hasattr(self.dataset, 'prepare'):
             self.dataset.prepare(*self.rows)
 
-    @property
-    def is_direct(self):
-        return hdf_bulk_read.is_direct_reader(self.dataset)
+    def properties(self) -> hdf_bulk_read.ReadProperties:
+        """What matters about this read for deciding how to perform it (see pynbody.util.hdf_bulk_read)"""
+        if hdf_bulk_read.is_direct_reader(self.dataset):
+            return self.dataset.properties(*self.rows)
+        return hdf_bulk_read.ReadProperties(direct=False)
+
+    def shares_chunk_with(self, following: "_PlannedRead") -> bool:
+        """True if this read and the *following* one both need the chunk at the boundary between them"""
+        if following.dataset is not self.dataset or not hdf_bulk_read.is_direct_reader(self.dataset) or \
+                self.rows[1] <= self.rows[0] or following.rows[1] <= following.rows[0]:
+            return False
+        chunk = self.dataset.chunk_containing(self.rows[1] - 1)
+        return chunk is not None and chunk == self.dataset.chunk_containing(following.rows[0])
 
     @property
     def is_constant(self):
@@ -552,17 +562,13 @@ class HDFArrayLoader:
     def _summarise(reads) -> hdf_read_strategy.ReadSummary:
         """Describe the planned reads, for choosing how to perform them"""
         reads = [read for read in reads if not read.is_constant]  # which cost next to nothing, however performed
-        paths = tuple(dict.fromkeys(read.path for read in reads))
-        compressed = False
-        for read in reads:
-            # (each dataset is asked once; a virtual dataset may need to look at one of its sources to answer)
-            if hasattr(read.dataset, 'is_compressed') and read.dataset.is_compressed():
-                compressed = True
-                break
-        return hdf_read_strategy.ReadSummary(paths=paths, num_reads=len(reads),
+        properties = [read.properties() for read in reads]
+        return hdf_read_strategy.ReadSummary(paths=tuple(dict.fromkeys(read.path for read in reads)),
+                                             num_reads=len(reads),
                                              num_files=len({read.file_key for read in reads}),
-                                             all_direct=all(read.is_direct for read in reads),
-                                             compressed=compressed)
+                                             all_direct=all(p.direct for p in properties),
+                                             compressed=any(p.compressed for p in properties),
+                                             max_chunk_nbytes=max((p.chunk_nbytes for p in properties), default=0))
 
     def _plan_reads(self, all_fams_to_load, sim, array_name, translated_names) -> list[_PlannedRead]:
         """Return the reads needed to load an array, in the order they would be made serially.
@@ -676,9 +682,16 @@ class HDFArrayLoader:
     @staticmethod
     def _group_reads(reads, per_file) -> list[list]:
         """Group reads into tasks for threads: one per file (in order of first appearance, each keeping its reads in
-        order) if *per_file*, else one per read"""
+        order) if *per_file*, else one per read, except that consecutive reads needing the same chunk are kept
+        together (so that the chunk is decoded once, by one thread, rather than by several at once)"""
         if not per_file:
-            return [[read] for read in reads]
+            tasks = []
+            for read in reads:
+                if tasks and tasks[-1][-1].shares_chunk_with(read):
+                    tasks[-1].append(read)
+                else:
+                    tasks.append([read])
+            return tasks
         tasks = {}
         for read in reads:
             tasks.setdefault(read.file_key, []).append(read)

@@ -24,8 +24,9 @@ before loading an array pynbody calls :func:`choose_read_strategy`, which applie
    data are read piece by piece in several threads, even from a single file, while uncompressed data are read
    serially.
 
-In every case, the number of threads is capped by the number of pieces of work and by the number of CPUs this
-process may use. The options all live in the ``[gadgethdf]`` section of the configuration; they can also be changed
+In every case, the number of threads is capped by the number of pieces of work, by the number of CPUs this
+process may use, and by ``bulk-read-memory`` (default 2 GiB): each thread needs about three times the size of the
+chunks it decodes, which matters only for data stored in very large chunks. The options all live in the ``[gadgethdf]`` section of the configuration; they can also be changed
 for a session through :data:`config`, for example ``pynbody.util.hdf_read_strategy.config['bulk-read-threads'] = 8``.
 The strategy chosen for the most recent load is logged at debug level, together with the reason for it.
 """
@@ -49,9 +50,26 @@ parallel_filesystem_types = {'lustre', 'gpfs', 'beegfs', 'wekafs', 'ceph', 'fuse
 def _read_config():
     def option(name, default):
         return config_parser.get('gadgethdf', name, fallback=default).strip()
-    return {'bulk-read-threads': option('bulk-read-threads', 'auto'),
-            'parallel-filesystem-threads': int(option('parallel-filesystem-threads', '16')),
-            'compressed-data-threads': int(option('compressed-data-threads', '4'))}
+
+    def whole_number(name, default, allowed=()):
+        value = option(name, str(default))
+        if value.lower() in allowed:
+            return value.lower()
+        try:
+            number = int(value)
+            if number < 1:
+                raise ValueError
+            return number
+        except ValueError:
+            logger.warning("Ignoring the value %r of %s in the [gadgethdf] configuration: expected a whole number of "
+                           "at least 1%s; using %s", value, name,
+                           "".join(f" or '{a}'" for a in allowed), default)
+            return default
+
+    return {'bulk-read-threads': str(whole_number('bulk-read-threads', 'auto', allowed=('auto',))),
+            'parallel-filesystem-threads': whole_number('parallel-filesystem-threads', 16),
+            'compressed-data-threads': whole_number('compressed-data-threads', 4),
+            'bulk-read-memory': whole_number('bulk-read-memory', 2 * 1024 ** 3)}
 
 
 config = _read_config()
@@ -63,19 +81,22 @@ class ReadSummary:
     """What the planner knows about the reads needed to load one array."""
 
     paths: tuple[str, ...]
-    """The files the data come from (for a virtual dataset, the file holding it)"""
+    """The files the data come from (for a virtual dataset, its source files)"""
 
     num_reads: int
     """The number of pieces to be read"""
 
     num_files: int
-    """The number of distinct files among the pieces, counting each piece of a virtual dataset as its own file"""
+    """The number of distinct files among the pieces"""
 
     all_direct: bool
     """True if every piece can be read directly, rather than through h5py"""
 
     compressed: bool
     """True if any of the data are compressed"""
+
+    max_chunk_nbytes: int = 0
+    """The size of the largest chunk to be decoded (0 if the data are not chunked)"""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -104,9 +125,8 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
     per_file = on_parallel_filesystem
     tasks = summary.num_files if per_file else summary.num_reads
 
-    requested = config['bulk-read-threads']
-    if requested.lower() != 'auto':
-        threads = int(requested)
+    threads = _requested_threads()
+    if threads is not None:
         reason = f"bulk-read-threads is set to {threads}"
     elif on_parallel_filesystem:
         threads = config['parallel-filesystem-threads']
@@ -123,9 +143,27 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
     if threads > limit:
         threads = limit
         reason += f" (limited to {limit} by the number of {'files' if per_file else 'pieces'} and of CPUs)"
+    # each thread holds a chunk compressed and decompressed while decoding it, and may keep one for its next read
+    memory_limit = max(1, config['bulk-read-memory'] // max(3 * summary.max_chunk_nbytes, 1))
+    if threads > memory_limit:
+        threads = memory_limit
+        reason += (f" (limited to {memory_limit} by bulk-read-memory, since chunks decode to as much as "
+                   f"{summary.max_chunk_nbytes / 2 ** 20:.0f} MB)")
     if threads <= 1:
         return ReadStrategy(1, per_file, reason + ", which leaves only one thread's worth of work")
     return ReadStrategy(threads, per_file, reason)
+
+
+def _requested_threads() -> int | None:
+    """The number of threads bulk-read-threads asks for, or None for 'auto' (or a value that makes no sense)"""
+    requested = str(config['bulk-read-threads']).strip().lower()
+    if requested == 'auto':
+        return None
+    try:
+        return max(int(requested), 1)
+    except ValueError:
+        logger.warning("Ignoring bulk-read-threads = %r, which is neither a number nor 'auto'", requested)
+        return None
 
 
 def available_cpus() -> int:

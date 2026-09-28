@@ -10,15 +10,16 @@ def plenty_of_cpus(monkeypatch):
     monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", "auto")
     monkeypatch.setitem(hdf_read_strategy.config, "parallel-filesystem-threads", 4)
     monkeypatch.setitem(hdf_read_strategy.config, "compressed-data-threads", 3)
+    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-memory", 2 * 1024 ** 3)
 
 
 def on(monkeypatch, fs_type):
     monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: fs_type)
 
 
-def summary(num_reads=100, num_files=16, all_direct=True, compressed=True):
+def summary(num_reads=100, num_files=16, all_direct=True, compressed=True, max_chunk_nbytes=0):
     return ReadSummary(paths=("/data/snap.0.hdf5",), num_reads=num_reads, num_files=num_files, all_direct=all_direct,
-                       compressed=compressed)
+                       compressed=compressed, max_chunk_nbytes=max_chunk_nbytes)
 
 
 def test_parallel_filesystem_uses_one_thread_per_file(monkeypatch):
@@ -103,3 +104,41 @@ def test_real_mount_table_parses():
     table = hdf_read_strategy._mount_table()
     assert all(isinstance(mount_point, str) and isinstance(fs_type, str) for mount_point, fs_type in table)
     hdf_read_strategy.filesystem_type(__file__)  # does not raise
+
+
+@pytest.mark.parametrize("chunk_mb, threads", [(0, 4), (10, 4), (300, 2), (700, 1), (5000, 1)])
+def test_threads_limited_by_memory(monkeypatch, chunk_mb, threads):
+    """Each thread needs about three times the size of the chunks it decodes, which bulk-read-memory limits"""
+    on(monkeypatch, "lustre")
+    strategy = choose_read_strategy(summary(max_chunk_nbytes=chunk_mb * 1024 ** 2))
+    assert strategy.threads == threads
+    assert ("bulk-read-memory" in strategy.reason) == (chunk_mb >= 300)
+
+
+@pytest.mark.parametrize("value", ["many", "-3", "0", "2.5"])
+def test_nonsensical_thread_counts_are_ignored(monkeypatch, value):
+    on(monkeypatch, "lustre")
+    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", value)
+    strategy = choose_read_strategy(summary())
+    if value in ("-3", "0"):
+        assert strategy.threads == 1  # a number below 1 means serial
+    else:
+        assert strategy.threads == 4 and "parallel filesystem" in strategy.reason  # as for 'auto'
+
+
+def test_bulk_read_threads_may_be_set_as_a_number(monkeypatch):
+    on(monkeypatch, "lustre")
+    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", 8)
+    assert choose_read_strategy(summary()).threads == 8
+
+
+def test_bad_configuration_values_fall_back_to_defaults(monkeypatch, caplog):
+    values = {"bulk-read-threads": "lots", "parallel-filesystem-threads": "sixteen", "compressed-data-threads": "0",
+              "bulk-read-memory": "2GB"}
+    monkeypatch.setattr(hdf_read_strategy.config_parser, "get",
+                        lambda section, name, fallback=None: values.get(name, fallback))
+    with caplog.at_level("WARNING", logger="pynbody.util.hdf_read_strategy"):
+        config = hdf_read_strategy._read_config()
+    assert config == {"bulk-read-threads": "auto", "parallel-filesystem-threads": 16, "compressed-data-threads": 4,
+                      "bulk-read-memory": 2 * 1024 ** 3}
+    assert len(caplog.records) == 4

@@ -610,13 +610,44 @@ def test_datasets_are_released_file_by_file(monkeypatch, direct):
 
 def test_group_reads():
     class Read:
-        def __init__(self, file_key, n):
-            self.file_key, self.n = file_key, n
-    reads = [Read(*r) for r in [("a", 1), ("b", 2), ("a", 3), (("v", 3), 4), (("v", 4), 5), ("b", 6)]]
+        def __init__(self, file_key, n, chunks=()):
+            self.file_key, self.n, self.chunks = file_key, n, chunks
+
+        def shares_chunk_with(self, following):
+            if self.file_key != following.file_key or not self.chunks or not following.chunks:
+                return False
+            return self.chunks[-1] == following.chunks[0]
+
+    reads = [Read(*r) for r in [("a", 1), ("b", 2), ("a", 3), ("v", 4, (0, 1)), ("v", 5, (1,)), ("v", 6, (2,)),
+                                ("b", 7)]]
     grouped = gadgethdf.HDFArrayLoader._group_reads(reads, per_file=True)
-    assert [[r.n for r in task] for task in grouped] == [[1, 3], [2, 6], [4], [5]]
+    assert [[r.n for r in task] for task in grouped] == [[1, 3], [2, 7], [4, 5, 6]]
+    # one task per read, except that consecutive reads needing the same chunk go together
     ungrouped = gadgethdf.HDFArrayLoader._group_reads(reads, per_file=False)
-    assert [[r.n for r in task] for task in ungrouped] == [[1], [2], [3], [4], [5], [6]]
+    assert [[r.n for r in task] for task in ungrouped] == [[1], [2], [3], [4, 5], [6], [7]]
+
+
+@pytest.mark.skipif(hdf_read_strategy.available_cpus() < 2, reason="needs more than one CPU")
+def test_threads_sharing_files_decode_each_chunk_once(monkeypatch):
+    """When threads share the pieces of a file, pieces needing the same chunk are read by one thread, in order, so
+    that each chunk is decoded once"""
+    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", "4")
+    monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: "ext4")
+    monkeypatch.setattr(gadgethdf, "_max_buf", 1000)  # much smaller than the chunks, so that pieces share them
+    decodes = []
+    original_decode = hdf_bulk_read.decode_chunk
+    monkeypatch.setattr(hdf_bulk_read, "decode_chunk",
+                        lambda *args, **kwargs: decodes.append(1) or original_decode(*args, **kwargs))
+    f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
+    f.dm['pos']
+    assert not f._array_loader.last_read_strategy.per_file and f._array_loader.last_read_strategy.threads > 1
+    decodes_threaded = len(decodes)
+    decodes.clear()
+    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", "1")
+    g = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
+    g.dm['pos']
+    np.testing.assert_array_equal(f.dm['pos'], g.dm['pos'])
+    assert decodes_threaded == len(decodes)
 
 
 @pytest.mark.skipif(hdf_read_strategy.available_cpus() < 2, reason="needs more than one CPU")
