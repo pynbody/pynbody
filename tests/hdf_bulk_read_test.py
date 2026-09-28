@@ -214,6 +214,60 @@ def test_chunk_cache_empties_as_reads_consume_chunks(tmp_path):
         assert len(wrapped._cache) == 0
 
 
+@pytest.mark.parametrize("lookups_before_indexing", [0, 8, 10 ** 9], ids=["index", "hybrid", "one-by-one"])
+@pytest.mark.parametrize("prepared", [False, True])
+def test_chunk_locations(tmp_path, monkeypatch, lookups_before_indexing, prepared):
+    """Chunks are found alike whether looked up one by one or through an index of all of them, including chunks
+    never written, and along trailing axes"""
+    monkeypatch.setattr(hdf_bulk_read, "_chunk_lookups_before_indexing", lookups_before_indexing)
+    filename = tmp_path / "chunks.h5"
+    with h5py.File(filename, "w") as f:
+        dataset = f.create_dataset("x", shape=(1000, 5), dtype="f4", chunks=(30, 2), compression="gzip",
+                                   fillvalue=-1)
+        dataset[0:400] = np.arange(2000, dtype="f4").reshape(400, 5)
+        dataset[700:1000, 2:4] = 7  # leaving rows 400 to 700 unwritten, and parts of rows 700 onwards
+    with h5py.File(filename, "r") as f:
+        expected = f["x"][:]
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        pieces = [(0, 5), (5, 333), (333, 690), (690, 1000)]
+        if prepared:
+            for start, stop in pieces:
+                wrapped.prepare(start, stop)
+        for start, stop in pieces:
+            np.testing.assert_array_equal(wrapped[start:stop], expected[start:stop])
+        assert bool(wrapped._chunk_index) == (lookups_before_indexing < 10 ** 9)
+
+
+def test_chunk_locations_without_chunk_iter(tmp_path, monkeypatch):
+    """Where h5py or HDF5 cannot iterate over chunks, they are looked up one by one"""
+    monkeypatch.setattr(hdf_bulk_read, "_chunk_lookups_before_indexing", 0)
+    filename = tmp_path / "chunks.h5"
+    data = np.arange(3000.0)
+    _make_chunked(filename, data, (100,), (2, 1))
+
+    class WithoutChunkIter:
+        def __init__(self, dataset_id):
+            self._id = dataset_id
+
+        def __getattr__(self, name):
+            if name == "chunk_iter":
+                raise AttributeError(name)
+            return getattr(self._id, name)
+
+    class Dataset:
+        def __init__(self, dataset):
+            self._dataset, self.id = dataset, WithoutChunkIter(dataset.id)
+
+        def __getattr__(self, name):
+            return getattr(self._dataset, name)
+
+    with h5py.File(filename, "r") as f:
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        wrapped._dataset = Dataset(f["x"])
+        np.testing.assert_array_equal(wrapped[:], data)
+        assert wrapped._chunk_index is False and len(wrapped._chunk_info) == 30
+
+
 def _make_file_with_datasets_to_read_through_h5py(filename, external_filename):
     with h5py.File(filename, "w") as f:
         f.create_dataset("compound", data=np.zeros(10, dtype=[("a", "f4"), ("b", "i4")]))

@@ -81,6 +81,9 @@ _supported_drivers = {'sec2', 'windows'}
 
 _default_cache_nbytes = 64 * 1024 * 1024
 
+# How many chunks of a dataset are looked up one by one before an index of all its chunks is made instead
+_chunk_lookups_before_indexing = 8
+
 # Data that must be converted on their way into the destination are read this many bytes at a time
 _conversion_block_nbytes = 16 * 1024 * 1024
 
@@ -643,7 +646,12 @@ class _ChunkedReader(_DirectReader):
         self._cache_nbytes = cache_nbytes
         self._cache = collections.OrderedDict()
         self._cache_lock = threading.Lock()
-        self._chunk_info = {}  # chunk origin -> StoreInfo, for chunks looked up in advance by prepare()
+        # Where each chunk is stored, as (byte offset or None if never written, size, filter mask): looked up chunk by
+        # chunk, until enough have been wanted that an index of all of them is worth making (see _chunk_location)
+        self._chunk_info = {}  # chunk origin -> location, for chunks looked up one by one
+        self._chunk_index = None  # an index of every chunk (see _build_chunk_index), or False if one cannot be made
+        self._chunk_index_lock = threading.Lock()
+        self._chunk_lookups = 0
 
     def is_compressed(self):
         return any(f['filter_id'] == _DEFLATE_FILTER for f in self._pipeline)
@@ -660,9 +668,75 @@ class _ChunkedReader(_DirectReader):
     def prepare(self, start, stop):
         if self._use_h5py:
             return
-        for origin in self._chunk_origins(start, stop):
-            if origin not in self._chunk_info:
-                self._chunk_info[origin] = self._dataset.id.get_chunk_info_by_coord(origin)
+        origins = [origin for origin in self._chunk_origins(start, stop) if origin not in self._chunk_info]
+        try:
+            if self._chunk_index is None and self._chunk_lookups + len(origins) > _chunk_lookups_before_indexing:
+                self._build_chunk_index()
+            if not self._chunk_index:
+                for origin in origins:
+                    self._chunk_location(origin)
+        except _UnexpectedData as e:
+            self._bulk_reader._report_fallback(self._dataset, e, reading=True)
+            self._use_h5py = True
+
+    def _chunk_location(self, origin) -> tuple[int | None, int, int]:
+        """Return (byte offset, or None if never written; size; filter mask) for the chunk at *origin*.
+
+        HDF5 finds a chunk by its coordinates by searching the dataset's chunk index, taking time proportional to the
+        number of chunks, so reading a dataset of many chunks that way would take time proportional to the square of
+        their number. The first few chunks wanted are looked up that way; after that, an index of all of them is
+        made in one pass."""
+        location = self._chunk_info.get(origin)
+        if location is not None:
+            return location
+        if self._chunk_index is None and self._chunk_lookups >= _chunk_lookups_before_indexing:
+            self._build_chunk_index()
+        if self._chunk_index:
+            positions, offsets, sizes, masks = self._chunk_index
+            i = int(positions[tuple(o // c for o, c in zip(origin, self._chunk_shape))])
+            return (None, 0, 0) if i < 0 else (int(offsets[i]), int(sizes[i]), int(masks[i]))
+        self._chunk_lookups += 1
+        info = self._dataset.id.get_chunk_info_by_coord(origin)
+        if info.byte_offset is not None and tuple(info.chunk_offset) != origin:
+            raise _UnexpectedData(f"HDF5 reported the chunk at {origin} as being at {tuple(info.chunk_offset)}")
+        location = (info.byte_offset, info.size, info.filter_mask)
+        self._chunk_info[origin] = location
+        return location
+
+    def _build_chunk_index(self):
+        """Index every stored chunk, in one pass through HDF5's chunk index (where h5py and HDF5 support that).
+
+        The index is an array over the grid of chunk positions, giving for each the position in arrays of byte
+        offsets, sizes and filter masks of the stored chunks, or -1 for a chunk never written."""
+        with self._chunk_index_lock:
+            if self._chunk_index is not None:
+                return
+            grid = tuple(-(-n // c) for n, c in zip(self.shape, self._chunk_shape))
+            positions = np.full(grid, -1, dtype=np.int64 if np.prod(grid, dtype=np.int64) >= 2 ** 31 else np.int32)
+            offsets, sizes, masks = [], [], []
+
+            def visit(info):
+                origin = tuple(info.chunk_offset)
+                if any(o % c for o, c in zip(origin, self._chunk_shape)):
+                    raise _UnexpectedData(f"HDF5 reported a chunk at {origin}, which is not on the grid of chunks")
+                position = tuple(o // c for o, c in zip(origin, self._chunk_shape))
+                if all(p < g for p, g in zip(position, grid)):  # (chunks beyond the current extent are never read)
+                    if positions[position] >= 0:
+                        raise _UnexpectedData(f"HDF5 reported two chunks at {origin}")
+                    positions[position] = len(offsets)
+                    offsets.append(info.byte_offset)
+                    sizes.append(info.size)
+                    masks.append(info.filter_mask)
+
+            try:
+                self._dataset.id.chunk_iter(visit)
+            except (AttributeError, NotImplementedError, RuntimeError, TypeError, ValueError):
+                # (chunk_iter needs h5py 3.8 and HDF5 1.14, or 1.12.3 and later; without it, chunks are looked up
+                # one by one)
+                self._chunk_index = False
+                return
+            self._chunk_index = (positions, np.array(offsets, dtype=np.int64), np.array(sizes, dtype=np.int64),
+                                 np.array(masks, dtype=np.int64))
 
     def _read_rows_into(self, out, start, stop):
         rows_per_chunk = self._chunk_shape[0]
@@ -722,25 +796,21 @@ class _ChunkedReader(_DirectReader):
             if chunk is not None:
                 return chunk
 
-        info = self._chunk_info.get(origin)
-        if info is None:
-            info = self._dataset.id.get_chunk_info_by_coord(origin)
-        if info.byte_offset is None:
+        byte_offset, size, filter_mask = self._chunk_location(origin)
+        if byte_offset is None:
             return None  # never written, so reads as the fill value
-        if tuple(info.chunk_offset) != origin:
-            raise _UnexpectedData(f"HDF5 reported the chunk at {origin} as being at {tuple(info.chunk_offset)}")
-        if info.byte_offset + info.size > self._file_size:
+        if byte_offset + size > self._file_size:
             raise _UnexpectedData(f"the chunk at {origin} extends beyond the end of the file")
-        if info.size == self._chunk_nbytes and self._applies_filters(info.filter_mask) and \
+        if size == self._chunk_nbytes and self._applies_filters(filter_mask) and \
                 any(o + c > n for o, c, n in zip(origin, self._chunk_shape, self.shape)):
             # A partial chunk at the edge of the dataset, of exactly the size it would have unfiltered. HDF5 can be
             # told (H5D_CHUNK_DONT_FILTER_PARTIAL_CHUNKS) to store such chunks unfiltered, without recording that it
             # has, and h5py offers no way to find out whether it was; so only HDF5 can be sure how to read it.
             return _READ_THROUGH_H5PY
 
-        raw = _read_bytes(self._file, info.byte_offset, info.size)
-        deferred = self._deferred_filters(info.filter_mask)
-        decoded = decode_chunk(raw, info.filter_mask, self._pipeline, self.dtype.itemsize,
+        raw = _read_bytes(self._file, byte_offset, size)
+        deferred = self._deferred_filters(filter_mask)
+        decoded = decode_chunk(raw, filter_mask, self._pipeline, self.dtype.itemsize,
                                nbytes=self._chunk_nbytes, first_filter=deferred)
         del raw
         expected_nbytes = self._chunk_nbytes + (4 if deferred == 2 else 0)
