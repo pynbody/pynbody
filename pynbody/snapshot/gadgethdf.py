@@ -68,7 +68,7 @@ class _PlannedRead:
 
     def __init__(self, file_key, path, dataset, read, rows):
         self.file_key = file_key  # identifies the file the data come from, for sharing work between threads
-        self.path = path  # the file (for a virtual dataset, the file holding it)
+        self.path = path  # that file's path (for a virtual dataset, the source file)
         self.dataset = dataset  # an h5py dataset, a direct reader (see pynbody.util.hdf_bulk_read), or _DummyHDFData
         self.read = read  # a functools.partial of _HDFArrayFiller.fill_array_from_hdf_dataset
         self.rows = rows  # (start, stop) of the rows of the dataset the read touches
@@ -562,9 +562,11 @@ class HDFArrayLoader:
         """Return the reads needed to load an array, in the order they would be made serially.
 
         Each read fills a separate part of the target array; there is one per piece of up to _max_buf particles that
-        pynbody.chunk.LoadControl yields for each file. Its file_key identifies where its data come from: the path of
-        the file, or for a virtual dataset (whose data come from other files, a different one for each piece of a
-        large dataset) a key unique to the read."""
+        pynbody.chunk.LoadControl yields for each file. Its file_key identifies the file its data come from.
+
+        A virtual dataset takes its data from other files, so each piece of it is further split where one source
+        file gives way to the next, and each part keyed by its source file. The reads are then the same, and are
+        shared between threads in the same way, as if the source files had been enumerated as a set of files."""
         reads = []
         for loading_fam in all_fams_to_load:
 
@@ -599,13 +601,20 @@ class HDFArrayLoader:
                                 file_key = hdf_group.file.filename
                                 dataset_resolved = True
                             if dataset is not None:
-                                target_array = sim_fam_array[i0 + mem_index.start : i0 + mem_index.stop]
-                                read = functools.partial(array_filler.fill_array_from_hdf_dataset,
-                                                         target_array, dataset, source_sel=buf_index, offset=offset)
-                                is_virtual = isinstance(dataset, hdf_bulk_read.VirtualDatasetReader)
-                                reads.append(_PlannedRead((file_key, len(reads)) if is_virtual else file_key,
-                                                          file_key, dataset, read,
-                                                          self._dataset_rows(buf_index, offset, array_filler)))
+                                num_selected = mem_index.stop - mem_index.start
+                                if isinstance(dataset, hdf_bulk_read.VirtualDatasetReader):
+                                    pieces = self._split_at_sources(buf_index, offset, num_selected, array_filler,
+                                                                    dataset)
+                                else:
+                                    pieces = [(0, num_selected, buf_index, file_key)]
+                                for mem_lo, mem_hi, selection, source in pieces:
+                                    mem_start = i0 + mem_index.start
+                                    target_array = sim_fam_array[mem_start + mem_lo : mem_start + mem_hi]
+                                    read = functools.partial(array_filler.fill_array_from_hdf_dataset,
+                                                             target_array, dataset, source_sel=selection,
+                                                             offset=offset)
+                                    reads.append(_PlannedRead(source, source, dataset, read,
+                                                              self._dataset_rows(selection, offset, array_filler)))
                         # Advance even when nothing is copied, or the next read starts from the wrong
                         # position in the file. Refs #955
                         offset += readlen
@@ -614,6 +623,34 @@ class HDFArrayLoader:
                 group_mem_slice = self._load_control.mem_family_slice[hdf_group_name]
                 i0 += group_mem_slice.stop - group_mem_slice.start
         return reads
+
+    @classmethod
+    def _split_at_sources(cls, buf_index, offset, num_selected, array_filler, dataset) -> list[tuple]:
+        """Split a read of a virtual dataset where one source file gives way to the next.
+
+        *buf_index* selects *num_selected* rows relative to *offset*: a slice, or a sorted array of indices. Returns
+        (start, stop, selection, source file) for each part, where [start, stop) is the part's position among the
+        selected rows, and so in the target array."""
+        start, stop = cls._dataset_rows(buf_index, offset, array_filler)
+        segments = dataset.source_segments(start, stop)
+        # Rows of the dataset where the selection may be cut: a stored row maps to a row of the target array only if it
+        # begins one (a 3-vector stored as a flat array of three times the length can be cut only between vectors)
+        factor = array_filler.scaling_factor if array_filler.need_rescale else 1
+        cuts, sources = [], [segments[0][1]]
+        for row, source in segments[1:]:
+            position = row / factor - offset
+            if position == int(position):
+                cuts.append(int(position))
+                sources.append(source)
+        if not cuts:
+            return [(0, num_selected, buf_index, sources[0])]
+        if isinstance(buf_index, slice):
+            edges = [buf_index.start] + cuts + [buf_index.stop]
+            return [(a - buf_index.start, b - buf_index.start, slice(a, b), source)
+                    for a, b, source in zip(edges[:-1], edges[1:], sources) if b > a]
+        indices = np.asarray(buf_index)
+        edges = [0] + [int(k) for k in np.searchsorted(indices, cuts)] + [len(indices)]
+        return [(a, b, indices[a:b], source) for a, b, source in zip(edges[:-1], edges[1:], sources) if b > a]
 
     @staticmethod
     def _dataset_rows(buf_index, offset, array_filler) -> tuple[int, int]:

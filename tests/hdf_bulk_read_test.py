@@ -524,6 +524,33 @@ def test_vds_gaps_read_as_fillvalue(tmp_path):
     _check_vds(tmp_path / "virtual.h5")
 
 
+def test_vds_source_segments(tmp_path):
+    """Where each run of rows of a virtual dataset comes from: adjacent mappings from one file make one run, and
+    unmapped rows are attributed to the virtual dataset's own file"""
+    row_counts = [10, 20, 15]
+    sources, _ = _make_sources(tmp_path, row_counts)
+    layout = h5py.VirtualLayout(shape=(60, 3), dtype=np.float64)
+    layout[0:10] = h5py.VirtualSource("source.0.h5", "x", shape=(10, 3))
+    layout[10:20] = h5py.VirtualSource("source.1.h5", "x", shape=(20, 3))[0:10]
+    layout[20:30] = h5py.VirtualSource("source.1.h5", "x", shape=(20, 3))[10:20]
+    # rows 30 to 35 are unmapped
+    layout[35:50] = h5py.VirtualSource("source.2.h5", "x", shape=(15, 3))
+    layout[50:60] = h5py.VirtualSource("missing.h5", "x", shape=(10, 3))
+    with h5py.File(tmp_path / "virtual.h5", "w") as f:
+        f.create_virtual_dataset("x", layout, fillvalue=-1.0)
+    virtual, (s0, s1, s2) = str(tmp_path / "virtual.h5"), (str(tmp_path / f"source.{i}.h5") for i in range(3))
+    with h5py.File(tmp_path / "virtual.h5", "r") as f:
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        assert isinstance(wrapped, hdf_bulk_read.VirtualDatasetReader)
+        segments = [(row, os.path.normcase(os.path.realpath(name))) for row, name in wrapped.source_segments(0, 60)]
+        assert segments == [(0, s0), (10, s1), (30, virtual), (35, s2), (50, virtual)] or \
+            segments == [(row, os.path.normcase(os.path.realpath(name))) for row, name in
+                         [(0, s0), (10, s1), (30, virtual), (35, s2), (50, virtual)]]
+        assert [row for row, _ in wrapped.source_segments(12, 38)] == [12, 30, 35]
+        assert [row for row, _ in wrapped.source_segments(31, 33)] == [31]
+        assert [row for row, _ in wrapped.source_segments(5, 5)] == [5]
+
+
 def test_vds_missing_source(tmp_path):
     row_counts = [10, 20, 15]
     sources, _ = _make_sources(tmp_path, row_counts)

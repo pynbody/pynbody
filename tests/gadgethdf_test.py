@@ -516,6 +516,70 @@ def test_threaded_tasks_are_per_file(monkeypatch):
     assert f._array_loader.last_read_strategy.per_file
 
 
+@pytest.mark.parametrize("cells", [None, list(range(0, 512, 5)), [3]])
+def test_virtual_dataset_is_shared_between_threads_like_its_files(monkeypatch, cells):
+    """A snapshot whose datasets are virtual, drawing on a set of files, is read just as the set of files would be:
+    the same reads, shared between threads in the same way"""
+    monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: "lustre")
+    monkeypatch.setitem(hdf_read_strategy.config, "parallel-filesystem-threads", 16)
+    monkeypatch.setattr(hdf_read_strategy, "available_cpus", lambda: 16)
+    tasks_seen = []
+    original_perform = gadgethdf.HDFArrayLoader._perform_reads_in_threads
+    monkeypatch.setattr(gadgethdf.HDFArrayLoader, "_perform_reads_in_threads",
+                        staticmethod(lambda tasks, n: tasks_seen.append(tasks) or original_perform(tasks, n)))
+    monkeypatch.setattr(gadgethdf, "_max_buf", 3000)  # so that pieces do not all coincide with files
+
+    def load(filename):
+        tasks_seen.clear()
+        f = pynbody.load(filename, take_swift_cells=cells) if cells else pynbody.load(filename)
+        data = f['pos']
+        # for each read, the file and how many rows it fills in (the length of its part of the target array)
+        planned = [[(os.path.basename(read.path), len(read.read.args[0])) for read in task] for task in tasks_seen[0]] \
+            if tasks_seen else None
+        return data, f._array_loader.last_read_strategy, planned
+
+    virtual_data, virtual_strategy, virtual_tasks = load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
+    files_data, files_strategy, files_tasks = load("testdata/SWIFT/multifile_without_vds/snap_0000")
+    np.testing.assert_array_equal(virtual_data, files_data)
+    assert (virtual_strategy.threads, virtual_strategy.per_file) == (files_strategy.threads, files_strategy.per_file)
+    if files_tasks is None:
+        assert virtual_tasks is None and files_strategy.threads == 1
+        return
+    # Each task reads one file, and the same number of rows from it. (The reads within a task can differ: pieces of
+    # a virtual dataset are counted along the whole dataset, and of a file from its start, so a piece of the
+    # virtual dataset crossing from one file to the next makes one read more.)
+    def summary(tasks):
+        return [({name for name, _ in task}, sum(num_rows for _, num_rows in task)) for task in tasks]
+    assert summary(virtual_tasks) == summary(files_tasks)
+    assert all(len(names) == 1 for names, _ in summary(virtual_tasks))
+
+
+def test_split_at_sources():
+    class Filler:
+        def __init__(self, factor):
+            self.need_rescale, self.scaling_factor = factor != 1, factor
+
+    class Virtual:
+        def source_segments(self, start, stop):
+            boundaries = [(0, "a"), (30, "b"), (31, "c"), (60, "d")]
+            inside = [(row, name) for row, name in boundaries if start < row < stop]
+            first = [name for row, name in boundaries if row <= start][-1]
+            return [(start, first)] + inside
+
+    split = gadgethdf.HDFArrayLoader._split_at_sources
+    # rows 20 to 70, offset 10: cut at 30 and 60, and at 31
+    assert split(slice(10, 60), 10, 50, Filler(1), Virtual()) == \
+        [(0, 10, slice(10, 20), "a"), (10, 11, slice(20, 21), "b"), (11, 40, slice(21, 50), "c"),
+         (40, 50, slice(50, 60), "d")]
+    parts = split(np.array([0, 5, 21, 22, 49]), 10, 5, Filler(1), Virtual())
+    assert [(a, b, list(sel), name) for a, b, sel, name in parts] == \
+        [(0, 2, [0, 5], "a"), (2, 5, [21, 22, 49], "c")]  # (the last index, row 59, precedes the cut at 60)
+    # stored as flat triples: rows 30 and 60 begin vectors 10 and 20, row 31 does not, so no cut there
+    parts = split(slice(0, 30), 0, 30, Filler(3), Virtual())
+    assert parts == [(0, 10, slice(0, 10), "a"), (10, 20, slice(10, 20), "b"), (20, 30, slice(20, 30), "d")]
+    assert split(slice(2, 5), 0, 3, Filler(1), Virtual()) == [(0, 3, slice(2, 5), "a")]
+
+
 def test_group_reads():
     class Read:
         def __init__(self, file_key, n):

@@ -1071,6 +1071,30 @@ class _VirtualReader(_DirectReader):
         last = int(np.searchsorted(self._block_starts, stop, side='left'))
         return (self._blocks[i] for i in range(first, last))
 
+    def source_segments(self, start: int, stop: int) -> list[tuple[int, str]]:
+        """Where rows [start, stop) come from, as (first row, file) for each run of rows from one file, in order.
+
+        The file is a source file or, for rows no source supplies (or whose source cannot be found), the file holding
+        the virtual dataset itself. Adjacent mappings from the same file make one run."""
+        segments = []
+
+        def add(row, filename):
+            if not segments or segments[-1][1] != filename:
+                segments.append((row, filename))
+
+        position = start
+        for block in self._blocks_overlapping(start, stop):
+            lo, hi = max(start, block.start), min(stop, block.stop)
+            if hi <= lo:
+                continue
+            if lo > position:
+                add(position, self._filename)
+            add(lo, block.filename if block.filename is not None else self._filename)
+            position = hi
+        if position < stop or not segments:
+            add(position, self._filename)
+        return segments
+
     def is_compressed(self):
         # judged by the first source that can be read directly, on the assumption that all are stored alike
         for block in self._blocks:
