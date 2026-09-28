@@ -15,6 +15,7 @@ pass the filename ``snap``. If you pass e.g. ``snap.2.hdf5``, only file 2 will b
 """
 
 import concurrent.futures
+import concurrent.futures.thread  # (imported lazily by concurrent.futures otherwise, which could fail mid-load)
 import configparser
 import functools
 import itertools
@@ -532,15 +533,20 @@ class HDFArrayLoader:
         self.last_read_strategy = strategy
         logger.debug("Reading %s with %d thread(s) because %s", array_name, strategy.threads, strategy.reason)
 
+        # Each read is let go of once it has been performed, so that a file's datasets, and the chunks decoded from
+        # them, are freed once all the reads of it are done, rather than when the whole array has been loaded
         if strategy.threads > 1:
             # Make every HDF5 lookup the reads will need now, serially: from several threads at once they would only
             # queue for h5py's lock, and the handing over of that lock is itself costly
             for read in reads:
                 read.prepare()
-            self._perform_reads_in_threads(self._group_reads(reads, strategy.per_file), strategy.threads)
+            tasks = self._group_reads(reads, strategy.per_file)
+            del reads
+            self._perform_reads_in_threads(tasks, strategy.threads)
         else:
-            for read in reads:
-                read()
+            reads.reverse()
+            while reads:
+                reads.pop()()
 
     @staticmethod
     def _summarise(reads) -> hdf_read_strategy.ReadSummary:
@@ -689,10 +695,12 @@ class HDFArrayLoader:
         is never manipulated from more than one thread. That is equivalent, because values read from a file
         carry no units for SimArray.__setitem__ to convert."""
         def perform(task):
-            for planned in task:
-                read = planned.read
+            task.reverse()
+            while task:
+                read = task.pop().read  # let go of each read once performed (see load_arrays)
                 target, dataset = read.args
                 read.func(target.view(np.ndarray), dataset, **read.keywords)
+                del read, target, dataset
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads,
                                                    thread_name_prefix="pynbody-hdf-read") as executor:

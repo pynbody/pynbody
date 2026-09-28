@@ -201,6 +201,19 @@ def test_chunk_cache_avoids_repeated_decoding(tmp_path, monkeypatch):
     assert len(decodes) == 2
 
 
+def test_chunk_cache_empties_as_reads_consume_chunks(tmp_path):
+    """Reads in increasing order leave nothing in the cache once they are past a chunk"""
+    filename = tmp_path / "chunks.h5"
+    data = np.arange(10000, dtype=np.float64)
+    _make_chunked(filename, data, (1000,), (2, 1))
+    with h5py.File(filename, "r") as f:
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        for i in range(0, 10000, 700):
+            np.testing.assert_array_equal(wrapped[i:i + 700], data[i:i + 700])
+            assert len(wrapped._cache) <= 1
+        assert len(wrapped._cache) == 0
+
+
 def _make_file_with_datasets_to_read_through_h5py(filename, external_filename):
     with h5py.File(filename, "w") as f:
         f.create_dataset("compound", data=np.zeros(10, dtype=[("a", "f4"), ("b", "i4")]))
@@ -700,6 +713,32 @@ def test_file_replaced_after_planning(tmp_path, monkeypatch, recwarn, chunked, k
         assert fallbacks == []
     else:
         assert len(fallbacks) == 1 and "has been replaced" in str(fallbacks[0].message)
+
+
+@pytest.mark.parametrize("failures", ["first", "all"])
+def test_files_that_cannot_be_opened(tmp_path, monkeypatch, recwarn, failures):
+    """If pynbody cannot open a file itself (for instance, because the process has too many files open), it opens
+    the file for each read instead, or failing that reads through h5py; it never gives up on the read"""
+    import errno
+    data = np.arange(3000.0).reshape(1000, 3)
+    filename = tmp_path / "x.h5"
+    with h5py.File(filename, "w") as f:
+        f.create_dataset("x", data=data, chunks=(100, 3), compression="gzip")
+    original_open = os.open
+    calls = []
+
+    def failing_open(*args, **kwargs):
+        calls.append(args[0])
+        if failures == "all" or len(calls) == 1:
+            raise OSError(errno.EMFILE, "Too many open files")
+        return original_open(*args, **kwargs)
+
+    monkeypatch.setattr(hdf_bulk_read.os, "open", failing_open)
+    with h5py.File(filename, "r") as f:
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        np.testing.assert_array_equal(wrapped[:], data)
+    fallbacks = [w for w in recwarn if issubclass(w.category, hdf_bulk_read.BulkReadFallbackWarning)]
+    assert len(fallbacks) == (1 if failures == "all" else 0)
 
 
 def test_files_are_opened_once(tmp_path, monkeypatch):

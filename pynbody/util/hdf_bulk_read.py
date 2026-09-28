@@ -194,11 +194,20 @@ class BulkReader:
             try:
                 filename, identity = _check_file(h5file)
                 keep_open = self._files_kept_open < _max_files_kept_open()
-                result = _FileHandle(filename, identity, keep_open)
+                try:
+                    result = _FileHandle(filename, identity, keep_open)
+                except OSError:
+                    if not keep_open:
+                        raise
+                    # e.g. the process has too many files open; try opening the file only for each read instead
+                    keep_open = False
+                    result = _FileHandle(filename, identity, keep_open)
                 if keep_open:
                     self._files_kept_open += 1
             except _CannotReadDirectly as e:
                 result = e
+            except OSError as e:
+                result = _CannotReadDirectly(f"pynbody could not open the file itself ({e})")
             self._file_checks[key] = result
         if isinstance(result, _CannotReadDirectly):
             raise result
@@ -605,8 +614,8 @@ class _ChunkedReader(_DirectReader):
     keeps its own: snapshot writers routinely use chunks of many megabytes (sometimes one for a whole dataset), while
     pynbody reads in pieces of at most ``_max_buf`` rows, so without a cache a partial load would decompress the same
     chunk over and over. Chunks that extend beyond the end of a read are therefore kept, least recently used first
-    out, up to a total of *cache_nbytes*. Chunks that a read consumes entirely are not kept, since pynbody reads each
-    file in increasing order of rows.
+    out, up to a total of *cache_nbytes*; and since pynbody reads each file in increasing order of rows, a chunk is
+    dropped again as soon as a read consumes the rest of it.
     """
 
     def __init__(self, dataset, file, bulk_reader, cache_nbytes: int = _default_cache_nbytes):
@@ -702,9 +711,15 @@ class _ChunkedReader(_DirectReader):
     def _get_chunk(self, origin, keep):
         """Return the decoded chunk at *origin*; None if it has never been written; or _READ_THROUGH_H5PY."""
         with self._cache_lock:
-            chunk = self._cache.get(origin)
+            if keep:
+                chunk = self._cache.get(origin)
+                if chunk is not None:
+                    self._cache.move_to_end(origin)
+            else:
+                # this read consumes the rest of the chunk, and reads come in increasing order, so no later read
+                # will want it
+                chunk = self._cache.pop(origin, None)
             if chunk is not None:
-                self._cache.move_to_end(origin)
                 return chunk
 
         info = self._chunk_info.get(origin)

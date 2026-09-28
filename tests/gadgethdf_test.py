@@ -504,7 +504,8 @@ def test_threaded_tasks_are_per_file(monkeypatch):
     tasks_seen = []
     original_perform = gadgethdf.HDFArrayLoader._perform_reads_in_threads
     monkeypatch.setattr(gadgethdf.HDFArrayLoader, "_perform_reads_in_threads",
-                        staticmethod(lambda tasks, n: tasks_seen.append(tasks) or original_perform(tasks, n)))
+                        staticmethod(lambda tasks, n: tasks_seen.append([list(task) for task in tasks])
+                                     or original_perform(tasks, n)))
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
     f['pos']
     (tasks,) = tasks_seen
@@ -526,7 +527,8 @@ def test_virtual_dataset_is_shared_between_threads_like_its_files(monkeypatch, c
     tasks_seen = []
     original_perform = gadgethdf.HDFArrayLoader._perform_reads_in_threads
     monkeypatch.setattr(gadgethdf.HDFArrayLoader, "_perform_reads_in_threads",
-                        staticmethod(lambda tasks, n: tasks_seen.append(tasks) or original_perform(tasks, n)))
+                        staticmethod(lambda tasks, n: tasks_seen.append([list(task) for task in tasks])
+                                     or original_perform(tasks, n)))
     monkeypatch.setattr(gadgethdf, "_max_buf", 3000)  # so that pieces do not all coincide with files
 
     def load(filename):
@@ -578,6 +580,32 @@ def test_split_at_sources():
     parts = split(slice(0, 30), 0, 30, Filler(3), Virtual())
     assert parts == [(0, 10, slice(0, 10), "a"), (10, 20, slice(10, 20), "b"), (20, 30, slice(20, 30), "d")]
     assert split(slice(2, 5), 0, 3, Filler(1), Virtual()) == [(0, 3, slice(2, 5), "a")]
+
+
+@pytest.mark.parametrize("direct", [True, False])
+def test_datasets_are_released_file_by_file(monkeypatch, direct):
+    """Loading an array from a set of files lets go of each file's dataset (and so its chunk cache) once it has been
+    read, rather than holding every file's until the whole array is loaded"""
+    import weakref
+    monkeypatch.setattr(gadgethdf, "_direct_bulk_read", direct)
+    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", "1")
+    alive = []
+    most_alive = [0]
+    original_fill = gadgethdf._HDFArrayFiller.fill_array_from_hdf_dataset
+
+    def fill(self, target, dataset, *args, **kwargs):
+        if not isinstance(dataset, gadgethdf._DummyHDFData):
+            if not any(ref() is dataset for ref in alive):
+                alive.append(weakref.ref(dataset))
+            gc.collect()
+            most_alive[0] = max(most_alive[0], sum(ref() is not None for ref in alive))
+        return original_fill(self, target, dataset, *args, **kwargs)
+
+    monkeypatch.setattr(gadgethdf._HDFArrayFiller, "fill_array_from_hdf_dataset", fill)
+    f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
+    f.dm['pos']
+    assert len(alive) == len(f._hdf_files)
+    assert most_alive[0] <= 2  # the dataset being read, and perhaps the one before it awaiting collection
 
 
 def test_group_reads():
