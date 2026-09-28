@@ -792,7 +792,9 @@ def test_files_that_cannot_be_opened(tmp_path, monkeypatch, recwarn, failures):
         wrapped = hdf_bulk_read.BulkReader().open(f["x"])
         np.testing.assert_array_equal(wrapped[:], data)
     fallbacks = [w for w in recwarn if issubclass(w.category, hdf_bulk_read.BulkReadFallbackWarning)]
-    assert len(fallbacks) == (1 if failures == "all" else 0)
+    # (without os.pread, files are opened only as reads need them, so a failure is met while reading, and the
+    # dataset is then read through h5py)
+    assert len(fallbacks) == (1 if failures == "all" or not hasattr(os, "pread") else 0)
 
 
 def test_files_are_opened_once(tmp_path, monkeypatch):
@@ -956,6 +958,16 @@ def test_widening_conversions_match_hdf5_bitwise(tmp_path, from_dtype, to_dtype,
         with np.errstate(invalid="raise"):
             hdf_bulk_read.BulkReader().open(f["x"]).read_direct(got)
     assert got.tobytes() == expected.tobytes()
+
+
+@pytest.mark.parametrize("from_dtype, to_dtype, exact", [("<i4", "<f8", True), ("<u2", "<f4", True),
+                                                        ("<i2", "<f4", True), ("<i8", "<f8", False),
+                                                        ("<u8", "<f8", False), ("<i4", "<f4", False),
+                                                        ("<i4", "<i8", True), ("<f4", "<f8", True)])
+def test_conversion_is_exact(from_dtype, to_dtype, exact):
+    """Conversions numpy does itself must be exact for every value: integers too large for the float's mantissa
+    are left to HDF5"""
+    assert hdf_bulk_read._conversion_is_exact(np.dtype(from_dtype), np.dtype(to_dtype)) == exact
 
 
 def test_one_reader_shared_between_threads(tmp_path):

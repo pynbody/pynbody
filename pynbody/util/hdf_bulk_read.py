@@ -468,7 +468,7 @@ class _FileHandle:
                 if not n:
                     break
                 got += n
-        data = bytes(buffer) if into is None else None
+        data = buffer if into is None else None  # (a bytearray, which serves wherever bytes would)
         if got != nbytes:
             raise _UnexpectedData(f"expected {nbytes} bytes at offset {offset}, but the file supplied {got}")
         return data
@@ -600,6 +600,10 @@ def _conversion_is_exact(from_dtype, to_dtype) -> bool:
         return True
     if not np.can_cast(from_dtype, to_dtype, casting='safe'):
         return False
+    if from_dtype.kind in 'iu' and to_dtype.kind == 'f':
+        # numpy counts e.g. int64 to float64 as safe, though it rounds integers beyond 2**53
+        value_bits = from_dtype.itemsize * 8 - (from_dtype.kind == 'i')
+        return value_bits <= np.finfo(to_dtype).nmant + 1
     if from_dtype.kind == 'f':
         return from_dtype.itemsize >= 4 and from_dtype.isnative and to_dtype.isnative
     return True
@@ -986,7 +990,8 @@ def _unshuffle_planes_into(planes: np.ndarray, out: np.ndarray):
     element i at [b, i]; *out* is a contiguous uint8 array of element_size * num_elements bytes.
 
     Copying one plane at a time is two to three times faster in numpy than copying the transpose as a whole."""
-    elements = out.reshape(planes.shape[1], planes.shape[0])
+    elements = out.view()
+    elements.shape = (planes.shape[1], planes.shape[0])  # (unlike reshape, fails rather than copying)
     for b in range(planes.shape[0]):
         elements[:, b] = planes[b]
 
@@ -1246,14 +1251,6 @@ class _VirtualReader(_DirectReader):
                 chunk = None if reader is None else reader.chunk_containing(block.source_start + row - block.start)
                 return None if chunk is None else (block.filename, block.dataset_name, chunk)
         return None
-
-    def is_compressed(self):
-        # judged by the first source that can be read directly, on the assumption that all are stored alike
-        for block in self._blocks:
-            reader = self._get_source_reader(block)
-            if reader is not None:
-                return reader.is_compressed()
-        return False
 
     def prepare(self, start, stop):
         if self._use_h5py:

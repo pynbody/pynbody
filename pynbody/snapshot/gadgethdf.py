@@ -717,7 +717,8 @@ class HDFArrayLoader:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads,
                                                    thread_name_prefix="pynbody-hdf-read") as executor:
-            # list() waits for every task, and raises the first exception any of them raised
+            # list() waits for every task, and raises the first exception any of them raised; tasks not yet started
+            # are then cancelled (by map), as they are if waiting is interrupted (e.g. by KeyboardInterrupt)
             list(executor.map(perform, tasks))
 
     def _get_array_filler(self, array_name: str, loading_fam: family.Family, sim: SimSnap, translated_names: list[str]):

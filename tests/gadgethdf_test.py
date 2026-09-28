@@ -608,6 +608,33 @@ def test_datasets_are_released_file_by_file(monkeypatch, direct):
     assert most_alive[0] <= 2  # the dataset being read, and perhaps the one before it awaiting collection
 
 
+def test_interrupted_threaded_load_abandons_queued_reads(monkeypatch):
+    """An exception such as KeyboardInterrupt stops the load without waiting for every queued read"""
+    class Interrupt(BaseException):  # (like KeyboardInterrupt, which pytest itself would act on)
+        pass
+
+    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", "2")
+    monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: "lustre")
+    performed = []
+    original_fill = gadgethdf._HDFArrayFiller.fill_array_from_hdf_dataset
+
+    def fill(self, *args, **kwargs):
+        performed.append(1)
+        if len(performed) == 1:
+            raise Interrupt
+        return original_fill(self, *args, **kwargs)
+
+    monkeypatch.setattr(gadgethdf, "_max_buf", 500)  # many reads per file
+    f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
+    num_reads = len(f._array_loader._plan_reads([pynbody.family.dm], f, "pos", ["Coordinates"]))
+    monkeypatch.setattr(gadgethdf._HDFArrayFiller, "fill_array_from_hdf_dataset", fill)
+    with pytest.raises(Interrupt):
+        f._array_loader.load_arrays([pynbody.family.dm], f, "pos", ["Coordinates"])
+    # 2 threads work through 10 files: once one is interrupted, only the file the other is reading should be finished
+    # (without cancelling, all but the interrupted file would be)
+    assert len(performed) <= num_reads * 4 // 10
+
+
 def test_group_reads():
     class Read:
         def __init__(self, file_key, n, chunks=()):
