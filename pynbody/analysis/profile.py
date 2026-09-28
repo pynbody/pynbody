@@ -39,7 +39,8 @@ class Profile:
     can be accessed as ``p['ar']`` where ``p`` is a ``Profile`` object. For example, ``p['vr']`` gives
     the radial velocity profile. Implicitly, this is averaged over all particles in each bin,
     weighted by mass (unless an alternate weighting scheme is passed to the ``weight_by`` keyword argument of the
-    constructor).
+    constructor). Individual components of an ND array may be profiled in the same way, e.g. ``p['vz']`` gives
+    the profile of the z-component of ``vel``.
 
     **Dispersions**: One may append ``_rms`` or ``_disp`` to the name of a
     defined array to get the root-mean-square or dispersion profile, respectively. For example,
@@ -64,6 +65,15 @@ class Profile:
     looking at the same set of particles, centered in the same way. It also means you *must* use the same centering
     method if you want to reuse a saved profile.
 
+    .. versionchanged:: 2.6.0
+
+      What can be profiled is now decided by what the snapshot is actually able to provide, rather than by whether
+      the name appears in ``keys`` or ``all_keys``. Nothing has to be loaded or derived in advance. In particular,
+      a derived array is profiled whenever the snapshot knows how to derive it, and a 1D slice of an ND array is
+      profiled whenever the parent array is available: ``p['vz']`` and ``p['vz_disp']`` now work on a freshly loaded
+      snapshot, where previously they raised ``KeyError`` unless something had already touched the velocities,
+      because a loader offers ``vel`` rather than ``vz``.
+
     .. versionchanged:: 2.0
 
       The method ``create_particle_array`` has been removed. Its behaviour was poorly defined in v1, and not believed
@@ -72,6 +82,10 @@ class Profile:
     """
 
     _profile_registry = {}
+
+    # the failure from the most recent attempt to get an underlying simulation array, used
+    # to explain why a profile could not be constructed
+    _last_array_error = None
 
     def _calculate_x(self, sim):
         if self._x_calculator is not None:
@@ -282,43 +296,61 @@ class Profile:
                 pass
             return self._profiles[name]
 
-        elif name in list(self.sim.keys()) or name in self.sim.all_keys():
-            self._profiles[name] = self._auto_profile(name)
-            self._profiles[name].sim = self.sim
-            return self._profiles[name]
-
-        elif name[-5:] == "_disp" and (name[:-5] in list(self.sim.keys()) or name[:-5] in self.sim.all_keys()):
+        for source_name, kwargs in self._auto_profile_candidates(name):
+            if not self._source_obtainable(source_name, **kwargs):
+                continue
             logger.info("Auto-deriving %s" % name)
-            self._profiles[name] = self._auto_profile(
-                name[:-5], dispersion=True)
+            self._profiles[name] = self._auto_profile(source_name, **kwargs)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
-        elif name[-4:] == "_rms" and (name[:-4] in list(self.sim.keys()) or name[:-4] in self.sim.all_keys()):
-            logger.info("Auto-deriving %s" % name)
-            self._profiles[name] = self._auto_profile(name[:-4], rms=True)
-            self._profiles[name].sim = self.sim
-            return self._profiles[name]
+        raise KeyError(name + " is not a valid profile") from self._last_array_error
 
-        elif name[-4:] == "_med" and (name[:-4] in list(self.sim.keys()) or name[:-4] in self.sim.all_keys()):
-            logger.info("Auto-deriving %s" % name)
-            self._profiles[name] = self._auto_profile(name[:-4], median=True)
-            self._profiles[name].sim = self.sim
-            return self._profiles[name]
+    @staticmethod
+    def _auto_profile_candidates(name):
+        """Yield the (source name, :meth:`_auto_profile` options) pairs that *name* could be built from.
 
-        elif name[0:2] == "d_" and (name[2:] in list(self.keys()) or name[2:] in self.derivable_keys() or name[2:] in self.sim.all_keys()):
+        A source of exactly this name takes precedence over any interpretation of a trailing
+        ``_disp``, ``_rms`` or ``_med``, or of a leading ``d_``."""
+        yield name, {}
+        if name[-5:] == "_disp":
+            yield name[:-5], {'dispersion': True}
+        if name[-4:] == "_rms":
+            yield name[:-4], {'rms': True}
+        if name[-4:] == "_med":
+            yield name[:-4], {'median': True}
+        if name[0:2] == "d_":
+            yield name[2:], {'derivative': True}
+
+    def _source_obtainable(self, source_name, derivative=False, **kwargs):
+        """Returns True if the source a profile would be built from can actually be got.
+
+        This is established by asking for it, since nothing cheaper is reliable. Neither
+        ``keys()`` nor ``all_keys()`` is a good guide to what a snapshot can provide: the former
+        lists only what is already in memory, so a 1D slice such as ``vz`` appears only once
+        ``vel`` has been loaded, while the latter reports the names of blocks on disk (``vel``,
+        never ``vz``) alongside derivations which are registered but may still fail when run.
+
+        A derivative is taken of another profile, so for that case the source is looked up here
+        rather than in the snapshot. Anything obtained is left in place for :meth:`_auto_profile`
+        to use. Any failure is kept so that it can be attached to the eventual KeyError."""
+        try:
+            self[source_name] if derivative else self.sim[source_name]
+        except KeyError as e:
+            self._last_array_error = e
+            return False
+        return True
+
+    def _auto_profile(self, name, dispersion=False, rms=False, median=False, derivative=False):
+        if derivative:
+            # a derivative differentiates another profile with respect to radius, rather than
+            # averaging an underlying simulation array over the particles in each bin
             #            if np.diff(self['dr']).all() < 1e-13 :
-            logger.info("Auto-deriving %s/dR" % name)
-            self._profiles[name] = np.gradient(self[name[2:]], self['dr'][0])
-            self._profiles[name] = self._profiles[name] / self['dr'].units
-            return self._profiles[name]
+            underlying = self[name]
+            return np.gradient(underlying, self['dr'][0]) / self['dr'].units
             # else :
             #    raise RuntimeError, "Derivatives only possible for profiles of fixed bin width."
 
-        else:
-            raise KeyError(name + " is not a valid profile")
-
-    def _auto_profile(self, name, dispersion=False, rms=False, median=False):
         result = np.zeros(self.nbins)
 
         with self.sim.immediate_mode:
@@ -962,6 +994,12 @@ class VerticalProfile(Profile):
 
 class QuantileProfile(Profile):
     """A profile object that returns requested quantiles instead of means in each bin.
+
+    .. versionchanged:: 2.6.0
+
+      As for :class:`Profile`, what can be profiled is decided by what the snapshot is able to provide rather than
+      by the names it advertises, so derived arrays and 1D slices of ND arrays are quantiled without having to be
+      computed or loaded in advance.
     """
 
     def __init__(self, sim, q=(0.16, 0.50, 0.84), weights=None, load_from_file = False, ndim = 3, type = 'lin', **kwargs):
@@ -999,13 +1037,13 @@ class QuantileProfile(Profile):
         if name in self._profiles:
             return self._profiles[name]
 
-        elif name in list(self.sim.keys()) or name in self.sim.all_keys():
+        elif self._source_obtainable(name):
             self._profiles[name] = self._auto_profile(name)
             self._profiles[name].sim = self.sim
             return self._profiles[name]
 
         else:
-            raise KeyError(name + " is not a valid QuantileProfile")
+            raise KeyError(name + " is not a valid QuantileProfile") from self._last_array_error
 
     def _auto_profile(self, name, dispersion=False, rms=False, median=False):
         result = np.zeros((self.nbins, len(self.quantiles)))

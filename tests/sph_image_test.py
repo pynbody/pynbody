@@ -234,6 +234,24 @@ def test_projection_average(simple_test_file):
 
 
 
+@pytest.mark.parametrize("ny_factor, nz_factor", [(1, 2), (2, 1)])
+def test_3d_grid_non_cubic(simple_test_file, ny_factor, nz_factor):
+    """Check the grid cell size along each axis is set by the matching n, not by ny (issue #1032)"""
+    f = simple_test_file
+    n = 16
+
+    cubic = pynbody.sph.render_3d_grid(f, nx=n, ny=n, nz=n, width=4.0, approximate_fast=False)
+    enlarged = pynbody.sph.render_3d_grid(f, nx=n, ny=ny_factor * n, nz=nz_factor * n, width=4.0,
+                                          approximate_fast=False)
+
+    assert cubic.shape == (n, n, n)
+    assert enlarged.shape == (n, ny_factor * n, nz_factor * n)
+
+    overlap = tuple(slice((factor - 1) * n // 2, (factor + 1) * n // 2)
+                    for factor in (1, ny_factor, nz_factor))
+    npt.assert_allclose(enlarged[overlap], cubic, rtol=1e-5)
+
+
 def test_spherical_render(simple_test_file):
     f = simple_test_file
 

@@ -5,19 +5,13 @@
 Use of multiple processors by pynbody
 =====================================
 
-A large amount of the code in pynbody is designed to run on multiple processors
-on a single shared-memory machine. For most people, it's not necessary to worry in
-detail about what's going on, but sometimes you may need to understand a bit more,
-and this document tries to explain.
-
-There are three distinct ways in which parallelization works in pynbody.
+There are several distinct ways in which parallelization is possible in pynbody.
 
 (1) *Native threading*, using the ``python`` module ``threading``, or in C code,
     the POSIX standard ``pthread`` library. On any modern Mac and Linux machine,
     this "just works". This is mainly used in the SPH module where we have
-    gone to some lengths to create algorithms that scale well to moderately
-    large numbers of cores (16 certainly, often 32) that you'd find on a
-    typical analysis workstation.
+    gone to some lengths to create algorithms that scale well to large numbers of
+    threads.
 
 (2) *OpenMP threading*. This is used especially in Cython routines used for
     interpolation and gravity routines. If you install from a binary distribution
@@ -29,9 +23,11 @@ There are three distinct ways in which parallelization works in pynbody.
     `tangos <https://github.com/pynbody/tangos>`_ to enable efficient analysis of
     large numbers of halos/galaxies within a single simulation. It is also used internally
     by the ramses loader since loading a ramses file turns out to be an intensive process
-    that can usefully be parallelised. It requires shared memory support,
-    for which you need the :ref:`the appropriate python module <posix_ipc>`. This
-    should be installed automatically if you install pynbody with pip.
+    that can usefully be parallelised.
+
+(4) *Partial loading*. Pynbody can also load only part of a simulation, which is especially useful for
+    large simulations where you may not have enough memory to load the entire dataset.
+    This facility can be helpful in building your own parallel analyses.
 
 .. seealso::
 
@@ -93,18 +89,7 @@ Parallel ramses reader support
 ------------------------------
 
 The ramses reader speeds up load times by using multiple concurrent
-processes to read files. There are two differences between this and the
-standard threading techniques used above.
-
-First, for technical reasons related to the
-`Python GIL <https://wiki.python.org/moin/GlobalInterpreterLock>`_
-you need an extra module to make this work. The module is known as
-`posix_ipc <https://github.com/osvenskan/posix_ipc/>`_,
-and it normally compiles very straight-forwardly on Linux or macOS. It is installed
-at the same time as you install pynbody, so long as you installed it in a standard way
-with ``pip``. If for some reason you are missing it, you can type ``pip install posix_ipc``.
-
-Second, the optimal number of readers depends on a combination
+processes to read files. The optimal number of readers depends on a combination
 of CPU and IO performance, which can be especially subtle on network
 file system machines. (With lustre, the best number of processes may even be
 dependent on how you `striped the data <https://wiki.lustre.org/Configuring_Lustre_File_Striping>`_.)
@@ -128,8 +113,63 @@ This specifies 4 processes.
 
 .. _using_shared_arrays:
 
-Writing your own parallel code
-------------------------------
+
+Partially loading snapshots; halo catalogues
+--------------------------------------------
+
+Some snapshot formats can be *partially* loaded, for example to read only a region of a large simulation, by
+passing ``take=...`` or ``take_region=...`` to :func:`~pynbody.snapshot.load`. Furthermore, if a snapshot is
+spanned across multiple files (as for gadget outputs), one can load a single one of these files rather than
+the full snapshot.
+
+A halo catalogue can still be used in these cases, but the halo finder may assign
+particles to a halo which have not been read from disk. Such a halo is *incomplete*, and trying to access it
+raises an :class:`~pynbody.halo.details.particle_indices.IncompleteHaloError` rather than silently returning
+too few particles.
+
+This is possible only for halo finders which identify their particles by ID. Some formats instead express
+halo membership as positions within the snapshot file, which are meaningless unless every particle is
+present. Those catalogues refuse to load against a partially loaded snapshot, raising a
+:class:`~pynbody.halo.details.particle_indices.PartialLoadingNotSupportedError`.
+
+Whether a snapshot holds all the particles in its file can be tested directly with
+:meth:`~pynbody.snapshot.simsnap.SimSnap.is_partially_loaded`. Note that a view onto a snapshot, such as
+``f[:100]`` or ``f.dm``, counts as partially loaded for this purpose.
+
+.. versionadded:: 2.7.0
+
+    A systematic treatment of incomplete halos was added in pynbody 2.7.0.
+
+
+To find out in advance which halos are affected, use
+:meth:`~pynbody.halo.HaloCatalogue.complete_keys`, which returns the subset of
+:meth:`~pynbody.halo.HaloCatalogue.keys` that can actually be retrieved. To process only
+those halos in a halo catalogue ``h`` that are complete, one would write:
+
+.. sourcecode:: python
+
+  for halo_number in h.complete_keys():
+      halo = h[halo_number]
+      ...
+
+Individual halos can be tested with :meth:`~pynbody.halo.HaloCatalogue.is_complete`. Finder-calculated
+properties remain available for every halo, whether complete or not; it is only access to the particles that
+fails. If you need to filter the arrays returned by
+:meth:`~pynbody.halo.HaloCatalogue.get_properties_all_halos`, which are in halo index order rather than by
+halo number, use :meth:`~pynbody.halo.HaloCatalogue.get_complete_mask`.
+
+.. note::
+
+    Establishing which halos are complete requires the particle lists for all halos, so the methods above call
+    :meth:`~pynbody.halo.HaloCatalogue.load_all` for you. Note also that a catalogue built from an array of
+    halo numbers, one per particle (such as a ``.grp`` file, or HOP output), cannot detect missing particles,
+    since the array covers only the particles which were loaded. Such a catalogue will return those particles
+    that it knows about, and raise a warning if you try to access completeness information.
+
+
+
+Exposing arrays to other processes
+----------------------------------
 
 .. versionadded:: 2.0
 
@@ -151,9 +191,7 @@ the Python Global Interpreter Lock (GIL) which means that even if you have multi
 threads, only one can be executing Python code at a time.
 
 Pynbody includes the bare bones of a parallel framework that you can use to share
-arrays between multiple processes, using shared memory based on `posix_ipc <https://github.com/osvenskan/posix_ipc/>`_.
-(An experiment to use Python's in-built shared memory support showed that it is
-`insufficiently flexible at this time <https://github.com/pynbody/pynbody/pull/790>`_.)
+arrays between multiple processes, using shared memory.
 
 We strongly recommend that you use pynbody's shared memory support
 with an external framework like `tangos <https://github.com/pynbody/tangos>`_, which provides
@@ -180,7 +218,7 @@ On process 1, load the file and any arrays you will need for processing:
       # the same machine).
 
       with open('shared_array_info', 'wb') as info_file:
-          pickle.dump(pynbody.array.shared.pack(f['pos']), info_file)
+          pickle.dump(pynbody.array.shared.to_shared_reference(f['pos']), info_file)
 
 You can verify that ``shared_array_info`` is just a small file. The actual data is stored in shared
 memory, which on linux can be seen in ``/dev/shm/``. The pynbody shared memory is always named
@@ -199,7 +237,7 @@ Now keep that Python interpreter open, and open a second interpreter to access t
         shared_array_info = pickle.load(f)
 
     # Now we can load the shared array
-    pos = pynbody.array.shared.unpack(shared_array_info)
+    pos = pynbody.array.shared.from_shared_reference(shared_array_info)
 
     # Now we can use pos as if it were a normal numpy array
     print(pos)
@@ -218,7 +256,7 @@ on you. Again, for most purposes, we recommend using a higher-level framework li
     Understanding the lifetime of shared memory can be tricky.
 
     The shared array will only get deleted when the first process is closed. After this point,
-    the ``shared_array_info`` file is worthless -- if you try to call :func:`pynbody.array.shared.unpack`,
+    the ``shared_array_info`` file is worthless -- if you try to call :func:`pynbody.array.shared.from_shared_reference`,
     you will get a `SharedArrayNotFound` exception. That said, the actual memory continues to be allocated
     until the last process using it is closed, so processes that already have a handle on the shared array
     will continue to be able to access it. (This is a feature of UNIX shared memory, not pynbody.)
@@ -231,3 +269,46 @@ on you. Again, for most purposes, we recommend using a higher-level framework li
     to clear up after yourself if a job is killed by the scheduler. You can do this by hand
     using ``rm -f /dev/shm/pynbody-*``. (Even if other users have active shared memory segments,
     this will only delete your own.)
+
+
+Transferring a halo catalogue to another process
+------------------------------------------------
+
+.. versionadded:: 2.7.0
+
+Loading a halo catalogue can be expensive, and when analysing a simulation in parallel it is wasteful for
+every process to repeat the work. A catalogue can therefore be reduced to a dictionary of numpy arrays and
+python primitives, using :meth:`~pynbody.halo.HaloCatalogue.get_portable_state`:
+
+.. sourcecode:: python
+
+    state = h.get_portable_state()
+
+Nothing in this dictionary refers to the halo finder's files, or to the process that created it, so it can be
+handed to another process -- for example through the shared memory described above. There, it is turned back
+into a working halo catalogue by :meth:`~pynbody.halo.HaloCatalogue.from_portable_state`, which attaches it to
+a snapshot that the receiving process has loaded:
+
+.. sourcecode:: python
+
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(state, f)
+
+The recreated catalogue offers the halo membership and finder-calculated properties of the original, but never
+touches the halo finder's files. The snapshot it is attached to must present the same particles in the same
+order as the one the state was generated from, since halo membership is stored as offsets into the snapshot.
+
+The consumer does not need to know what any individual array in the state is for.
+:func:`~pynbody.halo.portable.map_arrays` walks a state and replaces every array in it, so the arrays can be
+moved wholesale:
+
+.. sourcecode:: python
+
+    references = pynbody.halo.portable.map_arrays(state, pynbody.array.shared.to_shared_reference)
+
+and, in the receiving process, turned back into arrays by passing the reference type as ``types``:
+
+.. sourcecode:: python
+
+    state = pynbody.halo.portable.map_arrays(references,
+                                             pynbody.array.shared.from_shared_reference,
+                                             types=pynbody.array.shared.SharedArrayReference)

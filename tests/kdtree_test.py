@@ -1,5 +1,6 @@
 import copy
 import gc
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -177,9 +178,14 @@ def test_neighbour_list():
     t = f.g.kdtree
     n_neigh = 32
 
-    generator_nn = t.nn(n_neigh)
-    n = next(generator_nn)
-    # print(n)
+    # The tree returns particles in its own internal order, which is an
+    # implementation detail; pick out a specific particle so that the expected
+    # values below do not depend on it.
+    for position, n in enumerate(t.nn(n_neigh)):
+        if n[0] == 9:
+            break
+    else:
+        raise AssertionError("particle 9 was not returned by the neighbour list generator")
 
     p_idx = n[0]       # particle index in snapshot arrays
     hsml = n[1]        # smoothing length
@@ -205,7 +211,7 @@ def test_neighbour_list():
                         rtol=1e-6)
 
     neighbour_list_all = t.all_nn(n_neigh)
-    assert n == neighbour_list_all[0]
+    assert n == neighbour_list_all[position]
     for nl in neighbour_list_all:
         assert len(nl[2]) == n_neigh   # always find n_neigh neighbours
         idx_self = nl[2].index(nl[0])  # index of self in the neighbour list (not necessarily the first element)
@@ -226,33 +232,96 @@ def test_div_curl_smoothing(div_curl):
     assert f.g['vorticity'].units == f.g['vel'].units/f.g['pos'].units
 
 def test_kdtree_parallel_build():
-    """Check that parallel tree build results in identical tree to serial build."""
+    """Check that the parallel tree build results in an identical tree to the serial build.
+
+    Positions here are float64 and drawn from a continuous distribution, so no two
+    particles share a coordinate and the tree is fully determined. Thread counts
+    that are not a power of two are included, since the build no longer rounds
+    down to one.
+    """
     f = pynbody.new(dm=5000)
     f['pos'] = np.random.uniform(size=(5000,3))
     f['mass'] = np.random.uniform(size=5000)
 
     f.build_tree(1)
-    result_one_thread = f.kdtree.serialize()
+    leafsize, boxsize, kdn1, poff1, kernel = f.kdtree.serialize()
 
-    _, _, kdn1, poff1, _ = result_one_thread
+    for num_threads in (2, 3, 4, 5, 8, 16):
+        del f.kdtree
+        f.build_tree(num_threads)
+        _, _, kdn, poff, _ = f.kdtree.serialize()
+
+        assert (kdn1['pLower'] == kdn['pLower']).all()
+        assert (kdn1['pUpper'] == kdn['pUpper']).all()
+        assert (kdn1['iDim'] == kdn['iDim']).all()
+        npt.assert_allclose(kdn1['bnd']['fMin'], kdn['bnd']['fMin'])
+        npt.assert_allclose(kdn1['bnd']['fMax'], kdn['bnd']['fMax'])
+        npt.assert_allclose(kdn1['fSplit'], kdn['fSplit'])
+        assert (poff1 == poff).all()
+
+
+@pytest.mark.parametrize("num_threads", [0, -1])
+def test_kdtree_rejects_non_positive_num_threads(num_threads):
+    """A thread count below one must be rejected rather than silently doing nothing."""
+    f = pynbody.new(dm=100)
+    f['pos'] = np.random.uniform(size=(100, 3))
+    f['mass'] = np.ones(100)
+
+    with pytest.raises(ValueError):
+        f.build_tree(num_threads)
+
+
+@pytest.mark.parametrize("npart", [1, 2, 33, 200])
+def test_kdtree_build_more_threads_than_work(npart):
+    """Asking for more threads than the tree can use must still build it correctly."""
+    f = pynbody.new(dm=npart)
+    f['pos'] = np.random.uniform(size=(npart, 3))
+    f['mass'] = np.ones(npart)
+
+    f.build_tree(64)
+    offsets = f.kdtree.particle_offsets
+    assert sorted(offsets.tolist()) == list(range(npart))
 
     del f.kdtree
-
-    f.build_tree(4)
-    result_four_threads = f.kdtree.serialize()
-    _, _, kdn4, poff4, _ = result_four_threads
-
-    assert (kdn1['pLower'] == kdn4['pLower']).all()
-    assert (kdn1['pUpper'] == kdn4['pUpper']).all()
-    assert (kdn1['iDim'] == kdn4['iDim']).all()
-    npt.assert_allclose(kdn1['bnd']['fMin'], kdn4['bnd']['fMin'])
-    npt.assert_allclose(kdn1['bnd']['fMax'], kdn4['bnd']['fMax'])
-    npt.assert_allclose(kdn1['fSplit'], kdn4['fSplit'])
-    assert (poff1 == poff4).all()
+    f.build_tree(1)
+    npt.assert_array_equal(offsets, f.kdtree.particle_offsets)
 
 
+def test_kdtree_parallel_build_with_tied_coordinates():
+    """A tree built from particles sharing coordinates must still be a valid tree.
 
+    Which of a set of tied particles ends up on each side of a split is not
+    defined, so the tree may differ between thread counts here; it must
+    nevertheless partition every node correctly and use each particle once.
+    """
+    n = 20000
+    pos = np.random.randint(0, 4, size=(n, 3)).astype(np.float64)  # heavily tied
+    f = pynbody.new(dm=n)
+    f['pos'] = pos
+    f['mass'] = np.ones(n)
 
+    for num_threads in (1, 2, 3, 4, 8):
+        if hasattr(f, 'kdtree'):
+            del f.kdtree
+        f.build_tree(num_threads)
+        kdn = f.kdtree.kdnodes
+        offsets = f.kdtree.particle_offsets
+
+        assert sorted(offsets.tolist()) == list(range(n))
+
+        nsplit = len(kdn) // 2
+        for i in range(1, nsplit):
+            node = kdn[i]
+            if node['iDim'] < 0 or node['pUpper'] <= node['pLower']:
+                continue
+            m = (node['pLower'] + node['pUpper']) // 2
+            d = node['iDim']
+            low = pos[offsets[node['pLower']:m + 1], d]
+            high = pos[offsets[m + 1:node['pUpper'] + 1], d]
+            assert low.max() <= node['fSplit']
+            assert high.min() >= node['fSplit']
+            # the split must halve the node, which the tree layout relies on
+            assert (m - node['pLower'] + 1) - (node['pUpper'] - m) in (0, 1)
 
 
 @pytest.mark.parametrize("npart", [1, 10, 100, 1000, 100000])
@@ -280,6 +349,125 @@ def test_particles_in_sphere(npart, offset, radius, dtype):
     particles_compare = np.where(f['r']<radius)[0]
 
     assert (np.sort(particles) == np.sort(particles_compare)).all()
+
+def _minimum_image_sphere(pos, cen, radius, boxsize):
+    offset = np.asarray(pos, dtype=np.float64) - np.asarray(cen, dtype=np.float64)
+    offset -= boxsize * np.round(offset / boxsize)
+    return np.where((offset ** 2).sum(axis=1) <= radius ** 2)[0]
+
+
+def _make_periodic_uniform(npart, origin, dtype=np.float64, boxsize=1.0, seed=1337):
+    f = pynbody.new(dm=npart)
+    f._create_array('pos', 3, dtype)
+    f._create_array('mass', 1, dtype)
+    rng = np.random.default_rng(seed)
+    f['pos'] = rng.uniform(origin, origin + boxsize, size=(npart, 3))
+    f['mass'] = 1.0
+    f.properties['boxsize'] = boxsize
+    f.build_tree()
+    return f
+
+
+@pytest.mark.parametrize("origin", [0.0, -0.5, -0.7])
+@pytest.mark.parametrize("centre", [(0.9, 0.5, 0.5), (0.3, 0.95, 0.99), (-0.7, 0.5, 0.5),
+                                    (1.3, -0.2, 0.5), (2.9, 0.5, -1.05)])
+@pytest.mark.parametrize("radius", [0.01, 0.05, 0.2])
+def test_particles_in_sphere_centre_outside_particle_domain(origin, centre, radius):
+    """Centres need not lie in the same period as the particles, e.g. a centre expressed in [0, L)
+    when the particles have been wrapped into [-L/2, L/2). This used to return too few (often zero)
+    particles once the centre lay further than about the radius outside the particles' extent."""
+    f = _make_periodic_uniform(20000, origin)
+    particles = np.sort(f.kdtree.particles_in_sphere(centre, radius))
+    npt.assert_array_equal(particles, _minimum_image_sphere(f['pos'], centre, radius, 1.0))
+
+    # and through the filter, which uses the tree when present:
+    npt.assert_array_equal(f[pynbody.filt.Sphere(radius, centre)].get_index_list(f), particles)
+
+
+@pytest.mark.parametrize("npart", [50, 2000, 50000])
+@pytest.mark.parametrize("centre", [(0.5, 0.5, 0.5), (0.95, 0.5, 0.5), (0.0, 0.99, 0.02)])
+@pytest.mark.parametrize("radius", [0.3, 0.45, 0.5, 0.55, 0.7, 0.9])
+def test_particles_in_sphere_large_radius(npart, centre, radius):
+    """When the sphere is large compared with the box, or leaf cells are large compared with the box,
+    particles in a single leaf can have different nearest images of the centre. This used to miss
+    particles."""
+    f = _make_periodic_uniform(npart, 0.0)
+    particles = np.sort(f.kdtree.particles_in_sphere(centre, radius))
+    npt.assert_array_equal(particles, _minimum_image_sphere(f['pos'], centre, radius, 1.0))
+
+
+def test_kdtree_without_boxsize():
+    """A KDTree constructed directly with boxsize=None is non-periodic. nn_start used to fail to parse
+    the None, leaving the period uninitialised and raising a SystemError."""
+    rng = np.random.default_rng(1337)
+    pos = rng.uniform(-0.5, 0.5, size=(1000, 3))
+    mass = np.ones(1000)
+    tree = pynbody.kdtree.KDTree(pos, mass, boxsize=None)
+
+    particles = np.sort(tree.particles_in_sphere([0.45, 0.0, 0.0], 0.2))
+    npt.assert_array_equal(particles, np.where(((pos - [0.45, 0.0, 0.0]) ** 2).sum(axis=1) <= 0.2 ** 2)[0])
+
+    # a periodic tree would find particles through the x = 0.5 boundary; this one must not
+    assert (pos[particles, 0] < 0.65).all()
+    assert len(tree.particles_in_sphere([0.7, 0.0, 0.0], 0.1)) == 0
+
+    # the neighbour search goes through the same entry point
+    tree.set_array_ref('smooth', np.zeros(1000))
+    first = next(iter(tree.nn(8)))
+    assert len(first[2]) == 8
+
+
+def test_non_periodic_representation():
+    """Non-periodic trees store boxsize None and pass an infinite period to C; C rejects non-positive periods"""
+    f = pynbody.new(dm=1000)
+    f['pos'] = np.random.default_rng(1337).uniform(-0.5, 0.5, size=(1000, 3))
+    f['mass'] = 1.0
+    f.build_tree()
+    assert f.kdtree.boxsize is None
+    assert f.kdtree._period_for_c() == np.inf
+
+    from pynbody.kdtree import kdmain
+    for bad_period in (-1.0, 0.0, np.nan):
+        with pytest.raises(ValueError, match="Period must be positive"):
+            kdmain.nn_start(f.kdtree.kdtree, 1, bad_period)
+
+    # legacy non-positive boxsize is still accepted by KDTree itself
+    tree = pynbody.kdtree.KDTree(f['pos'], f['mass'], boxsize=-1.0)
+    assert tree._period_for_c() == np.inf
+    assert len(tree.particles_in_sphere([0.45, 0.0, 0.0], 0.1)) > 0
+
+
+def test_deserialize_boxsize_comparison():
+    f = pynbody.new(dm=1000)
+    f['pos'] = np.random.default_rng(1337).uniform(-0.5, 0.5, size=(1000, 3))
+    f['mass'] = 1.0
+    f.build_tree()
+    leafsize, boxsize, kdnodes, offsets, kernel_id = f.kdtree.serialize()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        # None and the legacy -1 both mean non-periodic, so should be treated as matching
+        pynbody.kdtree.KDTree.deserialize(f['pos'], f['mass'], (leafsize, None, kdnodes, offsets, kernel_id),
+                                          boxsize=-1.0)
+        pynbody.kdtree.KDTree.deserialize(f['pos'], f['mass'], (leafsize, -1.0, kdnodes, offsets, kernel_id),
+                                          boxsize=None)
+
+    with pytest.warns(UserWarning, match="does not match"):
+        pynbody.kdtree.KDTree.deserialize(f['pos'], f['mass'], (leafsize, None, kdnodes, offsets, kernel_id),
+                                          boxsize=1.0)
+
+
+def test_periodicity_disabled_warning_emitted_once():
+    f = pynbody.new(dm=1000)
+    f['pos'] = np.random.default_rng(1337).uniform(-0.6, 0.6, size=(1000, 3))
+    f['mass'] = 1.0
+    f.properties['boxsize'] = 1.0 # smaller than the particle extent
+    f.build_tree()
+
+    with pytest.warns(RuntimeWarning, match="disabling periodicity") as record:
+        f.kdtree.particles_in_sphere([0.0, 0.0, 0.0], 0.1)
+    assert len([w for w in record if "disabling periodicity" in str(w.message)]) == 1
+
 
 def test_kdtree_from_existing_kdtree(npart=1000):
     f = _make_test_gaussian(npart)
@@ -343,3 +531,112 @@ def test_kdtree_float64_rounding(npart=1000):
     f.build_tree()
 
     _ = f['smooth']
+
+
+def _weighting_test_snapshot(npart=8000):
+    f = pynbody.new(gas=npart)
+    np.random.seed(2024)
+    # a strong density gradient, so that rho_i and rho_j differ across a kernel
+    r = 10.0 * np.random.uniform(size=npart)
+    d = np.random.normal(size=(npart, 3))
+    d /= np.linalg.norm(d, axis=1)[:, None]
+    f['pos'] = d * r[:, None]
+    f['mass'] = np.random.uniform(0.5, 1.5, size=npart)
+    f['vel'] = np.random.normal(size=(npart, 3))
+    f['rho']
+    return f
+
+
+def test_mass_weighting_reproduces_a_constant_field():
+    """The 'self' weighting has an exact partition of unity, 'neighbour' does not.
+
+    rho_i is by definition sum_j m_j W_ij, so weighting each neighbour by
+    m_j/rho_i makes the interpolant reproduce a constant exactly. Weighting by
+    m_j/rho_j -- the usual SPH volume element -- only does so approximately.
+    """
+    f = _weighting_test_snapshot()
+    constant = pynbody.array.SimArray(np.full(len(f), 3.25))
+    inner = np.linalg.norm(np.asarray(f['pos'], dtype=np.float64), axis=1) < 8.0
+
+    exact = np.asarray(f.kdtree.sph_mean(constant, 32, weighting='mass'))
+    usual = np.asarray(f.kdtree.sph_mean(constant, 32,
+                                         weighting='volume'))
+
+    npt.assert_allclose(exact[inner], 3.25, rtol=1e-12)
+    assert np.abs(usual[inner] - 3.25).max() > 1e-6, \
+        "the two weightings should differ where the density varies"
+
+
+@pytest.mark.parametrize("operation", ['sph_mean', 'sph_dispersion',
+                                       'sph_divergence', 'sph_curl'])
+def test_weighting_is_accepted_and_changes_the_result(operation):
+    """Every operation that divides by a density takes the option."""
+    f = _weighting_test_snapshot()
+    qty = f['vel'] if operation in ('sph_divergence', 'sph_curl') else f['vx']
+    call = getattr(f.kdtree, operation)
+
+    default = np.asarray(call(qty, 32))
+    neighbour = np.asarray(call(qty, 32, weighting='volume'))
+    self_ = np.asarray(call(qty, 32, weighting='mass'))
+
+    # the default must not have changed
+    npt.assert_array_equal(default, neighbour)
+
+    inner = np.linalg.norm(np.asarray(f['pos'], dtype=np.float64), axis=1) < 8.0
+    assert not np.allclose(neighbour[inner], self_[inner]), \
+        "%s should depend on the weighting where the density varies" % operation
+    assert np.isfinite(self_).all()
+
+
+def test_unknown_weighting_raises():
+    f = _weighting_test_snapshot(1000)
+    with pytest.raises(ValueError):
+        f.kdtree.sph_mean(f['vx'], 32, weighting='not-a-weighting')
+
+
+@pytest.mark.parametrize("operation", ['sph_divergence', 'sph_curl'])
+def test_divergence_and_curl_use_the_periodic_minimum_image(operation):
+    """Displacements must be wrapped, as the neighbour search itself is.
+
+    Regression test: smDivQty and smCurlQty differenced the stored positions
+    directly, while the ball-gather that found the neighbour works in the
+    minimum image. For a pair straddling a box face the two disagree by a box
+    length, so every particle within 2h of a face came out wrong -- which on
+    a cosmological volume is a substantial fraction of them.
+    """
+    npart = 6000
+    f = pynbody.new(gas=npart)
+    rng = np.random.default_rng(12)
+    f['pos'] = rng.uniform(0, 10.0, size=(npart, 3))
+    f['pos'].units = 'kpc'
+    f['mass'] = rng.uniform(0.5, 1.5, size=npart)
+    f['vel'] = rng.normal(size=(npart, 3))
+    f.properties['boxsize'] = pynbody.units.Unit('10 kpc')
+    f['rho']
+
+    m = np.asarray(f['mass'], dtype=np.float64)
+    rho = np.asarray(f['rho'], dtype=np.float64)
+    h = np.asarray(f['smooth'], dtype=np.float64)
+    vel = np.asarray(f['vel'], dtype=np.float64)
+    kernel = f.kdtree.kernel
+
+    # pair_blocks supplies minimum-imaged displacements, so this is the
+    # independent statement of what the C++ ought to produce
+    def divergence(i, j, dx, r):
+        w = (m[j] / rho[i]) * kernel.gradient(r, h[i]) / r
+        if operation == 'sph_divergence':
+            # smDivQty forms (x_i - x_j) . (v_j - v_i), i.e. -(dx . dv)
+            return -w * np.einsum('kl,kl->k', vel[j] - vel[i], dx)
+        # smCurlQty forms (x_i - x_j) x (v_j - v_i), i.e. +(dv x dx)
+        return w[:, None] * np.cross(vel[j] - vel[i], dx)
+
+    expected = f.kdtree.pair_reduce(divergence, mode='gather')
+    got = np.asarray(getattr(f.kdtree, operation)(f['vel'], 32,
+                                                  weighting='mass'))
+
+    # the particles that would have been wrong are the ones near a face
+    pos = np.asarray(f['pos'], dtype=np.float64)
+    near_face = ((pos < 2 * h[:, None]) | (pos > 10.0 - 2 * h[:, None])).any(axis=1)
+    assert near_face.mean() > 0.2, "test needs plenty of particles near a face"
+
+    npt.assert_allclose(got, expected, rtol=1e-8, atol=1e-12)

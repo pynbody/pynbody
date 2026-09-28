@@ -15,7 +15,16 @@ from .subhalo_catalogue import SubhaloCatalogue
 
 
 class SubfindCatalogue(HaloCatalogue):
-    """Handles catalogues produced by the SubFind halo finder (old versions that do not use HDF5 outputs)."""
+    """Handles catalogues produced by the SubFind halo finder (old versions that do not use HDF5 outputs).
+
+    .. versionchanged:: 2.7.0
+
+      Where the snapshot is taken to be ordered, halo membership is expressed as positions within the
+      snapshot file, and the catalogue now refuses to load against a partially loaded snapshot, raising a
+      :class:`~pynbody.halo.details.particle_indices.PartialLoadingNotSupportedError`; previously the wrong
+      particles were returned. Where particle IDs are used instead, halos which extend beyond the loaded
+      particles are reported through :meth:`~pynbody.halo.HaloCatalogue.complete_keys`.
+    """
 
     def __init__(self, sim, filename=None, subs=None, subhalos=False,  ordered=None, _inherit_data_from=None):
         """Initialise a SubFind catalogue
@@ -70,6 +79,10 @@ class SubfindCatalogue(HaloCatalogue):
         else:
             self._ordered = bool((sim['iord']==np.arange(len(sim))).all())
 
+        # when the snapshot is taken to be ordered, the catalogue's particle IDs are used directly as offsets
+        # into it, which is only meaningful if all the particles are present
+        self._uses_file_position_addressing = self._ordered
+
         self._halos = {}
 
         self.dtype_int = sim['iord'].dtype
@@ -116,13 +129,15 @@ class SubfindCatalogue(HaloCatalogue):
 
         if not self._ordered:
             self._init_iord_to_fpos()
-            for a, b in boundaries:
-                ids[a:b] = self._iord_to_fpos.map_ignoring_order(ids[a:b])
-                # must be done segmented in case iord_to_fpos doesn't preserve input order
+            # must be done segmented in case iord_to_fpos doesn't preserve input order
+            return self._assemble_particle_indices(
+                (self._map_iords_to_fpos(ids[a:b]) for a, b in boundaries),
+                num_halos=len(boundaries), num_particles=len(ids)
+            )
 
         return particle_indices.HaloParticleIndices(ids, boundaries)
 
-    def get_properties_one_halo(self, i):
+    def _get_properties_one_halo(self, i):
 
         extract = units.get_item_with_unit
 
@@ -200,7 +215,9 @@ class SubfindCatalogue(HaloCatalogue):
             return SubhaloCatalogue(self._subhalo_catalogue,
                                     self._get_children_of_group(parent_halo_number))
     def _read_ids(self):
-        data_ids = np.array([], dtype=self.dtype_int)
+        # NB accumulate then concatenate once; appending to a growing array copies everything read so far
+        # for every file, which is quadratic in the number of subfind outputs
+        ids_per_task = []
         iout = self._subfind_dir.split("_")[-1]
         for n in range(0, self._tasks):
             filename = os.path.join(
@@ -215,8 +232,10 @@ class SubfindCatalogue(HaloCatalogue):
             # TODO: include a check if both headers agree (they better)
             ids = np.fromfile(fd, dtype=self.dtype_int, sep="", count=-1)
             fd.close()
-            data_ids = np.append(data_ids, ids)
-        return data_ids
+            ids_per_task.append(ids)
+        if len(ids_per_task) == 0:
+            return np.array([], dtype=self.dtype_int)
+        return np.concatenate(ids_per_task)
 
     def _read_data(self, sim):
         halodat={}

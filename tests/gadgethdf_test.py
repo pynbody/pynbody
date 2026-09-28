@@ -237,6 +237,57 @@ def test_partial_load_empty_family_issue_1005():
     assert gas_pos.shape == (4, 3)
     assert dm_pos2.shape == (0, 3)
 
+def test_pressure_without_on_equation_of_state():
+    # Regression test: some GadgetHDF variants do not write an OnEquationOfState
+    # array at all. The pressure derivation should fall back to assuming there is
+    # no equation-of-state floor, rather than raising a KeyError.
+    shutil.copy('testdata/gadget3/data/snapshot_103/snap_103.hdf5',
+                'testdata/gadget3/data/snapshot_103/snap_103_no_eos.hdf5')
+    f = h5py.File('testdata/gadget3/data/snapshot_103/snap_103_no_eos.hdf5', 'r+')
+    del f['PartType0']['OnEquationOfState']
+    f.close()
+
+    snap_with_eos = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103.hdf5')
+    snap_no_eos = pynbody.load('testdata/gadget3/data/snapshot_103/snap_103_no_eos.hdf5')
+
+    assert 'OnEquationOfState' not in snap_no_eos.gas.loadable_keys()
+
+    p_no_eos = snap_no_eos.gas['p']
+
+    # the reference snapshot has particles on the equation of state, so the two
+    # pressure arrays should genuinely differ where that floor kicks in
+    oneos = snap_with_eos.gas['OnEquationOfState'] == 1.
+    assert oneos.any()
+
+    p_expected = snap_with_eos.gas['u'] * snap_with_eos.gas['rho'] * (2./3)
+    npt.assert_allclose(p_no_eos, p_expected)
+
+
+def test_pressure_derivation(snap):
+    # The pressure must be a genuine physical pressure (energy per unit volume),
+    # not an array whose units happen to look plausible but are not actually
+    # convertible to a real pressure (see issue where the formula was missing
+    # a Boltzmann constant and mean molecular weight factor).
+    snap.physical_units()
+    p = snap.gas['p']
+    p.in_units('erg cm**-3')  # raises UnitsException if not a real pressure
+
+    oneos = snap.gas['OnEquationOfState'] == 1.
+    assert oneos.any()
+    assert (~oneos).any()
+
+    # off the equation of state, pressure should be the standard ideal-gas
+    # p = (gamma - 1) * u * rho
+    npt.assert_allclose(p[~oneos], (snap.gas['u'] * snap.gas['rho'] * (2./3))[~oneos])
+
+    # on the equation of state, pressure should follow the imposed polytropic
+    # floor, P/k_B = 2300 K cm^-3 * (rho / (0.1 m_p cm^-3))^(4/3)
+    critpres = 2300. * units.k * units.K / units.cm**3
+    critdens = 0.1 * units.m_p / units.cm**3
+    expected_oneos = critpres * (snap.gas['rho'][oneos].in_units('m_p cm**-3') / critdens) ** (4./3)
+    npt.assert_allclose(p[oneos], expected_oneos.in_units(p.units))
+
+
 def test_load_copy_issue_955(snap):
     # condition: A single-file snapshot with a PartType length greater than max_buf; 
     # select a slice across chunk boundary

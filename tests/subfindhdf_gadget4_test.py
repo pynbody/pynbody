@@ -225,3 +225,106 @@ def test_eps_array(snap_arepo, snap):
     assert np.allclose(snap_arepo['eps'][[0,-1000,-1]],[0.0025, 0.0005, 0.04])
     assert snap['eps'].units == '3.085678e+24 cm a h^-1'
     assert snap_arepo['eps'].units == '3.085678e+24 cm a h^-1'
+
+
+# Subfind expresses halo membership as offsets and lengths within the snapshot's own ordering, rather than as
+# particle IDs. Those offsets are meaningless unless every particle is present, so the catalogue refuses to
+# load against a partially loaded snapshot rather than silently returning the wrong particles.
+
+
+def test_subfind_refuses_partially_loaded_snapshot(snap):
+    partial = pynbody.load('testdata/gadget4_subfind/snapshot_000.hdf5',
+                           take=np.arange(500, len(snap) // 2))
+    assert partial.is_partially_loaded()
+
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(partial)
+
+    # ... including when reached through the automatic catalogue detection
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        partial.halos()
+
+
+def test_subfind_refuses_subsnap(snap):
+    """A view onto part of a snapshot is no more usable than a partial load.
+
+    The refusal must come before the catalogue goes looking for its files, so that the user is told what is
+    actually wrong."""
+    with pytest.raises(pynbody.halo.PartialLoadingNotSupportedError):
+        pynbody.halo.subfindhdf.Gadget4SubfindHDFCatalogue(snap[:1000])
+
+
+def test_subfind_loads_from_complete_snapshot(halos):
+    """Control for the tests above: the catalogue is unaffected when the whole snapshot is present"""
+    assert len(halos[1]) > 0
+    assert (halos.complete_keys() == halos.keys()).all()
+
+
+def _assert_properties_equal(props1, props2):
+    assert props1.keys() == props2.keys()
+    for k in props1:
+        v1, v2 = props1[k], props2[k]
+        if isinstance(v1, pynbody.units.UnitBase):
+            assert str(v1) == str(v2), k
+            assert v1.ratio(v2) == pytest.approx(1.0), k
+        elif isinstance(v1, np.ndarray):
+            assert str(getattr(v1, 'units', None)) == str(getattr(v2, 'units', None)), k
+            np.testing.assert_allclose(v1, v2)
+        else:
+            assert v1 == v2, k
+
+
+@pytest.mark.parametrize('load_all', (True, False))
+@pytest.mark.parametrize('convert', ('snapshot', 'catalogue'))
+def test_halo_property_units_consistent(snap_arepo, halos_arepo, load_all, convert):
+    """Halos, get_properties_one_halo and get_dummy_halo should all agree on units after physical_units"""
+    if convert == 'snapshot':
+        snap_arepo.physical_units()
+    else:
+        halos_arepo.physical_units()
+    if load_all:
+        halos_arepo.load_all()
+
+    for i in (0, 5):
+        from_halo = {k: v for k, v in halos_arepo[i].properties.items() if k not in snap_arepo.properties}
+        del from_halo['halo_number']
+        from_method = halos_arepo.get_properties_one_halo(i)
+        from_dummy = halos_arepo.get_dummy_halo(i).properties
+
+        assert str(from_halo['Group_M_Crit200'].dimensionality_as_string()) == 'kg^1'
+        assert 'h' not in str(from_halo['Group_M_Crit200'])
+        assert 'Msol' in str(from_halo['Group_M_Crit200'])
+
+        _assert_properties_equal(from_halo, from_method)
+        _assert_properties_equal(from_halo, from_dummy)
+
+
+def test_halo_properties_match_converted_arrays(snap_arepo, halos_arepo):
+    """Halo properties obtained by iterating should match the (vectorised) conversion of the property arrays"""
+    halos_arepo.load_all()
+    snap_arepo.physical_units()
+    all_props = halos_arepo.get_properties_all_halos()
+    mass = all_props['Group_M_Crit200'].in_units('Msol', **snap_arepo.conversion_context())
+    for i, h in enumerate(halos_arepo):
+        index = halos_arepo.number_mapper.number_to_index(h.properties['halo_number'])
+        assert float(h.properties['Group_M_Crit200'].in_units('Msol')) == pytest.approx(mass[index])
+
+
+def test_get_properties_one_halo_does_not_discard_conversion(snap_arepo):
+    """The default get_properties_one_halo used to replace the cached property arrays, discarding any unit
+    conversion"""
+    class CatalogueUsingDefaultPropertyAccess(pynbody.halo.subfindhdf.ArepoSubfindHDFCatalogue):
+        _get_properties_one_halo = pynbody.halo.HaloCatalogue._get_properties_one_halo
+
+        def get_properties_all_halos(self, with_units=True):
+            # like many catalogues, return freshly loaded arrays on each call
+            return {k: v.copy() if isinstance(v, np.ndarray) else v
+                    for k, v in super().get_properties_all_halos(with_units).items()}
+
+    halos = CatalogueUsingDefaultPropertyAccess(snap_arepo)
+    halos.load_all()
+    halos.physical_units(persistent=False)
+    before = halos.get_properties_one_halo(1)['Group_M_Crit200']
+    after = halos[2].properties['Group_M_Crit200']
+    assert 'h' not in str(before)
+    assert 'h' not in str(after)

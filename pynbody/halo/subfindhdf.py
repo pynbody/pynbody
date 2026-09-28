@@ -29,7 +29,18 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         At present, the Gadget 4, Arepo and TNG subclasses of this class are not tested against multi-file
         outputs. If you encounter issues with these, please report them to the pynbody developers.
 
+    .. versionchanged:: 2.7.0
+
+      These catalogues now refuse to load against a partially loaded snapshot, raising a
+      :class:`~pynbody.halo.details.particle_indices.PartialLoadingNotSupportedError`. Halo membership is
+      expressed as positions within the snapshot file, which denote different particles once some are
+      absent; previously the wrong particles were returned.
+
     """
+
+    # halo membership is expressed as offsets and lengths within the snapshot's own ordering, rather than as
+    # particle IDs, so this catalogue cannot be used with a partially loaded snapshot
+    _uses_file_position_addressing = True
 
     # Names of various groups and attributes in the hdf file (which vary in different versions of SubFind)
 
@@ -98,6 +109,10 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             warnings.warn("The 'subs' argument to SubFindHDFHaloCatalogue is deprecated. Use 'subhalos' instead.",
                           DeprecationWarning)
             subhalos = subs
+
+        # checked here, before we go looking for files, so that the user gets a useful explanation rather
+        # than a failure to locate a catalogue for the partially loaded snapshot
+        self._refuse_if_snapshot_partially_loaded(sim)
 
         self._sub_mode = subhalos
         self._hdf_files = self._get_catalogue_multifile(sim, user_provided_filename=filename)
@@ -325,7 +340,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
         except KeyError:
             return default
 
-    def get_properties_one_halo(self, i):
+    def _get_properties_one_halo(self, i):
         def extract(arr, i):
             if np.issubdtype(arr.dtype, np.integer):
                 return arr[i]
@@ -459,7 +474,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
     def _get_subhalo_catalogue(self, parent_halo_number):
         if not self._sub_mode:
-            props = self.get_properties_one_halo(parent_halo_number)
+            props = self._get_properties_one_halo(parent_halo_number)
             return SubhaloCatalogue(self._subhalo_catalogue, props['children'])
         else:
             return SubhaloCatalogue(self._subhalo_catalogue, [])

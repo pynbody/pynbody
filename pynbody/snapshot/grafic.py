@@ -68,6 +68,7 @@ class GrafICSnap(SimSnap):
         self.properties['omegaM0'] = float(h['omegam'])
         self.properties['omegaL0'] = float(h['omegal'])
 
+        self.partial_load = take is not None
         disk_family_slice = {family.dm: slice(0, self._dlen * int(h['nz']))}
         self._load_control = chunk.LoadControl(
             disk_family_slice, _max_buflen, take)

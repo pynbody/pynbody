@@ -29,20 +29,24 @@ ctypedef fused fused_float_3:
 ctypedef fused fused_int:
     np.int32_t
     np.int64_t
+    np.uint64_t
 
 ctypedef fused fused_int_2:
     np.int32_t
     np.int64_t
+    np.uint64_t
 
 ctypedef fused fused_int_3:
     np.int32_t
     np.int64_t
+    np.uint64_t
 
 ctypedef fused int_or_float:
     np.float32_t
     np.float64_t
     np.int32_t
     np.int64_t
+    np.uint64_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

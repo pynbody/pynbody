@@ -16,6 +16,7 @@ import functools
 from . import config_parser
 
 _registry = []
+_family_name_set = set() # names and aliases of all families, for fast membership testing
 
 
 def family_names(with_aliases=False):
@@ -43,6 +44,13 @@ def family_names(with_aliases=False):
             for a in o.aliases:
                 l.append(a)
     return l
+
+
+def is_family_name(name):
+    """Returns True if the given string is the name or an alias of a particle family.
+
+    Equivalent to ``name in family_names(with_aliases=True)``, but faster."""
+    return name in _family_name_set
 
 
 def get_family(name, create=False):
@@ -113,14 +121,21 @@ class Family:
                 raise ValueError("Aliases must be lower case")
 
         self.name = name
-        self.aliases = aliases
+        self.aliases = list(aliases)
         _registry.append(self)
+        _family_name_set.add(name)
+        _family_name_set.update(self.aliases)
 
     def __repr__(self):
         return "<Family " + self.name + ">"
 
     def __reduce__(self):
         return get_family, (self.name, True), {"aliases": self.aliases}
+
+    def __setstate__(self, state):
+        # When unpickling creates a family, its aliases arrive here rather than through __init__
+        self.__dict__.update(state)
+        _family_name_set.update(self.aliases)
 
     def __iter__(self):
         # Provided so a single family can be treated as a list of families

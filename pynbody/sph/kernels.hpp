@@ -106,8 +106,13 @@ namespace kernels
       if (r < 1e-24)
         r = 1e-24;
 
+      // The 21/16 prefactor must match the one in operator() above: callers
+      // (smDivQty, smCurlQty) multiply both by the same 1/(pi h^n) factor, so
+      // the value and its derivative have to carry the same normalisation.
+      // d/dq [ (1-q/2)^4 (2q+1) ] = -5 q (1-q/2)^3
       if (q < 2.0)
-        rs = -5.0 * q * (1.0 - 0.5 * q) * (1.0 - 0.5 * q) * (1.0 - 0.5 * q) / r;
+        rs = -(21.0 / 16.0) * 5.0 * q * (1.0 - 0.5 * q) * (1.0 - 0.5 * q) *
+             (1.0 - 0.5 * q) / r;
       else
         rs = 0.0;
 

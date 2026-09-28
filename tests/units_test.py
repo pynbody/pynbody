@@ -101,3 +101,14 @@ def test_latex():
     assert units.Unit("1.2345e-5 km s^-1").latex() == r"1.23\times 10^{-5}\,\mathrm{km}\,\mathrm{s}^{-1}"
     assert units.Unit("1.2345e-1 km s^-1").latex() == r"0.1235\,\mathrm{km}\,\mathrm{s}^{-1}"
     assert units.Unit("Msol").latex() == r"M_{\odot}"
+
+
+def test_cached_unit_conversion_consistent():
+    """_cached_unit_conversion should report no conversion needed on every call, not only when first cached"""
+    from pynbody.snapshot.util import ContainerWithPhysicalUnitsOption as C
+    dims = [units.Unit(x) for x in ('kpc', 'km s^-1', 'Msol', 'a', 'h')]
+    for _ in range(2):
+        assert C._cached_unit_conversion(units.Unit("kpc"), dims) is None
+        assert C._cached_unit_conversion(units.Unit("Msol"), dims) is None
+        assert C._cached_unit_conversion(units.Unit("pc"), dims) == units.Unit("kpc")
+        assert C._cached_unit_conversion(units.Unit("2 kpc"), dims) == units.Unit("kpc")

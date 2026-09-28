@@ -192,21 +192,19 @@ class HBTPlusCatalogue(HaloCatalogue):
         self._init_iord_to_fpos()
 
         iords = self._file["SubhaloParticles"][self.number_mapper.number_to_index(halo_number)]
-        return np.sort(self._iord_to_fpos.map_ignoring_order(iords))
+        return np.sort(self._map_iords_to_fpos_one_halo(iords, halo_number))
 
     def _get_all_particle_indices(self) -> HaloParticleIndices | tuple[np.ndarray, np.ndarray]:
         self._init_iord_to_fpos()
-        indices = np.empty(self._file["Subhalos"]["Nbound"].sum(),
-                           dtype=self._file["SubhaloParticles"][0].dtype)
-        boundaries = np.empty((len(self._file["SubhaloParticles"]), 2),
-                              dtype=np.intp)
-        start = 0
-        for i, halo_parts in enumerate(self._file['SubhaloParticles'][:]):
-            end = start + len(halo_parts)
-            indices[start:end] = np.sort(self._iord_to_fpos.map_ignoring_order(halo_parts))
-            boundaries[i] = (start,end)
-            start = end
-        return indices, boundaries
+
+        # if the snapshot is partially loaded, some halos may refer to particles that aren't present; these
+        # are dropped and counted, so that accessing the affected halos raises an IncompleteHaloError
+        return self._assemble_particle_indices(
+            (self._map_iords_to_fpos(halo_parts) for halo_parts in self._file['SubhaloParticles'][:]),
+            num_halos=len(self._file["SubhaloParticles"]),
+            num_particles=self._file["Subhalos"]["Nbound"].sum(),
+            sort=True
+        )
 
     def with_groups_from(self, other: HaloCatalogue) -> HaloCatalogue:
         """Return a new catalogue that combines an HBT+ halo catalogue with a parent group catalogue.
@@ -222,7 +220,7 @@ class HBTPlusCatalogue(HaloCatalogue):
         """
         return HBTPlusCatalogueWithGroups(self, other)
 
-    def get_properties_one_halo(self, halo_number) -> dict:
+    def _get_properties_one_halo(self, halo_number) -> dict:
         index = self.number_mapper.number_to_index(halo_number)
         result = {}
         subhalo = self._file["Subhalos"][index]
@@ -287,11 +285,22 @@ class HBTPlusCatalogueWithGroups(HaloCatalogue):
         self._hbt_cat.load_all()
         self._group_cat.load_all()
 
+    @property
+    def _can_determine_completeness(self):
+        return self._group_cat._can_determine_completeness
+
+    def _is_loaded(self):
+        return self._group_cat._is_loaded()
+
+    def _get_complete_mask(self):
+        # our particles come from the group catalogue, whose halo numbering (and therefore indexing) we share
+        return self._group_cat.get_complete_mask(load_all_if_required=False)
+
     def _get_particle_indices_one_halo(self, halo_number) -> NDArray[int]:
         return self._group_cat._get_particle_indices_one_halo(halo_number)
 
-    def get_properties_one_halo(self, halo_number) -> dict:
-        group_properties = self._group_cat.get_properties_one_halo(halo_number)
+    def _get_properties_one_halo(self, halo_number) -> dict:
+        group_properties = self._group_cat._get_properties_one_halo(halo_number)
         group_properties['children'] = self._children[self.number_mapper.number_to_index(halo_number)]
         return group_properties
 

@@ -447,16 +447,26 @@ class RamsesSnap(SimSnap):
             self._cpus = cpus
         else:
             self._cpus = list(range(1, self.ncpu + 1))
+
+        # ramses partial-loads by selecting whole cpu files; anything less than all of them means the
+        # snapshot does not contain all the particles in the output
+        self.partial_load = sorted(self._cpus) != list(range(1, self.ncpu + 1))
         self._maxlevel = maxlevel
 
         type_map = self._count_particles()
 
-        has_gas = os.path.exists(
+        gas_on_disk = os.path.exists(
             self._hydro_filename(1)
         ) or force_gas
 
-        if not with_gas:
-            has_gas = False
+        has_gas = gas_on_disk and with_gas
+
+        # Dropping the gas is also a partial load: the remaining particles no longer line up with the
+        # positions a halo finder assigned within the full output. with_gas=False omits the cells entirely,
+        # while maxlevel stops the AMR grid being descended to the finest ones. Neither matters if the
+        # output has no gas in the first place.
+        if gas_on_disk and (not has_gas or maxlevel is not None):
+            self.partial_load = True
 
         if times_are_proper is not None:
             self.times_are_proper = times_are_proper

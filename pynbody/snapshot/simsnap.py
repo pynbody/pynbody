@@ -71,6 +71,29 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     _loadable_keys_registry = {}
     _persistent = ["kdtree", "_immediate_cache", "_kdtree_derived_smoothing"]
 
+    partial_load = False
+    """True if the particles held no longer correspond, one-to-one and in order, with those in :attr:`filename`.
+
+    Set by loaders which select particles within the files they open, and by ramses when it reads a subset of
+    the cpu files or drops the gas. What these have in common is that an index into this snapshot no longer
+    addresses the same particle in the file, so operations which re-read the file by index -- :meth:`load_copy`,
+    and writing arrays back -- must refuse. See :attr:`incomplete_file_set` for the case where particles are
+    missing but that correspondence survives, and :meth:`is_partially_loaded`, which should normally be
+    preferred as it covers both, plus views."""
+
+    incomplete_file_set = False
+    """True if the snapshot is spread over several files, of which only some have been opened.
+
+    Set by loaders which can be pointed at a single file of a multi-file snapshot. Here :attr:`filename` is
+    that one file, and the particles held are exactly its contents in its order, so re-reading it by index
+    remains valid; but the snapshot does not contain all the particles that other tools (for example halo
+    finders) will consider the output to have.
+
+    .. versionadded:: 2.7.0
+
+      Previously this case was indistinguishable from a complete single-file snapshot.
+    """
+
     # These 3D arrays get four views automatically created, one reflecting the
     # full Nx3 data, the others reflecting Nx1 slices of it
     #
@@ -465,11 +488,15 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     def __setattr__(self, name, val):
         """This function overrides the behaviour of setting f.X where f is a SimSnap object.
 
-        It serves two purposes; first it prevents overwriting of family names (so you can't
-        write to, for instance, f.dm). Second, it implements persistent objects -- properties
-        which are shared between two equivalent SubSnaps."""
-        if name in family.family_names():
-            raise AttributeError("Cannot assign family name " + name)
+        It serves two purposes; first it prevents overwriting of family names and their aliases (so
+        you can't write to, for instance, f.dm or f.d). Second, it implements persistent objects --
+        properties which are shared between two equivalent SubSnaps.
+
+        .. versionchanged:: 2.7.2
+            Family aliases are now protected, as well as family names.
+        """
+        if family.is_family_name(name):
+            raise AttributeError("Cannot assign family name or alias " + name)
 
         if name in SimSnap._persistent:
             self.ancestor._set_persist(self._inclusion_hash, name, val)
@@ -604,6 +631,28 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             return self.base.ancestor
         else:
             return self
+
+    def is_partially_loaded(self) -> bool:
+        """Return True if this snapshot holds only some of the particles in the file it came from.
+
+        This is the case either because the file was partially loaded (e.g. by passing ``take`` to
+        :func:`~pynbody.snapshot.load`, by loading only some of the files of a multi-file snapshot, or by
+        passing a loader option which excludes particles, such as ramses' ``with_gas`` and ``maxlevel``), or
+        because this is a view onto part of a snapshot (e.g. ``f[:100]`` or ``f.dm``).
+
+        Code which identifies particles by their position within the file, rather than by their ID, cannot be
+        used with such a snapshot: the positions refer to particles which are not all present, and there is in
+        general no way to map them onto those which are. Halo catalogues in this category refuse to load; see
+        :class:`~pynbody.halo.HaloCatalogue`.
+
+        Note that a view which happens to contain all the particles of its ancestor is still reported as
+        partially loaded, since it may present them in a different order.
+
+        .. versionadded:: 2.7.0
+
+        """
+        ancestor = self.ancestor
+        return self is not ancestor or ancestor.partial_load or ancestor.incomplete_file_set
 
     def get_index_list(self, relative_to, of_particles=None) -> np.ndarray:
         """Get a list specifying the index of the particles in this view relative to the ancestor *relative_to*
@@ -856,7 +905,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             if can_load:
                 return c(self, *args, **kwargs)
 
-        raise RuntimeError("No halo catalogue found for %r" % str(self))
+        message = "No halo catalogue found for %r" % str(self)
+        if self.is_partially_loaded():
+            message += (". Note that this snapshot holds only some of the particles in its file, which "
+                        "prevents some halo catalogue formats from being used at all, and can also stop the "
+                        "catalogue files being located automatically; try passing filename=...")
+        raise RuntimeError(message)
 
     def bridge(self, other) -> bridge.AbstractBridge:
         """Tries to construct a bridge function between this SimSnap
@@ -1765,7 +1819,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             if units.is_unit_like(boxsize):
                 boxsize = float(boxsize.in_units(self['pos'].units))
         else:
-            boxsize = -1.0  # represents infinite box
+            boxsize = None  # non-periodic
         return boxsize
 
 

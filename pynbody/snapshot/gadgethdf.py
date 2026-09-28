@@ -99,7 +99,10 @@ class _GadgetHdfMultiFileManager:
     _size_from_hdf5_key = "ParticleIDs"
     _subgroup_name = None
 
-    def __init__(self, filename, mode='r', remote_dir=None):
+    only_one_file_of_a_set = False
+    """True if we have been pointed at a single file which declares itself to be one of a multi-file set"""
+
+    def __init__(self, filename, mode='r', remote_dir=None) :
         filename = str(filename)
         self._mode = mode
         self._open_files = {}
@@ -107,6 +110,11 @@ class _GadgetHdfMultiFileManager:
         if self._is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1
+            file0 = _open_hdf_file(filename, mode)
+            # the user has pointed us at a single hdf5 file; if it declares itself to be one of a set, we are
+            # seeing only part of the snapshot, and must say so (see SimSnap.is_partially_loaded)
+            self.only_one_file_of_a_set = self._get_declared_num_files(file0) > 1
+            self._cache_file(0, file0)
         else:
             filename0 = self._make_filename_for_cpu(filename, 0)
             file0 = self._open_file(filename0, mode)
@@ -140,6 +148,18 @@ class _GadgetHdfMultiFileManager:
 
     def _get_num_files(self, first_file):
         return first_file[self._nfiles_groupname].attrs[self._nfiles_attrname]
+
+    def _get_declared_num_files(self, first_file):
+        """Return the number of files the given file believes its snapshot to be spread across.
+
+        Returns 1 if the file does not say, since then there is no evidence of any other files."""
+        try:
+            num_files = self._get_num_files(first_file)
+        except KeyError:
+            return 1
+        if hasattr(num_files, "__len__"):
+            num_files = num_files[0]
+        return int(num_files)
 
     def _make_filename_for_cpu(self, filename, n):
         return filename + f".{n}.hdf5"
@@ -213,26 +233,6 @@ class _SubfindHdfMultiFileManager(_GadgetHdfMultiFileManager):
     _nfiles_attrname = "NTask"
     _subgroup_name = "FOF"
 
-class _HDFFileIterator:
-    def __init__(self, hdf_file_iterator):
-        """
-        Initialize the HDF file iterator. specifically used for LoadControl.iterate_with_interrupts
-        """
-        self._hdf_file_iterator = hdf_file_iterator
-        self.current_hdf_file = None
-        self.file_index = -1
-        self.particle_offset = 0
-        self.select_file(0)
-
-    def select_file(self, offset):
-        try:
-            self.current_hdf_file = next(self._hdf_file_iterator)
-            self.file_index += 1 # next file
-            self.particle_offset = 0 # Reset offset for the new file
-        except StopIteration:
-            self.current_hdf_file = None
-            self.file_index = -1
-            self.particle_offset = 0
 class _HDFArrayFiller:
     """A helper class to fill a pynbody array from an HDF5 dataset."""
 
@@ -481,40 +481,42 @@ class HDFArrayLoader:
             
             sim_fam_array, array_filler = self._get_array_filler(array_name, loading_fam, sim, translated_names)
 
-            i0 = 0 # current write position in sim_fam_array
+            i0 = 0 # start of the current hdf group's data within sim_fam_array
 
             # A 'gadget group name' is e.g. 'PartType0', 'PartType1' etc.
             for hdf_group_name in self._family_to_group_map[loading_fam]:
                 if self._file_ptype_slice[hdf_group_name].stop <= self._file_ptype_slice[hdf_group_name].start:
                     continue
-                # Create iterator for this group type across all files
-                file_iterator = _HDFFileIterator(iter(self._hdf_files.iter_particle_groups_with_name(hdf_group_name)))
 
-                last_file_index = -1
-                for readlen, buf_index, mem_index in self._load_control.iterate_with_interrupts(
-                        hdf_group_name, 
-                        hdf_group_name, 
-                        self._file_interrupt_points[hdf_group_name],  # file offset
-                        file_iterator.select_file): 
-                    if mem_index is None or file_iterator.current_hdf_file is None:
-                        # Skip-read: advance on-disk cursor even when we don't copy into memory,
-                        # otherwise the next actual read will start from the wrong disk position
-                        # at chunk/file boundaries (e.g. slice at start == _max_buf). Refs #955
-                        file_iterator.particle_offset += readlen
-                        continue
-                    i1 = i0 + mem_index.stop - mem_index.start
+                hdf_groups = list(self._hdf_files.iter_particle_groups_with_name(hdf_group_name))
+                # Cumulative particle counts, i.e. the group-relative disk position at which each file ends
+                file_boundaries = self._file_interrupt_points[hdf_group_name]
 
-                    # Check if we need to load a new dataset
-                    if last_file_index != file_iterator.file_index:
-                        dataset = self._get_dataset_from_translated_names(sim, file_iterator.current_hdf_file, translated_names)
-                        last_file_index = file_iterator.file_index
+                lo = 0
+                for hdf_group, hi in zip(hdf_groups, file_boundaries):
+                    dataset = None
+                    dataset_resolved = False
+                    offset = 0 # read position within this file
+                    for readlen, buf_index, mem_index in self._load_control.iterate_within(hdf_group_name, lo, hi):
+                        if mem_index is not None:
+                            if not dataset_resolved:
+                                # Resolve only once we know we want something from this file: with partial
+                                # loading most files can contribute nothing, and each lookup is a metadata
+                                # round trip (an expensive one on a parallel filesystem)
+                                dataset = self._get_dataset_from_translated_names(sim, hdf_group,
+                                                                                  translated_names)
+                                dataset_resolved = True
+                            if dataset is not None:
+                                target_array = sim_fam_array[i0 + mem_index.start : i0 + mem_index.stop]
+                                array_filler.fill_array_from_hdf_dataset(target_array, dataset,
+                                                                         source_sel=buf_index, offset=offset)
+                        # Advance even when nothing is copied, or the next read starts from the wrong
+                        # position in the file. Refs #955
+                        offset += readlen
+                    lo = hi
 
-                    if dataset is not None:
-                        target_array = sim_fam_array[i0:i1]
-                        array_filler.fill_array_from_hdf_dataset(target_array, dataset, source_sel=buf_index,
-                                                                       offset=file_iterator.particle_offset)
-                    file_iterator.particle_offset += readlen
-                    i0 = i1
+                group_mem_slice = self._load_control.mem_family_slice[hdf_group_name]
+                i0 += group_mem_slice.stop - group_mem_slice.start
 
     def _get_array_filler(self, array_name: str, loading_fam: family.Family, sim: SimSnap, translated_names: list[str]):
         """
@@ -593,6 +595,7 @@ class GadgetHDFSnap(SimSnap):
 
         take = self._get_take_parameter(**kwargs)
         self.partial_load = take is not None
+        self.incomplete_file_set = self._hdf_files.only_one_file_of_a_set
         self.__init_file_map(take)
         self.__init_loadable_keys()
         self.__infer_mass_dtype()
@@ -1512,14 +1515,15 @@ def u(self) :
 def p(sim) :
     """Calculate the pressure for gas particles, including polytropic equation of state gas"""
 
-    critpres = 2300. * units.K * units.m_p / units.cm**3 ## m_p K cm^-3
+    critpres = 2300. * units.k * units.K / units.cm**3 ## P0/k_B = 2300 K cm^-3, Schaye & Dalla Vecchia 2008
     critdens = 0.1 * units.m_p / units.cm**3 ## m_p cm^-3
     gammaeff = 4./3.
 
-    oneos = sim.g['OnEquationOfState'] == 1.
+    p = sim.g['u'] * sim.g['rho'] * (2./3)
 
-    p = sim.g['rho'].in_units('m_p cm**-3') * sim.g['temp'].in_units('K')
-    p[oneos] = critpres * (sim.g['rho'][oneos].in_units('m_p cm**-3')/critdens)**gammaeff
+    if 'OnEquationOfState' in sim.g.loadable_keys():
+        oneos = sim.g['OnEquationOfState'] == 1.
+        p[oneos] = critpres * (sim.g['rho'][oneos].in_units('m_p cm**-3')/critdens)**gammaeff
 
     return p
 

@@ -46,6 +46,22 @@ def test_sphere(snap):
     assert len(sp_units.intersect(sp)) == len(sp)
 
 
+@pytest.mark.parametrize("centre", [(0.9, 0.9, 0.9), (0.99, 0.2, 0.7), (0.6, 0.6, 0.02)])
+@pytest.mark.parametrize("radius", [0.1, 0.2])
+def test_wrapping_sphere_kdtree_other_convention(wrapping_snap, centre, radius):
+    """Sphere centres given in [0, L) must work on a snapshot wrapped into [-L/2, L/2) with a kdtree,
+    and vice versa"""
+    f, min = wrapping_snap
+    centre = np.array(centre)
+    if min == 0.0:
+        # particles are in [0, L), so express the centre in [-L/2, L/2)
+        centre[centre > 0.5] -= 1.0
+    without_tree = f[pynbody.filt.Sphere(radius, centre)].get_index_list(f)
+    assert len(without_tree) > 0
+    f.build_tree()
+    with_tree = f[pynbody.filt.Sphere(radius, centre)].get_index_list(f)
+    npt.assert_array_equal(with_tree, without_tree)
+
 def test_empty_sphere():
     snap = pynbody.new(0)
     # This would fail due to the C code seeing an array it couldn't handle (due to zero length)

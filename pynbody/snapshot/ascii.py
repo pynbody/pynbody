@@ -24,6 +24,7 @@ class AsciiSnap(SimSnap):
     """
 
     def _setup_slices(self, num_lines, take=None):
+        self.partial_load = take is not None
         disk_family_slice = {family.dm: slice(0,num_lines)}
         self._load_control = chunk.LoadControl(
             disk_family_slice, _max_buf, take)

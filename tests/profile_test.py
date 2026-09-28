@@ -200,3 +200,135 @@ def test_quantile_profile(weight):
         # for where the cdf is 0.16 and 0.84
         expected_width *= 1.8724
     npt.assert_allclose(np.diff(pro['testquantity'], axis=1), expected_width, atol=2.5e-2)
+
+
+def _make_lazy_loading_snapshot(npart=1000):
+    np.random.seed(1337)
+    base = pynbody.new(star=npart)
+    base['pos'] = pynbody.array.SimArray(np.random.normal(size=(npart, 3)), 'kpc')
+    base['vel'] = pynbody.array.SimArray(np.random.normal(size=(npart, 3)), 'km s^-1')
+    base['mass'] = pynbody.array.SimArray(np.ones(npart), 'Msol')
+    return base.get_copy_on_access_simsnap()
+
+
+@pytest.fixture
+def lazy_loading_snapshot():
+    """A snapshot which lazily copies its arrays from another, as a file-backed one would.
+
+    Like a real loader, it advertises ``vel`` rather than ``vz`` in loadable_keys(), and nothing
+    is in memory until it is asked for."""
+    return _make_lazy_loading_snapshot()
+
+
+@pytest.fixture
+def preloaded_snapshot():
+    """The same snapshot, but with the velocities already pulled into memory."""
+    f = _make_lazy_loading_snapshot()
+    f['vel']
+    return f
+
+
+@pytest.mark.parametrize("name", ['vz', 'vz_disp', 'vz_rms', 'vz_med', 'd_vz'])
+def test_profile_of_1d_slice_without_preloading(name, lazy_loading_snapshot, preloaded_snapshot):
+    """Profiles of 1D slices must not depend on whether the ND array happens to be loaded already.
+
+    See issue #1018: 'vz' is only in keys() once 'vel' is in memory, and loaders advertise 'vel'
+    rather than 'vz' in loadable_keys(), so asking for e.g. 'vz_disp' first used to raise KeyError.
+    """
+    assert 'vel' not in lazy_loading_snapshot.keys()
+
+    p_lazy = pynbody.analysis.profile.Profile(lazy_loading_snapshot, rmin=0, rmax=3, nbins=5)
+    p_preloaded = pynbody.analysis.profile.Profile(preloaded_snapshot, rmin=0, rmax=3, nbins=5)
+
+    npt.assert_allclose(p_lazy[name], p_preloaded[name])
+
+
+def test_quantile_profile_of_1d_slice_without_preloading(lazy_loading_snapshot, preloaded_snapshot):
+    p_lazy = pynbody.analysis.profile.QuantileProfile(lazy_loading_snapshot, rmin=0, rmax=3, nbins=5)
+    p_preloaded = pynbody.analysis.profile.QuantileProfile(preloaded_snapshot, rmin=0, rmax=3, nbins=5)
+
+    npt.assert_allclose(p_lazy['vz'], p_preloaded['vz'])
+
+
+def test_profile_still_rejects_unknown_arrays(lazy_loading_snapshot):
+    p = pynbody.analysis.profile.Profile(lazy_loading_snapshot, rmin=0, rmax=3, nbins=5)
+    for name in ['nonsense', 'nonsense_disp', 'nonsense_rms', 'nonsense_med', 'nonsense_x',
+                 'd_nonsense']:
+        with pytest.raises(KeyError):
+            p[name]
+
+
+def _make_bin_centred_snapshot(nbins=10, rmax=10.0, per_bin=20):
+    """A snapshot whose particles sit exactly at the centre of each radial bin.
+
+    Placing them this way makes the average of a quantity within a bin an exact function of that
+    bin's centre, so a profile built from a linear quantity is itself exactly linear and its
+    radial derivative is known analytically."""
+    centres = (np.arange(nbins) + 0.5) * (rmax / nbins)
+    r = np.repeat(centres, per_bin)
+
+    pos = np.zeros((len(r), 3))
+    pos[:, 0] = r
+
+    f = pynbody.new(star=len(r))
+    f['pos'] = pynbody.array.SimArray(pos, 'kpc')
+    f['mass'] = pynbody.array.SimArray(np.ones(len(r)), 'Msol')
+    f['myquantity'] = pynbody.array.SimArray(3.0 * r + 7.0, 'km s^-1')
+    return f, centres
+
+
+def test_derivative_of_array_profile():
+    """``d_<name>`` differentiates the ``<name>`` profile with respect to radius."""
+    nbins, rmax = 10, 10.0
+    f, centres = _make_bin_centred_snapshot(nbins=nbins, rmax=rmax)
+
+    p = pynbody.analysis.profile.Profile(f, rmin=0, rmax=rmax, nbins=nbins, ndim=3)
+
+    # the profile of 3r + 7 is exactly 3r + 7 at the bin centres, so its gradient is exactly 3
+    npt.assert_allclose(p['myquantity'], 3.0 * centres + 7.0)
+    npt.assert_allclose(p['d_myquantity'], 3.0)
+    assert p['d_myquantity'].units == p['myquantity'].units / p['dr'].units
+
+
+def test_derivative_of_registered_profile():
+    """A derivative may also be taken of a profile that is not backed by a snapshot array."""
+    nbins, rmax, per_bin = 10, 10.0, 20
+    f, _ = _make_bin_centred_snapshot(nbins=nbins, rmax=rmax, per_bin=per_bin)
+
+    p = pynbody.analysis.profile.Profile(f, rmin=0, rmax=rmax, nbins=nbins, ndim=3)
+
+    # every bin holds the same mass, so the enclosed mass rises linearly and its gradient is that
+    # mass divided by the bin width
+    dr = rmax / nbins
+    npt.assert_allclose(p['mass_enc'], per_bin * (np.arange(nbins) + 1.0))
+    npt.assert_allclose(p['d_mass_enc'], per_bin / dr)
+    assert p['d_mass_enc'].units == p['mass_enc'].units / p['dr'].units
+
+
+class _BrokenDerivationSnap(pynbody.snapshot.simsnap.SimSnap):
+    pass
+
+
+@_BrokenDerivationSnap.derived_array
+def broken(sim):
+    return sim['no_such_array'] * 2
+
+
+def test_profile_reports_why_a_registered_derivation_failed():
+    """A name can be registered as derivable and still fail when the derivation is actually run.
+
+    Availability is therefore established by asking for the array; when that fails the underlying
+    reason must not be swallowed by the generic 'not a valid profile' message.
+    """
+    npart = 100
+    f = pynbody.new(star=npart, class_=_BrokenDerivationSnap)
+    f['pos'] = pynbody.array.SimArray(np.random.normal(size=(npart, 3)), 'kpc')
+    f['mass'] = pynbody.array.SimArray(np.ones(npart), 'Msol')
+
+    assert 'broken' in f.all_keys()  # registered, so a name-based check would think it available
+
+    p = pynbody.analysis.profile.Profile(f, rmin=0, rmax=3, nbins=5)
+    for name in ['broken', 'broken_disp']:
+        with pytest.raises(KeyError) as excinfo:
+            p[name]
+        assert 'no_such_array' in str(excinfo.value) + str(excinfo.value.__cause__)

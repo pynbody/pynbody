@@ -15,6 +15,14 @@ The :func:`to_3d_grid` function can be used to create a 3D grid of interpolated 
 functionality is also a thin wrapper around the :func:`~pynbody.sph.renderers.make_render_pipeline` function and
 its associated classes in the :mod:`~pynbody.sph.renderers` module.
 
+Underlying all of the above is the :class:`~pynbody.kdtree.KDTree`, which finds the neighbours and provides the
+lower-level SPH operations themselves, such as :meth:`~pynbody.kdtree.KDTree.sph_mean` and
+:meth:`~pynbody.kdtree.KDTree.sph_divergence`. It also supports user-defined SPH operations, which are not
+otherwise available in pynbody: :meth:`~pynbody.kdtree.KDTree.pair_reduce` accumulates an arbitrary pairwise
+function over neighbour pairs, so that operations such as artificial viscosity or conduction can be expressed
+without a python-level loop over particles. For finer control, :meth:`~pynbody.kdtree.KDTree.pair_blocks` exposes
+the neighbour pairs themselves.
+
 """
 
 import copy
