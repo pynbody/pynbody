@@ -210,7 +210,8 @@ class _ContiguousReader(_DirectReader):
     def _read_rows_into(self, out, start, stop):
         if out.dtype == self.dtype and out.flags.c_contiguous:
             offset = self._offset + start * self._row_nbytes
-            files._read_bytes(self._file, offset, (stop - start) * self._row_nbytes, into=memoryview(out.view(np.uint8)))
+            files._read_bytes(self._file, offset, (stop - start) * self._row_nbytes,
+                              into=memoryview(out.view(np.uint8)))
             return
         # The data must be converted (or scattered) on their way into *out*: read them a block of rows at a time, so
         # that the extra memory needed stays small however many rows are read
@@ -228,10 +229,11 @@ class _ChunkedReader(_DirectReader):
 
     Chunk positions are looked up through h5py as they are needed. HDF5's chunk cache is not involved, so this class
     keeps its own: snapshot writers routinely use chunks of many megabytes (sometimes one for a whole dataset), while
-    pynbody reads in pieces of at most ``_max_buf`` rows, so without a cache a partial load would decompress the same
-    chunk over and over. Chunks that extend beyond the end of a read are therefore kept, least recently used first
-    out, up to a total of *cache_nbytes* (or one chunk, if a chunk is larger than that); and since pynbody reads each
-    file in increasing order of rows, a chunk is dropped again as soon as a read consumes the rest of it.
+    reads come in pieces (pynbody's of at most ``_max_buf`` rows), so without a cache a partial load would decompress
+    the same chunk over and over. Chunks that extend beyond the end of a read are therefore kept, least recently used
+    first out, up to a total of *cache_nbytes* (or one chunk, if a chunk is larger than that). Reads are expected to
+    come in increasing order of rows (see ReadRequest), so a chunk is dropped again as soon as a read consumes the
+    rest of it; reads in another order are still correct, but may decode chunks more than once.
     """
 
     def __init__(self, dataset, file, bulk_reader, cache_nbytes: int = _default_cache_nbytes):

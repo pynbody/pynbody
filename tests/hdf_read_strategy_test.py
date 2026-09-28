@@ -148,3 +148,17 @@ def test_nfs_is_not_a_parallel_filesystem(monkeypatch):
     on(monkeypatch, "nfs4")
     strategy = choose_read_strategy(summary())
     assert not strategy.per_file and strategy.threads == 3  # treated like a local disk: threads for compressed data
+
+
+def test_options_cannot_be_misspelt():
+    with pytest.raises(KeyError, match="not an option"):
+        hdf_read_strategy.config["bulk-read-threads"] = "1"
+    hdf_read_strategy.config["threads"] = hdf_read_strategy.config["threads"]  # (existing options can be changed)
+
+
+def test_old_option_names_are_reported(monkeypatch, caplog):
+    monkeypatch.setattr(hdf_read_strategy.config_parser, "has_option",
+                        lambda section, name: (section, name) == ("gadgethdf", "bulk-read-threads"))
+    with caplog.at_level("WARNING", logger="pynbody.util.hdf_bulk_read.strategy"):
+        hdf_read_strategy._read_config()
+    assert any("bulk-read-threads" in r.getMessage() and "[hdf-bulk-read]" in r.getMessage() for r in caplog.records)

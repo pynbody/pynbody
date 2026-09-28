@@ -23,10 +23,11 @@ logger = logging.getLogger('pynbody.util.hdf_bulk_read')
 
 
 class BulkReader:
-    """Opens HDF5 datasets for bulk reading, reading them directly wherever that is safe.
+    """Reads requests of HDF5 datasets (see :meth:`read`), directly wherever that is safe.
 
-    Each multi-file manager owns one of these. It holds open any source files of virtual datasets, which
-    :meth:`close` releases.
+    A bulk reader remembers which files it has checked can be read directly, and holds open the files it reads them
+    through and any source files of virtual datasets, until :meth:`close`. So a program reading from a set of files
+    over and over (as pynbody does for each snapshot) should keep one bulk reader for them.
     """
 
     def __init__(self, enabled: bool = True, cache_nbytes: int = _default_cache_nbytes):
@@ -126,7 +127,7 @@ class BulkReader:
         """Check that a file can be read directly (see _check_file), and return a handle through which to read it.
 
         The answer, and the handle, are shared by every dataset in the file, which matters when a snapshot's virtual
-        datasets draw on thousands of source files. Up to files._max_files_kept_open() files are kept open for positioned
+        datasets draw on many source files. Up to files._max_files_kept_open() files are kept open for positioned
         reads; beyond that, files are opened afresh for each read."""
         key = h5file.filename
         result = self._file_checks.get(key)

@@ -40,10 +40,11 @@ Virtual datasets, such as those in the single-file view SWIFT writes of a multi-
 their source datasets, which are then read like any other. This is supported where every mapping places a
 contiguous block of whole rows of the virtual dataset, which covers the layouts written by SWIFT and by
 :class:`pynbody.util.hdf_vds.HdfVdsMaker`. Source files are found by following HDF5's rules (see
-:func:`_resolve_virtual_source_filename`), except that if a search path has been configured (through the
+:func:`.virtual._resolve_virtual_source_filename`), except that if a search path has been configured (through the
 ``HDF5_VDS_PREFIX`` environment variable or a dataset access property) the virtual dataset is read through h5py,
-since HDF5's handling of those paths varies between versions. Any other layout is read through h5py, as is any source that cannot be
-found (HDF5 then fills its rows with the fill value) or that does not itself pass the checks above.
+since HDF5's handling of those paths varies between versions. Any other layout is read through h5py, as is any
+source that cannot be found (HDF5 then fills its rows with the fill value) or that does not itself pass the checks
+above.
 
 Files must not be replaced on disk while they are open. Replacement of a file being read directly is detected on
 every read, but a source of a virtual dataset that is replaced after HDF5 has opened it cannot be, since pynbody

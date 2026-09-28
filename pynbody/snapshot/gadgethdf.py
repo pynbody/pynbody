@@ -271,10 +271,15 @@ class _HDFArrayFiller:
         return int(np.prod(shape[1:])) if len(shape) > 1 else 1
 
     def request(self, sim_array_to_fill, hdf_dataset, source_sel: slice | np.ndarray | None,
-                offset: int = 0) -> hdf_bulk_read.ReadRequest:
-        """A request to read into *sim_array_to_fill* the elements *source_sel* of *hdf_dataset*.
+                offset: int = 0) -> hdf_bulk_read.ReadRequest | None:
+        """A request to read into *sim_array_to_fill* the elements *source_sel* of *hdf_dataset*; or None if there
+        is nothing to read, because the array's elements have no values.
 
         *source_sel* is a slice, or a sorted array of indices, counted from *offset*; or None for every element."""
+        if self.sim_element_size == 0:
+            # e.g. an array of subfind groups, which has fewer entries than there are particles, is given elements of
+            # size zero (see GadgetHDFSnap.__get_dtype_dims_and_units)
+            return None
         if source_sel is None:
             rows = slice(0, len(hdf_dataset))
         elif isinstance(source_sel, slice):
@@ -454,7 +459,9 @@ class HDFArrayLoader:
                                 if isinstance(dataset, _DummyHDFData):
                                     dataset.read_direct(target_array)
                                 else:
-                                    yield array_filler.request(target_array, dataset, buf_index, offset)
+                                    request = array_filler.request(target_array, dataset, buf_index, offset)
+                                    if request is not None:
+                                        yield request
                         # Advance even when nothing is copied, or the next read starts from the wrong
                         # position in the file. Refs #955
                         offset += readlen

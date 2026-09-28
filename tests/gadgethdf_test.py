@@ -663,3 +663,13 @@ def test_automatic_strategy_on_local_filesystem(filename, compressed):
         assert strategy.threads > 1 and not strategy.per_file, strategy
     else:
         assert strategy.threads == 1, strategy
+
+
+@pytest.mark.filterwarnings("ignore")
+def test_subfind_arrays_of_groups_load():
+    """Arrays of subfind groups (fewer entries than particles) load, as arrays with no values per particle, like every
+    other loadable array"""
+    s = pynbody.load("testdata/gadget3/data/subhalos_103/subhalo_103")
+    for key in s.loadable_keys():
+        s[key]
+    assert s['Length'].shape == (len(s), 0)

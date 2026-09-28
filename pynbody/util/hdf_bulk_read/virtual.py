@@ -50,13 +50,14 @@ class _VirtualReader(_DirectReader):
         self._file = h5file
         self._filename = virtual_filename
         self._fillvalue = fillvalue
+        self._fill = _Fill(fillvalue)
         self._blocks = blocks
         self._block_starts = np.array([b.start for b in blocks], dtype=np.int64)
 
 
     @property
     def filename(self) -> str:
-        """The file holding the virtual dataset (its data come from the source files; see source_segments)"""
+        """The file holding the virtual dataset (its data come from the source files; see divide)"""
         return self._filename
 
     @classmethod
@@ -130,29 +131,51 @@ class _VirtualReader(_DirectReader):
         last = int(np.searchsorted(self._block_starts, stop, side='left'))
         return (self._blocks[i] for i in range(first, last))
 
-    def source_segments(self, start: int, stop: int) -> list[tuple[int, str]]:
-        """Where rows [start, stop) come from, as (first row, file) for each run of rows from one file, in order.
+    def divide(self, rows: slice | np.ndarray, destination: np.ndarray) -> list[tuple]:
+        """Divide reading *rows* into *destination* into parts, each read from one place.
 
-        The file is a source file or, for rows no source supplies (or whose source cannot be found), the file holding
-        the virtual dataset itself. Adjacent mappings from the same file make one run."""
-        segments = []
+        Returns (source, rows of the source, part of *destination*, the file the data come from) for each part, in
+        order. The source is a direct reader of a source dataset (with rows counted in that dataset); for rows no
+        source supplies, a _Fill; and for a source that cannot be read directly, the h5py virtual dataset itself
+        (with rows counted in it), so that HDF5 reads it (filling it with the fill value if it cannot be found).
+        *rows* is a slice, or a sorted array of rows."""
+        if self._use_h5py:
+            return [(self._dataset, rows, destination, self._filename)]
+        if isinstance(rows, slice):
+            start, stop = rows.start, rows.stop
+        else:
+            start, stop = int(rows[0]), int(rows[-1]) + 1
 
-        def add(row, filename):
-            if not segments or segments[-1][1] != filename:
-                segments.append((row, filename))
-
+        # the intervals [lo, hi) of rows, in order, each with its source and the offset of its rows in the source
+        intervals = []
         position = start
         for block in self._blocks_overlapping(start, stop):
             lo, hi = max(start, block.start), min(stop, block.stop)
             if hi <= lo:
                 continue
             if lo > position:
-                add(position, self._filename)
-            add(lo, block.filename if block.filename is not None else self._filename)
+                intervals.append((position, lo, self._fill, 0, self._filename))
+            reader = self._get_source_reader(block)
+            if reader is not None:
+                intervals.append((lo, hi, reader, block.source_start - block.start, block.filename))
+            else:
+                intervals.append((lo, hi, self._dataset, 0, self._filename))
             position = hi
-        if position < stop or not segments:
-            add(position, self._filename)
-        return segments
+        if position < stop:
+            intervals.append((position, stop, self._fill, 0, self._filename))
+
+        parts = []
+        if isinstance(rows, slice):
+            for lo, hi, source, shift, filename in intervals:
+                parts.append((source, slice(lo + shift, hi + shift), destination[lo - start:hi - start], filename))
+        else:
+            cuts = np.searchsorted(rows, [hi for _, hi, _, _, _ in intervals])
+            first = 0
+            for (lo, hi, source, shift, filename), last in zip(intervals, cuts):
+                if last > first:
+                    parts.append((source, rows[first:last] + shift, destination[first:last], filename))
+                first = last
+        return parts
 
     def properties(self, start, stop):
         if self._use_h5py:
@@ -172,14 +195,6 @@ class _VirtualReader(_DirectReader):
             compressed = compressed or source.compressed
             chunk_nbytes = max(chunk_nbytes, source.chunk_nbytes)
         return ReadProperties(direct=direct, compressed=compressed, chunk_nbytes=chunk_nbytes)
-
-    def chunk_containing(self, row):
-        for block in self._blocks_overlapping(row, row + 1):
-            if block.start <= row < block.stop:
-                reader = self._get_source_reader(block)
-                chunk = None if reader is None else reader.chunk_containing(block.source_start + row - block.start)
-                return None if chunk is None else (block.filename, block.dataset_name, chunk)
-        return None
 
     def prepare(self, start, stop):
         if self._use_h5py:
@@ -316,3 +331,16 @@ def _resolve_virtual_source_filename(virtual_filename: str, source_filename: str
         if os.path.isfile(candidate):
             return os.path.abspath(candidate)
     return None
+
+
+class _Fill:
+    """A source for rows of a virtual dataset that no source dataset supplies, which read as the fill value"""
+
+    def __init__(self, value):
+        self.value = value
+
+    def read_direct(self, dest: np.ndarray, source_sel=None):
+        dest[...] = self.value
+
+    def properties(self, start, stop) -> ReadProperties:
+        return ReadProperties(direct=True)

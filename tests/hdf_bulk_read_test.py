@@ -619,9 +619,10 @@ def test_vds_gaps_read_as_fillvalue(tmp_path):
     _check_vds(tmp_path / "virtual.h5")
 
 
-def test_vds_source_segments(tmp_path):
-    """Where each run of rows of a virtual dataset comes from: adjacent mappings from one file make one run, and
-    unmapped rows are attributed to the virtual dataset's own file"""
+def test_vds_divide(tmp_path):
+    """A virtual dataset divides reading its rows into parts read from each source (with rows counted in the source),
+    from nothing for unmapped rows (which read as the fill value), and through h5py for sources that cannot be read
+    directly"""
     row_counts = [10, 20, 15]
     sources, _ = _make_sources(tmp_path, row_counts)
     layout = h5py.VirtualLayout(shape=(60, 3), dtype=np.float64)
@@ -633,17 +634,27 @@ def test_vds_source_segments(tmp_path):
     layout[50:60] = h5py.VirtualSource("missing.h5", "x", shape=(10, 3))
     with h5py.File(tmp_path / "virtual.h5", "w") as f:
         f.create_virtual_dataset("x", layout, fillvalue=-1.0)
-    virtual, (s0, s1, s2) = str(tmp_path / "virtual.h5"), (str(tmp_path / f"source.{i}.h5") for i in range(3))
     with h5py.File(tmp_path / "virtual.h5", "r") as f:
         wrapped = hdf_bulk_read.BulkReader().open(f["x"])
         assert isinstance(wrapped, hdf_bulk_read.virtual._VirtualReader)
-        segments = [(row, os.path.normcase(os.path.realpath(name))) for row, name in wrapped.source_segments(0, 60)]
-        assert segments == [(0, s0), (10, s1), (30, virtual), (35, s2), (50, virtual)] or \
-            segments == [(row, os.path.normcase(os.path.realpath(name))) for row, name in
-                         [(0, s0), (10, s1), (30, virtual), (35, s2), (50, virtual)]]
-        assert [row for row, _ in wrapped.source_segments(12, 38)] == [12, 30, 35]
-        assert [row for row, _ in wrapped.source_segments(31, 33)] == [31]
-        assert [row for row, _ in wrapped.source_segments(5, 5)] == [5]
+        destination = np.zeros((60, 3))
+        parts = wrapped.divide(slice(0, 60), destination)
+        kinds = [type(source).__name__ for source, _, _, _ in parts]
+        assert kinds == ["_ChunkedReader", "_ChunkedReader", "_ChunkedReader", "_Fill", "_ChunkedReader", "Dataset"]
+        assert [rows for _, rows, _, _ in parts] == [slice(0, 10), slice(0, 10), slice(10, 20), slice(30, 35),
+                                                     slice(0, 15), slice(50, 60)]
+        assert [os.path.basename(name) for _, _, _, name in parts] == \
+            ["source.0.h5", "source.1.h5", "source.1.h5", "virtual.h5", "source.2.h5", "virtual.h5"]
+        assert [len(part) for _, _, part, _ in parts] == [10, 10, 10, 5, 15, 10]
+        for _, _, part, _ in parts:
+            assert np.shares_memory(part, destination)
+        # index selections are divided alike, keeping only the parts with rows selected
+        parts = wrapped.divide(np.array([3, 12, 31, 36, 37]), np.zeros((5, 3)))
+        assert [(type(source).__name__, list(rows), len(part)) for source, rows, part, _ in parts] == \
+            [("_ChunkedReader", [3], 1), ("_ChunkedReader", [2], 1), ("_Fill", [31], 1), ("_ChunkedReader", [1, 2], 2)]
+        expected = f["x"][:]
+        hdf_bulk_read.BulkReader().read([hdf_bulk_read.ReadRequest(f["x"], slice(0, 60), destination)])
+    np.testing.assert_array_equal(destination, expected)
 
 
 def test_vds_missing_source(tmp_path):
@@ -1168,14 +1179,48 @@ def test_read_requests_through_h5py_and_directly_together(tmp_path, recwarn):
     assert strategy.threads == 1 and "h5py" in strategy.reason
 
 
-@pytest.mark.parametrize("rows, destination_rows", [(slice(0, 10), 9), (np.arange(5), 6), (slice(0, 10, 2), 5),
-                                                    (slice(None, 10), 10)])
-def test_read_request_mismatches_are_refused(tmp_path, rows, destination_rows):
+@pytest.mark.parametrize("direct", [True, False])
+@pytest.mark.parametrize("rows, destination", [
+    (slice(0, 10), np.zeros(9)), (np.arange(5), np.zeros(6)), (slice(0, 10, 2), np.zeros(5)),
+    (np.array([0, 2, 1, 3]), np.zeros(4)), (np.array([50, 10, 20]), np.zeros(3)), (np.array([1, 1, 2]), np.zeros(3)),
+    (np.array([1.7, 2.2]), np.zeros(2)), (np.array([-1, 2]), np.zeros(2)), (np.array([3998, 4000]), np.zeros(2)),
+    (np.arange(4).reshape(2, 2), np.zeros(4)), (slice(0, 10), np.zeros(20)[::2]), (slice(0, 10), np.zeros((10, 3))),
+    (slice(0, 10), np.frombuffer(bytes(80))), (slice(0, 10), [0.0] * 10)],
+    ids=["too-few", "too-many", "step", "unsorted", "decreasing", "repeated", "floats", "negative", "beyond-end",
+         "2d-rows", "strided-destination", "destination-shape", "read-only-destination", "list-destination"])
+def test_bad_read_requests_are_refused(tmp_path, rows, destination, direct):
+    """Requests that cannot be read as they say are refused, whether the dataset would be read directly or not"""
     _make_mixed_file(tmp_path / "x.h5")
     with h5py.File(tmp_path / "x.h5", "r") as f:
-        request = hdf_bulk_read.ReadRequest(f["contiguous"], rows, np.zeros(destination_rows))
-        with pytest.raises(ValueError):
-            hdf_bulk_read.BulkReader().read([request])
+        request = hdf_bulk_read.ReadRequest(f["contiguous"], rows, destination)
+        with pytest.raises((ValueError, TypeError)):
+            hdf_bulk_read.BulkReader(enabled=direct).read([request])
+
+
+def test_read_request_slices_follow_python_conventions(tmp_path):
+    data = _make_mixed_file(tmp_path / "x.h5")["contiguous"]
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        a, b = np.zeros(10), np.zeros(len(data) - 3990)
+        hdf_bulk_read.BulkReader().read([hdf_bulk_read.ReadRequest(f["contiguous"], slice(None, 10), a),
+                                         hdf_bulk_read.ReadRequest(f["contiguous"], slice(3990, None), b)])
+    np.testing.assert_array_equal(a, data[:10])
+    np.testing.assert_array_equal(b, data[3990:])
+
+
+def test_one_dataset_through_several_objects_is_opened_once(tmp_path, monkeypatch):
+    _make_mixed_file(tmp_path / "x.h5")
+    opened = []
+    original_open = hdf_bulk_read.BulkReader.open
+    monkeypatch.setattr(hdf_bulk_read.BulkReader, "open", lambda self, d: opened.append(d) or original_open(self, d))
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        requests = [hdf_bulk_read.ReadRequest(f["chunked"], slice(i, i + 10), np.zeros((10, 3))) for i in (0, 10, 20)]
+        hdf_bulk_read.BulkReader().read(requests)
+    assert len(opened) == 1
+
+
+def test_empty_read(tmp_path):
+    strategy = hdf_bulk_read.BulkReader().read([])
+    assert strategy.threads == 1 and "nothing" in strategy.reason
 
 
 @pytest.mark.parametrize("kind", ["slice", "indices"])
@@ -1202,30 +1247,6 @@ def test_virtual_dataset_requests_are_split_at_sources(tmp_path, kind):
     np.testing.assert_array_equal(destination, expected)
 
 
-def test_split_at_sources():
-    class Virtual:
-        def source_segments(self, start, stop):
-            boundaries = [(0, "a"), (30, "b"), (31, "c"), (60, "d")]
-            inside = [(row, name) for row, name in boundaries if start < row < stop]
-            first = [name for row, name in boundaries if row <= start][-1]
-            return [(start, first)] + inside
-
-    split = hdf_bulk_read.plan._split_at_sources
-    destination = np.arange(50)
-    works = split(Virtual(), slice(20, 70), destination)
-    assert [(w.rows, w.filename, list(w.destination[[0, -1]])) for w in works] == \
-        [(slice(20, 30), "a", [0, 9]), (slice(30, 31), "b", [10, 10]), (slice(31, 60), "c", [11, 39]),
-         (slice(60, 70), "d", [40, 49])]
-    works = split(Virtual(), np.array([10, 15, 31, 32, 59]), np.arange(5))
-    assert [(list(w.rows), w.filename, list(w.destination)) for w in works] == \
-        [([10, 15], "a", [0, 1]), ([31, 32, 59], "c", [2, 3, 4])]
-    # consecutive rows within a part become a slice
-    works = split(Virtual(), np.array([10, 30, 31, 32]), np.arange(4))
-    assert [(w.rows if isinstance(w.rows, slice) else list(w.rows), w.filename) for w in works] == \
-        [(slice(10, 11), "a"), (slice(30, 31), "b"), (slice(31, 33), "c")]
-    assert [(w.rows, w.filename) for w in split(Virtual(), slice(2, 5), np.arange(3))] == [(slice(2, 5), "a")]
-
-
 def test_group():
     class Work:
         def __init__(self, filename, n, chunks=()):
@@ -1243,3 +1264,19 @@ def test_group():
     # one task per unit of work, except that consecutive units needing the same chunk go together
     ungrouped = hdf_bulk_read.plan.group(works, per_file=False)
     assert [[w.n for w in task] for task in ungrouped] == [[1], [2], [3], [4, 5], [6], [7]]
+
+
+@pytest.mark.parametrize("direct", [True, False])
+def test_selections_convert_as_whole_reads_do(tmp_path, direct):
+    """Rows read by index are converted to the destination's dtype exactly as a whole read converts them (by HDF5 for a
+    narrowing conversion), including values beyond the range of the destination"""
+    data = np.array([1.0, 3.4e38, 3.5e38, -3.5e39, 1e-50, np.nan, 2.0 ** 60, -0.0] * 50)
+    with h5py.File(tmp_path / "x.h5", "w") as f:
+        f.create_dataset("x", data=data, chunks=(64,), compression="gzip")
+    rows = np.arange(0, len(data), 3)
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        whole = np.zeros(len(data), dtype=np.float32)
+        part = np.zeros(len(rows), dtype=np.float32)
+        hdf_bulk_read.BulkReader(enabled=direct).read([hdf_bulk_read.ReadRequest(f["x"], slice(0, len(data)), whole),
+                                                        hdf_bulk_read.ReadRequest(f["x"], rows, part)])
+    np.testing.assert_array_equal(part.view(np.uint32), whole[rows].view(np.uint32))

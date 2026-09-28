@@ -63,15 +63,31 @@ def _read_config():
                 raise ValueError
             return number
         except ValueError:
-            logger.warning("Ignoring the value %r of %s in the [hdf-bulk-read] configuration: expected a whole number of "
-                           "at least 1%s; using %s", value, name,
+            logger.warning("Ignoring the value %r of %s in the [hdf-bulk-read] configuration: expected a whole "
+                           "number of at least 1%s; using %s", value, name,
                            "".join(f" or '{a}'" for a in allowed), default)
             return default
 
-    return {'threads': str(whole_number('threads', 'auto', allowed=('auto',))),
-            'parallel-filesystem-threads': whole_number('parallel-filesystem-threads', 16),
-            'compressed-data-threads': whole_number('compressed-data-threads', 4),
-            'decode-memory': whole_number('decode-memory', 2 * 1024 ** 3)}
+    # (options that lived in [gadgethdf] while this package was being developed)
+    for old_name in ('bulk-read-threads', 'parallel-filesystem-threads', 'compressed-data-threads',
+                     'bulk-read-memory'):
+        if config_parser.has_option('gadgethdf', old_name):
+            logger.warning("Ignoring %s in the [gadgethdf] configuration: options for reading HDF5 data now live in "
+                           "[hdf-bulk-read] (see pynbody.util.hdf_bulk_read.strategy)", old_name)
+
+    return _Options({'threads': str(whole_number('threads', 'auto', allowed=('auto',))),
+                     'parallel-filesystem-threads': whole_number('parallel-filesystem-threads', 16),
+                     'compressed-data-threads': whole_number('compressed-data-threads', 4),
+                     'decode-memory': whole_number('decode-memory', 2 * 1024 ** 3)})
+
+
+class _Options(dict):
+    """The options, which can be changed but not added to, so that a misspelt name is not silently ignored"""
+
+    def __setitem__(self, key, value):
+        if key not in self:
+            raise KeyError(f"{key!r} is not an option for reading HDF5 data; the options are {', '.join(self)}")
+        super().__setitem__(key, value)
 
 
 config = _read_config()
@@ -117,7 +133,9 @@ class ReadStrategy:
 
 def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
     """Decide how to read an array, applying the rules in the module docstring."""
-    if summary.num_reads <= 1:
+    if summary.num_reads == 0:
+        return ReadStrategy(1, True, "there is nothing to read")
+    if summary.num_reads == 1:
         return ReadStrategy(1, True, "there is only one piece to read")
     if not summary.all_direct:
         return ReadStrategy(1, True, "some of the data must be read through h5py, which serialises reads")
