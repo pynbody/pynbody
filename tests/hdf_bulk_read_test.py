@@ -997,6 +997,12 @@ def test_conversion_is_exact(from_dtype, to_dtype, exact):
     assert hdf_bulk_read._conversion_is_exact(np.dtype(from_dtype), np.dtype(to_dtype)) == exact
 
 
+def test_unshuffle_refuses_a_destination_it_could_not_write_in_place():
+    planes = np.zeros((4, 10), dtype=np.uint8)
+    with pytest.raises(ValueError):
+        hdf_bulk_read._unshuffle_planes_into(planes, np.zeros(80, dtype=np.uint8)[::2])
+
+
 def test_one_reader_shared_between_threads(tmp_path):
     import concurrent.futures
     filename = tmp_path / "shared.h5"
