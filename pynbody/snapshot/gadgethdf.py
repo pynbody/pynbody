@@ -14,8 +14,6 @@ Spanned files are supported. To load a range of files ``snap.0.hdf5``, ``snap.1.
 pass the filename ``snap``. If you pass e.g. ``snap.2.hdf5``, only file 2 will be loaded.
 """
 
-import concurrent.futures
-import concurrent.futures.thread  # (imported lazily by concurrent.futures otherwise, which could fail mid-load)
 import configparser
 import functools
 import itertools
@@ -27,7 +25,6 @@ import numpy as np
 
 from .. import chunk, config_parser, family, units, util
 from ..util import hdf_bulk_read
-from ..util.hdf_bulk_read import strategy as hdf_read_strategy
 from . import SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
@@ -62,45 +59,8 @@ _max_buf = 1024 * 512 # max_chunk for chunk.LoadControl
 _chunk_cache_nbytes = int(config_parser.get('gadgethdf', 'chunk-cache-nbytes'))
 _chunk_cache_nslots = int(config_parser.get('gadgethdf', 'chunk-cache-nslots'))
 
-# Whether to read bulk particle data directly, bypassing libhdf5; see _GadgetHdfMultiFileManager.open_for_bulk_read
+# Whether to read bulk particle data directly, bypassing libhdf5; see pynbody.util.hdf_bulk_read
 _direct_bulk_read = config_parser.getboolean('gadgethdf', 'direct-bulk-read', fallback=True)
-
-class _PlannedRead:
-    """One piece of an array to be read; see HDFArrayLoader._plan_reads"""
-
-    def __init__(self, file_key, path, dataset, read, rows):
-        self.file_key = file_key  # identifies the file the data come from, for sharing work between threads
-        self.path = path  # that file's path (for a virtual dataset, the source file)
-        self.dataset = dataset  # an h5py dataset, a direct reader (see pynbody.util.hdf_bulk_read), or _DummyHDFData
-        self.read = read  # a functools.partial of _HDFArrayFiller.fill_array_from_hdf_dataset
-        self.rows = rows  # (start, stop) of the rows of the dataset the read touches
-
-    def __call__(self):
-        self.read()
-
-    def prepare(self):
-        if hasattr(self.dataset, 'prepare'):
-            self.dataset.prepare(*self.rows)
-
-    def properties(self) -> hdf_bulk_read.ReadProperties:
-        """What matters about this read for deciding how to perform it (see pynbody.util.hdf_bulk_read)"""
-        if hdf_bulk_read.is_direct_reader(self.dataset):
-            return self.dataset.properties(*self.rows)
-        return hdf_bulk_read.ReadProperties(direct=False)
-
-    def shares_chunk_with(self, following: "_PlannedRead") -> bool:
-        """True if this read and the *following* one both need the chunk at the boundary between them"""
-        if following.dataset is not self.dataset or not hdf_bulk_read.is_direct_reader(self.dataset) or \
-                self.rows[1] <= self.rows[0] or following.rows[1] <= following.rows[0]:
-            return False
-        chunk = self.dataset.chunk_containing(self.rows[1] - 1)
-        return chunk is not None and chunk == self.dataset.chunk_containing(following.rows[0])
-
-    @property
-    def is_constant(self):
-        """True if the 'read' only fills in a constant (e.g. masses given in the header), reading nothing"""
-        return isinstance(self.dataset, _DummyHDFData)
-
 
 class _DummyHDFData:
 
@@ -267,12 +227,12 @@ class _GadgetHdfMultiFileManager:
         for item in self:
             yield item.parent
 
-    def open_for_bulk_read(self, dataset):
-        """Return an object through which to read the data in an h5py dataset from one of these files.
+    def read(self, requests) -> hdf_bulk_read.strategy.ReadStrategy:
+        """Read requests (see :class:`pynbody.util.hdf_bulk_read.ReadRequest`) of datasets in these files.
 
-        Where it is safe, this reads the data directly rather than through h5py, which serialises all reads. See
-        :meth:`pynbody.util.hdf_bulk_read.BulkReader.open`."""
-        return self._bulk_reader.open(dataset)
+        Where it is safe, the data are read directly rather than through h5py, which serialises all reads, and
+        perhaps in several threads; see :meth:`pynbody.util.hdf_bulk_read.BulkReader.read`."""
+        return self._bulk_reader.read(requests)
 
     def reopen_in_mode(self, mode):
         if mode!=self._mode:
@@ -293,138 +253,49 @@ class _SubfindHdfMultiFileManager(_GadgetHdfMultiFileManager):
     _subgroup_name = "FOF"
 
 class _HDFArrayFiller:
-    """A helper class to fill a pynbody array from an HDF5 dataset."""
+    """Describes how to fill parts of a pynbody array from HDF5 datasets, as requests to read them.
 
-    def __init__(self, sim_array_to_fill = None, hdf_dataset = None):
+    A dataset may store each element of the array flattened: for example, a 3-vector per particle as three
+    consecutive values of a one-dimensional dataset. The requests allow for that."""
 
-        # default element size for simulation arrays
+    def __init__(self, sim_array_to_fill=None, hdf_dataset=None):
         self.sim_element_size = 1 if sim_array_to_fill is None else self._get_element_size(sim_array_to_fill)
         self.file_element_size = 1 if hdf_dataset is None else self._get_element_size(hdf_dataset)
-        self._update_scaling_factor()
+        self.scaling_factor = self.sim_element_size / self.file_element_size
+        self.need_rescale = self.sim_element_size != self.file_element_size
 
-    def _update_sim_element_size(self, sim_array_to_fill):
-        """Update the element size for the simulation array."""
-        self.sim_element_size = self._get_element_size(sim_array_to_fill)
-        self._update_scaling_factor()
+    @staticmethod
+    def _get_element_size(array):
+        """The number of values in each element (the size of all but the first axis) of an array"""
+        shape = getattr(array, 'shape', ())
+        return int(np.prod(shape[1:])) if len(shape) > 1 else 1
 
-    def _update_file_element_size(self, hdf_dataset):
-        """Update the element size for the HDF5 dataset."""
-        self.file_element_size = self._get_element_size(hdf_dataset)
-        self._update_scaling_factor()
+    def request(self, sim_array_to_fill, hdf_dataset, source_sel: slice | np.ndarray | None,
+                offset: int = 0) -> hdf_bulk_read.ReadRequest:
+        """A request to read into *sim_array_to_fill* the elements *source_sel* of *hdf_dataset*.
 
-    def _update_scaling_factor(self):
-        """Update the scaling factor based on the current element sizes."""
-        if self.sim_element_size % self.file_element_size != 0:
-            raise ValueError("scaling_factor in _HDFArrayFiller should be an integer")
-        self.scaling_factor = self.sim_element_size // self.file_element_size
-        self.need_rescale = (self.sim_element_size != self.file_element_size)
-
-    def fill_array_from_hdf_dataset(self, sim_array_to_fill, hdf_dataset, source_sel: slice | np.ndarray | None, offset: int = 0):
-        """Fill a simulation array from an HDF5 dataset, handling various indexing and data shapes."""
-        if isinstance(hdf_dataset, _DummyHDFData):
-            hdf_dataset.read_direct(sim_array_to_fill)
-            return
-
-        source_sel = self._preprocess_source_selection(source_sel, offset)
-
-        if isinstance(source_sel, np.ndarray):
-            self._fill_from_fancy_index(sim_array_to_fill, hdf_dataset, source_sel)
+        *source_sel* is a slice, or a sorted array of indices, counted from *offset*; or None for every element."""
+        if source_sel is None:
+            rows = slice(0, len(hdf_dataset))
         elif isinstance(source_sel, slice):
-            self._fill_from_slice(sim_array_to_fill, hdf_dataset, source_sel)
-        elif source_sel is None:
-            self._fill_entire_dataset(sim_array_to_fill, hdf_dataset)
+            rows = slice(source_sel.start + offset, source_sel.stop + offset)
         else:
-            raise TypeError(f"Unsupported source_sel type: {type(source_sel)}. "
-                            "Expected numpy.ndarray, slice, or None.")
-
-    def _get_element_size(self, array):
-        """Get the size of a single element in an array."""
-        if hasattr(array, 'ndim') and array.ndim > 1:
-            return int(np.prod(array.shape[1:]))
-        elif hasattr(array, 'shape') and len(array.shape) > 1:
-            return int(np.prod(array.shape[1:]))
-        else:
-            return 1
-
-    def _preprocess_source_selection(self, source_sel, offset):
-        """Apply offset to the source selection and optimize if possible."""
-        if isinstance(source_sel, slice):
-            return slice(source_sel.start + offset, source_sel.stop + offset)
-        elif isinstance(source_sel, np.ndarray):
-            source_sel = source_sel + offset
-            # convert to slice for efficiency if the indices are contiguous
-            if len(source_sel) > 1 and source_sel[-1] - source_sel[0] == len(source_sel) - 1:
-                return slice(source_sel[0], source_sel[-1] + 1)
-        return source_sel
-
-    def _get_data_to_fill_local(self, sim_array_to_fill, hdf_dataset, source_sel):
-        """Read the selected elements from a local HDF5 file"""
-        id_min, id_max = source_sel[0], source_sel[-1]
-        num_read = id_max - id_min + 1
-        indices_in_read_chunk = source_sel - id_min
-        contiguous_hdf_slice = self._get_contiguous_hdf_slice(id_min, id_max)
-        data_chunk_from_hdf = hdf_dataset[contiguous_hdf_slice]
-        data_chunk_from_hdf = data_chunk_from_hdf.reshape(num_read, *sim_array_to_fill.shape[1:])
-        return data_chunk_from_hdf[indices_in_read_chunk]
-
-    def _get_data_to_fill_remote(self, sim_array_to_fill, hdf_dataset, source_sel):
-        """Read the selected elements from a remote file using the hdfstream module"""
+            rows = np.asarray(source_sel, dtype=np.int64) + offset
         if self.need_rescale:
-            assert isinstance(self.scaling_factor, (int, np.integer))
-            flat_index = (self.scaling_factor * np.asarray(source_sel)[:,None] + np.arange(self.scaling_factor, dtype=int)).flatten()
-            flat_data = hdf_dataset[flat_index]
-            final_data_to_fill = flat_data.reshape((len(source_sel),self.scaling_factor))
-        else:
-            final_data_to_fill = hdf_dataset[source_sel,...]
-        return final_data_to_fill
+            # each element of the array is *factor* consecutive rows of the dataset
+            factor = self.scaling_factor
+            if factor != int(factor) or factor < 1:
+                raise ValueError(f"Cannot fill an array with elements of size {self.sim_element_size} from a "
+                                 f"dataset with elements of size {self.file_element_size}")
+            factor = int(factor)
+            if isinstance(rows, slice):
+                rows = slice(rows.start * factor, rows.stop * factor)
+            else:
+                rows = (rows[:, np.newaxis] * factor + np.arange(factor)).reshape(-1)
+        num_rows = rows.stop - rows.start if isinstance(rows, slice) else len(rows)
+        destination = np.reshape(sim_array_to_fill, (num_rows,) + tuple(hdf_dataset.shape[1:]), copy=False)
+        return hdf_bulk_read.ReadRequest(hdf_dataset, rows, destination)
 
-    def _fill_from_fancy_index(self, sim_array_to_fill, hdf_dataset, source_sel):
-        """Fill array from a non-contiguous (fancy) index."""
-        if hdfstream is not None and isinstance(hdf_dataset, hdfstream.RemoteDataset):
-            final_data_to_fill = self._get_data_to_fill_remote(sim_array_to_fill, hdf_dataset, source_sel)
-        else:
-            final_data_to_fill = self._get_data_to_fill_local(sim_array_to_fill, hdf_dataset, source_sel)
-
-        if sim_array_to_fill.shape == final_data_to_fill.shape:
-            sim_array_to_fill[:] = final_data_to_fill
-        else:
-            sim_array_to_fill.reshape(final_data_to_fill.shape)[:] = final_data_to_fill
-
-    def _fill_from_slice(self, sim_array_to_fill, hdf_dataset, source_sel):
-        """Fill array from a contiguous slice."""
-
-        if self.need_rescale:
-            source_sel = self._get_contiguous_hdf_slice(source_sel.start, source_sel.stop - 1)
-
-        num_elements = source_sel.stop - source_sel.start
-        if len(hdf_dataset.shape) > 1:
-            expected_chunk_shape = (num_elements,) + hdf_dataset.shape[1:]
-        else:
-            expected_chunk_shape = (num_elements,)
-
-        assert sim_array_to_fill.size == np.prod(expected_chunk_shape)
-
-        sim_array_reshaped = sim_array_to_fill.reshape(expected_chunk_shape)
-        hdf_dataset.read_direct(sim_array_reshaped, source_sel=source_sel)
-
-    def _fill_entire_dataset(self, sim_array_to_fill, hdf_dataset):
-        """Fill array with the entire content of an HDF5 dataset."""
-        assert sim_array_to_fill.size == np.prod(hdf_dataset.shape)
-        sim_array_reshaped = sim_array_to_fill.reshape(hdf_dataset.shape)
-        hdf_dataset.read_direct(sim_array_reshaped, source_sel=None)
-
-    def _get_contiguous_hdf_slice(self, id_min, id_max):
-        """Calculates the slice to select from an HDF5 file to get a contiguous block of data
-        covering the particle range [id_min, id_max], accounting for differing data layouts
-        between the file and memory.
-
-        For example, a 3D position array in memory might be stored as a flat 1D array in the file.
-        This function computes the correct start and end indices for the slice in the flat array.
-        """
-        if self.need_rescale:
-            return np.s_[int(id_min * self.scaling_factor): int((id_max + 1) * self.scaling_factor)]
-        else:
-            return np.s_[id_min: id_max + 1]
 
 class HDFArrayLoader:
     """A helper class to handle the loading of particle data arrays from Gadget HDF5 files.
@@ -539,48 +410,16 @@ class HDFArrayLoader:
 
         """
 
-        reads = self._plan_reads(all_fams_to_load, sim, array_name, translated_names)
-        strategy = hdf_read_strategy.choose_read_strategy(self._summarise(reads))
-        self.last_read_strategy = strategy
-        logger.debug("Reading %s with %d thread(s) because %s", array_name, strategy.threads, strategy.reason)
+        requests = self._requests(all_fams_to_load, sim, array_name, translated_names)
+        self.last_read_strategy = self._hdf_files.read(requests)
 
-        # Each read is let go of once it has been performed, so that a file's datasets, and the chunks decoded from
-        # them, are freed once all the reads of it are done, rather than when the whole array has been loaded
-        if strategy.threads > 1:
-            # Make every HDF5 lookup the reads will need now, serially: from several threads at once they would only
-            # queue for h5py's lock, and the handing over of that lock is itself costly
-            for read in reads:
-                read.prepare()
-            tasks = self._group_reads(reads, strategy.per_file)
-            del reads
-            self._perform_reads_in_threads(tasks, strategy.threads)
-        else:
-            reads.reverse()
-            while reads:
-                reads.pop()()
+    def _requests(self, all_fams_to_load, sim, array_name, translated_names):
+        """Yield requests to read (see pynbody.util.hdf_bulk_read.ReadRequest) that together load an array.
 
-    @staticmethod
-    def _summarise(reads) -> hdf_read_strategy.ReadSummary:
-        """Describe the planned reads, for choosing how to perform them"""
-        reads = [read for read in reads if not read.is_constant]  # which cost next to nothing, however performed
-        properties = [read.properties() for read in reads]
-        return hdf_read_strategy.ReadSummary(paths=tuple(dict.fromkeys(read.path for read in reads)),
-                                             num_reads=len(reads),
-                                             num_files=len({read.file_key for read in reads}),
-                                             all_direct=all(p.direct for p in properties),
-                                             compressed=any(p.compressed for p in properties),
-                                             max_chunk_nbytes=max((p.chunk_nbytes for p in properties), default=0))
-
-    def _plan_reads(self, all_fams_to_load, sim, array_name, translated_names) -> list[_PlannedRead]:
-        """Return the reads needed to load an array, in the order they would be made serially.
-
-        Each read fills a separate part of the target array; there is one per piece of up to _max_buf particles that
-        pynbody.chunk.LoadControl yields for each file. Its file_key identifies the file its data come from.
-
-        A virtual dataset takes its data from other files, so each piece of it is further split where one source
-        file gives way to the next, and each part keyed by its source file. The reads are then the same, and are
-        shared between threads in the same way, as if the source files had been enumerated as a set of files."""
-        reads = []
+        There is one request per piece of up to _max_buf particles that pynbody.chunk.LoadControl yields for each
+        file. Parts of the array that are constant (such as masses given in the header) are filled in directly.
+        The requests are yielded, rather than returned as a list, so that each file's dataset can be let go of once
+        it has been read."""
         for loading_fam in all_fams_to_load:
 
             sim_fam_array, array_filler = self._get_array_filler(array_name, loading_fam, sim, translated_names)
@@ -609,25 +448,13 @@ class HDFArrayLoader:
                                 # round trip (an expensive one on a parallel filesystem)
                                 dataset = self._get_dataset_from_translated_names(sim, hdf_group,
                                                                                   translated_names)
-                                if dataset is not None and not isinstance(dataset, _DummyHDFData):
-                                    dataset = self._hdf_files.open_for_bulk_read(dataset)
-                                file_key = hdf_group.file.filename
                                 dataset_resolved = True
                             if dataset is not None:
-                                num_selected = mem_index.stop - mem_index.start
-                                if isinstance(dataset, hdf_bulk_read.virtual._VirtualReader):
-                                    pieces = self._split_at_sources(buf_index, offset, num_selected, array_filler,
-                                                                    dataset)
+                                target_array = sim_fam_array[i0 + mem_index.start : i0 + mem_index.stop]
+                                if isinstance(dataset, _DummyHDFData):
+                                    dataset.read_direct(target_array)
                                 else:
-                                    pieces = [(0, num_selected, buf_index, file_key)]
-                                for mem_lo, mem_hi, selection, source in pieces:
-                                    mem_start = i0 + mem_index.start
-                                    target_array = sim_fam_array[mem_start + mem_lo : mem_start + mem_hi]
-                                    read = functools.partial(array_filler.fill_array_from_hdf_dataset,
-                                                             target_array, dataset, source_sel=selection,
-                                                             offset=offset)
-                                    reads.append(_PlannedRead(source, source, dataset, read,
-                                                              self._dataset_rows(selection, offset, array_filler)))
+                                    yield array_filler.request(target_array, dataset, buf_index, offset)
                         # Advance even when nothing is copied, or the next read starts from the wrong
                         # position in the file. Refs #955
                         offset += readlen
@@ -635,92 +462,6 @@ class HDFArrayLoader:
 
                 group_mem_slice = self._load_control.mem_family_slice[hdf_group_name]
                 i0 += group_mem_slice.stop - group_mem_slice.start
-        return reads
-
-    @classmethod
-    def _split_at_sources(cls, buf_index, offset, num_selected, array_filler, dataset) -> list[tuple]:
-        """Split a read of a virtual dataset where one source file gives way to the next.
-
-        *buf_index* selects *num_selected* rows relative to *offset*: a slice, or a sorted array of indices. Returns
-        (start, stop, selection, source file) for each part, where [start, stop) is the part's position among the
-        selected rows, and so in the target array."""
-        start, stop = cls._dataset_rows(buf_index, offset, array_filler)
-        segments = dataset.source_segments(start, stop)
-        # Rows of the dataset where the selection may be cut: a stored row maps to a row of the target array only if it
-        # begins one (a 3-vector stored as a flat array of three times the length can be cut only between vectors)
-        factor = array_filler.scaling_factor if array_filler.need_rescale else 1
-        cuts, sources = [], [segments[0][1]]
-        for row, source in segments[1:]:
-            position = row / factor - offset
-            if position == int(position):
-                cuts.append(int(position))
-                sources.append(source)
-        if not cuts:
-            return [(0, num_selected, buf_index, sources[0])]
-        if isinstance(buf_index, slice):
-            edges = [buf_index.start] + cuts + [buf_index.stop]
-            return [(a - buf_index.start, b - buf_index.start, slice(a, b), source)
-                    for a, b, source in zip(edges[:-1], edges[1:], sources) if b > a]
-        indices = np.asarray(buf_index)
-        edges = [0] + [int(k) for k in np.searchsorted(indices, cuts)] + [len(indices)]
-        return [(a, b, indices[a:b], source) for a, b, source in zip(edges[:-1], edges[1:], sources) if b > a]
-
-    @staticmethod
-    def _dataset_rows(buf_index, offset, array_filler) -> tuple[int, int]:
-        """The range of rows of the dataset that a read will touch, as _HDFArrayFiller will read them"""
-        if isinstance(buf_index, slice):
-            start, stop = buf_index.start, buf_index.stop
-        elif len(buf_index) == 0:
-            return 0, 0
-        else:
-            start, stop = int(buf_index[0]), int(buf_index[-1]) + 1
-        start, stop = start + offset, stop + offset
-        if array_filler.need_rescale:
-            # e.g. a 3-vector stored as a flat array of three times the length
-            start, stop = int(start * array_filler.scaling_factor), int(stop * array_filler.scaling_factor)
-        return start, stop
-
-    @staticmethod
-    def _group_reads(reads, per_file) -> list[list]:
-        """Group reads into tasks for threads: one per file (in order of first appearance, each keeping its reads in
-        order) if *per_file*, else one per read, except that consecutive reads needing the same chunk are kept
-        together (so that the chunk is decoded once, by one thread, rather than by several at once)"""
-        if not per_file:
-            tasks = []
-            for read in reads:
-                if tasks and tasks[-1][-1].shares_chunk_with(read):
-                    tasks[-1].append(read)
-                else:
-                    tasks.append([read])
-            return tasks
-        tasks = {}
-        for read in reads:
-            tasks.setdefault(read.file_key, []).append(read)
-        return list(tasks.values())
-
-    @staticmethod
-    def _perform_reads_in_threads(tasks, num_threads):
-        """Perform tasks, each a list of reads made in order, concurrently in a pool of *num_threads* threads.
-
-        How many threads to use, and how to divide reads into tasks, is decided by the rules in
-        pynbody.util.hdf_read_strategy.
-
-        Each read is given a plain ndarray view of its part of the target array, so that pynbody's array subclass
-        is never manipulated from more than one thread. That is equivalent, because values read from a file
-        carry no units for SimArray.__setitem__ to convert."""
-        def perform(task):
-            task.reverse()
-            while task:
-                read = task.pop().read  # let go of each read once performed (see load_arrays)
-                target, dataset = read.args
-                read.func(target.view(np.ndarray), dataset, **read.keywords)
-                del read, target, dataset
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads,
-                                                   thread_name_prefix="pynbody-hdf-read") as executor:
-            # list() waits for every task, and raises the first exception any of them raised; tasks not yet started
-            # are then cancelled (by map), as they are if waiting is interrupted (e.g. by KeyboardInterrupt)
-            list(executor.map(perform, tasks))
 
     def _get_array_filler(self, array_name: str, loading_fam: family.Family, sim: SimSnap, translated_names: list[str]):
         """

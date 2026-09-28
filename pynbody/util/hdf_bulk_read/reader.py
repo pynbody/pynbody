@@ -1,9 +1,10 @@
-""":class:`BulkReader`, which opens HDF5 datasets for reading directly wherever that is safe."""
+""":class:`BulkReader`, which reads requests (see :class:`.plan.ReadRequest`), directly wherever that is safe."""
 
 from __future__ import annotations
 
 import logging
 import threading
+import typing
 import warnings
 
 try:
@@ -11,13 +12,15 @@ try:
 except ImportError:
     h5py = None
 
-from . import files
+from . import execute, files, plan, strategy
 from .common import BulkReadFallbackWarning, _CannotReadDirectly, _default_cache_nbytes, _UnexpectedData
 from .datasets import _check_datatype, _ChunkedReader, _ContiguousReader
 from .files import _check_file, _FileHandle
+from .plan import ReadRequest
 from .virtual import _VirtualReader
 
 logger = logging.getLogger('pynbody.util.hdf_bulk_read')
+
 
 class BulkReader:
     """Opens HDF5 datasets for bulk reading, reading them directly wherever that is safe.
@@ -73,6 +76,30 @@ class BulkReader:
         except _CannotReadDirectly as e:
             self._report_fallback(dataset, e)
             return dataset
+
+    def read(self, requests: typing.Iterable[ReadRequest]) -> strategy.ReadStrategy:
+        """Read every request, in whatever way is judged best, and return how they were read.
+
+        The requests are turned into units of work (see :mod:`.plan`), the rules in :mod:`.strategy` decide from
+        a description of the work how many threads to read with, and the work is then done (see :mod:`.execute`).
+        Datasets that cannot be read directly are read through h5py, with a :class:`BulkReadFallbackWarning`.
+
+        Parameters
+        ----------
+        requests : iterable of ReadRequest
+            What to read. Their destinations must not overlap. Passing an iterator (rather than, say, a list),
+            and keeping no other reference to the datasets, lets each dataset be freed as soon as it has been read.
+
+        Returns
+        -------
+        strategy.ReadStrategy
+            How the requests were read, and why.
+        """
+        works = plan.plan(requests, self.open)
+        chosen = strategy.choose_read_strategy(plan.summarise(works))
+        logger.debug("Reading %d pieces with %d thread(s) because %s", len(works), chosen.threads, chosen.reason)
+        execute.perform(works, chosen)
+        return chosen
 
     def _plan(self, dataset):
         """Return a direct reader for *dataset*, or raise _CannotReadDirectly"""

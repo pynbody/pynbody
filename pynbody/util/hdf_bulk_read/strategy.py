@@ -1,23 +1,23 @@
-"""Rules deciding how many threads read a snapshot's bulk data, and how the work is shared between them.
+"""Rules deciding how many threads read, and how the work is shared between them.
 
-pynbody reads the bulk data of gadget-like HDF5 snapshots (including SWIFT) in pieces, and can read pieces in
-several threads at once when it reads the data directly rather than through h5py (see
-:mod:`pynbody.util.hdf_bulk_read`). Whether that helps depends on where the data are and how they are stored, so
-before loading an array pynbody calls :func:`choose_read_strategy`, which applies these rules, in order:
+:meth:`pynbody.util.hdf_bulk_read.BulkReader.read` can read in several threads at once when it reads the data
+directly rather than through h5py. Whether that helps depends on where the data are and how they are stored, so
+before reading it calls :func:`choose_read_strategy`, with a description of the work (a :class:`ReadSummary`),
+which applies these rules, in order:
 
-1. **Reads through h5py are serial.** If any part of the array has to be read through h5py (because direct reading
-   is switched off, or the data are stored in a way pynbody does not read itself), everything is read in one
-   thread: h5py's lock serialises its reads anyway, and threads contending for it cost more than they save.
+1. **Reads through h5py are serial.** If any of the data have to be read through h5py (because direct reading is
+   switched off, or the data are stored in a way pynbody does not read itself), everything is read in one thread:
+   h5py's lock serialises its reads anyway, and threads contending for it cost more than they save.
 
-2. **A fixed number of threads, if one is configured.** If ``bulk-read-threads`` is a number rather than ``auto``,
-   that many threads are used (1 meaning serial), sharing the work as rule 3 or 4 would.
+2. **A fixed number of threads, if one is configured.** If the ``threads`` option is a number rather than
+   ``auto``, that many threads are used (1 meaning serial), sharing the work as rule 3 or 4 would.
 
 3. **Parallel filesystems: one thread per file, up to** ``parallel-filesystem-threads`` **(default 16).** On Lustre
    and similar systems a spanned snapshot's files usually live on different servers, while each file lives on one.
    Each thread therefore reads whole files, in order: several servers are busy at once, and each file is still read
    sequentially, which keeps the filesystem's readahead effective. Threads sharing one file would compete for one
-   server and defeat readahead, so a single-file snapshot is read serially here. (The pieces of a virtual dataset
-   count as separate files, since their data come from different source files.)
+   server and defeat readahead, so a single file is read serially here. (A virtual dataset's work is attributed to
+   its source files, so it is shared out just as the source files would be.)
 
 4. **Other filesystems: threads only for compressed data, up to** ``compressed-data-threads`` **(default 4).** On a
    local disk, reading is rarely what limits speed; decompression is, and it can proceed in parallel. So compressed
@@ -25,10 +25,12 @@ before loading an array pynbody calls :func:`choose_read_strategy`, which applie
    serially.
 
 In every case, the number of threads is capped by the number of pieces of work, by the number of CPUs this
-process may use, and by ``bulk-read-memory`` (default 2 GiB): each thread needs about three times the size of the
-chunks it decodes, which matters only for data stored in very large chunks. The options all live in the ``[gadgethdf]`` section of the configuration; they can also be changed
-for a session through :data:`config`, for example ``pynbody.util.hdf_read_strategy.config['bulk-read-threads'] = 8``.
-The strategy chosen for the most recent load is logged at debug level, together with the reason for it.
+process may use, and by ``decode-memory`` (default 2 GiB): each thread needs about three times the size of the
+chunks it decodes, which matters only for data stored in very large chunks.
+
+The options live in the ``[hdf-bulk-read]`` section of the configuration; they can also be changed for a session
+through :data:`config`, for example ``pynbody.util.hdf_bulk_read.strategy.config['threads'] = 8``. The strategy
+chosen for each read is logged at debug level, together with the reason for it.
 """
 
 from __future__ import annotations
@@ -40,7 +42,7 @@ import os
 
 from ... import config_parser
 
-logger = logging.getLogger('pynbody.util.hdf_read_strategy')
+logger = logging.getLogger('pynbody.util.hdf_bulk_read.strategy')
 
 # Filesystem types on which files are spread over several servers (so that reading several files at once pays off)
 # (NFS is not among them: it is usually served by a single server)
@@ -49,7 +51,7 @@ parallel_filesystem_types = {'lustre', 'gpfs', 'beegfs', 'wekafs', 'ceph', 'fuse
 
 def _read_config():
     def option(name, default):
-        return config_parser.get('gadgethdf', name, fallback=default).strip()
+        return config_parser.get('hdf-bulk-read', name, fallback=default).strip()
 
     def whole_number(name, default, allowed=()):
         value = option(name, str(default))
@@ -61,15 +63,15 @@ def _read_config():
                 raise ValueError
             return number
         except ValueError:
-            logger.warning("Ignoring the value %r of %s in the [gadgethdf] configuration: expected a whole number of "
+            logger.warning("Ignoring the value %r of %s in the [hdf-bulk-read] configuration: expected a whole number of "
                            "at least 1%s; using %s", value, name,
                            "".join(f" or '{a}'" for a in allowed), default)
             return default
 
-    return {'bulk-read-threads': str(whole_number('bulk-read-threads', 'auto', allowed=('auto',))),
+    return {'threads': str(whole_number('threads', 'auto', allowed=('auto',))),
             'parallel-filesystem-threads': whole_number('parallel-filesystem-threads', 16),
             'compressed-data-threads': whole_number('compressed-data-threads', 4),
-            'bulk-read-memory': whole_number('bulk-read-memory', 2 * 1024 ** 3)}
+            'decode-memory': whole_number('decode-memory', 2 * 1024 ** 3)}
 
 
 config = _read_config()
@@ -127,7 +129,7 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
 
     threads = _requested_threads()
     if threads is not None:
-        reason = f"bulk-read-threads is set to {threads}"
+        reason = f"the threads option is set to {threads}"
     elif on_parallel_filesystem:
         threads = config['parallel-filesystem-threads']
         reason = f"the files are on a parallel filesystem ({filesystem}), so each thread reads whole files"
@@ -144,10 +146,10 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
         threads = limit
         reason += f" (limited to {limit} by the number of {'files' if per_file else 'pieces'} and of CPUs)"
     # each thread holds a chunk compressed and decompressed while decoding it, and may keep one for its next read
-    memory_limit = max(1, config['bulk-read-memory'] // max(3 * summary.max_chunk_nbytes, 1))
+    memory_limit = max(1, config['decode-memory'] // max(3 * summary.max_chunk_nbytes, 1))
     if threads > memory_limit:
         threads = memory_limit
-        reason += (f" (limited to {memory_limit} by bulk-read-memory, since chunks decode to as much as "
+        reason += (f" (limited to {memory_limit} by decode-memory, since chunks decode to as much as "
                    f"{summary.max_chunk_nbytes / 2 ** 20:.0f} MB)")
     if threads <= 1:
         return ReadStrategy(1, per_file, reason + ", which leaves only one thread's worth of work")
@@ -155,14 +157,14 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
 
 
 def _requested_threads() -> int | None:
-    """The number of threads bulk-read-threads asks for, or None for 'auto' (or a value that makes no sense)"""
-    requested = str(config['bulk-read-threads']).strip().lower()
+    """The number of threads the threads option asks for, or None for 'auto' (or a value that makes no sense)"""
+    requested = str(config['threads']).strip().lower()
     if requested == 'auto':
         return None
     try:
         return max(int(requested), 1)
     except ValueError:
-        logger.warning("Ignoring bulk-read-threads = %r, which is neither a number nor 'auto'", requested)
+        logger.warning("Ignoring the threads option, %r, which is neither a number nor 'auto'", requested)
         return None
 
 

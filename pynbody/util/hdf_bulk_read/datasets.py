@@ -95,6 +95,11 @@ class _DirectReader:
         self._use_h5py = False
 
     @property
+    def filename(self) -> str:
+        """The file the data are read from"""
+        return self._file.filename
+
+    @property
     def ndim(self):
         return len(self.shape)
 
@@ -399,22 +404,48 @@ class _ChunkedReader(_DirectReader):
             dest[...] = rows[(slice(None),) + trailing_sel]
 
     def _get_chunk(self, origin, keep):
-        """Return the decoded chunk at *origin*; None if it has never been written; or _READ_THROUGH_H5PY."""
+        """Return the decoded chunk at *origin*; None if it has never been written; or _READ_THROUGH_H5PY.
+
+        Getting a chunk has three steps, kept separate so that they could be done by different threads: locating it
+        (HDF5 metadata), fetching its bytes (input only) and decoding them (computation only)."""
+        chunk = self._take_from_cache(origin, keep)
+        if chunk is not None:
+            return chunk
+        location = self._locate_chunk(origin)
+        if location is None or location is _READ_THROUGH_H5PY:
+            return location
+        raw = self._fetch_chunk(location)
+        chunk = self._decode_chunk(origin, location, raw)
+        del raw
+        if keep:
+            self._keep_in_cache(origin, chunk)
+        return chunk
+
+    def _take_from_cache(self, origin, keep):
         with self._cache_lock:
             if keep:
                 chunk = self._cache.get(origin)
                 if chunk is not None:
                     self._cache.move_to_end(origin)
-            else:
-                # this read consumes the rest of the chunk, and reads come in increasing order, so no later read
-                # will want it
-                chunk = self._cache.pop(origin, None)
-            if chunk is not None:
                 return chunk
+            # this read consumes the rest of the chunk, and reads come in increasing order, so no later read will
+            # want it
+            return self._cache.pop(origin, None)
 
+    def _keep_in_cache(self, origin, chunk):
+        # A chunk larger than the whole cache is still kept, alone, for the next read (which would otherwise decode it
+        # all again): its memory is taken already, and it is dropped once a read consumes the rest of it
+        with self._cache_lock:
+            while self._cache and (len(self._cache) + 1) * self._chunk_nbytes > self._cache_nbytes:
+                self._cache.popitem(last=False)
+            self._cache[origin] = chunk
+
+    def _locate_chunk(self, origin):
+        """Return (byte offset, size, filter mask) of the chunk at *origin*; None if it has never been written (so
+        reads as the fill value); or _READ_THROUGH_H5PY if only HDF5 can be sure how to read it."""
         byte_offset, size, filter_mask = self._chunk_location(origin)
         if byte_offset is None:
-            return None  # never written, so reads as the fill value
+            return None
         if byte_offset + size > self._file_size:
             raise _UnexpectedData(f"the chunk at {origin} extends beyond the end of the file")
         if size == self._chunk_nbytes and self._applies_filters(filter_mask) and \
@@ -423,30 +454,27 @@ class _ChunkedReader(_DirectReader):
             # told (H5D_CHUNK_DONT_FILTER_PARTIAL_CHUNKS) to store such chunks unfiltered, without recording that it
             # has, and h5py offers no way to find out whether it was; so only HDF5 can be sure how to read it.
             return _READ_THROUGH_H5PY
+        return byte_offset, size, filter_mask
 
-        raw = files._read_bytes(self._file, byte_offset, size)
+    def _fetch_chunk(self, location):
+        """Read the stored bytes of a chunk located by _locate_chunk"""
+        byte_offset, size, _ = location
+        return files._read_bytes(self._file, byte_offset, size)
+
+    def _decode_chunk(self, origin, location, raw) -> _DecodedChunk:
+        """Undo the filters of a chunk's stored bytes *raw* (see _fetch_chunk)"""
+        _, _, filter_mask = location
         deferred = self._deferred_filters(filter_mask)
         decoded = decode.decode_chunk(raw, filter_mask, self._pipeline, self.dtype.itemsize,
-                               nbytes=self._chunk_nbytes, first_filter=deferred)
-        del raw
+                                      nbytes=self._chunk_nbytes, first_filter=deferred)
         expected_nbytes = self._chunk_nbytes + (4 if deferred == 2 else 0)
         if len(decoded) != expected_nbytes:
             raise _UnexpectedData(f"the chunk at {origin} decoded to {len(decoded)} bytes, not {expected_nbytes}")
         if deferred:
-            chunk = _DecodedChunk(planes=_shuffled_planes(decoded, self.dtype.itemsize,
-                                                          self._chunk_nbytes // self.dtype.itemsize,
-                                                          checksummed=deferred == 2))
-        else:
-            chunk = _DecodedChunk(array=decoded)
-
-        if keep:
-            # A chunk larger than the whole cache is still kept, alone, for the next read (which would otherwise
-            # decode it all again): its memory is taken already, and it is dropped once a read consumes the rest of it
-            with self._cache_lock:
-                while self._cache and (len(self._cache) + 1) * self._chunk_nbytes > self._cache_nbytes:
-                    self._cache.popitem(last=False)
-                self._cache[origin] = chunk
-        return chunk
+            return _DecodedChunk(planes=_shuffled_planes(decoded, self.dtype.itemsize,
+                                                         self._chunk_nbytes // self.dtype.itemsize,
+                                                         checksummed=deferred == 2))
+        return _DecodedChunk(array=decoded)
 
     def _deferred_filters(self, filter_mask) -> int:
         """How many of the first filters applied on writing to leave undone until rows are copied out of a chunk.

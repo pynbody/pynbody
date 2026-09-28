@@ -438,6 +438,15 @@ def test_write_then_read_directly():
         os.remove(filename)
 
 
+def _record_thread_tasks(monkeypatch):
+    """Record the tasks (lists of units of work) given to threads, as they are before being performed"""
+    tasks_seen = []
+    original_perform = hdf_bulk_read.execute._perform_in_threads
+    monkeypatch.setattr(hdf_bulk_read.execute, "_perform_in_threads",
+                        lambda tasks, n: tasks_seen.append([list(task) for task in tasks]) or original_perform(tasks, n))
+    return tasks_seen
+
+
 @pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
 @pytest.mark.filterwarnings("ignore:Masses are either stored in the header")
 @pytest.mark.parametrize("filename, load_kwargs",
@@ -452,14 +461,11 @@ def test_write_then_read_directly():
 @pytest.mark.parametrize("direct", [True, False])
 def test_threaded_loading_matches_serial(monkeypatch, filename, load_kwargs, direct):
     monkeypatch.setattr(gadgethdf, "_direct_bulk_read", direct)
-    thread_pools_used = []
-    original_perform = gadgethdf.HDFArrayLoader._perform_reads_in_threads
-    monkeypatch.setattr(gadgethdf.HDFArrayLoader, "_perform_reads_in_threads",
-                        staticmethod(lambda tasks, n: thread_pools_used.append(tasks) or original_perform(tasks, n)))
+    thread_pools_used = _record_thread_tasks(monkeypatch)
 
     arrays = {}
     for threads in [1, 4]:
-        monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", str(threads))
+        monkeypatch.setitem(hdf_read_strategy.config, "threads", str(threads))
         f = pynbody.load(filename, **load_kwargs)
         arrays[threads] = {}
         for k in f.loadable_keys():
@@ -487,14 +493,14 @@ def test_threaded_loading_matches_serial(monkeypatch, filename, load_kwargs, dir
 
 def test_threaded_loading_propagates_errors(monkeypatch):
     """An exception in one thread's read reaches the caller"""
-    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", "4")
+    monkeypatch.setitem(hdf_read_strategy.config, "threads", "4")
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
 
-    def failing_fill(self, *args, **kwargs):
+    def failing_perform(self):
         # (not an OSError, which SimSnap takes to mean that the array cannot be loaded, and swallows)
         raise RuntimeError("simulated read failure")
 
-    monkeypatch.setattr(gadgethdf._HDFArrayFiller, "fill_array_from_hdf_dataset", failing_fill)
+    monkeypatch.setattr(hdf_bulk_read.plan._Work, "perform", failing_perform)
     with pytest.raises(RuntimeError, match="simulated read failure"):
         f['pos']
 
@@ -502,19 +508,15 @@ def test_threaded_loading_propagates_errors(monkeypatch):
 def test_threaded_tasks_are_per_file(monkeypatch):
     """On a parallel filesystem, each thread's task reads one file, in order, so that threads work on different files"""
     monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: "lustre")
-    tasks_seen = []
-    original_perform = gadgethdf.HDFArrayLoader._perform_reads_in_threads
-    monkeypatch.setattr(gadgethdf.HDFArrayLoader, "_perform_reads_in_threads",
-                        staticmethod(lambda tasks, n: tasks_seen.append([list(task) for task in tasks])
-                                     or original_perform(tasks, n)))
+    tasks_seen = _record_thread_tasks(monkeypatch)
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
     f['pos']
     (tasks,) = tasks_seen
     assert len(tasks) == len(f._hdf_files)
     for task in tasks:
-        assert len({planned.path for planned in task}) == 1
-        offsets = [planned.read.keywords['offset'] + planned.read.keywords['source_sel'].start for planned in task]
-        assert offsets == sorted(offsets)
+        assert len({work.filename for work in task}) == 1
+        starts = [work.span[0] for work in task]
+        assert starts == sorted(starts)
     assert f._array_loader.last_read_strategy.per_file
 
 
@@ -525,20 +527,16 @@ def test_virtual_dataset_is_shared_between_threads_like_its_files(monkeypatch, c
     monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: "lustre")
     monkeypatch.setitem(hdf_read_strategy.config, "parallel-filesystem-threads", 16)
     monkeypatch.setattr(hdf_read_strategy, "available_cpus", lambda: 16)
-    tasks_seen = []
-    original_perform = gadgethdf.HDFArrayLoader._perform_reads_in_threads
-    monkeypatch.setattr(gadgethdf.HDFArrayLoader, "_perform_reads_in_threads",
-                        staticmethod(lambda tasks, n: tasks_seen.append([list(task) for task in tasks])
-                                     or original_perform(tasks, n)))
+    tasks_seen = _record_thread_tasks(monkeypatch)
     monkeypatch.setattr(gadgethdf, "_max_buf", 3000)  # so that pieces do not all coincide with files
 
     def load(filename):
         tasks_seen.clear()
         f = pynbody.load(filename, take_swift_cells=cells) if cells else pynbody.load(filename)
         data = f['pos']
-        # for each read, the file and how many rows it fills in (the length of its part of the target array)
-        planned = [[(os.path.basename(read.path), len(read.read.args[0])) for read in task] for task in tasks_seen[0]] \
-            if tasks_seen else None
+        # for each unit of work, the file and how many rows it fills in
+        planned = [[(os.path.basename(work.filename), len(work.destination)) for work in task]
+                   for task in tasks_seen[0]] if tasks_seen else None
         return data, f._array_loader.last_read_strategy, planned
 
     virtual_data, virtual_strategy, virtual_tasks = load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
@@ -557,30 +555,23 @@ def test_virtual_dataset_is_shared_between_threads_like_its_files(monkeypatch, c
     assert all(len(names) == 1 for names, _ in summary(virtual_tasks))
 
 
-def test_split_at_sources():
-    class Filler:
-        def __init__(self, factor):
-            self.need_rescale, self.scaling_factor = factor != 1, factor
-
-    class Virtual:
-        def source_segments(self, start, stop):
-            boundaries = [(0, "a"), (30, "b"), (31, "c"), (60, "d")]
-            inside = [(row, name) for row, name in boundaries if start < row < stop]
-            first = [name for row, name in boundaries if row <= start][-1]
-            return [(start, first)] + inside
-
-    split = gadgethdf.HDFArrayLoader._split_at_sources
-    # rows 20 to 70, offset 10: cut at 30 and 60, and at 31
-    assert split(slice(10, 60), 10, 50, Filler(1), Virtual()) == \
-        [(0, 10, slice(10, 20), "a"), (10, 11, slice(20, 21), "b"), (11, 40, slice(21, 50), "c"),
-         (40, 50, slice(50, 60), "d")]
-    parts = split(np.array([0, 5, 21, 22, 49]), 10, 5, Filler(1), Virtual())
-    assert [(a, b, list(sel), name) for a, b, sel, name in parts] == \
-        [(0, 2, [0, 5], "a"), (2, 5, [21, 22, 49], "c")]  # (the last index, row 59, precedes the cut at 60)
-    # stored as flat triples: rows 30 and 60 begin vectors 10 and 20, row 31 does not, so no cut there
-    parts = split(slice(0, 30), 0, 30, Filler(3), Virtual())
-    assert parts == [(0, 10, slice(0, 10), "a"), (10, 20, slice(10, 20), "b"), (20, 30, slice(20, 30), "d")]
-    assert split(slice(2, 5), 0, 3, Filler(1), Virtual()) == [(0, 3, slice(2, 5), "a")]
+@pytest.mark.parametrize("flattened", [False, True])
+def test_array_filler_requests(tmp_path, flattened):
+    """Requests describe rows of the dataset, allowing for 3-vectors stored flattened, as three consecutive rows"""
+    stored = np.arange(60.0) if flattened else np.arange(60.0).reshape(20, 3)
+    with h5py.File(tmp_path / "x.h5", "w") as f:
+        f["x"] = stored
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        target = np.zeros((20, 3))
+        filler = gadgethdf._HDFArrayFiller(target, f["x"])
+        request = filler.request(target[2:5], f["x"], slice(1, 4), offset=1)
+        assert request.rows == (slice(6, 15) if flattened else slice(2, 5))
+        assert request.destination.shape == ((9,) if flattened else (3, 3))
+        assert np.shares_memory(request.destination, target)
+        request = filler.request(target[5:8], f["x"], np.array([0, 2, 7]), offset=1)
+        np.testing.assert_array_equal(request.rows, [3, 4, 5, 9, 10, 11, 24, 25, 26] if flattened else [1, 3, 8])
+        hdf_bulk_read.BulkReader().read([request])
+    np.testing.assert_array_equal(target[5:8], np.arange(60.0).reshape(20, 3)[[1, 3, 8]])
 
 
 @pytest.mark.parametrize("direct", [True, False])
@@ -589,20 +580,19 @@ def test_datasets_are_released_file_by_file(monkeypatch, direct):
     read, rather than holding every file's until the whole array is loaded"""
     import weakref
     monkeypatch.setattr(gadgethdf, "_direct_bulk_read", direct)
-    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", "1")
+    monkeypatch.setitem(hdf_read_strategy.config, "threads", "1")
     alive = []
     most_alive = [0]
-    original_fill = gadgethdf._HDFArrayFiller.fill_array_from_hdf_dataset
+    original_perform = hdf_bulk_read.plan._Work.perform
 
-    def fill(self, target, dataset, *args, **kwargs):
-        if not isinstance(dataset, gadgethdf._DummyHDFData):
-            if not any(ref() is dataset for ref in alive):
-                alive.append(weakref.ref(dataset))
-            gc.collect()
-            most_alive[0] = max(most_alive[0], sum(ref() is not None for ref in alive))
-        return original_fill(self, target, dataset, *args, **kwargs)
+    def perform(self):
+        if not any(ref() is self.source for ref in alive):
+            alive.append(weakref.ref(self.source))
+        gc.collect()
+        most_alive[0] = max(most_alive[0], sum(ref() is not None for ref in alive))
+        return original_perform(self)
 
-    monkeypatch.setattr(gadgethdf._HDFArrayFiller, "fill_array_from_hdf_dataset", fill)
+    monkeypatch.setattr(hdf_bulk_read.plan._Work, "perform", perform)
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
     f.dm['pos']
     assert len(alive) == len(f._hdf_files)
@@ -614,21 +604,21 @@ def test_interrupted_threaded_load_abandons_queued_reads(monkeypatch):
     class Interrupt(BaseException):  # (like KeyboardInterrupt, which pytest itself would act on)
         pass
 
-    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", "2")
+    monkeypatch.setitem(hdf_read_strategy.config, "threads", "2")
     monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: "lustre")
     performed = []
-    original_fill = gadgethdf._HDFArrayFiller.fill_array_from_hdf_dataset
+    original_perform = hdf_bulk_read.plan._Work.perform
 
-    def fill(self, *args, **kwargs):
+    def perform(self):
         performed.append(1)
         if len(performed) == 1:
             raise Interrupt
-        return original_fill(self, *args, **kwargs)
+        return original_perform(self)
 
     monkeypatch.setattr(gadgethdf, "_max_buf", 500)  # many reads per file
     f = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
-    num_reads = len(f._array_loader._plan_reads([pynbody.family.dm], f, "pos", ["Coordinates"]))
-    monkeypatch.setattr(gadgethdf._HDFArrayFiller, "fill_array_from_hdf_dataset", fill)
+    num_reads = len(list(f._array_loader._requests([pynbody.family.dm], f, "pos", ["Coordinates"])))
+    monkeypatch.setattr(hdf_bulk_read.plan._Work, "perform", perform)
     with pytest.raises(Interrupt):
         f._array_loader.load_arrays([pynbody.family.dm], f, "pos", ["Coordinates"])
     # 2 threads work through 10 files: once one is interrupted, only the file the other is reading should be finished
@@ -636,30 +626,11 @@ def test_interrupted_threaded_load_abandons_queued_reads(monkeypatch):
     assert len(performed) <= num_reads * 4 // 10
 
 
-def test_group_reads():
-    class Read:
-        def __init__(self, file_key, n, chunks=()):
-            self.file_key, self.n, self.chunks = file_key, n, chunks
-
-        def shares_chunk_with(self, following):
-            if self.file_key != following.file_key or not self.chunks or not following.chunks:
-                return False
-            return self.chunks[-1] == following.chunks[0]
-
-    reads = [Read(*r) for r in [("a", 1), ("b", 2), ("a", 3), ("v", 4, (0, 1)), ("v", 5, (1,)), ("v", 6, (2,)),
-                                ("b", 7)]]
-    grouped = gadgethdf.HDFArrayLoader._group_reads(reads, per_file=True)
-    assert [[r.n for r in task] for task in grouped] == [[1, 3], [2, 7], [4, 5, 6]]
-    # one task per read, except that consecutive reads needing the same chunk go together
-    ungrouped = gadgethdf.HDFArrayLoader._group_reads(reads, per_file=False)
-    assert [[r.n for r in task] for task in ungrouped] == [[1], [2], [3], [4, 5], [6], [7]]
-
-
 @pytest.mark.skipif(hdf_read_strategy.available_cpus() < 2, reason="needs more than one CPU")
 def test_threads_sharing_files_decode_each_chunk_once(monkeypatch):
     """When threads share the pieces of a file, pieces needing the same chunk are read by one thread, in order, so
     that each chunk is decoded once"""
-    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", "4")
+    monkeypatch.setitem(hdf_read_strategy.config, "threads", "4")
     monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: "ext4")
     monkeypatch.setattr(gadgethdf, "_max_buf", 1000)  # much smaller than the chunks, so that pieces share them
     decodes = []
@@ -671,7 +642,7 @@ def test_threads_sharing_files_decode_each_chunk_once(monkeypatch):
     assert not f._array_loader.last_read_strategy.per_file and f._array_loader.last_read_strategy.threads > 1
     decodes_threaded = len(decodes)
     decodes.clear()
-    monkeypatch.setitem(hdf_read_strategy.config, "bulk-read-threads", "1")
+    monkeypatch.setitem(hdf_read_strategy.config, "threads", "1")
     g = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000")
     g.dm['pos']
     np.testing.assert_array_equal(f.dm['pos'], g.dm['pos'])
@@ -684,7 +655,7 @@ def test_threads_sharing_files_decode_each_chunk_once(monkeypatch):
 def test_automatic_strategy_on_local_filesystem(filename, compressed):
     """With the default 'auto', compressed data on a local filesystem are read in threads sharing files; uncompressed
     data serially"""
-    assert hdf_read_strategy.config["bulk-read-threads"] == "auto"
+    assert hdf_read_strategy.config["threads"] == "auto"
     f = pynbody.load(filename)
     f['pos']
     strategy = f._array_loader.last_read_strategy

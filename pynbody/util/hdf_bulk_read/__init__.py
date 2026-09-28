@@ -69,7 +69,8 @@ from . import strategy
 from .common import BulkReadFallbackWarning, ReadProperties
 from .datasets import is_direct_reader
 from .decode import decode_chunk, fletcher32
+from .plan import ReadRequest
 from .reader import BulkReader
 
-__all__ = ['BulkReader', 'BulkReadFallbackWarning', 'ReadProperties', 'decode_chunk', 'fletcher32',
+__all__ = ['BulkReader', 'BulkReadFallbackWarning', 'ReadProperties', 'ReadRequest', 'decode_chunk', 'fletcher32',
            'is_direct_reader', 'strategy']

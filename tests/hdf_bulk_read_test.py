@@ -1116,3 +1116,130 @@ def test_reading_without_pread(tmp_path, monkeypatch):
         assert 1 <= len(wrapped._file._all_thread_files) <= 4
     reader.close()
     assert wrapped._file._all_thread_files == []
+
+
+# --- Requests (BulkReader.read), planning and grouping
+
+
+def _make_mixed_file(filename):
+    rng = np.random.default_rng(3)
+    data = {"chunked": rng.random((5000, 3)), "contiguous": rng.random(4000), "compound": np.zeros(100, "f4,i4")}
+    with h5py.File(filename, "w") as f:
+        f.create_dataset("chunked", data=data["chunked"], chunks=(700, 3), compression="gzip", shuffle=True)
+        f["contiguous"] = data["contiguous"]
+        f["compound"] = data["compound"]  # (read through h5py)
+    return data
+
+
+@pytest.mark.parametrize("block_nbytes", [16 * 1024 * 1024, 100])
+@pytest.mark.parametrize("name", ["chunked", "contiguous"])
+@pytest.mark.parametrize("direct", [True, False])
+def test_read_requests(tmp_path, monkeypatch, block_nbytes, name, direct):
+    """Requests of slices and of index arrays (read a block at a time) fill their destinations, converting dtype"""
+    monkeypatch.setattr(hdf_bulk_read.plan, "_gather_block_nbytes", block_nbytes)
+    data = _make_mixed_file(tmp_path / "x.h5")[name]
+    rng = np.random.default_rng(4)
+    selections = [slice(10, 2000), np.sort(rng.choice(len(data), 300, replace=False)), np.arange(50, 120),
+                  np.array([7]), slice(3, 3), np.array([], dtype=int)]
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        destinations = []
+        requests = []
+        for rows in selections:
+            expected = data[rows]
+            for dtype in (data.dtype, np.float32):
+                destination = np.zeros(expected.shape, dtype=dtype)
+                requests.append(hdf_bulk_read.ReadRequest(f[name], rows, destination))
+                destinations.append((destination, expected.astype(dtype)))
+        strategy = hdf_bulk_read.BulkReader(enabled=direct).read(iter(requests))
+    for destination, expected in destinations:
+        np.testing.assert_array_equal(destination, expected)
+    assert strategy.threads >= 1
+
+
+def test_read_requests_through_h5py_and_directly_together(tmp_path, recwarn):
+    data = _make_mixed_file(tmp_path / "x.h5")
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        a = np.zeros(10, "f4,i4")
+        b = np.zeros((20, 3))
+        strategy = hdf_bulk_read.BulkReader().read([hdf_bulk_read.ReadRequest(f["compound"], np.arange(0, 20, 2), a),
+                                                     hdf_bulk_read.ReadRequest(f["chunked"], slice(100, 120), b)])
+    np.testing.assert_array_equal(a, data["compound"][0:20:2])
+    np.testing.assert_array_equal(b, data["chunked"][100:120])
+    assert strategy.threads == 1 and "h5py" in strategy.reason
+
+
+@pytest.mark.parametrize("rows, destination_rows", [(slice(0, 10), 9), (np.arange(5), 6), (slice(0, 10, 2), 5),
+                                                    (slice(None, 10), 10)])
+def test_read_request_mismatches_are_refused(tmp_path, rows, destination_rows):
+    _make_mixed_file(tmp_path / "x.h5")
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        request = hdf_bulk_read.ReadRequest(f["contiguous"], rows, np.zeros(destination_rows))
+        with pytest.raises(ValueError):
+            hdf_bulk_read.BulkReader().read([request])
+
+
+@pytest.mark.parametrize("kind", ["slice", "indices"])
+def test_virtual_dataset_requests_are_split_at_sources(tmp_path, kind):
+    row_counts = [10, 20, 15]
+    sources, arrays = _make_sources(tmp_path, row_counts)
+    _make_vds(tmp_path / "virtual.h5", sources, row_counts, gap=4, fillvalue=-1.0)
+    rows = slice(5, 50) if kind == "slice" else np.array([0, 3, 12, 29, 30, 31, 33, 40, 52])
+    with h5py.File(tmp_path / "virtual.h5", "r") as f:
+        expected = f["x"][rows]
+        reader = hdf_bulk_read.BulkReader()
+        destination = np.zeros_like(expected)
+        works = hdf_bulk_read.plan.plan([hdf_bulk_read.ReadRequest(f["x"], rows, destination)], reader.open)
+        names = [os.path.basename(work.filename) for work in works]
+        # the sources supply rows 0-10, 14-34 and 38-53, the gaps between them being unmapped
+        if kind == "slice":
+            assert names == ["source.0.h5", "virtual.h5", "source.1.h5", "virtual.h5", "source.2.h5"]
+        else:
+            assert names == ["source.0.h5", "virtual.h5", "source.1.h5", "source.2.h5"]
+        assert sum(len(work.destination) for work in works) == len(expected)
+        for work in works:
+            assert np.shares_memory(work.destination, destination)
+        hdf_bulk_read.execute.perform(works, hdf_bulk_read.strategy.ReadStrategy(1, True, "test"))
+    np.testing.assert_array_equal(destination, expected)
+
+
+def test_split_at_sources():
+    class Virtual:
+        def source_segments(self, start, stop):
+            boundaries = [(0, "a"), (30, "b"), (31, "c"), (60, "d")]
+            inside = [(row, name) for row, name in boundaries if start < row < stop]
+            first = [name for row, name in boundaries if row <= start][-1]
+            return [(start, first)] + inside
+
+    split = hdf_bulk_read.plan._split_at_sources
+    destination = np.arange(50)
+    works = split(Virtual(), slice(20, 70), destination)
+    assert [(w.rows, w.filename, list(w.destination[[0, -1]])) for w in works] == \
+        [(slice(20, 30), "a", [0, 9]), (slice(30, 31), "b", [10, 10]), (slice(31, 60), "c", [11, 39]),
+         (slice(60, 70), "d", [40, 49])]
+    works = split(Virtual(), np.array([10, 15, 31, 32, 59]), np.arange(5))
+    assert [(list(w.rows), w.filename, list(w.destination)) for w in works] == \
+        [([10, 15], "a", [0, 1]), ([31, 32, 59], "c", [2, 3, 4])]
+    # consecutive rows within a part become a slice
+    works = split(Virtual(), np.array([10, 30, 31, 32]), np.arange(4))
+    assert [(w.rows if isinstance(w.rows, slice) else list(w.rows), w.filename) for w in works] == \
+        [(slice(10, 11), "a"), (slice(30, 31), "b"), (slice(31, 33), "c")]
+    assert [(w.rows, w.filename) for w in split(Virtual(), slice(2, 5), np.arange(3))] == [(slice(2, 5), "a")]
+
+
+def test_group():
+    class Work:
+        def __init__(self, filename, n, chunks=()):
+            self.filename, self.n, self.chunks = filename, n, chunks
+
+        def shares_chunk_with(self, following):
+            if self.filename != following.filename or not self.chunks or not following.chunks:
+                return False
+            return self.chunks[-1] == following.chunks[0]
+
+    works = [Work(*w) for w in [("a", 1), ("b", 2), ("a", 3), ("v", 4, (0, 1)), ("v", 5, (1,)), ("v", 6, (2,)),
+                                ("b", 7)]]
+    grouped = hdf_bulk_read.plan.group(works, per_file=True)
+    assert [[w.n for w in task] for task in grouped] == [[1, 3], [2, 7], [4, 5, 6]]
+    # one task per unit of work, except that consecutive units needing the same chunk go together
+    ungrouped = hdf_bulk_read.plan.group(works, per_file=False)
+    assert [[w.n for w in task] for task in ungrouped] == [[1], [2], [3], [4, 5], [6], [7]]

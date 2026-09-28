@@ -54,6 +54,11 @@ class _VirtualReader(_DirectReader):
         self._block_starts = np.array([b.start for b in blocks], dtype=np.int64)
 
 
+    @property
+    def filename(self) -> str:
+        """The file holding the virtual dataset (its data come from the source files; see source_segments)"""
+        return self._filename
+
     @classmethod
     def plan(cls, dataset, h5file, bulk_reader: BulkReader) -> _VirtualReader:
         """Work out how to read an h5py virtual dataset from its sources, or raise _CannotReadDirectly if its
