@@ -119,7 +119,7 @@ def test_real_mount_table_parses():
     hdf_read_strategy.filesystem_type(__file__)  # does not raise
 
 
-@pytest.mark.parametrize("chunk_mb, decode_threads", [(0, 6), (10, 6), (100, 4), (300, 1), (5000, 0)])
+@pytest.mark.parametrize("chunk_mb, decode_threads", [(1, 6), (10, 6), (100, 4), (300, 1), (5000, 0)])
 def test_decode_threads_limited_by_memory(monkeypatch, chunk_mb, decode_threads):
     """Each decode thread, with what waits for it, needs about five times the size of its chunks, which decode-memory
     limits"""
@@ -127,10 +127,10 @@ def test_decode_threads_limited_by_memory(monkeypatch, chunk_mb, decode_threads)
     strategy = choose_read_strategy(summary(max_chunk_nbytes=chunk_mb * MB))
     assert strategy.decode_threads == decode_threads
     assert ("decode-memory" in strategy.reason) == (chunk_mb >= 100)
-    # what may wait to be decoded is two chunks per decode thread; with none, each input thread decodes a chunk itself,
-    # as many at once as decode-memory allows (but at least one)
+    # what may wait to be decoded is two chunks per decode thread; with no decode threads, each input thread decodes
+    # a chunk itself, as many at once as decode-memory allows (but at least one)
     inflight_chunks = 2 * decode_threads if decode_threads else 1
-    assert strategy.inflight_nbytes == inflight_chunks * max(chunk_mb * MB, 1)
+    assert strategy.inflight_nbytes == inflight_chunks * chunk_mb * MB
 
 
 def test_input_threads_decoding_for_themselves_are_limited_by_memory(monkeypatch):
@@ -186,3 +186,25 @@ def test_old_option_names_are_reported(monkeypatch, caplog, section, name):
     with caplog.at_level("WARNING", logger="pynbody.util.hdf_bulk_read.strategy"):
         hdf_read_strategy._read_config()
     assert any(name in r.getMessage() and f"[{section}]" in r.getMessage() for r in caplog.records)
+
+
+@pytest.mark.parametrize("fs_type", ["lustre", "ext4"])
+def test_small_chunks_are_decoded_by_input_threads(monkeypatch, fs_type):
+    """Decompressing chunks much smaller than 128 kB takes no longer than the Python work around it, which threads
+    cannot share, so decode threads would only slow reading down"""
+    on(monkeypatch, fs_type)
+    strategy = choose_read_strategy(summary(max_chunk_nbytes=64 * 1024, num_chunks=10000))
+    assert strategy.decode_threads == 0 and "too small" in strategy.reason
+    assert strategy.io_threads == (4 if fs_type == "lustre" else 1)
+    monkeypatch.setitem(hdf_read_strategy.config, "decode-threads", "3")  # (unless asked for)
+    assert choose_read_strategy(summary(max_chunk_nbytes=64 * 1024, num_chunks=10000)).decode_threads == 3
+
+
+def test_budget_is_counted_in_jobs(monkeypatch):
+    """Small chunks decoded several to a job are budgeted for as jobs"""
+    on(monkeypatch, "ext4")
+    s = ReadSummary(paths=("/data/snap.0.hdf5",), num_reads=10, num_files=1, all_direct=True, compressed=True,
+                    max_chunk_nbytes=512 * 1024, max_job_nbytes=MB, num_chunks=100)
+    strategy = choose_read_strategy(s)
+    assert threads(strategy) == (1, 6)
+    assert strategy.inflight_nbytes == 2 * 6 * MB

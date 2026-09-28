@@ -24,7 +24,8 @@ with a description of the work (a :class:`ReadSummary`), which applies these rul
    the number instead (0 meaning that input threads decode what they read themselves).
 
 Neither number exceeds what there is work for (files, for input; chunks, for decoding), and under ``auto`` decode
-threads do not exceed the CPUs this process may use. Memory limits decode threads too: each decode thread, with the
+threads do not exceed the CPUs this process may use, and are not used at all for chunks smaller than 128 kB: the
+Python work around decompressing each chunk, which threads cannot share, then takes as long as the decompression. Memory limits decode threads too: each decode thread, with the
 data waiting for it, needs about five times the size of the chunks it decodes, and ``decode-memory`` (default 2 GiB)
 bounds the total, which matters only for data stored in very large chunks. (With no decode threads, it limits
 instead how many input threads may hold a chunk at once.)
@@ -100,6 +101,10 @@ config = _read_config()
 """The options governing threaded reading, initially from the configuration files; may be changed at run time."""
 
 
+# Under 'auto', compressed data in chunks smaller than this are decoded by the input threads, not decode threads
+_min_chunk_nbytes_for_decode_threads = 128 * 1024
+
+
 @dataclasses.dataclass(frozen=True)
 class ReadSummary:
     """What the planner knows about the reads needed to load one array."""
@@ -121,6 +126,10 @@ class ReadSummary:
 
     max_chunk_nbytes: int = 0
     """The size of the largest chunk to be decoded (0 if the data are not chunked)"""
+
+    max_job_nbytes: int = 0
+    """The most data any job holds between fetching and processing it (see .common.ReadProperties); if 0, taken to
+    be max_chunk_nbytes"""
 
     num_chunks: int = 0
     """Roughly how many chunks are to be decoded"""
@@ -174,7 +183,8 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
         io_threads = max(summary.num_files, 1)
         io_reason += f" (but there are only {summary.num_files} files)"
 
-    chunk_nbytes = max(summary.max_chunk_nbytes, 1)
+    # (what a job holds; the budget and memory limits are counted in these)
+    chunk_nbytes = max(summary.max_job_nbytes or summary.max_chunk_nbytes, 1)
     # each decode thread holds a chunk compressed and decompressed while decoding it, perhaps a buffer the size of the
     # rows it copies out of it, and up to two chunks read and waiting for it
     memory_limit = config['decode-memory'] // (5 * chunk_nbytes)
@@ -184,6 +194,10 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
         requested = _requested('decode-threads')
         if requested is not None:
             decode_threads, decode_reason = requested, f"the decode-threads option is set to {requested}"
+        elif summary.max_chunk_nbytes < _min_chunk_nbytes_for_decode_threads:
+            decode_threads = 0
+            decode_reason = (f"the data are compressed, but in chunks of at most {summary.max_chunk_nbytes / 1024:.0f} "
+                             f"kB, too small for decompressing them to be worth sharing between threads")
         else:
             decode_threads = min(config['max-decode-threads'], available_cpus())
             decode_reason = f"the data are compressed, and {available_cpus()} CPUs are available"
@@ -193,7 +207,7 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
         if decode_threads > memory_limit:
             decode_threads = memory_limit
             decode_reason += (f" (limited to {memory_limit} by decode-memory, since chunks decode to as much as "
-                              f"{summary.max_chunk_nbytes / 2 ** 20:.0f} MB)")
+                              f"{chunk_nbytes / 2 ** 20:.0f} MB)")
         if decode_threads <= 1 and io_threads <= 1 and summary.num_chunks <= 1:
             decode_threads = 0
 
@@ -201,7 +215,10 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
     reason = f"{io_threads} input thread(s) because {io_reason}; {decode_threads} decode thread(s) because " \
              f"{decode_reason}"
     if decode_threads > 0:
-        inflight_chunks = 2 * decode_threads  # (two waiting for each decode thread)
+        # Two waiting for each decode thread. (That can leave input threads waiting, when there are more of them than
+        # twice the decode threads; but then decoding is what limits the speed of reading, and more data waiting for
+        # it would only take more memory.)
+        inflight_chunks = 2 * decode_threads
     else:
         # Input threads process what they fetch themselves, each holding a chunk and whatever decoding it takes, so
         # decode-memory limits how many do so at once

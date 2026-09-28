@@ -16,7 +16,6 @@ _supported_filters = {_DEFLATE_FILTER, _SHUFFLE_FILTER, _FLETCHER32_FILTER}
 # the file descriptor HDF5 holds. ('windows' is an alias of sec2 in some builds.)
 _supported_drivers = {'sec2', 'windows'}
 
-_default_cache_nbytes = 64 * 1024 * 1024
 
 
 @dataclasses.dataclass(frozen=True)
@@ -30,9 +29,12 @@ class ReadProperties:
     """True if the rows are compressed, so that decoding them takes appreciable CPU time"""
 
     chunk_nbytes: int = 0
-    """The most data a job reading the rows holds between fetching and processing it: the size of the largest chunk
-    to be decoded, or of a block of data to be converted (0 if nothing is held). Decoding a chunk needs roughly
-    twice this."""
+    """The size of the largest chunk to be decoded (0 if the data are not chunked)"""
+
+    job_nbytes: int = 0
+    """The most data a job reading the rows holds between fetching and processing it: the size of the chunks it
+    decodes (small ones being decoded several to a job), or of a block of data to be converted or gathered (0 if
+    nothing is held). Decoding needs roughly twice this."""
 
     num_chunks: int = 0
     """How many chunks are to be decoded"""
@@ -76,6 +78,8 @@ class Job:
     __slots__ = ('fetch', 'process', 'nbytes')
 
     def __init__(self, fetch, process=None, nbytes: int = 0):
+        if process is not None and nbytes <= 0:
+            raise ValueError("A job that processes what it fetches must say how much memory that takes")
         self.fetch = fetch
         self.process = process
         self.nbytes = nbytes

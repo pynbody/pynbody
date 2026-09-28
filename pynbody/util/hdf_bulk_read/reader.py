@@ -16,7 +16,6 @@ from . import execute, files, plan, strategy
 from .common import (
     BulkReadFallbackWarning,
     _CannotReadDirectly,
-    _default_cache_nbytes,
     _UnexpectedData,
 )
 from .datasets import _check_datatype, _ChunkedReader, _ContiguousReader
@@ -35,18 +34,15 @@ class BulkReader:
     over and over (as pynbody does for each snapshot) should keep one bulk reader for them.
     """
 
-    def __init__(self, enabled: bool = True, cache_nbytes: int = _default_cache_nbytes):
+    def __init__(self, enabled: bool = True):
         """Create a bulk reader.
 
         Parameters
         ----------
         enabled : bool
             If False, every dataset is read through h5py.
-        cache_nbytes : int
-            The most decoded chunk data each chunked dataset keeps between reads. See :class:`_ChunkedReader`.
         """
         self._enabled = enabled and h5py is not None
-        self._cache_nbytes = cache_nbytes
         self._source_files = {}
         self._source_files_lock = threading.Lock()
         self._file_checks = {}  # filename -> _FileHandle, or the _CannotReadDirectly it raised
@@ -102,6 +98,8 @@ class BulkReader:
             How the requests were read, and why.
         """
         works = plan.plan(requests, self.open)
+        # (before describing the work, since preparing it can find that a dataset must be read through h5py)
+        execute.prepare(works)
         chosen = strategy.choose_read_strategy(plan.summarise(works))
         logger.debug("Reading %d pieces with %s", len(works), chosen.reason)
         execute.perform(works, chosen)
@@ -122,7 +120,7 @@ class BulkReader:
         if layout == h5py.h5d.CONTIGUOUS:
             return _ContiguousReader(dataset, file, self)
         elif layout == h5py.h5d.CHUNKED:
-            return _ChunkedReader(dataset, file, self, self._cache_nbytes)
+            return _ChunkedReader(dataset, file, self)
         elif layout == h5py.h5d.COMPACT:
             raise _CannotReadDirectly("it uses compact storage", warn=False)
         else:

@@ -610,8 +610,11 @@ def test_datasets_are_released_file_by_file(monkeypatch, direct, io_threads, dec
     most_alive = [0]
     original_jobs = hdf_bulk_read.plan.jobs
 
+    job_nbytes = []
+
     def jobs(task):
         for job in original_jobs(task):
+            job_nbytes.append(job.nbytes)
             source = _source_of(job)
             if not any(ref() is source for ref in alive):
                 alive.append(weakref.ref(source))
@@ -625,8 +628,10 @@ def test_datasets_are_released_file_by_file(monkeypatch, direct, io_threads, dec
     f.dm['pos']
     assert len(alive) == len(f._hdf_files)
     # the dataset being read, perhaps the one before it awaiting collection, and with decode threads, those whose
-    # chunks have been fetched and wait to be decoded (at most two chunks per decode thread; here, a chunk per file)
-    assert most_alive[0] <= 2 + 2 * decode_threads
+    # chunks have been fetched and wait to be decoded (as many jobs as the budget allows; here, a job per file)
+    held = [n for n in job_nbytes if n > 0]
+    waiting = f._array_loader.last_read_strategy.inflight_nbytes // min(held) if decode_threads and held else 0
+    assert most_alive[0] <= 2 + waiting
 
 
 def test_interrupted_threaded_load_abandons_queued_reads(monkeypatch):

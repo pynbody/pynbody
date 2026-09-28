@@ -1,5 +1,8 @@
+import itertools
 import os
 import shutil
+import threading
+import time
 import zlib
 
 import h5py
@@ -206,40 +209,23 @@ def test_unallocated_chunks_read_as_fillvalue(tmp_path):
     _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read.datasets._ChunkedReader)
 
 
-def test_chunk_cache_avoids_repeated_decoding(tmp_path, monkeypatch):
+def test_requests_sharing_a_chunk_decode_it_once(tmp_path, monkeypatch):
+    """Requests in pieces (as pynbody makes them) that share a chunk are served by decoding it once"""
     filename = tmp_path / "bigchunk.h5"
     data = np.arange(10000, dtype=np.float64)
     _make_chunked(filename, data, (10000,), (2, 1))
 
     decodes = []
     original_decode = hdf_bulk_read.decode.decode_chunk
-    monkeypatch.setattr(hdf_bulk_read.decode, "decode_chunk", lambda *args, **kwargs: decodes.append(1) or original_decode(*args, **kwargs))
-
+    monkeypatch.setattr(hdf_bulk_read.decode, "decode_chunk",
+                        lambda *args, **kwargs: decodes.append(1) or original_decode(*args, **kwargs))
+    result = np.zeros_like(data)
     with h5py.File(filename, "r") as f:
-        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
-        result = np.concatenate([wrapped[i:i + 700] for i in range(0, 10000, 700)])
+        hdf_bulk_read.BulkReader().read([hdf_bulk_read.ReadRequest(f["x"], slice(i, min(i + 700, 10000)),
+                                                                   result[i:i + 700])
+                                         for i in range(0, 10000, 700)])
     np.testing.assert_array_equal(result, data)
     assert len(decodes) == 1
-
-    decodes.clear()
-    with h5py.File(filename, "r") as f:
-        wrapped = hdf_bulk_read.BulkReader(cache_nbytes=1000).open(f["x"])  # too small to hold the chunk...
-        wrapped[0:700]
-        wrapped[700:1400]
-    assert len(decodes) == 1  # ...which is kept all the same, alone, for the next read
-
-
-def test_chunk_cache_empties_as_reads_consume_chunks(tmp_path):
-    """Reads in increasing order leave nothing in the cache once they are past a chunk"""
-    filename = tmp_path / "chunks.h5"
-    data = np.arange(10000, dtype=np.float64)
-    _make_chunked(filename, data, (1000,), (2, 1))
-    with h5py.File(filename, "r") as f:
-        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
-        for i in range(0, 10000, 700):
-            np.testing.assert_array_equal(wrapped[i:i + 700], data[i:i + 700])
-            assert len(wrapped._cache) <= 1
-        assert len(wrapped._cache) == 0
 
 
 @pytest.mark.parametrize("lookups_before_indexing", [0, 8, 10 ** 9], ids=["index", "hybrid", "one-by-one"])
@@ -1030,7 +1016,7 @@ def test_one_reader_shared_between_threads(tmp_path):
     with h5py.File(filename, "w") as f:
         f.create_dataset("x", data=np.arange(20000.0), chunks=(100,))
     with h5py.File(filename, "r") as f:
-        wrapped = hdf_bulk_read.BulkReader(cache_nbytes=3 * 800).open(f["x"])
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
 
         def job(seed):
             rng = np.random.default_rng(seed)
@@ -1153,6 +1139,7 @@ def _make_mixed_file(filename):
 def test_read_requests(tmp_path, monkeypatch, block_nbytes, name, direct):
     """Requests of slices and of index arrays (read a block at a time) fill their destinations, converting dtype"""
     monkeypatch.setattr(hdf_bulk_read.plan, "_gather_block_nbytes", block_nbytes)
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_conversion_block_nbytes", block_nbytes)
     data = _make_mixed_file(tmp_path / "x.h5")[name]
     rng = np.random.default_rng(4)
     selections = [slice(10, 2000), np.sort(rng.choice(len(data), 300, replace=False)), np.arange(50, 120),
@@ -1283,6 +1270,7 @@ def test_selections_convert_as_whole_reads_do(tmp_path, direct):
 def test_read_requests_with_offsets(tmp_path, monkeypatch, block_nbytes, name):
     """Rows counted from an offset read as the rows plus the offset, without the rows being copied"""
     monkeypatch.setattr(hdf_bulk_read.plan, "_gather_block_nbytes", block_nbytes)
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_conversion_block_nbytes", block_nbytes)
     data = _make_mixed_file(tmp_path / "x.h5")[name]
     indices = np.array([0, 3, 4, 5, 40, 90])
     with h5py.File(tmp_path / "x.h5", "r") as f:
@@ -1333,6 +1321,15 @@ def _pipeline_files(directory):
     _make_vds(os.path.join(directory, "virtual.h5"), sources, row_counts, gap=6, fillvalue=-1.0)
     with h5py.File(os.path.join(directory, "plain.h5"), "w") as f:
         f["x"] = np.arange(3000.0)
+    # float32 data, to be read into float64 (a conversion made directly), contiguous and chunked, the chunked data
+    # having chunks never written (read as the fill value)
+    with h5py.File(os.path.join(directory, "plain32.h5"), "w") as f:
+        f["x"] = np.arange(2000, dtype=np.float32).reshape(1000, 2)
+    with h5py.File(os.path.join(directory, "sparse32.h5"), "w") as f:
+        dataset = f.create_dataset("x", shape=(2000, 2), dtype=np.float32, chunks=(100, 2), fillvalue=-3.0,
+                                   compression="gzip", shuffle=True)
+        dataset[250:900] = np.arange(1300, dtype=np.float32).reshape(650, 2)
+        dataset[1500:1650] = 7.0
     rng = np.random.default_rng(7)
 
     def requests(files):
@@ -1342,11 +1339,12 @@ def _pipeline_files(directory):
             n = dataset.shape[0]
             for rows in (slice(0, n), slice(n // 5, n // 2), np.sort(rng.choice(n, n // 7, replace=False)),
                          np.array([0, n - 1])):
-                wanted.append((dataset, rows, dataset[rows]))
+                expected = dataset[rows]
+                wanted.append((dataset, rows, expected.astype(np.float64)))
         return wanted
 
-    return [os.path.join(directory, name) for name in ["virtual.h5", "plain.h5", *map(os.path.basename, sources)]], \
-        requests
+    return [os.path.join(directory, name) for name in ["virtual.h5", "plain.h5", *map(os.path.basename, sources),
+                                                       "plain32.h5", "sparse32.h5"]], requests
 
 
 def _read_with(monkeypatch, strategy, requests):
@@ -1359,7 +1357,6 @@ def _read_with(monkeypatch, strategy, requests):
 
 
 def _no_pipeline_threads_remain():
-    import threading
     return not [t for t in threading.enumerate() if t.name.startswith("pynbody-hdf")]
 
 
@@ -1384,6 +1381,7 @@ def test_pipeline_reads_correctly(tmp_path, monkeypatch, io_threads, decode_thre
 def test_pipeline_keeps_data_in_flight_within_budget(tmp_path, monkeypatch, inflight_chunks):
     """What has been fetched and not yet decoded never exceeds the budget, except for one job larger than it"""
     filenames, make_requests = _pipeline_files(tmp_path)
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_min_job_nbytes", 1)  # (a job for each chunk)
     limit = inflight_chunks * 300 * 3 * 8
     most = [0]
     original_acquire = hdf_bulk_read.execute._Budget.acquire
@@ -1395,7 +1393,6 @@ def test_pipeline_keeps_data_in_flight_within_budget(tmp_path, monkeypatch, infl
 
     monkeypatch.setattr(hdf_bulk_read.execute._Budget, "acquire", acquire)
     # decoding slowly, so that input threads would run far ahead if nothing stopped them
-    import time
     original_decode = hdf_bulk_read.decode.decode_chunk
     monkeypatch.setattr(hdf_bulk_read.decode, "decode_chunk",
                         lambda *args, **kwargs: time.sleep(0.002) or original_decode(*args, **kwargs))
@@ -1408,8 +1405,8 @@ def test_pipeline_keeps_data_in_flight_within_budget(tmp_path, monkeypatch, infl
 
 def test_one_input_thread_feeds_several_decode_threads(tmp_path, monkeypatch):
     """With one input thread, chunks are still decoded by several threads at once"""
-    import threading
     _make_chunked(tmp_path / "x.h5", np.arange(10000.0), (500,), filters=(2, 1))
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_min_job_nbytes", 1)  # (a job for each chunk)
     together = threading.Barrier(3, timeout=10)  # (broken, so failing the read, unless three decode at once)
     original_decode = hdf_bulk_read.decode.decode_chunk
     decoded = []
@@ -1436,12 +1433,11 @@ def test_one_input_thread_feeds_several_decode_threads(tmp_path, monkeypatch):
 def test_pipeline_errors_reach_the_caller(tmp_path, monkeypatch, where, io_threads, decode_threads):
     """An exception in any thread stops the read, reaches the caller, and leaves no thread behind"""
     filenames, make_requests = _pipeline_files(tmp_path)
-    calls = []
+    calls = itertools.count(1)
     original = getattr(hdf_bulk_read.datasets._ChunkedReader, where)
 
     def fail(self, *args):
-        calls.append(1)
-        if len(calls) == 3:
+        if next(calls) == 3:  # (next() on a count is atomic, so exactly one call fails)
             raise RuntimeError("simulated failure")
         return original(self, *args)
 
@@ -1462,11 +1458,10 @@ def test_fallback_while_decoding_in_threads(tmp_path, monkeypatch, recwarn):
     """A chunk that turns out not to be readable directly, found in a decode thread, is read through h5py"""
     filenames, make_requests = _pipeline_files(tmp_path)
     original = hdf_bulk_read.datasets._ChunkedReader._decode_chunk
-    calls = []
+    calls = itertools.count(1)
 
     def unexpected(self, *args):
-        calls.append(1)
-        if len(calls) == 2:
+        if next(calls) == 2:
             raise hdf_bulk_read.common._UnexpectedData("simulated surprise")
         return original(self, *args)
 
@@ -1497,8 +1492,8 @@ def test_index_selections_decode_only_the_chunks_they_need(tmp_path, monkeypatch
 @pytest.mark.parametrize("inflight_chunks", [1, 2])
 def test_input_threads_decoding_for_themselves_keep_within_budget(tmp_path, monkeypatch, inflight_chunks):
     """With no decode threads, no more input threads decode at once than the budget allows"""
-    import threading, time
     filenames, make_requests = _pipeline_files(tmp_path)
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_min_job_nbytes", 1)  # (a job for each chunk)
     decoding = [0]  # bytes of chunks being decoded
     most = [0]
     lock = threading.Lock()
@@ -1522,3 +1517,55 @@ def test_input_threads_decoding_for_themselves_keep_within_budget(tmp_path, monk
                                                                     inflight_nbytes=inflight_chunks * chunk_nbytes),
                    make_requests([f]))
     assert 0 < most[0] <= inflight_chunks * chunk_nbytes
+
+
+@pytest.mark.skipif(not hasattr(os, "kill") or os.name == "nt", reason="needs SIGINT")
+def test_interrupting_the_caller_stops_every_input_thread(tmp_path, monkeypatch):
+    """KeyboardInterrupt in the calling thread, while input threads are reading, stops them after the job each is
+    doing, rather than after every file"""
+    import signal
+    row_counts = [3000] * 4
+    sources, _ = _make_sources(tmp_path, row_counts)  # (chunks of 1000 rows: 3 jobs a file)
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_min_job_nbytes", 1)  # (a job for each chunk)
+    fetched = []
+    original_fetch = hdf_bulk_read.datasets._ChunkedReader._fetch_for_pieces
+
+    def slow_fetch(self, *args):
+        fetched.append(1)
+        time.sleep(0.3)
+        return original_fetch(self, *args)
+
+    monkeypatch.setattr(hdf_bulk_read.datasets._ChunkedReader, "_fetch_for_pieces", slow_fetch)
+    monkeypatch.setattr(hdf_bulk_read.strategy, "choose_read_strategy",
+                        lambda summary: hdf_bulk_read.strategy.ReadStrategy(4, 2, "test", inflight_nbytes=10 ** 7))
+    files = [h5py.File(name, "r") for name in sources]
+    try:
+        timer = threading.Timer(0.1, os.kill, (os.getpid(), signal.SIGINT))
+        timer.start()
+        started = time.perf_counter()
+        with pytest.raises(KeyboardInterrupt):
+            hdf_bulk_read.BulkReader().read([hdf_bulk_read.ReadRequest(f["x"], slice(0, 3000), np.zeros((3000, 3)))
+                                             for f in files])
+        elapsed = time.perf_counter() - started
+    finally:
+        timer.cancel()
+        for f in files:
+            f.close()
+    assert len(fetched) <= 8  # (each of the 4 input threads finishing at most the fetch it was in, and one more)
+    assert elapsed < 1.5  # (rather than the 3.6 s it takes to read every file)
+    assert _no_pipeline_threads_remain()
+
+
+def test_small_chunks_are_decoded_several_to_a_job(tmp_path, monkeypatch):
+    _make_chunked(tmp_path / "x.h5", np.arange(100000.0), (1000,), filters=(2, 1))  # (chunks of 8 kB)
+    jobs = []
+    original_jobs = hdf_bulk_read.datasets._ChunkedReader.jobs
+    monkeypatch.setattr(hdf_bulk_read.datasets._ChunkedReader, "jobs",
+                        lambda self, targets: (jobs.append(job) or job for job in original_jobs(self, targets)))
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_min_job_nbytes", 80000)
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        _read_with(monkeypatch, hdf_bulk_read.strategy.ReadStrategy(1, 2, "test", inflight_nbytes=10 ** 6),
+                   [(f["x"], slice(0, 100000), np.arange(100000.0)), (f["x"], np.arange(5, 100000, 3000),
+                                                                       np.arange(5, 100000, 3000.0))])
+    # the whole read in 10 jobs of 10 chunks, then 34 chunks for the selection, each wanted by one row, in 4 jobs
+    assert [job.nbytes for job in jobs] == [80000] * 10 + [80000] * 3 + [32000]

@@ -116,7 +116,7 @@ class _GadgetHdfMultiFileManager:
         self._mode = mode
         self._open_files = {}
         self._remote_dir = remote_dir
-        self._bulk_reader = hdf_bulk_read.BulkReader(enabled=_direct_bulk_read, cache_nbytes=_chunk_cache_nbytes)
+        self._bulk_reader = hdf_bulk_read.BulkReader(enabled=_direct_bulk_read)
         if self._is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1

@@ -21,17 +21,21 @@ from __future__ import annotations
 import concurrent.futures
 import concurrent.futures.thread  # (imported lazily by concurrent.futures otherwise, which could fail mid-read)
 import threading
+import traceback
 
 from . import plan
 from .strategy import ReadStrategy
 
 
-def perform(works: list[plan._Work], strategy: ReadStrategy):
-    """Perform the work, emptying *works* as it goes."""
-    # Make every HDF5 lookup the work will need now, in this thread: from several threads at once they would only
-    # queue for h5py's lock, and the handing over of that lock is itself costly
+def prepare(works: list[plan._Work]):
+    """Make every HDF5 lookup the work will need now, in this thread: from several threads at once they would only
+    queue for h5py's lock, and the handing over of that lock is itself costly"""
     for work in works:
         work.prepare()
+
+
+def perform(works: list[plan._Work], strategy: ReadStrategy):
+    """Perform the work (prepared by :func:`prepare`), emptying *works* as it goes."""
     tasks = plan.group_by_file(works)
     works.clear()
     if strategy.serial:
@@ -93,20 +97,24 @@ class _Pipeline:
         if self._strategy.decode_threads > 0:
             self._decoders = concurrent.futures.ThreadPoolExecutor(max_workers=self._strategy.decode_threads,
                                                                    thread_name_prefix="pynbody-hdf-decode")
+        readers = None
         try:
             if io_threads <= 1:
                 self._read(tasks)
             else:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=io_threads,
-                                                           thread_name_prefix="pynbody-hdf-input") as readers:
-                    # list() waits for every task, and raises the first exception any of them raised; tasks not yet
-                    # started are then cancelled (by map), as they are if waiting is interrupted
-                    list(readers.map(self._read_task, self._take_each(tasks)))
+                readers = concurrent.futures.ThreadPoolExecutor(max_workers=io_threads,
+                                                                thread_name_prefix="pynbody-hdf-input")
+                # list() waits for every task, and raises the first exception any of them raised
+                list(readers.map(self._read_task, self._take_each(tasks)))
             self._wait_for_decoding()
         except BaseException:
+            # (before waiting for any thread, so that an interruption, such as KeyboardInterrupt in this thread,
+            # stops the others after the job each is doing)
             self._stop.set()
             raise
         finally:
+            if readers is not None:
+                readers.shutdown(wait=True, cancel_futures=True)
             if self._decoders is not None:
                 self._decoders.shutdown(wait=True, cancel_futures=True)
         if self._error is not None:
@@ -114,7 +122,7 @@ class _Pipeline:
 
     @staticmethod
     def _take_each(tasks):
-        """Yield the tasks one by one, letting go of each as it is handed out"""
+        """Yield the tasks one by one, so that *tasks* no longer holds each once it is handed out"""
         tasks.reverse()
         while tasks:
             yield tasks.pop()
@@ -156,20 +164,25 @@ class _Pipeline:
                 continue
             with self._condition:
                 self._outstanding += 1
-            self._decoders.submit(self._process, job, fetched)
+            # (in a list, which the decode thread empties, so that what was fetched is freed once processed, rather
+            # than when the pool lets go of the call)
+            self._decoders.submit(self._process, job, [fetched])
             del job, fetched
 
-    def _process(self, job, fetched):
+    def _process(self, job, holder):
         try:
+            fetched = holder.pop()
             if not self._stop.is_set():
                 job.process(fetched)
         except BaseException as e:
             with self._condition:
                 if self._error is None:
+                    # (keeping the traceback, but not what its frames held, such as the data being decoded)
+                    traceback.clear_frames(e.__traceback__)
                     self._error = e
             self._stop.set()
         finally:
-            del fetched
+            fetched = None
             self._budget.release(job.nbytes)
             with self._condition:
                 self._outstanding -= 1

@@ -73,7 +73,8 @@ class _Work:
     def properties(self) -> ReadProperties:
         """What matters about this work for deciding how to perform it"""
         if hasattr(self.source, 'properties'):
-            return self.source.properties(*self.span)
+            return self.source.properties(*self.span, destination_dtype=self.destination.dtype,
+                                          gathered=not isinstance(self.rows, slice))
         return ReadProperties(direct=False)  # (an h5py dataset)
 
     def prepare(self):
@@ -233,6 +234,7 @@ def summarise(works: list[_Work]) -> ReadSummary:
                        all_direct=all(p.direct for p in properties),
                        compressed=any(p.compressed for p in properties),
                        max_chunk_nbytes=max((p.chunk_nbytes for p in properties), default=0),
+                       max_job_nbytes=max((p.job_nbytes for p in properties), default=0),
                        num_chunks=sum(p.num_chunks for p in properties))
 
 

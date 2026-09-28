@@ -15,8 +15,8 @@ except ImportError:
     h5py = None
 
 from .common import (
-    Job,
     _THROUGH_H5PY,
+    Job,
     ReadProperties,
     _CannotReadDirectly,
     _supported_drivers,
@@ -186,10 +186,10 @@ class _VirtualReader(_DirectReader):
                 first = last
         return parts
 
-    def properties(self, start, stop):
+    def properties(self, start, stop, destination_dtype=None, gathered=False):
         if self._use_h5py:
             return _THROUGH_H5PY
-        direct, compressed, chunk_nbytes, num_chunks = True, False, 0, 0
+        direct, compressed, chunk_nbytes, job_nbytes, num_chunks = True, False, 0, 0, 0
         for block in self._blocks_overlapping(start, stop):
             if min(stop, block.stop) <= max(start, block.start):
                 continue
@@ -199,12 +199,15 @@ class _VirtualReader(_DirectReader):
                     direct = False  # read through h5py (a block with no source file is just filled in)
                 continue
             source_start = block.source_start + max(start, block.start) - block.start
-            source = reader.properties(source_start, source_start + min(stop, block.stop) - max(start, block.start))
+            source = reader.properties(source_start, source_start + min(stop, block.stop) - max(start, block.start),
+                                       destination_dtype, gathered)
             direct = direct and source.direct
             compressed = compressed or source.compressed
             chunk_nbytes = max(chunk_nbytes, source.chunk_nbytes)
+            job_nbytes = max(job_nbytes, source.job_nbytes)
             num_chunks += source.num_chunks
-        return ReadProperties(direct=direct, compressed=compressed, chunk_nbytes=chunk_nbytes, num_chunks=num_chunks)
+        return ReadProperties(direct=direct, compressed=compressed, chunk_nbytes=chunk_nbytes, job_nbytes=job_nbytes,
+                              num_chunks=num_chunks)
 
     def prepare(self, start, stop):
         if self._use_h5py:
@@ -352,7 +355,7 @@ class _Fill:
     def read_direct(self, dest: np.ndarray, source_sel=None):
         dest[...] = self.value
 
-    def properties(self, start, stop) -> ReadProperties:
+    def properties(self, start, stop, destination_dtype=None, gathered=False) -> ReadProperties:
         return ReadProperties(direct=True)
 
     def jobs(self, targets):
