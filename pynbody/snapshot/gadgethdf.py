@@ -110,7 +110,7 @@ class _GadgetHdfMultiFileManager:
         if self._is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1
-            file0 = _open_hdf_file(filename, mode)
+            file0 = self._open_file(filename, mode)
             # the user has pointed us at a single hdf5 file; if it declares itself to be one of a set, we are
             # seeing only part of the snapshot, and must say so (see SimSnap.is_partially_loaded)
             self.only_one_file_of_a_set = self._get_declared_num_files(file0) > 1
