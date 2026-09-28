@@ -43,8 +43,8 @@ from .. import config_parser
 logger = logging.getLogger('pynbody.util.hdf_read_strategy')
 
 # Filesystem types on which files are spread over several servers (so that reading several files at once pays off)
-parallel_filesystem_types = {'lustre', 'gpfs', 'beegfs', 'wekafs', 'ceph', 'fuse.ceph', 'pvfs2', 'orangefs', 'panfs',
-                             'nfs', 'nfs4'}
+# (NFS is not among them: it is usually served by a single server)
+parallel_filesystem_types = {'lustre', 'gpfs', 'beegfs', 'wekafs', 'ceph', 'fuse.ceph', 'pvfs2', 'orangefs', 'panfs'}
 
 
 def _read_config():

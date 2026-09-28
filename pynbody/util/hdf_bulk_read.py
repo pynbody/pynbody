@@ -990,9 +990,7 @@ def _unshuffle_planes_into(planes: np.ndarray, out: np.ndarray):
     element i at [b, i]; *out* is a contiguous uint8 array of element_size * num_elements bytes.
 
     Copying one plane at a time is two to three times faster in numpy than copying the transpose as a whole."""
-    if not out.flags.c_contiguous:
-        raise ValueError("The destination for unshuffled bytes must be contiguous")  # (or reshape would copy it)
-    elements = out.reshape(planes.shape[1], planes.shape[0])
+    elements = np.reshape(out, (planes.shape[1], planes.shape[0]), copy=False)  # (raises rather than copying)
     for b in range(planes.shape[0]):
         elements[:, b] = planes[b]
 

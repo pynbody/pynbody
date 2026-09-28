@@ -142,3 +142,9 @@ def test_bad_configuration_values_fall_back_to_defaults(monkeypatch, caplog):
     assert config == {"bulk-read-threads": "auto", "parallel-filesystem-threads": 16, "compressed-data-threads": 4,
                       "bulk-read-memory": 2 * 1024 ** 3}
     assert len(caplog.records) == 4
+
+
+def test_nfs_is_not_a_parallel_filesystem(monkeypatch):
+    on(monkeypatch, "nfs4")
+    strategy = choose_read_strategy(summary())
+    assert not strategy.per_file and strategy.threads == 3  # treated like a local disk: threads for compressed data

@@ -997,10 +997,14 @@ def test_conversion_is_exact(from_dtype, to_dtype, exact):
     assert hdf_bulk_read._conversion_is_exact(np.dtype(from_dtype), np.dtype(to_dtype)) == exact
 
 
-def test_unshuffle_refuses_a_destination_it_could_not_write_in_place():
-    planes = np.zeros((4, 10), dtype=np.uint8)
-    with pytest.raises(ValueError):
-        hdf_bulk_read._unshuffle_planes_into(planes, np.zeros(80, dtype=np.uint8)[::2])
+def test_unshuffle_writes_in_place():
+    """Unshuffled bytes land in the destination given, even a strided one (never in a copy of it)"""
+    elements = np.arange(40, dtype=np.uint8).reshape(10, 4)
+    planes = np.ascontiguousarray(elements.T)
+    backing = np.zeros(80, dtype=np.uint8)
+    hdf_bulk_read._unshuffle_planes_into(planes, backing[::2])
+    np.testing.assert_array_equal(backing[::2], elements.reshape(-1))
+    assert not backing[1::2].any()
 
 
 def test_one_reader_shared_between_threads(tmp_path):

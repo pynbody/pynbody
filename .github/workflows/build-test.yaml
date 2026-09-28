@@ -19,7 +19,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-2025]
         python-version: ["3.12", "3.13", "3.14"]
-        numpy-version: ["2.1.0", "2.5.0"]
+        numpy-version: ["2.2.0", "2.5.0"]
         include:
           - os: ubuntu-latest
             test_flags: "--hdfstream-server=http://localhost:8080/hdfstream"
@@ -27,7 +27,7 @@ jobs:
             test_flags: ""
         exclude:
           - python-version: "3.14"
-            numpy-version: "2.1.0"
+            numpy-version: "2.2.0"
 
     runs-on: ${{ matrix.os }}
     env:
