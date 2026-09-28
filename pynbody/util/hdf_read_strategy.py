@@ -12,7 +12,7 @@ before loading an array pynbody calls :func:`choose_read_strategy`, which applie
 2. **A fixed number of threads, if one is configured.** If ``bulk-read-threads`` is a number rather than ``auto``,
    that many threads are used (1 meaning serial), sharing the work as rule 3 or 4 would.
 
-3. **Parallel filesystems: one thread per file, up to** ``parallel-filesystem-threads`` **(default 4).** On Lustre
+3. **Parallel filesystems: one thread per file, up to** ``parallel-filesystem-threads`` **(default 16).** On Lustre
    and similar systems a spanned snapshot's files usually live on different servers, while each file lives on one.
    Each thread therefore reads whole files, in order: several servers are busy at once, and each file is still read
    sequentially, which keeps the filesystem's readahead effective. Threads sharing one file would compete for one
@@ -50,7 +50,7 @@ def _read_config():
     def option(name, default):
         return config_parser.get('gadgethdf', name, fallback=default).strip()
     return {'bulk-read-threads': option('bulk-read-threads', 'auto'),
-            'parallel-filesystem-threads': int(option('parallel-filesystem-threads', '4')),
+            'parallel-filesystem-threads': int(option('parallel-filesystem-threads', '16')),
             'compressed-data-threads': int(option('compressed-data-threads', '4'))}
 
 

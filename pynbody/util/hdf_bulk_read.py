@@ -81,6 +81,9 @@ _supported_drivers = {'sec2', 'windows'}
 
 _default_cache_nbytes = 64 * 1024 * 1024
 
+# Data that must be converted on their way into the destination are read this many bytes at a time
+_conversion_block_nbytes = 16 * 1024 * 1024
+
 
 class BulkReadFallbackWarning(UserWarning):
     """Issued when pynbody reads a dataset through h5py because it cannot be sure of reading it correctly itself.
@@ -580,13 +583,19 @@ class _ContiguousReader(_DirectReader):
         self._file = file
 
     def _read_rows_into(self, out, start, stop):
-        offset = self._offset + start * self._row_nbytes
-        nbytes = (stop - start) * self._row_nbytes
         if out.dtype == self.dtype and out.flags.c_contiguous:
-            _read_bytes(self._file, offset, nbytes, into=memoryview(out.view(np.uint8)))
-        else:
-            data = _read_bytes(self._file, offset, nbytes)
-            out[...] = np.frombuffer(data, dtype=self.dtype).reshape(out.shape)
+            offset = self._offset + start * self._row_nbytes
+            _read_bytes(self._file, offset, (stop - start) * self._row_nbytes, into=memoryview(out.view(np.uint8)))
+            return
+        # The data must be converted (or scattered) on their way into *out*: read them a block of rows at a time, so
+        # that the extra memory needed stays small however many rows are read
+        rows_per_block = max(1, _conversion_block_nbytes // max(self._row_nbytes, 1))
+        for block_start in range(start, stop, rows_per_block):
+            block_stop = min(stop, block_start + rows_per_block)
+            data = _read_bytes(self._file, self._offset + block_start * self._row_nbytes,
+                               (block_stop - block_start) * self._row_nbytes)
+            out[block_start - start:block_stop - start] = \
+                np.frombuffer(data, dtype=self.dtype).reshape((block_stop - block_start,) + self.shape[1:])
 
 
 class _ChunkedReader(_DirectReader):
@@ -665,8 +674,30 @@ class _ChunkedReader(_DirectReader):
                 elif chunk is _READ_THROUGH_H5PY:
                     dest[...] = self._dataset[(slice(row_lo, row_hi),) + trailing]
                 else:
-                    dest[...] = chunk[(slice(row_lo - row_origin, row_hi - row_origin),) +
-                                      tuple(slice(0, s.stop - s.start) for s in trailing)]
+                    self._copy_rows(chunk, dest, row_lo - row_origin, row_hi - row_origin,
+                                    tuple(s.stop - s.start for s in trailing))
+                chunk = None  # so that this chunk (unless cached) is freed before the next one is read
+
+    def _copy_rows(self, chunk: _DecodedChunk, dest, row_lo, row_hi, trailing_extent):
+        """Copy rows [row_lo, row_hi) of a decoded chunk (counted from its origin) into *dest*, which has room for
+        those rows and, along each trailing axis, the first *trailing_extent* elements of the chunk."""
+        trailing_sel = tuple(slice(0, n) for n in trailing_extent)
+        if chunk.planes is None:
+            rows = chunk.array.view(self.dtype).reshape(self._chunk_shape)[row_lo:row_hi]
+            dest[...] = rows[(slice(None),) + trailing_sel]
+            return
+        # The chunk is still shuffled, with byte b of element i at planes[b, i]. Unshuffle just the elements of the
+        # rows needed, straight into *dest* if its memory is laid out exactly like theirs, and otherwise into a
+        # buffer the size of those rows.
+        elements_per_row = int(np.prod(self._chunk_shape[1:], dtype=np.int64))
+        planes = chunk.planes[:, row_lo * elements_per_row:row_hi * elements_per_row]
+        whole_rows = trailing_extent == self._chunk_shape[1:]
+        if whole_rows and dest.dtype == self.dtype and dest.flags.c_contiguous:
+            _unshuffle_planes_into(planes, dest.reshape(-1).view(np.uint8))
+        else:
+            rows = np.empty((row_hi - row_lo,) + self._chunk_shape[1:], dtype=self.dtype)
+            _unshuffle_planes_into(planes, rows.reshape(-1).view(np.uint8))
+            dest[...] = rows[(slice(None),) + trailing_sel]
 
     def _get_chunk(self, origin, keep):
         """Return the decoded chunk at *origin*; None if it has never been written; or _READ_THROUGH_H5PY."""
@@ -693,11 +724,19 @@ class _ChunkedReader(_DirectReader):
             return _READ_THROUGH_H5PY
 
         raw = _read_bytes(self._file, info.byte_offset, info.size)
-        decoded = decode_chunk(raw, info.filter_mask, self._pipeline, self.dtype.itemsize)
-        if len(decoded) != self._chunk_nbytes:
-            raise _UnexpectedData(f"the chunk at {origin} decoded to {len(decoded)} bytes, "
-                                  f"not {self._chunk_nbytes}")
-        chunk = np.frombuffer(decoded, dtype=self.dtype).reshape(self._chunk_shape)
+        deferred = self._deferred_filters(info.filter_mask)
+        decoded = decode_chunk(raw, info.filter_mask, self._pipeline, self.dtype.itemsize,
+                               nbytes=self._chunk_nbytes, first_filter=deferred)
+        del raw
+        expected_nbytes = self._chunk_nbytes + (4 if deferred == 2 else 0)
+        if len(decoded) != expected_nbytes:
+            raise _UnexpectedData(f"the chunk at {origin} decoded to {len(decoded)} bytes, not {expected_nbytes}")
+        if deferred:
+            chunk = _DecodedChunk(planes=_shuffled_planes(decoded, self.dtype.itemsize,
+                                                          self._chunk_nbytes // self.dtype.itemsize,
+                                                          checksummed=deferred == 2))
+        else:
+            chunk = _DecodedChunk(array=decoded)
 
         if keep and self._chunk_nbytes <= self._cache_nbytes:
             with self._cache_lock:
@@ -705,6 +744,21 @@ class _ChunkedReader(_DirectReader):
                     self._cache.popitem(last=False)
                 self._cache[origin] = chunk
         return chunk
+
+    def _deferred_filters(self, filter_mask) -> int:
+        """How many of the first filters applied on writing to leave undone until rows are copied out of a chunk.
+
+        If the first filter was a shuffle, undoing it as rows are copied out saves a pass over the chunk and a buffer
+        the size of it. That is also possible if the first two filters were fletcher32 and then a shuffle (as SWIFT
+        sometimes writes), since the checksum can be verified without unshuffling. Returns 0, 1 or 2."""
+        if self.dtype.itemsize not in (2, 4, 8):
+            return 0
+        pipeline = [f['filter_id'] for f in self._pipeline]
+        if pipeline[:1] == [_SHUFFLE_FILTER] and not filter_mask & 1:
+            return 1
+        if pipeline[:2] == [_FLETCHER32_FILTER, _SHUFFLE_FILTER] and not filter_mask & 3:
+            return 2
+        return 0
 
     def _applies_filters(self, filter_mask):
         """True if any filter of the pipeline applies to a chunk with the given filter mask"""
@@ -714,7 +768,36 @@ class _ChunkedReader(_DirectReader):
 _READ_THROUGH_H5PY = object()  # returned by _ChunkedReader._get_chunk for chunks only HDF5 can be sure of
 
 
-def decode_chunk(raw, filter_mask: int, pipeline: list, itemsize: int) -> np.ndarray:
+class _DecodedChunk:
+    """A chunk with its filters undone: either its bytes (*array*, a uint8 array), or, if its first filter was a
+    shuffle, still shuffled, as *planes*: a (element size, number of elements) uint8 array holding byte b of
+    element i at [b, i]."""
+    __slots__ = ('array', 'planes')
+
+    def __init__(self, array: np.ndarray | None = None, planes: np.ndarray | None = None):
+        self.array = array
+        self.planes = planes
+
+
+def _shuffled_planes(data: np.ndarray, element_size: int, num_elements: int, checksummed: bool) -> np.ndarray:
+    """Return the byte planes of *num_elements* shuffled elements of *element_size* bytes, from a chunk's bytes
+    after all but its first filter or two are undone: a shuffle, or (if *checksummed*) fletcher32 then a shuffle.
+
+    In the second case the checksum is verified. The shuffle then covered the data with the checksum appended, as a
+    whole number of elements (which may include the checksum) followed by any bytes left over, unshuffled."""
+    if not checksummed:
+        return data.reshape(element_size, num_elements)
+    shuffled_elements = len(data) // element_size
+    planes = data[:shuffled_elements * element_size].reshape(element_size, shuffled_elements)
+    # the elements after the data, unshuffled, followed by the bytes left over: the four bytes of the checksum
+    checksum_bytes = np.concatenate((planes[:, num_elements:].T.reshape(-1), data[shuffled_elements * element_size:]))
+    data_planes = planes[:, :num_elements]
+    _check_fletcher32(_fletcher32_of_planes(data_planes), checksum_bytes)
+    return data_planes
+
+
+def decode_chunk(raw, filter_mask: int, pipeline: list, itemsize: int, nbytes: int | None = None,
+                 first_filter: int = 0) -> np.ndarray:
     """Undo the filter pipeline applied to a raw HDF5 chunk, returning its bytes as a uint8 array.
 
     Parameters
@@ -728,14 +811,25 @@ def decode_chunk(raw, filter_mask: int, pipeline: list, itemsize: int) -> np.nda
         filters may also carry their element size as ``client_data[0]``.
     itemsize : int
         The dataset's element size, used by the shuffle filter if its client data does not give one.
+    nbytes : int, optional
+        The size the chunk should decode to. Decompressing is then done into a buffer of exactly the right size
+        (rather than one grown as needed, which briefly takes twice the memory); nothing depends on it being right.
+    first_filter : int
+        Undo only filters *first_filter* onwards, leaving the ones applied before them on writing.
     """
     data = np.frombuffer(raw, dtype=np.uint8)
-    for i in reversed(range(len(pipeline))):
+    for i in reversed(range(first_filter, len(pipeline))):
         if filter_mask & (1 << i):
             continue
         filter_id = pipeline[i]['filter_id']
         if filter_id == _DEFLATE_FILTER:
-            data = np.frombuffer(zlib.decompress(data), dtype=np.uint8)
+            if nbytes is None:
+                data = np.frombuffer(zlib.decompress(data), dtype=np.uint8)
+            else:
+                # the decompressed size is nbytes, plus the checksums of any fletcher32 filters applied before this
+                expected = nbytes + 4 * sum(1 for j in range(i) if pipeline[j]['filter_id'] == _FLETCHER32_FILTER
+                                            and not filter_mask & (1 << j))
+                data = np.frombuffer(zlib.decompress(data, bufsize=max(expected, 1)), dtype=np.uint8)
         elif filter_id == _SHUFFLE_FILTER:
             client_data = pipeline[i].get('client_data') or ()
             data = _unshuffle(data, int(client_data[0]) if len(client_data) > 0 else itemsize)
@@ -757,10 +851,19 @@ def _unshuffle(data: np.ndarray, element_size: int) -> np.ndarray:
         return data
     shuffled_nbytes = num_elements * element_size
     out = np.empty_like(data)
-    out[:shuffled_nbytes].reshape(num_elements, element_size)[...] = \
-        data[:shuffled_nbytes].reshape(element_size, num_elements).T
+    _unshuffle_planes_into(data[:shuffled_nbytes].reshape(element_size, num_elements), out[:shuffled_nbytes])
     out[shuffled_nbytes:] = data[shuffled_nbytes:]
     return out
+
+
+def _unshuffle_planes_into(planes: np.ndarray, out: np.ndarray):
+    """Interleave byte planes into elements: *planes* has shape (element_size, num_elements), holding byte b of
+    element i at [b, i]; *out* is a contiguous uint8 array of element_size * num_elements bytes.
+
+    Copying one plane at a time is two to three times faster in numpy than copying the transpose as a whole."""
+    elements = out.reshape(planes.shape[1], planes.shape[0])
+    for b in range(planes.shape[0]):
+        elements[:, b] = planes[b]
 
 
 def fletcher32(data) -> int:
@@ -773,46 +876,91 @@ def fletcher32(data) -> int:
     word, making it sum_i w_i (n - i) for words w_0 ... w_{n-1}.
     """
     data = np.frombuffer(data, dtype=np.uint8) if not isinstance(data, np.ndarray) else data
-    if len(data) % 2:
-        data = np.concatenate((data, np.zeros(1, dtype=np.uint8)))
-    words = data.view('>u2')
+    words = data[:len(data) - len(data) % 2].view('>u2')
     num_words = len(words)
+    total, index_weighted = _sum_and_index_weighted_sum(words)
+    if len(data) % 2:
+        # an odd final byte is padded to a final word, handled here rather than by copying the data
+        final_word = int(data[-1]) << 8
+        total += final_word
+        index_weighted += num_words * final_word
+        num_words += 1
+    return _fletcher32_from_sums(total, num_words * total - index_weighted)
 
-    # Both sums need only be known modulo 65535. The second is sum_i w_i (n - i) = n S - sum_i i w_i, where S is the
-    # first. To compute sum_i i w_i with vectorised reductions, view the words as a matrix W of `width` columns: then
-    # it is width * sum_r r R_r + sum_c c C_c, where R and C are the row and column sums of W. Every term is reduced
-    # modulo 65535 before being multiplied, so nothing can overflow int64.
+
+def _fletcher32_of_planes(planes: np.ndarray) -> int:
+    """Return the fletcher32 checksum of the data whose shuffled byte planes are *planes*, without unshuffling.
+
+    Byte b of element i is at position p = i e + b of the unshuffled data, for element size e (which must be even),
+    so it falls in word p // 2 = i e / 2 + b // 2 of the W = n e / 2 words, as the high byte if b is even. With
+    S_b = sum_i x_bi and T_b = sum_i i x_bi, the first sum is then sum_b c_b S_b and the second (sum_k w_k (W - k))
+    is sum_b c_b ((W - b // 2) S_b - (e / 2) T_b), where c_b is 256 for even b and 1 for odd b."""
+    element_size, num_elements = planes.shape
+    if element_size % 2:
+        raise ValueError("Checksums of shuffled data can only be computed for even element sizes")
+    num_words = element_size * num_elements // 2
+    total, weighted_total = 0, 0
+    for b in range(element_size):
+        plane_sum, plane_index_weighted = _sum_and_index_weighted_sum(planes[b])
+        weight = 256 if b % 2 == 0 else 1
+        total += weight * plane_sum
+        weighted_total += weight * ((num_words - b // 2) * plane_sum - (element_size // 2) * plane_index_weighted)
+    return _fletcher32_from_sums(total, weighted_total)
+
+
+_column_sum_block_rows = 65536
+
+
+def _sum_and_index_weighted_sum(values: np.ndarray) -> tuple[int, int]:
+    """Return sum_i x_i exactly and sum_i i x_i modulo 65535, for a 1-D array of integers below 2**16.
+
+    To compute sum_i i x_i with vectorised reductions, view the values as a matrix of `width` columns: then it is
+    width * sum_r r R_r + sum_c c C_c, where R and C are the row and column sums of the matrix. Every term is reduced
+    modulo 65535 before being multiplied, so nothing can overflow int64. The sums themselves accumulate in uint32,
+    which numpy does far faster than int64: a row sum is at most width * 65535 < 2**32, and column sums are taken over
+    blocks of at most _column_sum_block_rows (65536) rows, so none can overflow."""
     width = 1024
-    num_rows = num_words // width
+    num_rows = len(values) // width
     total, index_weighted = 0, 0
     if num_rows > 0:
-        matrix = words[:num_rows * width].reshape(num_rows, width)
-        row_sums = matrix.sum(axis=1, dtype=np.int64)
-        column_sums = matrix.sum(axis=0, dtype=np.int64)
+        matrix = values[:num_rows * width].reshape(num_rows, width)
+        row_sums = matrix.sum(axis=1, dtype=np.uint32).astype(np.int64)
+        column_sums = np.zeros(width, dtype=np.int64)
+        for block_start in range(0, num_rows, _column_sum_block_rows):
+            column_sums += matrix[block_start:block_start + _column_sum_block_rows].sum(axis=0, dtype=np.uint32)
         total = int(row_sums.sum())
         index_weighted = width * int(np.dot(np.arange(num_rows, dtype=np.int64) % 65535, row_sums % 65535)) \
                          + int(np.dot(np.arange(width, dtype=np.int64), column_sums % 65535))
-    remainder = words[num_rows * width:].astype(np.int64)
+    remainder = values[num_rows * width:].astype(np.int64)
     total += int(remainder.sum())
-    index_weighted += int(np.dot(np.arange(num_rows * width, num_words, dtype=np.int64), remainder))
-    weighted_total = (num_words * total - index_weighted) % 65535
+    index_weighted += int(np.dot(np.arange(num_rows * width, len(values), dtype=np.int64) % 65535, remainder))
+    return total, index_weighted % 65535
 
+
+def _fletcher32_from_sums(total: int, weighted_total: int) -> int:
+    """Return the checksum from the exact sum of the words, and the second sum (sum_k w_k (n - k)) modulo 65535"""
     if total == 0:
         return 0
     sum1 = (total - 1) % 65535 + 1
-    sum2 = (weighted_total - 1) % 65535 + 1
+    sum2 = (weighted_total % 65535 - 1) % 65535 + 1
     return (sum2 << 16) | sum1
 
 
 def _verify_fletcher32(data: np.ndarray):
-    """Check the fletcher32 checksum at the end of a chunk, raising OSError if it does not match.
+    """Check the fletcher32 checksum at the end of a chunk, raising OSError if it does not match."""
+    if len(data) < 4:
+        raise OSError("Chunk is too short to carry a fletcher32 checksum")
+    _check_fletcher32(fletcher32(data[:-4]), data[-4:])
+
+
+def _check_fletcher32(computed: int, stored_bytes: np.ndarray):
+    """Compare a computed checksum with the four bytes stored, raising OSError if they do not match.
 
     The checksum is stored little-endian. Like HDF5, this also accepts the checksum with the bytes of each 16-bit
     half swapped, as written by some old versions of the library."""
-    if len(data) < 4:
+    if len(stored_bytes) != 4:
         raise OSError("Chunk is too short to carry a fletcher32 checksum")
-    stored = int(data[-4:].view('<u4')[0])
-    computed = fletcher32(data[:-4])
+    stored = int(np.ascontiguousarray(stored_bytes).view('<u4')[0])
     reversed_bytes = ((computed & 0x00ff00ff) << 8) | ((computed >> 8) & 0x00ff00ff)
     if stored != computed and stored != reversed_bytes:
         raise OSError("fletcher32 checksum of HDF5 chunk is invalid; the file may be corrupt")

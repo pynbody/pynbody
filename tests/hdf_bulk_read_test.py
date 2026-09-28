@@ -1,5 +1,6 @@
 import os
 import shutil
+import zlib
 
 import h5py
 import numpy as np
@@ -111,6 +112,63 @@ def test_corrupt_checksum_is_detected(tmp_path):
                 wrapped[:]
 
 
+@pytest.mark.parametrize("element_size", [2, 4, 8])
+@pytest.mark.parametrize("kind", ["random", "zeros", "ones", "one-nonzero", "multiple-of-65535"])
+@pytest.mark.parametrize("num_elements", [1, 2, 511, 1024, 5000])
+def test_fletcher32_of_planes_matches_unshuffled(element_size, kind, num_elements):
+    rng = np.random.default_rng(num_elements)
+    nbytes = element_size * num_elements
+    if kind == "random":
+        data = rng.integers(0, 256, nbytes, dtype=np.uint8)
+    elif kind == "zeros":
+        data = np.zeros(nbytes, dtype=np.uint8)
+    elif kind == "ones":
+        data = np.full(nbytes, 0xFF, dtype=np.uint8)
+    elif kind == "one-nonzero":
+        data = np.zeros(nbytes, dtype=np.uint8)
+        data[nbytes // 2] = 7
+    else:  # the words 0x0001, 0xfffe, ... sum to multiples of 65535
+        data = np.tile(np.array([0x00, 0x01, 0xFF, 0xFE], dtype=np.uint8), nbytes // 4 + 1)[:nbytes]
+    planes = np.ascontiguousarray(data.reshape(num_elements, element_size).T)
+    assert hdf_bulk_read._fletcher32_of_planes(planes) == hdf_bulk_read.fletcher32(data)
+
+
+@pytest.mark.parametrize("block_rows", [1, 3, 65536])
+def test_index_weighted_sums_are_exact(monkeypatch, block_rows):
+    monkeypatch.setattr(hdf_bulk_read, "_column_sum_block_rows", block_rows)
+    rng = np.random.default_rng(1)
+    for values in [rng.integers(0, 65536, 10 * 1024 + 17, dtype=np.uint16), np.full(5000, 0xFFFE, dtype=np.uint16),
+                   rng.integers(0, 256, 3000, dtype=np.uint8), np.zeros(0, dtype=np.uint16)]:
+        exact = values.astype(np.int64)
+        index = np.arange(len(values), dtype=np.int64)
+        total, index_weighted = hdf_bulk_read._sum_and_index_weighted_sum(values)
+        assert total == int(exact.sum())
+        assert index_weighted == int((index * exact).sum()) % 65535
+
+
+@pytest.mark.parametrize("dtype", ["<i2", "<f4", "<f8"])
+@pytest.mark.parametrize("where", ["data", "checksum"])
+def test_corrupt_checksum_is_detected_before_shuffle(tmp_path, dtype, where):
+    """With fletcher32 applied before the shuffle (as SWIFT sometimes writes), the checksum is verified on the
+    shuffled data; corrupting either the data or the checksum itself is noticed"""
+    filename = tmp_path / "corrupt.h5"
+    data = np.arange(1000).astype(dtype)
+    _make_chunked(filename, data, (1000,), (3, 2))  # no compression, so that bytes can be corrupted in place
+    with h5py.File(filename, "r") as f:
+        info = f["x"].id.get_chunk_info(0)
+    position = info.byte_offset + (10 if where == "data" else info.size - 2)
+    with open(filename, "r+b") as f:
+        f.seek(position)
+        byte = f.read(1)
+        f.seek(position)
+        f.write(bytes([byte[0] ^ 0x5A]))
+    with h5py.File(filename, "r") as f:
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="fletcher32"):
+            with pytest.raises(OSError):
+                wrapped[:]
+
+
 def test_unallocated_chunks_read_as_fillvalue(tmp_path):
     filename = tmp_path / "sparse.h5"
     with h5py.File(filename, "w") as f:
@@ -127,7 +185,7 @@ def test_chunk_cache_avoids_repeated_decoding(tmp_path, monkeypatch):
 
     decodes = []
     original_decode = hdf_bulk_read.decode_chunk
-    monkeypatch.setattr(hdf_bulk_read, "decode_chunk", lambda *args: decodes.append(1) or original_decode(*args))
+    monkeypatch.setattr(hdf_bulk_read, "decode_chunk", lambda *args, **kwargs: decodes.append(1) or original_decode(*args, **kwargs))
 
     with h5py.File(filename, "r") as f:
         wrapped = hdf_bulk_read.BulkReader().open(f["x"])
@@ -292,6 +350,75 @@ def test_widening_conversion(tmp_path, chunked):
         got = np.empty(50, dtype=np.float64)
         hdf_bulk_read.BulkReader().open(f["x"]).read_direct(got, source_sel=np.s_[20:70])
     np.testing.assert_array_equal(got, data[20:70].astype(np.float64))
+
+
+@pytest.mark.parametrize("filters", [(2, 1), (3, 2, 1), (1,)], ids=lambda f: "filters-" + "-".join(map(str, f)))
+@pytest.mark.parametrize("chunks", [(64, 3), (50, 2)])
+def test_chunks_into_converting_or_strided_destinations(tmp_path, filters, chunks):
+    """Rows copied out of a chunk (still shuffled or not) into destinations that are not laid out like the chunk:
+    another dtype, or a strided view"""
+    rng = np.random.default_rng(5)
+    data = (rng.random((300, 3)) * 200).astype("<f4")
+    filename = tmp_path / "chunked.h5"
+    _make_chunked(filename, data, chunks, filters)
+    with h5py.File(filename, "r") as f:
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        widened = np.empty((190, 3), dtype=np.float64)
+        wrapped.read_direct(widened, source_sel=np.s_[33:223])
+        np.testing.assert_array_equal(widened, data[33:223].astype(np.float64))
+        backing = np.zeros((190, 6), dtype="<f4")
+        strided = backing[:, ::2]
+        wrapped.read_direct(strided, source_sel=np.s_[33:223])
+        np.testing.assert_array_equal(strided, data[33:223])
+        assert not backing[:, 1::2].any()
+
+
+def test_contiguous_conversion_is_done_in_blocks(tmp_path, monkeypatch):
+    monkeypatch.setattr(hdf_bulk_read, "_conversion_block_nbytes", 100)
+    data = np.arange(3000, dtype="<f4").reshape(1000, 3)
+    filename = tmp_path / "contiguous.h5"
+    with h5py.File(filename, "w") as f:
+        f["x"] = data
+    reads = []
+    original_read = hdf_bulk_read._read_bytes
+    monkeypatch.setattr(hdf_bulk_read, "_read_bytes",
+                        lambda file, offset, nbytes, into=None: reads.append(nbytes) or
+                        original_read(file, offset, nbytes, into))
+    with h5py.File(filename, "r") as f:
+        got = np.empty((990, 3), dtype=np.float64)
+        hdf_bulk_read.BulkReader().open(f["x"]).read_direct(got, source_sel=np.s_[7:997])
+    np.testing.assert_array_equal(got, data[7:997])
+    assert max(reads) <= 100 and sum(reads) == 990 * 12
+
+
+@pytest.mark.parametrize("nbytes", [None, 10, 8000, 8001, 10 ** 6])
+def test_decode_chunk_size_hint_is_only_a_hint(nbytes):
+    raw = zlib.compress(np.arange(1000, dtype=np.float64).tobytes())
+    decoded = hdf_bulk_read.decode_chunk(raw, 0, [{'filter_id': 1}], 8, nbytes=nbytes)
+    np.testing.assert_array_equal(decoded.view(np.float64), np.arange(1000.0))
+
+
+@pytest.mark.parametrize("filters", [(2, 1), (3, 2, 1), (2, 1, 3)], ids=lambda f: "filters-" + "-".join(map(str, f)))
+def test_decoding_memory_is_bounded(tmp_path, filters):
+    """Decoding a chunk needs little more memory than the chunk takes compressed and decompressed: in particular,
+    no buffer grown by doubling, and no second copy of the whole chunk for unshuffling"""
+    import tracemalloc
+    rng = np.random.default_rng(2)
+    data = rng.random(4_000_000)  # 32 MB in one chunk, compressing poorly
+    filename = tmp_path / "bigchunk.h5"
+    _make_chunked(filename, data, data.shape, filters)
+    with h5py.File(filename, "r") as f:
+        compressed = f["x"].id.get_storage_size()
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        out = np.empty_like(data)
+        tracemalloc.start()
+        try:
+            wrapped.read_direct(out)
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+    np.testing.assert_array_equal(out, data)
+    assert peak < compressed + data.nbytes + 2 * 1024 * 1024
 
 
 def test_reader_reopens_after_close(tmp_path):
