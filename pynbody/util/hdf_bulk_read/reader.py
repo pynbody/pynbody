@@ -13,7 +13,12 @@ except ImportError:
     h5py = None
 
 from . import execute, files, plan, strategy
-from .common import BulkReadFallbackWarning, _CannotReadDirectly, _default_cache_nbytes, _UnexpectedData
+from .common import (
+    BulkReadFallbackWarning,
+    _CannotReadDirectly,
+    _default_cache_nbytes,
+    _UnexpectedData,
+)
 from .datasets import _check_datatype, _ChunkedReader, _ContiguousReader
 from .files import _check_file, _FileHandle
 from .plan import ReadRequest

@@ -13,7 +13,12 @@ try:
 except ImportError:
     h5py = None
 
-from .common import _THROUGH_H5PY, ReadProperties, _CannotReadDirectly, _supported_drivers
+from .common import (
+    _THROUGH_H5PY,
+    ReadProperties,
+    _CannotReadDirectly,
+    _supported_drivers,
+)
 from .datasets import _check_fill, _DirectReader
 from .files import _file_identity
 
