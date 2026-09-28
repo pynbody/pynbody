@@ -55,7 +55,7 @@ def _check_reader_matches_h5py(filename, name="x", expected_type=None):
 
 @pytest.mark.parametrize("filters", [(), (1,), (2, 1), (3, 2, 1), (2, 1, 3), (3,), (1, 3)],
                          ids=lambda f: "filters-" + "-".join(map(str, f)) if f else "unfiltered")
-@pytest.mark.parametrize("dtype", ["<f8", "<f4", "<i8", ">f8", "u1"])
+@pytest.mark.parametrize("dtype", ["<f8", "<f4", "<i8", ">f8", "u1", "<i2", ">u2"])
 @pytest.mark.parametrize("shape, chunks", [((1000,), (64,)), ((1000,), (1000,)), ((300, 3), (64, 3)),
                                            ((300, 3), (50, 1)), ((301, 3), (300, 2))])
 def test_chunked_matches_h5py(tmp_path, filters, dtype, shape, chunks):
@@ -63,6 +63,33 @@ def test_chunked_matches_h5py(tmp_path, filters, dtype, shape, chunks):
     data = (rng.random(shape) * 200).astype(dtype)
     filename = tmp_path / "chunked.h5"
     _make_chunked(filename, data, chunks, filters)
+    _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read._ChunkedReader)
+
+
+@pytest.mark.parametrize("pipeline", [(2, 1, 3), (3, 2, 1), (2, 1)], ids=lambda f: "filters-" + "-".join(map(str, f)))
+def test_chunks_skipping_filters(tmp_path, pipeline):
+    """Chunks written with some of the pipeline's filters skipped (as recorded in each chunk's filter mask)"""
+    rng = np.random.default_rng(7)
+    data = rng.random((800, 3)).astype("<f4")
+    filename = tmp_path / "masked.h5"
+    _make_chunked(filename, np.zeros_like(data), (100, 3), pipeline)
+    with h5py.File(filename, "a") as f:
+        for i, row in enumerate(range(0, 800, 100)):
+            mask = i % (1 << len(pipeline))  # every combination of skipped filters
+            chunk = data[row:row + 100].tobytes()
+            for position, filter_id in enumerate(pipeline):  # apply, in order, the filters not skipped
+                if mask & (1 << position):
+                    continue
+                if filter_id == 1:
+                    chunk = zlib.compress(chunk)
+                elif filter_id == 2:
+                    n = len(chunk) // 4
+                    chunk = np.frombuffer(chunk[:n * 4], np.uint8).reshape(n, 4).T.tobytes() + chunk[n * 4:]
+                elif filter_id == 3:
+                    chunk += hdf_bulk_read.fletcher32(chunk).to_bytes(4, "little")
+            f["x"].id.write_direct_chunk((row, 0), chunk, filter_mask=mask)
+    with h5py.File(filename, "r") as f:
+        np.testing.assert_array_equal(f["x"][:], data)  # (the chunks are as HDF5 would have written them)
     _check_reader_matches_h5py(filename, expected_type=hdf_bulk_read._ChunkedReader)
 
 
