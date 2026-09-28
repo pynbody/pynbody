@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import collections
+import functools
 import itertools
 import threading
 import typing
@@ -17,6 +18,7 @@ except ImportError:
 
 from . import decode, files
 from .common import (
+    Job,
     _DEFLATE_FILTER,
     _FLETCHER32_FILTER,
     _SHUFFLE_FILTER,
@@ -155,17 +157,64 @@ class _DirectReader:
             return _THROUGH_H5PY
         return ReadProperties(direct=True, compressed=self.is_compressed())
 
-    def chunk_containing(self, row: int):
-        """Something identifying the chunk that holds *row*, equal for rows in the same chunk (so that reads sharing
-        a chunk can be kept together); or None if the data are not chunked"""
-        return None
-
     def prepare(self, start: int, stop: int):
         """Do, now, every HDF5 lookup that reading rows [start, stop) will need.
 
         Reads that are then made from several threads only move and decode data, rather than queueing for h5py's
         lock. Calling this is optional: anything not prepared is looked up when it is needed."""
         pass
+
+    def jobs(self, targets: list[tuple]) -> typing.Iterator[Job]:
+        """Yield the jobs (see common.Job) that read *targets*, in order.
+
+        Each target is (rows, offset, destination): rows being a slice (with offset 0) or a sorted array of rows to
+        which offset is added, and destination a plain C-contiguous array with room for them. Targets are best given
+        in increasing order of rows, when consecutive targets needing the same chunk share one job. Anything that
+        goes wrong in a job while reading directly is reported, and that job's rows (and everything later read from
+        this dataset) are read through h5py instead."""
+        raise NotImplementedError
+
+    def _fall_back(self, error):
+        """Report *error* (met while reading directly) and read through h5py from now on"""
+        if not self._use_h5py:
+            self._bulk_reader._report_fallback(self._dataset, error, reading=True)
+            self._use_h5py = True
+
+    def _read_through_h5py(self, rows, offset, destination, trailing=()):
+        """Read rows (a slice, or a sorted array plus offset) of the dataset through h5py into *destination*,
+        restricted along trailing axes to the slices *trailing*. HDF5 converts them to the destination's datatype,
+        as it would reading them itself."""
+        trailing = tuple(trailing)
+        if isinstance(rows, slice):
+            self._h5py_read_into((slice(rows.start + offset, rows.stop + offset),) + trailing, destination)
+            return
+        # h5py reads an index selection slowly, and needs it copied anyway: read the span a block at a time instead
+        row_nbytes = max(destination.dtype.itemsize * int(np.prod(destination.shape[1:], dtype=np.int64)), 1)
+        block_rows = max(_conversion_block_nbytes // row_nbytes, 1)
+        i = 0
+        while i < len(rows):
+            first = int(rows[i])
+            j = int(np.searchsorted(rows, first + block_rows, side='left'))
+            last = int(rows[j - 1])
+            block = np.empty((last + 1 - first,) + destination.shape[1:], dtype=destination.dtype)
+            self._h5py_read_into((slice(first + offset, last + 1 + offset),) + trailing, block)
+            destination[i:j] = block[rows[i:j] - first]
+            del block
+            i = j
+
+    def _h5py_read_into(self, selection: tuple, destination):
+        """Read a selection of the dataset through h5py into *destination* (in its datatype)"""
+        if destination.flags.c_contiguous:
+            self._dataset.read_direct(destination, source_sel=selection)
+        else:
+            buffer = np.empty(destination.shape, dtype=destination.dtype)
+            self._dataset.read_direct(buffer, source_sel=selection)
+            destination[...] = buffer
+
+    def _h5py_job(self, rows, offset, destination) -> Job:
+        def fetch():
+            self._read_through_h5py(rows, offset, destination)
+        return Job(fetch)
 
 
 def _conversion_is_exact(from_dtype, to_dtype) -> bool:
@@ -189,7 +238,11 @@ def _conversion_is_exact(from_dtype, to_dtype) -> bool:
 
 
 class _ContiguousReader(_DirectReader):
-    """A contiguous dataset, read directly from the file."""
+    """A contiguous dataset, read directly from the file.
+
+    Its jobs (see jobs) read rows of the right datatype straight into their destination; rows needing conversion,
+    or selected by index, a block at a time into a buffer (the fetch), from which they are then put in place (the
+    process)."""
 
     def __init__(self, dataset, file, bulk_reader):
         super().__init__(dataset, bulk_reader)
@@ -206,6 +259,73 @@ class _ContiguousReader(_DirectReader):
         if self._offset + nbytes > file.size:
             raise _CannotReadDirectly("its data extend beyond the end of the file")
         self._file = file
+
+    def properties(self, start, stop):
+        if self._use_h5py:
+            return _THROUGH_H5PY
+        # (a read needing conversion is made a block at a time, each block held until converted)
+        return ReadProperties(direct=True,
+                              chunk_nbytes=min(_conversion_block_nbytes, max(stop - start, 0) * self._row_nbytes))
+
+    def jobs(self, targets):
+        for rows, offset, destination in targets:
+            if self._use_h5py or not _conversion_is_exact(self.dtype, destination.dtype):
+                yield self._h5py_job(rows, offset, destination)
+            elif isinstance(rows, slice) and destination.dtype == self.dtype:
+                yield Job(functools.partial(self._fetch_into, rows, destination))
+            elif isinstance(rows, slice):
+                rows_per_block = max(1, _conversion_block_nbytes // max(self._row_nbytes, 1))
+                for block_start in range(rows.start, rows.stop, rows_per_block):
+                    block = slice(block_start, min(rows.stop, block_start + rows_per_block))
+                    part = destination[block.start - rows.start:block.stop - rows.start]
+                    yield Job(functools.partial(self._fetch_block, block, 0, part),
+                              functools.partial(self._convert_block, part), nbytes=part.nbytes)
+            else:
+                rows_per_block = max(1, _conversion_block_nbytes // max(self._row_nbytes, 1))
+                i = 0
+                while i < len(rows):
+                    first = int(rows[i])
+                    j = int(np.searchsorted(rows, first + rows_per_block, side='left'))
+                    span = slice(first + offset, int(rows[j - 1]) + 1 + offset)
+                    yield Job(functools.partial(self._fetch_block, span, rows[i:j], destination[i:j]),
+                              functools.partial(self._gather_block, rows[i:j], first, destination[i:j]),
+                              nbytes=(span.stop - span.start) * self._row_nbytes)
+                    i = j
+
+    def _fetch_into(self, rows: slice, destination):
+        """Read rows of the dataset's own datatype straight into *destination*"""
+        if not self._use_h5py:
+            try:
+                files._read_bytes(self._file, self._offset + rows.start * self._row_nbytes,
+                                  (rows.stop - rows.start) * self._row_nbytes,
+                                  into=memoryview(destination.view(np.uint8)))
+                return None
+            except (_UnexpectedData, OSError) as e:
+                self._fall_back(e)
+        self._read_through_h5py(rows, 0, destination)
+
+    def _fetch_block(self, span: slice, selected, destination):
+        """Read the stored bytes of rows *span*, for _convert_block or _gather_block. If they cannot be read
+        directly, read the rows wanted through h5py instead (all of *span*, or if *selected* is an array, those
+        rows of it, counted so that its first is span.start), and return None."""
+        if not self._use_h5py:
+            try:
+                return files._read_bytes(self._file, self._offset + span.start * self._row_nbytes,
+                                         (span.stop - span.start) * self._row_nbytes)
+            except (_UnexpectedData, OSError) as e:
+                self._fall_back(e)
+        if isinstance(selected, np.ndarray):
+            self._read_through_h5py(selected, span.start - int(selected[0]), destination)
+        else:
+            self._read_through_h5py(span, 0, destination)
+        return None
+
+    def _convert_block(self, destination, data):
+        destination[...] = np.frombuffer(data, dtype=self.dtype).reshape(destination.shape)
+
+    def _gather_block(self, rows, first, destination, data):
+        block = np.frombuffer(data, dtype=self.dtype).reshape((-1,) + self.shape[1:])
+        destination[...] = block[rows - first]
 
     def _read_rows_into(self, out, start, stop):
         if out.dtype == self.dtype and out.flags.c_contiguous:
@@ -274,10 +394,11 @@ class _ChunkedReader(_DirectReader):
     def properties(self, start, stop):
         if self._use_h5py:
             return _THROUGH_H5PY
-        return ReadProperties(direct=True, compressed=self.is_compressed(), chunk_nbytes=self._chunk_nbytes)
-
-    def chunk_containing(self, row):
-        return row // self._chunk_shape[0]
+        rows_per_chunk = self._chunk_shape[0]
+        trailing_chunks = int(np.prod([-(-n // c) for n, c in zip(self.shape[1:], self._chunk_shape[1:])]))
+        num_chunks = (-(-stop // rows_per_chunk) - start // rows_per_chunk) * trailing_chunks if stop > start else 0
+        return ReadProperties(direct=True, compressed=self.is_compressed(), chunk_nbytes=self._chunk_nbytes,
+                              num_chunks=num_chunks)
 
     def _chunk_origins(self, start, stop):
         """Origins of all chunks holding any of rows [start, stop), each with the part of those rows it holds"""
@@ -361,6 +482,100 @@ class _ChunkedReader(_DirectReader):
             self._chunk_index = (positions, np.array(offsets, dtype=np.int64), np.array(sizes, dtype=np.int64),
                                  np.array(masks, dtype=np.int64))
 
+    def jobs(self, targets):
+        """Yield a job per chunk needed, in order, each fetching the chunk and then decoding it into every target
+        that wants rows of it (see _DirectReader.jobs)"""
+        rows_per_chunk = self._chunk_shape[0]
+        pending_origin, pending = None, []  # a row of chunks, and the pieces of targets it holds
+        for rows, offset, destination in targets:
+            if self._use_h5py or not _conversion_is_exact(self.dtype, destination.dtype):
+                if pending:
+                    yield from self._chunk_jobs(pending_origin, pending)
+                    pending_origin, pending = None, []
+                yield self._h5py_job(rows, offset, destination)
+                continue
+            for row_origin, piece in self._pieces(rows, offset, destination, rows_per_chunk):
+                if row_origin != pending_origin and pending:
+                    yield from self._chunk_jobs(pending_origin, pending)
+                    pending = []
+                pending_origin = row_origin
+                pending.append(piece)
+        if pending:
+            yield from self._chunk_jobs(pending_origin, pending)
+
+    @staticmethod
+    def _pieces(rows, offset, destination, rows_per_chunk):
+        """Yield (row origin of a chunk, piece) for each row of chunks a target needs, in order. A piece is (rows
+        relative to the chunk's origin: a slice, or an array and the shift to add to it; the part of *destination*
+        they go to)."""
+        if isinstance(rows, slice):
+            start, stop = rows.start, rows.stop
+            for row_origin in range((start // rows_per_chunk) * rows_per_chunk, stop, rows_per_chunk):
+                lo, hi = max(start, row_origin), min(stop, row_origin + rows_per_chunk)
+                yield row_origin, (slice(lo - row_origin, hi - row_origin), 0, destination[lo - start:hi - start])
+            return
+        i = 0
+        while i < len(rows):
+            row_origin = ((int(rows[i]) + offset) // rows_per_chunk) * rows_per_chunk
+            j = int(np.searchsorted(rows, row_origin + rows_per_chunk - offset, side='left'))
+            yield row_origin, (rows[i:j], offset - row_origin, destination[i:j])
+            i = j
+
+    def _chunk_jobs(self, row_origin, pieces):
+        """The jobs for a row of chunks (one along each trailing axis), holding the given pieces of targets"""
+        trailing_origins = [range(0, n, c) for n, c in zip(self.shape[1:], self._chunk_shape[1:])]
+        for trailing_origin in itertools.product(*trailing_origins):
+            origin = (row_origin,) + trailing_origin
+            trailing = tuple(slice(o, min(o + c, n)) for o, c, n in
+                             zip(trailing_origin, self._chunk_shape[1:], self.shape[1:]))
+            yield Job(functools.partial(self._fetch_for_pieces, origin, trailing, pieces),
+                      functools.partial(self._decode_into_pieces, origin, trailing, pieces), nbytes=self._chunk_nbytes)
+
+    def _fetch_for_pieces(self, origin, trailing, pieces):
+        """Fetch the chunk at *origin*, returning (its location, its stored bytes); or, if the pieces can be filled
+        without decoding it (it was never written, or only HDF5 can read it, or reading it directly failed), fill
+        them and return None"""
+        if not self._use_h5py:
+            try:
+                location = self._locate_chunk(origin)
+                if location is None:
+                    for _, _, destination in pieces:
+                        destination[(slice(None),) + trailing] = self._fillvalue
+                    return None
+                if location is not _READ_THROUGH_H5PY:
+                    return location, self._fetch_chunk(location)
+                self._pieces_through_h5py(origin, trailing, pieces)
+                return None
+            except (_UnexpectedData, OSError) as e:
+                self._fall_back(e)
+        self._pieces_through_h5py(origin, trailing, pieces)
+        return None
+
+    def _decode_into_pieces(self, origin, trailing, pieces, fetched):
+        """Decode a chunk fetched by _fetch_for_pieces, and copy the rows each piece wants into place"""
+        location, raw = fetched
+        del fetched
+        try:
+            chunk = self._decode_chunk(origin, location, raw)
+            del raw
+            extent = tuple(t.stop - t.start for t in trailing)
+            for chunk_rows, shift, destination in pieces:
+                if not isinstance(chunk_rows, slice):
+                    chunk_rows = chunk_rows + shift  # (the size of the piece)
+                self._copy_rows(chunk, destination[(slice(None),) + trailing],
+                                chunk_rows, extent)
+        except (_UnexpectedData, OSError, zlib.error) as e:
+            self._fall_back(e)
+            self._pieces_through_h5py(origin, trailing, pieces)
+
+    def _pieces_through_h5py(self, origin, trailing, pieces):
+        for chunk_rows, shift, destination in pieces:
+            part = destination[(slice(None),) + trailing]
+            if isinstance(chunk_rows, slice):
+                self._read_through_h5py(chunk_rows, origin[0], part, trailing)
+            else:
+                self._read_through_h5py(chunk_rows, shift + origin[0], part, trailing)
+
     def _read_rows_into(self, out, start, stop):
         rows_per_chunk = self._chunk_shape[0]
         # chunk origins along each trailing axis, all of which are needed since reads are of whole rows
@@ -380,30 +595,37 @@ class _ChunkedReader(_DirectReader):
                 elif chunk is _READ_THROUGH_H5PY:
                     dest[...] = self._dataset[(slice(row_lo, row_hi),) + trailing]
                 else:
-                    self._copy_rows(chunk, dest, row_lo - row_origin, row_hi - row_origin,
+                    self._copy_rows(chunk, dest, slice(row_lo - row_origin, row_hi - row_origin),
                                     tuple(s.stop - s.start for s in trailing))
                 chunk = None  # so that this chunk (unless cached) is freed before the next one is read
 
-    def _copy_rows(self, chunk: _DecodedChunk, dest, row_lo, row_hi, trailing_extent):
-        """Copy rows [row_lo, row_hi) of a decoded chunk (counted from its origin) into *dest*, which has room for
-        those rows and, along each trailing axis, the first *trailing_extent* elements of the chunk."""
+    def _copy_rows(self, chunk: _DecodedChunk, dest, rows, trailing_extent):
+        """Copy rows of a decoded chunk (a slice, or an array, counted from its origin) into *dest*, which has room
+        for those rows and, along each trailing axis, the first *trailing_extent* elements of the chunk."""
         trailing_sel = tuple(slice(0, n) for n in trailing_extent)
         if chunk.planes is None:
-            rows = chunk.array.view(self.dtype).reshape(self._chunk_shape)[row_lo:row_hi]
-            dest[...] = rows[(slice(None),) + trailing_sel]
+            selected = chunk.array.view(self.dtype).reshape(self._chunk_shape)[rows]
+            dest[...] = selected[(slice(None),) + trailing_sel]
             return
         # The chunk is still shuffled, with byte b of element i at planes[b, i]. Unshuffle just the elements of the
         # rows needed, straight into *dest* if its memory is laid out exactly like theirs, and otherwise into a
         # buffer the size of those rows.
         elements_per_row = int(np.prod(self._chunk_shape[1:], dtype=np.int64))
-        planes = chunk.planes[:, row_lo * elements_per_row:row_hi * elements_per_row]
+        if isinstance(rows, slice):
+            planes = chunk.planes[:, rows.start * elements_per_row:rows.stop * elements_per_row]
+            num_rows = rows.stop - rows.start
+        else:
+            elements = rows if elements_per_row == 1 else \
+                (rows[:, np.newaxis] * elements_per_row + np.arange(elements_per_row)).reshape(-1)
+            planes = chunk.planes[:, elements]  # (the bytes of just the elements selected)
+            num_rows = len(rows)
         whole_rows = trailing_extent == self._chunk_shape[1:]
         if whole_rows and dest.dtype == self.dtype and dest.flags.c_contiguous:
             _unshuffle_planes_into(planes, dest.reshape(-1).view(np.uint8))
         else:
-            rows = np.empty((row_hi - row_lo,) + self._chunk_shape[1:], dtype=self.dtype)
-            _unshuffle_planes_into(planes, rows.reshape(-1).view(np.uint8))
-            dest[...] = rows[(slice(None),) + trailing_sel]
+            selected = np.empty((num_rows,) + self._chunk_shape[1:], dtype=self.dtype)
+            _unshuffle_planes_into(planes, selected.reshape(-1).view(np.uint8))
+            dest[...] = selected[(slice(None),) + trailing_sel]
 
     def _get_chunk(self, origin, keep):
         """Return the decoded chunk at *origin*; None if it has never been written; or _READ_THROUGH_H5PY.

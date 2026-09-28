@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import os
 import threading
 import typing
@@ -14,6 +15,7 @@ except ImportError:
     h5py = None
 
 from .common import (
+    Job,
     _THROUGH_H5PY,
     ReadProperties,
     _CannotReadDirectly,
@@ -187,7 +189,7 @@ class _VirtualReader(_DirectReader):
     def properties(self, start, stop):
         if self._use_h5py:
             return _THROUGH_H5PY
-        direct, compressed, chunk_nbytes = True, False, 0
+        direct, compressed, chunk_nbytes, num_chunks = True, False, 0, 0
         for block in self._blocks_overlapping(start, stop):
             if min(stop, block.stop) <= max(start, block.start):
                 continue
@@ -201,7 +203,8 @@ class _VirtualReader(_DirectReader):
             direct = direct and source.direct
             compressed = compressed or source.compressed
             chunk_nbytes = max(chunk_nbytes, source.chunk_nbytes)
-        return ReadProperties(direct=direct, compressed=compressed, chunk_nbytes=chunk_nbytes)
+            num_chunks += source.num_chunks
+        return ReadProperties(direct=direct, compressed=compressed, chunk_nbytes=chunk_nbytes, num_chunks=num_chunks)
 
     def prepare(self, start, stop):
         if self._use_h5py:
@@ -351,3 +354,7 @@ class _Fill:
 
     def properties(self, start, stop) -> ReadProperties:
         return ReadProperties(direct=True)
+
+    def jobs(self, targets):
+        for _, _, destination in targets:
+            yield Job(functools.partial(self.read_direct, destination))

@@ -103,7 +103,7 @@ class BulkReader:
         """
         works = plan.plan(requests, self.open)
         chosen = strategy.choose_read_strategy(plan.summarise(works))
-        logger.debug("Reading %d pieces with %d thread(s) because %s", len(works), chosen.threads, chosen.reason)
+        logger.debug("Reading %d pieces with %s", len(works), chosen.reason)
         execute.perform(works, chosen)
         return chosen
 

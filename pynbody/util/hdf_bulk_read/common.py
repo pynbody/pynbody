@@ -30,8 +30,12 @@ class ReadProperties:
     """True if the rows are compressed, so that decoding them takes appreciable CPU time"""
 
     chunk_nbytes: int = 0
-    """The size of the largest chunk to be decoded (0 if the data are not chunked), which is roughly half the memory
-    a thread reading them needs"""
+    """The most data a job reading the rows holds between fetching and processing it: the size of the largest chunk
+    to be decoded, or of a block of data to be converted (0 if nothing is held). Decoding a chunk needs roughly
+    twice this."""
+
+    num_chunks: int = 0
+    """How many chunks are to be decoded"""
 
 
 _THROUGH_H5PY = ReadProperties(direct=False)
@@ -56,3 +60,28 @@ class _CannotReadDirectly(Exception):
 
 class _UnexpectedData(Exception):
     """Raised during a read when the file does not contain what its metadata led us to expect."""
+
+
+class Job:
+    """One step of reading: input (*fetch*), then, optionally, computation on what was fetched (*process*).
+
+    The executor (see :mod:`.execute`) runs the fetches of each file in order on an input thread, which is all that
+    thread does, and hands what they fetch to *process* on a thread of a decoding pool, which is all that pool does;
+    or, when there is no pool, runs both one after the other. *nbytes* is roughly the memory that what is fetched
+    takes until processed, which the executor keeps within a budget.
+
+    *fetch* returns what *process* is to be given, or None if nothing is left to do (for example, because the fetch
+    itself put the data in place)."""
+
+    __slots__ = ('fetch', 'process', 'nbytes')
+
+    def __init__(self, fetch, process=None, nbytes: int = 0):
+        self.fetch = fetch
+        self.process = process
+        self.nbytes = nbytes
+
+    def run(self):
+        """Fetch and process, one after the other, in this thread"""
+        fetched = self.fetch()
+        if fetched is not None and self.process is not None:
+            self.process(fetched)

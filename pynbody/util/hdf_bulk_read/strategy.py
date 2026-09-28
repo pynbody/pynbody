@@ -1,36 +1,37 @@
-"""Rules deciding how many threads read, and how the work is shared between them.
+"""Rules deciding how many threads read, and how many decode.
 
-:meth:`pynbody.util.hdf_bulk_read.BulkReader.read` can read in several threads at once when it reads the data
-directly rather than through h5py. Whether that helps depends on where the data are and how they are stored, so
-before reading it calls :func:`choose_read_strategy`, with a description of the work (a :class:`ReadSummary`),
-which applies these rules, in order:
+:meth:`pynbody.util.hdf_bulk_read.BulkReader.read` reads in two stages, each with its own threads (see
+:mod:`.execute`): *input* threads each read a file at a time, sequentially, and *decode* threads decompress what they
+have read and put it in place. How many of each help depends on different things: input on where the files are
+(several files on a parallel filesystem can be read at once, but a local disk is best read by one reader at a time),
+and decoding on the CPUs available. So before reading, :meth:`~.BulkReader.read` calls :func:`choose_read_strategy`
+with a description of the work (a :class:`ReadSummary`), which applies these rules:
 
 1. **Reads through h5py are serial.** If any of the data have to be read through h5py (because direct reading is
    switched off, or the data are stored in a way pynbody does not read itself), everything is read in one thread:
    h5py's lock serialises its reads anyway, and threads contending for it cost more than they save.
 
-2. **A fixed number of threads, if one is configured.** If the ``threads`` option is a number rather than
-   ``auto``, that many threads are used (1 meaning serial), sharing the work as rule 3 or 4 would.
+2. **Input threads: one per file on a parallel filesystem, up to** ``parallel-filesystem-io-threads`` **(default
+   16); otherwise one.** On Lustre and similar systems a spanned snapshot's files usually live on different
+   servers, so several can be read at once; each is still read sequentially by one thread, which keeps the
+   filesystem's readahead effective. A local disk is read fastest by one reader. The ``io-threads`` option, if a
+   number rather than ``auto``, fixes the number instead.
 
-3. **Parallel filesystems: one thread per file, up to** ``parallel-filesystem-threads`` **(default 16).** On Lustre
-   and similar systems a spanned snapshot's files usually live on different servers, while each file lives on one.
-   Each thread therefore reads whole files, in order: several servers are busy at once, and each file is still read
-   sequentially, which keeps the filesystem's readahead effective. Threads sharing one file would compete for one
-   server and defeat readahead, so a single file is read serially here. (A virtual dataset's work is attributed to
-   its source files, so it is shared out just as the source files would be.)
+3. **Decode threads: for compressed data, up to** ``max-decode-threads`` **(default 16).** Decompression is what
+   limits the speed of reading compressed data, wherever they are, and it proceeds in parallel, even for data read
+   from a single file by a single input thread. For uncompressed data there is nothing to decode, and the input
+   threads put the data in place themselves. The ``decode-threads`` option, if a number rather than ``auto``, fixes
+   the number instead (0 meaning that input threads decode what they read themselves).
 
-4. **Other filesystems: threads only for compressed data, up to** ``compressed-data-threads`` **(default 4).** On a
-   local disk, reading is rarely what limits speed; decompression is, and it can proceed in parallel. So compressed
-   data are read piece by piece in several threads, even from a single file, while uncompressed data are read
-   serially.
-
-In every case, the number of threads is capped by the number of pieces of work, by the number of CPUs this
-process may use, and by ``decode-memory`` (default 2 GiB): each thread needs about three times the size of the
-chunks it decodes, which matters only for data stored in very large chunks.
+Neither number exceeds what there is work for (files, for input; chunks, for decoding), and under ``auto`` decode
+threads do not exceed the CPUs this process may use. Memory limits decode threads too: each decode thread, with the
+data waiting for it, needs about five times the size of the chunks it decodes, and ``decode-memory`` (default 2 GiB)
+bounds the total, which matters only for data stored in very large chunks. (With no decode threads, it limits
+instead how many input threads may hold a chunk at once.)
 
 The options live in the ``[hdf-bulk-read]`` section of the configuration; they can also be changed for a session
-through :data:`config`, for example ``pynbody.util.hdf_bulk_read.strategy.config['threads'] = 8``. The strategy
-chosen for each read is logged at debug level, together with the reason for it.
+through :data:`config`, for example ``pynbody.util.hdf_bulk_read.strategy.config['decode-threads'] = 8``. The
+strategy chosen for each read is logged at debug level, together with the reason for it.
 """
 
 from __future__ import annotations
@@ -53,31 +54,36 @@ def _read_config():
     def option(name, default):
         return config_parser.get('hdf-bulk-read', name, fallback=default).strip()
 
-    def whole_number(name, default, allowed=()):
+    def whole_number(name, default, minimum=1):
         value = option(name, str(default))
-        if value.lower() in allowed:
-            return value.lower()
+        if value.lower() == 'auto' and default == 'auto':
+            return 'auto'
         try:
             number = int(value)
-            if number < 1:
+            if number < minimum:
                 raise ValueError
             return number
         except ValueError:
             logger.warning("Ignoring the value %r of %s in the [hdf-bulk-read] configuration: expected a whole "
-                           "number of at least 1%s; using %s", value, name,
-                           "".join(f" or '{a}'" for a in allowed), default)
+                           "number of at least %d%s; using %s", value, name, minimum,
+                           " or 'auto'" if default == 'auto' else "", default)
             return default
 
-    # (options that lived in [gadgethdf] while this package was being developed)
-    for old_name in ('bulk-read-threads', 'parallel-filesystem-threads', 'compressed-data-threads',
-                     'bulk-read-memory'):
-        if config_parser.has_option('gadgethdf', old_name):
-            logger.warning("Ignoring %s in the [gadgethdf] configuration: options for reading HDF5 data now live in "
-                           "[hdf-bulk-read] (see pynbody.util.hdf_bulk_read.strategy)", old_name)
+    # options that were renamed while this package was being developed
+    old_names = {'gadgethdf': ('bulk-read-threads', 'parallel-filesystem-threads', 'compressed-data-threads',
+                               'bulk-read-memory'),
+                 'hdf-bulk-read': ('threads', 'parallel-filesystem-threads', 'compressed-data-threads')}
+    for section, names in old_names.items():
+        for old_name in names:
+            if config_parser.has_option(section, old_name):
+                logger.warning("Ignoring %s in the [%s] configuration, which is no longer an option: see "
+                               "pynbody.util.hdf_bulk_read.strategy for the options in [hdf-bulk-read]",
+                               old_name, section)
 
-    return _Options({'threads': str(whole_number('threads', 'auto', allowed=('auto',))),
-                     'parallel-filesystem-threads': whole_number('parallel-filesystem-threads', 16),
-                     'compressed-data-threads': whole_number('compressed-data-threads', 4),
+    return _Options({'io-threads': whole_number('io-threads', 'auto'),
+                     'parallel-filesystem-io-threads': whole_number('parallel-filesystem-io-threads', 16),
+                     'decode-threads': whole_number('decode-threads', 'auto', minimum=0),
+                     'max-decode-threads': whole_number('max-decode-threads', 16),
                      'decode-memory': whole_number('decode-memory', 2 * 1024 ** 3)})
 
 
@@ -116,73 +122,105 @@ class ReadSummary:
     max_chunk_nbytes: int = 0
     """The size of the largest chunk to be decoded (0 if the data are not chunked)"""
 
+    num_chunks: int = 0
+    """Roughly how many chunks are to be decoded"""
+
 
 @dataclasses.dataclass(frozen=True)
 class ReadStrategy:
     """How to perform the reads needed to load one array."""
 
-    threads: int
-    """Number of threads to read with; 1 means serially, in the calling thread"""
+    io_threads: int
+    """The number of threads reading files; 1 means the calling thread reads them, one after another"""
 
-    per_file: bool
-    """True if each thread reads whole files; False if pieces of the same file may be read by different threads"""
+    decode_threads: int
+    """The number of threads decoding what has been read; 0 means that the reading threads decode it themselves"""
 
     reason: str
     """Why, in words"""
+
+    inflight_nbytes: int = 0
+    """The most memory to be taken by data read and waiting to be decoded"""
+
+    @property
+    def serial(self) -> bool:
+        """True if everything is done in the calling thread"""
+        return self.io_threads <= 1 and self.decode_threads == 0
+
+
+_SERIAL = dict(io_threads=1, decode_threads=0)
 
 
 def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
     """Decide how to read an array, applying the rules in the module docstring."""
     if summary.num_reads == 0:
-        return ReadStrategy(1, True, "there is nothing to read")
-    if summary.num_reads == 1:
-        return ReadStrategy(1, True, "there is only one piece to read")
+        return ReadStrategy(**_SERIAL, reason="there is nothing to read")
     if not summary.all_direct:
-        return ReadStrategy(1, True, "some of the data must be read through h5py, which serialises reads")
+        return ReadStrategy(**_SERIAL, reason="some of the data must be read through h5py, which serialises reads")
 
     filesystem = filesystem_type(summary.paths[0]) if summary.paths else None
-    on_parallel_filesystem = filesystem in parallel_filesystem_types
-    per_file = on_parallel_filesystem
-    tasks = summary.num_files if per_file else summary.num_reads
+    where = f"on a parallel filesystem ({filesystem})" if filesystem in parallel_filesystem_types else \
+        f"on a {filesystem or 'local'} filesystem"
 
-    threads = _requested_threads()
-    if threads is not None:
-        reason = f"the threads option is set to {threads}"
-    elif on_parallel_filesystem:
-        threads = config['parallel-filesystem-threads']
-        reason = f"the files are on a parallel filesystem ({filesystem}), so each thread reads whole files"
-    elif summary.compressed:
-        threads = config['compressed-data-threads']
-        reason = (f"the data are compressed, and on a {filesystem or 'local'} filesystem, so threads share the work "
-                  f"of decompressing them")
+    requested = _requested('io-threads')
+    if requested is not None:
+        io_threads, io_reason = requested, f"the io-threads option is set to {requested}"
+    elif filesystem in parallel_filesystem_types:
+        io_threads = config['parallel-filesystem-io-threads']
+        io_reason = f"the files are {where}, where several can be read at once"
     else:
-        return ReadStrategy(1, per_file, f"the data are uncompressed, on a {filesystem or 'local'} filesystem, where "
-                                         f"one thread reads as fast as several")
+        io_threads, io_reason = 1, f"the files are {where}, which one reader reads fastest"
+    if io_threads > summary.num_files:
+        io_threads = max(summary.num_files, 1)
+        io_reason += f" (but there are only {summary.num_files} files)"
 
-    limit = min(tasks, available_cpus())
-    if threads > limit:
-        threads = limit
-        reason += f" (limited to {limit} by the number of {'files' if per_file else 'pieces'} and of CPUs)"
-    # each thread holds a chunk compressed and decompressed while decoding it, and may keep one for its next read
-    memory_limit = max(1, config['decode-memory'] // max(3 * summary.max_chunk_nbytes, 1))
-    if threads > memory_limit:
-        threads = memory_limit
-        reason += (f" (limited to {memory_limit} by decode-memory, since chunks decode to as much as "
-                   f"{summary.max_chunk_nbytes / 2 ** 20:.0f} MB)")
-    if threads <= 1:
-        return ReadStrategy(1, per_file, reason + ", which leaves only one thread's worth of work")
-    return ReadStrategy(threads, per_file, reason)
+    chunk_nbytes = max(summary.max_chunk_nbytes, 1)
+    # each decode thread holds a chunk compressed and decompressed while decoding it, perhaps a buffer the size of the
+    # rows it copies out of it, and up to two chunks read and waiting for it
+    memory_limit = config['decode-memory'] // (5 * chunk_nbytes)
+    if not summary.compressed:
+        decode_threads, decode_reason = 0, "the data are not compressed, so there is nothing to decode"
+    else:
+        requested = _requested('decode-threads')
+        if requested is not None:
+            decode_threads, decode_reason = requested, f"the decode-threads option is set to {requested}"
+        else:
+            decode_threads = min(config['max-decode-threads'], available_cpus())
+            decode_reason = f"the data are compressed, and {available_cpus()} CPUs are available"
+        if decode_threads > summary.num_chunks:
+            decode_threads = summary.num_chunks
+            decode_reason += f" (but there are only {summary.num_chunks} chunks to decode)"
+        if decode_threads > memory_limit:
+            decode_threads = memory_limit
+            decode_reason += (f" (limited to {memory_limit} by decode-memory, since chunks decode to as much as "
+                              f"{summary.max_chunk_nbytes / 2 ** 20:.0f} MB)")
+        if decode_threads <= 1 and io_threads <= 1 and summary.num_chunks <= 1:
+            decode_threads = 0
+
+    io_threads, decode_threads = max(io_threads, 1), max(decode_threads, 0)
+    reason = f"{io_threads} input thread(s) because {io_reason}; {decode_threads} decode thread(s) because " \
+             f"{decode_reason}"
+    if decode_threads > 0:
+        inflight_chunks = 2 * decode_threads  # (two waiting for each decode thread)
+    else:
+        # Input threads process what they fetch themselves, each holding a chunk and whatever decoding it takes, so
+        # decode-memory limits how many do so at once
+        inflight_chunks = max(min(io_threads, memory_limit), 1)
+        if io_threads > 1 and inflight_chunks < io_threads and summary.num_chunks > 0:
+            reason += f" (and only {inflight_chunks} at a time may hold a chunk, limited by decode-memory)"
+    return ReadStrategy(io_threads=io_threads, decode_threads=decode_threads, reason=reason,
+                        inflight_nbytes=inflight_chunks * chunk_nbytes)
 
 
-def _requested_threads() -> int | None:
-    """The number of threads the threads option asks for, or None for 'auto' (or a value that makes no sense)"""
-    requested = str(config['threads']).strip().lower()
+def _requested(option: str) -> int | None:
+    """The number of threads an option asks for, or None for 'auto' (or a value that makes no sense)"""
+    requested = str(config[option]).strip().lower()
     if requested == 'auto':
         return None
     try:
-        return max(int(requested), 1)
+        return max(int(requested), 0 if option == 'decode-threads' else 1)
     except ValueError:
-        logger.warning("Ignoring the threads option, %r, which is neither a number nor 'auto'", requested)
+        logger.warning("Ignoring the %s option, %r, which is neither a number nor 'auto'", option, requested)
         return None
 
 

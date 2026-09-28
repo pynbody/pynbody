@@ -3,8 +3,9 @@
 A :class:`ReadRequest` says which rows of a dataset to read, and where to put them. :func:`plan` turns requests into
 units of work (:class:`_Work`), each reading from one place in one file: most requests are one unit, but a reader
 may divide a request into parts (a virtual dataset divides one into a part for each source dataset it draws on).
-The work is then described to the rules in :mod:`.strategy` (:func:`summarise`), and grouped into tasks for
-threads (:func:`group`).
+The work is then described to the rules in :mod:`.strategy` (:func:`summarise`), and grouped by file into tasks for
+input threads (:func:`group_by_file`). Finally each task is turned into jobs (see :class:`.common.Job`), as it is
+performed (:func:`jobs`): for a chunked dataset, one per chunk, however many units of work want rows of it.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import typing
 
 import numpy as np
 
-from .common import ReadProperties
+from .common import Job, ReadProperties
 from .strategy import ReadSummary
 
 # An index selection is read a block of rows at a time, each block into a buffer of at most this many bytes, from
@@ -74,13 +75,6 @@ class _Work:
         if hasattr(self.source, 'properties'):
             return self.source.properties(*self.span)
         return ReadProperties(direct=False)  # (an h5py dataset)
-
-    def shares_chunk_with(self, following: _Work) -> bool:
-        """True if this work and the *following* both need the chunk at the boundary between them"""
-        if following.source is not self.source or not hasattr(self.source, 'chunk_containing'):
-            return False
-        chunk = self.source.chunk_containing(self.span[1] - 1)
-        return chunk is not None and chunk == self.source.chunk_containing(following.span[0])
 
     def prepare(self):
         """Do now every HDF5 lookup that performing this work will need (see _DirectReader.prepare)"""
@@ -238,24 +232,39 @@ def summarise(works: list[_Work]) -> ReadSummary:
                        num_files=len({work.filename for work in works}),
                        all_direct=all(p.direct for p in properties),
                        compressed=any(p.compressed for p in properties),
-                       max_chunk_nbytes=max((p.chunk_nbytes for p in properties), default=0))
+                       max_chunk_nbytes=max((p.chunk_nbytes for p in properties), default=0),
+                       num_chunks=sum(p.num_chunks for p in properties))
 
 
-def group(works: list[_Work], per_file: bool) -> list[list[_Work]]:
-    """Group units of work into tasks for threads, each task being performed in order by one thread.
-
-    If *per_file*, there is one task per file, in order of first appearance. Otherwise there is one task per unit of
-    work, except that consecutive units needing the same chunk are kept together, so that the chunk is decoded once,
-    by one thread, rather than by several at once."""
-    if not per_file:
-        tasks = []
-        for work in works:
-            if tasks and tasks[-1][-1].shares_chunk_with(work):
-                tasks[-1].append(work)
-            else:
-                tasks.append([work])
-        return tasks
+def group_by_file(works: list[_Work]) -> list[list[_Work]]:
+    """Group units of work into tasks for input threads: one per file, in order of first appearance, each keeping
+    its units of work in order (so that a file is read sequentially)"""
     tasks = {}
     for work in works:
         tasks.setdefault(work.filename, []).append(work)
     return list(tasks.values())
+
+
+def jobs(task: list[_Work]) -> typing.Iterator[Job]:
+    """Yield the jobs that perform a task's units of work, in order, emptying *task* as it goes (so that each
+    dataset is let go of once its jobs are done).
+
+    Consecutive units of work reading the same source are given to it together, so that it can make one job of
+    each chunk they need, rather than a job of each chunk for each unit of work."""
+    task.reverse()
+    while task:
+        work = task.pop()
+        source = work.source
+        targets = [(work.rows, work.offset, work.destination)]
+        del work
+        while task and task[-1].source is source:
+            work = task.pop()
+            targets.append((work.rows, work.offset, work.destination))
+            del work
+        if hasattr(source, 'jobs'):
+            yield from source.jobs(targets)
+        else:
+            # (an h5py dataset: performing the work is all input)
+            for rows, offset, destination in targets:
+                yield Job(_Work(source, rows, offset, destination, '').perform)
+        del source, targets
