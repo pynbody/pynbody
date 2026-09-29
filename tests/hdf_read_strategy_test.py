@@ -165,7 +165,7 @@ def test_bad_configuration_values_fall_back_to_defaults(monkeypatch, caplog):
     with caplog.at_level("WARNING", logger="pynbody.util.hdf_bulk_read.strategy"):
         config = hdf_read_strategy._read_config()
     assert config == {"io-threads": "auto", "parallel-filesystem-io-threads": 16, "decode-threads": "auto",
-                      "max-decode-threads": 16, "decode-memory": 2 * 1024 ** 3}
+                      "max-decode-threads": 8, "decode-memory": 2 * 1024 ** 3}
     assert len([r for r in caplog.records if "Ignoring the value" in r.getMessage()]) == 5
 
 

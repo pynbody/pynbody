@@ -17,9 +17,11 @@ with a description of the work (a :class:`ReadSummary`), which applies these rul
    filesystem's readahead effective. A local disk is read fastest by one reader. The ``io-threads`` option, if a
    number rather than ``auto``, fixes the number instead.
 
-3. **Decode threads: for compressed data, up to** ``max-decode-threads`` **(default 16).** Decompression is what
+3. **Decode threads: for compressed data, up to** ``max-decode-threads`` **(default 8).** Decompression is what
    limits the speed of reading compressed data, wherever they are, and it proceeds in parallel, even for data read
-   from a single file by a single input thread. For uncompressed data there is nothing to decode, and the input
+   from a single file by a single input thread. Beyond about 8 threads it gains little: disks and filesystems
+   rarely deliver data faster than 8 threads decode them, and even data already in memory are decoded only
+   modestly faster by more, which contend with each other, at a cost in CPU time and memory. For uncompressed data there is nothing to decode, and the input
    threads put the data in place themselves. The ``decode-threads`` option, if a number rather than ``auto``, fixes
    the number instead (0 meaning that input threads decode what they read themselves).
 
@@ -84,7 +86,7 @@ def _read_config():
     return _Options({'io-threads': whole_number('io-threads', 'auto'),
                      'parallel-filesystem-io-threads': whole_number('parallel-filesystem-io-threads', 16),
                      'decode-threads': whole_number('decode-threads', 'auto', minimum=0),
-                     'max-decode-threads': whole_number('max-decode-threads', 16),
+                     'max-decode-threads': whole_number('max-decode-threads', 8),
                      'decode-memory': whole_number('decode-memory', 2 * 1024 ** 3)})
 
 
