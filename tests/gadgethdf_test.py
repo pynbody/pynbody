@@ -323,3 +323,11 @@ def test_remote_open(remote_kwargs, filename):
         assert local_snap[fam].loadable_keys() == remote_snap[fam].loadable_keys()
         assert np.all(local_snap[fam]["pos"] == remote_snap[fam]["pos"])
         assert np.all(local_snap[fam]["iord"] == remote_snap[fam]["iord"])
+
+
+def test_remote_dir_none():
+    """
+    Check that an explicit remote_dir=None is accepted and reads a local file
+    """
+    local_snap = pynbody.load("testdata/gadget3/data/snapshot_103/snap_103.hdf5", remote_dir=None)
+    assert isinstance(local_snap._hdf_files[0], h5py.File)
