@@ -140,7 +140,7 @@ class _GadgetHdfMultiFileManager:
                 raise NotImplementedError("Unable to open remote files in writable mode!")
             return self._remote_dir[filename]
 
-    def _is_hdf5(self, filename, *args, **kwargs):
+    def _is_hdf5(self, filename):
         if self._remote_dir is None:
             return h5py.is_hdf5(filename)
         else:
