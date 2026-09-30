@@ -231,7 +231,9 @@ class SimArray(np.ndarray):
 
     _ufunc_registry = {}
 
-    __slots__ = ['_units', '_sim', '_name', '_family']
+    # '__dict__' is included so that third-party numpy subclasses (e.g. astropy's Quantity)
+    # can inspect obj.__dict__ when viewing a SimArray; see issue #1039
+    __slots__ = ['_units', '_sim', '_name', '_family', '__dict__']
 
     @property
     def ancestor(self):
