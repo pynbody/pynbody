@@ -331,3 +331,42 @@ def test_remote_dir_none():
     """
     local_snap = pynbody.load("testdata/gadget3/data/snapshot_103/snap_103.hdf5", remote_dir=None)
     assert isinstance(local_snap._hdf_files[0], h5py.File)
+
+
+def _read_multifile_dataset(filenames, nr_files, dataset_name):
+    data = []
+    for file_nr in range(nr_files):
+        with h5py.File(filenames.format(file_nr=file_nr), "r") as f:
+            data.append(f[dataset_name][...])
+    return np.concatenate(data, axis=0)
+
+
+@pytest.mark.parametrize('take', [None,                      # all elements
+                                  (0,1,2,3,4),               # contiguous
+                                  np.arange(100) + 16856,    # crosses 0-1 file boundary
+                                  (500, 1053, 2012, 17000),  # non-contiguous, calls _HDFArrayFiller._fill_from_fancy_index()
+                                  np.concatenate([np.arange(100), np.arange(100)+20000])]) # two separate contiguous ranges
+def test_flattened_arrays(take, load_kwargs):
+    """
+    Check that we can read flattened multidimensional arrays correctly.
+    This type of dataset appears in the subfind example data.
+    """
+    # Read in the gas particle coordinates to check against
+    filenames = "testdata/gadget3/data/subhalos_103/subhalo_103.{file_nr}.hdf5"
+    all_pos = _read_multifile_dataset(filenames, 8, "FOF/PartType0/Coordinates")
+    assert len(all_pos.shape)==1    # This vector dataset is flattened in the example file
+    all_pos = all_pos.reshape(-1,3) # so we un-flatten it here
+
+    # Read the same dataset with pynbody
+    subfind = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103', take=take, **load_kwargs)
+    pos = subfind.gas["pos"]
+
+    # Compute the expected result
+    if take is None:
+        pos_expected = all_pos
+    else:
+        pos_expected = all_pos[take,...]
+
+    # Compare
+    assert pos.shape == pos_expected.shape
+    assert np.all(pos == pos_expected)
