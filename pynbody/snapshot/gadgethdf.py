@@ -309,7 +309,7 @@ class _HDFArrayFiller:
     def _get_data_to_fill_remote(self, sim_array_to_fill, hdf_dataset, source_sel):
         """Read the selected elements from a remote file using the hdfstream module"""
         if self.need_rescale:
-            flat_index = (self.scale_factor * np.asarray(source_sel)[:,None] + np.arange(self.scale_factor, dtype=int)).flatten()
+            flat_index = (self.scaling_factor * np.asarray(source_sel)[:,None] + np.arange(self.scaling_factor, dtype=int)).flatten()
             flat_data = hdf_dataset[flat_index]
             final_data_to_fill = flat_data.reshape((len(source_sel),self.scaling_factor))
         else:
