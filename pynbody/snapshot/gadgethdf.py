@@ -255,7 +255,9 @@ class _HDFArrayFiller:
 
     def _update_scaling_factor(self):
         """Update the scaling factor based on the current element sizes."""
-        self.scaling_factor = self.sim_element_size / self.file_element_size
+        if self.sim_element_size % self.file_element_size != 0:
+            raise ValueError("scaling_factor in _HDFArrayFiller should be an integer")
+        self.scaling_factor = self.sim_element_size // self.file_element_size
         self.need_rescale = (self.sim_element_size != self.file_element_size)
 
     def fill_array_from_hdf_dataset(self, sim_array_to_fill, hdf_dataset, source_sel: slice | np.ndarray | None, offset: int = 0):
@@ -309,6 +311,7 @@ class _HDFArrayFiller:
     def _get_data_to_fill_remote(self, sim_array_to_fill, hdf_dataset, source_sel):
         """Read the selected elements from a remote file using the hdfstream module"""
         if self.need_rescale:
+            assert isinstance(self.scaling_factor, (int, np.integer))
             flat_index = (self.scaling_factor * np.asarray(source_sel)[:,None] + np.arange(self.scaling_factor, dtype=int)).flatten()
             flat_data = hdf_dataset[flat_index]
             final_data_to_fill = flat_data.reshape((len(source_sel),self.scaling_factor))
