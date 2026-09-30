@@ -543,3 +543,19 @@ def test_shared_name_accidental_rng_collision():
     p.join()
 
     assert p.exitcode == 0, "Child process did not exit cleanly"
+
+
+def test_simarray_has_dict():
+    """Regression test for #1039: numpy subclasses such as astropy's Quantity inspect
+    obj.__dict__ when viewing an array, so SimArray must provide one."""
+    for arr in (pyn_array.SimArray(np.float64(4.7), 'Myr'),
+                pyn_array.SimArray(np.arange(3.), 'Myr')):
+        assert "info" not in arr.__dict__
+
+
+def test_astropy_quantity_conversion():
+    """Regression test for #1039: multiplying by an astropy unit must work"""
+    u = pytest.importorskip("astropy.units")
+    result = pyn_array.SimArray(4.7, 'Myr').in_units('Myr') * u.Myr
+    assert result.unit == u.Myr
+    assert result.value == pytest.approx(4.7)
