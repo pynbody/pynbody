@@ -4,18 +4,10 @@
 # non-standard, throwaway setup to work around issues that are specific to
 # Python 3.15 pre-releases and/or the current state of the packages involved:
 #
-#  * No package here yet ships a prebuilt wheel for cp315, so numpy, scipy,
-#    h5py, matplotlib and healpy are all built from source (sdist).
-#
-#  * scipy's optional pythran-JIT build accelerator (via its `gast`
-#    AST-translation shim) is broken on Python 3.15: pythran calls
-#    ast.literal_eval() on a gast-reconstructed ast.Compare node, but 3.15
-#    made `left` a required positional argument of ast.Compare, so gast's
-#    reconstruction raises TypeError and the scipy build aborts. We build
-#    scipy with -Duse-pythran=false (a documented scipy meson option) which
-#    only disables a handful of JIT-accelerated ufunc paths, not scipy
-#    functionality generally. This is the one genuine upstream compatibility
-#    gap found so far -- everything else below is just packaging friction.
+#  * numpy, scipy and matplotlib now ship cp315 wheels, so are installed
+#    from those. h5py, healpy and camb do not yet, so they are built from
+#    source (sdist) here. (This also means the earlier scipy/pythran build
+#    workaround, -Duse-pythran=false, is no longer needed.)
 #
 #  * healpy's minimum healpix_cxx (>=3.83.0) is newer than the version Ubuntu
 #    ships (3.80), so healpy's setup.py falls back to compiling its own
@@ -69,7 +61,7 @@ jobs:
       - name: Show interpreter version
         run: python --version
 
-      - name: Cache pip wheels (source builds are slow; no cp315 wheels exist upstream yet)
+      - name: Cache pip wheels (h5py/healpy source builds are slow)
         uses: actions/cache@v6
         with:
           path: ~/.cache/pip
@@ -85,13 +77,8 @@ jobs:
       - name: Upgrade packaging tools
         run: python -m pip install --upgrade pip setuptools wheel "cython>=3.0.0"
 
-      - name: Install numpy (newest available, built from source)
-        run: python -m pip install -v numpy
-
-      - name: Install scipy (newest available satisfying pynbody's <1.18.0 cap, pythran disabled)
-        run: |
-          python -m pip install -v "scipy<1.18.0" --no-binary scipy \
-            --config-settings=setup-args=-Duse-pythran=false
+      - name: Install numpy, scipy and matplotlib from cp315 wheels
+        run: python -m pip install --only-binary ":all:" numpy scipy matplotlib
 
       - name: Fetch a healpix_cxx >=3.83 build from conda-forge for healpy
         run: |
@@ -110,10 +97,10 @@ jobs:
           sudo ldconfig
           pkg-config --modversion healpix_cxx
 
-      - name: Install h5py and matplotlib (newest available, built from source)
+      - name: Install h5py (no cp315 wheel yet; prefer one if it appears, else build from source)
         run: |
           export HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/serial
-          python -m pip install -v h5py matplotlib
+          python -m pip install -v h5py
 
       - name: Install healpy (optional; tolerate failure)
         id: healpy
