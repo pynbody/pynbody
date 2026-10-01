@@ -24,6 +24,7 @@ import warnings
 import numpy as np
 
 from .. import chunk, config_parser, family, units, util
+from ..util import hdf_bulk_read
 from . import SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
@@ -32,11 +33,6 @@ try:
     import h5py
 except ImportError:
     h5py = None
-
-try:
-    import hdfstream
-except ImportError:
-    hdfstream = None
 
 _default_type_map = {}
 for x in family.family_names():
@@ -57,6 +53,9 @@ _max_buf = 1024 * 512 # max_chunk for chunk.LoadControl
 # HDF5 chunk cache to use when opening files; see _open_hdf_file below
 _chunk_cache_nbytes = int(config_parser.get('gadgethdf', 'chunk-cache-nbytes'))
 _chunk_cache_nslots = int(config_parser.get('gadgethdf', 'chunk-cache-nslots'))
+
+# Whether to read bulk particle data directly, bypassing libhdf5; see pynbody.util.hdf_bulk_read
+_direct_bulk_read = config_parser.getboolean('gadgethdf', 'direct-bulk-read', fallback=True)
 
 class _DummyHDFData:
 
@@ -89,8 +88,13 @@ def _open_hdf_file(filename, mode='r'):
     re-decompresses the whole chunk for *every* partial read, so partial loading becomes orders of
     magnitude slower than reading the entire file. Note that HDF5 allocates cache lazily, so a generous
     limit costs nothing when reads are sequential.
+
+    Files are opened by absolute path, so that HDF5 and pynbody's direct reader (see
+    pynbody.util.hdf_bulk_read) agree on where the sources of any virtual datasets are, whatever happens to the
+    current directory afterwards.
     """
-    return h5py.File(filename, mode, rdcc_nbytes=_chunk_cache_nbytes, rdcc_nslots=_chunk_cache_nslots)
+    return h5py.File(os.path.abspath(filename), mode, rdcc_nbytes=_chunk_cache_nbytes,
+                     rdcc_nslots=_chunk_cache_nslots)
 
 
 class _GadgetHdfMultiFileManager:
@@ -107,6 +111,7 @@ class _GadgetHdfMultiFileManager:
         self._mode = mode
         self._open_files = {}
         self._remote_dir = remote_dir
+        self._bulk_reader = hdf_bulk_read.BulkReader(enabled=_direct_bulk_read)
         if self._is_hdf5(filename):
             self._filenames = [filename]
             self._numfiles = 1
@@ -217,8 +222,17 @@ class _GadgetHdfMultiFileManager:
         for item in self:
             yield item.parent
 
+    def read(self, requests) -> hdf_bulk_read.strategy.ReadStrategy:
+        """Read requests (see :class:`pynbody.util.hdf_bulk_read.ReadRequest`) of datasets in these files.
+
+        Where it is safe, the data are read directly rather than through h5py, which serialises all reads, and
+        perhaps in several threads; see :meth:`pynbody.util.hdf_bulk_read.BulkReader.read`."""
+        return self._bulk_reader.read(requests)
+
     def reopen_in_mode(self, mode):
         if mode!=self._mode:
+            # release any files the bulk reader holds open, before they are reopened for writing
+            self._bulk_reader.close()
             self._open_files = {}
             self._mode = mode
 
@@ -234,138 +248,59 @@ class _SubfindHdfMultiFileManager(_GadgetHdfMultiFileManager):
     _subgroup_name = "FOF"
 
 class _HDFArrayFiller:
-    """A helper class to fill a pynbody array from an HDF5 dataset."""
+    """Describes how to fill parts of a pynbody array from HDF5 datasets, as requests to read them.
 
-    def __init__(self, sim_array_to_fill = None, hdf_dataset = None):
+    A dataset may store each element of the array flattened: for example, a 3-vector per particle as three
+    consecutive values of a one-dimensional dataset. The requests allow for that."""
 
-        # default element size for simulation arrays
+    def __init__(self, sim_array_to_fill=None, hdf_dataset=None):
         self.sim_element_size = 1 if sim_array_to_fill is None else self._get_element_size(sim_array_to_fill)
         self.file_element_size = 1 if hdf_dataset is None else self._get_element_size(hdf_dataset)
-        self._update_scaling_factor()
+        self.scaling_factor = self.sim_element_size / self.file_element_size
+        self.need_rescale = self.sim_element_size != self.file_element_size
 
-    def _update_sim_element_size(self, sim_array_to_fill):
-        """Update the element size for the simulation array."""
-        self.sim_element_size = self._get_element_size(sim_array_to_fill)
-        self._update_scaling_factor()
+    @staticmethod
+    def _get_element_size(array):
+        """The number of values in each element (the size of all but the first axis) of an array"""
+        shape = getattr(array, 'shape', ())
+        return int(np.prod(shape[1:])) if len(shape) > 1 else 1
 
-    def _update_file_element_size(self, hdf_dataset):
-        """Update the element size for the HDF5 dataset."""
-        self.file_element_size = self._get_element_size(hdf_dataset)
-        self._update_scaling_factor()
+    def request(self, sim_array_to_fill, hdf_dataset, source_sel: slice | np.ndarray | None,
+                offset: int = 0) -> hdf_bulk_read.ReadRequest | None:
+        """A request to read into *sim_array_to_fill* the elements *source_sel* of *hdf_dataset*; or None if there
+        is nothing to read, because the array's elements have no values.
 
-    def _update_scaling_factor(self):
-        """Update the scaling factor based on the current element sizes."""
-        if self.sim_element_size % self.file_element_size != 0:
-            raise ValueError("scaling_factor in _HDFArrayFiller should be an integer")
-        self.scaling_factor = self.sim_element_size // self.file_element_size
-        self.need_rescale = (self.sim_element_size != self.file_element_size)
-
-    def fill_array_from_hdf_dataset(self, sim_array_to_fill, hdf_dataset, source_sel: slice | np.ndarray | None, offset: int = 0):
-        """Fill a simulation array from an HDF5 dataset, handling various indexing and data shapes."""
-        if isinstance(hdf_dataset, _DummyHDFData):
-            hdf_dataset.read_direct(sim_array_to_fill)
-            return
-
-        source_sel = self._preprocess_source_selection(source_sel, offset)
-
-        if isinstance(source_sel, np.ndarray):
-            self._fill_from_fancy_index(sim_array_to_fill, hdf_dataset, source_sel)
+        *source_sel* is a slice, or a sorted array of indices, counted from *offset*; or None for every element. An
+        array is passed on as it is (not copied), so that the requests for a whole array, all made before any is
+        read, need little memory beyond the indices pynbody.chunk.LoadControl holds anyway."""
+        if self.sim_element_size == 0:
+            # e.g. an array of subfind groups, which has fewer entries than there are particles, is given elements of
+            # size zero (see GadgetHDFSnap.__get_dtype_dims_and_units)
+            return None
+        if source_sel is None:
+            rows, offset = slice(0, hdf_dataset.shape[0]), 0
         elif isinstance(source_sel, slice):
-            self._fill_from_slice(sim_array_to_fill, hdf_dataset, source_sel)
-        elif source_sel is None:
-            self._fill_entire_dataset(sim_array_to_fill, hdf_dataset)
+            rows, offset = slice(source_sel.start + offset, source_sel.stop + offset), 0
         else:
-            raise TypeError(f"Unsupported source_sel type: {type(source_sel)}. "
-                            "Expected numpy.ndarray, slice, or None.")
-
-    def _get_element_size(self, array):
-        """Get the size of a single element in an array."""
-        if hasattr(array, 'ndim') and array.ndim > 1:
-            return int(np.prod(array.shape[1:]))
-        elif hasattr(array, 'shape') and len(array.shape) > 1:
-            return int(np.prod(array.shape[1:]))
-        else:
-            return 1
-
-    def _preprocess_source_selection(self, source_sel, offset):
-        """Apply offset to the source selection and optimize if possible."""
-        if isinstance(source_sel, slice):
-            return slice(source_sel.start + offset, source_sel.stop + offset)
-        elif isinstance(source_sel, np.ndarray):
-            source_sel = source_sel + offset
-            # convert to slice for efficiency if the indices are contiguous
-            if len(source_sel) > 1 and source_sel[-1] - source_sel[0] == len(source_sel) - 1:
-                return slice(source_sel[0], source_sel[-1] + 1)
-        return source_sel
-
-    def _get_data_to_fill_local(self, sim_array_to_fill, hdf_dataset, source_sel):
-        """Read the selected elements from a local HDF5 file"""
-        id_min, id_max = source_sel[0], source_sel[-1]
-        num_read = id_max - id_min + 1
-        indices_in_read_chunk = source_sel - id_min
-        contiguous_hdf_slice = self._get_contiguous_hdf_slice(id_min, id_max)
-        data_chunk_from_hdf = hdf_dataset[contiguous_hdf_slice]
-        data_chunk_from_hdf = data_chunk_from_hdf.reshape(num_read, *sim_array_to_fill.shape[1:])
-        return data_chunk_from_hdf[indices_in_read_chunk]
-
-    def _get_data_to_fill_remote(self, sim_array_to_fill, hdf_dataset, source_sel):
-        """Read the selected elements from a remote file using the hdfstream module"""
+            rows = source_sel
         if self.need_rescale:
-            assert isinstance(self.scaling_factor, (int, np.integer))
-            flat_index = (self.scaling_factor * np.asarray(source_sel)[:,None] + np.arange(self.scaling_factor, dtype=int)).flatten()
-            flat_data = hdf_dataset[flat_index]
-            final_data_to_fill = flat_data.reshape((len(source_sel),self.scaling_factor))
-        else:
-            final_data_to_fill = hdf_dataset[source_sel,...]
-        return final_data_to_fill
+            # each element of the array is *factor* consecutive rows of the dataset
+            factor = self.scaling_factor
+            if factor != int(factor) or factor < 1:
+                raise ValueError(f"Cannot fill an array with elements of size {self.sim_element_size} from a "
+                                 f"dataset with elements of size {self.file_element_size}")
+            factor = int(factor)
+            if isinstance(rows, slice):
+                rows = slice(rows.start * factor, rows.stop * factor)
+            else:
+                # (this, unlike the rest, does copy the indices: but datasets stored this way are rare)
+                rows = ((np.asarray(rows, dtype=np.int64)[:, np.newaxis] + offset) * factor
+                        + np.arange(factor)).reshape(-1)
+                offset = 0
+        num_rows = rows.stop - rows.start if isinstance(rows, slice) else len(rows)
+        destination = np.reshape(sim_array_to_fill, (num_rows,) + tuple(hdf_dataset.shape[1:]), copy=False)
+        return hdf_bulk_read.ReadRequest(hdf_dataset, rows, destination, offset=offset)
 
-    def _fill_from_fancy_index(self, sim_array_to_fill, hdf_dataset, source_sel):
-        """Fill array from a non-contiguous (fancy) index."""
-        if hdfstream is not None and isinstance(hdf_dataset, hdfstream.RemoteDataset):
-            final_data_to_fill = self._get_data_to_fill_remote(sim_array_to_fill, hdf_dataset, source_sel)
-        else:
-            final_data_to_fill = self._get_data_to_fill_local(sim_array_to_fill, hdf_dataset, source_sel)
-
-        if sim_array_to_fill.shape == final_data_to_fill.shape:
-            sim_array_to_fill[:] = final_data_to_fill
-        else:
-            sim_array_to_fill.reshape(final_data_to_fill.shape)[:] = final_data_to_fill
-
-    def _fill_from_slice(self, sim_array_to_fill, hdf_dataset, source_sel):
-        """Fill array from a contiguous slice."""
-
-        if self.need_rescale:
-            source_sel = self._get_contiguous_hdf_slice(source_sel.start, source_sel.stop - 1)
-
-        num_elements = source_sel.stop - source_sel.start
-        if len(hdf_dataset.shape) > 1:
-            expected_chunk_shape = (num_elements,) + hdf_dataset.shape[1:]
-        else:
-            expected_chunk_shape = (num_elements,)
-
-        assert sim_array_to_fill.size == np.prod(expected_chunk_shape)
-
-        sim_array_reshaped = sim_array_to_fill.reshape(expected_chunk_shape)
-        hdf_dataset.read_direct(sim_array_reshaped, source_sel=source_sel)
-
-    def _fill_entire_dataset(self, sim_array_to_fill, hdf_dataset):
-        """Fill array with the entire content of an HDF5 dataset."""
-        assert sim_array_to_fill.size == np.prod(hdf_dataset.shape)
-        sim_array_reshaped = sim_array_to_fill.reshape(hdf_dataset.shape)
-        hdf_dataset.read_direct(sim_array_reshaped, source_sel=None)
-
-    def _get_contiguous_hdf_slice(self, id_min, id_max):
-        """Calculates the slice to select from an HDF5 file to get a contiguous block of data
-        covering the particle range [id_min, id_max], accounting for differing data layouts
-        between the file and memory.
-
-        For example, a 3D position array in memory might be stored as a flat 1D array in the file.
-        This function computes the correct start and end indices for the slice in the flat array.
-        """
-        if self.need_rescale:
-            return np.s_[int(id_min * self.scaling_factor): int((id_max + 1) * self.scaling_factor)]
-        else:
-            return np.s_[id_min: id_max + 1]
 
 class HDFArrayLoader:
     """A helper class to handle the loading of particle data arrays from Gadget HDF5 files.
@@ -480,8 +415,18 @@ class HDFArrayLoader:
 
         """
 
+        requests = self._requests(all_fams_to_load, sim, array_name, translated_names)
+        self.last_read_strategy = self._hdf_files.read(requests)
+
+    def _requests(self, all_fams_to_load, sim, array_name, translated_names):
+        """Yield requests to read (see pynbody.util.hdf_bulk_read.ReadRequest) that together load an array.
+
+        There is one request per piece of up to _max_buf particles that pynbody.chunk.LoadControl yields for each
+        file. Parts of the array that are constant (such as masses given in the header) are filled in directly.
+        The requests are yielded, rather than returned as a list, so that each file's dataset can be let go of once
+        it has been read."""
         for loading_fam in all_fams_to_load:
-            
+
             sim_fam_array, array_filler = self._get_array_filler(array_name, loading_fam, sim, translated_names)
 
             i0 = 0 # start of the current hdf group's data within sim_fam_array
@@ -499,8 +444,10 @@ class HDFArrayLoader:
                 for hdf_group, hi in zip(hdf_groups, file_boundaries):
                     dataset = None
                     dataset_resolved = False
-                    offset = 0 # read position within this file
-                    for readlen, buf_index, mem_index in self._load_control.iterate_within(hdf_group_name, lo, hi):
+                    # Each buf_index gives positions within the family (not within the piece, which would need a new
+                    # array for each piece); they lie within this file, whose first is lo
+                    for readlen, buf_index, mem_index in self._load_control.iterate_within(hdf_group_name, lo, hi,
+                                                                                            relative=False):
                         if mem_index is not None:
                             if not dataset_resolved:
                                 # Resolve only once we know we want something from this file: with partial
@@ -511,11 +458,12 @@ class HDFArrayLoader:
                                 dataset_resolved = True
                             if dataset is not None:
                                 target_array = sim_fam_array[i0 + mem_index.start : i0 + mem_index.stop]
-                                array_filler.fill_array_from_hdf_dataset(target_array, dataset,
-                                                                         source_sel=buf_index, offset=offset)
-                        # Advance even when nothing is copied, or the next read starts from the wrong
-                        # position in the file. Refs #955
-                        offset += readlen
+                                if isinstance(dataset, _DummyHDFData):
+                                    dataset.read_direct(target_array)
+                                else:
+                                    request = array_filler.request(target_array, dataset, buf_index, -lo)
+                                    if request is not None:
+                                        yield request
                     lo = hi
 
                 group_mem_slice = self._load_control.mem_family_slice[hdf_group_name]

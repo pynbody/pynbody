@@ -392,7 +392,7 @@ class LoadControl:
                     for nread_disk, disk_mask, mem_slice in self._family_chunks[current_family]:
                         yield nread_disk, None, None
 
-    def iterate_within(self, family: family.Family, disk_lo: int, disk_hi: int) \
+    def iterate_within(self, family: family.Family, disk_lo: int, disk_hi: int, relative: bool = True) \
             -> Iterator[tuple[int, slice | np.ndarray | None, slice | None]]:
         """Yields instructions for loading the part of a family lying at disk positions ``[disk_lo, disk_hi)``.
 
@@ -427,6 +427,11 @@ class LoadControl:
             First disk position to consider, relative to the start of the family on disk
         disk_hi : int
             One past the last disk position to consider, relative to the start of the family on disk
+        relative : bool
+            If True (the default), each ``buffer_index`` indexes the buffer just read. If False, it gives disk
+            positions relative to the start of the family instead (as ``disk_lo`` does); an array of them is then a
+            view of this object's own ids, made without copying them, so it must not be modified. That saves
+            memory where a caller keeps the instructions for a whole family before reading any of them.
 
         Yields
         ------
@@ -434,7 +439,8 @@ class LoadControl:
             Number of entries to read from disk, starting from where the last instruction left off. The disk
             cursor starts at ``disk_lo``, i.e. it is relative to the window rather than to the family.
         buffer_index : slice | np.ndarray | None
-            Index into the buffer just read, or None if this particular read is to be ignored (skipped)
+            Index into the buffer just read (or, if *relative* is False, disk positions relative to the start of the
+            family), or None if this particular read is to be ignored (skipped)
         memory_index : slice | None
             Slice to write into memory, relative to the start of the family, or None if ``buffer_index`` is None
 
@@ -459,7 +465,8 @@ class LoadControl:
             # Mirrors _generate_null_chunks: with no partial loading, memory position equals disk position.
             for p in range(0, num_disk, max_chunk):
                 nread = min(num_disk - p, max_chunk)
-                yield nread, slice(0, nread), slice(disk_lo + p, disk_lo + p + nread)
+                origin = 0 if relative else disk_lo + p
+                yield nread, slice(origin, origin + nread), slice(disk_lo + p, disk_lo + p + nread)
             return
 
         ids = self._family_ids[family]
@@ -476,7 +483,7 @@ class LoadControl:
             j = self._scan_for_next_stop(ids, i, disk_lo + p_end - 1)
 
             if i != j:
-                yield p_end - p, ids[i:j] - (disk_lo + p), slice(i, j)
+                yield p_end - p, ids[i:j] - (disk_lo + p) if relative else ids[i:j], slice(i, j)
             else:
                 yield p_end - p, None, None
 

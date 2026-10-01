@@ -1,3 +1,4 @@
+import os
 import shutil
 from contextlib import contextmanager
 from pathlib import Path
@@ -13,7 +14,9 @@ import pynbody
 import pynbody.halo.velociraptor
 import pynbody.snapshot.swift
 import pynbody.test_utils
+from pynbody.snapshot import gadgethdf
 from pynbody.test_utils.split_swift_snapshot import ensure_split_snapshot_exists
+from pynbody.util import hdf_bulk_read
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -153,6 +156,56 @@ def test_swift_vds_partial_loading(load_kwargs):
     f2 = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000",
                       take_swift_cells=[0, 5, 20, 200][::-1], **load_kwargs)
     assert (f['iord'] == f2['iord']).all()
+
+@pytest.fixture
+def bulk_readers_opened(monkeypatch):
+    """Record the reader chosen for every dataset pynbody reads in bulk"""
+    opened = []
+    original_open = hdf_bulk_read.BulkReader.open
+
+    def recording_open(self, dataset):
+        reader = original_open(self, dataset)
+        opened.append(reader)
+        return reader
+
+    monkeypatch.setattr(hdf_bulk_read.BulkReader, "open", recording_open)
+    return opened
+
+
+@pytest.mark.parametrize("take_swift_cells", [None, [0, 5, 20, 200]])
+def test_swift_vds_is_read_from_its_sources(bulk_readers_opened, take_swift_cells):
+    """The virtual datasets of a SWIFT single-file view are decomposed and read directly from their source files,
+    rather than being read through libhdf5"""
+    f = pynbody.load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", take_swift_cells=take_swift_cells)
+    f2 = pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000", take_swift_cells=take_swift_cells)
+    for array_name in f.loadable_keys():
+        npt.assert_array_equal(f[array_name], f2[array_name])
+    virtual_readers = [r for r in bulk_readers_opened if isinstance(r, hdf_bulk_read.virtual._VirtualReader)]
+    assert len(virtual_readers) == len(f.loadable_keys())
+
+
+@pytest.mark.parametrize("filename, open_kwargs",
+                         [("testdata/SWIFT/snap_0150.hdf5", {}),
+                          ("testdata/SWIFT/snap_0150.hdf5", {'take_region': pynbody.filt.Sphere(20., (50., 50., 50.))}),
+                          ("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", {}),
+                          ("testdata/SWIFT/planetary.hdf5", {})])
+def test_swift_bulk_read_backends_agree(monkeypatch, bulk_readers_opened, filename, open_kwargs):
+    arrays = {}
+    for backend in ['h5py', 'direct']:
+        monkeypatch.setattr(gadgethdf, "_direct_bulk_read", backend == 'direct')
+        bulk_readers_opened.clear()
+        f = pynbody.load(filename, **open_kwargs)
+        arrays[backend] = {k: np.asarray(f[k]) for k in f.loadable_keys()}
+        if backend == 'direct':
+            assert not any(isinstance(r, h5py.Dataset) for r in bulk_readers_opened)
+        else:
+            assert all(isinstance(r, h5py.Dataset) for r in bulk_readers_opened)
+
+    assert arrays['h5py'].keys() == arrays['direct'].keys()
+    for k in arrays['h5py']:
+        assert arrays['h5py'][k].dtype == arrays['direct'][k].dtype
+        npt.assert_array_equal(arrays['h5py'][k], arrays['direct'][k])
+
 
 def test_swift_fof_groups(load_kwargs):
     f = pynbody.load("testdata/SWIFT/snap_0150.hdf5", **load_kwargs)
@@ -548,3 +601,12 @@ def test_swift_write_array_to_region(copied_snapshot):
     # Writing the new array should not work
     with pytest.raises(NotImplementedError):
         snap['test_array'].write()
+
+
+def test_files_opened_by_absolute_path(monkeypatch):
+    """So that HDF5 and pynbody's direct reader agree on where the sources of virtual datasets are, even if the
+    current directory changes after loading"""
+    f = pynbody.load("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5")
+    assert os.path.isabs(f._hdf_files[0].file.filename)
+    monkeypatch.chdir("testdata")
+    npt.assert_array_equal(f['iord'], pynbody.load("SWIFT/multifile_without_vds/snap_0000")['iord'])
