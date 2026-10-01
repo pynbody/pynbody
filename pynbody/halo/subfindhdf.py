@@ -5,11 +5,9 @@ from __future__ import annotations
 import os.path
 import warnings
 
-import h5py
 import numpy as np
 
 from .. import array, config_parser, snapshot, units
-from ..util import file_probe
 from ..snapshot import gadgethdf
 from . import Halo, HaloCatalogue
 from .details import number_mapping, particle_indices

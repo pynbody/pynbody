@@ -2,7 +2,6 @@ import gc
 import glob
 import os
 import pathlib
-import warnings
 
 import h5py
 import numpy as np

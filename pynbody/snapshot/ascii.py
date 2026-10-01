@@ -4,7 +4,6 @@ Supports loading of ASCII snapshots. The format is a simple text file with a hea
 """
 
 import os
-import pathlib
 
 import numpy as np
 

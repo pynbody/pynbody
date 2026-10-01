@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import glob
 import gzip
 import os.path
 import pathlib
