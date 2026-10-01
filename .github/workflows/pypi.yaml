@@ -29,7 +29,7 @@ jobs:
         - [macos-15, macosx, arm64, "/opt/homebrew", "14.0"]
         - [windows-2022, win, amd64, "", ""]
         - [windows-11-arm, win, arm64, "", ""]
-        python: ["cp311", "cp312", "cp313", "cp314"]
+        python: ["cp311", "cp312", "cp313", "cp314", "cp315"]
     steps:
       - uses: actions/checkout@v6
 
@@ -51,7 +51,7 @@ jobs:
           $HOME/miniforge3/bin/conda install compilers
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.3.0
+        uses: pypa/cibuildwheel@v4.2.1
         env:
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
@@ -98,6 +98,14 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-2025, macos-14, macos-15-intel] # good to test on old macos as far as possible
         python-version: ["3.11", "3.12", "3.13", "3.14"]
+        include:
+          # h5py and camb have no cp315 wheels yet, so they are built from source here;
+          # only test on linux (where that is feasible) and don't let it block publishing.
+          # The full 3.15 test run lives in python315-experimental.yaml.
+          - os: ubuntu-latest
+            python-version: "3.15"
+            experimental: true
+    continue-on-error: ${{ matrix.experimental == true }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -106,7 +114,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-          
+          allow-prereleases: true
+
       - uses: actions/download-artifact@v7
         with:
           pattern: artifact-*
