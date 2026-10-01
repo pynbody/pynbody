@@ -131,6 +131,12 @@ def snap_in_unwritable_folder():
         subprocess.run(['icacls', 'testdata/test_unwritable', '/deny', 'Everyone:(WD,AD,WEA)'], check=True)
     else:  # Unix/Linux/macOS
         os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR)
+        # Removing write permission has no effect for root (or on filesystems that ignore permissions), so the
+        # test cannot set up what it checks. (On Windows, os.access ignores the ACL just set, so is no guide.)
+        if os.access("testdata/test_unwritable", os.W_OK):
+            os.chmod("testdata/test_unwritable", stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR)
+            shutil.rmtree("testdata/test_unwritable")
+            pytest.skip("Cannot make a directory unwritable here (running as root?)")
 
     yield "testdata/test_unwritable/g15784.lr.01024"
 
