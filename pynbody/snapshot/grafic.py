@@ -37,9 +37,9 @@ _max_buflen = 1024 ** 2
 class GrafICSnap(SimSnap):
     """Class for loading grafIC initial conditions files"""
 
-    @staticmethod
-    def _can_load(f):
-        return os.path.isdir(f) and os.path.exists(os.path.join(f, "ic_velcx"))
+    @classmethod
+    def _can_load_from_probe(cls, probe):
+        return probe.is_dir() and probe.child("ic_velcx").exists()
 
     def __init__(self, f, take=None, use_pos_file=True):
         """Load a grafIC initial conditions file

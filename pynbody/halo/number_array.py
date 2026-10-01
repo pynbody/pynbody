@@ -92,8 +92,8 @@ class HaloNumberCatalogue(HaloCatalogue):
 
 
     @classmethod
-    def _can_load(cls, sim, arr_name='grp'):
-        if (arr_name in sim.loadable_keys()) or (arr_name in list(sim.keys())) :
+    def _can_load_from_probe(cls, sim, probes, arr_name='grp'):
+        if (arr_name in sim.keys()) or sim._has_loadable_key(arr_name):
             return True
         else:
             return False
@@ -104,5 +104,5 @@ class AmigaGrpCatalogue(HaloNumberCatalogue):
         super().__init__(sim, array='amiga.grp')
 
     @classmethod
-    def _can_load(cls, sim, arr_name='amiga.grp'):
-        return super()._can_load(sim, arr_name)
+    def _can_load_from_probe(cls, sim, probes, arr_name='amiga.grp'):
+        return super()._can_load_from_probe(sim, probes, arr_name)

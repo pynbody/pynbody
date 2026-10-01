@@ -949,17 +949,18 @@ class GadgetSnap(SimSnap):
        return data
 
     @classmethod
-    def _can_load(cls, f: pathlib.Path):
+    def _can_load_from_probe(cls, probe):
         """Check whether we can load the file as Gadget format by reading
         the first 4 bytes"""
-        fname = f
-        if not f.exists():
-            fname = f.parent / (f.name + ".0")
-            if not fname.exists():
+        if not probe.exists():
+            probe = probe.with_appended(".0")
+            if not probe.exists():
                 return False
 
-        with open(fname, "br") as fd:
-            r, = struct.unpack('=I', fd.read(4))
+        header = probe.head(4)
+        if len(header) < 4:
+            return False
+        r, = struct.unpack('=I', header)
 
         # First int32 is 8 for a Gadget 2 file, or 256 for Gadget 1, or the
         # byte swapped equivalent.

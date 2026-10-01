@@ -93,5 +93,5 @@ class AsciiSnap(SimSnap):
         self._load_arrays(ars)
 
     @classmethod
-    def _can_load(cls, f: pathlib.Path):
-        return f.exists() and f.suffix == '.txt'
+    def _can_load_from_probe(cls, probe):
+        return probe.path.suffix == '.txt' and probe.exists()

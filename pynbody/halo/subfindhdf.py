@@ -9,6 +9,7 @@ import h5py
 import numpy as np
 
 from .. import array, config_parser, snapshot, units
+from ..util import file_probe
 from ..snapshot import gadgethdf
 from . import Halo, HaloCatalogue
 from .details import number_mapping, particle_indices
@@ -480,7 +481,7 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
             return SubhaloCatalogue(self._subhalo_catalogue, [])
 
     @classmethod
-    def _can_load(cls, sim, **kwargs):
+    def _can_load_from_probe(cls, sim, probes, **kwargs):
         if isinstance(sim, gadgethdf.SubFindHDFSnap):
             return True
         else:
@@ -575,20 +576,23 @@ class Gadget4SubfindHDFCatalogue(SubFindHDFHaloCatalogue):
 
 
     @classmethod
-    def _can_load(cls, sim, filename=None, **kwargs):
+    def _can_load_from_probe(cls, sim, probes, filename=None, **kwargs):
         try:
             file = cls._catalogue_filename(sim, user_provided_filename=filename)
         except ValueError:
             return False
-        if not h5py.is_hdf5(file):
-            file = file + ".0.hdf5"
-            if not h5py.is_hdf5(file):
+        probe = probes.probe(file)
+        if not probe.is_hdf5():
+            probe = probe.with_appended(".0.hdf5")
+            if not probe.is_hdf5():
                 return False
-        with h5py.File(file, 'r') as f:
-            if cls._header_name not in f:
-                return False
-            if cls._numsubs_name not in f[cls._header_name].attrs:
-                return False
+        f = probe.hdf5()
+        if f is None:
+            return False
+        if cls._header_name not in f:
+            return False
+        if cls._numsubs_name not in f[cls._header_name].attrs:
+            return False
         return True
 
 

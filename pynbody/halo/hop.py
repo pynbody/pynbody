@@ -62,16 +62,16 @@ class HOPCatalogue(HaloNumberCatalogue):
         return num_part
 
     @classmethod
-    def _can_load(cls, sim, filename=None):
+    def _can_load_from_probe(cls, sim, probes, filename=None):
         # Hop output must be in output directory or in output_*/hop directory
         if filename is not None:
-            if not os.path.exists(filename):
+            if not probes.exists(filename):
                 return False
             with open(filename, "rb") as f:
                 num_part = cls._get_npart_from_file(f)
             return num_part == len(sim.dm)
         else:
-            exists = any([os.path.exists(fname) for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim)])
+            exists = any([probes.exists(fname) for fname in HOPCatalogue._enumerate_hop_tag_locations_from_sim(sim)])
             return exists
 
     @staticmethod

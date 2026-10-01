@@ -6,6 +6,7 @@ import logging
 import pathlib
 
 from .. import config, family
+from ..util import file_probe
 from . import util
 from .simsnap import SimSnap
 
@@ -58,17 +59,58 @@ def load(filename, *args, **kwargs) -> SimSnap:
 
     priority = kwargs.pop('priority', config['snap-class-priority'])
 
-    for c in SimSnap.iter_subclasses_with_priority(priority):
-        if kwargs.get('remote_dir') is not None:
+    if kwargs.get('remote_dir') is not None:
+        for c in SimSnap.iter_subclasses_with_priority(priority):
             if hasattr(c, "_can_load_remote") and c._can_load_remote(filename, kwargs["remote_dir"]):
                 logger.info("Loading using backend %s" % str(c))
                 return c(filename, *args, **kwargs)
-        elif c._can_load(filename):
-            logger.info("Loading using backend %s" % str(c))
-            return c(filename, *args, **kwargs)
+        raise OSError(
+            "File %r: format not understood or does not exist" % filename)
 
-    raise OSError(
-        "File %r: format not understood or does not exist" % filename)
+    with _make_probe_cache() as probes:
+        probe = probes.probe(filename)
+        loader_class = _identify(probe, priority)
+        if loader_class is None:
+            raise OSError(
+                "File %r: format not understood or does not exist (%s)" % (str(filename), probe.describe()))
+        logger.info("Loading using backend %s" % str(loader_class))
+        return loader_class._load_from_probe(probe, *args, **kwargs)
+
+
+def identify(filename, priority=None) -> type[SimSnap] | None:
+    """Return the SimSnap subclass that :func:`load` would use for the specified file, without loading it.
+
+    Parameters
+    ----------
+    filename : str
+        The filename to identify
+
+    priority : optional, list[str | type]
+        As for :func:`load`
+
+    Returns
+    -------
+    type[SimSnap] | None
+        The class that would be used, or None if no class can load the file
+    """
+    if priority is None:
+        priority = config['snap-class-priority']
+    with _make_probe_cache() as probes:
+        return _identify(probes.probe(filename), priority)
+
+
+def _identify(probe, priority):
+    for c in SimSnap.iter_subclasses_with_priority(priority):
+        if c._can_load_with_dispatch(probe):
+            return c
+    return None
+
+
+def _make_probe_cache():
+    # HDF5 files are opened in the way GadgetHDFSnap would open them, so that the loader can take over the
+    # open file rather than opening it again
+    from .gadgethdf import _open_hdf_file
+    return file_probe.ProbeCache(hdf5_opener=lambda path: _open_hdf_file(path, 'r'))
 
 def new(n_particles = 0, order = None, class_ = SimSnap, **families) -> SimSnap:
     """Create a blank SimSnap, with the specified number of particles.

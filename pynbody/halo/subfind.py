@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 
 from .. import units
+from ..util import file_probe
 from ..array import SimArray
 from . import HaloCatalogue
 from .details import number_mapping, particle_indices
@@ -331,14 +332,17 @@ class SubfindCatalogue(HaloCatalogue):
         self._halodat, self._subhalodat = halodat, subhalodat
 
     @staticmethod
-    def _name_of_catalogue(sim):
+    def _name_of_catalogue(sim, probes: file_probe.ProbeCache | None = None):
+        if probes is None:
+            with file_probe.ProbeCache() as probes:
+                return SubfindCatalogue._name_of_catalogue(sim, probes)
         # standard path for multiple snapshot files
         snapnum = os.path.basename(
             os.path.dirname(sim.filename)).split("_")[-1]
         parent_dir = os.path.dirname(os.path.dirname(sim.filename))
         dir_path=os.path.join(parent_dir,"groups_" + snapnum)
 
-        if os.path.exists(dir_path):
+        if probes.exists(dir_path):
             return dir_path
         # alternative path if snapshot is single file
         else:
@@ -346,19 +350,18 @@ class SubfindCatalogue(HaloCatalogue):
             parent_dir = os.path.dirname(sim.filename)
             return os.path.join(parent_dir,"groups_" + snapnum)
 
-    @staticmethod
-    def _can_load(sim, filename=None, **kwargs):
+    @classmethod
+    def _can_load_from_probe(cls, sim, probes, filename=None, **kwargs):
         if filename is not None:
             if str(filename)[:-3].endswith("groups_"):
                 return True
-        file = SubfindCatalogue._name_of_catalogue(sim)
-        if os.path.exists(file):
-            if os.path.exists(file):
-                if file.endswith(".hdf5"):
-                    return False
-                elif os.path.isdir(file) and os.listdir(file)[0].endswith(".hdf5"):
-                    return False
-                else:
-                    return True
+        file = SubfindCatalogue._name_of_catalogue(sim, probes)
+        if probes.exists(file):
+            if file.endswith(".hdf5"):
+                return False
+            elif probes.is_dir(file) and probes.listdir(file)[0].endswith(".hdf5"):
+                return False
+            else:
+                return True
         else:
             return False

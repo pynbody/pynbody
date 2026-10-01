@@ -349,7 +349,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
         )
 
     @classmethod
-    def _can_load(cls, sim, filename=None, arr_name="grp", *args, **kwa):
+    def _can_load_from_probe(cls, sim, probes, filename=None, arr_name="grp", *args, **kwa):
         if cls is BaseAdaptaHOPCatalogue:
             return False # Must load a specialisation
 
@@ -360,7 +360,7 @@ class BaseAdaptaHOPCatalogue(HaloCatalogue):
             ]
         else:
             candidates = [filename]
-        valid_candidates = [fname for fname in candidates if os.path.exists(fname)]
+        valid_candidates = [fname for fname in candidates if probes.exists(fname)]
         if len(valid_candidates) == 0:
             return False
 

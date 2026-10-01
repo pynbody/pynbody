@@ -12,6 +12,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .. import array, units, util
+from ..util import file_probe
 from . import HaloCatalogue, HaloParticleIndices
 from .details import number_mapping
 
@@ -21,7 +22,10 @@ class VelociraptorCatalogue(HaloCatalogue):
     """
 
     @classmethod
-    def _catalogue_path(cls, sim) -> Path | None:
+    def _catalogue_path(cls, sim, probes: file_probe.ProbeCache | None = None) -> Path | None:
+        if probes is None:
+            with file_probe.ProbeCache() as probes:
+                return cls._catalogue_path(sim, probes)
 
 
         simpath = Path(sim.filename)
@@ -42,22 +46,24 @@ class VelociraptorCatalogue(HaloCatalogue):
         ]
 
         for basepath in possible_paths:
-            if basepath.is_dir():
-                for p in basepath.iterdir():
-                    if snapshot_num and p.is_dir() and f'{snapshot_num:04d}' in p.name:
-                        possible_paths.append(p)
-                    if 'catalog_groups.0' in p.name and p.is_file():
-                        return basepath / str(p.name)[:-(len('.catalog_groups.0'))]
+            listing = probes.probe(basepath).listdir()
+            if listing is None:
+                continue
+            for name, entry in listing.items():
+                if snapshot_num and entry.is_dir() and f'{snapshot_num:04d}' in name:
+                    possible_paths.append(basepath / name)
+                if 'catalog_groups.0' in name and entry.is_file():
+                    return basepath / name[:-(len('.catalog_groups.0'))]
         return None
 
     @classmethod
-    def _can_load(cls, sim, **kwargs):
-        path = cls._catalogue_path(sim)
+    def _can_load_from_probe(cls, sim, probes, **kwargs):
+        path = cls._catalogue_path(sim, probes)
         if path is None:
             return False
 
         for suffix in ['.catalog_groups.0', '.catalog_particles.0', '.properties.0']:
-            if not (path.with_suffix(suffix).is_file()):
+            if not probes.is_file(path.with_suffix(suffix)):
                 return False
 
         return True

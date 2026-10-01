@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 
 from .. import snapshot, util
+from ..util import file_probe
 from . import HaloCatalogue, IncompleteHaloError, logger
 from .details.number_mapping import (
     NonMonotonicHaloNumberMapper,
@@ -480,15 +481,18 @@ class AHFCatalogue(HaloCatalogue):
 
 
     @staticmethod
-    def _list_candidate_ahf_basenames(sim):
-        candidates = set(glob.glob(f"{sim._filename}*z*particles*"))
+    def _list_candidate_ahf_basenames(sim, probes: file_probe.ProbeCache | None = None):
+        if probes is None:
+            with file_probe.ProbeCache() as probes:
+                return AHFCatalogue._list_candidate_ahf_basenames(sim, probes)
+        candidates = set(probes.glob(f"{sim._filename}*z*particles*"))
         # use a set to ensure that no duplicates can be produced
         # This could arise in an edge case where _filename is a directory
         # and having the "/" at the end of it would lead to a first detection here
         # and a second one again below
 
-        if os.path.isdir(sim._filename):
-            candidates = candidates.union(glob.glob(os.path.join(sim._filename, "*z*particles*")))
+        if probes.is_dir(sim._filename):
+            candidates = candidates.union(probes.glob(os.path.join(sim._filename, "*z*particles*")))
 
         return list(candidates)
 
@@ -504,7 +508,7 @@ class AHFCatalogue(HaloCatalogue):
                          "AHFCatalogue.")
 
     @classmethod
-    def _can_load(cls, sim, filename=None, **kwargs):
+    def _can_load_from_probe(cls, sim, probes, filename=None, **kwargs):
         if filename is not None:
             try:
                 cls._user_specified_filename_to_ahf_basename(filename)
@@ -512,6 +516,6 @@ class AHFCatalogue(HaloCatalogue):
             except ValueError:
                 return False
         else:
-            candidates = cls._list_candidate_ahf_basenames(sim)
+            candidates = cls._list_candidate_ahf_basenames(sim, probes)
             number_ahf_file_candidates = len(candidates)
             return number_ahf_file_candidates > 0

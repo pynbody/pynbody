@@ -142,15 +142,15 @@ class RockstarCatalogue(HaloCatalogue):
         return props
 
     @classmethod
-    def _can_load(cls, sim, filename=None, format_revision=None):
+    def _can_load_from_probe(cls, sim, probes, filename=None, format_revision=None):
         if filename is None:
             return len(
-                glob.glob(os.path.join(os.path.dirname(sim.filename), 'halos*.bin'))
+                probes.glob(os.path.join(os.path.dirname(sim.filename), 'halos*.bin'))
             ) > 0
         else:
-            if str(filename).endswith(".0.bin") and os.path.exists(filename):
+            if str(filename).endswith(".0.bin") and probes.exists(filename):
                 return True
-            if os.path.exists(str(filename)+".0.bin"):
+            if probes.exists(str(filename)+".0.bin"):
                 return True
             return False
 

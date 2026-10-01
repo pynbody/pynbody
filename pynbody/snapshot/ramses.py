@@ -1236,11 +1236,11 @@ class RamsesSnap(SimSnap):
         else:
             raise OSError("No such array on disk")
 
-    @staticmethod
-    def _can_load(f):
-        tsid = _timestep_id(f)
+    @classmethod
+    def _can_load_from_probe(cls, probe):
+        tsid = _timestep_id(probe.path)
         if tsid:
-            return os.path.isdir(f) and os.path.exists(os.path.join(f, f"info_{tsid}.txt"))
+            return probe.is_dir() and probe.child(f"info_{tsid}.txt").exists()
         return False
 
 

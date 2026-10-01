@@ -34,7 +34,7 @@ from .. import (
     util,
 )
 from ..units import has_units
-from ..util import iter_subclasses
+from ..util import file_probe, iter_subclasses
 from .util import ContainerWithPhysicalUnitsOption
 
 if typing.TYPE_CHECKING:
@@ -156,8 +156,45 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
     @classmethod
     def _can_load(cls, filepath: pathlib.Path):
-        # this should be implemented by subclasses that can load from disk
+        """Return True if this class can load the specified file.
+
+        New subclasses should implement :meth:`_can_load_from_probe` instead, which allows information about
+        the file to be shared between candidate classes. This method remains for backwards compatibility: it may
+        be overridden by subclasses (in which case it takes precedence), or called directly."""
+        with file_probe.ProbeCache() as cache:
+            return cls._can_load_from_probe(cache.probe(filepath))
+
+    @classmethod
+    def _can_load_from_probe(cls, probe: file_probe.FileProbe) -> bool:
+        """Return True if this class can load the file described by *probe*.
+
+        This should be implemented by subclasses that can load from disk. Implementations should obtain all
+        information via the probe (e.g. :meth:`~pynbody.util.file_probe.FileProbe.head`,
+        :meth:`~pynbody.util.file_probe.FileProbe.hdf5`), which caches the results, rather than opening the file
+        directly; many candidate classes are tested in turn, and on network filesystems each new access is slow.
+        """
         return False
+
+    @classmethod
+    def _can_load_with_dispatch(cls, probe: file_probe.FileProbe) -> bool:
+        """Determine whether this class can load the file, using :meth:`_can_load_from_probe` or, for
+        subclasses that only implement the legacy method, :meth:`_can_load`"""
+        if file_probe.legacy_can_load_overrides_probe(cls):
+            return cls._can_load(probe.path)
+        else:
+            return cls._can_load_from_probe(probe)
+
+    @classmethod
+    def _load_from_probe(cls, probe: file_probe.FileProbe, *args, **kwargs) -> SimSnap:
+        """Construct the snapshot, once :meth:`_can_load_from_probe` has returned True.
+
+        The default implementation simply calls the constructor with the filename. Subclasses may override this
+        to take over resources already opened by the probe (see :meth:`~pynbody.util.file_probe.ProbeCache.adopt_hdf5`).
+        """
+        # Close any HDF5 files opened during identification before the loader runs, since HDF5 refuses to open
+        # the same file twice with differing settings
+        probe.cache.close()
+        return cls(probe.path, *args, **kwargs)
 
 
     def __init__(self):
@@ -582,6 +619,13 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         an auxiliary file."""
         return []
 
+    def _has_loadable_key(self, name: str) -> bool:
+        """Returns True if *name* is in :meth:`loadable_keys`.
+
+        Subclasses may override this to answer more cheaply than by constructing the whole list of loadable keys,
+        e.g. to check for the existence of a single file."""
+        return name in self.loadable_keys()
+
     def derivable_keys(self) -> list[str]:
         """Returns a list of arrays which can be lazy-evaluated."""
         res = []
@@ -896,14 +940,22 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
         priority = [halo._fix_american_spelling(p) for p in priority]
 
-        for c in halo.HaloCatalogue.iter_subclasses_with_priority(priority):
-            try:
-                can_load = c._can_load(self, *args, **kwargs)
-            except TypeError:
-                can_load = False
+        with file_probe.ProbeCache() as probes:
+            loader_class = None
+            for c in halo.HaloCatalogue.iter_subclasses_with_priority(priority):
+                try:
+                    can_load = c._can_load_with_dispatch(self, probes, *args, **kwargs)
+                except TypeError:
+                    can_load = False
 
-            if can_load:
-                return c(self, *args, **kwargs)
+                if can_load:
+                    loader_class = c
+                    break
+
+        # the probes are closed before constructing the catalogue, since HDF5 refuses to open the same file twice
+        # with differing settings
+        if loader_class is not None:
+            return loader_class(self, *args, **kwargs)
 
         message = "No halo catalogue found for %r" % str(self)
         if self.is_partially_loaded():

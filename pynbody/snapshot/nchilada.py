@@ -195,5 +195,5 @@ class NchiladaSnap(SimSnap):
         f.close()
 
     @classmethod
-    def _can_load(cls, f):
-        return os.path.isdir(f) and os.path.exists(os.path.join(f, "description.xml"))
+    def _can_load_from_probe(cls, probe):
+        return probe.is_dir() and probe.child("description.xml").exists()

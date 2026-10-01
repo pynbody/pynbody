@@ -59,6 +59,7 @@ import h5py
 import numpy as np
 from numpy.typing import NDArray
 
+from ..util import file_probe
 from . import HaloCatalogue, HaloParticleIndices
 from .details import number_mapping
 
@@ -119,7 +120,10 @@ class HBTPlusCatalogue(HaloCatalogue):
             self._file.close()
 
     @classmethod
-    def _infer_hbt_filename(cls, sim):
+    def _infer_hbt_filename(cls, sim, probes: file_probe.ProbeCache | None = None):
+        if probes is None:
+            with file_probe.ProbeCache() as probes:
+                return cls._infer_hbt_filename(sim, probes)
         sim_filename: pathlib.Path  = sim.filename
         try:
             snap_num = int(re.search(r'_(\d+)', sim_filename.name).group(1))
@@ -131,20 +135,23 @@ class HBTPlusCatalogue(HaloCatalogue):
                             sim_filename.parent / f'{snap_num:03d}' / f'SubSnap_{snap_num:03d}.0.hdf5']
 
         for candidate_path in candidate_paths:
-            if candidate_path.exists():
+            if probes.exists(candidate_path):
                 return candidate_path
 
         raise FileNotFoundError(f'Could not find HBTPlus catalogue for {sim_filename}. Try passing hbt_filename explicitly.')
 
     @classmethod
-    def _map_user_filename_to_file_0(cls, filename):
+    def _map_user_filename_to_file_0(cls, filename, probes: file_probe.ProbeCache | None = None):
+        if probes is None:
+            with file_probe.ProbeCache() as probes:
+                return cls._map_user_filename_to_file_0(filename, probes)
         filename = pathlib.Path(filename)
-        if not filename.exists():
+        if not probes.exists(filename):
             dot_hdf5 = filename.parent / (filename.name + '.hdf5')
             dot_0_hdf5 = filename.parent / (filename.name + '.0.hdf5')
-            if dot_hdf5.exists():
+            if probes.exists(dot_hdf5):
                 filename = dot_hdf5
-            elif dot_0_hdf5.exists():
+            elif probes.exists(dot_0_hdf5):
                 filename = dot_0_hdf5
         return filename
 
@@ -241,18 +248,15 @@ class HBTPlusCatalogue(HaloCatalogue):
 
 
     @classmethod
-    def _can_load(cls, sim, halo_numbers=None, filename=None):
+    def _can_load_from_probe(cls, sim, probes, halo_numbers=None, filename=None):
         if filename is not None:
-            filename = cls._map_user_filename_to_file_0(filename)
+            filename = cls._map_user_filename_to_file_0(filename, probes)
         try:
-            hbt_filename = filename or cls._infer_hbt_filename(sim)
-            if h5py.is_hdf5(hbt_filename):
-                with h5py.File(hbt_filename, 'r', locking=False) as f:
-                    if "NumberOfFiles" in f:
-                        return True
+            hbt_filename = filename or cls._infer_hbt_filename(sim, probes)
         except OSError:
-            pass
-        return False
+            return False
+        f = probes.probe(hbt_filename).hdf5()
+        return f is not None and "NumberOfFiles" in f
 
 
 

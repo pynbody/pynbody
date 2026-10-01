@@ -87,7 +87,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .. import array, snapshot, units, util
-from ..util import iter_subclasses
+from ..util import file_probe, iter_subclasses
 from .details.iord_mapping import (
     NO_OFFSET,
     IllegalIordError,
@@ -178,7 +178,7 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
     To support a new format, subclass :class:`HaloCatalogue` and implement the following methods:
 
     * :meth:`__init__`
-    * :meth:`_can_load`
+    * :meth:`_can_load_from_probe` (older classes may implement :meth:`_can_load` instead, which remains supported)
     * :meth:`_get_all_particle_indices`
     * :meth:`_get_particle_indices_one_halo` [only if it's possible to do this more efficiently than
       :meth:`_get_all_particle_indices` for users accessing only a few halos]
@@ -845,8 +845,36 @@ class HaloCatalogue(snapshot.util.ContainerWithPhysicalUnitsOption,
 
 
     @classmethod
-    def _can_load(cls, sim):
+    def _can_load(cls, sim, *args, **kwargs):
+        """Return True if this class can load a halo catalogue for the given simulation.
+
+        New subclasses should implement :meth:`_can_load_from_probe` instead, which allows information about
+        files to be shared between candidate classes. This method remains for backwards compatibility: it may
+        be overridden by subclasses (in which case it takes precedence), or called directly."""
+        with file_probe.ProbeCache() as probes:
+            return cls._can_load_from_probe(sim, probes, *args, **kwargs)
+
+    @classmethod
+    def _can_load_from_probe(cls, sim, probes: file_probe.ProbeCache, *args, **kwargs) -> bool:
+        """Return True if this class can load a halo catalogue for the given simulation.
+
+        Implementations should access the filesystem only via *probes*, which caches the results of operations
+        such as :meth:`~pynbody.util.file_probe.ProbeCache.exists` and
+        :meth:`~pynbody.util.file_probe.ProbeCache.glob`, so that the many candidate classes do not repeat
+        them. Additional arguments and keyword arguments are those passed by the user to
+        :meth:`~pynbody.snapshot.simsnap.SimSnap.halos`; if the class cannot accept them, it should raise a
+        TypeError (as happens automatically with a signature that does not match).
+        """
         return False
+
+    @classmethod
+    def _can_load_with_dispatch(cls, sim, probes: file_probe.ProbeCache, *args, **kwargs) -> bool:
+        """Determine whether this class can load, using :meth:`_can_load_from_probe` or, for
+        subclasses that only implement the legacy method, :meth:`_can_load`"""
+        if file_probe.legacy_can_load_overrides_probe(cls):
+            return cls._can_load(sim, *args, **kwargs)
+        else:
+            return cls._can_load_from_probe(sim, probes, *args, **kwargs)
 
 from . import (
     adaptahop,

@@ -66,22 +66,7 @@ class TipsySnap(SimSnap):
         if not only_header:
             logger.info("Loading %s", filename)
         with util.open_(filename, 'rb') as f:
-            t, n, ndim, ng, nd, ns,pad = struct.unpack("diiiiii", f.read(32))
-            if (ndim > 3 or ndim < 1):
-                self._byteswap = True
-                f.seek(0)
-                t, n, ndim, ng, nd, ns,pad = struct.unpack(">diiiiii", f.read(32))
-            else:
-                self._byteswap = False
-
-            assert ndim == 3
-            if (n == 0 or n != ng+nd+ns):
-                n += ((pad & 0x000000ff) << 32)
-                ng += ((pad & 0x0000ff00) << 24)
-                nd += ((pad & 0x00ff0000) << 16)
-                ns += ((pad & 0xff000000) << 8)
-            assert n == ng+nd+ns
-
+            t, n, ng, nd, ns, self._byteswap = self._parse_header(f.read(32))
             self._header_t = t
 
 
@@ -230,38 +215,63 @@ class TipsySnap(SimSnap):
 
         f.close()
 
-    def _update_loadable_keys(self):
-        def is_readable_array(x):
-            try:
-                with util.open_(x, 'rt') as f:
-                    return int(f.readline()) == len(self)
-            except ValueError:
-                # could be a binary file
-                with util.open_(x, 'rb') as f:
-                    header = f.read(4)
-                if len(header) != 4:
-                    return False
-
-                if self._byteswap:
-                    buflen = struct.unpack(">i", header)[0]
-                else:
-                    buflen = struct.unpack("i", header)[0]
-
-                ourlen_1 = (self._load_control.disk_num_particles)& 0xffffffff
-                ourlen_3 = (self._load_control.disk_num_particles*3)& 0xffffffff
-
-                if buflen == ourlen_1:  # it's a vector
-                    return True
-                elif buflen == ourlen_3:  # it's an array
-                    return True
-                else:
-                    return False
-
-            except OSError:
+    def _is_readable_array(self, x):
+        """Return True if the auxiliary file *x* appears to hold an array matching this snapshot's length"""
+        try:
+            with util.open_(x, 'rt') as f:
+                return int(f.readline()) == len(self)
+        except ValueError:
+            # could be a binary file
+            with util.open_(x, 'rb') as f:
+                header = f.read(4)
+            if len(header) != 4:
                 return False
 
+            if self._byteswap:
+                buflen = struct.unpack(">i", header)[0]
+            else:
+                buflen = struct.unpack("i", header)[0]
+
+            ourlen_1 = (self._load_control.disk_num_particles)& 0xffffffff
+            ourlen_3 = (self._load_control.disk_num_particles*3)& 0xffffffff
+
+            if buflen == ourlen_1:  # it's a vector
+                return True
+            elif buflen == ourlen_3:  # it's an array
+                return True
+            else:
+                return False
+
+        except OSError:
+            return False
+
+    def _has_loadable_key(self, name):
+        if len(self._loadable_keys_registry) > 0:
+            return super()._has_loadable_key(name)
+
+        # Rather than inspecting every auxiliary file to build the full registry, look only at the files that
+        # could provide the requested array, following the same logic as _update_loadable_keys
+        all_families = set(self.families()) | {f for f in self._basic_loadable_keys if f is not None}
+        if all(name in self._basic_loadable_keys[f] for f in all_families):
+            return True
+
+        candidate_disk_names = {name, _translate_array_name(name), _translate_array_name(name, reverse=True)}
+        for disk_name in candidate_disk_names:
+            if name not in (disk_name, _translate_array_name(disk_name), _translate_array_name(disk_name, reverse=True)):
+                continue
+            filename = self._filename + "." + disk_name
+            if not (os.path.exists(filename) or os.path.exists(filename + ".gz")):
+                continue
+            if not self._is_readable_array(filename):
+                continue
+            fams = self._get_loadable_array_metadata(disk_name)[1]
+            if not fams or all_families <= set(fams):
+                return True
+        return False
+
+    def _update_loadable_keys(self):
         fs = list(map(util.cutgz, glob.glob(self._filename + ".*")))
-        res = [q[len(self._filename) + 1:] for q in list(filter(is_readable_array, fs))]
+        res = [q[len(self._filename) + 1:] for q in list(filter(self._is_readable_array, fs))]
 
         # Create an empty dictionary of sets to store the loadable
         # arrays for each family
@@ -977,16 +987,44 @@ class TipsySnap(SimSnap):
         for i, x in enumerate(['vx', 'vy', 'vz']):
             self._arrays[x + 'form'] = self['velform'][:, i]
 
-    @classmethod
-    def _can_load(cls, f):
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", RuntimeWarning)
-                check = TipsySnap(f)
-            del check
-        except Exception as e:
-            return False
+    @staticmethod
+    def _parse_header(header: bytes):
+        """Interpret the 32-byte header of a tipsy file.
 
+        Returns (time, n_total, n_gas, n_dark, n_star, byteswap). Raises ValueError if the header is not
+        consistent with being a tipsy file."""
+        if len(header) < 32:
+            raise ValueError("File is too short to be a tipsy file")
+        header = header[:32]
+        t, n, ndim, ng, nd, ns, pad = struct.unpack("diiiiii", header)
+        if (ndim > 3 or ndim < 1):
+            byteswap = True
+            t, n, ndim, ng, nd, ns, pad = struct.unpack(">diiiiii", header)
+        else:
+            byteswap = False
+
+        if ndim != 3:
+            raise ValueError("Tipsy header does not specify three dimensions")
+        if (n == 0 or n != ng+nd+ns):
+            n += ((pad & 0x000000ff) << 32)
+            ng += ((pad & 0x0000ff00) << 24)
+            nd += ((pad & 0x00ff0000) << 16)
+            ns += ((pad & 0xff000000) << 8)
+        if n != ng+nd+ns:
+            raise ValueError("Tipsy header particle numbers are inconsistent")
+        return t, n, ng, nd, ns, byteswap
+
+    @classmethod
+    def _can_load_from_probe(cls, probe):
+        # follow util.open_ in looking for a gzipped version if the named file does not exist
+        if not probe.exists():
+            probe = probe.with_appended(".gz")
+        if not probe.is_file():
+            return False
+        try:
+            cls._parse_header(probe.head_decompressed(32))
+        except ValueError:
+            return False
         return True
 
 # caculate the number fraction YH, YHe as a function of metalicity. Cosmic

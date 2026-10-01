@@ -15,6 +15,7 @@ pass the filename ``snap``. If you pass e.g. ``snap.2.hdf5``, only file 2 will b
 """
 
 import configparser
+import contextvars
 import functools
 import itertools
 import logging
@@ -80,6 +81,11 @@ class _DummyHDFData:
         target[:] = self.value
 
 
+# Files opened during format identification (see GadgetHDFSnap._load_from_probe), keyed by absolute path, which
+# the multi-file manager can take over rather than reopening
+_preopened_hdf_files: contextvars.ContextVar[dict | None] = contextvars.ContextVar('_preopened_hdf_files', default=None)
+
+
 def _open_hdf_file(filename, mode='r'):
     """Open an HDF5 file with a chunk cache large enough for partial reads to be efficient.
 
@@ -139,6 +145,10 @@ class _GadgetHdfMultiFileManager:
 
     def _open_file(self, filename, mode):
         if self._remote_dir is None:
+            if mode == 'r':
+                preopened = (_preopened_hdf_files.get() or {}).pop(os.path.abspath(filename), None)
+                if preopened is not None:
+                    return preopened
             return _open_hdf_file(filename, mode)
         else:
             if mode != "r":
@@ -147,6 +157,8 @@ class _GadgetHdfMultiFileManager:
 
     def _is_hdf5(self, filename):
         if self._remote_dir is None:
+            if os.path.abspath(filename) in (_preopened_hdf_files.get() or {}):
+                return True
             return h5py.is_hdf5(filename)
         else:
             return self._remote_dir.is_hdf5(filename)
@@ -1054,27 +1066,31 @@ class GadgetHDFSnap(SimSnap):
     @classmethod
     def _test_for_hdf5_key(cls, f, method):
         with method.File(f, "r") as h5test:
-            test_key = cls._readable_hdf5_test_key
-            found = False
-            if test_key[-1]=="?":
-                # try all particle numbers in turn
-                for p in range(6):
-                    test_key = test_key[:-1]+str(p)
-                    if test_key in h5test:
-                        found = True
+            return cls._test_for_hdf5_key_in_open_file(h5test)
 
+    @classmethod
+    def _test_for_hdf5_key_in_open_file(cls, h5test):
+        test_key = cls._readable_hdf5_test_key
+        found = False
+        if test_key[-1]=="?":
+            # try all particle numbers in turn
+            for p in range(6):
+                test_key = test_key[:-1]+str(p)
+                if test_key in h5test:
+                    found = True
+
+        else:
+            found = test_key in h5test
+
+        if not found:
+            return False
+
+        if cls._readable_hdf5_test_attr is not None:
+            location, attrname = cls._readable_hdf5_test_attr
+            if location in h5test:
+                found = attrname in h5test[location].attrs
             else:
-                found = test_key in h5test
-
-            if not found:
-                return False
-
-            if cls._readable_hdf5_test_attr is not None:
-                location, attrname = cls._readable_hdf5_test_attr
-                if location in h5test:
-                    found = attrname in h5test[location].attrs
-                else:
-                    found = False
+                found = False
         return found
 
     @classmethod
@@ -1097,8 +1113,45 @@ class GadgetHDFSnap(SimSnap):
             return False
 
     @classmethod
-    def _can_load(cls, f):
-        return cls._can_load_local_or_remote(f, h5py)
+    def _can_load_from_probe(cls, probe):
+        if h5py is None:
+            if "hdf5" in probe.path.name:
+                warnings.warn(
+                    "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
+            return False
+        for candidate in cls._candidate_first_file_probes(probe):
+            if candidate.is_hdf5():
+                h5test = candidate.hdf5()
+                return h5test is not None and cls._test_for_hdf5_key_in_open_file(h5test)
+        return False
+
+    @classmethod
+    def _candidate_first_file_probes(cls, probe):
+        """Yield probes for the files that may hold the first (or only) file of the snapshot"""
+        yield probe
+        yield probe.cache.probe(cls._guess_file_ending(probe.path))
+
+    @classmethod
+    def _load_from_probe(cls, probe, *args, **kwargs):
+        # Hand over the HDF5 file(s) that were opened during identification, so that they need not be opened again
+        preopened = {}
+        if kwargs.get('mode', 'r') == 'r':
+            for candidate in cls._candidate_first_file_probes(probe):
+                f = probe.cache.adopt_hdf5(candidate.path)
+                if f is not None:
+                    preopened[os.path.abspath(candidate.path)] = f
+        # Any other files still held open by the probes must be closed, since HDF5 refuses to open the same
+        # file twice with differing settings
+        probe.cache.close()
+
+        token = _preopened_hdf_files.set(preopened)
+        try:
+            return cls(probe.path, *args, **kwargs)
+        finally:
+            _preopened_hdf_files.reset(token)
+            for f in preopened.values():
+                # anything the loader did not take over must be closed
+                f.close()
 
     @classmethod
     def _can_load_remote(cls, f, remote_dir):
