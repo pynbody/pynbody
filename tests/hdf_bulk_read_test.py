@@ -1569,3 +1569,21 @@ def test_small_chunks_are_decoded_several_to_a_job(tmp_path, monkeypatch):
                                                                        np.arange(5, 100000, 3000.0))])
     # the whole read in 10 jobs of 10 chunks, then 34 chunks for the selection, each wanted by one row, in 4 jobs
     assert [job.nbytes for job in jobs] == [80000] * 10 + [80000] * 3 + [32000]
+
+
+@pytest.mark.parametrize("block_nbytes", [16 * 1024 * 1024, 100])
+def test_datasets_other_than_h5py_are_read_by_index(tmp_path, monkeypatch, stand_in_remote_dataset, block_nbytes):
+    """A dataset other than an h5py one (such as a remote one) is read through read_direct for a slice of rows, and by
+    indexing it with them for an array of rows, so that only the rows wanted are fetched"""
+    monkeypatch.setattr(hdf_bulk_read.plan, "_gather_block_nbytes", block_nbytes)
+    data = _make_mixed_file(tmp_path / "x.h5")
+    rows = np.array([3, 4, 5, 900, 2000, 4999])
+    with h5py.File(tmp_path / "x.h5", "r") as f:
+        remote = stand_in_remote_dataset(f["chunked"])
+        a, b = np.zeros((len(rows), 3)), np.zeros((50, 3))
+        strategy = hdf_bulk_read.BulkReader().read([hdf_bulk_read.ReadRequest(remote, rows - 2, a, offset=2),
+                                                     hdf_bulk_read.ReadRequest(remote, slice(10, 60), b)])
+    np.testing.assert_array_equal(a, data["chunked"][rows])
+    np.testing.assert_array_equal(b, data["chunked"][10:60])
+    np.testing.assert_array_equal(np.concatenate(remote.index_arrays), rows)  # (just the rows wanted)
+    assert strategy.serial

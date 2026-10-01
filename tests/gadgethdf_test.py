@@ -376,15 +376,14 @@ def test_flattened_arrays(take, load_kwargs):
     assert np.all(pos == pos_expected)
 
 
-
 @pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
 @pytest.mark.filterwarnings("ignore:Masses are either stored in the header")
-@pytest.mark.parametrize("filename, load_kwargs",
+@pytest.mark.parametrize("filename, open_kwargs",
                          [("testdata/gadget3/data/snapshot_103/snap_103.hdf5", {}),
                           ("testdata/gadget3/snap_028_z000p000.0.hdf5", {}),
                           ("testdata/gadget3/snap_028_z000p000.0.hdf5", {'take': np.arange(0, 400000, 7)}),
                           ("testdata/arepo/agora_100.hdf5", {})])
-def test_bulk_read_backends_agree(monkeypatch, filename, load_kwargs):
+def test_bulk_read_backends_agree(monkeypatch, filename, open_kwargs):
     """Reading bulk data directly gives exactly what h5py gives, and really is used"""
     arrays = {}
     readers = {}
@@ -394,7 +393,7 @@ def test_bulk_read_backends_agree(monkeypatch, filename, load_kwargs):
         opened = []
         monkeypatch.setattr(hdf_bulk_read.BulkReader, "open",
                             lambda self, dataset: opened.append(original_open(self, dataset)) or opened[-1])
-        f = pynbody.load(filename, **load_kwargs)
+        f = pynbody.load(filename, **open_kwargs)
         # arrays present for every family, so that no rows are left for which the file provides no data
         arrays[backend] = {}
         for k in f.loadable_keys():
@@ -462,7 +461,7 @@ def _source_of(job):
 
 @pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
 @pytest.mark.filterwarnings("ignore:Masses are either stored in the header")
-@pytest.mark.parametrize("filename, load_kwargs",
+@pytest.mark.parametrize("filename, open_kwargs",
                          [("testdata/gadget3/snap_028_z000p000.0.hdf5", {}),
                           ("testdata/gadget3/snap_028_z000p000.0.hdf5", {'take': np.arange(0, 400000, 7)}),
                           ("testdata/arepo/agora_100.hdf5", {}),
@@ -473,7 +472,7 @@ def _source_of(job):
                            {'take_region': pynbody.filt.Sphere(20., (50., 50., 50.))})])
 @pytest.mark.parametrize("direct", [True, False])
 @pytest.mark.parametrize("io_threads, decode_threads", [(4, 4), (1, 3), (4, 0)])
-def test_threaded_loading_matches_serial(monkeypatch, filename, load_kwargs, direct, io_threads, decode_threads):
+def test_threaded_loading_matches_serial(monkeypatch, filename, open_kwargs, direct, io_threads, decode_threads):
     monkeypatch.setattr(gadgethdf, "_direct_bulk_read", direct)
     monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: "lustre")
     thread_pools_used = _record_thread_tasks(monkeypatch)
@@ -481,7 +480,7 @@ def test_threaded_loading_matches_serial(monkeypatch, filename, load_kwargs, dir
     arrays = {}
     for threads in [(1, 0), (io_threads, decode_threads)]:
         _set_threads(monkeypatch, *threads)
-        f = pynbody.load(filename, **load_kwargs)
+        f = pynbody.load(filename, **open_kwargs)
         arrays[threads] = {}
         for k in f.loadable_keys():
             try:
@@ -705,3 +704,36 @@ def test_subfind_arrays_of_groups_load():
     for key in s.loadable_keys():
         s[key]
     assert s['Length'].shape == (len(s), 0)
+
+
+@pytest.mark.filterwarnings("ignore:Unable to infer units from HDF attributes")
+@pytest.mark.filterwarnings("ignore:Masses are either stored in the header")
+@pytest.mark.parametrize("filename", ["testdata/gadget3/snap_028_z000p000.0.hdf5",
+                                      "testdata/gadget3/data/subhalos_103/subhalo_103"])
+@pytest.mark.parametrize("take", [None, np.arange(0, 2000, 7)])
+def test_datasets_other_than_h5py(monkeypatch, stand_in_remote_dataset, filename, take):
+    """Datasets other than h5py's (such as remote ones, which hdfstream serves) are read as they were before the
+    reads were planned by hdf_bulk_read: slices through read_direct, and index arrays by indexing the dataset, so
+    that a remote dataset fetches only the rows selected"""
+    expected = pynbody.load(filename, take=take)
+    expected_arrays = {k: np.asarray(expected[k]) for k in ['pos', 'iord'] if k in expected.loadable_keys()}
+
+    remote_datasets = []
+    original = gadgethdf.HDFArrayLoader._get_dataset_from_translated_names
+
+    def as_remote(self, *args):
+        dataset = original(self, *args)
+        if isinstance(dataset, h5py.Dataset):
+            dataset = stand_in_remote_dataset(dataset)
+            remote_datasets.append(dataset)
+        return dataset
+
+    monkeypatch.setattr(gadgethdf.HDFArrayLoader, "_get_dataset_from_translated_names", as_remote)
+    f = pynbody.load(filename, take=take)
+    for k, v in expected_arrays.items():
+        npt.assert_array_equal(f[k], v)
+    assert remote_datasets
+    if take is not None:
+        # rows were fetched by index, and only those wanted (each of 'pos' perhaps flattened into three rows)
+        fetched = sum(len(i) for d in remote_datasets for i in d.index_arrays)
+        assert 0 < fetched <= 3 * len(take) * len(expected_arrays) * len(expected.families())

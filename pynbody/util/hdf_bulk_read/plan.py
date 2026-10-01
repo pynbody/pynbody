@@ -15,11 +15,17 @@ import typing
 
 import numpy as np
 
+try:
+    import h5py
+except ImportError:
+    h5py = None
+
 from .common import Job, ReadProperties
 from .strategy import ReadSummary
 
-# An index selection is read a block of rows at a time, each block into a buffer of at most this many bytes, from
-# which the rows selected are then copied out
+# An index selection is read a block of rows at a time: from an h5py dataset, each block into a buffer of at most
+# this many bytes, from which the rows selected are then copied out; from anything else, as many rows as fill this
+# many bytes, by indexing it with them
 _gather_block_nbytes = 16 * 1024 * 1024
 
 
@@ -34,7 +40,10 @@ class ReadRequest:
     """
 
     dataset: typing.Any
-    """The dataset: an h5py dataset, or anything with h5py's ``shape``, ``dtype`` and ``read_direct``."""
+    """The dataset: an h5py dataset, or anything else with h5py's ``shape``, ``dtype`` and ``read_direct``, and which
+    can be indexed with an array of rows (such as a remote dataset served through ``hdfstream``). Such a dataset is
+    read through ``read_direct`` for a slice of rows, and by indexing it with them for an array of rows, so that it
+    can fetch just those rows."""
 
     rows: slice | np.ndarray
     """The rows to read: a slice with a step of 1, or an array of row numbers in increasing order (counted from
@@ -85,8 +94,10 @@ class _Work:
     def perform(self):
         if isinstance(self.rows, slice):
             self.source.read_direct(self.destination, source_sel=self.rows)
-        else:
+        elif h5py is not None and isinstance(self.source, h5py.Dataset):
             _gather(self.source, self.rows, self.offset, self.destination)
+        else:
+            _index(self.source, self.rows, self.offset, self.destination)
 
 
 def _gather(source, rows: np.ndarray, offset: int, destination: np.ndarray):
@@ -111,6 +122,18 @@ def _gather(source, rows: np.ndarray, offset: int, destination: np.ndarray):
             destination[i:j] = block[rows[i:j] - first]
             del block
         i = j
+
+
+def _index(source, rows: np.ndarray, offset: int, destination: np.ndarray):
+    """Read the given (sorted) rows of *source*, a dataset other than an h5py one, each plus *offset*, into
+    *destination*, by indexing *source* with them a block of rows at a time.
+
+    Unlike h5py, which reads an index selection slowly, other datasets may read one well: in particular, a remote
+    dataset then fetches only the rows selected, rather than every row between them."""
+    row_nbytes = max(destination.dtype.itemsize * int(np.prod(destination.shape[1:], dtype=np.int64)), 1)
+    block_rows = max(_gather_block_nbytes // row_nbytes, 1)
+    for i in range(0, len(rows), block_rows):
+        destination[i:i + block_rows] = source[rows[i:i + block_rows] + offset, ...]
 
 
 def plan(requests: typing.Iterable[ReadRequest], open_dataset: typing.Callable) -> list[_Work]:

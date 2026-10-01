@@ -34,11 +34,6 @@ try:
 except ImportError:
     h5py = None
 
-try:
-    import hdfstream
-except ImportError:
-    hdfstream = None
-
 _default_type_map = {}
 for x in family.family_names():
     try:
@@ -283,7 +278,7 @@ class _HDFArrayFiller:
             # size zero (see GadgetHDFSnap.__get_dtype_dims_and_units)
             return None
         if source_sel is None:
-            rows, offset = slice(0, len(hdf_dataset)), 0
+            rows, offset = slice(0, hdf_dataset.shape[0]), 0
         elif isinstance(source_sel, slice):
             rows, offset = slice(source_sel.start + offset, source_sel.stop + offset), 0
         else:

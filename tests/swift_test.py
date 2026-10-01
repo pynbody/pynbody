@@ -184,17 +184,17 @@ def test_swift_vds_is_read_from_its_sources(bulk_readers_opened, take_swift_cell
     assert len(virtual_readers) == len(f.loadable_keys())
 
 
-@pytest.mark.parametrize("filename, load_kwargs",
+@pytest.mark.parametrize("filename, open_kwargs",
                          [("testdata/SWIFT/snap_0150.hdf5", {}),
                           ("testdata/SWIFT/snap_0150.hdf5", {'take_region': pynbody.filt.Sphere(20., (50., 50., 50.))}),
                           ("testdata/SWIFT/multifile_with_vds/snap_0000.hdf5", {}),
                           ("testdata/SWIFT/planetary.hdf5", {})])
-def test_swift_bulk_read_backends_agree(monkeypatch, bulk_readers_opened, filename, load_kwargs):
+def test_swift_bulk_read_backends_agree(monkeypatch, bulk_readers_opened, filename, open_kwargs):
     arrays = {}
     for backend in ['h5py', 'direct']:
         monkeypatch.setattr(gadgethdf, "_direct_bulk_read", backend == 'direct')
         bulk_readers_opened.clear()
-        f = pynbody.load(filename, **load_kwargs)
+        f = pynbody.load(filename, **open_kwargs)
         arrays[backend] = {k: np.asarray(f[k]) for k in f.loadable_keys()}
         if backend == 'direct':
             assert not any(isinstance(r, h5py.Dataset) for r in bulk_readers_opened)
