@@ -128,6 +128,7 @@ from . import (
     gadget,
     gadgethdf,
     grafic,
+    gusteau,
     nchilada,
     pkdgravhdf,
     ramses,
