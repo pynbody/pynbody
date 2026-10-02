@@ -1,6 +1,7 @@
 import builtins
 import gc
 import os
+import pathlib
 import warnings
 
 import h5py
@@ -10,7 +11,7 @@ import pytest
 import pynbody
 import pynbody.test_utils
 from pynbody import config, halo
-from pynbody.snapshot import SimSnap, tipsy
+from pynbody.snapshot import SimSnap, gadgethdf, tipsy
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -107,6 +108,7 @@ def op_counts(monkeypatch):
 
 
 def test_gadgethdf_detection_opens_hdf5_once(op_counts):
+    gadgethdf._cached_hdf5_inspection.clear()
     assert _snap_class("testdata/gadget3/data/snapshot_103/snap_103.hdf5") == "GadgetHDFSnap"
     assert op_counts["h5py.File"] <= 1
     assert op_counts["is_hdf5"] <= 1
@@ -176,6 +178,7 @@ def test_detection_closes_shared_hdf5_files(monkeypatch):
             opened.append(self)
 
     monkeypatch.setattr(h5py, "File", RecordingFile)
+    gadgethdf._cached_hdf5_inspection.clear()
     assert _snap_class("testdata/gadget3/data/snapshot_103/snap_103.hdf5") == "GadgetHDFSnap"
     assert _snap_class("testdata/gasoline_ahf/g15784.lr.01024") == "TipsySnap"
     assert len(opened) > 0
@@ -184,7 +187,7 @@ def test_detection_closes_shared_hdf5_files(monkeypatch):
 
 def test_other_classes_can_open_hdf5_with_different_locking(tmp_path):
     """A class outside the GadgetHDFSnap family may open an HDF5 file with locking=False (as e.g. HBT+ catalogues
-    do); HDF5 refuses this if the file is still open from GadgetHDFSnap's checks, so those must be closed first."""
+    do); HDF5 refuses this if the file is still open from GadgetHDFSnap's checks, so they must not leave it open."""
     filename = tmp_path / "unlocked_format.hdf5"
     with h5py.File(filename, "w") as f:
         f.create_group("MyFormatHeader")
@@ -219,3 +222,39 @@ def test_unidentified_file_errors(tmp_path):
         f.create_group("SomethingElse")
     with pytest.raises(OSError, match="HDF5 with top-level entries: SomethingElse"):
         pynbody.load(tmp_path / "other.hdf5")
+
+
+def test_gadgethdf_detection_notices_changed_file(tmp_path, monkeypatch):
+    # within the recheck interval, a file is assumed not to have changed; here, check it every time
+    monkeypatch.setattr(gadgethdf._CachedHDF5Inspection, "recheck_interval", 0.0)
+    filename = tmp_path / "changing.hdf5"
+    with h5py.File(filename, "w") as f:
+        f.create_group("Unrelated")
+    assert pynbody.snapshot.identify(filename) is None
+
+    with h5py.File(filename, "w") as f:
+        f.create_group("Header")
+        f.create_group("PartType1")
+        f["PartType1"].create_dataset("Coordinates", data=np.zeros((2, 3)))
+    assert pynbody.snapshot.identify(filename) is gadgethdf.GadgetHDFSnap
+
+
+def test_gadgethdf_detection_stats_once_per_file(monkeypatch):
+    stats = []
+    original_stat = os.stat
+
+    def counting_stat(path, *args, **kwargs):
+        stats.append(os.fspath(path))
+        return original_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "stat", counting_stat)
+    hdf_classes = [gadgethdf.GadgetHDFSnap, *gadgethdf.GadgetHDFSnap.iter_subclasses()]
+    for path in ["testdata/gadget3/data/snapshot_103/snap_103.hdf5", "testdata/gasoline_ahf/g15784.lr.01024"]:
+        gadgethdf._cached_hdf5_inspection.clear()
+        stats.clear()
+        for c in hdf_classes:
+            c._can_load(pathlib.Path(path))
+        # all the classes together should check the file, and its ".0.hdf5" alternative, at most once each
+        guess = str(pathlib.Path(path).with_suffix(".0.hdf5"))
+        assert stats.count(path) <= 1
+        assert stats.count(guess) <= 1

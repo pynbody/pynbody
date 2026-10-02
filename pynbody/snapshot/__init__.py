@@ -91,21 +91,12 @@ def identify(filename, priority=None) -> type[SimSnap] | None:
     return _identify(pathlib.Path(filename), priority)
 
 def _identify(filename, priority, remote_dir=None):
-    from . import gadgethdf
-
-    # HDF5-based classes share one open of the file while deciding; it is closed before the chosen class loads it
-    with gadgethdf._share_files_during_detection() as shared_files:
-        for c in SimSnap.iter_subclasses_with_priority(priority):
-            if remote_dir is not None:
-                if hasattr(c, "_can_load_remote") and c._can_load_remote(filename, remote_dir):
-                    return c
-                continue
-            if not issubclass(c, gadgethdf.GadgetHDFSnap):
-                # Other classes may open the file themselves, possibly with different locking flags, which
-                # HDF5 refuses while it is still open here
-                shared_files.close()
-            if c._can_load(filename):
+    for c in SimSnap.iter_subclasses_with_priority(priority):
+        if remote_dir is not None:
+            if hasattr(c, "_can_load_remote") and c._can_load_remote(filename, remote_dir):
                 return c
+        elif c._can_load(filename):
+            return c
     return None
 
 def _describe_unidentified(filename: pathlib.Path) -> str:

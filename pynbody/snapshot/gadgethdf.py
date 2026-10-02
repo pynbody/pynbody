@@ -20,7 +20,8 @@ import functools
 import itertools
 import logging
 import os
-import threading
+import time
+import types
 import warnings
 
 import numpy as np
@@ -99,48 +100,99 @@ def _open_hdf_file(filename, mode='r'):
                      rdcc_nslots=_chunk_cache_nslots)
 
 
-class _SharedDetectionFiles:
-    """Stands in for the h5py module while pynbody.load identifies a file, so that GadgetHDFSnap and its many
-    subclasses share a single is_hdf5 check and a single open of each candidate file, rather than each repeating them.
+class _HDF5FileSummary:
+    """The parts of an HDF5 file that GadgetHDFSnap subclasses inspect to decide whether they can load it.
 
-    See _share_files_during_detection."""
+    Supports just enough of the h5py.File interface for _test_for_hdf5_key."""
+    def __init__(self, keys, attrs):
+        self._keys = keys
+        self._attrs = attrs
+
+    def __contains__(self, key):
+        return key in self._keys
+
+    def __getitem__(self, location):
+        return types.SimpleNamespace(attrs=self._attrs[location])
+
+
+def _keys_tested_by_subclasses():
+    """Return the HDF5 keys, and the locations of attributes, that GadgetHDFSnap and its subclasses test for"""
+    keys, attr_locations = set(), set()
+    for c in [GadgetHDFSnap, *GadgetHDFSnap.iter_subclasses()]:
+        test_key = c._readable_hdf5_test_key
+        if test_key[-1] == "?":
+            keys.update(test_key[:-1] + str(p) for p in range(6))
+        else:
+            keys.add(test_key)
+        if c._readable_hdf5_test_attr is not None:
+            attr_locations.add(c._readable_hdf5_test_attr[0])
+    return frozenset(keys), frozenset(attr_locations)
+
+
+def _summarise_hdf5_file(path, tested_keys):
+    """Open an HDF5 file once and record what is needed for GadgetHDFSnap subclasses to decide whether they can load it.
+
+    Returns None if the file is not HDF5. The file is closed before returning, so it cannot clash with the chosen
+    loader opening it."""
+    if not h5py.is_hdf5(path):
+        return None
+    keys, attr_locations = tested_keys
+    with h5py.File(path, "r") as f:
+        present_keys = frozenset(k for k in keys | attr_locations if k in f)
+        attrs = {loc: frozenset(f[loc].attrs.keys()) for loc in attr_locations if loc in present_keys}
+    return _HDF5FileSummary(present_keys, attrs)
+
+
+class _CachedHDF5Inspection:
+    """Stands in for the h5py module in GadgetHDFSnap._can_load_local_or_remote.
+
+    GadgetHDFSnap has many subclasses, each of which asks similar questions of the same file in turn. Rather than
+    each opening the file, they are answered from a summary made the first time (see _summarise_hdf5_file).
+
+    A summary (or the absence of a file) is trusted for recheck_interval seconds, which comfortably covers one call
+    to pynbody.load. After that, the file is stat'ed again, and summarised afresh only if it has changed."""
+
+    recheck_interval = 5.0
+    _max_entries = 32
+
     def __init__(self):
-        self._is_hdf5 = {}
-        self._files = {}
+        self._entries = {} # (path, tested_keys) -> (summary, stat signature, time last checked)
+
+    def _summary(self, filename):
+        key = (os.path.abspath(filename), _keys_tested_by_subclasses())
+        entry = self._entries.get(key)
+        now = time.monotonic()
+        if entry is not None and now - entry[2] < self.recheck_interval:
+            return entry[0]
+
+        try:
+            st = os.stat(filename)
+            signature = (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)
+        except OSError:
+            signature = None
+
+        if entry is not None and entry[1] == signature:
+            summary = entry[0]
+        elif signature is None:
+            summary = None
+        else:
+            summary = _summarise_hdf5_file(key[0], key[1])
+
+        if len(self._entries) >= self._max_entries:
+            self._entries.clear()
+        self._entries[key] = (summary, signature, now)
+        return summary
+
+    def clear(self):
+        self._entries.clear()
 
     def is_hdf5(self, filename):
-        if filename not in self._is_hdf5:
-            self._is_hdf5[filename] = h5py.is_hdf5(filename)
-        return self._is_hdf5[filename]
+        return self._summary(filename) is not None
 
     def File(self, filename, mode='r', **kwargs):
-        key = (os.fspath(filename), mode, tuple(sorted(kwargs.items())))
-        if key not in self._files:
-            self._files[key] = h5py.File(filename, mode, **kwargs)
-        # the file must stay open for the next class to inspect, so is not closed at the end of the with block
-        return contextlib.nullcontext(self._files[key])
+        return contextlib.nullcontext(self._summary(filename))
 
-    def close(self):
-        """Close all files opened so far; any later requests open them afresh"""
-        for f in self._files.values():
-            f.close()
-        self._files = {}
-
-_detection_state = threading.local()
-
-@contextlib.contextmanager
-def _share_files_during_detection():
-    """Within this context, GadgetHDFSnap._can_load and its subclasses share open files (see _SharedDetectionFiles).
-
-    All files are closed on exit, which must happen before the chosen class opens the file itself, since HDF5
-    refuses to open a file that is already open with different locking flags."""
-    previous = getattr(_detection_state, "files", None)
-    _detection_state.files = _SharedDetectionFiles()
-    try:
-        yield _detection_state.files
-    finally:
-        _detection_state.files.close()
-        _detection_state.files = previous
+_cached_hdf5_inspection = _CachedHDF5Inspection()
 
 
 class _GadgetHdfMultiFileManager:
@@ -1144,9 +1196,10 @@ class GadgetHDFSnap(SimSnap):
 
     @classmethod
     def _can_load(cls, f):
-        shared_files = getattr(_detection_state, "files", None)
-        if h5py is not None and shared_files is not None:
-            return cls._can_load_local_or_remote(f, shared_files)
+        if h5py is not None and cls._test_for_hdf5_key.__func__ is GadgetHDFSnap._test_for_hdf5_key.__func__:
+            # answer from a cached summary of the file, rather than each subclass opening it in turn; a subclass with
+            # its own _test_for_hdf5_key may need more than the summary holds, so is given the real file
+            return cls._can_load_local_or_remote(f, _cached_hdf5_inspection)
         return cls._can_load_local_or_remote(f, h5py)
 
     @classmethod
