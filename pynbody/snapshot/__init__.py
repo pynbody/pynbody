@@ -64,8 +64,8 @@ def load(filename, *args, **kwargs) -> SimSnap:
     if c is None:
         if kwargs.get('remote_dir') is not None:
             raise OSError("File %r: format not understood or does not exist" % filename)
-        raise OSError("File %r: format not understood or does not exist (%s)" % (str(filename),
-                                                                                  _describe_unidentified(filename)))
+        raise OSError(f"File {str(filename)!r}: format not understood or does not exist "
+                      f"({_describe_unidentified(filename)})")
 
     logger.info("Loading using backend %s" % str(c))
     return c(filename, *args, **kwargs)
