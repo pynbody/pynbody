@@ -200,6 +200,11 @@ class SwiftSnap(GadgetHDFSnap):
                                                         take_region=self._take_region, **kwargs)
 
     def _get_take_parameter(self, **kwargs):
+        take = kwargs.pop("take", None)
+        if take is not None:
+            if self._take_swift_cells is not None or self._take_region is not None:
+                raise ValueError("take cannot be combined with take_swift_cells or take_region")
+            return take
         return self._hdf_files.get_take_parameter(list(self._families_ordered()), self._family_to_group_map)
 
     def _is_cosmological(self):

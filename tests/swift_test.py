@@ -610,3 +610,19 @@ def test_files_opened_by_absolute_path(monkeypatch):
     assert os.path.isabs(f._hdf_files[0].file.filename)
     monkeypatch.chdir("testdata")
     npt.assert_array_equal(f['iord'], pynbody.load("SWIFT/multifile_without_vds/snap_0000")['iord'])
+
+
+@pytest.mark.parametrize("filename", ["testdata/SWIFT/snap_0150.hdf5", "testdata/SWIFT/multifile_without_vds/snap_0000"])
+def test_swift_take(filename, load_kwargs):
+    """An explicit take= selects particles from a SWIFT snapshot, as it does for other formats"""
+    f = pynbody.load(filename, **load_kwargs)
+    take = np.arange(3, len(f), 7)
+    f_take = pynbody.load(filename, take=take, **load_kwargs)
+    assert len(f_take) == len(take)
+    npt.assert_array_equal(f_take['iord'], f['iord'][take])
+    npt.assert_array_equal(f_take['pos'], f['pos'][take])
+
+
+def test_swift_take_cannot_be_combined_with_cells():
+    with pytest.raises(ValueError, match="take cannot be combined"):
+        pynbody.load("testdata/SWIFT/multifile_without_vds/snap_0000", take=np.arange(10), take_swift_cells=[0, 1])
