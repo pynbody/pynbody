@@ -2,6 +2,8 @@
 Implements classes to load and manipulate snapshot data
 """
 
+from __future__ import annotations
+
 import logging
 import pathlib
 
@@ -58,22 +60,71 @@ def load(filename, *args, **kwargs) -> SimSnap:
 
     priority = kwargs.pop('priority', config['snap-class-priority'])
 
-    from . import gadgethdf
-
-    # HDF5-based classes share one open of the file while deciding; it is closed before the chosen class loads it
-    with gadgethdf._share_files_during_detection():
-        for c in SimSnap.iter_subclasses_with_priority(priority):
-            if kwargs.get('remote_dir') is not None:
-                if hasattr(c, "_can_load_remote") and c._can_load_remote(filename, kwargs["remote_dir"]):
-                    break
-            elif c._can_load(filename):
-                break
-        else:
-            raise OSError(
-                "File %r: format not understood or does not exist" % filename)
+    c = _identify(filename, priority, kwargs.get('remote_dir'))
+    if c is None:
+        if kwargs.get('remote_dir') is not None:
+            raise OSError("File %r: format not understood or does not exist" % filename)
+        raise OSError("File %r: format not understood or does not exist (%s)" % (str(filename),
+                                                                                  _describe_unidentified(filename)))
 
     logger.info("Loading using backend %s" % str(c))
     return c(filename, *args, **kwargs)
+
+def identify(filename, priority=None) -> type[SimSnap] | None:
+    """Return the SimSnap subclass that :func:`load` would use for the specified file, without loading it.
+
+    Parameters
+    ----------
+    filename : str
+        The filename to identify
+
+    priority : optional, list[str | type]
+        As for :func:`load`
+
+    Returns
+    -------
+    type[SimSnap] | None
+        The class that would be used, or None if no class can load the file
+    """
+    if priority is None:
+        priority = config['snap-class-priority']
+    return _identify(pathlib.Path(filename), priority)
+
+def _identify(filename, priority, remote_dir=None):
+    from . import gadgethdf
+
+    # HDF5-based classes share one open of the file while deciding; it is closed before the chosen class loads it
+    with gadgethdf._share_files_during_detection() as shared_files:
+        for c in SimSnap.iter_subclasses_with_priority(priority):
+            if remote_dir is not None:
+                if hasattr(c, "_can_load_remote") and c._can_load_remote(filename, remote_dir):
+                    return c
+                continue
+            if not issubclass(c, gadgethdf.GadgetHDFSnap):
+                # Other classes may open the file themselves, possibly with different locking flags, which
+                # HDF5 refuses while it is still open here
+                shared_files.close()
+            if c._can_load(filename):
+                return c
+    return None
+
+def _describe_unidentified(filename: pathlib.Path) -> str:
+    """Say what was found at a path that no class could load, to make the error message more helpful"""
+    if not filename.exists():
+        return "path does not exist"
+    if filename.is_dir():
+        return "path is a directory"
+    from .gadgethdf import h5py
+    if h5py is not None and h5py.is_hdf5(filename):
+        try:
+            with h5py.File(filename, 'r') as f:
+                keys = list(f.keys())
+        except OSError:
+            return "file is HDF5 but could not be opened"
+        if len(keys) > 10:
+            keys = keys[:10] + ["..."]
+        return "file is HDF5 with top-level entries: " + ", ".join(keys)
+    return "file is not HDF5, and is not recognised as any other format"
 
 def new(n_particles = 0, order = None, class_ = SimSnap, **families) -> SimSnap:
     """Create a blank SimSnap, with the specified number of particles.

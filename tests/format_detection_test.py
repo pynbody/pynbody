@@ -1,6 +1,6 @@
 import builtins
+import gc
 import os
-import pathlib
 import warnings
 
 import h5py
@@ -10,7 +10,7 @@ import pytest
 import pynbody
 import pynbody.test_utils
 from pynbody import config, halo
-from pynbody.snapshot import SimSnap, gadgethdf, tipsy
+from pynbody.snapshot import SimSnap, tipsy
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -22,11 +22,8 @@ def get_data():
 
 def _snap_class(path):
     """Return the name of the class that pynbody.load would use for path, without loading it"""
-    with gadgethdf._share_files_during_detection():
-        for c in SimSnap.iter_subclasses_with_priority(config['snap-class-priority']):
-            if c._can_load(pathlib.Path(path)):
-                return c.__name__
-    return None
+    c = pynbody.snapshot.identify(path)
+    return None if c is None else c.__name__
 
 
 def _halo_class(sim):
@@ -168,3 +165,57 @@ def test_hbt_halos_load_twice():
     f = pynbody.load("testdata/gadget4_subfind_HBT/snapshot_034.hdf5")
     f.halos(priority=["HBTPlusCatalogue"])
     f.halos(priority=["HBTPlusCatalogue"])
+
+
+def test_detection_closes_shared_hdf5_files(monkeypatch):
+    opened = []
+
+    class RecordingFile(h5py.File):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            opened.append(self)
+
+    monkeypatch.setattr(h5py, "File", RecordingFile)
+    assert _snap_class("testdata/gadget3/data/snapshot_103/snap_103.hdf5") == "GadgetHDFSnap"
+    assert _snap_class("testdata/gasoline_ahf/g15784.lr.01024") == "TipsySnap"
+    assert len(opened) > 0
+    assert not any(f.id.valid for f in opened)
+
+
+def test_other_classes_can_open_hdf5_with_different_locking(tmp_path):
+    """A class outside the GadgetHDFSnap family may open an HDF5 file with locking=False (as e.g. HBT+ catalogues
+    do); HDF5 refuses this if the file is still open from GadgetHDFSnap's checks, so those must be closed first."""
+    filename = tmp_path / "unlocked_format.hdf5"
+    with h5py.File(filename, "w") as f:
+        f.create_group("MyFormatHeader")
+
+    class UnlockedHDF5Snap(SimSnap):
+        @classmethod
+        def _can_load(cls, f):
+            if f.name != "unlocked_format.hdf5":
+                return False
+            with h5py.File(f, "r", locking=False) as h5:
+                return "MyFormatHeader" in h5
+
+    try:
+        assert pynbody.snapshot.identify(filename) is UnlockedHDF5Snap
+    finally:
+        del UnlockedHDF5Snap
+        gc.collect()
+
+
+def test_unidentified_file_errors(tmp_path):
+    with pytest.raises(OSError, match="path does not exist"):
+        pynbody.load(tmp_path / "nonexistent")
+    with pytest.raises(OSError, match="path is a directory"):
+        pynbody.load(tmp_path)
+
+    # a file too short to hold even GadgetSnap's 4-byte header used to raise struct.error
+    (tmp_path / "short").write_bytes(b"ab")
+    with pytest.raises(OSError, match="not recognised"):
+        pynbody.load(tmp_path / "short")
+
+    with h5py.File(tmp_path / "other.hdf5", "w") as f:
+        f.create_group("SomethingElse")
+    with pytest.raises(OSError, match="HDF5 with top-level entries: SomethingElse"):
+        pynbody.load(tmp_path / "other.hdf5")

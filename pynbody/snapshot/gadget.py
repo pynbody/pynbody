@@ -958,8 +958,14 @@ class GadgetSnap(SimSnap):
             if not fname.exists():
                 return False
 
+        if not fname.is_file():
+            return False
+
         with open(fname, "br") as fd:
-            r, = struct.unpack('=I', fd.read(4))
+            header = fd.read(4)
+        if len(header) < 4:
+            return False
+        r, = struct.unpack('=I', header)
 
         # First int32 is 8 for a Gadget 2 file, or 256 for Gadget 1, or the
         # byte swapped equivalent.

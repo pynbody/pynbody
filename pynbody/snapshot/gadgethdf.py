@@ -113,15 +113,18 @@ class _SharedDetectionFiles:
             self._is_hdf5[filename] = h5py.is_hdf5(filename)
         return self._is_hdf5[filename]
 
-    def File(self, filename, mode):
-        if filename not in self._files:
-            self._files[filename] = h5py.File(filename, mode)
+    def File(self, filename, mode='r', **kwargs):
+        key = (os.fspath(filename), mode, tuple(sorted(kwargs.items())))
+        if key not in self._files:
+            self._files[key] = h5py.File(filename, mode, **kwargs)
         # the file must stay open for the next class to inspect, so is not closed at the end of the with block
-        return contextlib.nullcontext(self._files[filename])
+        return contextlib.nullcontext(self._files[key])
 
     def close(self):
+        """Close all files opened so far; any later requests open them afresh"""
         for f in self._files.values():
             f.close()
+        self._files = {}
 
 _detection_state = threading.local()
 
@@ -134,7 +137,7 @@ def _share_files_during_detection():
     previous = getattr(_detection_state, "files", None)
     _detection_state.files = _SharedDetectionFiles()
     try:
-        yield
+        yield _detection_state.files
     finally:
         _detection_state.files.close()
         _detection_state.files = previous
