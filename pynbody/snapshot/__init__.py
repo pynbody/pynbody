@@ -58,17 +58,22 @@ def load(filename, *args, **kwargs) -> SimSnap:
 
     priority = kwargs.pop('priority', config['snap-class-priority'])
 
-    for c in SimSnap.iter_subclasses_with_priority(priority):
-        if kwargs.get('remote_dir') is not None:
-            if hasattr(c, "_can_load_remote") and c._can_load_remote(filename, kwargs["remote_dir"]):
-                logger.info("Loading using backend %s" % str(c))
-                return c(filename, *args, **kwargs)
-        elif c._can_load(filename):
-            logger.info("Loading using backend %s" % str(c))
-            return c(filename, *args, **kwargs)
+    from . import gadgethdf
 
-    raise OSError(
-        "File %r: format not understood or does not exist" % filename)
+    # HDF5-based classes share one open of the file while deciding; it is closed before the chosen class loads it
+    with gadgethdf._share_files_during_detection():
+        for c in SimSnap.iter_subclasses_with_priority(priority):
+            if kwargs.get('remote_dir') is not None:
+                if hasattr(c, "_can_load_remote") and c._can_load_remote(filename, kwargs["remote_dir"]):
+                    break
+            elif c._can_load(filename):
+                break
+        else:
+            raise OSError(
+                "File %r: format not understood or does not exist" % filename)
+
+    logger.info("Loading using backend %s" % str(c))
+    return c(filename, *args, **kwargs)
 
 def new(n_particles = 0, order = None, class_ = SimSnap, **families) -> SimSnap:
     """Create a blank SimSnap, with the specified number of particles.

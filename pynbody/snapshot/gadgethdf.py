@@ -15,10 +15,12 @@ pass the filename ``snap``. If you pass e.g. ``snap.2.hdf5``, only file 2 will b
 """
 
 import configparser
+import contextlib
 import functools
 import itertools
 import logging
 import os
+import threading
 import warnings
 
 import numpy as np
@@ -95,6 +97,47 @@ def _open_hdf_file(filename, mode='r'):
     """
     return h5py.File(os.path.abspath(filename), mode, rdcc_nbytes=_chunk_cache_nbytes,
                      rdcc_nslots=_chunk_cache_nslots)
+
+
+class _SharedDetectionFiles:
+    """Stands in for the h5py module while pynbody.load identifies a file, so that GadgetHDFSnap and its many
+    subclasses share a single is_hdf5 check and a single open of each candidate file, rather than each repeating them.
+
+    See _share_files_during_detection."""
+    def __init__(self):
+        self._is_hdf5 = {}
+        self._files = {}
+
+    def is_hdf5(self, filename):
+        if filename not in self._is_hdf5:
+            self._is_hdf5[filename] = h5py.is_hdf5(filename)
+        return self._is_hdf5[filename]
+
+    def File(self, filename, mode):
+        if filename not in self._files:
+            self._files[filename] = h5py.File(filename, mode)
+        # the file must stay open for the next class to inspect, so is not closed at the end of the with block
+        return contextlib.nullcontext(self._files[filename])
+
+    def close(self):
+        for f in self._files.values():
+            f.close()
+
+_detection_state = threading.local()
+
+@contextlib.contextmanager
+def _share_files_during_detection():
+    """Within this context, GadgetHDFSnap._can_load and its subclasses share open files (see _SharedDetectionFiles).
+
+    All files are closed on exit, which must happen before the chosen class opens the file itself, since HDF5
+    refuses to open a file that is already open with different locking flags."""
+    previous = getattr(_detection_state, "files", None)
+    _detection_state.files = _SharedDetectionFiles()
+    try:
+        yield
+    finally:
+        _detection_state.files.close()
+        _detection_state.files = previous
 
 
 class _GadgetHdfMultiFileManager:
@@ -1098,6 +1141,9 @@ class GadgetHDFSnap(SimSnap):
 
     @classmethod
     def _can_load(cls, f):
+        shared_files = getattr(_detection_state, "files", None)
+        if h5py is not None and shared_files is not None:
+            return cls._can_load_local_or_remote(f, shared_files)
         return cls._can_load_local_or_remote(f, h5py)
 
     @classmethod

@@ -582,6 +582,13 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         an auxiliary file."""
         return []
 
+    def _has_loadable_key(self, name) -> bool:
+        """Returns True if the named array can be lazy-loaded for all families.
+
+        Equivalent to ``name in self.loadable_keys()``, but subclasses may override it to avoid
+        inspecting every auxiliary file when only one name is of interest."""
+        return name in self.loadable_keys()
+
     def derivable_keys(self) -> list[str]:
         """Returns a list of arrays which can be lazy-evaluated."""
         res = []

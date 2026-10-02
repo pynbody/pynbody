@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import os
 import warnings
 from pathlib import Path
 from typing import Optional
@@ -43,11 +44,13 @@ class VelociraptorCatalogue(HaloCatalogue):
 
         for basepath in possible_paths:
             if basepath.is_dir():
-                for p in basepath.iterdir():
-                    if snapshot_num and p.is_dir() and f'{snapshot_num:04d}' in p.name:
-                        possible_paths.append(p)
-                    if 'catalog_groups.0' in p.name and p.is_file():
-                        return basepath / str(p.name)[:-(len('.catalog_groups.0'))]
+                # os.scandir entries can usually report is_dir/is_file without a further stat per entry
+                with os.scandir(basepath) as entries:
+                    for p in entries:
+                        if snapshot_num and p.is_dir() and f'{snapshot_num:04d}' in p.name:
+                            possible_paths.append(Path(p.path))
+                        if 'catalog_groups.0' in p.name and p.is_file():
+                            return basepath / p.name[:-(len('.catalog_groups.0'))]
         return None
 
     @classmethod

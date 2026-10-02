@@ -93,10 +93,7 @@ class HaloNumberCatalogue(HaloCatalogue):
 
     @classmethod
     def _can_load(cls, sim, arr_name='grp'):
-        if (arr_name in sim.loadable_keys()) or (arr_name in list(sim.keys())) :
-            return True
-        else:
-            return False
+        return arr_name in sim.keys() or sim._has_loadable_key(arr_name)
 
 class AmigaGrpCatalogue(HaloNumberCatalogue):
     """A catalogue of halos using Alyson Brooks' post-processed AHF output (turned into a SKID-like array)"""
