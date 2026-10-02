@@ -22,7 +22,6 @@ import gzip
 import os
 import pathlib
 import stat as stat_module
-from typing import Optional
 
 try:
     import h5py
@@ -82,7 +81,7 @@ class FileProbe:
         """Return a probe for the directory containing this path"""
         return self.cache.probe(self.path.parent)
 
-    def stat(self) -> Optional[os.stat_result]:
+    def stat(self) -> os.stat_result | None:
         """Return the result of os.stat on the path, or None if it cannot be accessed"""
         if not self._stat_done:
             try:
@@ -103,7 +102,7 @@ class FileProbe:
         st = self.stat()
         return st is not None and stat_module.S_ISREG(st.st_mode)
 
-    def size(self) -> Optional[int]:
+    def size(self) -> int | None:
         st = self.stat()
         return None if st is None else st.st_size
 
@@ -182,7 +181,7 @@ class FileProbe:
                         self._hdf5 = None
         return self._hdf5
 
-    def listdir(self) -> Optional[dict[str, os.DirEntry]]:
+    def listdir(self) -> dict[str, os.DirEntry] | None:
         """Return a dictionary mapping names to os.DirEntry objects for the contents of this directory.
 
         The dictionary preserves the order returned by the operating system (as for :func:`os.listdir`).

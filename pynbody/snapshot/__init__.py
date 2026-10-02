@@ -72,7 +72,7 @@ def load(filename, *args, **kwargs) -> SimSnap:
         loader_class = _identify(probe, priority)
         if loader_class is None:
             raise OSError(
-                "File %r: format not understood or does not exist (%s)" % (str(filename), probe.describe()))
+                f"File {str(filename)!r}: format not understood or does not exist ({probe.describe()})")
         logger.info("Loading using backend %s" % str(loader_class))
         return loader_class._load_from_probe(probe, *args, **kwargs)
 

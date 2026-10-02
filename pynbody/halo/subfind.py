@@ -8,8 +8,8 @@ import warnings
 import numpy as np
 
 from .. import units
-from ..util import file_probe
 from ..array import SimArray
+from ..util import file_probe
 from . import HaloCatalogue
 from .details import number_mapping, particle_indices
 from .subhalo_catalogue import SubhaloCatalogue
