@@ -25,6 +25,7 @@ import os
 import struct
 import sys
 import warnings
+import zlib
 
 import numpy as np
 
@@ -1008,7 +1009,8 @@ class TipsySnap(SimSnap):
         try:
             with util.open_(f, 'rb') as fd:
                 cls._parse_header(fd.read(32))
-        except (OSError, EOFError, ValueError):
+        except (OSError, EOFError, ValueError, zlib.error):
+            # zlib.error arises from a corrupt .gz file
             return False
 
         return True

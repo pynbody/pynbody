@@ -102,6 +102,10 @@ def _identify(filename, priority, remote_dir=None):
 def _describe_unidentified(filename: pathlib.Path) -> str:
     """Say what was found at a path that no class could load, to make the error message more helpful"""
     if not filename.exists():
+        # formats split over several files may be named by their common stem, so describe the first file instead
+        for first_file in (filename.with_suffix(".0.hdf5"), filename.parent / (filename.name + ".0")):
+            if first_file.exists():
+                return f"path does not exist, but {str(first_file)!r} does: {_describe_unidentified(first_file)}"
         return "path does not exist"
     if filename.is_dir():
         return "path is a directory"

@@ -1,5 +1,6 @@
 import builtins
 import gc
+import gzip
 import os
 import pathlib
 import warnings
@@ -116,6 +117,8 @@ def test_gadgethdf_detection_opens_hdf5_once(op_counts):
 
 def test_tipsy_detection_io(op_counts):
     assert _snap_class("testdata/gasoline_ahf/g15784.lr.01024") == "TipsySnap"
+    # this test file exists only gzipped, so GadgetSnap (which reads the first 4 bytes of an uncompressed file)
+    # does not open it, and only TipsySnap's own header read remains
     assert op_counts["open"] <= 1
     assert op_counts["listdir"] == 0
 
@@ -144,8 +147,15 @@ def test_tipsy_has_loadable_key(tmp_path):
     f.gas['gasonly'].write()
     with open(filename + ".badlength", "w") as fd:
         fd.write("3\n1\n2\n3\n")
+    # an array whose name on disk is translated by tipsy-name-mapping (tempEff on disk is Tinc in pynbody)
+    with open(filename + ".tempEff", "w") as fd:
+        fd.write("18\n" + "\n".join(str(i) for i in range(18)) + "\n")
+    # a gzipped auxiliary array
+    with gzip.open(filename + ".zipped.gz", "wt") as fd:
+        fd.write("18\n" + "\n".join(str(i) for i in range(18)) + "\n")
 
-    names = ["grp", "amiga.grp", "pos", "mass", "tform", "gasonly", "badlength", "nonexistent"]
+    names = ["grp", "amiga.grp", "pos", "mass", "tform", "gasonly", "badlength", "nonexistent",
+             "Tinc", "tempEff", "zipped"]
 
     f = pynbody.load(filename)
     cheap = {n: f._has_loadable_key(n) for n in names}
@@ -155,7 +165,8 @@ def test_tipsy_has_loadable_key(tmp_path):
 
     loadable = f.loadable_keys()
     assert cheap == {n: n in loadable for n in names}
-    assert cheap["grp"] and not cheap["gasonly"] and not cheap["badlength"]
+    assert cheap["grp"] and cheap["Tinc"] and cheap["zipped"]
+    assert not cheap["gasonly"] and not cheap["badlength"]
 
     # once the registry exists, the answers come from it
     assert {n: f._has_loadable_key(n) for n in names} == cheap
@@ -258,3 +269,56 @@ def test_gadgethdf_detection_stats_once_per_file(monkeypatch):
         guess = str(pathlib.Path(path).with_suffix(".0.hdf5"))
         assert stats.count(path) <= 1
         assert stats.count(guess) <= 1
+
+
+def test_corrupt_gzip_not_identified(tmp_path):
+    # a valid gzip header followed by a corrupt deflate stream raises zlib.error, not OSError, when read
+    data = bytearray(gzip.compress(b"x" * 1000))
+    data[10:20] = b"\xff" * 10
+    (tmp_path / "corrupt.gz").write_bytes(bytes(data))
+    with pytest.raises(OSError, match="format not understood"):
+        pynbody.load(tmp_path / "corrupt.gz")
+
+
+def test_unidentified_multifile_stem_error(tmp_path):
+    with h5py.File(tmp_path / "snap.0.hdf5", "w") as f:
+        f.create_group("SomethingElse")
+    with pytest.raises(OSError, match="snap.0.hdf5' does: file is HDF5 with top-level entries: SomethingElse"):
+        pynbody.load(tmp_path / "snap")
+
+
+def test_gadgethdf_subclass_with_staticmethod_test(tmp_path):
+    class StaticTestHDFSnap(gadgethdf.GadgetHDFSnap):
+        @staticmethod
+        def _test_for_hdf5_key(f, method):
+            return False
+
+    try:
+        # previously, looking up __func__ on the staticmethod raised AttributeError whenever this class was asked,
+        # which happens for any file that no class before it in the priority order recognises
+        assert _snap_class("testdata/nonexistent_file") is None
+        assert _snap_class("testdata/gadget3/data/snapshot_103/snap_103.hdf5") == "GadgetHDFSnap"
+    finally:
+        del StaticTestHDFSnap
+        gc.collect()
+
+
+def test_gadgethdf_detection_distrusts_recent_mtime(tmp_path, monkeypatch):
+    """A file rewritten within one tick of a coarse mtime may keep the same stat signature, so a signature taken
+    just after a modification must not be trusted to show that the file is unchanged"""
+    monkeypatch.setattr(gadgethdf._CachedHDF5Inspection, "recheck_interval", 0.0)
+    filename = tmp_path / "rewritten.hdf5"
+    with h5py.File(filename, "w") as f:
+        f.create_group("Unrelated")
+    original_stat = os.stat(filename)
+    assert pynbody.snapshot.identify(filename) is None
+
+    with h5py.File(filename, "w") as f:
+        f.create_group("Header")
+        f.create_group("PartType1")
+
+    # simulate a filesystem on which the rewrite left the stat signature unchanged
+    real_stat = os.stat
+    monkeypatch.setattr(os, "stat", lambda p, *a, **k: original_stat if os.fspath(p) == str(filename)
+                        else real_stat(p, *a, **k))
+    assert pynbody.snapshot.identify(filename) is gadgethdf.GadgetHDFSnap

@@ -153,6 +153,7 @@ class _CachedHDF5Inspection:
     to pynbody.load. After that, the file is stat'ed again, and summarised afresh only if it has changed."""
 
     recheck_interval = 5.0
+    _racy_mtime_interval = 2.0
     _max_entries = 32
 
     def __init__(self):
@@ -167,11 +168,18 @@ class _CachedHDF5Inspection:
 
         try:
             st = os.stat(filename)
-            signature = (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)
         except OSError:
             signature = None
+        else:
+            if time.time() - st.st_mtime < self._racy_mtime_interval:
+                # The file was modified so recently that a further change may not alter its mtime (which some
+                # filesystems record only to the nearest second or two), so the signature cannot be trusted to
+                # reveal a change next time
+                signature = _untrusted_signature
+            else:
+                signature = (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)
 
-        if entry is not None and entry[1] == signature:
+        if entry is not None and signature is not _untrusted_signature and entry[1] == signature:
             summary = entry[0]
         elif signature is None:
             summary = None
@@ -192,6 +200,7 @@ class _CachedHDF5Inspection:
     def File(self, filename, mode='r', **kwargs):
         return contextlib.nullcontext(self._summary(filename))
 
+_untrusted_signature = object() # never taken as a match, so the file is summarised afresh next time
 _cached_hdf5_inspection = _CachedHDF5Inspection()
 
 
@@ -1189,14 +1198,15 @@ class GadgetHDFSnap(SimSnap):
             else:
                 return False
         else:
-            if "hdf5" in f and method is h5py:
+            if "hdf5" in str(f) and method is h5py:
                 warnings.warn(
                     "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
             return False
 
     @classmethod
     def _can_load(cls, f):
-        if h5py is not None and cls._test_for_hdf5_key.__func__ is GadgetHDFSnap._test_for_hdf5_key.__func__:
+        if h5py is not None and getattr(cls._test_for_hdf5_key, "__func__", None) is \
+                GadgetHDFSnap._test_for_hdf5_key.__func__:
             # answer from a cached summary of the file, rather than each subclass opening it in turn; a subclass with
             # its own _test_for_hdf5_key may need more than the summary holds, so is given the real file
             return cls._can_load_local_or_remote(f, _cached_hdf5_inspection)
