@@ -27,6 +27,15 @@ def load(filename, *args, **kwargs) -> SimSnap:
       particle twice, or failed with an ``IndexError`` from within the chunking machinery, depending on the
       format.
 
+    .. versionchanged:: 2.8.0
+
+      Identifying the format needs far fewer filesystem operations, which matters most on network
+      filesystems. If no class can load the file, the ``OSError`` now says what was found (e.g. a
+      directory, or an HDF5 file and its top-level entries). Previously, a directory or a file of fewer than 4
+      bytes could instead raise ``IsADirectoryError`` or ``struct.error``. A file with a valid tipsy header but
+      a fault elsewhere (e.g. in its ``.param`` file) now raises the underlying error, rather than being reported
+      as a format that is not understood.
+
     Parameters
     ----------
     filename : str
@@ -72,6 +81,8 @@ def load(filename, *args, **kwargs) -> SimSnap:
 
 def identify(filename, priority=None) -> type[SimSnap] | None:
     """Return the SimSnap subclass that :func:`load` would use for the specified file, without loading it.
+
+    .. versionadded:: 2.8.0
 
     Parameters
     ----------
