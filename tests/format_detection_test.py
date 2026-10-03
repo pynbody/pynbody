@@ -330,10 +330,10 @@ class _FakeRemoteDir:
         self._files = files
 
     def is_hdf5(self, filename):
-        return str(filename) in self._files
+        return pathlib.PurePath(filename).as_posix() in self._files
 
     def File(self, filename, mode="r"):
-        return h5py.File(self._files[str(filename)], mode)
+        return h5py.File(self._files[pathlib.PurePath(filename).as_posix()], mode)
 
 
 def test_identify_passes_relevant_kwargs():
