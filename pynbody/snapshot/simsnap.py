@@ -156,7 +156,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
     @classmethod
     def _can_load(cls, filepath: pathlib.Path):
-        # this should be implemented by subclasses that can load from disk
+        """Return True if this class can load the specified file.
+
+        This should be implemented by subclasses that can load from disk. Any keyword arguments to
+        :func:`~pynbody.snapshot.load` that can affect whether the class is able to load the file (for example,
+        ``remote_dir``) should be named in the signature, e.g. ``_can_load(cls, filepath, remote_dir=None)``,
+        and are then passed through. Other keyword arguments are not passed to ``_can_load``."""
         return False
 
 

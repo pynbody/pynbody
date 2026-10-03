@@ -1204,17 +1204,15 @@ class GadgetHDFSnap(SimSnap):
             return False
 
     @classmethod
-    def _can_load(cls, f):
+    def _can_load(cls, f, remote_dir=None):
+        if remote_dir is not None:
+            return cls._can_load_local_or_remote(f, remote_dir)
         if h5py is not None and getattr(cls._test_for_hdf5_key, "__func__", None) is \
                 GadgetHDFSnap._test_for_hdf5_key.__func__:
             # answer from a cached summary of the file, rather than each subclass opening it in turn; a subclass with
             # its own _test_for_hdf5_key may need more than the summary holds, so is given the real file
             return cls._can_load_local_or_remote(f, _cached_hdf5_inspection)
         return cls._can_load_local_or_remote(f, h5py)
-
-    @classmethod
-    def _can_load_remote(cls, f, remote_dir):
-        return cls._can_load_local_or_remote(f, remote_dir)
 
     def _init_properties(self):
         atr = self._get_hdf_header_attrs()

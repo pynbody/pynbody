@@ -322,3 +322,56 @@ def test_gadgethdf_detection_distrusts_recent_mtime(tmp_path, monkeypatch):
     monkeypatch.setattr(os, "stat", lambda p, *a, **k: original_stat if os.fspath(p) == str(filename)
                         else real_stat(p, *a, **k))
     assert pynbody.snapshot.identify(filename) is gadgethdf.GadgetHDFSnap
+
+
+class _FakeRemoteDir:
+    """Stands in for an hdfstream remote directory, serving local HDF5 files under other names"""
+    def __init__(self, files):
+        self._files = files
+
+    def is_hdf5(self, filename):
+        return str(filename) in self._files
+
+    def File(self, filename, mode="r"):
+        return h5py.File(self._files[str(filename)], mode)
+
+
+def test_identify_passes_relevant_kwargs():
+    remote_dir = _FakeRemoteDir({"remote/snap_103.hdf5": "testdata/gadget3/data/snapshot_103/snap_103.hdf5"})
+    # remote_dir is named by GadgetHDFSnap._can_load, so reaches it; no class can find this path locally
+    assert pynbody.snapshot.identify("remote/snap_103.hdf5", remote_dir=remote_dir) is gadgethdf.GadgetHDFSnap
+    assert pynbody.snapshot.identify("remote/snap_103.hdf5") is None
+
+    # keyword arguments that no _can_load names, such as take, are not passed and do not affect identification
+    assert _snap_class("testdata/gasoline_ahf/g15784.lr.01024") == \
+           pynbody.snapshot.identify("testdata/gasoline_ahf/g15784.lr.01024", take=[1, 2, 3]).__name__
+
+
+def test_can_load_receives_only_kwargs_it_accepts(tmp_path):
+    received = {}
+
+    class NamesOneKwarg(SimSnap):
+        @classmethod
+        def _can_load(cls, f, special_option=None):
+            received["NamesOneKwarg"] = special_option
+            return False
+
+    class TakesAllKwargs(SimSnap):
+        @classmethod
+        def _can_load(cls, f, **kwargs):
+            received["TakesAllKwargs"] = kwargs
+            return False
+
+    class LegacySignature(SimSnap):
+        @classmethod
+        def _can_load(cls, f):
+            received["LegacySignature"] = True
+            return False
+
+    try:
+        assert pynbody.snapshot.identify(tmp_path / "nonexistent", special_option=1, take=[1]) is None
+        assert received == {"NamesOneKwarg": 1, "TakesAllKwargs": {"special_option": 1, "take": [1]},
+                            "LegacySignature": True}
+    finally:
+        del NamesOneKwarg, TakesAllKwargs, LegacySignature
+        gc.collect()

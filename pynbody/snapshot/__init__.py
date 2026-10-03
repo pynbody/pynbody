@@ -4,6 +4,7 @@ Implements classes to load and manipulate snapshot data
 
 from __future__ import annotations
 
+import inspect
 import logging
 import pathlib
 
@@ -69,17 +70,15 @@ def load(filename, *args, **kwargs) -> SimSnap:
 
     priority = kwargs.pop('priority', config['snap-class-priority'])
 
-    c = _identify(filename, priority, kwargs.get('remote_dir'))
+    c = _identify(filename, priority, kwargs)
     if c is None:
-        if kwargs.get('remote_dir') is not None:
-            raise OSError("File %r: format not understood or does not exist" % filename)
         raise OSError(f"File {str(filename)!r}: format not understood or does not exist "
                       f"({_describe_unidentified(filename)})")
 
     logger.info("Loading using backend %s" % str(c))
     return c(filename, *args, **kwargs)
 
-def identify(filename, priority=None) -> type[SimSnap] | None:
+def identify(filename, priority=None, **kwargs) -> type[SimSnap] | None:
     """Return the SimSnap subclass that :func:`load` would use for the specified file, without loading it.
 
     .. versionadded:: 2.8.0
@@ -92,6 +91,10 @@ def identify(filename, priority=None) -> type[SimSnap] | None:
     priority : optional, list[str | type]
         As for :func:`load`
 
+    **kwargs :
+        Keyword arguments that would be passed to :func:`load`. Those which can affect whether a given class is able
+        to load the file (such as ``remote_dir``) are taken into account; others (such as ``take``) are ignored.
+
     Returns
     -------
     type[SimSnap] | None
@@ -99,16 +102,26 @@ def identify(filename, priority=None) -> type[SimSnap] | None:
     """
     if priority is None:
         priority = config['snap-class-priority']
-    return _identify(pathlib.Path(filename), priority)
+    return _identify(pathlib.Path(filename), priority, kwargs)
 
-def _identify(filename, priority, remote_dir=None):
+def _identify(filename, priority, kwargs):
     for c in SimSnap.iter_subclasses_with_priority(priority):
-        if remote_dir is not None:
-            if hasattr(c, "_can_load_remote") and c._can_load_remote(filename, remote_dir):
-                return c
-        elif c._can_load(filename):
+        if c._can_load(filename, **_kwargs_accepted_by(c._can_load, kwargs)):
             return c
     return None
+
+def _kwargs_accepted_by(function, kwargs):
+    """Return those of kwargs that function's signature names (or all of them, if it takes ``**kwargs``).
+
+    This allows each SimSnap subclass to receive, in its _can_load, those keyword arguments to load() which can
+    affect whether it is able to load a file, simply by naming them; and means a subclass need not accept every
+    keyword argument that any other subclass might be given."""
+    parameters = inspect.signature(function).parameters.values()
+    if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters):
+        return kwargs
+    names = {p.name for p in parameters if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                                                       inspect.Parameter.KEYWORD_ONLY)}
+    return {k: v for k, v in kwargs.items() if k in names}
 
 def _describe_unidentified(filename: pathlib.Path) -> str:
     """Say what was found at a path that no class could load, to make the error message more helpful"""
