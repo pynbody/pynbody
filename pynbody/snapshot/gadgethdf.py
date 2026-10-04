@@ -116,8 +116,9 @@ class _HDF5FileSummary:
 
 
 def _keys_tested_by_subclasses():
-    """Return the HDF5 keys, and the locations of attributes, that GadgetHDFSnap and its subclasses test for"""
-    keys, attr_locations = set(), set()
+    """Return what GadgetHDFSnap and its subclasses test for: HDF5 keys, the locations of attributes, and the
+    (location, name) of those attributes whose values are tested"""
+    keys, attr_locations, attr_values = set(), set(), set()
     for c in [GadgetHDFSnap, *GadgetHDFSnap.iter_subclasses()]:
         test_key = c._readable_hdf5_test_key
         if test_key[-1] == "?":
@@ -126,7 +127,9 @@ def _keys_tested_by_subclasses():
             keys.add(test_key)
         if c._readable_hdf5_test_attr is not None:
             attr_locations.add(c._readable_hdf5_test_attr[0])
-    return frozenset(keys), frozenset(attr_locations)
+            if len(c._readable_hdf5_test_attr) > 2:
+                attr_values.add(tuple(c._readable_hdf5_test_attr[:2]))
+    return frozenset(keys), frozenset(attr_locations), frozenset(attr_values)
 
 
 def _summarise_hdf5_file(path, tested_keys):
@@ -136,11 +139,23 @@ def _summarise_hdf5_file(path, tested_keys):
     loader opening it."""
     if not h5py.is_hdf5(path):
         return None
-    keys, attr_locations = tested_keys
+    keys, attr_locations, attr_values = tested_keys
     with h5py.File(path, "r") as f:
         present_keys = frozenset(k for k in keys | attr_locations if k in f)
-        attrs = {loc: frozenset(f[loc].attrs.keys()) for loc in attr_locations if loc in present_keys}
+        # record which attributes are present, and the values of those that are tested for a value
+        attrs = {loc: {name: f[loc].attrs[name] if (loc, name) in attr_values else None
+                       for name in f[loc].attrs.keys()}
+                 for loc in attr_locations if loc in present_keys}
     return _HDF5FileSummary(present_keys, attrs)
+
+
+def _hdf5_attr_as_str(value):
+    """Return an HDF5 string attribute as a str, whether h5py gives it as a str, bytes, or an array of either"""
+    if isinstance(value, np.ndarray) and value.size == 1:
+        value = value.flat[0]
+    if isinstance(value, bytes):
+        value = value.decode('utf-8', errors='replace')
+    return str(value)
 
 
 class _CachedHDF5Inspection:
@@ -616,7 +631,7 @@ class GadgetHDFSnap(SimSnap):
 
     _multifile_manager_class = _GadgetHdfMultiFileManager
     _readable_hdf5_test_key = "PartType?"
-    _readable_hdf5_test_attr = None # if None, no attribute is checked
+    _readable_hdf5_test_attr = None # if None, no attribute is checked; else (location, name) or (location, name, value)
     _size_from_hdf5_key = "ParticleIDs"
     _namemapper_config_section = "gadgethdf-name-mapping"
     _softening_class_key = "SofteningClassOfPartType"
@@ -625,6 +640,7 @@ class GadgetHDFSnap(SimSnap):
 
     _mass_pynbody_name = "mass"
     _eps_pynbody_name = "eps"
+    _position_hdf_name = "Coordinates" # the dataset whose dtype masses are given (see __infer_mass_dtype)
 
     _velocity_unit_key = 'UnitVelocity_in_cm_per_s'
     _length_unit_key = 'UnitLength_in_cm'
@@ -649,7 +665,7 @@ class GadgetHDFSnap(SimSnap):
         self._translate_array_name = namemapper.AdaptiveNameMapper(self._namemapper_config_section,
                                                                    return_all_format_names=True) # required for swift
         self._init_unit_information()
-        self.__init_family_map()
+        self._init_family_map()
 
         take = self._get_take_parameter(**kwargs)
         self.partial_load = take is not None
@@ -761,8 +777,8 @@ class GadgetHDFSnap(SimSnap):
         particle type it is loaded for."""
         mass_dtype = np.float64
         for hdf in self._all_hdf_groups():
-            if "Coordinates" in hdf:
-                mass_dtype = hdf['Coordinates'].dtype
+            if self._position_hdf_name in hdf:
+                mass_dtype = hdf[self._position_hdf_name].dtype
         self._mass_dtype = mass_dtype
 
     def _families_ordered(self):
@@ -771,7 +787,7 @@ class GadgetHDFSnap(SimSnap):
         all_families_sorted = sorted(all_families, key=lambda v: self._family_to_group_map[v][0])
         return all_families_sorted
 
-    def __init_family_map(self):
+    def _init_family_map(self):
         type_map = {}
         for fam, g_types in _default_type_map.items():
             my_types = []
@@ -831,7 +847,7 @@ class GadgetHDFSnap(SimSnap):
                 i0 = 0
                 target_array = self[writing_fam][array_name]
                 for hdf in self._all_hdf_groups_in_family(writing_fam):
-                    npart = hdf['ParticleIDs'].size
+                    npart = hdf[self._hdf_files._size_from_hdf5_key].size
                     i1 = i0 + npart
                     target_array_this = target_array[i0:i1]
     
@@ -1070,7 +1086,7 @@ class GadgetHDFSnap(SimSnap):
         # Some versions of gadget fold the 3D arrays into 1D.
         # So check if the dimensions make sense -- if not, assume we're looking at an array that
         # is 3D and cross your fingers
-        npart = len(representative_hdf[self._family_to_group_map[fam][0]]['ParticleIDs'])
+        npart = len(representative_hdf[self._family_to_group_map[fam][0]][self._hdf_files._size_from_hdf5_key])
 
         if len(representative_dset) != npart:
             dy = len(representative_dset) // npart
@@ -1177,9 +1193,12 @@ class GadgetHDFSnap(SimSnap):
                 return False
 
             if cls._readable_hdf5_test_attr is not None:
-                location, attrname = cls._readable_hdf5_test_attr
+                location, attrname, *expected_value = cls._readable_hdf5_test_attr
                 if location in h5test:
-                    found = attrname in h5test[location].attrs
+                    attrs = h5test[location].attrs
+                    found = attrname in attrs
+                    if found and expected_value:
+                        found = _hdf5_attr_as_str(attrs[attrname]) == expected_value[0]
                 else:
                     found = False
         return found

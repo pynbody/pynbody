@@ -210,4 +210,5 @@ from . import (
     swift,
     tipsy,
 )
+from . import soap # after swift, on which it builds
 from .subsnap import FamilySubSnap, IndexedSubSnap, SubSnap

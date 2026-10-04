@@ -62,7 +62,9 @@ test_data_packages = {
                         'archive_name': 'tutorial_gadget.tar.gz',
                         'extended': True},
     'tiny_FIRE' : {'verify_path': 'tiny_FIRE', 
-                    'archive_name': 'tiny_FIRE.tar.gz'}
+                    'archive_name': 'tiny_FIRE.tar.gz'},
+    'soap': {'verify_path': 'SOAP',
+             'archive_name': 'soap.tar.gz'}
 }
 
 osf_project_id = '5m6zs'
