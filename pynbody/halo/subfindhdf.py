@@ -300,10 +300,6 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
 
 
-        first_subs_in_groups = self._fof_group_first_subhalo.copy()
-        first_subs_in_groups = first_subs_in_groups[(first_subs_in_groups > -1) & (
-                    first_subs_in_groups < self._nsubhalos)]  # Just need actual first subhalo numbers, don't need to worry about haloes with no subhaloes. Accounts for formats where *no* first subhalo is recorded as i) '-1' and ii) 'total number of subhaloes'
-        last_subs_in_groups = np.concatenate((first_subs_in_groups[1:], [self._nsubhalos])) - 1
         for fam in self.base._families_ordered():
             ptypes = self.base._family_to_group_map[fam]
             for ptype in ptypes:
@@ -317,12 +313,16 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
                     length = self._get_halodata_array_with_default(h, self._sub_len_name, self._subfind_name, ptype, np.array([]))
                     self._subfind_halo_lengths[ptype][curr_subhalos:curr_subhalos + len(length)] = length.astype('int64')[:]
                     curr_subhalos += len(length)
-                # Add offsets in blocks for all subhalos of a single halo
-                for first_sub, last_sub in zip(first_subs_in_groups, last_subs_in_groups):
-                    length = self._subfind_halo_lengths[ptype][first_sub:last_sub + 1]
-                    offset = np.concatenate(([0], np.cumsum(length)[:-1]))
-                    parent_fof_offset = self._fof_group_offsets[ptype][self._subfind_halo_parent_groups[first_sub]]
-                    self._subfind_halo_offsets[ptype][first_sub:last_sub + 1] = offset + parent_fof_offset
+                # Offsets of each subhalo within its parent group, plus the group's own offset. Subhalos are
+                # stored contiguously by parent group, so one global exclusive cumsum, rebased at the first
+                # subhalo of each group, gives all offsets without a Python-level loop over groups.
+                lengths = self._subfind_halo_lengths[ptype][:curr_subhalos]
+                exclusive_cumsum = np.cumsum(lengths) - lengths
+                parents = self._subfind_halo_parent_groups[:curr_subhalos]
+                first_sub_of_parent = self._fof_group_first_subhalo[parents]
+                self._subfind_halo_offsets[ptype][:curr_subhalos] = (
+                        exclusive_cumsum - exclusive_cumsum[first_sub_of_parent]
+                        + self._fof_group_offsets[ptype][parents])
                 if curr_subhalos != self._nsubhalos:
                     warnings.warn(
                         f"Incorrect number of subhalos recovered from HDF files. Expected {self._nsubhalos}, found {curr_subhalos}")
