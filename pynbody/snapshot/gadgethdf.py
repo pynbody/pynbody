@@ -15,10 +15,13 @@ pass the filename ``snap``. If you pass e.g. ``snap.2.hdf5``, only file 2 will b
 """
 
 import configparser
+import contextlib
 import functools
 import itertools
 import logging
 import os
+import time
+import types
 import warnings
 
 import numpy as np
@@ -95,6 +98,110 @@ def _open_hdf_file(filename, mode='r'):
     """
     return h5py.File(os.path.abspath(filename), mode, rdcc_nbytes=_chunk_cache_nbytes,
                      rdcc_nslots=_chunk_cache_nslots)
+
+
+class _HDF5FileSummary:
+    """The parts of an HDF5 file that GadgetHDFSnap subclasses inspect to decide whether they can load it.
+
+    Supports just enough of the h5py.File interface for _test_for_hdf5_key."""
+    def __init__(self, keys, attrs):
+        self._keys = keys
+        self._attrs = attrs
+
+    def __contains__(self, key):
+        return key in self._keys
+
+    def __getitem__(self, location):
+        return types.SimpleNamespace(attrs=self._attrs[location])
+
+
+def _keys_tested_by_subclasses():
+    """Return the HDF5 keys, and the locations of attributes, that GadgetHDFSnap and its subclasses test for"""
+    keys, attr_locations = set(), set()
+    for c in [GadgetHDFSnap, *GadgetHDFSnap.iter_subclasses()]:
+        test_key = c._readable_hdf5_test_key
+        if test_key[-1] == "?":
+            keys.update(test_key[:-1] + str(p) for p in range(6))
+        else:
+            keys.add(test_key)
+        if c._readable_hdf5_test_attr is not None:
+            attr_locations.add(c._readable_hdf5_test_attr[0])
+    return frozenset(keys), frozenset(attr_locations)
+
+
+def _summarise_hdf5_file(path, tested_keys):
+    """Open an HDF5 file once and record what is needed for GadgetHDFSnap subclasses to decide whether they can load it.
+
+    Returns None if the file is not HDF5. The file is closed before returning, so it cannot clash with the chosen
+    loader opening it."""
+    if not h5py.is_hdf5(path):
+        return None
+    keys, attr_locations = tested_keys
+    with h5py.File(path, "r") as f:
+        present_keys = frozenset(k for k in keys | attr_locations if k in f)
+        attrs = {loc: frozenset(f[loc].attrs.keys()) for loc in attr_locations if loc in present_keys}
+    return _HDF5FileSummary(present_keys, attrs)
+
+
+class _CachedHDF5Inspection:
+    """Stands in for the h5py module in GadgetHDFSnap._can_load_local_or_remote.
+
+    GadgetHDFSnap has many subclasses, each of which asks similar questions of the same file in turn. Rather than
+    each opening the file, they are answered from a summary made the first time (see _summarise_hdf5_file).
+
+    A summary (or the absence of a file) is trusted for recheck_interval seconds, which comfortably covers one call
+    to pynbody.load. After that, the file is stat'ed again, and summarised afresh only if it has changed."""
+
+    recheck_interval = 5.0
+    _racy_mtime_interval = 2.0
+    _max_entries = 32
+
+    def __init__(self):
+        self._entries = {} # (path, tested_keys) -> (summary, stat signature, time last checked)
+
+    def _summary(self, filename):
+        key = (os.path.abspath(filename), _keys_tested_by_subclasses())
+        entry = self._entries.get(key)
+        now = time.monotonic()
+        if entry is not None and now - entry[2] < self.recheck_interval:
+            return entry[0]
+
+        try:
+            st = os.stat(filename)
+        except OSError:
+            signature = None
+        else:
+            if time.time() - st.st_mtime < self._racy_mtime_interval:
+                # The file was modified so recently that a further change may not alter its mtime (which some
+                # filesystems record only to the nearest second or two), so the signature cannot be trusted to
+                # reveal a change next time
+                signature = _untrusted_signature
+            else:
+                signature = (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)
+
+        if entry is not None and signature is not _untrusted_signature and entry[1] == signature:
+            summary = entry[0]
+        elif signature is None:
+            summary = None
+        else:
+            summary = _summarise_hdf5_file(key[0], key[1])
+
+        if len(self._entries) >= self._max_entries:
+            self._entries.clear()
+        self._entries[key] = (summary, signature, now)
+        return summary
+
+    def clear(self):
+        self._entries.clear()
+
+    def is_hdf5(self, filename):
+        return self._summary(filename) is not None
+
+    def File(self, filename, mode='r', **kwargs):
+        return contextlib.nullcontext(self._summary(filename))
+
+_untrusted_signature = object() # never taken as a match, so the file is summarised afresh next time
+_cached_hdf5_inspection = _CachedHDF5Inspection()
 
 
 class _GadgetHdfMultiFileManager:
@@ -1091,18 +1198,21 @@ class GadgetHDFSnap(SimSnap):
             else:
                 return False
         else:
-            if "hdf5" in f and method is h5py:
+            if "hdf5" in str(f) and method is h5py:
                 warnings.warn(
                     "It looks like you're trying to load HDF5 files, but python's HDF support (h5py module) is missing.", RuntimeWarning)
             return False
 
     @classmethod
-    def _can_load(cls, f):
+    def _can_load(cls, f, remote_dir=None):
+        if remote_dir is not None:
+            return cls._can_load_local_or_remote(f, remote_dir)
+        if h5py is not None and getattr(cls._test_for_hdf5_key, "__func__", None) is \
+                GadgetHDFSnap._test_for_hdf5_key.__func__:
+            # answer from a cached summary of the file, rather than each subclass opening it in turn; a subclass with
+            # its own _test_for_hdf5_key may need more than the summary holds, so is given the real file
+            return cls._can_load_local_or_remote(f, _cached_hdf5_inspection)
         return cls._can_load_local_or_remote(f, h5py)
-
-    @classmethod
-    def _can_load_remote(cls, f, remote_dir):
-        return cls._can_load_local_or_remote(f, remote_dir)
 
     def _init_properties(self):
         atr = self._get_hdf_header_attrs()

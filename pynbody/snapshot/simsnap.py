@@ -156,7 +156,12 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
     @classmethod
     def _can_load(cls, filepath: pathlib.Path):
-        # this should be implemented by subclasses that can load from disk
+        """Return True if this class can load the specified file.
+
+        This should be implemented by subclasses that can load from disk. Any keyword arguments to
+        :func:`~pynbody.snapshot.load` that can affect whether the class is able to load the file (for example,
+        ``remote_dir``) should be named in the signature, e.g. ``_can_load(cls, filepath, remote_dir=None)``,
+        and are then passed through. Other keyword arguments are not passed to ``_can_load``."""
         return False
 
 
@@ -581,6 +586,13 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         """Returns a list of arrays which can be lazy-loaded from
         an auxiliary file."""
         return []
+
+    def _has_loadable_key(self, name) -> bool:
+        """Returns True if the named array can be lazy-loaded for all families.
+
+        Equivalent to ``name in self.loadable_keys()``, but subclasses may override it to avoid
+        inspecting every auxiliary file when only one name is of interest."""
+        return name in self.loadable_keys()
 
     def derivable_keys(self) -> list[str]:
         """Returns a list of arrays which can be lazy-evaluated."""
