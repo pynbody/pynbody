@@ -13,11 +13,16 @@ family ``halo``:
 >>> cat['SO/200_crit/TotalMass'].in_units('Msol')
 SimArray([4.155e+12, 1.8475e+12, ...], dtype=float32, 'Msol')
 
-A few properties are given pynbody's standard names, as specified by the config.ini section ``[soap-name-mapping]``:
-by default ``pos`` is the halo centre (``InputHalos/HaloCentre``), ``vel`` and ``mass`` are those of the bound
-subhalo, and ``iord`` is the HBT+ ``TrackId``, which identifies a subhalo consistently across snapshots. All other
-properties are available under their path in the HDF5 file. The subhalos are given in the order they appear in the
-file, so that the indices stored in ``SOAP/HostHaloIndex`` remain valid (unless only part of the catalogue is loaded).
+All properties are available under their path in the HDF5 file. Those named in the config.ini section
+``[soap-name-mapping]`` are also available under a pynbody name. By default, only ``pos`` is mapped, to the halo
+centre (``InputHalos/HaloCentre``), which SOAP uses as the reference for all its apertures, and which allows spatial
+filters, centring etc. to work. Other quantities have no single natural choice (there are many masses, for example),
+so are left for you to map in your own configuration if you wish, e.g. ``SO/200_crit/TotalMass: mass``. Note that
+an array loaded under both names is loaded twice, so that (for example) translating the catalogue changes ``pos``,
+but leaves ``InputHalos/HaloCentre`` as stored in the file.
+
+The subhalos are given in the order they appear in the file, so that the indices stored in ``SOAP/HostHaloIndex``
+remain valid (unless only part of the catalogue is loaded).
 Note that SOAP computes some properties (such as those in ``SO/...``) only for central subhalos, giving zero for
 satellites; ``InputHalos/IsCentral`` says which is which.
 
@@ -68,10 +73,24 @@ class SOAPSnap(SwiftSnap):
     _readable_hdf5_test_attr = "Header", "OutputType", "SOAP"
     _namemapper_config_section = 'soap-name-mapping'
     _position_hdf_name = "InputHalos/HaloCentre"
+    _mass_always_loadable = False
 
     _metadata_groups = {'Cells', 'Code', 'Cosmology', 'Header', 'Parameters', 'PhysicalConstants', 'SWIFT',
                         'SubgridScheme', 'Units'}
     """Groups in a SOAP file that do not hold properties of the subhalos"""
+
+    def __init__(self, filename, **kwargs):
+        self._mapped_property_paths = None
+        super().__init__(filename, **kwargs)
+
+    def loadable_keys(self, fam=None):
+        keys = super().loadable_keys(fam)
+        if self._mapped_property_paths is None:
+            # properties given a pynbody name (see [soap-name-mapping]) remain loadable under their path in the file
+            root = self._hdf_files.get_file0_root()
+            self._mapped_property_paths = [path for name in keys for path in self._translate_array_name(name)
+                                           if path != name and path in root]
+        return keys + self._mapped_property_paths
 
     def _init_family_map(self):
         self._family_to_group_map = {family.get_family('halo'): [_halo_group]}

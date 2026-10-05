@@ -641,6 +641,7 @@ class GadgetHDFSnap(SimSnap):
     _mass_pynbody_name = "mass"
     _eps_pynbody_name = "eps"
     _position_hdf_name = "Coordinates" # the dataset whose dtype masses are given (see __infer_mass_dtype)
+    _mass_always_loadable = True # masses may be given in the header, so are loadable even without a dataset
 
     _velocity_unit_key = 'UnitVelocity_in_cm_per_s'
     _length_unit_key = 'UnitLength_in_cm'
@@ -736,7 +737,7 @@ class GadgetHDFSnap(SimSnap):
             return
 
         for fam in all_fams:
-            self._loadable_family_keys[fam] = {self._mass_pynbody_name}
+            self._loadable_family_keys[fam] = {self._mass_pynbody_name} if self._mass_always_loadable else set()
             can_get_eps = True
             for hdf_group in self._all_hdf_groups_in_family(fam):
                 for this_key in self._get_hdf_allarray_keys(hdf_group):
