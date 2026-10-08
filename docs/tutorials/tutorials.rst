@@ -71,4 +71,3 @@ Advanced topics
    Parallelism <parallelism>
    Performance <performance>
    Changes in version 2 <changes_v2.rst>
-

@@ -198,6 +198,7 @@ def new(n_particles = 0, order = None, class_ = SimSnap, **families) -> SimSnap:
     return x
 
 
+from . import soap  # after swift, on which it builds
 from . import (
     ascii,
     gadget,
@@ -210,5 +211,4 @@ from . import (
     swift,
     tipsy,
 )
-from . import soap # after swift, on which it builds
 from .subsnap import FamilySubSnap, IndexedSubSnap, SubSnap
