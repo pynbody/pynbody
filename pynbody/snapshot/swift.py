@@ -123,25 +123,30 @@ class SwiftMultiFileManager(_GadgetHdfMultiFileManager):
                 raise ValueError(f"Unexpected particle group name: {name}")
             else:
                 nptot = numpart_total[int(m.group(1))]
-            # Read the cell information
-            self._cells[name] = {}
-            self._cells[name]["counts"] = h1["Cells/Counts"][name][...]
-            self._cells[name]["files"] = h1["Cells/Files"][name][...]
-            self._cells[name]["offsets"] = h1["Cells/OffsetsInFile"][name][...]
-            # Do some sanity checks
-            if np.all(self._cells[name]["counts"] == 0):
-                raise ValueError("No spatial index found in this snapshot; unable to load a region.")
-            if np.any(self._cells[name]["counts"] < 0):
-                raise ValueError("A SWIFT cell contains a negative number of particles!")
-            if np.any((self._cells[name]["files"] < 0) | (self._cells[name]["files"] >= num_files)):
-                raise ValueError("A SWIFT cell's file index is out of range!")
-            if np.any(self._cells[name]["offsets"] < 0):
-                raise ValueError("A SWIFT cell offset is negative!")
-            if np.any((self._cells[name]["offsets"] + self._cells[name]["counts"]) > nptot):
-                raise ValueError("A SWIFT cell's offset+count is out of range")
-            if np.sum(self._cells[name]["counts"], dtype=np.int64) != nptot:
-                raise ValueError("The total number of particles in all cells does not match the snapshot header")
+            self._cells[name] = self._read_cell_metadata_for_group(h1, name, nptot, num_files)
         self._cell_centres = h1["Cells/Centres"][...]
+
+    @staticmethod
+    def _read_cell_metadata_for_group(h1, name, nptot, num_files):
+        """Read, and check, the cell information for the group *name*, which holds *nptot* particles in total"""
+        cells = {}
+        cells["counts"] = h1["Cells/Counts"][name][...]
+        cells["files"] = h1["Cells/Files"][name][...]
+        cells["offsets"] = h1["Cells/OffsetsInFile"][name][...]
+        # Do some sanity checks
+        if np.all(cells["counts"] == 0):
+            raise ValueError("No spatial index found in this snapshot; unable to load a region.")
+        if np.any(cells["counts"] < 0):
+            raise ValueError("A SWIFT cell contains a negative number of particles!")
+        if np.any((cells["files"] < 0) | (cells["files"] >= num_files)):
+            raise ValueError("A SWIFT cell's file index is out of range!")
+        if np.any(cells["offsets"] < 0):
+            raise ValueError("A SWIFT cell offset is negative!")
+        if np.any((cells["offsets"] + cells["counts"]) > nptot):
+            raise ValueError("A SWIFT cell's offset+count is out of range")
+        if np.sum(cells["counts"], dtype=np.int64) != nptot:
+            raise ValueError("The total number of particles in all cells does not match the snapshot header")
+        return cells
 
     def _identify_cells_to_take(self, take):
         return np.where(take.cubic_cell_intersection(self._cell_centres))[0]
@@ -210,9 +215,13 @@ class SwiftSnap(GadgetHDFSnap):
     def _is_cosmological(self):
         cosmo = ExtractScalarWrapper(self._hdf_files[0]['Cosmology'].attrs)
         return cosmo['Cosmological run'] == 1
+    def _get_swift_header_attrs(self):
+        """Return the attributes of the header written by SWIFT"""
+        return self._hdf_files[0]['Header'].attrs
+
     def _init_properties(self):
         params = ExtractScalarWrapper(self._hdf_files[0]['Parameters'].attrs)
-        header = ExtractScalarWrapper(self._hdf_files[0]['Header'].attrs)
+        header = ExtractScalarWrapper(self._get_swift_header_attrs())
         cosmo = ExtractScalarWrapper(self._hdf_files[0]['Cosmology'].attrs)
 
         cosmological = self._is_cosmological()

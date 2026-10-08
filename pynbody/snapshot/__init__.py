@@ -210,4 +210,8 @@ from . import (
     swift,
     tipsy,
 )
+
+# isort: split
+# soap must be imported after the modules above (swift, on which it builds, and subsnap, on which halo relies)
+from . import soap
 from .subsnap import FamilySubSnap, IndexedSubSnap, SubSnap
