@@ -66,7 +66,9 @@ Advanced topics
    :maxdepth: 1
 
    Derived quantities <derived>
+   Remote files (hdfstream) <flamingo_halo_particles>
    Configuration <configuration>
    Parallelism <parallelism>
    Performance <performance>
    Changes in version 2 <changes_v2.rst>
+
