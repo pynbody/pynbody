@@ -3,8 +3,8 @@ pynbody
 [![Build Status](https://github.com/pynbody/pynbody/actions/workflows/build-test.yaml/badge.svg?branch=master)](https://github.com/pynbody/pynbody/actions)
 
 [Pynbody](https://github.com/pynbody/pynbody) is an analysis framework for
-N-body and hydrodynamic astrophysical simulations supporting PKDGRAV/Gasoline,
-Gadget, Gadget4/Arepo, N-Chilada and RAMSES AMR outputs. 
+N-body and hydrodynamic astrophysical simulations supporting SWIFT, PKDGRAV/Gasoline/ChaNGa (including Tipsy and N-Chilada output),
+Gadget2/3/4, Arepo, Gizmo and RAMSES. 
 Python version support adheres roughly to [SPEC0](https://scientific-python.org/specs/spec-0000/).
 
 ### Documentation
@@ -16,7 +16,7 @@ can do, try the [quick-start tutorial](https://pynbody.readthedocs.io/latest/tut
 
 ### Getting started
 
-Binary wheels are provided for Linux, MacOS and, from version 2.2, Windows. 
+Binary wheels are provided for Linux, MacOS and Windows. 
 
 If python and the standard pip package manager is installed and properly configured, you can simply do:
 
