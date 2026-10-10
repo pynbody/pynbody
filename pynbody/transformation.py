@@ -69,6 +69,19 @@ class Transformable:
         """Return the transformation that has been applied to this object, if any."""
         return self._transformations[-1] if self._transformations else None
 
+    def net_rotation_matrix(self) -> np.ndarray:
+        """Return the 3x3 matrix of the net rotation applied by all transformations currently in force.
+
+        .. versionadded:: 2.9.0
+
+        For example, a vector which was along the x axis in the original simulation now points along the first
+        column of the returned matrix.
+        """
+        result = np.eye(3)
+        for t in self._transformations:
+            result = t.rotation_matrix() @ result
+        return result
+
     def _register_transformation(self, t: Transformation):
         self._transformations.append(t)
 
@@ -336,6 +349,18 @@ class Transformation(Transformable, abc.ABC):
         self._apply_to_array(array)
 
 
+    def rotation_matrix(self) -> np.ndarray:
+        """Return the 3x3 matrix of the net rotation applied by this transformation, including any it is chained to.
+
+        .. versionadded:: 2.9.0
+
+        Translations do not contribute, so for a transformation without any rotations this is the identity.
+        """
+        if self._previous_transformation is not None:
+            return self._previous_transformation.rotation_matrix()
+        else:
+            return np.eye(3)
+
     def __enter__(self):
         if self._reverted:
             raise TransformationException("Transformations cannot be reapplied after they have been reverted")
@@ -471,6 +496,9 @@ class Rotation(Transformation):
     def _apply_to_array(self, array):
         if len(array.shape) == 2 and array.shape[1] == 3:
             array[:] = np.dot(self.matrix, array.transpose()).transpose()
+
+    def rotation_matrix(self) -> np.ndarray:
+        return np.asarray(self.matrix) @ super().rotation_matrix()
 
 
 GenericRotation = Rotation # name from pynbody v1
