@@ -457,7 +457,8 @@ def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, unit
         The healpix nside resolution to use (must be power of 2)
 
     kernel : str, optional
-        SPH kernel to use for smoothing; see :func:`~pynbody.sph.kernels.create_kernel` for options.
+        SPH kernel to use for smoothing; see :func:`~pynbody.sph.kernels.create_kernel` for options. For AMR gas
+        (e.g. Ramses), the default renders each cell exactly as a cube (see :class:`~pynbody.sph.kernels.CellKernel`).
 
     units : str or pynbody.units.Unit, optional
         The units of the output. Default is None, in which case the units of the input quantity are used. Note that
@@ -606,7 +607,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
         between -linthresh and linthresh is shown on a linear scale to avoid divergence at 0.
 
     kernel : str, optional
-        SPH kernel to use for smoothing; see :func:`~pynbody.sph.kernels.create_kernel` for options.
+        SPH kernel to use for smoothing; see :func:`~pynbody.sph.kernels.create_kernel` for options. For AMR gas
+        (e.g. Ramses), the default renders each cell exactly as a cube (see :class:`~pynbody.sph.kernels.CellKernel`).
 
     approximate_fast : bool, optional
         If True, speed up the image-making by rendering large kernels onto a lower-resolution image

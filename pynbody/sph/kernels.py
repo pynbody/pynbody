@@ -203,6 +203,58 @@ class Kernel2D(KernelBase):
         return hash((self.__class__, self.k_orig))
 
 
+class CellKernel(KernelBase):
+    """The exact, anisotropic 'kernel' of a cubic AMR cell, for use in image rendering.
+
+    .. versionadded:: 2.9.0
+
+    Rather than smoothing each particle with a spherically-symmetric kernel, each particle is treated as a cube of
+    side length equal to its smoothing length (the cell width in AMR codes such as Ramses), oriented along the
+    axes of the original simulation box. A slice image then shows the exact cross-section of each cell, and a
+    projected image the exact column through it. Because AMR cells tile space, the resulting image is an exact
+    rendering of the piecewise-constant field.
+
+    The kernel is not radially symmetric and so can only be used by the image renderer, and not e.g. for SPH
+    smoothing or by other render targets.
+    """
+
+    def __init__(self, projected=False, subsamples=4):
+        """Create a cell kernel.
+
+        Parameters
+        ----------
+        projected : bool
+            If True, this is the projected (column) form of the kernel. Normally a user should not set this,
+            but call :meth:`projection` instead.
+
+        subsamples : int
+            When projecting rotated cells, pixels which straddle the edges of a cell's projection are sampled
+            on a grid of subsamples x subsamples rays. Elsewhere, the result is exact.
+        """
+        self.h_power = 2 if projected else 3
+        self.max_d = np.sqrt(3.0) / 2  # half-diagonal of the cell in units of its width
+        self.projected = projected
+        self.subsamples = subsamples
+
+    def projection(self):
+        if self.projected:
+            raise ValueError("Cannot project an already-projected kernel")
+        return CellKernel(projected=True, subsamples=self.subsamples)
+
+    def get_value(self, d, h=1):
+        raise NotImplementedError("The cell kernel is anisotropic and cannot be evaluated as a function of radius")
+
+    def get_samples(self, dtype=np.float32):
+        raise NotImplementedError("The cell kernel is anisotropic and cannot be sampled as a function of radius")
+
+    @classmethod
+    def get_c_kernel_id(cls):
+        raise NotImplementedError("The cell kernel is only supported by the image renderer")
+
+    def __hash__(self):
+        return hash((self.__class__, self.projected, self.subsamples))
+
+
 def create_kernel_from_c_id(kernel_id: int) -> KernelBase:
     """Create a kernel object from the integer id used by the C++ code.
 
