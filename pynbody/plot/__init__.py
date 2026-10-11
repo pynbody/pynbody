@@ -14,7 +14,7 @@
 
 import importlib
 
-from . import gas, generic, imaging, profile, stars, util
+from . import gas, generic, imaging, profile, sph, stars, util
 
 importlib.reload(profile)
 importlib.reload(generic)

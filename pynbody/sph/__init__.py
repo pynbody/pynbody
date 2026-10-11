@@ -8,7 +8,8 @@ These arrays are calculated on-the-fly when accessed. The SPH kernels are define
 
   Rendering of images, grids and maps (previously :func:`pynbody.sph.render_image`, :func:`pynbody.sph.render_3d_grid`,
   :func:`pynbody.sph.render_spherical_image` and the :mod:`pynbody.sph.renderers` module) has moved to
-  :mod:`pynbody.imaging`, since it now also renders AMR simulations.
+  :mod:`pynbody.imaging`, since it now also renders AMR simulations. The old names remain available, with a
+  deprecation warning.
 
 Underlying all of the above is the :class:`~pynbody.kdtree.KDTree`, which finds the neighbours and provides the
 lower-level SPH operations themselves, such as :meth:`~pynbody.kdtree.KDTree.sph_mean` and
@@ -95,3 +96,25 @@ def rho(sim):
     logger.info('Density calculation done in %5.3g s' % (end - start))
 
     return rho
+
+
+# Names which have moved to pynbody.imaging, mapped to their new locations
+_moved_to_imaging = {
+    'render_image': 'render_image',
+    'render_3d_grid': 'render_3d_grid',
+    'render_spherical_image': 'render_spherical_image',
+    'to_3d_grid': 'render_3d_grid',  # (already a deprecated alias)
+}
+
+def __getattr__(name):
+    if name == 'renderers':
+        # return the compatibility module, whose attributes each give a deprecation warning
+        import importlib
+        return importlib.import_module('.renderers', __name__)
+    if name in _moved_to_imaging:
+        from .. import imaging
+        new_name = _moved_to_imaging[name]
+        warnings.warn(f"pynbody.sph.{name} is deprecated; use pynbody.imaging.{new_name} instead",
+                      DeprecationWarning, stacklevel=2)
+        return getattr(imaging, new_name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
