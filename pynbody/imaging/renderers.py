@@ -1,6 +1,6 @@
 """Core classes for rendering images of SPH and AMR simulations.
 
-For most users, the :func:`pynbody.plot.sph.image` function is the most convenient interface for rendering images of
+For most users, the :func:`pynbody.plot.image` function is the most convenient interface for rendering images of
 simulations. A slightly lower-level approach is to use :func:`make_render_pipeline` to create a renderer object, which
 then produces an image when the :meth:`ImageRendererBase.render` method is called.
 
@@ -10,7 +10,8 @@ For complete control, one may use the :class:`ImageRenderer` class (for SPH inte
 .. versionchanged:: 2.9.0
 
   AMR gas (e.g. from Ramses) is now rendered by default with :class:`AMRImageRenderer`, rather than by treating
-  cells as SPH particles.
+  cells as SPH particles. This module was previously :mod:`pynbody.sph.renderers`, which remains available as a
+  deprecated alias.
 """
 
 from __future__ import annotations
@@ -26,9 +27,10 @@ import scipy
 
 from .. import array as array_module, config, snapshot, units
 from ..configuration import config_parser
-from . import _render, _render_amr, kernels
+from ..sph import kernels
+from . import _render, _render_amr
 
-logger = logging.getLogger('pynbody.sph.renderers')
+logger = logging.getLogger('pynbody.imaging.renderers')
 
 
 def _kernel_suitable_for_denoise(kernel):
@@ -748,7 +750,7 @@ class AMRImageRenderer(ImageRenderer):
     multiples of 90 degrees). Projections of rotated cells up to 16 pixels across interpolate the volume of each
     cell within each pixel from a table, which conserves mass exactly and gives errors in individual pixels of
     typically 1e-5 and at most 1e-3; larger rotated cells are again projected exactly. For details, see
-    :func:`pynbody.sph._render_amr.render_image_cells`.
+    :func:`pynbody.imaging._render_amr.render_image_cells`.
 
     No kernel is used, so :meth:`set_kernel` accepts only None; approximate rendering (:meth:`with_approximate`)
     has no effect; and perspective rendering (:meth:`ImageGeometry.set_camera_z`) is not supported. To render AMR

@@ -6,7 +6,7 @@ import pytest
 
 import pynbody
 import pynbody.test_utils
-from pynbody.sph import _render_amr, renderers
+from pynbody.imaging import _render_amr, renderers
 
 
 def _cube_of_cells(n_sub, size, centre, rotation=np.eye(3)):

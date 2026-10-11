@@ -1,5 +1,10 @@
 """
-Routines for plotting smoothed quantities
+Routines for plotting images of simulations, rendered by SPH interpolation or (for AMR simulations) exactly
+
+.. versionchanged:: 2.9.0
+
+  This module was previously :mod:`pynbody.plot.sph`, which remains available as an alias. The most commonly-used
+  functions are also available directly from :mod:`pynbody.plot`, e.g. :func:`pynbody.plot.image`.
 
 """
 
@@ -9,8 +14,8 @@ import matplotlib
 import numpy as np
 import pylab as p
 
-from .. import config, sph, units as _units
-from ..sph import renderers
+from .. import config, imaging, units as _units
+from ..imaging import renderers
 
 
 def _width_in_sim_units(sim, width):
@@ -23,11 +28,11 @@ def _width_in_sim_units(sim, width):
 def sideon_image(sim, *args, **kwargs):
     """Create an image of the given simulation, side-on to the disc of the passed halo.
 
-    This routine is a small wrapper around :func:`~pynbody.plot.sph.image` that rotates the simulation so that the disc
+    This routine is a small wrapper around :func:`~pynbody.plot.imaging.image` that rotates the simulation so that the disc
     of the passed halo is side-on, makes the SPH image, then rotates the simulation back to its original orientation.
 
     More flexible control over the orientation of the simulation can be achieved by using
-    :func:`~pynbody.analysis.angmom.sideon` in combination with :func:`~pynbody.plot.sph.image`.
+    :func:`~pynbody.analysis.angmom.sideon` in combination with :func:`~pynbody.plot.imaging.image`.
 
     """
 
@@ -40,11 +45,11 @@ def sideon_image(sim, *args, **kwargs):
 def faceon_image(sim, *args, **kwargs):
     """Create an image of the given simulation, face-on to the disc of the passed halo.
 
-    This routine is a small wrapper around :func:`~pynbody.plot.sph.image` that rotates the simulation so that the disc
+    This routine is a small wrapper around :func:`~pynbody.plot.imaging.image` that rotates the simulation so that the disc
     of the passed halo is face-on, makes the SPH image, then rotates the simulation back to its original orientation.
 
     More flexible control over the orientation of the simulation can be achieved by using
-    :func:`~pynbody.analysis.angmom.faceon` in combination with :func:`~pynbody.plot.sph.image`.
+    :func:`~pynbody.analysis.angmom.faceon` in combination with :func:`~pynbody.plot.imaging.image`.
 
     """
 
@@ -158,7 +163,7 @@ def velocity_image(sim, qty='rho', vector_qty='vel', width="10 kpc", mode='quive
     """
     Make an SPH image of the given simulation with velocity vectors overlaid on top.
 
-    Any keyword argument that can be passed to :func:`~pynbody.plot.sph.image` can also be passed
+    Any keyword argument that can be passed to :func:`~pynbody.plot.imaging.image` can also be passed
     to this function. See that function for a full list of options.
 
     Parameters
@@ -228,7 +233,7 @@ def velocity_image(sim, qty='rho', vector_qty='vel', width="10 kpc", mode='quive
         The width of stream lines in 'stream' mode. (Default is 1.0)
 
     **kwargs :
-        Any additional keyword arguments to pass to :func:`~pynbody.plot.sph.image`.
+        Any additional keyword arguments to pass to :func:`~pynbody.plot.imaging.image`.
 
     """
 
@@ -361,8 +366,8 @@ def volume(sim, qty='rho', width=None, resolution=200,
     if create_figure:
         fig = mlab.figure(size=(500,500),bgcolor=(0,0,0))
 
-    grid_data = sph.to_3d_grid(sim,qty=qty,nx=resolution,
-                               x2=None if width is None else width/2)
+    grid_data = imaging.render_3d_grid(sim, quantity=qty, nx=resolution,
+                                       x2=None if width is None else width/2)
 
 
 
@@ -497,7 +502,7 @@ def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, unit
         import healpy as hp
     except ImportError:
         raise ImportError("healpy is required for spherical_image function. Install with: pip install healpy")
-    image = sph.render_spherical_image(sim, quantity=qty, nside=nside, kernel=kernel, out_units=units,
+    image = imaging.render_spherical_image(sim, quantity=qty, nside=nside, kernel=kernel, out_units=units,
                                        weight=weight, distance=distance, threaded=threaded)
 
     unit = image.units
@@ -615,7 +620,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
     amr : bool, optional
         If True, render the particles as AMR cells (cubes with side length given by the smoothing length), exactly;
         if False, use SPH interpolation. If None (default), AMR rendering is used for AMR gas (e.g. Ramses) unless a
-        *kernel* or *z_camera* is specified. See :class:`~pynbody.sph.renderers.AMRImageRenderer`.
+        *kernel* or *z_camera* is specified. See :class:`~pynbody.imaging.renderers.AMRImageRenderer`.
 
     approximate_fast : bool, optional
         If True, speed up the image-making by rendering large kernels onto a lower-resolution image

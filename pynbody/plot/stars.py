@@ -19,8 +19,8 @@ import pynbody.analysis.luminosity
 
 from .. import array, filt, transformation, units
 from ..analysis import angmom, cosmology, profile
-from ..sph import kernels, render_spherical_image, renderers
-from . import sph as plot_sph
+from ..imaging import renderers
+from . import imaging as plot_imaging
 
 logger = logging.getLogger('pynbody.plot.stars')
 
@@ -117,7 +117,7 @@ def contour_surface_brightness(sim, band='v', width=50, resolution=None, axes=No
 
 	"""
 
-	return plot_sph.contour(sim, qty=band + '_lum_den', units="pc^-2", width=width,
+	return plot_imaging.contour(sim, qty=band + '_lum_den', units="pc^-2", width=width,
 							resolution=resolution, axes=axes, label=label, smooth_floor=smooth_floor,
 							_transform = _convert_to_mag_arcsec2,
 							log=False, contour_kwargs=contour_kwargs)

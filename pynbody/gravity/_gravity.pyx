@@ -15,7 +15,7 @@ DTYPE = np.double
 # Each argument of _direct gets its own fused type, so that Cython generates a specialisation for
 # every combination of single and double precision inputs. A single shared fused type would
 # instead force the positions, masses and softenings all to have the same dtype as each other,
-# which snapshots are under no obligation to do. See also the same pattern in pynbody/sph/_render.pyx.
+# which snapshots are under no obligation to do. See also the same pattern in pynbody/imaging/_render.pyx.
 
 ctypedef fused ipos_t:
     np.float32_t

@@ -64,6 +64,7 @@ packages = [
     "pynbody.chunk",
     "pynbody.filt",
     "pynbody.sph",
+    "pynbody.imaging",
     "pynbody.snapshot",
     "pynbody.bridge",
     "pynbody.halo",

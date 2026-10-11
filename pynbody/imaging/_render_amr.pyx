@@ -1,12 +1,12 @@
 """Rendering of AMR cells onto images, as exact slices through or projections of cubes.
 
-Unlike the SPH renderer in :mod:`pynbody.sph._render`, there is no smoothing kernel. Each 'particle' is a cubic cell
+Unlike the SPH renderer in :mod:`pynbody.imaging._render`, there is no smoothing kernel. Each 'particle' is a cubic cell
 of side length given by its smoothing length (the cell width), with edges along axes which are the columns of a
 rotation matrix expressed in the image frame. A slice shows the cross-section of each cell, and a projection the
 chord length through it, averaged over each pixel. Because the cells tile space, the resulting image is a
 rendering of the piecewise-constant field.
 
-The Python interface is :class:`pynbody.sph.renderers.AMRImageRenderer`.
+The Python interface is :class:`pynbody.imaging.renderers.AMRImageRenderer`.
 """
 
 import threading

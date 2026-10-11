@@ -9,7 +9,7 @@ import pynbody
 import pynbody.analysis.profile as profile
 import pynbody.filt as filt
 import pynbody.plot as pp
-import pynbody.plot.sph
+import pynbody.plot.imaging
 import pynbody.units as units
 
 simname = sys.argv[1]   # use first argument as simulation name to analyze

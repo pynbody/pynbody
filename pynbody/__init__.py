@@ -21,6 +21,7 @@ from . import (
     filt,
     gravity,
     halo,
+    imaging,
     snapshot,
     sph,
     transformation,

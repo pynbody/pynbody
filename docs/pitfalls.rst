@@ -51,7 +51,7 @@ To tackle both of these issues in turn:
  very large compared to your snapshot, depending on the units you
  have adopted. That means either you should *specify* a width which
  is more appropriate (i.e. your call might look like
- ``pynbody.plot.sph.image(my_snapshot, width=0.01)``) or *convert
+ ``pynbody.plot.image(my_snapshot, width=0.01)``) or *convert
  to sensible units first*. The easiest way to do the latter is to call
  :func:`~pynbody.snapshot.SimSnap.physical_units` on your snapshot,
  e.g. ``s.physical_units()`` if your simulation is called ``s``.
