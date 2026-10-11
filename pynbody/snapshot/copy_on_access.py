@@ -71,6 +71,15 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
         self.partial_load = base is not base.ancestor or base.ancestor.partial_load
         self.incomplete_file_set = base.ancestor.incomplete_file_set
 
+        # Information needed to render images in the same way as the underlying snapshot: which particles are really
+        # AMR cells, and how those cells are oriented, given that the positions copied over may already be rotated
+        self._amr_cell_families = base.ancestor._amr_cell_families
+        self._should_denoise_images = base.ancestor._should_denoise_images
+        self._base_rotation_matrix = base.net_rotation_matrix()
+
+    def _untransformed_rotation_matrix(self):
+        return self._base_rotation_matrix.copy()
+
 
     def _load_array(self, array_name, fam=None):
         if (array_name, fam) in self._dont_try_accessing:

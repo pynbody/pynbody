@@ -809,16 +809,16 @@ def render_image_cells(int nx, int ny,
     pixel corners of F(X, Y), the volume of the cell with x <= X and y <= Y. Since all cells share the same
     orientation, F for every cell is a rescaled and translated copy of a single function, which is tabulated
     exactly (see cell_projection_cdf_table) and bilinearly interpolated. This conserves the mass of each cell
-    exactly and never produces negative values; errors in individual pixels are typically below 1e-5 and at most
-    of order 1e-3. The table resolution depends on the cell size relative to the pixels, according to
+    exactly and never produces negative values; errors in individual pixels, relative to the peak column through
+    the same cell, are typically below 1e-5 and at most of order 1e-3. The table resolution depends on the cell size relative to the pixels, according to
     CELL_TABLES.
 
     Rotated cells larger than covered by CELL_TABLES, or straddling z_lo or z_hi, are projected exactly. Their
     contributions are accumulated as second differences along each row of pixels, at a cost proportional to the
     cell perimeter rather than area (see _project_rotated_cell_rows).
 
-    *tables* optionally provides a list of (max_cell_pixels, table, bx, by) to use in place of CELL_TABLES; this is
-    for testing, and in particular tables=[] projects all rotated cells exactly. Perspective (z_camera) rendering is
+    *tables* optionally provides a list of (max_cell_pixels, table, bx, by) to use in place of CELL_TABLES. In
+    particular, tables=[] projects all rotated cells exactly (as requested by AMRImageRenderer with exact=True). Perspective (z_camera) rendering is
     not currently supported.
     """
 

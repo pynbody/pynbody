@@ -75,12 +75,20 @@ class Transformable:
         .. versionadded:: 2.9.0
 
         For example, a vector which was along the x axis in the original simulation now points along the first
-        column of the returned matrix.
+        column of the returned matrix. This includes any rotation already present in the data from which the object
+        was made (e.g. for a :class:`~pynbody.snapshot.copy_on_access.CopyOnAccessSimSnap`).
         """
-        result = np.eye(3)
+        result = self._untransformed_rotation_matrix()
         for t in self._transformations:
             result = t.rotation_matrix() @ result
         return result
+
+    def _untransformed_rotation_matrix(self) -> np.ndarray:
+        """Return the rotation of this object relative to the original simulation, before any transformations.
+
+        This is the identity unless the object was made from data that had already been rotated; see
+        :class:`pynbody.snapshot.copy_on_access.CopyOnAccessSimSnap`."""
+        return np.eye(3)
 
     def _register_transformation(self, t: Transformation):
         self._transformations.append(t)

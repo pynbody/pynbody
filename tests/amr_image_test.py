@@ -51,7 +51,7 @@ def amr_snap():
     f['rho'] = 1.0 + np.exp(-((pos - 1.0) ** 2).sum(axis=1)) + 0.1 * pos[:, 0]
     f['rho'].units = 'Msol kpc^-3'
     f['mass'] = f['rho'] * f['smooth'] ** 3
-    f._gas_particles_are_amr_cells = True
+    f._amr_cell_families = (pynbody.family.gas,)
     return f
 
 
@@ -221,7 +221,9 @@ def test_renderer_selection(amr_snap):
     assert core_type(amr=False) is renderers.ImageRenderer
     # specifying an SPH kernel, or perspective rendering (not yet supported for AMR) implies SPH rendering
     assert core_type(kernel='CubicSpline') is renderers.ImageRenderer
-    assert core_type(z_camera=10.0) is renderers.ImageRenderer
+    with pytest.warns(RuntimeWarning, match="z_camera"):
+        assert core_type(z_camera=10.0) is renderers.ImageRenderer
+    assert core_type(z_camera=10.0, amr=False) is renderers.ImageRenderer
     assert core_type(target='volume', nx=4) is renderers.Grid3dRenderer
 
     with pytest.raises(ValueError):
@@ -231,9 +233,118 @@ def test_renderer_selection(amr_snap):
     with pytest.raises(NotImplementedError):
         renderers.make_render_pipeline(amr_snap.g, amr=True, z_camera=10.0)
 
-    del amr_snap._gas_particles_are_amr_cells
+    with pytest.raises(ValueError, match="AMR"):
+        renderers.make_render_pipeline(amr_snap.g, amr=False, exact=True)
+
+    amr_snap._amr_cell_families = ()
     assert core_type() is renderers.ImageRenderer
     assert core_type(amr=True) is renderers.AMRImageRenderer
+
+
+def test_renderer_selection_multiple_families():
+    f = pynbody.new(gas=8, dm=8)
+    f._amr_cell_families = (pynbody.family.gas,)
+    f['pos'] = np.random.default_rng(1).uniform(-1, 1, (16, 3))
+    for k in ('smooth', 'rho', 'mass'):
+        f[k] = np.ones(16)
+    assert type(_core_renderer(renderers.make_render_pipeline(f.g))) is renderers.AMRImageRenderer
+    assert type(_core_renderer(renderers.make_render_pipeline(f, kernel='CubicSpline'))) is renderers.ImageRenderer
+    with pytest.raises(ValueError, match="sim.gas"):
+        renderers.make_render_pipeline(f, amr=True)
+
+
+def test_renderer_selection_config(amr_snap):
+    config = pynbody.config_parser
+    original = config.get('sph', 'amr-images')
+    try:
+        config.set('sph', 'amr-images', 'False')
+        pipeline = renderers.make_render_pipeline(amr_snap.g)
+        assert type(_core_renderer(pipeline)) is renderers.ImageRenderer
+        pipeline = renderers.make_render_pipeline(amr_snap.g, amr=True)
+        assert type(_core_renderer(pipeline)) is renderers.AMRImageRenderer
+    finally:
+        config.set('sph', 'amr-images', original)
+    assert type(_core_renderer(renderers.make_render_pipeline(amr_snap.g))) is renderers.AMRImageRenderer
+
+
+def test_exact_option(amr_snap):
+    with amr_snap.rotate_x(30).rotate_y(20):
+        args = dict(width=8.0, resolution=50, out_units='Msol kpc^-2')
+        pipeline = renderers.make_render_pipeline(amr_snap.g, exact=True, **args)
+        assert _core_renderer(pipeline)._exact
+        exact = pipeline.render()
+        approx = renderers.make_render_pipeline(amr_snap.g, **args).render()
+        assert not np.array_equal(exact, approx)
+        npt.assert_allclose(approx, exact, atol=1e-3 * exact.max())
+
+        # compare with the core routine, projecting all cells exactly
+        g = {k: amr_snap.g[k].view(np.ndarray) for k in ('x', 'y', 'z', 'smooth', 'rho', 'mass')}
+        core = _render_amr.render_image_cells(50, 50, g['x'], g['y'], g['z'], g['smooth'], -4.0, 4.0, -4.0, 4.0, 0.0,
+                                              g['rho'], g['mass'], g['rho'], 0.0, np.inf, -np.inf, np.inf,
+                                              0.0, True, amr_snap.net_rotation_matrix(), tables=[])
+        # rho is in Msol kpc^-3 and positions in kpc, so the native units are already Msol kpc^-2
+        npt.assert_allclose(exact, core, rtol=1e-6)
+
+
+def test_orientation_override(amr_snap):
+    """If positions are rotated without pynbody's transformations, the orientation can be supplied explicitly"""
+    rotation = _rotation(0.4, 0.7)
+    args = dict(width=8.0, resolution=50, out_units='Msol kpc^-2')
+    with amr_snap.rotate_x(np.degrees(0.4)).rotate_z(np.degrees(0.7)):
+        npt.assert_allclose(amr_snap.net_rotation_matrix(), rotation, atol=1e-12)
+        reference = renderers.make_render_pipeline(amr_snap.g, **args).render()
+
+    amr_snap['pos'] = amr_snap['pos'] @ rotation.T
+    pipeline = renderers.make_render_pipeline(amr_snap.g, threaded=False, **args)
+    npt.assert_allclose(_core_renderer(pipeline)._get_orientation(), np.eye(3))
+    assert not np.allclose(pipeline.render(), reference, rtol=1e-3)
+
+    _core_renderer(pipeline).set_orientation(rotation)
+    npt.assert_allclose(pipeline.render(), reference, rtol=1e-5, atol=1e-6 * reference.max())
+
+    renderer = renderers.AMRImageRenderer(amr_snap.g, orientation=rotation)
+    renderer.set_width(8.0)
+    renderer.set_resolution(50)
+    renderer.set_quantity('rho')
+    renderer.set_output_units('Msol kpc^-2')
+    npt.assert_allclose(renderer.render(), reference, rtol=1e-5, atol=1e-6 * reference.max())
+
+    with pytest.raises(ValueError):
+        renderer.set_orientation(np.eye(2))
+    with pytest.raises(ValueError):
+        renderer.set_orientation(2 * np.eye(3))
+
+
+def test_smooth_floor_denoises_slices(amr_snap):
+    amr_snap['rho'] = 2.0
+    amr_snap['mass'] = amr_snap['rho'] * amr_snap['smooth'] ** 3
+    pipeline = renderers.make_render_pipeline(amr_snap.g, width=8.0, resolution=32, smooth_floor=0.8)
+    assert isinstance(pipeline, renderers.DenoisedImageRenderer)
+    # enlarging the fine cells into overlapping cubes still gives the right value of a uniform field
+    npt.assert_allclose(pipeline.render(), 2.0, rtol=1e-5)
+
+    pipeline = renderers.make_render_pipeline(amr_snap.g, width=8.0, resolution=32, smooth_floor=0.8,
+                                              out_units='Msol kpc^-2')
+    assert not isinstance(pipeline, renderers.DenoisedImageRenderer)
+    npt.assert_allclose(pipeline.render().sum() * 0.25 ** 2, amr_snap['mass'].sum(), rtol=1e-5)
+
+
+def test_copy_on_access(amr_snap):
+    """AMR detection and the orientation of the cells should carry over to a copy-on-access snapshot"""
+    args = dict(width=8.0, resolution=50, out_units='Msol kpc^-2')
+    with amr_snap.rotate_x(30):
+        copy = amr_snap.get_copy_on_access_simsnap()
+        reference = renderers.make_render_pipeline(amr_snap.g, **args)
+        assert type(_core_renderer(reference)) is renderers.AMRImageRenderer
+        npt.assert_allclose(copy.net_rotation_matrix(), amr_snap.net_rotation_matrix())
+        pipeline = renderers.make_render_pipeline(copy.g, **args)
+        assert type(_core_renderer(pipeline)) is renderers.AMRImageRenderer
+        npt.assert_allclose(pipeline.render(), reference.render(), rtol=1e-6)
+
+        with amr_snap.rotate_y(20):
+            reference = renderers.make_render_pipeline(amr_snap.g, **args).render()
+        with copy.rotate_y(20):
+            npt.assert_allclose(renderers.make_render_pipeline(copy.g, **args).render(), reference, rtol=1e-6)
 
 
 def test_amr_renderer_has_no_kernel(amr_snap):
@@ -329,3 +440,29 @@ def test_ramses_image():
         slice_im = renderers.make_render_pipeline(f.g, width=60.0, resolution=101).render()
         # the central pixel lies entirely within the densest cell
         assert slice_im[50, 50] == pytest.approx(f.g['rho'].max(), rel=1e-5)
+
+
+@pytest.mark.parametrize("amr", [None, False])
+def test_velocity_image_consistent(amr_snap, monkeypatch, amr):
+    """The velocity vectors must be rendered in the same way as the underlying image"""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    import pynbody.plot.imaging
+
+    amr_snap['vel'] = np.ones((len(amr_snap), 3))
+    amr_snap['vel'].units = 'km s^-1'
+    renderer_types = []
+    make_render_pipeline = renderers.make_render_pipeline
+
+    def recording_make_render_pipeline(*args, **kwargs):
+        pipeline = make_render_pipeline(*args, **kwargs)
+        renderer_types.append(type(_core_renderer(pipeline)))
+        return pipeline
+
+    monkeypatch.setattr(renderers, 'make_render_pipeline', recording_make_render_pipeline)
+    pynbody.plot.imaging.velocity_image(amr_snap.g, width=8.0, resolution=16, vector_resolution=4, amr=amr)
+    plt.close('all')
+    expected = renderers.ImageRenderer if amr is False else renderers.AMRImageRenderer
+    assert renderer_types == [expected, expected]

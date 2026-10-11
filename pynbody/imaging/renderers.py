@@ -20,6 +20,7 @@ import concurrent
 import concurrent.futures
 import copy
 import logging
+import warnings
 from types import NoneType
 
 import numpy as np
@@ -44,16 +45,17 @@ def _auto_denoise(sim, kernel):
 
     if not _kernel_suitable_for_denoise(kernel):
         return False
-    elif isinstance(sim.ancestor,snapshot.ramses.RamsesSnap)\
-            or getattr(sim.ancestor, '_should_denoise_images', False):
-        return True
     else:
-        return False
+        ancestor = sim.ancestor
+        return bool(ancestor._amr_cell_families) or ancestor._should_denoise_images
 
-def _is_amr_gas(sim):
-    """Returns True if the particles in sim are all AMR cells (e.g. Ramses gas)"""
-    from .. import family
-    return getattr(sim.ancestor, '_gas_particles_are_amr_cells', False) and sim.families() == [family.gas]
+def _is_amr(sim):
+    """Returns True if the particles in sim are all AMR cells (e.g. Ramses gas)
+
+    For more information, see :class:`AMRImageRenderer`."""
+    amr_families = sim.ancestor._amr_cell_families
+    families = sim.families()
+    return len(families) > 0 and all(f in amr_families for f in families)
 
 class RenderPipelineLogicError(RuntimeError):
     pass
@@ -741,22 +743,104 @@ class AMRImageRenderer(ImageRenderer):
     .. versionadded:: 2.9.0
 
     Rather than interpolating with a smoothing kernel, each particle is treated as a cubic cell whose side length is
-    given by the ``smooth`` array (as for Ramses gas), and whose edges are aligned with the axes of the original
-    simulation, i.e. following any rotations applied to the snapshot. A slice image then shows the cross-section
-    of each cell, and a projected image the column through it, averaged over each pixel. Since the cells tile
-    space, the result is a rendering of the piecewise-constant field, and no denoising is needed.
+    given by the ``smooth`` array (as for Ramses gas), and whose volume is given by ``mass/rho``. A slice image then
+    shows the cross-section of each cell, and a projected image the column through it, averaged over each pixel.
+    Since the cells tile space, the result is a rendering of the piecewise-constant field, and no denoising is needed.
+
+    By default, :func:`make_render_pipeline` (and so also :func:`pynbody.plot.imaging.image` etc.) uses this
+    renderer for any snapshot that consists only of AMR cells, as declared by the snapshot loader (currently, Ramses
+    gas). This can be overridden with the *amr* argument to those functions, or switched off globally by setting
+    ``amr-images: False`` in the ``[sph]`` section of the pynbody configuration file.
 
     Slices are exact, as are projections when the cells are aligned with the image (including after rotations by
-    multiples of 90 degrees). Projections of rotated cells up to 16 pixels across interpolate the volume of each
-    cell within each pixel from a table, which conserves mass exactly and gives errors in individual pixels of
-    typically 1e-5 and at most 1e-3; larger rotated cells are again projected exactly. For details, see
+    multiples of 90 degrees). By default, projections of rotated cells up to 16 pixels across interpolate the volume
+    of each cell within each pixel from a table; this conserves mass exactly, and gives errors in individual pixels,
+    relative to the peak column through the same cell, of typically 1e-5 and at most 1e-3. Larger rotated cells are
+    projected exactly, as are all cells if *exact* is True (which can be an order of magnitude slower if most cells
+    are no more than a few pixels across). For details, see
     :func:`pynbody.imaging._render_amr.render_image_cells`.
+
+    The cell edges are taken to be parallel to the axes of the original simulation. Their orientation in the image is
+    therefore calculated from the rotations that have been applied to the snapshot through pynbody's transformations
+    (see :meth:`pynbody.snapshot.simsnap.SimSnap.net_rotation_matrix`); this includes rotations applied through
+    :func:`pynbody.analysis.faceon` and similar. If the positions have instead been rotated by modifying the ``pos``
+    array directly, or the snapshot is a view of a snapshot that was rotated with ``move_all=False``, the orientation
+    will be wrong, and must be supplied using *orientation* or :meth:`set_orientation`.
+
+    Other points to be aware of:
+
+    * Cells are placed according to their positions and sizes alone; nothing ensures that they tile space. If the
+      positions are stored in single precision (Ramses positions are loaded in double precision), adjacent small
+      cells may be separated by gaps or overlaps of order 1e-7 times their distance from the origin, which can
+      be visible in slices of a deep AMR hierarchy far from the origin.
+    * A *smooth_floor* (see :func:`make_render_pipeline`) enlarges small cells into overlapping cubes. Slices then
+      are by default denoised, giving a volume-weighted average over the overlapping cells, and projections continue
+      to conserve mass.
 
     No kernel is used, so :meth:`set_kernel` accepts only None; approximate rendering (:meth:`with_approximate`)
     has no effect; and perspective rendering (:meth:`ImageGeometry.set_camera_z`) is not supported. To render AMR
     cells as SPH particles instead, use :class:`ImageRenderer` (or pass ``amr=False`` to
     :func:`make_render_pipeline`).
     """
+
+    def __init__(self, snap: snapshot.SimSnap, orientation: np.ndarray | NoneType = None, exact: bool = False):
+        """Initialise the renderer.
+
+        Parameters
+        ----------
+        snap : snapshot.SimSnap
+            The snapshot containing the cells to render
+
+        orientation : numpy.ndarray, optional
+            The 3x3 rotation matrix whose columns give the directions of the cell edges, in the current coordinates.
+            If None (default), this is calculated from the transformations applied to the snapshot.
+            See :meth:`set_orientation`.
+
+        exact : bool, optional
+            If True, project all cells exactly, rather than using tabulated interpolation for small rotated cells.
+            See :meth:`set_exact`.
+        """
+        super().__init__(snap)
+        self.set_orientation(orientation)
+        self.set_exact(exact)
+
+    def set_orientation(self, orientation: np.ndarray | NoneType = None):
+        """Set the orientation of the cell edges.
+
+        Parameters
+        ----------
+        orientation : numpy.ndarray, optional
+            The 3x3 rotation matrix whose columns give the directions of the cell edges (i.e. of the x, y and z axes
+            of the original simulation) in the current coordinates. If None, this is calculated from the
+            transformations applied to the snapshot, using
+            :meth:`~pynbody.snapshot.simsnap.SimSnap.net_rotation_matrix`.
+
+        Note that this must be called before the renderer is wrapped by, e.g., :meth:`with_threading`, since the
+        wrapper renders using copies of the original renderer. For example:
+
+        >>> renderer = AMRImageRenderer(f.gas, orientation=rotation_matrix)
+        >>> renderer.set_width(10.0)
+        >>> renderer.set_quantity('rho')
+        >>> image = renderer.with_threading().render()
+        """
+        if orientation is not None:
+            orientation = np.array(orientation, dtype=np.float64)
+            if orientation.shape != (3, 3):
+                raise ValueError("The orientation must be a 3x3 matrix")
+            if not np.allclose(orientation.T @ orientation, np.eye(3), atol=1e-6):
+                raise ValueError("The orientation must be an orthogonal matrix")
+        self._orientation = orientation
+
+    def set_exact(self, exact: bool = True):
+        """Set whether all cells are projected exactly.
+
+        By default (*exact* = False), projections of rotated cells up to 16 pixels across are calculated by
+        interpolating from a table, which conserves mass exactly, but gives errors of up to 1e-3 in individual pixels.
+        If *exact* is True, these cells are instead projected exactly; this can be an order of magnitude slower if
+        most cells are no more than a few pixels across. Slices, and projections of cells aligned with the image, are
+        always exact.
+        """
+        self._exact = bool(exact)
 
     def set_kernel(self, kernel_spec=None):
         """AMR cells are rendered without a kernel, so the only valid kernel specification is None."""
@@ -770,27 +854,33 @@ class AMRImageRenderer(ImageRenderer):
         return None
 
     def _denoise_by_default(self):
-        # cells tile space exactly, so there is no noise to remove
-        return False
+        # cells tile space exactly, so there is no noise to remove, unless a smooth floor makes them overlap
+        return self._smooth_floor > 0
 
     def _approximation_supported(self):
         # rendering cells at low resolution and interpolating would blur their edges; and the cost of rendering a
         # large cell is in any case proportional to its perimeter rather than its area
         return False
 
+    def _get_orientation(self):
+        if self._orientation is None:
+            # The cell edges are aligned with the axes of the original simulation, so follow any rotations applied
+            return self._snapshot.net_rotation_matrix()
+        else:
+            return self._orientation
+
     def _call_c_renderer(self, array, geometry, kernel, mass_array, rho_array, smooth_array, x_array, y_array, z_array):
         if geometry.z_camera:
             raise NotImplementedError("Perspective rendering is not yet supported for AMR cells. To render cells as "
                                       "SPH particles instead, use ImageRenderer.")
-        # The cell edges are aligned with the axes of the original simulation, so follow any rotations applied since
-        orientation = self._snapshot.net_rotation_matrix()
         return _render_amr.render_image_cells(
             geometry.nx, geometry.ny, x_array, y_array, z_array, smooth_array,
             geometry.x1, geometry.x2, geometry.y1, geometry.y2, geometry.z_plane,
             array, mass_array, rho_array, self._smooth_min, self._smooth_max, geometry.z1, geometry.z2,
-            self._smooth_floor, self._is_projected, orientation,
+            self._smooth_floor, self._is_projected, self._get_orientation(),
             wrap_offsets_x=self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
-            wrap_offsets_y=self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2))
+            wrap_offsets_y=self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2),
+            tables=[] if self._exact else None)
 
 
 class Grid3dRenderer(ImageRenderer):
@@ -865,6 +955,51 @@ class HealpixRenderer(ImageRenderer):
 
 
 
+def _use_amr_rendering(sim, amr, target, kernel, z_camera, exact):
+    """Decide whether make_render_pipeline should render AMR cells, given its arguments"""
+    if amr is None:
+        if not _is_amr(sim):
+            amr = False
+            reason = "the snapshot does not consist of AMR cells"
+        elif not config_parser.getboolean('sph', 'amr-images', fallback=True):
+            amr = False
+            reason = "AMR rendering is switched off in the configuration file"
+        elif target != 'image':
+            amr = False
+            reason = f"AMR rendering is not available for target={target!r}"
+        elif kernel is not None:
+            amr = False
+            reason = "a kernel was specified"
+        elif z_camera is not None:
+            warnings.warn("Perspective rendering (z_camera) is not yet supported for AMR cells, so they will be "
+                          "rendered as SPH particles. Pass amr=False to silence this warning.", RuntimeWarning)
+            amr = False
+            reason = "perspective rendering is not supported for AMR cells"
+        else:
+            amr = True
+            reason = "the snapshot consists of AMR cells"
+    else:
+        reason = f"amr={amr!r} was specified"
+
+    if amr:
+        if target != 'image':
+            raise ValueError("AMR rendering is only available for target='image'")
+        if kernel is not None:
+            raise ValueError("AMR rendering does not use a kernel; pass amr=False to render AMR cells as SPH particles "
+                             "with a kernel")
+        if z_camera is not None:
+            raise NotImplementedError("Perspective rendering (z_camera) is not yet supported for AMR rendering; pass "
+                                      "amr=False to render AMR cells as SPH particles instead")
+        if len(sim.families()) > 1:
+            raise ValueError("AMR rendering requires a snapshot consisting only of AMR cells, but this one contains "
+                             f"particles of several families ({', '.join(f.name for f in sim.families())}). Select "
+                             f"the cells first, e.g. using sim.gas")
+    elif exact:
+        raise ValueError("The exact option applies only to AMR rendering")
+
+    logger.info(f"Rendering {'as AMR cells' if amr else 'as SPH particles'} because {reason}")
+    return amr
+
 def make_render_pipeline(sim : snapshot.SimSnap, /,
                          quantity: str | np.ndarray = 'rho',
                          width: float | str | units.UnitBase = 10.0,
@@ -883,6 +1018,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
                          denoise: bool | NoneType = None,
                          target: str = 'image',
                          amr: bool | NoneType = None,
+                         exact: bool | NoneType = None,
                          ) -> ImageRendererBase:
     """Generate a renderer object for rendering images of a simulation snapshot.
 
@@ -892,8 +1028,8 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     .. versionchanged :: 2.9.0
 
-      The parameter *amr* has been added. By default, AMR gas (e.g. from Ramses) is now rendered exactly as cubic
-      cells by :class:`AMRImageRenderer`, rather than as SPH particles.
+      The parameters *amr* and *exact* have been added. By default, AMR gas (e.g. from Ramses) is now rendered
+      exactly as cubic cells by :class:`AMRImageRenderer`, rather than as SPH particles.
 
     Parameters
     ----------
@@ -990,9 +1126,15 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     amr : bool, optional
         Whether to render the particles as AMR cells, using :class:`AMRImageRenderer`, rather than by SPH
-        interpolation. If None (default), AMR rendering is used if the snapshot consists of AMR gas cells (e.g. Ramses
-        gas), unless a *kernel* or *z_camera* is specified, or the target is not 'image'. AMR rendering is only
-        available for target='image' and does not support *kernel*, *z_camera* or *approximate_fast*.
+        interpolation. If None (default), AMR rendering is used if the snapshot consists only of AMR cells (e.g.
+        Ramses gas), unless a *kernel* is specified or the target is not 'image'; or unless *z_camera* is specified,
+        in which case a warning is issued. AMR rendering is only available for target='image' and does not support
+        *kernel*, *z_camera* or *approximate_fast*. The default can be changed to SPH rendering by setting
+        ``amr-images: False`` in the ``[sph]`` section of the pynbody configuration file.
+
+    exact : bool, optional
+        For AMR rendering only. If True, all cells are projected exactly, rather than small rotated cells being
+        interpolated from a table; see :meth:`AMRImageRenderer.set_exact`. The default is False.
 
     """
     if resolution is None:
@@ -1016,19 +1158,14 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     width = float(width)
 
-    if amr is None:
-        amr = target == 'image' and kernel is None and z_camera is None and _is_amr_gas(sim)
-    elif amr:
-        if target != 'image':
-            raise ValueError("AMR rendering is only available for target='image'")
-        if kernel is not None:
-            raise ValueError("AMR rendering does not use a kernel")
-        if z_camera is not None:
-            raise NotImplementedError("Perspective rendering (z_camera) is not yet supported for AMR rendering")
+    amr = _use_amr_rendering(sim, amr, target, kernel, z_camera, exact)
 
     match target:
         case 'image':
-            renderer = AMRImageRenderer(sim) if amr else ImageRenderer(sim)
+            if amr:
+                renderer = AMRImageRenderer(sim, exact=bool(exact))
+            else:
+                renderer = ImageRenderer(sim)
         case 'volume':
             renderer = Grid3dRenderer(sim)
         case 'healpix':

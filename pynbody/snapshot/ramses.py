@@ -386,7 +386,7 @@ class RamsesSnap(SimSnap):
     """
     reader_pool = None
 
-    _gas_particles_are_amr_cells = True
+    _amr_cell_families = (family.gas,)
 
     def __init__(self, dirname, cpus=None, maxlevel=None, with_gas=True, force_gas=False, times_are_proper=None,
                  negative_iords_on_purpose=False):
