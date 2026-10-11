@@ -79,19 +79,45 @@ def test_cells_tile_exactly(projected, rotated, exact):
 def test_rotated_projection_against_exact(rotation, cell_pixels):
     """Rotated projections must agree with the exact path, whichever of the faster paths is taken.
 
-    Cells up to 16 pixels interpolate tabulated volumes; larger cells are accumulated along rows (see
-    render_image_cells)."""
+    Cells up to 16 pixels interpolate tabulated volumes; larger cells are projected exactly, accumulating along rows
+    (see render_image_cells). tables=[] forces the exact projection of all cells."""
     rng = np.random.default_rng(1)
     a = cell_pixels * 4.0 / 100
     n_sub = max(2, min(12, int(6.0 / a)))
     pos = _cube_of_cells(n_sub, n_sub * a, rng.uniform(-0.3, 0.3, 3), rotation)
     qty = rng.lognormal(0.0, 1.0, len(pos))
     fast = _render_cells(pos, a, qty, rotation, True)
-    exact = _render_cells(pos, a, qty, rotation, True, tables=[], row_threshold=1e30)
+    exact = _render_cells(pos, a, qty, rotation, True, tables=[])
     assert fast.min() >= 0
     assert exact.max() > 0
     npt.assert_allclose(fast, exact, atol=1e-3 * exact.max())
     npt.assert_allclose(fast.sum(), exact.sum(), rtol=1e-5)
+
+
+@pytest.mark.parametrize("rotation", [_rotation(0.4, 0.7), _rotation(np.radians(30), np.radians(25)),
+                                      _rotation(np.pi / 2, 0.3)])
+@pytest.mark.parametrize("cell_pixels", [0.7, 3.0, 12.0, 40.0])
+@pytest.mark.parametrize("z_range", [(-np.inf, np.inf), (-0.1, 0.25)])
+@pytest.mark.parametrize("use_tables", [True, False])
+def test_rotated_projection_brute_force(rotation, cell_pixels, z_range, use_tables):
+    """Projections of single rotated cells must match an independent brute-force calculation, which evaluates the
+    exact volume of the cell within x <= X, y <= Y (and the z range) at every pixel corner"""
+    nx, width = 48, 4.0
+    a = cell_pixels * width / nx
+    centre = np.array([0.13, -0.21, 0.07 * a])
+    z_lo, z_hi = (z * a for z in z_range)
+    kwargs = {} if use_tables else {'tables': []}
+    im = _render_cells(centre, a, 1.0, rotation, True, nx=nx, width=width, z_lo=z_lo, z_hi=z_hi, **kwargs)
+
+    corners = np.linspace(-width / 2, width / 2, nx + 1)
+    X, Y = np.meshgrid((corners - centre[0]) / a, (corners - centre[1]) / a)
+    F = _render_amr.cell_quadrant_volume(rotation, X, Y, (z_lo - centre[2]) / a, (z_hi - centre[2]) / a) * a ** 3
+    expected = (F[1:, 1:] - F[1:, :-1] - F[:-1, 1:] + F[:-1, :-1]) / (width / nx) ** 2
+
+    assert expected.max() > 0
+    exact = not use_tables or cell_pixels > 16 or np.isfinite(z_lo)
+    npt.assert_allclose(im, expected, atol=(1e-5 if exact else 1e-3) * expected.max())
+    npt.assert_allclose(im.sum(), expected.sum(), rtol=1e-5)
 
 
 @pytest.mark.parametrize("rotation", [_rotation(0.4, 0.7), _rotation(np.radians(30), np.radians(25)),

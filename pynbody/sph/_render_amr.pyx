@@ -63,15 +63,13 @@ cdef inline double _overlap(double a0, double a1, double b0, double b1) noexcept
 
 @cython.cdivision(True)
 cdef inline double _cell_chord(double dx, double dy, const double *axes, double half,
-                               double t_lo, double t_hi, int *label) noexcept nogil:
+                               double t_lo, double t_hi) noexcept nogil:
     """Length of the chord along the z direction through a rotated cube, at offset (dx, dy) from its centre.
 
     The cube has half-width *half* and its kth axis is (axes[3k], axes[3k+1], axes[3k+2]). The chord is additionally
-    restricted to the range of z offsets [t_lo, t_hi]. On exit, *label* identifies which pair of faces the ray enters
-    and exits through (or -1 if the ray misses). Within a region of constant label, the chord length is a linear
-    function of (dx, dy); and such regions are convex.
+    restricted to the range of z offsets [t_lo, t_hi].
     """
-    cdef int k, entry = 6, exit = 7  # 6 and 7 label the z-range limits
+    cdef int k
     cdef double s, ez, a, b
     for k in range(3):
         s = axes[3*k] * dx + axes[3*k+1] * dy
@@ -79,32 +77,20 @@ cdef inline double _cell_chord(double dx, double dy, const double *axes, double 
         if ez < 1e-12 and ez > -1e-12:
             # this axis lies in the image plane; it constrains (dx, dy) but not the chord
             if s > half or s < -half:
-                label[0] = -1
                 return 0.0
             continue
         if ez > 0:
             a = (-half - s) / ez
             b = (half - s) / ez
-            if a > t_lo:
-                t_lo = a
-                entry = 2*k
-            if b < t_hi:
-                t_hi = b
-                exit = 2*k + 1
         else:
             a = (half - s) / ez
             b = (-half - s) / ez
-            if a > t_lo:
-                t_lo = a
-                entry = 2*k + 1
-            if b < t_hi:
-                t_hi = b
-                exit = 2*k
-    if t_hi <= t_lo:
-        label[0] = -1
-        return 0.0
-    label[0] = entry * 8 + exit
-    return t_hi - t_lo
+        if a > t_lo:
+            t_lo = a
+        if b < t_hi:
+            t_hi = b
+    return t_hi - t_lo if t_hi > t_lo else 0.0
+
 
 @cython.cdivision(True)
 cdef int _clip_polygon(const double *px, const double *py, int n, double a, double b, double c,
@@ -166,147 +152,8 @@ cdef inline int _inside_all(double x, double y, const double *hp_a, const double
             return 0
     return 1
 
-cdef int _convex_hull(double *px, double *py, int n, double *hx, double *hy) noexcept nogil:
-    """Convex hull (anticlockwise) of a small number of points by Andrew's monotone chain. Returns vertex count."""
-    cdef int i, j, k = 0, lower_size
-    cdef double tx, ty
-    # insertion sort by x then y
-    for i in range(1, n):
-        tx = px[i]; ty = py[i]
-        j = i - 1
-        while j >= 0 and (px[j] > tx or (px[j] == tx and py[j] > ty)):
-            px[j+1] = px[j]; py[j+1] = py[j]
-            j -= 1
-        px[j+1] = tx; py[j+1] = ty
-    for i in range(n):
-        while k >= 2 and ((hx[k-1]-hx[k-2])*(py[i]-hy[k-2]) - (hy[k-1]-hy[k-2])*(px[i]-hx[k-2])) <= 0:
-            k -= 1
-        hx[k] = px[i]; hy[k] = py[i]; k += 1
-    lower_size = k + 1
-    for i in range(n - 2, -1, -1):
-        while k >= lower_size and ((hx[k-1]-hx[k-2])*(py[i]-hy[k-2]) - (hy[k-1]-hy[k-2])*(px[i]-hx[k-2])) <= 0:
-            k -= 1
-        hx[k] = px[i]; hy[k] = py[i]; k += 1
-    return k - 1
-
-cdef inline int _rectangle_outside_hull(double x0, double x1, double y0, double y1,
-                                        const double *hx, const double *hy, int nh) noexcept nogil:
-    """True if some edge of the anticlockwise convex hull separates it from the rectangle"""
-    cdef int i, i1
-    cdef double nx_, ny_
-    for i in range(nh):
-        i1 = (i + 1) % nh
-        nx_ = hy[i1] - hy[i]
-        ny_ = hx[i] - hx[i1]
-        if (nx_ * (x0 - hx[i]) + ny_ * (y0 - hy[i]) > 0 and nx_ * (x1 - hx[i]) + ny_ * (y0 - hy[i]) > 0 and
-            nx_ * (x0 - hx[i]) + ny_ * (y1 - hy[i]) > 0 and nx_ * (x1 - hx[i]) + ny_ * (y1 - hy[i]) > 0):
-            return 1
-    return 0
-
-
 cdef inline double _dot3(const double *a, const double *b) noexcept nogil:
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-
-cdef inline int _add_half_plane(double a, double b, double c, double tol,
-                                double *hp_a, double *hp_b, double *hp_c, int n_hp) noexcept nogil:
-    """Append the half-plane a u + b v <= c, returning the new count, or -1 if the half-plane is empty.
-
-    A half-plane whose normal is negligible is either everything (and is dropped) or nothing."""
-    if n_hp < 0:
-        return -1
-    if fabs(a) < 1e-12 and fabs(b) < 1e-12:
-        return n_hp if c >= -tol else -1
-    hp_a[n_hp] = a
-    hp_b[n_hp] = b
-    hp_c[n_hp] = c
-    return n_hp + 1
-
-@cython.cdivision(True)
-cdef double _clipped_cube_volume(const double *axes, double half, const double *normals, const double *offsets,
-                                 int n_planes) noexcept nogil:
-    """Exact volume of a cube intersected with up to four half-spaces.
-
-    The cube is centred on the origin, has half-width *half* and axes (axes[3k], axes[3k+1], axes[3k+2]). The
-    half-spaces are normals_i . r <= offsets_i, where the normals are unit vectors.
-
-    By the divergence theorem with the origin at the cube centre, the volume is a third of the sum over faces of
-    (distance of face plane from origin) x (face area). Every face of the clipped cube is either a clipped face of
-    the original cube, at distance *half*, or a cap lying in one of the clipping planes, at distance offsets_i.
-    Each of these areas follows from clipping a convex polygon in 2D.
-    """
-    cdef double hp_a[12]
-    cdef double hp_b[12]
-    cdef double hp_c[12]
-    cdef double b1[3]
-    cdef double b2[3]
-    cdef const double *n_i
-    cdef const double *e_k
-    cdef double total_face_area = 0.0, cap_term = 0.0, sign, norm, en, ea, eb, R
-    cdef int k, k1, k2, s, i, j, n_hp
-
-    # clipped faces of the cube: in face coordinates (u, v) in [-half, half]^2, r = sign half e_k + u e_k1 + v e_k2
-    for k in range(3):
-        k1 = (k + 1) % 3
-        k2 = (k + 2) % 3
-        for s in range(2):
-            sign = 1.0 if s else -1.0
-            n_hp = 0
-            for i in range(n_planes):
-                n_i = normals + 3 * i
-                ea = _dot3(n_i, axes + 3 * k1)
-                eb = _dot3(n_i, axes + 3 * k2)
-                en = offsets[i] - sign * half * _dot3(n_i, axes + 3 * k)
-                if fabs(ea) < 1e-12 and fabs(eb) < 1e-12:
-                    # clipping plane parallel to this face
-                    if en < -1e-12 * half or (en <= 1e-12 * half and sign * _dot3(n_i, axes + 3 * k) > 0):
-                        # face is clipped away entirely; or the plane coincides with the face and faces the
-                        # same way, in which case the cap in that plane replaces the face
-                        n_hp = -1
-                        break
-                    continue
-                hp_a[n_hp] = ea; hp_b[n_hp] = eb; hp_c[n_hp] = en
-                n_hp += 1
-            if n_hp >= 0:
-                total_face_area += _clipped_rectangle_area(-half, half, -half, half, hp_a, hp_b, hp_c, n_hp)
-
-    # caps: the cross-section of the cube in each clipping plane, clipped by the other planes. Parametrise the
-    # plane as r = offsets_i n_i + u b1 + v b2; the cross-section lies within sqrt(3) half of the origin of (u, v).
-    R = 1.7320508075688772 * half * (1.0 + 1e-12)
-    for i in range(n_planes):
-        n_i = normals + 3 * i
-        # basis for the plane, starting from whichever coordinate axis is least aligned with n_i
-        if fabs(n_i[0]) <= fabs(n_i[1]) and fabs(n_i[0]) <= fabs(n_i[2]):
-            b1[0] = 0.0; b1[1] = n_i[2]; b1[2] = -n_i[1]
-        elif fabs(n_i[1]) <= fabs(n_i[2]):
-            b1[0] = -n_i[2]; b1[1] = 0.0; b1[2] = n_i[0]
-        else:
-            b1[0] = n_i[1]; b1[1] = -n_i[0]; b1[2] = 0.0
-        norm = sqrt(_dot3(b1, b1))
-        b1[0] /= norm; b1[1] /= norm; b1[2] /= norm
-        b2[0] = n_i[1] * b1[2] - n_i[2] * b1[1]
-        b2[1] = n_i[2] * b1[0] - n_i[0] * b1[2]
-        b2[2] = n_i[0] * b1[1] - n_i[1] * b1[0]
-
-        n_hp = 0
-        for k in range(3):
-            e_k = axes + 3 * k
-            ea = _dot3(e_k, b1)
-            eb = _dot3(e_k, b2)
-            en = _dot3(e_k, n_i)
-            # where the plane coincides with a cube face, the face's constraint is satisfied (tolerance tol)
-            n_hp = _add_half_plane(ea, eb, half - offsets[i] * en, 1e-12 * half, hp_a, hp_b, hp_c, n_hp)
-            n_hp = _add_half_plane(-ea, -eb, half + offsets[i] * en, 1e-12 * half, hp_a, hp_b, hp_c, n_hp)
-        for j in range(n_planes):
-            if j == i:
-                continue
-            n_hp = _add_half_plane(_dot3(normals + 3 * j, b1), _dot3(normals + 3 * j, b2),
-                                   offsets[j] - offsets[i] * _dot3(normals + 3 * j, n_i), 1e-12 * half,
-                                   hp_a, hp_b, hp_c, n_hp)
-        if n_hp >= 0:
-            cap_term += offsets[i] * _clipped_rectangle_area(-R, R, -R, R, hp_a, hp_b, hp_c, n_hp)
-
-    return (half * total_face_area + cap_term) / 3.0
-
 
 @cython.cdivision(True)
 cdef inline double _square_area_below_line(double half, double a, double b, double c) noexcept nogil:
@@ -329,27 +176,142 @@ cdef inline double _square_area_below_line(double half, double a, double b, doub
 
 
 @cython.cdivision(True)
+cdef int _cube_cross_section(const double *axes, double half, double zc, double *px, double *py) noexcept nogil:
+    """Write the cross-section of the cube (centred on the origin) in the plane z = zc, as a polygon of (x, y)
+    vertices, into px, py (which must have space for MAX_POLY vertices). Returns the number of vertices."""
+    cdef double buf_x[MAX_POLY]
+    cdef double buf_y[MAX_POLY]
+    cdef double ex, ey, ez
+    cdef double bound_x = half * (fabs(axes[0]) + fabs(axes[3]) + fabs(axes[6])) * 1.01
+    cdef double bound_y = half * (fabs(axes[1]) + fabs(axes[4]) + fabs(axes[7])) * 1.01
+    cdef int k, n = 4, j
+    px[0] = -bound_x; py[0] = -bound_y
+    px[1] = bound_x; py[1] = -bound_y
+    px[2] = bound_x; py[2] = bound_y
+    px[3] = -bound_x; py[3] = bound_y
+    for k in range(3):
+        ex = axes[3 * k]
+        ey = axes[3 * k + 1]
+        ez = axes[3 * k + 2]
+        if fabs(ex) < 1e-12 and fabs(ey) < 1e-12:
+            # this axis is along z, so the plane is either within its range or not
+            if fabs(ez * zc) > half:
+                return 0
+            continue
+        n = _clip_polygon(px, py, n, ex, ey, half - ez * zc, buf_x, buf_y)
+        n = _clip_polygon(buf_x, buf_y, n, -ex, -ey, half + ez * zc, px, py)
+    return n if n >= 3 else 0
+
+
+@cython.cdivision(True)
+cdef double _slab_quadrant_volume(const double *axes, double half, double dx, double dy, double z_lo, double z_hi,
+                                  const double *cap_x, const double *cap_y, int n_cap) noexcept nogil:
+    """Volume of the cube (centred on the origin) with x <= dx, y <= dy and z_lo <= z <= z_hi.
+
+    (cap_x, cap_y) must be the cross-section of the cube at z_lo, from _cube_cross_section. The divergence theorem
+    is applied about r0 = (dx, dy, z_hi), which lies in three of the clipping planes, so that only the cube faces
+    and the cap at z_lo contribute: the volume is a third of the sum of (distance of plane from r0) x (area).
+    """
+    cdef double normals[12]
+    cdef double offsets[4]
+    cdef double hp_a[4]
+    cdef double hp_b[4]
+    cdef double hp_c[4]
+    cdef double buf_x[MAX_POLY]
+    cdef double buf_y[MAX_POLY]
+    cdef double buf2_x[MAX_POLY]
+    cdef double buf2_y[MAX_POLY]
+    cdef double total = 0.0, sign, area, a, b, c, nk, limit
+    cdef double extent_x = half * (fabs(axes[0]) + fabs(axes[3]) + fabs(axes[6]))
+    cdef double extent_y = half * (fabs(axes[1]) + fabs(axes[4]) + fabs(axes[7]))
+    cdef int k, k1, k2, s, i, n_hp, n
+    cdef const double *n_i
+    # r0 is used as the origin for the divergence theorem, so must not be far from the cube to avoid cancellation;
+    # moving the planes to the edge of the cube makes no difference to the volume
+    if dx > extent_x: dx = extent_x
+    if dy > extent_y: dy = extent_y
+    if dx < -extent_x: return 0.0
+    if dy < -extent_y: return 0.0
+    normals[0] = 1.0; normals[1] = 0.0; normals[2] = 0.0; offsets[0] = dx
+    normals[3] = 0.0; normals[4] = 1.0; normals[5] = 0.0; offsets[1] = dy
+    normals[6] = 0.0; normals[7] = 0.0; normals[8] = 1.0; offsets[2] = z_hi
+    normals[9] = 0.0; normals[10] = 0.0; normals[11] = -1.0; offsets[3] = -z_lo
+
+    for k in range(3):
+        k1 = (k + 1) % 3
+        k2 = (k + 2) % 3
+        for s in range(2):
+            sign = 1.0 if s else -1.0
+            # constraints on the face, in face coordinates r = sign half e_k + u e_k1 + v e_k2
+            n_hp = 0
+            for i in range(4):
+                n_i = normals + 3 * i
+                a = _dot3(n_i, axes + 3 * k1)
+                b = _dot3(n_i, axes + 3 * k2)
+                nk = _dot3(n_i, axes + 3 * k)
+                c = offsets[i] - sign * half * nk
+                limit = half * (fabs(a) + fabs(b))
+                if fabs(a) + fabs(b) < 1e-12:
+                    # plane parallel to face: the face is either excluded or not. Where the plane coincides with the
+                    # face and faces the same way, the face is excluded; only the z_lo plane carries a cap to take
+                    # its place, but faces in the other planes contribute nothing anyway (being at zero distance).
+                    if c < -1e-12 * half or (c <= 1e-12 * half and sign * nk > 0):
+                        n_hp = -1
+                        break
+                    continue
+                if c <= -limit:
+                    n_hp = -1
+                    break
+                if c < limit:
+                    hp_a[n_hp] = a; hp_b[n_hp] = b; hp_c[n_hp] = c
+                    n_hp += 1
+            if n_hp < 0:
+                continue
+            if n_hp == 0:
+                area = 4.0 * half * half
+            elif n_hp == 1:
+                area = _square_area_below_line(half, hp_a[0], hp_b[0], hp_c[0])
+            else:
+                area = _clipped_rectangle_area(-half, half, -half, half, hp_a, hp_b, hp_c, n_hp)
+            total += (half - sign * (axes[3 * k] * dx + axes[3 * k + 1] * dy + axes[3 * k + 2] * z_hi)) * area
+
+    # the cap at z_lo, clipped by x <= dx and y <= dy
+    if n_cap >= 3:
+        n = _clip_polygon(cap_x, cap_y, n_cap, 1.0, 0.0, dx, buf_x, buf_y)
+        n = _clip_polygon(buf_x, buf_y, n, 0.0, 1.0, dy, buf2_x, buf2_y)
+        if n >= 3:
+            total += (z_hi - z_lo) * _polygon_area(buf2_x, buf2_y, n)
+    return total / 3.0
+
+
+@cython.cdivision(True)
 cdef double _quadrant_volume(const double *axes, double half, double dx, double dy,
                              double z_lo, double z_hi, int clip_z) noexcept nogil:
     """Volume of the cube (centred on origin) with x <= dx and y <= dy, and optionally z_lo <= z <= z_hi.
 
     Without z clipping, the divergence theorem is applied about the point r0 = (dx, dy, 0), which lies in both
     clipping planes so that the caps there make no contribution. The volume is then a third of the sum over the
-    cube faces of (distance of face plane from r0) x (clipped face area).
+    cube faces of (distance of face plane from r0) x (clipped face area). With z clipping, see
+    _slab_quadrant_volume (to which the cross-section at z_lo can be passed directly, if already known).
     """
-    cdef double normals[12]
-    cdef double offsets[4]
+    cdef double cap_x[MAX_POLY]
+    cdef double cap_y[MAX_POLY]
     cdef double hp_a[2]
     cdef double hp_b[2]
     cdef double hp_c[2]
     cdef double total = 0.0, sign, area, ax, bx_, cx, ay, by_, cy, ex, ey
     cdef int k, k1, k2, s, n_hp
+    cdef double extent_x = half * (fabs(axes[0]) + fabs(axes[3]) + fabs(axes[6]))
+    cdef double extent_y = half * (fabs(axes[1]) + fabs(axes[4]) + fabs(axes[7]))
     if clip_z:
-        normals[0] = 1.0; normals[1] = 0.0; normals[2] = 0.0; offsets[0] = dx
-        normals[3] = 0.0; normals[4] = 1.0; normals[5] = 0.0; offsets[1] = dy
-        normals[6] = 0.0; normals[7] = 0.0; normals[8] = 1.0; offsets[2] = z_hi
-        normals[9] = 0.0; normals[10] = 0.0; normals[11] = -1.0; offsets[3] = -z_lo
-        return _clipped_cube_volume(axes, half, normals, offsets, 4)
+        return _slab_quadrant_volume(axes, half, dx, dy, z_lo, z_hi, cap_x, cap_y,
+                                     _cube_cross_section(axes, half, z_lo, cap_x, cap_y))
+    # r0 = (dx, dy, 0) is used as the origin for the divergence theorem, so must not be far from the cube to avoid
+    # cancellation; moving the planes to the edge of the cube makes no difference to the volume
+    if dx > extent_x: dx = extent_x
+    if dy > extent_y: dy = extent_y
+    if dx < -extent_x or dy < -extent_y:
+        return 0.0
 
     for k in range(3):
         k1 = (k + 1) % 3
@@ -407,165 +369,11 @@ def cell_quadrant_volume(orientation, dx, dy, double z_lo=-np.inf, double z_hi=n
     return out.reshape(dx.shape)
 
 
-ctypedef fused cell_output_type:
-    float
-    double
-
-@cython.cdivision(True)
-cdef void _project_pixels_exact(cell_output_type *res, int nx, double x1, double y1,
-                                double pixel_dx, double pixel_dy, int ix0, int ix1, int iy0, int iy1,
-                                double x_i, double y_i, double half, const double *axes,
-                                double zl, double zh, int clip_z, double weight,
-                                const double *hx, const double *hy, int nh,
-                                np.int32_t *lower_labels, np.int32_t *upper_labels,
-                                double *lower_F, double *upper_F) noexcept nogil:
-    """Add the exact projection of a rotated cell to pixels [ix0, ix1] x [iy0, iy1] of res.
-
-    Each pixel receives weight times the average over the pixel of the chord length through the cell. Where the
-    rays through all four corners of a pixel enter and exit the cell through the same pair of faces, the pixel lies
-    within a (convex) region where the chord is linear, so its average is its central value. In remaining pixels,
-    the integral is a difference between the corner values of F(X, Y), the volume of the cell with x <= X and
-    y <= Y, evaluated exactly. The z range is [zl, zh] relative to the cell centre, and is only applied to F if
-    clip_z is set. (hx, hy) is the convex hull of the cell's projection, with nh vertices.
-
-    The label and F buffers are indexed by ix, and so must each have space for nx + 1 values.
-    """
-    cdef double X0, X1, Y0, Y1, value, pixel_area = pixel_dx * pixel_dy, nan = NAN
-    cdef int ix, iy, label, label_00
-    cdef np.int32_t *swap_labels
-    cdef double *swap_F
-
-    Y0 = y1 + iy0 * pixel_dy
-    for ix in range(ix0, ix1 + 2):
-        _cell_chord(x1 + ix * pixel_dx - x_i, Y0 - y_i, axes, half, zl, zh, &label)
-        lower_labels[ix] = label
-        lower_F[ix] = nan
-
-    for iy in range(iy0, iy1 + 1):
-        Y0 = y1 + iy * pixel_dy
-        Y1 = Y0 + pixel_dy
-        for ix in range(ix0, ix1 + 2):
-            _cell_chord(x1 + ix * pixel_dx - x_i, Y1 - y_i, axes, half, zl, zh, &label)
-            upper_labels[ix] = label
-            upper_F[ix] = nan
-
-        for ix in range(ix0, ix1 + 1):
-            X0 = x1 + ix * pixel_dx
-            X1 = X0 + pixel_dx
-            label_00 = lower_labels[ix]
-            if (label_00 != -1 and label_00 == lower_labels[ix + 1] and label_00 == upper_labels[ix] and
-                label_00 == upper_labels[ix + 1]):
-                value = _cell_chord(X0 + 0.5 * pixel_dx - x_i, Y0 + 0.5 * pixel_dy - y_i,
-                                    axes, half, zl, zh, &label)
-            else:
-                if _rectangle_outside_hull(X0, X1, Y0, Y1, hx, hy, nh):
-                    continue
-                if lower_F[ix] != lower_F[ix]:
-                    lower_F[ix] = _quadrant_volume(axes, half, X0 - x_i, Y0 - y_i, zl, zh, clip_z)
-                if lower_F[ix + 1] != lower_F[ix + 1]:
-                    lower_F[ix + 1] = _quadrant_volume(axes, half, X1 - x_i, Y0 - y_i, zl, zh, clip_z)
-                if upper_F[ix] != upper_F[ix]:
-                    upper_F[ix] = _quadrant_volume(axes, half, X0 - x_i, Y1 - y_i, zl, zh, clip_z)
-                if upper_F[ix + 1] != upper_F[ix + 1]:
-                    upper_F[ix + 1] = _quadrant_volume(axes, half, X1 - x_i, Y1 - y_i, zl, zh, clip_z)
-                value = ((upper_F[ix + 1] - upper_F[ix]) - (lower_F[ix + 1] - lower_F[ix])) / pixel_area
-                if value < 0:
-                    # round-off
-                    value = 0.0
-            res[iy * nx + ix] += weight * value
-
-        swap_labels = lower_labels
-        lower_labels = upper_labels
-        upper_labels = swap_labels
-        swap_F = lower_F
-        lower_F = upper_F
-        upper_F = swap_F
-
-
-cdef enum:
-    EXACT_BLOCK_SIZE = 16
-
-
-@cython.cdivision(True)
-cdef void _project_rotated_cell_exact(cell_output_type *res, int nx, double x1, double y1,
-                                      double pixel_dx, double pixel_dy, int ix0, int ix1, int iy0, int iy1,
-                                      double x_i, double y_i, double half, const double *axes,
-                                      double zl, double zh, int clip_z, double weight,
-                                      np.int32_t *lower_labels, np.int32_t *upper_labels,
-                                      double *lower_F, double *upper_F) noexcept nogil:
-    """Add the exact projection of a rotated cell to pixels [ix0, ix1] x [iy0, iy1] of res; see _project_pixels_exact.
-
-    For large cells, the pixels are processed in blocks. Where the rays through the corners of a block all enter
-    and exit the cell through the same pair of faces, the whole block lies within a region in which the chord is
-    linear, and it is filled incrementally. Other blocks are processed pixel by pixel.
-    """
-    cdef double vx[8]
-    cdef double vy[8]
-    cdef double hx[MAX_POLY]
-    cdef double hy[MAX_POLY]
-    cdef double X0, X1, Y0, Y1, L00, gx, gy, row_value
-    cdef int k, nh, jx0, jx1, jy0, jy1, ix, iy, l00, l10, l01, l11
-
-    # convex hull of the projected vertices, used to quickly reject pixels not overlapping the cell
-    for k in range(8):
-        vx[k] = x_i + half * ((1 if k & 1 else -1) * axes[0] + (1 if k & 2 else -1) * axes[3] +
-                              (1 if k & 4 else -1) * axes[6])
-        vy[k] = y_i + half * ((1 if k & 1 else -1) * axes[1] + (1 if k & 2 else -1) * axes[4] +
-                              (1 if k & 4 else -1) * axes[7])
-    nh = _convex_hull(vx, vy, 8, hx, hy)
-
-    if ix1 - ix0 < 2 * EXACT_BLOCK_SIZE and iy1 - iy0 < 2 * EXACT_BLOCK_SIZE:
-        _project_pixels_exact(res, nx, x1, y1, pixel_dx, pixel_dy, ix0, ix1, iy0, iy1, x_i, y_i, half, axes,
-                              zl, zh, clip_z, weight, hx, hy, nh, lower_labels, upper_labels, lower_F, upper_F)
-        return
-
-    jy0 = iy0
-    while jy0 <= iy1:
-        jy1 = jy0 + EXACT_BLOCK_SIZE - 1
-        if jy1 > iy1:
-            jy1 = iy1
-        Y0 = y1 + jy0 * pixel_dy
-        Y1 = y1 + (jy1 + 1) * pixel_dy
-        jx0 = ix0 - EXACT_BLOCK_SIZE
-        while jx0 + EXACT_BLOCK_SIZE <= ix1:
-            jx0 += EXACT_BLOCK_SIZE
-            jx1 = jx0 + EXACT_BLOCK_SIZE - 1
-            if jx1 > ix1:
-                jx1 = ix1
-            X0 = x1 + jx0 * pixel_dx
-            X1 = x1 + (jx1 + 1) * pixel_dx
-            if _rectangle_outside_hull(X0, X1, Y0, Y1, hx, hy, nh):
-                continue
-            _cell_chord(X0 - x_i, Y0 - y_i, axes, half, zl, zh, &l00)
-            _cell_chord(X1 - x_i, Y0 - y_i, axes, half, zl, zh, &l10)
-            _cell_chord(X0 - x_i, Y1 - y_i, axes, half, zl, zh, &l01)
-            _cell_chord(X1 - x_i, Y1 - y_i, axes, half, zl, zh, &l11)
-            if l00 != -1 and l00 == l10 and l00 == l01 and l00 == l11:
-                # the chord is linear over the block; get its value and gradient from pixel centres in the block
-                L00 = _cell_chord(X0 + 0.5 * pixel_dx - x_i, Y0 + 0.5 * pixel_dy - y_i, axes, half, zl, zh, &k)
-                gx = 0.0
-                gy = 0.0
-                if jx1 > jx0:
-                    gx = _cell_chord(X0 + 1.5 * pixel_dx - x_i, Y0 + 0.5 * pixel_dy - y_i, axes, half, zl, zh,
-                                     &k) - L00
-                if jy1 > jy0:
-                    gy = _cell_chord(X0 + 0.5 * pixel_dx - x_i, Y0 + 1.5 * pixel_dy - y_i, axes, half, zl, zh,
-                                     &k) - L00
-                for iy in range(jy0, jy1 + 1):
-                    row_value = L00 + (iy - jy0) * gy
-                    for ix in range(jx0, jx1 + 1):
-                        res[iy * nx + ix] += weight * (row_value + (ix - jx0) * gx)
-            else:
-                _project_pixels_exact(res, nx, x1, y1, pixel_dx, pixel_dy, jx0, jx1, jy0, jy1, x_i, y_i, half,
-                                      axes, zl, zh, clip_z, weight, hx, hy, nh,
-                                      lower_labels, upper_labels, lower_F, upper_F)
-        jy0 += EXACT_BLOCK_SIZE
-
-
 @cython.cdivision(True)
 cdef double _split_pixel_integral(double X0, double Y0, double pixel_dx, double pixel_dy,
                                   double px, double py, double dx, double dy,
-                                  double x_i, double y_i, double half, const double *axes) noexcept nogil:
+                                  double x_i, double y_i, double half, const double *axes,
+                                  double zl, double zh) noexcept nogil:
     """Average chord length over a pixel which is crossed by just one line where the chord's gradient changes.
 
     The line passes through (px, py) with direction (dx, dy). Each part of the pixel on either side lies within
@@ -578,7 +386,7 @@ cdef double _split_pixel_integral(double X0, double Y0, double pixel_dx, double 
     cdef double oy[MAX_POLY]
     cdef double area_pix = pixel_dx * pixel_dy, area_a = 0.0, cxa = 0.0, cya = 0.0, cross, area_b, cxb, cyb
     cdef double total = 0.0
-    cdef int n, k, k1, label
+    cdef int n, k, k1
     sx[0] = X0; sy[0] = Y0
     sx[1] = X0 + pixel_dx; sy[1] = Y0
     sx[2] = X0 + pixel_dx; sy[2] = Y0 + pixel_dy
@@ -599,11 +407,11 @@ cdef double _split_pixel_integral(double X0, double Y0, double pixel_dx, double 
         area_a = -area_a
     area_b = area_pix - area_a
     if area_a > 1e-10 * area_pix:
-        total += area_a * _cell_chord(cxa - x_i, cya - y_i, axes, half, -1e30, 1e30, &label)
+        total += area_a * _cell_chord(cxa - x_i, cya - y_i, axes, half, zl, zh)
     if area_b > 1e-10 * area_pix:
         cxb = ((X0 + 0.5 * pixel_dx) * area_pix - cxa * area_a) / area_b
         cyb = ((Y0 + 0.5 * pixel_dy) * area_pix - cya * area_a) / area_b
-        total += area_b * _cell_chord(cxb - x_i, cyb - y_i, axes, half, -1e30, 1e30, &label)
+        total += area_b * _cell_chord(cxb - x_i, cyb - y_i, axes, half, zl, zh)
     return total / area_pix
 
 
@@ -625,57 +433,59 @@ cdef struct CornerCache:
     double F_upper       # F at (X, Y1)
 
 
-@cython.cdivision(True)
-cdef inline double _corner_F(double X, double Y, double x_i, double y_i, double half, const double *axes,
-                             const double *tab, int tn, double tbx, double tby, double tsx, double tsy,
-                             double inv_sm, double volume) noexcept nogil:
-    """Volume of the cell with x <= X and y <= Y, interpolated from a table if tab is not NULL, or else exact"""
-    if tab != NULL:
-        return volume * _table_lookup(tab, tn, tbx, tby, tsx, tsy, (X - x_i) * inv_sm, (Y - y_i) * inv_sm)
+cdef inline double _rows_F(const double *axes, double half, double dx, double dy, double zl, double zh, int clip_z,
+                           const double *cap_x, const double *cap_y, int n_cap) noexcept nogil:
+    """Exact volume of the cell with x <= dx, y <= dy (and within [zl, zh] if clip_z is set)"""
+    if clip_z:
+        return _slab_quadrant_volume(axes, half, dx, dy, zl, zh, cap_x, cap_y, n_cap)
     else:
-        return _quadrant_volume(axes, half, X - x_i, Y - y_i, 0.0, 0.0, 0)
+        return _quadrant_volume(axes, half, dx, dy, 0.0, 0.0, 0)
 
 
 @cython.cdivision(True)
 cdef void _project_rotated_cell_rows(double *dres, int nx, double x1, double y1, double pixel_dx, double pixel_dy,
                                      int ix0, int ix1, int iy0, int iy1, double x_i, double y_i, double half,
-                                     const double *axes, double weight,
-                                     const double *tab, int tn, double tbx, double tby,
-                                     double tsx, double tsy) noexcept nogil:
-    """Add the projection of a large rotated cell to an image held as second differences along x.
+                                     const double *axes, double zl, double zh, int clip_z,
+                                     double weight) noexcept nogil:
+    """Add the exact projection of a rotated cell to an image held as second differences along x.
 
     Within a row of pixels, the cell's contribution I_i (weight times the pixel-averaged chord length) is linear in
-    i, except in pixels crossed by the projection of one of the cube's 12 edges. Its second difference
-    D_i = I_i - 2 I_{i-1} + I_{i-2} therefore vanishes except within two pixels after any such crossing. Only
-    those non-zero values are added to dres, from which the image can be recovered by two cumulative sums along x.
-    The cost is therefore proportional to the cell's perimeter in pixels, rather than its area.
+    i, except in pixels crossed by a line along which the chord's gradient changes. These are the projections of
+    the cube's 12 edges and, if clip_z is set, of the edges of its cross-sections at z offsets zl and zh, which
+    limit the chord. The second difference D_i = I_i - 2 I_{i-1} + I_{i-2} therefore vanishes except within two
+    pixels after any such crossing. Only those non-zero values are added to dres, from which the image can be
+    recovered by two cumulative sums along x. The cost is therefore proportional to the cell's perimeter in pixels,
+    rather than its area.
 
-    Pixels crossed by a single projected edge (and containing none of its end points) are evaluated exactly by
-    _split_pixel_integral. Other pixels crossed by projected edges are evaluated as differences of F (see
-    _corner_F) across their corners. All remaining pixels are linear across the pixel, so their average is the
-    central chord length. Pixels with i < ix0 or i > ix1 are taken to be zero; [iy0, iy1] must lie within the
-    image.
+    Pixels crossed by a single such line (and containing none of its end points) are evaluated exactly by
+    _split_pixel_integral. Other crossed pixels are evaluated exactly as differences of F, the volume of the cell
+    with x <= X and y <= Y (see _quadrant_volume), across their corners. All remaining pixels are linear across the
+    pixel, so their average is the central chord length. Pixels with i < ix0 or i > ix1 are taken to be zero;
+    [iy0, iy1] must lie within the image. zl and zh must be finite.
     """
-    cdef double seg_x0[12]
-    cdef double seg_y0[12]
-    cdef double seg_x1[12]
-    cdef double seg_y1[12]
-    cdef int run_start[40]
-    cdef int run_end[40]
-    cdef int run_segment[40]  # the single projected edge crossing pixels of the run, or -1
-    cdef int visit_start[41]
-    cdef int visit_end[41]
+    cdef double seg_x0[24]
+    cdef double seg_y0[24]
+    cdef double seg_x1[24]
+    cdef double seg_y1[24]
+    cdef double poly_x[2][MAX_POLY]  # cross-sections at zl and zh, relative to the cell centre
+    cdef double poly_y[2][MAX_POLY]
+    cdef int n_poly[2]
+    cdef int plane
+    cdef int run_start[72]
+    cdef int run_end[72]
+    cdef int run_segment[72]  # the single line crossing pixels of the run, or -1
+    cdef int visit_start[73]
+    cdef int visit_end[73]
     cdef int piece_start[3]
     cdef int piece_end[3]
     cdef int piece_segment[3]
     cdef int n_piece, pe, q
     cdef int n_visit
     cdef double pixel_area = pixel_dx * pixel_dy
-    cdef double inv_sm = 1.0 / (2.0 * half), volume = 8.0 * half * half * half
     cdef double inv_pixel_dx = 1.0 / pixel_dx
     cdef double Y0, Y1, ta, tb, xa, xb, t, I_m2, I_m1, I_0, Xc, Yc
     cdef double p0x, p0y, p1x, p1y, ox, oy
-    cdef int k, k1, k2, s1, s2, n_seg = 0, n_run, m, j, i, iy, a, b, label, run_index
+    cdef int k, k1, k2, s1, s2, n_seg = 0, n_run, m, j, i, iy, a, b, run_index
     cdef CornerCache left, right
 
     # projected edges: for each axis k, the four edges parallel to it
@@ -690,6 +500,26 @@ cdef void _project_rotated_cell_rows(double *dres, int nx, double x1, double y1,
                 p0y = oy - half * axes[3 * k + 1]
                 p1x = ox + half * axes[3 * k]
                 p1y = oy + half * axes[3 * k + 1]
+                if p0y <= p1y:
+                    seg_x0[n_seg] = p0x; seg_y0[n_seg] = p0y; seg_x1[n_seg] = p1x; seg_y1[n_seg] = p1y
+                else:
+                    seg_x0[n_seg] = p1x; seg_y0[n_seg] = p1y; seg_x1[n_seg] = p0x; seg_y1[n_seg] = p0y
+                n_seg += 1
+
+    n_poly[0] = 0
+    n_poly[1] = 0
+    if clip_z:
+        # edges of the cross-sections of the cube in the planes z = zl and z = zh (relative to its centre)
+        for plane in range(2):
+            n_poly[plane] = _cube_cross_section(axes, half, zl if plane == 0 else zh, poly_x[plane], poly_y[plane])
+            for j in range(n_poly[plane]):
+                k = (j + 1) % n_poly[plane]
+                p0x = x_i + poly_x[plane][j]
+                p0y = y_i + poly_y[plane][j]
+                p1x = x_i + poly_x[plane][k]
+                p1y = y_i + poly_y[plane][k]
+                if fabs(p1x - p0x) + fabs(p1y - p0y) <= 1e-12 * half:
+                    continue
                 if p0y <= p1y:
                     seg_x0[n_seg] = p0x; seg_y0[n_seg] = p0y; seg_x1[n_seg] = p1x; seg_y1[n_seg] = p1y
                 else:
@@ -811,9 +641,9 @@ cdef void _project_rotated_cell_rows(double *dres, int nx, double x1, double y1,
             a = visit_start[m]
             b = visit_end[m]
             # the two pixels before a visited interval are never crossed by an edge, so are linear
-            I_m2 = _cell_chord(x1 + (a - 1.5) * pixel_dx - x_i, Yc - y_i, axes, half, -1e30, 1e30, &label) \
+            I_m2 = _cell_chord(x1 + (a - 1.5) * pixel_dx - x_i, Yc - y_i, axes, half, zl, zh) \
                 if a - 2 >= ix0 else 0.0
-            I_m1 = _cell_chord(x1 + (a - 0.5) * pixel_dx - x_i, Yc - y_i, axes, half, -1e30, 1e30, &label) \
+            I_m1 = _cell_chord(x1 + (a - 0.5) * pixel_dx - x_i, Yc - y_i, axes, half, zl, zh) \
                 if a - 1 >= ix0 else 0.0
             for i in range(a, b + 1):
                 if i > ix1:
@@ -826,30 +656,29 @@ cdef void _project_rotated_cell_rows(double *dres, int nx, double x1, double y1,
                         k = run_segment[run_index]
                         I_0 = _split_pixel_integral(x1 + i * pixel_dx, Y0, pixel_dx, pixel_dy, seg_x0[k], seg_y0[k],
                                                     seg_x1[k] - seg_x0[k], seg_y1[k] - seg_y0[k],
-                                                    x_i, y_i, half, axes)
+                                                    x_i, y_i, half, axes, zl, zh)
                     elif run_index < n_run and run_start[run_index] <= i:
-                        # crossed by several edges: integrate exactly (or using the table) from F at the corners
-                        Xc = x1 + i * pixel_dx
+                        # crossed by several lines: integrate exactly from F at the corners
+                        Xc = x1 + i * pixel_dx - x_i
                         if left.ix != i:
                             if right.ix == i:
                                 left = right
                             else:
                                 left.ix = i
-                                left.F_lower = _corner_F(Xc, Y0, x_i, y_i, half, axes, tab, tn, tbx, tby, tsx, tsy,
-                                                         inv_sm, volume)
-                                left.F_upper = _corner_F(Xc, Y1, x_i, y_i, half, axes, tab, tn, tbx, tby, tsx, tsy,
-                                                         inv_sm, volume)
+                                left.F_lower = _rows_F(axes, half, Xc, Y0 - y_i, zl, zh, clip_z,
+                                                       poly_x[0], poly_y[0], n_poly[0])
+                                left.F_upper = _rows_F(axes, half, Xc, Y1 - y_i, zl, zh, clip_z,
+                                                       poly_x[0], poly_y[0], n_poly[0])
                         right.ix = i + 1
-                        right.F_lower = _corner_F(Xc + pixel_dx, Y0, x_i, y_i, half, axes, tab, tn, tbx, tby,
-                                                  tsx, tsy, inv_sm, volume)
-                        right.F_upper = _corner_F(Xc + pixel_dx, Y1, x_i, y_i, half, axes, tab, tn, tbx, tby,
-                                                  tsx, tsy, inv_sm, volume)
+                        right.F_lower = _rows_F(axes, half, Xc + pixel_dx, Y0 - y_i, zl, zh, clip_z,
+                                                poly_x[0], poly_y[0], n_poly[0])
+                        right.F_upper = _rows_F(axes, half, Xc + pixel_dx, Y1 - y_i, zl, zh, clip_z,
+                                                poly_x[0], poly_y[0], n_poly[0])
                         I_0 = ((right.F_upper - right.F_lower) - (left.F_upper - left.F_lower)) / pixel_area
                         if I_0 < 0.0:
                             I_0 = 0.0
                     else:
-                        I_0 = _cell_chord(x1 + (i + 0.5) * pixel_dx - x_i, Yc - y_i, axes, half, -1e30, 1e30,
-                                          &label)
+                        I_0 = _cell_chord(x1 + (i + 0.5) * pixel_dx - x_i, Yc - y_i, axes, half, zl, zh)
                 if i < nx:
                     dres[iy * nx + i] += weight * (I_0 - 2.0 * I_m1 + I_m2)
                 I_m2 = I_m1
@@ -865,7 +694,8 @@ def cell_projection_cdf_table(orientation, int n):
 
     Returns (table, bx, by) where table[i, j] corresponds to xi = -bx + 2 bx i / n, eta = -by + 2 by j / n;
     and [-bx, bx] x [-by, by] is the extent of the cube's projection. The table is generated by an exact projection
-    of the cube onto an n x n grid, followed by cumulative sums; so it is exact to round-off.
+    of the cube onto an n x n grid (see _project_rotated_cell_rows), followed by cumulative sums; so it is exact to
+    round-off.
     """
     cdef double axes[9]
     cdef int i, k
@@ -877,14 +707,14 @@ def cell_projection_cdf_table(orientation, int n):
         bx += 0.5 * fabs(axes[3 * k])
         by += 0.5 * fabs(axes[3 * k + 1])
     cdef double hx_ = 2.0 * bx / n, hy_ = 2.0 * by / n
+    # column[iy, ix] is the average chord length over each pixel, initially held as second differences along x
     cdef np.ndarray[np.float64_t, ndim=2] column = np.zeros((n, n), dtype=np.float64)
-    cdef np.ndarray[np.int32_t, ndim=1] labels = np.empty(2 * (n + 1), dtype=np.int32)
-    cdef np.ndarray[np.float64_t, ndim=1] F_buffer = np.empty(2 * (n + 1), dtype=np.float64)
     with nogil:
-        _project_rotated_cell_exact(<double *> column.data, n, -bx, -by, hx_, hy_, 0, n - 1, 0, n - 1,
-                                    0.0, 0.0, 0.5, axes, -1.0, 1.0, 0, 1.0,
-                                    <np.int32_t *> labels.data, (<np.int32_t *> labels.data) + (n + 1),
-                                    <double *> F_buffer.data, (<double *> F_buffer.data) + (n + 1))
+        _project_rotated_cell_rows(<double *> column.data, n, -bx, -by, hx_, hy_, 0, n - 1, 0, n - 1,
+                                   0.0, 0.0, 0.5, axes, -1.0, 1.0, 0, 1.0)
+    np.cumsum(column, axis=1, out=column)
+    np.cumsum(column, axis=1, out=column)
+    np.maximum(column, 0.0, out=column)
     table = np.zeros((n + 1, n + 1), dtype=np.float64)
     table[1:, 1:] = np.cumsum(np.cumsum(column.T * (hx_ * hy_), axis=0), axis=1)
     table /= table[n, n]  # remove round-off in the total
@@ -921,9 +751,8 @@ cdef inline double _table_lookup(const double *tab, int n, double bx, double by,
 
 # Projections of rotated cells use interpolation in a table of the cell's volume as a function of position (see
 # render_image_cells). The interpolation error in a pixel is of order 12 (cell size / pixel size) / n^2, for a
-# table of resolution n, so larger cells use a finer table; and the very largest are projected exactly.
+# table of resolution n, so larger cells use a finer table; and cells larger than the last are projected exactly.
 CELL_TABLES = ((4.0, 256), (16.0, 512))  # (maximum cell size in pixels, table resolution)
-CELL_ROW_THRESHOLD = 16.0  # cells larger than this (in pixels) are accumulated as differences along rows
 
 _cdf_table_cache = {}
 _cdf_table_lock = threading.Lock()
@@ -963,7 +792,7 @@ def render_image_cells(int nx, int ny,
                        bint projected,
                        orientation,
                        wrap_offsets_x=[0], wrap_offsets_y=[0],
-                       tables=None, double row_threshold=CELL_ROW_THRESHOLD):
+                       tables=None):
     """Render cubic (AMR) cells onto an image, either as an exact slice at z=z0 or a projection along z.
 
     Each cell has side length sm and the edges of all cells are parallel to the columns of the 3x3 rotation
@@ -982,14 +811,15 @@ def render_image_cells(int nx, int ny,
     exactly (see cell_projection_cdf_table) and bilinearly interpolated. This conserves the mass of each cell
     exactly and never produces negative values; errors in individual pixels are typically below 1e-5 and at most
     of order 1e-3. The table resolution depends on the cell size relative to the pixels, according to
-    CELL_TABLES. Cells larger than covered by CELL_TABLES, or straddling z_lo or z_hi, are projected exactly (see
-    _project_rotated_cell_exact).
+    CELL_TABLES.
 
-    Projections of rotated cells larger than row_threshold pixels are accumulated as second differences along each
-    row of pixels, at a cost proportional to the cell perimeter rather than area (see _project_rotated_cell_rows).
+    Rotated cells larger than covered by CELL_TABLES, or straddling z_lo or z_hi, are projected exactly. Their
+    contributions are accumulated as second differences along each row of pixels, at a cost proportional to the
+    cell perimeter rather than area (see _project_rotated_cell_rows).
 
     *tables* optionally provides a list of (max_cell_pixels, table, bx, by) to use in place of CELL_TABLES; this is
-    for testing. Perspective (z_camera) rendering is not currently supported.
+    for testing, and in particular tables=[] projects all rotated cells exactly. Perspective (z_camera) rendering is
+    not currently supported.
     """
 
     cdef double pixel_dx = (x2 - x1) / nx
@@ -1022,9 +852,7 @@ def render_image_cells(int nx, int ny,
     cdef np.ndarray[image_output_type, ndim=2] result = np.zeros((ny, nx), dtype=np_image_output_type)
     cdef image_output_type *res = <image_output_type *> result.data
 
-    # rows of values at pixel corners: labels of the faces through which a ray enters and exits, and values of F
-    cdef np.ndarray[np.int32_t, ndim=1] corner_labels_np = np.empty(2 * (nx + 1), dtype=np.int32)
-    cdef np.int32_t *corner_labels = <np.int32_t *> corner_labels_np.data
+    # rows of values of F at pixel corners, for the tabulated projection
     cdef np.ndarray[np.float64_t, ndim=1] corner_F_np = np.empty(2 * (nx + 1), dtype=np.float64)
     cdef double *lower_F = <double *> corner_F_np.data
     cdef double *upper_F = lower_F + (nx + 1)
@@ -1044,7 +872,7 @@ def render_image_cells(int nx, int ny,
     cdef double tbx, tby, tsx, tsy
     table_refs = []
 
-    # second differences along x, for large rotated cells (see _project_rotated_cell_rows)
+    # second differences along x, for exactly projected rotated cells (see _project_rotated_cell_rows)
     cdef np.ndarray[np.float64_t, ndim=2] dres_np
     cdef double *dres = NULL
 
@@ -1066,9 +894,9 @@ def render_image_cells(int nx, int ny,
     aligned = bool(np.all(np.sum(np.abs(orientation) > 1e-10, axis=0) == 1))
 
     if projected and not aligned and n_part > 0:
+        cell_pixels = np.maximum(np.asarray(sm, dtype=np.float64), min_smooth) / pixel_min
         if tables is None:
             # only generate the tables that will actually be used
-            cell_pixels = np.maximum(np.asarray(sm, dtype=np.float64), min_smooth) / pixel_min
             tables = []
             lower = 0.0
             for max_pixels, resolution in CELL_TABLES:
@@ -1077,10 +905,19 @@ def render_image_cells(int nx, int ny,
                 else:
                     tables.append((max_pixels, None, 1.0, 1.0))
                 lower = max_pixels
-        if np.any(np.maximum(np.asarray(sm, dtype=np.float64), min_smooth) > row_threshold * pixel_min):
+            # (a table has been generated for every range of sizes containing a cell)
+            needs_exact = cell_pixels.max() > max(t[0] for t in CELL_TABLES)
+        else:
+            tables = list(tables)[:4]
+            thresholds = np.array([t[0] for t in tables] + [np.inf])
+            available = np.array([t[1] is not None for t in tables] + [False])
+            needs_exact = not np.all(available[np.searchsorted(thresholds, cell_pixels, side='left')])
+        # Cells are projected exactly unless the first table covering their size is available, and they lie
+        # entirely within the z range. Only allocate the buffer for exact projections if it may be needed.
+        if needs_exact or np.isfinite(z_lo) or np.isfinite(z_hi):
             dres_np = np.zeros((ny, nx), dtype=np.float64)
             dres = <double *> dres_np.data
-        for max_pixels, table_np, bx, by in tables[:4]:
+        for max_pixels, table_np, bx, by in tables:
             table_max_pixels[n_tables] = max_pixels
             if table_np is None:
                 table_data[n_tables] = NULL
@@ -1202,10 +1039,17 @@ def render_image_cells(int nx, int ny,
                     table_index = -1
                     if projected and not aligned and not clip_z:
                         for k in range(n_tables):
-                            if sm_i <= table_max_pixels[k] * pixel_min:
+                            # (this must match exactly the arithmetic used above to decide whether to allocate dres)
+                            if sm_i / pixel_min <= table_max_pixels[k]:
                                 if table_data[k] != NULL:
                                     table_index = k
                                 break
+                        if table_index < 0 and dres == NULL:
+                            # should not occur; but rather than fail, fall back on the largest available table
+                            for k in range(n_tables - 1, -1, -1):
+                                if table_data[k] != NULL:
+                                    table_index = k
+                                    break
                         if table_index >= 0:
                             tab = table_data[table_index]
                             tn = table_n[table_index]
@@ -1283,15 +1127,7 @@ def render_image_cells(int nx, int ny,
                                 res[iy * nx + ix] += weight * value
                         continue
 
-                    if dres != NULL and not clip_z and sm_i > row_threshold * pixel_min:
-                        # a large cell; only the pixels near its projected edges need be visited
-                        if table_index >= 0:
-                            _project_rotated_cell_rows(dres, nx, x1, y1, pixel_dx, pixel_dy, ix0, ix1, iy0, iy1,
-                                                       x_i, y_i, half, axes, weight, tab, tn, tbx, tby, tsx, tsy)
-                        else:
-                            _project_rotated_cell_rows(dres, nx, x1, y1, pixel_dx, pixel_dy, ix0, ix1, iy0, iy1,
-                                                       x_i, y_i, half, axes, weight, NULL, 0, 1.0, 1.0, 1.0, 1.0)
-                    elif table_index >= 0:
+                    if table_index >= 0:
                         # interpolate the tabulated volume fraction F at each pixel corner; each pixel receives the
                         # cell's volume times the difference of F across its corners
                         weight *= sm_i * sm_i * sm_i / pixel_area
@@ -1312,16 +1148,16 @@ def render_image_cells(int nx, int ny,
                             swap_F = lower_F
                             lower_F = upper_F
                             upper_F = swap_F
-                    else:
-                        # a large cell, or one truncated by the z range: project exactly. Finite limits for the z
-                        # range, enough to contain the cell, are needed when evaluating F.
+                    elif dres != NULL:
+                        # a large cell, or one truncated by the z range: project exactly, visiting only the pixels
+                        # near its projected edges. Finite limits for the z range, enough to contain the cell, are
+                        # needed when evaluating F.
                         zl = z_lo_d - z_i
                         zh = z_hi_d - z_i
                         if zl < -2.0 * ext_z * sm_i: zl = -2.0 * ext_z * sm_i
                         if zh > 2.0 * ext_z * sm_i: zh = 2.0 * ext_z * sm_i
-                        _project_rotated_cell_exact(res, nx, x1, y1, pixel_dx, pixel_dy, ix0, ix1, iy0, iy1,
-                                                    x_i, y_i, half, axes, zl, zh, clip_z, weight,
-                                                    corner_labels, corner_labels + (nx + 1), lower_F, upper_F)
+                        _project_rotated_cell_rows(dres, nx, x1, y1, pixel_dx, pixel_dy, ix0, ix1, iy0, iy1,
+                                                   x_i, y_i, half, axes, zl, zh, clip_z, weight)
 
     if dres != NULL:
         # Recover the image from its second differences; values below zero can only arise from round-off. This is
