@@ -108,6 +108,10 @@ sph_render = Extension('pynbody.sph._render',
                   sources=['pynbody/sph/_render.pyx', 'pynbody/sph/healpix.c'],
                   include_dirs=incdir)
 
+sph_render_amr = Extension('pynbody.sph._render_amr',
+                  sources=['pynbody/sph/_render_amr.pyx'],
+                  include_dirs=incdir)
+
 halo_pyx = Extension('pynbody.analysis._com',
                      sources=['pynbody/analysis/_com.pyx'],
                      include_dirs=incdir,
@@ -136,7 +140,7 @@ cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
                                 include_dirs=incdir)
 
 
-ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx, filt_geom_pyx,
+ext_modules += [gravity, chunkscan, sph_render, sph_render_amr, halo_pyx, bridge_pyx, util_pyx, filt_geom_pyx,
                 cython_fortran_file, omp_commands]
 
 setup(ext_modules=ext_modules,

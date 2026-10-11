@@ -1,4 +1,4 @@
-"""Tests for rendering AMR cells as exact cubes (CellKernel)"""
+"""Tests for rendering AMR cells as exact cubes (AMRImageRenderer)"""
 
 import numpy as np
 import numpy.testing as npt
@@ -6,7 +6,7 @@ import pytest
 
 import pynbody
 import pynbody.test_utils
-from pynbody.sph import _render, kernels, renderers
+from pynbody.sph import _render_amr, renderers
 
 
 def _cube_of_cells(n_sub, size, centre, rotation=np.eye(3)):
@@ -24,7 +24,7 @@ def _render_cells(pos, size, qty, rotation, projected, nx=100, width=4.0, z0=0.0
     qty = np.broadcast_to(np.asarray(qty, dtype=np.float64), (n,)).copy()
     mass = sm ** 3
     rho = np.ones(n)
-    return _render.render_image_cells(nx, nx, pos[:, 0].copy(), pos[:, 1].copy(), pos[:, 2].copy(), sm,
+    return _render_amr.render_image_cells(nx, nx, pos[:, 0].copy(), pos[:, 1].copy(), pos[:, 2].copy(), sm,
                                       -width / 2, width / 2, -width / 2, width / 2, z0,
                                       qty, mass, rho, 0.0, np.inf, z_lo, z_hi, 0.0, projected, rotation, **kwargs)
 
@@ -102,12 +102,12 @@ def test_cell_quadrant_volume(rotation):
     u = rng.uniform(-0.5, 0.5, (400000, 3)) @ rotation.T
     dx, dy = rng.uniform(-0.8, 0.8, (2, 10))
     for z_lo, z_hi in ((-np.inf, np.inf), (-0.2, 0.3)):
-        exact = _render.cell_quadrant_volume(rotation, dx, dy, z_lo, z_hi)
+        exact = _render_amr.cell_quadrant_volume(rotation, dx, dy, z_lo, z_hi)
         in_z = (u[:, 2] >= z_lo) & (u[:, 2] <= z_hi)
         mc = [np.mean((u[:, 0] <= x) & (u[:, 1] <= y) & in_z) for x, y in zip(dx, dy)]
         npt.assert_allclose(exact, mc, atol=4e-3)
-    npt.assert_allclose(_render.cell_quadrant_volume(rotation, 1.0, 1.0), 1.0, rtol=1e-12)
-    npt.assert_allclose(_render.cell_quadrant_volume(rotation, -1.0, 1.0), 0.0, atol=1e-12)
+    npt.assert_allclose(_render_amr.cell_quadrant_volume(rotation, 1.0, 1.0), 1.0, rtol=1e-12)
+    npt.assert_allclose(_render_amr.cell_quadrant_volume(rotation, -1.0, 1.0), 0.0, atol=1e-12)
 
 
 @pytest.mark.parametrize("rotated", [True, False])
@@ -132,19 +132,59 @@ def test_cell_slice_rotated_area():
     npt.assert_allclose(im.sum() * (4.0 / 100) ** 2, 1.3 ** 2 / np.cos(0.3), rtol=1e-5)
 
 
-def test_default_kernel_selection(amr_snap):
-    assert isinstance(renderers.make_render_pipeline(amr_snap.g)._kernel, kernels.CellKernel)
-    assert isinstance(renderers.make_render_pipeline(amr_snap.g, kernel='CubicSpline')._kernel,
-                      kernels.CubicSplineKernel)
-    assert isinstance(renderers.make_render_pipeline(amr_snap.g, target='volume', nx=4)._kernel,
-                      kernels.CubicSplineKernel)
-    # perspective images are not yet supported, so fall back to SPH
-    assert isinstance(renderers.make_render_pipeline(amr_snap.g, z_camera=10.0)._kernel, kernels.CubicSplineKernel)
+def _core_renderer(pipeline):
+    """The renderer at the core of a pipeline, i.e. inside any threading, weighting or denoising wrappers"""
+    while isinstance(pipeline, renderers.MultipassImageRenderer):
+        pipeline = pipeline._subrenderers[0]
+    return pipeline
+
+
+def test_renderer_selection(amr_snap):
+    def core_type(**kwargs):
+        return type(_core_renderer(renderers.make_render_pipeline(amr_snap.g, **kwargs)))
+
+    assert core_type() is renderers.AMRImageRenderer
+    assert core_type(out_units='Msol kpc^-2') is renderers.AMRImageRenderer
+    assert core_type(weight='rho') is renderers.AMRImageRenderer
+    assert core_type(amr=False) is renderers.ImageRenderer
+    # specifying an SPH kernel, or perspective rendering (not yet supported for AMR) implies SPH rendering
+    assert core_type(kernel='CubicSpline') is renderers.ImageRenderer
+    assert core_type(z_camera=10.0) is renderers.ImageRenderer
+    assert core_type(target='volume', nx=4) is renderers.Grid3dRenderer
+
     with pytest.raises(ValueError):
-        renderers.make_render_pipeline(amr_snap.g, target='volume', kernel='cell')
+        renderers.make_render_pipeline(amr_snap.g, amr=True, kernel='CubicSpline')
+    with pytest.raises(ValueError):
+        renderers.make_render_pipeline(amr_snap.g, amr=True, target='volume')
+    with pytest.raises(NotImplementedError):
+        renderers.make_render_pipeline(amr_snap.g, amr=True, z_camera=10.0)
 
     del amr_snap._gas_particles_are_amr_cells
-    assert isinstance(renderers.make_render_pipeline(amr_snap.g)._kernel, kernels.CubicSplineKernel)
+    assert core_type() is renderers.ImageRenderer
+    assert core_type(amr=True) is renderers.AMRImageRenderer
+
+
+def test_amr_renderer_has_no_kernel(amr_snap):
+    pipeline = renderers.make_render_pipeline(amr_snap.g, threaded=True)
+    with pytest.raises(ValueError):
+        pipeline.set_kernel('CubicSpline')
+    pipeline.set_kernel(None)
+
+
+def test_amr_renderer_wrappers(amr_snap):
+    """Neither approximation nor (by default) denoising should be applied to the AMR renderer, whether or not it
+    is threaded"""
+    for threaded in (False, True):
+        pipeline = renderers.make_render_pipeline(amr_snap.g, threaded=threaded, approximate_fast=True)
+        assert not isinstance(pipeline, (renderers.ApproximateImageRenderer, renderers.DenoisedImageRenderer))
+        if threaded:
+            assert isinstance(pipeline, renderers.ThreadedImageRenderer)
+
+    # but denoising can still be forced, and should make no difference since cells tile space
+    reference = renderers.make_render_pipeline(amr_snap.g, width=8.0, resolution=32).render()
+    denoised = renderers.make_render_pipeline(amr_snap.g, width=8.0, resolution=32, denoise=True)
+    assert isinstance(denoised, renderers.DenoisedImageRenderer)
+    npt.assert_allclose(denoised.render(), reference, rtol=1e-5)
 
 
 def test_amr_slice_exact(amr_snap):
@@ -205,7 +245,7 @@ def test_ramses_image():
     cen = f.g['pos'][np.argmax(f.g['rho'])].view(np.ndarray).copy()
     with f.translate(-cen):
         pipeline = renderers.make_render_pipeline(f.g, width=60.0, resolution=100, out_units='Msol kpc^-2')
-        assert isinstance(pipeline._subrenderers[0]._kernel, kernels.CellKernel)
+        assert isinstance(_core_renderer(pipeline), renderers.AMRImageRenderer)
         im = pipeline.render()
         # all cells straddling the image edge are larger than a pixel, so compare to the mass in fully-enclosed
         # cells plus fractions of the straddling ones

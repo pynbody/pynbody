@@ -1,10 +1,16 @@
-"""Core classes for rendering images of SPH simulations.
+"""Core classes for rendering images of SPH and AMR simulations.
 
-For most users, the :func:`pynbody.plot.sph.image` function is the most convenient interface for rendering images of SPH
+For most users, the :func:`pynbody.plot.sph.image` function is the most convenient interface for rendering images of
 simulations. A slightly lower-level approach is to use :func:`make_render_pipeline` to create a renderer object, which
 then produces an image when the :meth:`ImageRendererBase.render` method is called.
 
-For complete control, one may use the :class:`ImageRenderer` class directly.
+For complete control, one may use the :class:`ImageRenderer` class (for SPH interpolation) or the
+:class:`AMRImageRenderer` class (for exact rendering of AMR cells) directly.
+
+.. versionchanged:: 2.9.0
+
+  AMR gas (e.g. from Ramses) is now rendered by default with :class:`AMRImageRenderer`, rather than by treating
+  cells as SPH particles.
 """
 
 from __future__ import annotations
@@ -20,15 +26,13 @@ import scipy
 
 from .. import array as array_module, config, snapshot, units
 from ..configuration import config_parser
-from . import _render, kernels
+from . import _render, _render_amr, kernels
 
 logger = logging.getLogger('pynbody.sph.renderers')
 
 
 def _kernel_suitable_for_denoise(kernel):
-    if isinstance(kernel, (kernels.Kernel2D, kernels.CellKernel)):
-        # Kernel2D: projected images are not denoised.
-        # CellKernel: AMR cells tile space exactly, so there is no noise to remove.
+    if isinstance(kernel, kernels.Kernel2D):
         return False
     else:
         return True
@@ -45,7 +49,7 @@ def _auto_denoise(sim, kernel):
         return False
 
 def _is_amr_gas(sim):
-    """Returns True if the particles in sim are all AMR cells (e.g. Ramses gas), which can be rendered as cubes."""
+    """Returns True if the particles in sim are all AMR cells (e.g. Ramses gas)"""
     from .. import family
     return getattr(sim.ancestor, '_gas_particles_are_amr_cells', False) and sim.families() == [family.gas]
 
@@ -246,30 +250,11 @@ class ImageRendererBase:
 
         If a projected image is to be used, a 3D kernel should still be passed. The projection is handled internally.
 
-        .. versionchanged:: 2.9.0
-
-          For AMR gas (e.g. Ramses), the default kernel for 2D images is now a
-          :class:`~pynbody.sph.kernels.CellKernel`, rendering the exact slice through or projection of each cell.
-
         """
-        if kernel_spec is None:
-            kernel = self._default_kernel()
-        else:
-            kernel = kernels.create_kernel(kernel_spec)
+        kernel = kernels.create_kernel(kernel_spec)
         if isinstance(kernel, kernels.Kernel2D):
             raise ValueError("To obtain a projected image, pass the 3D kernel which will be projected internally.")
-        if isinstance(kernel, kernels.CellKernel):
-            if not self._supports_cell_kernel:
-                raise ValueError("The cell kernel is not supported by this type of renderer")
-            if kernel.projected:
-                raise ValueError("To obtain a projected image, pass the 3D kernel which will be projected internally.")
         self._kernel = kernel
-
-    _supports_cell_kernel = False
-
-    def _default_kernel(self) -> kernels.KernelBase:
-        """Return the kernel to be used if none is specified"""
-        return kernels.create_kernel(None)
 
     def _check_quantity_set(self):
         if self._array is None:
@@ -384,12 +369,16 @@ class ImageRendererBase:
             if self._is_projected:
                 denoise = False
             else:
-                denoise = _auto_denoise(self._snapshot, self._kernel)
+                denoise = self._denoise_by_default()
 
         if denoise:
             return DenoisedImageRenderer(self)
         else:
             return self
+
+    def _denoise_by_default(self) -> bool:
+        """Returns True if a slice image from this renderer is likely to benefit from denoising"""
+        return _auto_denoise(self._snapshot, self._kernel)
 
     def _approximation_supported(self) -> bool:
         """Returns True if this renderer can be used within an :class:`ApproximateImageRenderer`"""
@@ -411,7 +400,8 @@ class ImageRendererBase:
         For more information, see :class:`ApproximateImageRenderer`.
 
         Note that if the number of levels is less than 2, the original renderer is returned. If the renderer does not
-        support approximation (as for :class:`HealpixRenderer`), NotImplementedError is raised.
+        support approximation (as for :class:`AMRImageRenderer` and :class:`HealpixRenderer`), NotImplementedError is
+        raised.
 
         Parameters
         ----------
@@ -426,10 +416,6 @@ class ImageRendererBase:
         self._check_quantity_set()
         if not self._approximation_supported():
             raise NotImplementedError(f"Approximate rendering is not supported by {type(self).__name__}")
-        if isinstance(self._kernel, kernels.CellKernel):
-            # rendering cells at low resolution and interpolating would blur their edges; and the cost of
-            # rendering a large cell is in any case dominated by the pixels along its edges
-            return self
         if levels is None:
             levels = int(np.floor(np.log2(self.geometry.nx / 5)/np.log2(factor)))
 
@@ -486,15 +472,11 @@ class MultipassImageRenderer(ImageRendererBase):
         for r in self._subrenderers:
             r.set_kernel(kernel_spec)
 
+    def _denoise_by_default(self):
+        return self._subrenderers[0]._denoise_by_default()
+
     def _approximation_supported(self):
         return self._subrenderers[0]._approximation_supported()
-
-    @property
-    def _supports_cell_kernel(self):
-        return self._subrenderers[0]._supports_cell_kernel
-
-    def _default_kernel(self):
-        return self._subrenderers[0]._default_kernel()
 
     def set_quantity(self, qty):
         super().set_quantity(qty)
@@ -661,15 +643,7 @@ class ApproximateImageRenderer(MultipassImageRenderer):
         return summed
 
 class ImageRenderer(ImageRendererBase):
-    """Implementation for rendering a simulation snapshot to 2d image"""
-
-    _supports_cell_kernel = True
-
-    def _default_kernel(self):
-        if _is_amr_gas(self._snapshot):
-            return kernels.CellKernel()
-        else:
-            return super()._default_kernel()
+    """Implementation for rendering a simulation snapshot to 2d image, by SPH interpolation"""
 
     def _calculate_wrapping_repeat_array(self, x1, x2):
         if 'boxsize' in self._snapshot.properties:
@@ -705,11 +679,15 @@ class ImageRenderer(ImageRendererBase):
 
         return native_units
 
-    def render(self):
+    def _get_render_kernel(self):
+        """Return the kernel to be passed to the C renderer, projected if necessary"""
         kernel = kernels.create_kernel(self._kernel)
-
         if self._is_projected:
             kernel = kernel.projection()
+        return kernel
+
+    def render(self):
+        kernel = self._get_render_kernel()
 
         g = self._geometry
 
@@ -746,9 +724,6 @@ class ImageRenderer(ImageRendererBase):
         return image
 
     def _call_c_renderer(self, array, geometry, kernel, mass_array, rho_array, smooth_array, x_array, y_array, z_array):
-        if isinstance(kernel, kernels.CellKernel):
-            return self._call_c_cell_renderer(array, geometry, kernel, mass_array, rho_array, smooth_array,
-                                              x_array, y_array, z_array)
         image = _render.render_image(geometry.nx, geometry.ny, x_array, y_array, z_array, smooth_array, geometry.x1, geometry.x2, geometry.y1, geometry.y2,
                                      geometry.z_camera or 0.0, geometry.z_plane, array, mass_array, rho_array,
                                      self._smooth_min, self._smooth_max, geometry.z1, geometry.z2,
@@ -757,29 +732,67 @@ class ImageRenderer(ImageRendererBase):
                                      self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2))
         return image
 
-    def _call_c_cell_renderer(self, array, geometry, kernel, mass_array, rho_array, smooth_array,
-                              x_array, y_array, z_array):
+
+class AMRImageRenderer(ImageRenderer):
+    """Implementation for rendering AMR gas cells to a 2d image, exactly.
+
+    .. versionadded:: 2.9.0
+
+    Rather than interpolating with a smoothing kernel, each particle is treated as a cubic cell whose side length is
+    given by the ``smooth`` array (as for Ramses gas), and whose edges are aligned with the axes of the original
+    simulation, i.e. following any rotations applied to the snapshot. A slice image then shows the cross-section
+    of each cell, and a projected image the column through it, averaged over each pixel. Since the cells tile
+    space, the result is a rendering of the piecewise-constant field, and no denoising is needed.
+
+    Slices are exact, as are projections when the cells are aligned with the image (including after rotations by
+    multiples of 90 degrees). Projections of rotated cells up to 16 pixels across interpolate the volume of each
+    cell within each pixel from a table, which conserves mass exactly and gives errors in individual pixels of
+    typically 1e-5 and at most 1e-3; larger rotated cells are again projected exactly. For details, see
+    :func:`pynbody.sph._render_amr.render_image_cells`.
+
+    No kernel is used, so :meth:`set_kernel` accepts only None; approximate rendering (:meth:`with_approximate`)
+    has no effect; and perspective rendering (:meth:`ImageGeometry.set_camera_z`) is not supported. To render AMR
+    cells as SPH particles instead, use :class:`ImageRenderer` (or pass ``amr=False`` to
+    :func:`make_render_pipeline`).
+    """
+
+    def set_kernel(self, kernel_spec=None):
+        """AMR cells are rendered without a kernel, so the only valid kernel specification is None."""
+        if kernel_spec is not None:
+            raise ValueError("AMRImageRenderer renders cells exactly, without a kernel. To render AMR cells as SPH "
+                             "particles with a kernel, use ImageRenderer instead (e.g. via "
+                             "make_render_pipeline(..., amr=False)).")
+        self._kernel = None
+
+    def _get_render_kernel(self):
+        return None
+
+    def _denoise_by_default(self):
+        # cells tile space exactly, so there is no noise to remove
+        return False
+
+    def _approximation_supported(self):
+        # rendering cells at low resolution and interpolating would blur their edges; and the cost of rendering a
+        # large cell is in any case proportional to its perimeter rather than its area
+        return False
+
+    def _call_c_renderer(self, array, geometry, kernel, mass_array, rho_array, smooth_array, x_array, y_array, z_array):
         if geometry.z_camera:
             raise NotImplementedError("Perspective rendering is not yet supported for AMR cells. To render cells as "
-                                      "SPH particles instead, specify an SPH kernel such as 'CubicSpline'.")
+                                      "SPH particles instead, use ImageRenderer.")
         # The cell edges are aligned with the axes of the original simulation, so follow any rotations applied since
         orientation = self._snapshot.net_rotation_matrix()
-        return _render.render_image_cells(geometry.nx, geometry.ny, x_array, y_array, z_array, smooth_array,
-                                          geometry.x1, geometry.x2, geometry.y1, geometry.y2, geometry.z_plane,
-                                          array, mass_array, rho_array,
-                                          self._smooth_min, self._smooth_max, geometry.z1, geometry.z2,
-                                          self._smooth_floor, kernel.projected, orientation,
-                                          wrap_offsets_x=self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
-                                          wrap_offsets_y=self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2))
+        return _render_amr.render_image_cells(
+            geometry.nx, geometry.ny, x_array, y_array, z_array, smooth_array,
+            geometry.x1, geometry.x2, geometry.y1, geometry.y2, geometry.z_plane,
+            array, mass_array, rho_array, self._smooth_min, self._smooth_max, geometry.z1, geometry.z2,
+            self._smooth_floor, self._is_projected, orientation,
+            wrap_offsets_x=self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
+            wrap_offsets_y=self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2))
 
 
 class Grid3dRenderer(ImageRenderer):
     """Implementation for rendering a simulation snapshot to a 3d grid"""
-
-    _supports_cell_kernel = False
-
-    def _default_kernel(self):
-        return ImageRendererBase._default_kernel(self)
 
     def __init__(self, snap: snapshot.SimSnap):
         super().__init__(snap)
@@ -806,13 +819,8 @@ class HealpixRenderer(ImageRenderer):
     a thin spherical shell at that radius, giving the same (e.g. volumetric density) units as a slice image.
     """
 
-    _supports_cell_kernel = False
-
     def __init__(self, snap: snapshot.SimSnap):
         super().__init__(snap)
-
-    def _default_kernel(self):
-        return ImageRendererBase._default_kernel(self)
 
     def set_shell_distance(self, distance: float | str | units.UnitBase | None):
         """Render a thin spherical shell at the given radius instead of a line-of-sight projection.
@@ -872,12 +880,18 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
                          approximate_fast: bool | NoneType = None,
                          denoise: bool | NoneType = None,
                          target: str = 'image',
+                         amr: bool | NoneType = None,
                          ) -> ImageRendererBase:
     """Generate a renderer object for rendering images of a simulation snapshot.
 
     .. versionchanged :: 2.5.0
 
       The parameter *shell_distance* has been added.
+
+    .. versionchanged :: 2.9.0
+
+      The parameter *amr* has been added. By default, AMR gas (e.g. from Ramses) is now rendered exactly as cubic
+      cells by :class:`AMRImageRenderer`, rather than as SPH particles.
 
     Parameters
     ----------
@@ -931,10 +945,9 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         Whether to restrict the z range of the image to the same as the x range. The default is False.
 
     kernel : str, kernels.KernelBase, optional
-        The kernel to be used for the image rendering. If None, the default kernel is assigned. For more information
-        see :func:`pynbody.sph.kernels.create_kernel`. For AMR gas (e.g. Ramses) the default for 2D images is
-        :class:`~pynbody.sph.kernels.CellKernel`, which renders each cell exactly as a cube; pass e.g.
-        'CubicSpline' to instead treat the cells as SPH particles.
+        The kernel to be used for SPH rendering. If None, the default kernel is assigned. For more information
+        see :func:`pynbody.sph.kernels.create_kernel`. Specifying a kernel implies SPH rendering, even for AMR gas;
+        see *amr*.
 
     smooth_floor : float, str, units.UnitBase, optional
         The minimum smoothing length to be used in the image rendering, specified in units of the position array.
@@ -973,6 +986,12 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
          * 'volume': a 3d cuboid
          * 'healpix': a healpix map
 
+    amr : bool, optional
+        Whether to render the particles as AMR cells, using :class:`AMRImageRenderer`, rather than by SPH
+        interpolation. If None (default), AMR rendering is used if the snapshot consists of AMR gas cells (e.g. Ramses
+        gas), unless a *kernel* or *z_camera* is specified, or the target is not 'image'. AMR rendering is only
+        available for target='image' and does not support *kernel*, *z_camera* or *approximate_fast*.
+
     """
     if resolution is None:
         resolution = config['image-default-resolution']
@@ -995,9 +1014,19 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     width = float(width)
 
+    if amr is None:
+        amr = target == 'image' and kernel is None and z_camera is None and _is_amr_gas(sim)
+    elif amr:
+        if target != 'image':
+            raise ValueError("AMR rendering is only available for target='image'")
+        if kernel is not None:
+            raise ValueError("AMR rendering does not use a kernel")
+        if z_camera is not None:
+            raise NotImplementedError("Perspective rendering (z_camera) is not yet supported for AMR rendering")
+
     match target:
         case 'image':
-            renderer = ImageRenderer(sim)
+            renderer = AMRImageRenderer(sim) if amr else ImageRenderer(sim)
         case 'volume':
             renderer = Grid3dRenderer(sim)
         case 'healpix':
@@ -1014,10 +1043,6 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         renderer.restrict_z_range()
 
     renderer.set_kernel(kernel)
-    if z_camera is not None and kernel is None and isinstance(renderer._kernel, kernels.CellKernel):
-        # perspective rendering of AMR cells is not yet implemented; fall back to treating them as SPH particles
-        logger.info("Perspective rendering of AMR cells is not supported; falling back to the default SPH kernel")
-        renderer.set_kernel(kernels.create_kernel(None))
     renderer.set_resolution(resolution)
 
     if nx is not None:
