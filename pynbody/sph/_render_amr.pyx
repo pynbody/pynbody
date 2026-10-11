@@ -1324,7 +1324,12 @@ def render_image_cells(int nx, int ny,
                                                     corner_labels, corner_labels + (nx + 1), lower_F, upper_F)
 
     if dres != NULL:
-        # recover the image from its second differences; values below zero can only arise from round-off
-        result += np.maximum(np.cumsum(np.cumsum(dres_np, axis=1), axis=1), 0.0).astype(np_image_output_type)
+        # Recover the image from its second differences; values below zero can only arise from round-off. This is
+        # done in place to avoid temporary copies of the image (the buffer must be double precision, since round-off
+        # errors in the second differences are amplified by the cumulative sums).
+        np.cumsum(dres_np, axis=1, out=dres_np)
+        np.cumsum(dres_np, axis=1, out=dres_np)
+        np.maximum(dres_np, 0.0, out=dres_np)
+        result += dres_np
 
     return result
