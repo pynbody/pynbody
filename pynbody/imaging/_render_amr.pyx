@@ -17,7 +17,7 @@ cimport cython
 cimport numpy as np
 
 np.import_array()
-from libc.math cimport NAN, fabs, sqrt
+from libc.math cimport NAN, fabs, isfinite, sqrt
 
 # See _render.pyx for the reason for the separate fused types
 ctypedef fused fused_input_type_1:
@@ -946,6 +946,9 @@ def render_image_cells(int nx, int ny,
 
                     if sm_i < min_smooth:
                         sm_i = min_smooth
+                    if not (sm_i > 0 and isfinite(sm_i) and isfinite(x_i) and isfinite(y_i) and isfinite(z_i)):
+                        # cells with undefined position or size cannot be rendered
+                        continue
                     if sm_i < pixel_dx * smooth_lo or sm_i > pixel_dx * smooth_hi:
                         continue
 
@@ -1019,6 +1022,9 @@ def render_image_cells(int nx, int ny,
                     ix1 = _floor_int(X1) if X1 < nx else nx
                     iy0 = _floor_int(Y0) if Y0 > -1.0 else -1
                     iy1 = _floor_int(Y1) if Y1 < ny else ny
+                    if ix0 >= nx or iy0 >= ny or ix1 < 0 or iy1 < 0:
+                        # despite the tests above, round-off can place a cell just outside the image
+                        continue
 
                     if ix0 == ix1 and iy0 == iy1 and (projected or aligned):
                         # the whole cell lies within a single pixel (which is within the image, given the tests

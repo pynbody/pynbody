@@ -136,6 +136,52 @@ def test_cell_quadrant_volume(rotation):
     npt.assert_allclose(_render_amr.cell_quadrant_volume(rotation, -1.0, 1.0), 0.0, atol=1e-12)
 
 
+@pytest.mark.parametrize("nx", [10, 12, 15, 20, 24, 25, 30])
+def test_uniform_grid_edges(nx):
+    """A uniform grid filling the image must give a uniform image. For some resolutions, round-off places cells
+    lying just outside the right and top edges of the image at pixel index nx (or ny); these must not be deposited
+    (they previously wrapped into other rows, or wrote beyond the image)."""
+    a, n = 0.2, 50
+    g = (np.arange(n) + 0.5) * a - n * a / 2
+    pos = np.array(np.meshgrid(g, g, g, indexing='ij')).reshape(3, -1).T
+    im = _render_cells(pos, a, 1.0, np.eye(3), True, nx=nx, width=6.0)
+    npt.assert_allclose(im, n * a, rtol=1e-5)  # (float32 accumulation round-off)
+    im = _render_cells(pos, a, 1.0, np.eye(3), False, nx=nx, width=6.0, z0=0.05)
+    npt.assert_allclose(im, 1.0, rtol=1e-5)
+
+
+def test_cell_beyond_edge_by_roundoff():
+    """A cell whose lower edge lies a fraction of a floating-point step inside the right edge of the image"""
+    a = 0.2
+    centre = np.nextafter(2.0, -np.inf) + a / 2
+    for rotation in (np.eye(3), _rotation(0.4, 0.7)):
+        im = _render_cells([centre, 0.1, 0.0], a, 1.0, rotation, True, nx=10, width=4.0)
+        assert im[:, :-1].sum() == 0  # nothing wrapped into other rows
+
+
+@pytest.mark.parametrize("bad", ["nan_x", "inf_x", "nan_z", "nan_smooth", "zero_smooth", "negative_smooth"])
+@pytest.mark.parametrize("rotated", [True, False])
+@pytest.mark.parametrize("projected", [True, False])
+def test_nonfinite_cells_skipped(bad, rotated, projected):
+    """Cells with undefined positions or sizes are skipped, without affecting other cells"""
+    rotation = _rotation(0.4, 0.7) if rotated else np.eye(3)
+    pos = np.array([[0.1, 0.0, 0.0], [-0.5, 0.2, 0.0]])
+    sizes = np.array([0.1, 0.1])
+    if bad == "nan_x": pos[0, 0] = np.nan
+    if bad == "inf_x": pos[0, 0] = np.inf
+    if bad == "nan_z": pos[0, 2] = np.nan
+    if bad == "nan_smooth": sizes[0] = np.nan
+    if bad == "zero_smooth": sizes[0] = 0.0
+    if bad == "negative_smooth": sizes[0] = -0.1
+    n = len(pos)
+    im = _render_amr.render_image_cells(100, 100, pos[:, 0].copy(), pos[:, 1].copy(), pos[:, 2].copy(), sizes,
+                                        -1.0, 1.0, -1.0, 1.0, 0.0, np.ones(n), np.full(n, 0.1 ** 3), np.ones(n),
+                                        0.0, np.inf, -np.inf, np.inf, 0.0, projected, rotation)
+    reference = _render_cells(pos[1], 0.1, 1.0, rotation, projected, nx=100, width=2.0)
+    assert np.all(np.isfinite(im))
+    npt.assert_allclose(im, reference, atol=1e-6)
+
+
 @pytest.mark.parametrize("rotated", [True, False])
 def test_cell_projection_conserves_mass(rotated):
     rotation = _rotation(0.4, 0.7) if rotated else np.eye(3)
