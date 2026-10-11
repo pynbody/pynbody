@@ -16,7 +16,8 @@ def _cube_of_cells(n_sub, size, centre, rotation=np.eye(3)):
     return u @ rotation.T + centre
 
 
-def _render_cells(pos, size, qty, rotation, projected, nx=100, width=4.0, z0=0.0, z_lo=-np.inf, z_hi=np.inf):
+def _render_cells(pos, size, qty, rotation, projected, nx=100, width=4.0, z0=0.0, z_lo=-np.inf, z_hi=np.inf,
+                  **kwargs):
     pos = np.atleast_2d(pos)
     n = len(pos)
     sm = np.full(n, float(size))
@@ -25,7 +26,7 @@ def _render_cells(pos, size, qty, rotation, projected, nx=100, width=4.0, z0=0.0
     rho = np.ones(n)
     return _render.render_image_cells(nx, nx, pos[:, 0].copy(), pos[:, 1].copy(), pos[:, 2].copy(), sm,
                                       -width / 2, width / 2, -width / 2, width / 2, z0,
-                                      qty, mass, rho, 0.0, np.inf, z_lo, z_hi, 0.0, projected, rotation)
+                                      qty, mass, rho, 0.0, np.inf, z_lo, z_hi, 0.0, projected, rotation, **kwargs)
 
 
 def _rotation(theta_x, theta_z):
@@ -56,23 +57,66 @@ def amr_snap():
 
 @pytest.mark.parametrize("projected", [True, False])
 @pytest.mark.parametrize("rotated", [True, False])
-def test_cells_tile_exactly(projected, rotated):
+@pytest.mark.parametrize("exact", [True, False])
+def test_cells_tile_exactly(projected, rotated, exact):
     """A cube decomposed into subcells must render identically to the cube itself"""
     rotation = _rotation(0.4, 0.7) if rotated else np.eye(3)
     centre = np.array([0.125, -0.0625, 0.25])
-    big = _render_cells(centre, 1.6, 1.0, rotation, projected, z_lo=-0.3, z_hi=0.2)
+    # tables=[] forces exact projections of rotated cells, rather than interpolating tabulated volumes
+    kwargs = {'tables': []} if exact else {}
+    big = _render_cells(centre, 1.6, 1.0, rotation, projected, z_lo=-0.3, z_hi=0.2, **kwargs)
     small = _render_cells(_cube_of_cells(8, 1.6, centre, rotation), 0.2, 1.0, rotation, projected,
-                          z_lo=-0.3, z_hi=0.2)
+                          z_lo=-0.3, z_hi=0.2, **kwargs)
     assert big.max() > 0.1
-    npt.assert_allclose(small, big, atol=1e-5)
+    # interpolation in the tables gives errors of order 1e-4 (relative) for the projection of rotated cells
+    npt.assert_allclose(small, big, atol=1e-4 if (projected and rotated and not exact) else 1e-5)
+
+
+@pytest.mark.parametrize("rotation", [_rotation(0.4, 0.7), _rotation(1.2, 2.1),
+                                      _rotation(np.radians(30), np.radians(25)),  # one cell axis in image plane
+                                      _rotation(1e-6, 1e-6)])
+@pytest.mark.parametrize("cell_pixels", [0.3, 1.5, 6.0, 25.0, 300.0])
+def test_rotated_projection_against_exact(rotation, cell_pixels):
+    """Rotated projections must agree with the exact path, whichever of the faster paths is taken.
+
+    Cells up to 16 pixels interpolate tabulated volumes; larger cells are accumulated along rows (see
+    render_image_cells)."""
+    rng = np.random.default_rng(1)
+    a = cell_pixels * 4.0 / 100
+    n_sub = max(2, min(12, int(6.0 / a)))
+    pos = _cube_of_cells(n_sub, n_sub * a, rng.uniform(-0.3, 0.3, 3), rotation)
+    qty = rng.lognormal(0.0, 1.0, len(pos))
+    fast = _render_cells(pos, a, qty, rotation, True)
+    exact = _render_cells(pos, a, qty, rotation, True, tables=[], row_threshold=1e30)
+    assert fast.min() >= 0
+    assert exact.max() > 0
+    npt.assert_allclose(fast, exact, atol=1e-3 * exact.max())
+    npt.assert_allclose(fast.sum(), exact.sum(), rtol=1e-5)
+
+
+@pytest.mark.parametrize("rotation", [_rotation(0.4, 0.7), _rotation(np.radians(30), np.radians(25)),
+                                      _rotation(np.pi / 2, 0.0), np.eye(3)])
+def test_cell_quadrant_volume(rotation):
+    """The exact volume of a cube with x <= dx, y <= dy (and optionally restricted in z) must match Monte Carlo"""
+    rng = np.random.default_rng(3)
+    u = rng.uniform(-0.5, 0.5, (400000, 3)) @ rotation.T
+    dx, dy = rng.uniform(-0.8, 0.8, (2, 10))
+    for z_lo, z_hi in ((-np.inf, np.inf), (-0.2, 0.3)):
+        exact = _render.cell_quadrant_volume(rotation, dx, dy, z_lo, z_hi)
+        in_z = (u[:, 2] >= z_lo) & (u[:, 2] <= z_hi)
+        mc = [np.mean((u[:, 0] <= x) & (u[:, 1] <= y) & in_z) for x, y in zip(dx, dy)]
+        npt.assert_allclose(exact, mc, atol=4e-3)
+    npt.assert_allclose(_render.cell_quadrant_volume(rotation, 1.0, 1.0), 1.0, rtol=1e-12)
+    npt.assert_allclose(_render.cell_quadrant_volume(rotation, -1.0, 1.0), 0.0, atol=1e-12)
 
 
 @pytest.mark.parametrize("rotated", [True, False])
 def test_cell_projection_conserves_mass(rotated):
     rotation = _rotation(0.4, 0.7) if rotated else np.eye(3)
-    im = _render_cells([0.1, -0.2, 0.05], 1.3, 2.0, rotation, True)
-    # rotated cells are supersampled where pixels straddle their projected edges, so are not quite exact
-    npt.assert_allclose(im.sum() * (4.0 / 100) ** 2, 2.0 * 1.3 ** 3, rtol=1e-4 if rotated else 1e-6)
+    for size in (1.3, 0.3, 0.05):
+        # (sizes covering the different algorithms for rotated cells)
+        im = _render_cells([0.1, -0.2, 0.05], size, 2.0, rotation, True)
+        npt.assert_allclose(im.sum() * (4.0 / 100) ** 2, 2.0 * size ** 3, rtol=1e-5)
 
 
 def test_cell_slice_rotated_area():

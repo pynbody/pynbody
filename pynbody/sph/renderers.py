@@ -768,9 +768,9 @@ class ImageRenderer(ImageRendererBase):
                                           geometry.x1, geometry.x2, geometry.y1, geometry.y2, geometry.z_plane,
                                           array, mass_array, rho_array,
                                           self._smooth_min, self._smooth_max, geometry.z1, geometry.z2,
-                                          self._smooth_floor, kernel.projected, orientation, kernel.subsamples,
-                                          self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
-                                          self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2))
+                                          self._smooth_floor, kernel.projected, orientation,
+                                          wrap_offsets_x=self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
+                                          wrap_offsets_y=self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2))
 
 
 class Grid3dRenderer(ImageRenderer):
