@@ -352,6 +352,8 @@ def test_amr_renderer_has_no_kernel(amr_snap):
     with pytest.raises(ValueError):
         pipeline.set_kernel('CubicSpline')
     pipeline.set_kernel(None)
+    assert pipeline._kernel is None
+    assert all(r._kernel is None for r in pipeline._subrenderers)
 
 
 def test_amr_renderer_wrappers(amr_snap):

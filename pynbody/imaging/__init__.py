@@ -168,7 +168,8 @@ def render_3d_grid(snap, quantity='rho', nx=None, ny=None, nz=None, width="10 kp
     return renderer.render()
 
 def render_image(*args, **kwargs):
-    """Render an SPH image. This is a wrapper around the :mod:`renderers` module for convenience.
+    """Render an image, by SPH interpolation or exact rendering of AMR cells. This is a wrapper around the
+    :mod:`renderers` module for convenience.
 
     All arguments and keyword arguments are forwarded to :func:`renderers.make_render_pipeline`,
     and the result is immediately rendered.

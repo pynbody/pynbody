@@ -29,7 +29,12 @@ import scipy
 from .. import array as array_module, config, snapshot, units
 from ..configuration import config_parser
 from ..sph import kernels
-from . import _render, _render_amr
+try:
+    from . import _render, _render_amr
+except ImportError as e:
+    raise ImportError("The compiled rendering extensions could not be imported. In pynbody 2.9.0 these moved from "
+                      "pynbody.sph to pynbody.imaging, so if you are using a development install of pynbody, you "
+                      "may need to rebuild it (e.g. pip install -e .)") from e
 
 logger = logging.getLogger('pynbody.imaging.renderers')
 
@@ -472,9 +477,10 @@ class MultipassImageRenderer(ImageRendererBase):
         return copy
 
     def set_kernel(self, kernel_spec = None):
-        super().set_kernel(kernel_spec)
         for r in self._subrenderers:
             r.set_kernel(kernel_spec)
+        # the subrenderers decide what the kernel specification means (e.g. no kernel for AMR rendering)
+        self._kernel = self._subrenderers[0]._kernel
 
     def _denoise_by_default(self):
         return self._subrenderers[0]._denoise_by_default()

@@ -21,23 +21,15 @@ the neighbour pairs themselves.
 
 """
 
-import copy
 import logging
-import math
-import os
-import sys
-import threading
 import time
 import warnings
-from time import process_time
 
 import numpy as np
-import scipy
-import scipy.ndimage
 
 logger = logging.getLogger('pynbody.sph')
 
-from .. import array, config, config_parser, kdtree, snapshot, units, util
+from .. import array, config, snapshot
 from . import kernels
 
 

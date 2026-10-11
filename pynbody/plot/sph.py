@@ -16,3 +16,6 @@ def __getattr__(name):
         return getattr(_imaging, name)
     except AttributeError:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+
+def __dir__():
+    return __all__
