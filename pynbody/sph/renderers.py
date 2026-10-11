@@ -362,6 +362,10 @@ class ImageRendererBase:
         else:
             return self
 
+    def _approximation_supported(self) -> bool:
+        """Returns True if this renderer can be used within an :class:`ApproximateImageRenderer`"""
+        return True
+
     def with_threading(self, num_threads : int | NoneType = None) -> ImageRendererBase:
         """Return a version of this renderer that will use the specified number of threads for rendering.
 
@@ -377,7 +381,7 @@ class ImageRendererBase:
 
         For more information, see :class:`ApproximateImageRenderer`.
 
-        Note that if the number of levels is less than 2, the original renderer is returned.
+        Note that if the number of levels is less than 2, or the renderer does not support approximation, the original renderer is returned.
 
         Parameters
         ----------
@@ -390,6 +394,8 @@ class ImageRendererBase:
             The zoom factor to use between levels of approximation. The default is 8.
         """
         self._check_quantity_set()
+        if not self._approximation_supported():
+            return self
         if levels is None:
             levels = int(np.floor(np.log2(self.geometry.nx / 5)/np.log2(factor)))
 
@@ -445,6 +451,9 @@ class MultipassImageRenderer(ImageRendererBase):
         super().set_kernel(kernel_spec)
         for r in self._subrenderers:
             r.set_kernel(kernel_spec)
+
+    def _approximation_supported(self):
+        return self._subrenderers[0]._approximation_supported()
 
     def set_quantity(self, qty):
         super().set_quantity(qty)
@@ -762,8 +771,9 @@ class HealpixRenderer(ImageRenderer):
 
 
 
-    def with_approximate(self, levels : int | NoneType = None, factor = 8) -> ImageRendererBase:
-        raise NotImplementedError("Approximate rendering is not implemented for healpix")
+    def _approximation_supported(self):
+        # healpix maps cannot be rendered at reduced resolution and interpolated, so approximation is not used
+        return False
 
 
 

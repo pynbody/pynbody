@@ -276,6 +276,26 @@ def test_spherical_render(simple_test_file):
                                      -0.46617195], rtol=0.01)
 
 
+def test_healpix_approximate_not_applied(simple_test_file):
+    """Approximate rendering must be a no-op for healpix, whether or not the renderer is threaded.
+
+    Regression test: the default pipeline (threaded + approximate) used to wrap the healpix renderer in an
+    ApproximateImageRenderer, which summed identical full-resolution maps and so doubled the result."""
+    f = simple_test_file
+
+    def render(**kwargs):
+        return renderers.make_render_pipeline(f, 'rho', nside=16, target='healpix', **kwargs).render()
+
+    reference = render(approximate_fast=False, threaded=False)
+    assert reference.sum() > 0
+
+    npt.assert_allclose(render(), reference, rtol=1e-6)
+    npt.assert_allclose(render(threaded=False), reference, rtol=1e-6)
+    npt.assert_allclose(render(approximate_fast=False), reference, rtol=1e-6)
+    npt.assert_allclose(render(threaded=True, approximate_fast=True), reference, rtol=1e-6)
+    npt.assert_allclose(render(threaded=False, approximate_fast=True), reference, rtol=1e-6)
+
+
 def test_spherical_shell_render(simple_test_file):
     """A thin-shell healpix render should sample the 3D density field, giving volumetric units."""
     f = simple_test_file
