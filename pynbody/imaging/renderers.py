@@ -20,7 +20,6 @@ import concurrent
 import concurrent.futures
 import copy
 import logging
-import warnings
 from types import NoneType
 
 import numpy as np
@@ -30,7 +29,7 @@ from .. import array as array_module, config, snapshot, units
 from ..configuration import config_parser
 from ..sph import kernels
 try:
-    from . import _render, _render_amr
+    from . import _render, _render_amr, _render_amr_perspective
 except ImportError as e:
     raise ImportError("The compiled rendering extensions could not be imported. In pynbody 2.9.0 these moved from "
                       "pynbody.sph to pynbody.imaging, so if you are using a development install of pynbody, you "
@@ -766,6 +765,15 @@ class AMRImageRenderer(ImageRenderer):
     are no more than a few pixels across). For details, see
     :func:`pynbody.imaging._render_amr.render_image_cells`.
 
+    Perspective images (see :meth:`ImageGeometry.set_camera_z`) are also exact. A slice is the orthographic slice,
+    rescaled to the view of the plane from the camera. A projection gives, in each pixel, the average over the pixel of
+    the integral of the quantity along the ray from the camera (i.e. along the ray, rather than along z). This is
+    calculated from the exact geometry of each cell, using series expansions where they converge rapidly, so that
+    pixel values have relative errors of order 1e-5 or less, and the cells tile the image without gaps or overlaps.
+    Cells which are not entirely in front of the camera are omitted. Perspective projections are typically several
+    times slower than orthographic ones. For details, see
+    :func:`pynbody.imaging._render_amr_perspective.render_image_cells_perspective`.
+
     The cell edges are taken to be parallel to the axes of the original simulation. Their orientation in the image is
     therefore calculated from the rotations that have been applied to the snapshot through pynbody's transformations
     (see :meth:`pynbody.snapshot.simsnap.SimSnap.net_rotation_matrix`); this includes rotations applied through
@@ -783,9 +791,9 @@ class AMRImageRenderer(ImageRenderer):
       are by default denoised, giving a volume-weighted average over the overlapping cells, and projections continue
       to conserve mass.
 
-    No kernel is used, so :meth:`set_kernel` accepts only None; approximate rendering (:meth:`with_approximate`)
-    is not supported, and the *approximate_fast* option of :func:`make_render_pipeline` has no effect; and perspective rendering (:meth:`ImageGeometry.set_camera_z`) is not supported. To render AMR
-    cells as SPH particles instead, use :class:`ImageRenderer` (or pass ``amr=False`` to
+    No kernel is used, so :meth:`set_kernel` accepts only None; and approximate rendering (:meth:`with_approximate`)
+    is not supported, so that the *approximate_fast* option of :func:`make_render_pipeline` has no effect. To render
+    AMR cells as SPH particles instead, use :class:`ImageRenderer` (or pass ``amr=False`` to
     :func:`make_render_pipeline`).
     """
 
@@ -843,8 +851,8 @@ class AMRImageRenderer(ImageRenderer):
         By default (*exact* = False), projections of rotated cells up to 16 pixels across are calculated by
         interpolating from a table, which conserves mass exactly, but gives errors of up to 1e-3 in individual pixels.
         If *exact* is True, these cells are instead projected exactly; this can be an order of magnitude slower if
-        most cells are no more than a few pixels across. Slices, and projections of cells aligned with the image, are
-        always exact.
+        most cells are no more than a few pixels across. Slices, projections of cells aligned with the image, and
+        perspective projections are always exact.
         """
         self._exact = bool(exact)
 
@@ -876,17 +884,39 @@ class AMRImageRenderer(ImageRenderer):
             return self._orientation
 
     def _call_c_renderer(self, array, geometry, kernel, mass_array, rho_array, smooth_array, x_array, y_array, z_array):
+        x1, x2, y1, y2 = geometry.x1, geometry.x2, geometry.y1, geometry.y2
         if geometry.z_camera:
-            raise NotImplementedError("Perspective rendering is not yet supported for AMR cells. To render cells as "
-                                      "SPH particles instead, use ImageRenderer.")
+            if self._is_projected:
+                return self._call_perspective_renderer(array, geometry, mass_array, rho_array, smooth_array,
+                                                       x_array, y_array, z_array)
+            # A perspective view of a plane is an orthographic image of it, scaled about the centre of the image
+            scale = (geometry.z_camera - geometry.z_plane) / geometry.z_camera
+            if scale <= 0:
+                # the plane is not in front of the camera
+                return np.zeros((geometry.ny, geometry.nx), dtype=np.float32)
+            mid_x, mid_y = 0.5 * (x1 + x2), 0.5 * (y1 + y2)
+            x1, x2 = mid_x + (x1 - mid_x) * scale, mid_x + (x2 - mid_x) * scale
+            y1, y2 = mid_y + (y1 - mid_y) * scale, mid_y + (y2 - mid_y) * scale
         return _render_amr.render_image_cells(
             geometry.nx, geometry.ny, x_array, y_array, z_array, smooth_array,
-            geometry.x1, geometry.x2, geometry.y1, geometry.y2, geometry.z_plane,
+            x1, x2, y1, y2, geometry.z_plane,
             array, mass_array, rho_array, self._smooth_min, self._smooth_max, geometry.z1, geometry.z2,
             self._smooth_floor, self._is_projected, self._get_orientation(),
             wrap_offsets_x=self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
             wrap_offsets_y=self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2),
             tables=[] if self._exact else None)
+
+    def _call_perspective_renderer(self, array, geometry, mass_array, rho_array, smooth_array, x_array, y_array,
+                                   z_array):
+        def as_double(a):
+            return np.ascontiguousarray(a, dtype=np.float64)
+        return _render_amr_perspective.render_image_cells_perspective(
+            geometry.nx, geometry.ny, as_double(x_array), as_double(y_array), as_double(z_array),
+            as_double(smooth_array), geometry.x1, geometry.x2, geometry.y1, geometry.y2, geometry.z_camera,
+            as_double(array), as_double(mass_array), as_double(rho_array), self._smooth_min, self._smooth_max,
+            geometry.z1, geometry.z2, self._smooth_floor, self._get_orientation(),
+            wrap_offsets_x=self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
+            wrap_offsets_y=self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2))
 
 
 class Grid3dRenderer(ImageRenderer):
@@ -961,7 +991,7 @@ class HealpixRenderer(ImageRenderer):
 
 
 
-def _use_amr_rendering(sim, amr, target, kernel, z_camera, exact):
+def _use_amr_rendering(sim, amr, target, kernel, exact):
     """Decide whether make_render_pipeline should render AMR cells, given its arguments"""
     if amr is None:
         if not _is_amr(sim):
@@ -976,11 +1006,6 @@ def _use_amr_rendering(sim, amr, target, kernel, z_camera, exact):
         elif kernel is not None:
             amr = False
             reason = "a kernel was specified"
-        elif z_camera is not None:
-            warnings.warn("Perspective rendering (z_camera) is not yet supported for AMR cells, so they will be "
-                          "rendered as SPH particles. Pass amr=False to silence this warning.", RuntimeWarning)
-            amr = False
-            reason = "perspective rendering is not supported for AMR cells"
         else:
             amr = True
             reason = "the snapshot consists of AMR cells"
@@ -993,9 +1018,6 @@ def _use_amr_rendering(sim, amr, target, kernel, z_camera, exact):
         if kernel is not None:
             raise ValueError("AMR rendering does not use a kernel; pass amr=False to render AMR cells as SPH particles "
                              "with a kernel")
-        if z_camera is not None:
-            raise NotImplementedError("Perspective rendering (z_camera) is not yet supported for AMR rendering; pass "
-                                      "amr=False to render AMR cells as SPH particles instead")
         if len(sim.families()) > 1:
             raise ValueError("AMR rendering requires a snapshot consisting only of AMR cells, but this one contains "
                              f"particles of several families ({', '.join(f.name for f in sim.families())}). Select "
@@ -1133,10 +1155,9 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
     amr : bool, optional
         Whether to render the particles as AMR cells, using :class:`AMRImageRenderer`, rather than by SPH
         interpolation. If None (default), AMR rendering is used if the snapshot consists only of AMR cells (e.g.
-        Ramses gas), unless a *kernel* is specified or the target is not 'image'; or unless *z_camera* is specified,
-        in which case a warning is issued. AMR rendering is only available for target='image' and does not support
-        *kernel*, *z_camera* or *approximate_fast*. The default can be changed to SPH rendering by setting
-        ``amr-images: False`` in the ``[sph]`` section of the pynbody configuration file.
+        Ramses gas), unless a *kernel* is specified or the target is not 'image'. AMR rendering is only available for
+        target='image' and does not support *kernel* or *approximate_fast*. The default can be changed to SPH
+        rendering by setting ``amr-images: False`` in the ``[sph]`` section of the pynbody configuration file.
 
     exact : bool, optional
         For AMR rendering only. If True, all cells are projected exactly, rather than small rotated cells being
@@ -1164,7 +1185,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     width = float(width)
 
-    amr = _use_amr_rendering(sim, amr, target, kernel, z_camera, exact)
+    amr = _use_amr_rendering(sim, amr, target, kernel, exact)
 
     match target:
         case 'image':

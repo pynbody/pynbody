@@ -112,6 +112,10 @@ imaging_render_amr = Extension('pynbody.imaging._render_amr',
                   sources=['pynbody/imaging/_render_amr.pyx'],
                   include_dirs=incdir)
 
+imaging_render_amr_perspective = Extension('pynbody.imaging._render_amr_perspective',
+                  sources=['pynbody/imaging/_render_amr_perspective.pyx'],
+                  include_dirs=incdir)
+
 halo_pyx = Extension('pynbody.analysis._com',
                      sources=['pynbody/analysis/_com.pyx'],
                      include_dirs=incdir,
@@ -140,7 +144,7 @@ cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
                                 include_dirs=incdir)
 
 
-ext_modules += [gravity, chunkscan, imaging_render, imaging_render_amr, halo_pyx, bridge_pyx, util_pyx, filt_geom_pyx,
+ext_modules += [gravity, chunkscan, imaging_render, imaging_render_amr, imaging_render_amr_perspective, halo_pyx, bridge_pyx, util_pyx, filt_geom_pyx,
                 cython_fortran_file, omp_commands]
 
 setup(ext_modules=ext_modules,

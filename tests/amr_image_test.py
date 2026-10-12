@@ -6,7 +6,7 @@ import pytest
 
 import pynbody
 import pynbody.test_utils
-from pynbody.imaging import _render_amr, renderers
+from pynbody.imaging import _render_amr, _render_amr_perspective, renderers
 
 
 def _cube_of_cells(n_sub, size, centre, rotation=np.eye(3)):
@@ -219,10 +219,9 @@ def test_renderer_selection(amr_snap):
     assert core_type(out_units='Msol kpc^-2') is renderers.AMRImageRenderer
     assert core_type(weight='rho') is renderers.AMRImageRenderer
     assert core_type(amr=False) is renderers.ImageRenderer
-    # specifying an SPH kernel, or perspective rendering (not yet supported for AMR) implies SPH rendering
+    # specifying an SPH kernel implies SPH rendering
     assert core_type(kernel='CubicSpline') is renderers.ImageRenderer
-    with pytest.warns(RuntimeWarning, match="z_camera"):
-        assert core_type(z_camera=10.0) is renderers.ImageRenderer
+    assert core_type(z_camera=10.0) is renderers.AMRImageRenderer
     assert core_type(z_camera=10.0, amr=False) is renderers.ImageRenderer
     assert core_type(target='volume', nx=4) is renderers.Grid3dRenderer
 
@@ -230,8 +229,7 @@ def test_renderer_selection(amr_snap):
         renderers.make_render_pipeline(amr_snap.g, amr=True, kernel='CubicSpline')
     with pytest.raises(ValueError):
         renderers.make_render_pipeline(amr_snap.g, amr=True, target='volume')
-    with pytest.raises(NotImplementedError):
-        renderers.make_render_pipeline(amr_snap.g, amr=True, z_camera=10.0)
+    assert core_type(amr=True, z_camera=10.0) is renderers.AMRImageRenderer
 
     with pytest.raises(ValueError, match="AMR"):
         renderers.make_render_pipeline(amr_snap.g, amr=False, exact=True)
@@ -471,3 +469,152 @@ def test_velocity_image_consistent(amr_snap, monkeypatch, amr):
     plt.close('all')
     expected = renderers.ImageRenderer if amr is False else renderers.AMRImageRenderer
     assert renderer_types == [expected, expected]
+
+
+# ---- perspective rendering ----
+
+def _render_cells_perspective(pos, size, qty, rotation, z_camera, nx=20, width=4.0, z_lo=-np.inf, z_hi=np.inf):
+    pos = np.atleast_2d(np.asarray(pos, dtype=np.float64))
+    n = len(pos)
+    sm = np.broadcast_to(np.asarray(size, dtype=np.float64), (n,)).copy()
+    qty = np.broadcast_to(np.asarray(qty, dtype=np.float64), (n,)).copy()
+    return _render_amr_perspective.render_image_cells_perspective(
+        nx, nx, pos[:, 0].copy(), pos[:, 1].copy(), pos[:, 2].copy(), sm, -width / 2, width / 2, -width / 2,
+        width / 2, z_camera, qty, sm ** 3, np.ones(n), 0.0, np.inf, z_lo, z_hi, 0.0, rotation)
+
+
+def _brute_force_perspective(pos, size, rotation, z_camera, nx=20, width=4.0, sub=64, z_lo=-np.inf, z_hi=np.inf):
+    """Pixel averages of the integral along rays from the camera through cubes of unit density, by sampling sub x sub
+    rays per pixel"""
+    dx = width / nx
+    g = (np.arange(nx * sub) + 0.5) * dx / sub - width / 2
+    X, Y = np.meshgrid(g, g)
+    camera = np.array([0.0, 0.0, z_camera])
+    D = np.stack([X, Y, -z_camera * np.ones_like(X)], -1)  # the ray reaches the image plane z=0 at t=1
+    image = np.zeros_like(X)
+    for c in np.atleast_2d(pos):
+        o = (camera - c) @ rotation
+        d = D @ rotation
+        with np.errstate(divide='ignore', invalid='ignore'):
+            t1 = (-size / 2 - o) / d
+            t2 = (size / 2 - o) / d
+        t_in = np.maximum(np.nanmax(np.minimum(t1, t2), -1), 0.0)
+        t_out = np.nanmin(np.maximum(t1, t2), -1)
+        tz = sorted([(z_camera - z_hi) / z_camera, (z_camera - z_lo) / z_camera])
+        t_in = np.maximum(t_in, tz[0])
+        t_out = np.minimum(t_out, tz[1])
+        image += np.clip(t_out - t_in, 0, None) * np.linalg.norm(D, axis=-1)
+    return image.reshape(nx, sub, nx, sub).mean(axis=(1, 3))
+
+
+@pytest.mark.parametrize("rotation, z_camera, centre, size", [
+    (np.eye(3), 20.0, (0.3, -0.2, 0.1), 1.3),
+    (_rotation(0.4, 0.7), 20.0, (0.3, -0.2, 0.1), 1.3),
+    (_rotation(0.4, 0.7), 4.0, (0.6, -0.4, 0.5), 1.0),    # close to the camera, with a wide field of view
+    (_rotation(1.1, 2.3), -6.0, (0.6, -0.4, 0.5), 1.0),   # camera below the image plane
+    (_rotation(0.4, 0.7), 50.0, (1.8, 1.7, 0.0), 0.9),    # straddling the edge of the image
+    (_rotation(0.4, 0.7), 3.0, (0.0, 0.0, 1.6), 1.6),     # extending well beyond the field of view
+])
+def test_perspective_projection_brute_force(rotation, z_camera, centre, size):
+    exact = _render_cells_perspective([centre], size, 1.0, rotation, z_camera)
+    reference = _brute_force_perspective([centre], size, rotation, z_camera)
+    # the reference is limited by its sampling of the pixels along the edges of the cell
+    npt.assert_allclose(exact, reference, atol=2e-4 * reference.max())
+    npt.assert_allclose(exact.sum(), reference.sum(), rtol=1e-4)
+
+
+def test_perspective_projection_z_range():
+    rotation = _rotation(0.4, 0.7)
+    exact = _render_cells_perspective([(0.1, 0.2, 0.3)], 1.5, 1.0, rotation, 10.0, z_lo=-0.2, z_hi=0.6)
+    reference = _brute_force_perspective([(0.1, 0.2, 0.3)], 1.5, rotation, 10.0, z_lo=-0.2, z_hi=0.6)
+    npt.assert_allclose(exact, reference, atol=2e-4 * reference.max())
+    npt.assert_allclose(exact.sum(), reference.sum(), rtol=1e-4)
+
+
+@pytest.mark.parametrize("rotation", [np.eye(3), _rotation(0.4, 0.7)])
+@pytest.mark.parametrize("z_camera", [6.0, -5.0])
+def test_perspective_tiling(rotation, z_camera):
+    """A cell and the cells into which it can be divided must give the same image"""
+    centre = np.array([0.3, -0.2, 0.4])
+    one = _render_cells_perspective([centre], 1.6, 1.0, rotation, z_camera, nx=40)
+    for n_sub in (2, 8):
+        many = _render_cells_perspective(_cube_of_cells(n_sub, 1.6, centre, rotation), 1.6 / n_sub, 1.0,
+                                         rotation, z_camera, nx=40)
+        npt.assert_allclose(many, one, atol=3e-6 * one.max())
+
+
+def test_perspective_subpixel_cells():
+    """Cells smaller than a pixel, including those within a single pixel, must tile exactly"""
+    rotation = _rotation(0.4, 0.7)
+    centre = np.array([0.013, 0.021, 0.0])
+    one = _render_cells_perspective([centre], 0.08, 1.0, rotation, 50.0, nx=10, width=2.0)
+    many = _render_cells_perspective(_cube_of_cells(16, 0.08, centre, rotation), 0.005, 1.0, rotation, 50.0,
+                                     nx=10, width=2.0)
+    npt.assert_allclose(many, one, atol=1e-6 * one.max())
+
+
+def test_perspective_orthographic_limit():
+    rotation = _rotation(0.4, 0.7)
+    pos = _cube_of_cells(4, 1.0, np.array([0.2, 0.1, 0.0]), rotation)
+    ortho = _render_cells(pos, 0.25, 1.0, rotation, True, nx=50, width=2.0, tables=[])
+    for z_camera, tolerance in ((1e4, 1e-3), (1e6, 1e-5)):
+        perspective = _render_cells_perspective(pos, 0.25, 1.0, rotation, z_camera, nx=50, width=2.0)
+        npt.assert_allclose(perspective, ortho, atol=tolerance * ortho.max())
+
+
+def test_triangle_mean_inverse():
+    from scipy import integrate
+    for values in [(1, 2, 3), (1, 1, 3), (1, 3, 3), (0.2, 5, 5.001), (1, 1.002, 1.0035), (1, 1.0009, 0.9995),
+                   (-1, -2, -1.5), (1, 1, 1)]:
+        l1, l2, l3 = values
+        mean, _ = integrate.dblquad(lambda v, u: 2.0 / (l1 + u * (l2 - l1) + v * (l3 - l1)), 0, 1, 0, lambda u: 1 - u,
+                                    epsabs=1e-14, epsrel=1e-13)
+        assert _render_amr_perspective.triangle_mean_inverse(*values) == pytest.approx(mean, rel=1e-12)
+
+
+def test_polygon_integral_series():
+    """The series expansion used for small polygons must agree with the exact integral"""
+    angles = np.sort(np.random.default_rng(3).random(5)) * 2 * np.pi
+    px, py = 0.4 * np.cos(angles) + 0.05, 0.35 * np.sin(angles) - 0.03
+    for lx, ly, l0 in [(0.3, -1.2, 300.0), (-0.8, 0.5, -150.0), (0.0, 0.0, 200.0)]:
+        series, exact = _render_amr_perspective.polygon_integrals(px, py, 0.0, 0.0, lx, ly, l0, 280.0 * np.sign(l0),
+                                                                   0.93, 1.1, 1e-3, -2e-3, 3e-4, 1e-4, 2e-4)
+        assert series == pytest.approx(exact, rel=1e-6)
+
+
+def test_perspective_pipeline(amr_snap):
+    args = dict(width=8.0, resolution=40, out_units='Msol kpc^-2', z_camera=12.0)
+    with amr_snap.rotate_x(30):
+        pipeline = renderers.make_render_pipeline(amr_snap.g, **args)
+        assert type(_core_renderer(pipeline)) is renderers.AMRImageRenderer
+        image = pipeline.render()
+        g = {k: np.ascontiguousarray(amr_snap.g[k], dtype=np.float64) for k in ('x', 'y', 'z', 'smooth', 'rho', 'mass')}
+        core = _render_amr_perspective.render_image_cells_perspective(
+            40, 40, g['x'], g['y'], g['z'], g['smooth'], -4.0, 4.0, -4.0, 4.0, 12.0, g['rho'], g['mass'], g['rho'],
+            0.0, np.inf, -np.inf, np.inf, 0.0, amr_snap.net_rotation_matrix())
+        npt.assert_allclose(image, core, rtol=1e-6)
+
+        # a perspective slice is an orthographic slice of the plane, scaled about the centre of the image
+        perspective_slice = renderers.make_render_pipeline(amr_snap.g, width=8.0, resolution=40,
+                                                           z_camera=12.0).render()
+        scale = 12.0 / 12.0  # the plane z=0 is where the image is defined
+        ortho_slice = renderers.make_render_pipeline(amr_snap.g, width=8.0 * scale, resolution=40).render()
+        npt.assert_allclose(perspective_slice, ortho_slice, rtol=1e-6)
+
+        p = renderers.make_render_pipeline(amr_snap.g, width=8.0, resolution=40, z_camera=12.0)
+        _core_renderer(p).geometry.z_plane = 2.0
+        q = renderers.make_render_pipeline(amr_snap.g, width=8.0 * 10.0 / 12.0, resolution=40)
+        _core_renderer(q).geometry.z_plane = 2.0
+        npt.assert_allclose(p.render(), q.render(), rtol=1e-6)
+
+
+@pytest.mark.filterwarnings("ignore:.*namelist:UserWarning")
+def test_ramses_perspective():
+    pynbody.test_utils.ensure_test_data_available("ramses")
+    f = pynbody.load("testdata/ramses/output_00080")
+    f.physical_units()
+    cen = f.g['pos'][np.argmax(f.g['rho'])].view(np.ndarray).copy()
+    with f.translate(-cen), f.rotate_x(30):
+        im = renderers.make_render_pipeline(f.g, width=60.0, resolution=50, z_camera=120.0,
+                                            out_units='Msol kpc^-2').render()
+        assert np.all(np.isfinite(im)) and np.all(im >= 0) and im.max() > 0

@@ -622,7 +622,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
     amr : bool, optional
         If True, render the particles as AMR cells (cubes with side length given by the smoothing length), exactly;
         if False, use SPH interpolation. If None (default), AMR rendering is used for AMR gas (e.g. Ramses) unless a
-        *kernel* or *z_camera* is specified. See :class:`~pynbody.imaging.renderers.AMRImageRenderer`.
+        *kernel* is specified. See :class:`~pynbody.imaging.renderers.AMRImageRenderer`.
 
     exact : bool, optional
         For AMR rendering only: if True, project all cells exactly rather than interpolating the projections of small
