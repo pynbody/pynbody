@@ -381,7 +381,8 @@ class ImageRendererBase:
 
         For more information, see :class:`ApproximateImageRenderer`.
 
-        Note that if the number of levels is less than 2, or the renderer does not support approximation, the original renderer is returned.
+        Note that if the number of levels is less than 2, the original renderer is returned. If the renderer does not
+        support approximation (as for :class:`HealpixRenderer`), NotImplementedError is raised.
 
         Parameters
         ----------
@@ -395,7 +396,7 @@ class ImageRendererBase:
         """
         self._check_quantity_set()
         if not self._approximation_supported():
-            return self
+            raise NotImplementedError(f"Approximate rendering is not supported by {type(self).__name__}")
         if levels is None:
             levels = int(np.floor(np.log2(self.geometry.nx / 5)/np.log2(factor)))
 
@@ -879,8 +880,9 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         configuration file.
 
     approximate_fast : bool, optional
-        Whether to render the image using a lower-resolution approximation for large smoothing lengths. The default
-        is None, in which case the use of approximation is determined by the configuration file.
+        Whether to render the image using a lower-resolution approximation for large smoothing lengths, where this
+        is supported (it is not for target='healpix', in which case this option has no effect). The default is None,
+        in which case the use of approximation is determined by the configuration file.
 
     denoise : bool, optional
         Whether to include denoising in the rendering process. If None, denoising is applied only if the image
@@ -973,7 +975,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
     if threaded:
         renderer = renderer.with_threading()
 
-    if approximate_fast:
+    if approximate_fast and renderer._approximation_supported():
         renderer = renderer.with_approximate()
 
     if weight is True:

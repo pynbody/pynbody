@@ -277,7 +277,7 @@ def test_spherical_render(simple_test_file):
 
 
 def test_healpix_approximate_not_applied(simple_test_file):
-    """Approximate rendering must be a no-op for healpix, whether or not the renderer is threaded.
+    """The approximate_fast option must be a no-op for healpix, whether or not the renderer is threaded.
 
     Regression test: the default pipeline (threaded + approximate) used to wrap the healpix renderer in an
     ApproximateImageRenderer, which summed identical full-resolution maps and so doubled the result."""
@@ -294,6 +294,13 @@ def test_healpix_approximate_not_applied(simple_test_file):
     npt.assert_allclose(render(approximate_fast=False), reference, rtol=1e-6)
     npt.assert_allclose(render(threaded=True, approximate_fast=True), reference, rtol=1e-6)
     npt.assert_allclose(render(threaded=False, approximate_fast=True), reference, rtol=1e-6)
+
+    # but explicitly requesting approximation from a healpix renderer is an error
+    for threaded in (False, True):
+        pipeline = renderers.make_render_pipeline(f, 'rho', nside=16, target='healpix', threaded=threaded,
+                                                  approximate_fast=False)
+        with pytest.raises(NotImplementedError):
+            pipeline.with_approximate()
 
 
 def test_spherical_shell_render(simple_test_file):
