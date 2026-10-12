@@ -14,7 +14,20 @@ cimport cython
 cimport numpy as np
 
 np.import_array()
-from libc.math cimport INFINITY, M_PI, asin, atan2, ceil, cos, fabs, floor, isfinite, log2, sin, sqrt
+from libc.math cimport (
+    INFINITY,
+    M_PI,
+    asin,
+    atan2,
+    ceil,
+    cos,
+    fabs,
+    floor,
+    isfinite,
+    log2,
+    sin,
+    sqrt,
+)
 
 ctypedef np.float32_t image_output_type
 np_image_output_type = np.float32

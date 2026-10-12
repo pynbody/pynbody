@@ -29,6 +29,7 @@ import scipy
 from .. import array as array_module, config, snapshot, units
 from ..configuration import config_parser
 from ..sph import kernels
+
 try:
     from . import _render, _render_amr, _render_amr_healpix, _render_amr_perspective
 except ImportError as e:
