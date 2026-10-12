@@ -108,8 +108,19 @@ class ImageGeometry:
     def set_camera_z(self, z: float):
         """Set the z position of the camera for the image to be rendered.
 
-        A perspective image will be rendered with the camera at this z position, looking at the z_plane.
-        The frustrum is defined by the x1, x2, y1, y2 values, which are at z=0.
+        A perspective image will be rendered with the camera at this z position, above the centre of the image,
+        looking along the z axis. The frustum is defined by the x1, x2, y1, y2 values, which are at z=0. A projected
+        image gives the integral of the quantity along each ray from the camera; a slice shows the plane
+        z = z_plane, as seen from the camera. A value of None or 0 gives an orthographic image.
+
+        .. versionchanged:: 2.9.0
+
+          Two bugs in the perspective rendering of SPH particles have been fixed. In projections, the kernel was
+          integrated along z rather than along the (oblique) ray, so that, away from the centre of the image,
+          particles were too faint by a factor cos(theta) (where theta is the angle of the ray to the z axis) and
+          insufficiently elongated away from the centre of the image. In slices, the pixels were placed at the
+          depth of each particle rather than of the plane being sliced. Perspective images of AMR cells are now
+          also rendered exactly, rather than by treating the cells as SPH particles.
         """
         self.z_camera = z
 
@@ -1219,7 +1230,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     z_camera : float, optional
         The z position of the camera for the image to be rendered. The default is None. For more information on
-        perspective rendering see :meth:`ImageGeometry.set_camera_z`.
+        perspective rendering, including bug fixes in version 2.9.0, see :meth:`ImageGeometry.set_camera_z`.
 
     threaded : bool, optional
         Whether to render the image across multiple threads. Yes if true; no if false. The number of threads to be

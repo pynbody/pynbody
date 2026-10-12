@@ -579,7 +579,8 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
 
     z_camera : float, optional
         If set, a perspective image is rendered, as though the camera is a pinhole camera
-        at (0,0,z_camera). The frustrum is defined by the width of the image in the plane z=0.
+        at (0,0,z_camera). The frustum is defined by the width of the image in the plane z=0. For more information,
+        including bug fixes in version 2.9.0, see :meth:`~pynbody.imaging.renderers.ImageGeometry.set_camera_z`.
 
     clear : bool, optional
         Whether to clear the axes before plotting. (Default is True)

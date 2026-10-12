@@ -7,6 +7,12 @@ Rendering of images, grids and maps from simulations.
   cells; see :class:`~pynbody.imaging.renderers.AMRImageRenderer`) as well as SPH simulations. The previous locations
   remain available but are deprecated.
 
+  At the same time, the rendering of AMR simulations has been overhauled: gas cells are rendered exactly as cubes,
+  rather than as SPH particles, in slices, projections, perspective images and healpix maps (see
+  :class:`~pynbody.imaging.renderers.AMRImageRenderer` and :class:`~pynbody.imaging.renderers.AMRHealpixRenderer`).
+  Two bugs in perspective images of SPH particles have also been fixed; see
+  :meth:`~pynbody.imaging.renderers.ImageGeometry.set_camera_z`.
+
 For most users, the :func:`pynbody.plot.image` function is the most convenient interface for rendering images of
 simulations.
 
