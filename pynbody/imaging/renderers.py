@@ -784,7 +784,7 @@ class AMRImageRenderer(ImageRenderer):
       to conserve mass.
 
     No kernel is used, so :meth:`set_kernel` accepts only None; approximate rendering (:meth:`with_approximate`)
-    has no effect; and perspective rendering (:meth:`ImageGeometry.set_camera_z`) is not supported. To render AMR
+    is not supported, and the *approximate_fast* option of :func:`make_render_pipeline` has no effect; and perspective rendering (:meth:`ImageGeometry.set_camera_z`) is not supported. To render AMR
     cells as SPH particles instead, use :class:`ImageRenderer` (or pass ``amr=False`` to
     :func:`make_render_pipeline`).
     """
@@ -1116,8 +1116,8 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     approximate_fast : bool, optional
         Whether to render the image using a lower-resolution approximation for large smoothing lengths, where this
-        is supported (it is not for target='healpix', in which case this option has no effect). The default is None,
-        in which case the use of approximation is determined by the configuration file.
+        is supported (it is not for target='healpix' or for AMR rendering, in which case this option has no effect).
+        The default is None, in which case the use of approximation is determined by the configuration file.
 
     denoise : bool, optional
         Whether to include denoising in the rendering process. If None, denoising is applied only if the image

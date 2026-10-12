@@ -364,6 +364,9 @@ def test_amr_renderer_wrappers(amr_snap):
         assert not isinstance(pipeline, (renderers.ApproximateImageRenderer, renderers.DenoisedImageRenderer))
         if threaded:
             assert isinstance(pipeline, renderers.ThreadedImageRenderer)
+        # explicitly requesting approximation is an error
+        with pytest.raises(NotImplementedError):
+            pipeline.with_approximate()
 
     # but denoising can still be forced, and should make no difference since cells tile space
     reference = renderers.make_render_pipeline(amr_snap.g, width=8.0, resolution=32).render()
