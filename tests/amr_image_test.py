@@ -585,20 +585,25 @@ def test_polygon_integral_series():
 def test_perspective_pipeline(amr_snap):
     args = dict(width=8.0, resolution=40, out_units='Msol kpc^-2', z_camera=12.0)
     with amr_snap.rotate_x(30):
-        pipeline = renderers.make_render_pipeline(amr_snap.g, **args)
-        assert type(_core_renderer(pipeline)) is renderers.AMRImageRenderer
-        image = pipeline.render()
         g = {k: np.ascontiguousarray(amr_snap.g[k], dtype=np.float64) for k in ('x', 'y', 'z', 'smooth', 'rho', 'mass')}
-        core = _render_amr_perspective.render_image_cells_perspective(
-            40, 40, g['x'], g['y'], g['z'], g['smooth'], -4.0, 4.0, -4.0, 4.0, 12.0, g['rho'], g['mass'], g['rho'],
-            0.0, np.inf, -np.inf, np.inf, 0.0, amr_snap.net_rotation_matrix())
-        npt.assert_allclose(image, core, rtol=1e-6)
+        core_args = (40, 40, g['x'], g['y'], g['z'], g['smooth'], -4.0, 4.0, -4.0, 4.0, 12.0, g['rho'], g['mass'],
+                     g['rho'], 0.0, np.inf, -np.inf, np.inf, 0.0, amr_snap.net_rotation_matrix())
+
+        pipeline = renderers.make_render_pipeline(amr_snap.g, approximate_fast=False, **args)
+        assert type(_core_renderer(pipeline)) is renderers.AMRImageRenderer
+        npt.assert_allclose(pipeline.render(), _render_amr_perspective.render_image_cells_perspective(*core_args),
+                            rtol=1e-6)
+
+        pipeline = renderers.make_render_pipeline(amr_snap.g, approximate_fast=True, **args)
+        npt.assert_allclose(pipeline.render(),
+                            _render_amr_perspective.render_image_cells_perspective_approximate(*core_args, tolerance=0.1),
+                            rtol=1e-6)
 
         # a perspective slice is an orthographic slice of the plane, scaled about the centre of the image
         perspective_slice = renderers.make_render_pipeline(amr_snap.g, width=8.0, resolution=40,
                                                            z_camera=12.0).render()
-        scale = 12.0 / 12.0  # the plane z=0 is where the image is defined
-        ortho_slice = renderers.make_render_pipeline(amr_snap.g, width=8.0 * scale, resolution=40).render()
+        # (the plane z=0 is where the width of the image is defined)
+        ortho_slice = renderers.make_render_pipeline(amr_snap.g, width=8.0, resolution=40).render()
         npt.assert_allclose(perspective_slice, ortho_slice, rtol=1e-6)
 
         p = renderers.make_render_pipeline(amr_snap.g, width=8.0, resolution=40, z_camera=12.0)
@@ -606,6 +611,46 @@ def test_perspective_pipeline(amr_snap):
         q = renderers.make_render_pipeline(amr_snap.g, width=8.0 * 10.0 / 12.0, resolution=40)
         _core_renderer(q).geometry.z_plane = 2.0
         npt.assert_allclose(p.render(), q.render(), rtol=1e-6)
+
+
+def _sheared_grid(n=32):
+    """A rotated grid of cells with a sharply varying density"""
+    rotation = _rotation(0.5, 0.3)
+    pos = _cube_of_cells(n, 1.0, np.zeros(3), rotation)
+    size = np.full(len(pos), 1.0 / n)
+    rho = 1.0 + 3.0 * (np.random.default_rng(1).random(len(pos)) < 0.05)
+    return pos, size, rho, rotation
+
+
+@pytest.mark.parametrize("z_camera, tolerance", [(5.0, 2e-3), (50.0, 2e-4), (500.0, 2e-5)])
+def test_perspective_approximation(z_camera, tolerance):
+    """When all cells are approximated, the errors arise from the shear of the cells as seen along oblique rays, and
+    so decrease in proportion to the angle of view, while the total is unaffected"""
+    pos, size, rho, rotation = _sheared_grid()
+    args = (60, 60, pos[:, 0].copy(), pos[:, 1].copy(), pos[:, 2].copy(), size, -0.8, 0.8, -0.8, 0.8, z_camera, rho,
+            rho * size ** 3, rho, 0.0, np.inf, -np.inf, np.inf, 0.0, rotation)
+    exact = _render_amr_perspective.render_image_cells_perspective(*args)
+    approximate = _render_amr_perspective.render_image_cells_perspective_approximate(*args, tolerance=100.0)
+    npt.assert_allclose(approximate, exact, atol=tolerance * exact.max())
+    npt.assert_allclose(approximate.sum(), exact.sum(), rtol=1e-5)
+
+    # with zero tolerance, all cells are projected exactly
+    npt.assert_array_equal(
+        _render_amr_perspective.render_image_cells_perspective_approximate(*args, tolerance=0.0), exact)
+
+
+def test_perspective_approximation_tolerance():
+    """The default tolerance approximates the cells whose distortion is small, keeping the errors small"""
+    pos, size, rho, rotation = _sheared_grid()
+    args = (100, 100, pos[:, 0].copy(), pos[:, 1].copy(), pos[:, 2].copy(), size, -0.8, 0.8, -0.8, 0.8, 4.0, rho,
+            rho * size ** 3, rho, 0.0, np.inf, -np.inf, np.inf, 0.0, rotation)
+    exact = _render_amr_perspective.render_image_cells_perspective(*args)
+    approximate = _render_amr_perspective.render_image_cells_perspective_approximate(*args, tolerance=0.1)
+    assert not np.array_equal(approximate, exact)
+    error = np.abs(approximate - exact) / exact.max()
+    assert np.sqrt((error ** 2).mean()) < 3e-4
+    assert error.max() < 5e-3
+    npt.assert_allclose(approximate.sum(), exact.sum(), rtol=1e-5)
 
 
 @pytest.mark.filterwarnings("ignore:.*namelist:UserWarning")

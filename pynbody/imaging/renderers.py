@@ -780,11 +780,12 @@ class AMRImageRenderer(ImageRenderer):
 
     Perspective images (see :meth:`ImageGeometry.set_camera_z`) are also exact. A slice is the orthographic slice,
     rescaled to the view of the plane from the camera. A projection gives, in each pixel, the average over the pixel of
-    the integral of the quantity along the ray from the camera (i.e. along the ray, rather than along z). This is
-    calculated from the exact geometry of each cell, using series expansions where they converge rapidly, so that
-    pixel values have relative errors of order 1e-5 or less, and the cells tile the image without gaps or overlaps.
-    Cells which are not entirely in front of the camera are omitted. Perspective projections are typically several
-    times slower than orthographic ones. For details, see
+    the integral of the quantity along the ray from the camera (i.e. along the ray, rather than along z). With
+    *exact* = True, this is calculated from the exact geometry of each cell, using series expansions where they
+    converge rapidly, so that pixel values have relative errors of order 1e-5 or less, and the cells tile the image
+    without gaps or overlaps; this is typically several times slower than an orthographic projection. By default,
+    small cells for which the perspective distortion is negligible are approximated; see :meth:`set_exact`. Cells
+    which are not entirely in front of the camera are omitted. For details, see
     :func:`pynbody.imaging._render_amr_perspective.render_image_cells_perspective`.
 
     The cell edges are taken to be parallel to the axes of the original simulation. Their orientation in the image is
@@ -863,12 +864,25 @@ class AMRImageRenderer(ImageRenderer):
 
         By default (*exact* = False), projections of rotated cells up to 16 pixels across are calculated by
         interpolating from a table, which conserves mass exactly, but gives errors of up to 1e-3 in individual pixels.
-        :func:`make_render_pipeline` sets *exact* to the opposite of its *approximate_fast* argument.
         If *exact* is True, these cells are instead projected exactly; this can be an order of magnitude slower if
-        most cells are no more than a few pixels across. Slices, projections of cells aligned with the image, and
-        perspective projections are always exact.
+        most cells are no more than a few pixels across. Slices, and projections of cells aligned with the image, are
+        always exact. :func:`make_render_pipeline` sets *exact* to the opposite of its *approximate_fast* argument.
+
+        For perspective projections, *exact* = False approximates cells whose perspective images are close to their
+        orthographic images (scaled to their distance from the camera, and centred on the projections of their
+        centres): those for which the corners differ by less than :attr:`perspective_tolerance` pixels (0.1 by
+        default). These are then rendered as for orthographic projections, with their totals scaled to the exact
+        values. The neglected distortion arises mainly from the obliquity of the rays, so that the cells which can be
+        approximated are those which are small, or close to the centre of the image. In images dominated by such
+        cells, this can be several times faster than the exact calculation, with r.m.s. errors in pixel values of
+        order 1e-4 of the peak value, and at most a few times 1e-3; otherwise, it makes little difference. For details, see
+        :func:`pynbody.imaging._render_amr_perspective.render_image_cells_perspective_approximate`.
         """
         self._exact = bool(exact)
+
+    perspective_tolerance = 0.1
+    """For approximate perspective projections, the maximum displacement in pixels of the corners of cells which are
+    approximated; see :meth:`set_exact`"""
 
     def set_kernel(self, kernel_spec=None):
         """AMR cells are rendered without a kernel, so the only valid kernel specification is None."""
@@ -924,13 +938,17 @@ class AMRImageRenderer(ImageRenderer):
                                    z_array):
         def as_double(a):
             return np.ascontiguousarray(a, dtype=np.float64)
-        return _render_amr_perspective.render_image_cells_perspective(
-            geometry.nx, geometry.ny, as_double(x_array), as_double(y_array), as_double(z_array),
-            as_double(smooth_array), geometry.x1, geometry.x2, geometry.y1, geometry.y2, geometry.z_camera,
-            as_double(array), as_double(mass_array), as_double(rho_array), self._smooth_min, self._smooth_max,
-            geometry.z1, geometry.z2, self._smooth_floor, self._get_orientation(),
-            wrap_offsets_x=self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
-            wrap_offsets_y=self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2))
+        args = (geometry.nx, geometry.ny, as_double(x_array), as_double(y_array), as_double(z_array),
+                as_double(smooth_array), geometry.x1, geometry.x2, geometry.y1, geometry.y2, geometry.z_camera,
+                as_double(array), as_double(mass_array), as_double(rho_array), self._smooth_min, self._smooth_max,
+                geometry.z1, geometry.z2, self._smooth_floor, self._get_orientation())
+        kwargs = dict(wrap_offsets_x=self._calculate_wrapping_repeat_array(geometry.x1, geometry.x2),
+                      wrap_offsets_y=self._calculate_wrapping_repeat_array(geometry.y1, geometry.y2))
+        if self._exact:
+            return _render_amr_perspective.render_image_cells_perspective(*args, **kwargs)
+        else:
+            return _render_amr_perspective.render_image_cells_perspective_approximate(
+                *args, tolerance=self.perspective_tolerance, **kwargs)
 
 
 class Grid3dRenderer(ImageRenderer):
@@ -1245,9 +1263,11 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         * For SPH rendering, particles with large smoothing lengths are rendered onto lower-resolution images, which
           are then interpolated (see :class:`ApproximateImageRenderer`). This slightly blurs the image.
         * For AMR rendering (see *amr*), projections of rotated cells up to 16 pixels across are interpolated from
-          tables, which conserves mass exactly, with errors in individual pixels of typically 1e-5 and at most 1e-3
-          (see :meth:`AMRImageRenderer.set_exact`). If False, all cells are projected exactly, which can be an order
-          of magnitude slower when most cells are no more than a few pixels across.
+          tables, which conserves mass exactly, with errors in individual pixels of typically 1e-5 and at most 1e-3.
+          In perspective projections, cells whose perspective distortion is negligible (displacing their corners
+          by less than 0.1 pixels) are rendered in the same way. See :meth:`AMRImageRenderer.set_exact`. If False,
+          all cells are projected exactly, which can be an order of magnitude slower when most cells are no more
+          than a few pixels across.
         * For healpix maps, no approximation is used.
 
     denoise : bool, optional

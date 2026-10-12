@@ -455,8 +455,10 @@ cdef void _add_face(const View *view, double *fx, double *fy, double *fz, int n,
 
     # which side of the face is the camera on?
     f = nx_ * view.mid_x + ny_ * view.mid_y + nz_ * view.z_camera - d
-    if fabs(f) <= 1e-12 * (fabs(d) + fabs(nx_ * view.mid_x) + fabs(ny_ * view.mid_y) + fabs(nz_ * view.z_camera)):
-        # the face is seen edge-on, and so contributes nothing
+    if fabs(f) <= 1e-12 * (fabs(d) + fabs(view.mid_x) + fabs(view.mid_y) + fabs(view.z_camera)
+                           + fabs(fx[0]) + fabs(fy[0]) + fabs(fz[0])):
+        # the face is seen edge-on (to within round-off, relative to the scale of the coordinates), and so
+        # contributes nothing
         return
     # rays enter the cell through faces whose outer side faces the camera
     if f > 0:
@@ -862,3 +864,85 @@ def polygon_integrals(px, py, double Xp, double Yp, double lx, double ly, double
         cpx[i] = px[i]; cpy[i] = py[i]
     return (_piece_integral(cpx, cpy, n, Xp, Yp, lx, ly, l0, K, w_ref, s0, gx, gy, hxx, hxy, hyy),
             _polygon_integral(cpx, cpy, n, lx, ly, l0, K, w_ref, s0, gx, gy, hxx, hxy, hyy, Xp, Yp))
+
+
+def render_image_cells_perspective_approximate(int nx, int ny, x, y, z, sm,
+                                               double x1, double x2, double y1, double y2, double z_camera,
+                                               qty, mass, rho, double smooth_lo, double smooth_hi,
+                                               double z_lo, double z_hi, double min_smooth, orientation,
+                                               wrap_offsets_x=(0.0,), wrap_offsets_y=(0.0,),
+                                               double tolerance=0.1):
+    """Render a perspective projection of cubic (AMR) cells, approximating where this is accurate to *tolerance*.
+
+    The arguments and result are as for :func:`render_image_cells_perspective`. However, a cell whose perspective
+    image differs from its orthographic image, scaled to its distance from the camera and centred on the projection
+    of its centre, by less than *tolerance* pixels at every corner is rendered in the latter way, using the tabulated
+    orthographic projections of :func:`pynbody.imaging._render_amr.render_image_cells`. Its total is scaled to that
+    of the exact perspective image (i.e. the integral of 1/w^2 over its volume, times the secant of the angle of the
+    ray through its centre). Other cells are projected exactly.
+
+    The neglected distortion arises from the obliquity of the rays to the z axis, and from the variation of the
+    perspective scale across each cell. Writing the offset of a corner from the centre of the cell as u, the distance
+    of the centre from the camera along z as D, and t as the tangent vector of the angle of the ray through the
+    centre, the corner is displaced in the image by (u_z / w) (t + u_xy / D) / (1 - u_z / D), where w is the
+    perspective scale factor of the centre.
+
+    Since many cells in a typical image are smaller than a pixel or far from the camera, most can be approximated,
+    which reduces the cost to approximately that of an orthographic image. As the distortion is shared by neighbouring
+    cells, they continue to tile space to a good approximation.
+    """
+    from . import _render_amr
+
+    orientation = np.asarray(orientation, dtype=np.float64)
+    x, y, z, sm, qty, mass, rho = (np.ascontiguousarray(a, dtype=np.float64)
+                                   for a in (x, y, z, sm, qty, mass, rho))
+    sm = np.maximum(sm, min_smooth)
+    pixel_dx = (x2 - x1) / nx
+    pixel_dy = (y2 - y1) / ny
+    pixel_min = min(pixel_dx, pixel_dy)
+    mid_x = 0.5 * (x1 + x2)
+    mid_y = 0.5 * (y1 + y2)
+
+    # the half-extent along z of a unit cell, and the fourth moment of its distribution along z (see the single-pixel
+    # case of render_image_cells_perspective)
+    az = orientation[2, :] ** 2
+    ext_z = 0.5 * np.abs(orientation[2, :]).sum()
+    c4 = (az ** 2).sum() / 5.0 + 6.0 * (az[0] * az[1] + az[0] * az[2] + az[1] * az[2]) / 9.0
+
+    result = np.zeros((ny, nx), dtype=np.float32)
+    for wrap_offset_x in wrap_offsets_x:
+        for wrap_offset_y in wrap_offsets_y:
+            xw = x + wrap_offset_x
+            yw = y + wrap_offset_y
+            delta = z_camera - z                     # distance from the camera along z, with the sign of z_camera
+            w = delta / z_camera                     # perspective scale factor
+            half_z = ext_z * sm                      # half-extent of each cell along z
+            with np.errstate(divide='ignore', invalid='ignore'):
+                tx = (xw - mid_x) / delta
+                ty = (yw - mid_y) / delta
+                margin = 1.0 - half_z / np.abs(delta)
+                distortion = (half_z / np.abs(w)) * (np.sqrt(tx * tx + ty * ty) + 0.87 * sm / np.abs(delta)) / margin
+                approximate = ((w > 0) & (margin > 0.5) & (distortion < tolerance * pixel_min) &
+                               (z - half_z >= z_lo) & (z + half_z <= z_hi) & (sm < 0.1 * np.abs(delta)))
+            exact = ~approximate & (z + half_z > z_lo) & (z - half_z < z_hi)
+
+            if np.any(exact):
+                result += render_image_cells_perspective(
+                    nx, ny, xw[exact], yw[exact], z[exact], sm[exact], x1, x2, y1, y2, z_camera,
+                    qty[exact], mass[exact], rho[exact], smooth_lo, smooth_hi, z_lo, z_hi, 0.0, orientation)
+
+            if np.any(approximate):
+                wa = w[approximate]
+                da = delta[approximate]
+                half = 0.5 * sm[approximate]
+                Xc = mid_x + (xw[approximate] - mid_x) / wa
+                Yc = mid_y + (yw[approximate] - mid_y) / wa
+                sec = np.sqrt(1.0 + ((Xc - mid_x) ** 2 + (Yc - mid_y) ** 2) / z_camera ** 2)
+                # the integral over the image of the depth range of each cell is that of 1/w^2 over its volume
+                d2 = (half / da) ** 2
+                total = sec / wa ** 2 * (1.0 + d2 + 5.0 * c4 * d2 * d2)
+                result += _render_amr.render_image_cells(
+                    nx, ny, Xc, Yc, np.zeros_like(Xc), sm[approximate] / wa, x1, x2, y1, y2, 0.0,
+                    qty[approximate] * total, mass[approximate], rho[approximate], smooth_lo, smooth_hi,
+                    -np.inf, np.inf, 0.0, True, orientation)
+    return result
