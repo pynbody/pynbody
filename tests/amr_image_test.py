@@ -231,9 +231,6 @@ def test_renderer_selection(amr_snap):
         renderers.make_render_pipeline(amr_snap.g, amr=True, target='volume')
     assert core_type(amr=True, z_camera=10.0) is renderers.AMRImageRenderer
 
-    with pytest.raises(ValueError, match="AMR"):
-        renderers.make_render_pipeline(amr_snap.g, amr=False, exact=True)
-
     amr_snap._amr_cell_families = ()
     assert core_type() is renderers.ImageRenderer
     assert core_type(amr=True) is renderers.AMRImageRenderer
@@ -265,13 +262,16 @@ def test_renderer_selection_config(amr_snap):
     assert type(_core_renderer(renderers.make_render_pipeline(amr_snap.g))) is renderers.AMRImageRenderer
 
 
-def test_exact_option(amr_snap):
+def test_approximate_fast_option(amr_snap):
+    """approximate_fast=False makes the AMR renderer project all cells exactly"""
     with amr_snap.rotate_x(30).rotate_y(20):
         args = dict(width=8.0, resolution=50, out_units='Msol kpc^-2')
-        pipeline = renderers.make_render_pipeline(amr_snap.g, exact=True, **args)
+        pipeline = renderers.make_render_pipeline(amr_snap.g, approximate_fast=False, **args)
         assert _core_renderer(pipeline)._exact
         exact = pipeline.render()
-        approx = renderers.make_render_pipeline(amr_snap.g, **args).render()
+        approx_pipeline = renderers.make_render_pipeline(amr_snap.g, approximate_fast=True, **args)
+        assert not _core_renderer(approx_pipeline)._exact
+        approx = approx_pipeline.render()
         assert not np.array_equal(exact, approx)
         npt.assert_allclose(approx, exact, atol=1e-3 * exact.max())
 

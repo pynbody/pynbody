@@ -253,7 +253,7 @@ def velocity_image(sim, qty='rho', vector_qty='vel', width="10 kpc", mode='quive
         weight_for_vector = 'rho'
 
     # the vectors must be rendered in the same way as the image (e.g. by SPH or as AMR cells)
-    rendering_kwargs = {k: kwargs[k] for k in ('amr', 'kernel', 'z_camera', 'exact') if k in kwargs}
+    rendering_kwargs = {k: kwargs[k] for k in ('amr', 'kernel', 'z_camera', 'approximate_fast') if k in kwargs}
     vel_pipeline = renderers.make_render_pipeline(sim, quantity=vx_name, width=width,
                                                   resolution=vector_resolution, weight=weight_for_vector,
                                                   restrict_depth=restrict_depth, **rendering_kwargs)
@@ -525,7 +525,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
           noplot=False, return_image=False, return_array=False,
           fill_nan=True, fill_val=0.0, linthresh=None,
           restrict_depth = False, threaded=True, approximate_fast=None, denoise=None,
-          kernel=None, amr=None, exact=None,
+          kernel=None, amr=None,
           **kwargs):
     """
     Make an image of the given simulation, using SPH or denoised-SPH interpolation, or exact rendering of AMR cells.
@@ -628,13 +628,11 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
         if False, use SPH interpolation. If None (default), AMR rendering is used for AMR gas (e.g. Ramses) unless a
         *kernel* is specified. See :class:`~pynbody.imaging.renderers.AMRImageRenderer`.
 
-    exact : bool, optional
-        For AMR rendering only: if True, project all cells exactly rather than interpolating the projections of small
-        rotated cells from a table. See :meth:`~pynbody.imaging.renderers.AMRImageRenderer.set_exact`.
-
     approximate_fast : bool, optional
-        If True, speed up the image-making by rendering large kernels onto a lower-resolution image
-        first, which is then interpolated to the final resolution. (Default is set in the config file).
+        If True, allow approximations that speed up the image-making: for SPH, rendering large kernels onto a
+        lower-resolution image first, which is then interpolated to the final resolution; for AMR cells,
+        interpolating the projections of small rotated cells from tables. (Default is set in the config file). For
+        details, see :func:`~pynbody.imaging.renderers.make_render_pipeline`.
 
     threaded : bool, optional
         If True, use threads to parallelise the rendering. (Default is set in the config file).
@@ -686,8 +684,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
     renderer = renderers.make_render_pipeline(sim, quantity=qty, width=width, resolution=resolution,
                                               out_units=units, weight=weight, restrict_depth=restrict_depth,
                                               kernel=kernel, z_camera=z_camera, threaded=threaded,
-                                              approximate_fast=approximate_fast, denoise=denoise, amr=amr,
-                                              exact=exact)
+                                              approximate_fast=approximate_fast, denoise=denoise, amr=amr)
 
     # if width was provided e.g. as string, we'll need it as a float
     width = renderer.geometry.width

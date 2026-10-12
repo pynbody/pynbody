@@ -852,6 +852,7 @@ class AMRImageRenderer(ImageRenderer):
 
         By default (*exact* = False), projections of rotated cells up to 16 pixels across are calculated by
         interpolating from a table, which conserves mass exactly, but gives errors of up to 1e-3 in individual pixels.
+        :func:`make_render_pipeline` sets *exact* to the opposite of its *approximate_fast* argument.
         If *exact* is True, these cells are instead projected exactly; this can be an order of magnitude slower if
         most cells are no more than a few pixels across. Slices, projections of cells aligned with the image, and
         perspective projections are always exact.
@@ -1081,7 +1082,7 @@ class AMRHealpixRenderer(HealpixRenderer):
 
 
 
-def _use_amr_rendering(sim, amr, target, kernel, exact):
+def _use_amr_rendering(sim, amr, target, kernel):
     """Decide whether make_render_pipeline should render AMR cells, given its arguments"""
     if amr is None:
         if not _is_amr(sim):
@@ -1112,8 +1113,6 @@ def _use_amr_rendering(sim, amr, target, kernel, exact):
             raise ValueError("AMR rendering requires a snapshot consisting only of AMR cells, but this one contains "
                              f"particles of several families ({', '.join(f.name for f in sim.families())}). Select "
                              f"the cells first, e.g. using sim.gas")
-    elif exact:
-        raise ValueError("The exact option applies only to AMR rendering")
 
     logger.info(f"Rendering {'as AMR cells' if amr else 'as SPH particles'} because {reason}")
     return amr
@@ -1136,7 +1135,6 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
                          denoise: bool | NoneType = None,
                          target: str = 'image',
                          amr: bool | NoneType = None,
-                         exact: bool | NoneType = None,
                          ) -> ImageRendererBase:
     """Generate a renderer object for rendering images of a simulation snapshot.
 
@@ -1146,8 +1144,9 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     .. versionchanged :: 2.9.0
 
-      The parameters *amr* and *exact* have been added. By default, AMR gas (e.g. from Ramses) is now rendered
-      exactly as cubic cells by :class:`AMRImageRenderer`, rather than as SPH particles.
+      The parameter *amr* has been added. By default, AMR gas (e.g. from Ramses) is now rendered exactly as cubic
+      cells by :class:`AMRImageRenderer` or :class:`AMRHealpixRenderer`, rather than as SPH particles. The meaning
+      of *approximate_fast* has correspondingly been extended to AMR rendering.
 
     Parameters
     ----------
@@ -1228,9 +1227,17 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         configuration file.
 
     approximate_fast : bool, optional
-        Whether to render the image using a lower-resolution approximation for large smoothing lengths, where this
-        is supported (it is not for target='healpix' or for AMR rendering, in which case this option has no effect).
-        The default is None, in which case the use of approximation is determined by the configuration file.
+        Whether approximations may be used to render the image more quickly. The default is None, in which case this
+        is determined by the configuration file (``approximate-fast-images`` in the ``[sph]`` section). The
+        approximations depend on the renderer:
+
+        * For SPH rendering, particles with large smoothing lengths are rendered onto lower-resolution images, which
+          are then interpolated (see :class:`ApproximateImageRenderer`). This slightly blurs the image.
+        * For AMR rendering (see *amr*), projections of rotated cells up to 16 pixels across are interpolated from
+          tables, which conserves mass exactly, with errors in individual pixels of typically 1e-5 and at most 1e-3
+          (see :meth:`AMRImageRenderer.set_exact`). If False, all cells are projected exactly, which can be an order
+          of magnitude slower when most cells are no more than a few pixels across.
+        * For healpix maps, no approximation is used.
 
     denoise : bool, optional
         Whether to include denoising in the rendering process. If None, denoising is applied only if the image
@@ -1247,14 +1254,9 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         Whether to render the particles as AMR cells, using :class:`AMRImageRenderer` (or :class:`AMRHealpixRenderer`
         for target='healpix'), rather than by SPH interpolation. If None (default), AMR rendering is used if the
         snapshot consists only of AMR cells (e.g. Ramses gas), unless a *kernel* is specified or the target is
-        'volume'. AMR rendering is only available for target='image' or 'healpix' and does not support *kernel* or
-        *approximate_fast*. The default can be changed to SPH rendering by setting ``amr-images: False`` in the
-        ``[sph]`` section of the pynbody configuration file.
-
-    exact : bool, optional
-        For AMR rendering only. If True, all cells are projected exactly, rather than small rotated cells being
-        interpolated from a table; see :meth:`AMRImageRenderer.set_exact`. The default is False. This has no effect
-        for target='healpix', for which AMR projections are always exact.
+        'volume'. AMR rendering is only available for target='image' or 'healpix' and does not support *kernel*.
+        The default can be changed to SPH rendering by setting ``amr-images: False`` in the ``[sph]`` section of the
+        pynbody configuration file.
 
     """
     if resolution is None:
@@ -1278,12 +1280,13 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     width = float(width)
 
-    amr = _use_amr_rendering(sim, amr, target, kernel, exact)
+    amr = _use_amr_rendering(sim, amr, target, kernel)
 
     match target:
         case 'image':
             if amr:
-                renderer = AMRImageRenderer(sim, exact=bool(exact))
+                # AMR rendering is approximate only in the sense of using interpolation tables
+                renderer = AMRImageRenderer(sim, exact=not approximate_fast)
             else:
                 renderer = ImageRenderer(sim)
         case 'volume':
