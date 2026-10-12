@@ -5,13 +5,14 @@ simulations. A slightly lower-level approach is to use :func:`make_render_pipeli
 then produces an image when the :meth:`ImageRendererBase.render` method is called.
 
 For complete control, one may use the :class:`ImageRenderer` class (for SPH interpolation) or the
-:class:`AMRImageRenderer` class (for exact rendering of AMR cells) directly.
+:class:`AMRImageRenderer` class (for exact rendering of AMR cells) directly; or for healpix maps,
+:class:`HealpixRenderer` and :class:`AMRHealpixRenderer`.
 
 .. versionchanged:: 2.9.0
 
-  AMR gas (e.g. from Ramses) is now rendered by default with :class:`AMRImageRenderer`, rather than by treating
-  cells as SPH particles. This module was previously :mod:`pynbody.sph.renderers`, which remains available as a
-  deprecated alias.
+  AMR gas (e.g. from Ramses) is now rendered by default with :class:`AMRImageRenderer` (or
+  :class:`AMRHealpixRenderer` for healpix maps), rather than by treating cells as SPH particles. This module was
+  previously :mod:`pynbody.sph.renderers`, which remains available as a deprecated alias.
 """
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ from .. import array as array_module, config, snapshot, units
 from ..configuration import config_parser
 from ..sph import kernels
 try:
-    from . import _render, _render_amr, _render_amr_perspective
+    from . import _render, _render_amr, _render_amr_healpix, _render_amr_perspective
 except ImportError as e:
     raise ImportError("The compiled rendering extensions could not be imported. In pynbody 2.9.0 these moved from "
                       "pynbody.sph to pynbody.imaging, so if you are using a development install of pynbody, you "
@@ -754,8 +755,9 @@ class AMRImageRenderer(ImageRenderer):
 
     By default, :func:`make_render_pipeline` (and so also :func:`pynbody.plot.imaging.image` etc.) uses this
     renderer for any snapshot that consists only of AMR cells, as declared by the snapshot loader (currently, Ramses
-    gas). This can be overridden with the *amr* argument to those functions, or switched off globally by setting
-    ``amr-images: False`` in the ``[sph]`` section of the pynbody configuration file.
+    gas); for healpix maps, :class:`AMRHealpixRenderer` is used instead. This can be overridden with the *amr*
+    argument to those functions, or switched off globally by setting ``amr-images: False`` in the ``[sph]`` section
+    of the pynbody configuration file.
 
     Slices are exact, as are projections when the cells are aligned with the image (including after rotations by
     multiples of 90 degrees). By default, projections of rotated cells up to 16 pixels across interpolate the volume
@@ -989,6 +991,94 @@ class HealpixRenderer(ImageRenderer):
         return False
 
 
+class AMRHealpixRenderer(HealpixRenderer):
+    """Implementation for rendering AMR gas cells to a healpix map, exactly.
+
+    .. versionadded:: 2.9.0
+
+    This is the healpix counterpart of :class:`AMRImageRenderer`: each particle is treated as a cubic cell whose side
+    length is given by the ``smooth`` array, whose volume is given by ``mass/rho``, and whose edges are aligned with
+    the axes of the original simulation (see :meth:`set_orientation`). By default, :func:`make_render_pipeline`
+    uses this renderer for snapshots that consist only of AMR cells (e.g. Ramses gas) when target='healpix'.
+
+    As for :class:`HealpixRenderer`, the map is centred on the origin and is either a projection (giving the
+    quantity times volume per unit solid angle, so that the sum of the pixel values times the pixel solid angle is
+    the sum of the quantity times volume) or, if :meth:`set_shell_distance` has been called, a thin shell (giving the
+    quantity sampled on a sphere).
+
+    Projections are exact: the value in each pixel is the quantity times the volume of each cell lying within the
+    cone of the pixel, as seen from the origin, divided by the pixel's solid angle. These volumes are calculated by
+    clipping each cube to the cone through the pixel's corners, with a small correction for the sides of healpix
+    pixels not being great circles, which is accurate to around 1e-5 of the pixel values. The sum of the quantity
+    times volume is conserved to round-off, and cells that tile a region give the same map as a single cell
+    occupying that region. Thin shells sample each cell on sub-pixels (at up to 2^3 times the map's nside near the
+    edges of large cells, and finer for small cells, so that each is at least 8 sub-pixels across), calculating
+    the fraction of each sub-pixel at the edge of a cell that lies within it. For details, see
+    :func:`pynbody.imaging._render_amr_healpix.render_healpix_cells`.
+
+    No kernel is used, so :meth:`set_kernel` accepts only None; and approximate rendering is not supported. A
+    *smooth_floor* (see :func:`make_render_pipeline`) enlarges small cells into overlapping cubes, in which case
+    thin shells are by default denoised, as for slices with :class:`AMRImageRenderer`. To render AMR cells as SPH
+    particles instead, use :class:`HealpixRenderer` (or pass ``amr=False`` to :func:`make_render_pipeline`).
+    """
+
+    def __init__(self, snap: snapshot.SimSnap, orientation: np.ndarray | NoneType = None):
+        """Initialise the renderer.
+
+        Parameters
+        ----------
+        snap : snapshot.SimSnap
+            The snapshot containing the cells to render
+
+        orientation : numpy.ndarray, optional
+            The 3x3 rotation matrix whose columns give the directions of the cell edges, in the current coordinates.
+            If None (default), this is calculated from the transformations applied to the snapshot.
+            See :meth:`set_orientation`.
+        """
+        super().__init__(snap)
+        self.set_orientation(orientation)
+
+    def set_orientation(self, orientation: np.ndarray | NoneType = None):
+        """Set the orientation of the cell edges, as for :meth:`AMRImageRenderer.set_orientation`.
+
+        Parameters
+        ----------
+        orientation : numpy.ndarray, optional
+            The 3x3 rotation matrix whose columns give the directions of the cell edges (i.e. of the x, y and z axes
+            of the original simulation) in the current coordinates. If None, this is calculated from the
+            transformations applied to the snapshot, using
+            :meth:`~pynbody.snapshot.simsnap.SimSnap.net_rotation_matrix`.
+        """
+        AMRImageRenderer.set_orientation(self, orientation)
+
+    def set_kernel(self, kernel_spec=None):
+        """AMR cells are rendered without a kernel, so the only valid kernel specification is None."""
+        if kernel_spec is not None:
+            raise ValueError("AMRHealpixRenderer renders cells exactly, without a kernel. To render AMR cells as SPH "
+                             "particles with a kernel, use HealpixRenderer instead (e.g. via "
+                             "make_render_pipeline(..., amr=False)).")
+        self._kernel = None
+
+    def _get_render_kernel(self):
+        return None
+
+    _get_orientation = AMRImageRenderer._get_orientation
+    _denoise_by_default = AMRImageRenderer._denoise_by_default
+
+    def _call_c_renderer(self, array, geometry, kernel, mass_array, rho_array, smooth_array, x_array, y_array, z_array):
+        if self._is_projected:
+            shell_radius = 0.0
+        elif geometry.shell_distance is not None and geometry.shell_distance > 0:
+            shell_radius = geometry.shell_distance
+        else:
+            raise ValueError("A positive shell distance is required to render a thin-shell (non-projected) healpix map")
+        as_double = lambda a: np.ascontiguousarray(a, dtype=np.float64)
+        return _render_amr_healpix.render_healpix_cells(
+            geometry.nside, *(as_double(a) for a in (x_array, y_array, z_array, smooth_array, array, mass_array,
+                                                     rho_array)),
+            self._smooth_floor, self._get_orientation(), shell_radius)
+
+
 
 
 def _use_amr_rendering(sim, amr, target, kernel, exact):
@@ -1000,7 +1090,7 @@ def _use_amr_rendering(sim, amr, target, kernel, exact):
         elif not config_parser.getboolean('sph', 'amr-images', fallback=True):
             amr = False
             reason = "AMR rendering is switched off in the configuration file"
-        elif target != 'image':
+        elif target not in ('image', 'healpix'):
             amr = False
             reason = f"AMR rendering is not available for target={target!r}"
         elif kernel is not None:
@@ -1013,8 +1103,8 @@ def _use_amr_rendering(sim, amr, target, kernel, exact):
         reason = f"amr={amr!r} was specified"
 
     if amr:
-        if target != 'image':
-            raise ValueError("AMR rendering is only available for target='image'")
+        if target not in ('image', 'healpix'):
+            raise ValueError("AMR rendering is only available for target='image' or target='healpix'")
         if kernel is not None:
             raise ValueError("AMR rendering does not use a kernel; pass amr=False to render AMR cells as SPH particles "
                              "with a kernel")
@@ -1094,7 +1184,8 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     shell_distance : float, str, units.UnitBase, optional
         For healpix images (target='healpix') only. If provided, a thin spherical shell is sampled at this radius
-        (in position units) using the full 3D kernel, instead of the default line-of-sight projection. The result
+        (in position units) using the full 3D kernel (or, for AMR rendering, the cells themselves), instead of the
+        default line-of-sight projection. The result
         then carries volumetric (e.g. density) units rather than a per-solid-angle column.
 
     out_units : str, units.UnitBase, optional
@@ -1153,15 +1244,17 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
          * 'healpix': a healpix map
 
     amr : bool, optional
-        Whether to render the particles as AMR cells, using :class:`AMRImageRenderer`, rather than by SPH
-        interpolation. If None (default), AMR rendering is used if the snapshot consists only of AMR cells (e.g.
-        Ramses gas), unless a *kernel* is specified or the target is not 'image'. AMR rendering is only available for
-        target='image' and does not support *kernel* or *approximate_fast*. The default can be changed to SPH
-        rendering by setting ``amr-images: False`` in the ``[sph]`` section of the pynbody configuration file.
+        Whether to render the particles as AMR cells, using :class:`AMRImageRenderer` (or :class:`AMRHealpixRenderer`
+        for target='healpix'), rather than by SPH interpolation. If None (default), AMR rendering is used if the
+        snapshot consists only of AMR cells (e.g. Ramses gas), unless a *kernel* is specified or the target is
+        'volume'. AMR rendering is only available for target='image' or 'healpix' and does not support *kernel* or
+        *approximate_fast*. The default can be changed to SPH rendering by setting ``amr-images: False`` in the
+        ``[sph]`` section of the pynbody configuration file.
 
     exact : bool, optional
         For AMR rendering only. If True, all cells are projected exactly, rather than small rotated cells being
-        interpolated from a table; see :meth:`AMRImageRenderer.set_exact`. The default is False.
+        interpolated from a table; see :meth:`AMRImageRenderer.set_exact`. The default is False. This has no effect
+        for target='healpix', for which AMR projections are always exact.
 
     """
     if resolution is None:
@@ -1196,7 +1289,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         case 'volume':
             renderer = Grid3dRenderer(sim)
         case 'healpix':
-            renderer = HealpixRenderer(sim)
+            renderer = AMRHealpixRenderer(sim) if amr else HealpixRenderer(sim)
             if nside is None:
                 nside = config['image-default-nside']
             renderer.geometry.set_nside(nside)

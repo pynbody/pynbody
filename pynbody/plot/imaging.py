@@ -435,7 +435,10 @@ def _units_imply_projection(sim, qty, units):
 
 def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, units=None,
                     weight=False, distance=None, log=True, vmin=None, vmax=None, cmap=None, xsize=1600):
-    """Make an SPH image on the sky around the origin.
+    """Make an image on the sky around the origin.
+
+    Particles are interpolated with an SPH kernel, except that AMR cells (e.g. Ramses gas) are by default rendered
+    exactly as cubes; see :class:`~pynbody.imaging.renderers.AMRHealpixRenderer`.
 
     .. note::
 
@@ -464,7 +467,8 @@ def spherical_image(sim, qty='rho', nside=None, kernel=None, threaded=None, unit
         The healpix nside resolution to use (must be power of 2)
 
     kernel : str, optional
-        SPH kernel to use for smoothing; see :func:`~pynbody.sph.kernels.create_kernel` for options.
+        SPH kernel to use for smoothing; see :func:`~pynbody.sph.kernels.create_kernel` for options. Specifying a
+        kernel for AMR cells renders them as SPH particles.
 
     units : str or pynbody.units.Unit, optional
         The units of the output. Default is None, in which case the units of the input quantity are used. Note that

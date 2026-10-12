@@ -28,7 +28,10 @@ from . import renderers
 
 def render_spherical_image(snap, quantity='rho', nside=None, kernel=None, denoise=None, out_units=None, threaded=None,
                            weight=None, distance=None, qty=None):
-    """Render an SPH image onto the sky around the origin, in healpix format with the specified nside.
+    """Render an image onto the sky around the origin, in healpix format with the specified nside.
+
+    Particles are interpolated with an SPH kernel, except that AMR cells (e.g. Ramses gas) are by default rendered
+    exactly as cubes; see :class:`~pynbody.imaging.renderers.AMRHealpixRenderer`.
 
     By default the image is projected onto the sky, i.e. integrated along the line of sight. For example, if
     rendering density, the results are then in units of mass per solid angle.
@@ -66,7 +69,8 @@ def render_spherical_image(snap, quantity='rho', nside=None, kernel=None, denois
         instead of the default line-of-sight projection. The result then carries volumetric units.
 
     kernel : str, kernels.KernelBase, optional
-        The Kernel object to use (defaults to 3D spline kernel)
+        The Kernel object to use (defaults to 3D spline kernel). Specifying a kernel for AMR cells renders them as SPH
+        particles.
 
     denoise : bool, optional
         if True, divide through by an estimate of the discreteness noise. The returned image is then not strictly an
