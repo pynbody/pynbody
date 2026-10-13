@@ -115,10 +115,11 @@ megabytes each), which counts the bytes read between stretches, and the gap is c
 of a job (1 MB).
 
 By default, asking for a hydro, gravity or RT array (such as ``f.gas['rho']``) reads only that
-variable from the files, or the three components of a vector such as ``vel``. Where the files are so
-small that reading one variable would read most of them anyway, every variable is read in that one
-pass instead. Setting ``hydro-loading: all`` always reads every variable of the file at once, as
-earlier versions of pynbody did: this is quicker if you will use them all, but takes memory for each.
+variable from the files, or the three components of a vector such as ``vel``, so that memory is taken
+only for what is used. Setting ``hydro-loading: all`` instead reads every variable of the file at
+once, as earlier versions of pynbody did: this is quicker if you will use them all (particularly for
+an output in very many small files, where reading one variable reads most of each file anyway), but
+takes memory for each.
 
 These options can also be changed during a session, through ``pynbody.snapshot.ramses._execute.config``.
 

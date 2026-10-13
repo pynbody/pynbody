@@ -965,7 +965,11 @@ def test_requested_hydro_loading_matches_all(hydro_loading, output, kwargs):
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 @pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
 @pytest.mark.filterwarnings(r"ignore:Loading RT data from disk.*:UserWarning")
-def test_requested_hydro_loading_reads_one_variable(hydro_loading):
+@pytest.mark.parametrize("read_gap", [64 * 1024, 1024 * 1024])
+def test_requested_hydro_loading_reads_one_variable(hydro_loading, monkeypatch, read_gap):
+    """Only the variables asked for are read, whatever the read gap"""
+    from pynbody.snapshot.ramses import _execute
+    monkeypatch.setitem(_execute.config, "read-gap", read_gap)
     hydro_loading("requested")
     f = pynbody.load("testdata/ramses/output_00080")
     f.gas['rho'] # noqa
@@ -1025,12 +1029,12 @@ def test_plan_cache_lets_go_of_least_recently_used():
         return _plan.ReadPlan('test', [_plan.PlanPiece('a', 0, table, 0, 0, table, table)])
 
     cache = _plan.PlanCache(max_nbytes=100)
-    cache.get('a', lambda: plan(40))
-    cache.get('b', lambda: plan(40))
-    cache.get('a', lambda: plan(40))  # (a is now the more recently used)
-    cache.get('c', lambda: plan(40))
+    cache.get_or_build('a', lambda: plan(40))
+    cache.get_or_build('b', lambda: plan(40))
+    cache.get_or_build('a', lambda: plan(40))  # (a is now the more recently used)
+    cache.get_or_build('c', lambda: plan(40))
     assert list(cache.keys()) == ['a', 'c'] and cache.nbytes == 80
-    cache.get('d', lambda: plan(200))  # (too big ever to keep)
+    cache.get_or_build('d', lambda: plan(200))  # (too big ever to keep)
     assert list(cache.keys()) == ['a', 'c']
 
 
@@ -1048,17 +1052,56 @@ def test_hydro_loading_option(monkeypatch, caplog, value, expected):
     assert ("Ignoring" in caplog.text) == (value == "some")
 
 
+
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 @pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
-def test_requested_loading_reads_everything_when_that_costs_no_more(hydro_loading, monkeypatch):
-    """Where reading one variable would read most of the files anyway (here, with a large read gap merging its
-    records), every variable is read in that one pass, rather than one pass each"""
-    from pynbody.snapshot.ramses import _execute
+@pytest.mark.parametrize("mode", ["requested", "all"])
+def test_loading_more_variables_leaves_loaded_ones_alone(hydro_loading, mode):
+    """Arrays already loaded, and changed since, are not read again when other variables are loaded (except, under
+    'all', those loaded in the same pass)"""
+    hydro_loading(mode)
+    f = pynbody.load("testdata/ramses/ramses_partial_output_00250")
+    with pytest.warns(RuntimeWarning, match="hydro variables"):
+        rho = f.gas['rho']
+    rho.convert_units("Msol kpc^-3")
+    converted = np.asarray(rho).copy()
+    f.gas['p'][:] = -1  # (under 'all', loaded with rho)
+    f.gas['vel'] # noqa
+    assert f.gas['rho'].units == "Msol kpc^-3"
+    np.testing.assert_array_equal(f.gas['rho'], converted)
+    assert (f.gas['p'] == -1).all()
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_failed_vector_load_can_be_retried(hydro_loading, monkeypatch):
+    """A failure while loading a vector leaves neither the vector nor its components behind, so it can be tried
+    again"""
+    from pynbody.snapshot.ramses import _plan
     hydro_loading("requested")
-    expected = pynbody.load("testdata/ramses/output_00080")
-    monkeypatch.setitem(_execute.config, "read-gap", 1024 * 1024)
     f = pynbody.load("testdata/ramses/output_00080")
-    f.gas['rho'] # noqa
-    assert sorted(f.gas.keys()) == ['metal', 'p', 'rho', 'vel', 'vx', 'vy', 'vz']
-    for k in ('rho', 'p', 'metal', 'vel'):
-        np.testing.assert_array_equal(f.gas[k], expected.gas[k])
+    load_cell_values = _plan.load_cell_values
+
+    def fail(*args):
+        raise ValueError("Simulated failure")
+
+    monkeypatch.setattr(_plan, "load_cell_values", fail)
+    with pytest.raises(ValueError, match="Simulated"):
+        f.gas['vel'] # noqa
+    assert not {'vel', 'vx', 'vy', 'vz'} & set(f.gas.keys())
+    monkeypatch.setattr(_plan, "load_cell_values", load_cell_values)
+    assert f.gas['vel'].shape == (len(f.gas), 3)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_read_gap_change_rebuilds_plans(monkeypatch):
+    """Plans kept for reuse are not used once the read gap is changed"""
+    from pynbody.snapshot.ramses import _execute
+    f = pynbody.load("testdata/ramses/output_00080")
+    rho = f.gas['rho'].copy()
+    gap = _execute.read_gap([f._hydro_filename(1)])
+    monkeypatch.setitem(_execute.config, "read-gap", 0)
+    del f.gas['rho']
+    np.testing.assert_array_equal(f.gas['rho'], rho)
+    assert {plan.gap for plan in f._read_plans.values()} == {gap, 0}

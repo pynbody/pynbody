@@ -97,7 +97,7 @@ class PlanCache(collections.abc.Mapping):
         self._plans = collections.OrderedDict()  # key: (plan, memory_nbytes), least recently used first
         self.nbytes = 0
 
-    def get(self, key, build: typing.Callable[[], ReadPlan]) -> ReadPlan:
+    def get_or_build(self, key, build: typing.Callable[[], ReadPlan]) -> ReadPlan:
         """The plan kept for *key*, or else the plan *build* returns, which is kept"""
         if key in self._plans:
             self._plans.move_to_end(key)

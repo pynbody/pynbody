@@ -43,10 +43,6 @@ _gv_load_hydro = 0
 _gv_load_gravity = 1
 _gv_load_rt = 2
 
-# Under hydro-loading 'requested', every variable of a hydro-like file is read when reading those asked for would read
-# at least this fraction of what that takes
-_all_variables_fraction = 0.8
-
 
 ramses_particle_header = (
     ('ncpu', 1, 'i'),
@@ -203,7 +199,6 @@ class RamsesSnap(SimSnap):
         self._maxlevel = maxlevel
         self._read_plans = _plan.PlanCache()  # plans of reads (see _plan), kept for loading arrays again
         self._nvar_warned = set()  # the kinds of hydro-like file whose number of variables has been warned about
-        self._read_every_variable = set()  # the kinds of hydro-like file whose variables are read all at once
         self._rt_units_warned = False
 
         type_map = self._count_particles()
@@ -618,7 +613,7 @@ class RamsesSnap(SimSnap):
 
     def _read_plan(self, key, build):
         """The plan of reads for *key*, built by calling *build* if it is not kept"""
-        return self._read_plans.get(key, build)
+        return self._read_plans.get_or_build(key, build)
 
     def _count_gas_cells(self):
         if len(self._cpus) == 0:
@@ -639,8 +634,9 @@ class RamsesSnap(SimSnap):
         smooth.set_default_units()
 
         try:
-            plan = self._read_plan(('cell positions',), lambda: _plan.cell_positions(
-                self._amr_layouts, self._cell_selections, self._gas_i0, [self._amr_filename(cpu) for cpu in self._cpus]))
+            paths = [self._amr_filename(cpu) for cpu in self._cpus]
+            plan = self._read_plan(('cell positions', _execute.read_gap(paths)), lambda: _plan.cell_positions(
+                self._amr_layouts, self._cell_selections, self._gas_i0, paths))
             _plan.load_cell_positions(plan, self._cell_selections, self._amr_geometry, self._info['boxlen'],
                                       self.gas['pos'], self.gas['smooth'])
         except Exception:
@@ -648,17 +644,22 @@ class RamsesSnap(SimSnap):
             raise
 
     def _delete_gas_arrays(self, names):
-        """Delete gas arrays, after a failure to load them"""
+        """Delete gas arrays (and the components of vectors), after a failure to load them"""
         for name in dict.fromkeys(self._array_name_1D_to_ND(n) or n for n in names):
             if name in self.gas.keys():
                 del self.gas[name]
+        for name in names:  # (the components of a deleted vector are otherwise left behind)
+            if name in self._family_arrays and family.gas in self._family_arrays[name]:
+                del self._family_arrays[name][family.gas]
+                if not self._family_arrays[name]:
+                    del self._family_arrays[name]
 
     def _gas_blocks_to_load(self, mode, array_name):
         """The blocks of the hydro-like file of *mode* to load for *array_name*: every block, under the ``all``
         setting of ``hydro-loading`` (or if no name is given); otherwise the block itself, or each component of a
         vector"""
         blocks = [self._hydro_blocks, self._grav_blocks, self._rt_blocks][mode]
-        if array_name is None or _execute.config['hydro-loading'] == 'all' or mode in self._read_every_variable:
+        if array_name is None or _execute.config['hydro-loading'] == 'all':
             return list(blocks)
         if array_name in blocks:
             return [array_name]
@@ -667,17 +668,16 @@ class RamsesSnap(SimSnap):
     def _load_gas_vars(self, mode=_gv_load_hydro, array_name=None):
         """Load blocks of the hydro-like files of *mode* (see _gas_blocks_to_load), returning their names"""
         load = self._gas_blocks_to_load(mode, array_name)
-        blocks = [self._hydro_blocks, self._grav_blocks, self._rt_blocks][mode]
-        created = [i for i in blocks if i not in self.gas]
+        created = [i for i in load if i not in self.gas]
         try:
-            return self._load_gas_vars_into(mode, load)
+            self._load_gas_vars_into(mode, load)
         except Exception:
-            self._delete_gas_arrays([i for i in created if i in self.gas])
+            self._delete_gas_arrays(created)
             raise
+        return load
 
     def _load_gas_vars_into(self, mode, load):
-        """Load the blocks *load* of the hydro-like files of *mode*, or every block if reading those would read most
-        of what that takes anyway; return the names of the blocks loaded"""
+        """Load the blocks *load* of the hydro-like files of *mode*"""
         blocks = [self._hydro_blocks, self._grav_blocks, self._rt_blocks][mode]
         # the variables in the file, in order
         file_blocks = [i for i in blocks if not (self._ndim < 3 and i[-1] == 'z') and
@@ -685,7 +685,8 @@ class RamsesSnap(SimSnap):
 
         created = [i for i in load if i not in self.gas]
         for i in created:
-            self.gas._create_array(i)
+            if i not in self.gas:  # (creating one component of a vector creates the others)
+                self.gas._create_array(i)
         for i in load:
             if i in file_blocks:
                 self.gas[i].set_default_units()
@@ -721,36 +722,25 @@ class RamsesSnap(SimSnap):
         if nvar_file != nvar and mode is _gv_load_rt:
             raise ValueError("Wrong number of variables in RAMSES dump")
         elif nvar_file != nvar and mode not in self._nvar_warned:
-            self._nvar_warned.add(mode)
             if nvar_file < nvar:
                 warnings.warn("Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected "
                               "%d, got %d in file)" % (nvar, nvar_file), RuntimeWarning)
             else:
                 warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)"
                               % (nvar_file, nvar), RuntimeWarning)
+            self._nvar_warned.add(mode)
         file_blocks = file_blocks[:nvar_file]
 
-        names = [i for i in load if i in file_blocks]
+        names = list(dict.fromkeys(i for i in load if i in file_blocks))
         zero_unread(names)
         if not names:
-            return load
+            return
         kind = _layout.HydroLikeFile(header_nbytes=header_nbytes, nvar=int(nvar_file))
-
-        def plan_for(names):
-            wanted = [(file_blocks.index(i), k) for k, i in enumerate(names)]
-            return self._read_plan(('cell values', mode, kind, tuple(wanted)), lambda: _plan.cell_values(
-                self._amr_layouts, self._cell_selections, self._gas_i0, paths, kind, wanted))
-
-        plan = plan_for(names)
-        if len(names) < len(file_blocks) and \
-                plan.nbytes >= _all_variables_fraction * plan.requested * len(file_blocks) / len(names):
-            # reading these variables reads most of what reading every variable would (as where files are small, so
-            # that the read gap merges their records): read every variable in this one pass, rather than one pass each
-            logger.info("Loading every variable of the %s files, as reading %s alone would read most of them",
-                        ['hydro', 'grav', 'rt'][mode], ", ".join(names))
-            self._read_every_variable.add(mode)
-            loaded = self._load_gas_vars_into(mode, blocks)
-            return list(dict.fromkeys(load + loaded))
+        variable = {name: i for i, name in enumerate(file_blocks)}  # (the last, if a name is repeated)
+        wanted = [(variable[i], k) for k, i in enumerate(names)]
+        plan = self._read_plan(('cell values', mode, kind, tuple(wanted), _execute.read_gap(paths)),
+                               lambda: _plan.cell_values(self._amr_layouts, self._cell_selections, self._gas_i0, paths,
+                                                         kind, wanted))
         _plan.load_cell_values(plan, self._cell_selections, [self.gas[i] for i in names])
 
         if mode is _gv_load_gravity and 'phi' in names:
@@ -758,7 +748,6 @@ class RamsesSnap(SimSnap):
             self.gas['phi'] *= self._info['boxlen']
 
         logger.info("Done")
-        return load
 
     def _iter_particle_families(self):
         for f in self.families():
@@ -785,8 +774,9 @@ class RamsesSnap(SimSnap):
             fields.append((_type, [self[f][blockname] for f in self._iter_particle_families()]))
 
         try:
-            plan = self._read_plan(('particle fields', tuple(records)), lambda: _plan.particle_fields(
-                self._particle_layouts, self._particle_selections, records))
+            plan = self._read_plan(
+                ('particle fields', tuple(records), _execute.read_gap([pl.path for pl in self._particle_layouts])),
+                lambda: _plan.particle_fields(self._particle_layouts, self._particle_selections, records))
             _plan.load_particle_fields(plan, self._particle_selections, fields)
         except Exception:
             warnings.warn(
