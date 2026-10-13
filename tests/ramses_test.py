@@ -798,28 +798,63 @@ def test_ranges_closer_than_the_gap_are_read_together():
 
 
 def test_pieces_are_sized_by_the_bytes_they_read(monkeypatch):
-    """With the gaps between ranges read too, a piece is cut once it reads job_nbytes, not once its ranges hold
+    """With the gaps between ranges read too, a piece reads no more than job_nbytes, rather than holding ranges of
     that much"""
     from pynbody.snapshot.ramses import _execute
     monkeypatch.setattr(_execute, "job_nbytes", 100)
     ranges = [(0, 60 * k, 10) for k in range(20)]  # (10 bytes, then 50 between)
     pieces = _assemble(ranges, 60)
-    # each piece reads 10 + 60 + 60 = 130 bytes (three ranges), where counting only the ranges would take ten
-    assert [len(p.rows) for p in pieces] == [3] * 6 + [2]
-    assert [p.nbytes for p in pieces] == [130] * 6 + [70]
+    # each piece reads 10 + 60 = 70 bytes (two ranges: a third would take it to 130), where counting only the
+    # ranges would take ten
+    assert [len(p.rows) for p in pieces] == [2] * 10
+    assert [p.nbytes for p in pieces] == [70] * 10
     # with a gap too small to merge them, ranges count alone
     assert [len(p.rows) for p in _assemble(ranges, 40)] == [10, 10]
+    # a range bigger than a job is a piece of its own
+    assert [len(p.rows) for p in _assemble([(0, 0, 10), (0, 20, 500), (0, 530, 10)], 60)] == [1, 1, 1]
 
 
-@pytest.mark.parametrize("filesystem, gap", [("ext4", 64 * 1024), (None, 64 * 1024), ("lustre", 1024 * 1024),
-                                             ("gpfs", 1024 * 1024), ("nfs4", 1024 * 1024)])
-def test_read_gap_depends_on_the_filesystem(monkeypatch, filesystem, gap):
+def test_reads_cover_every_range():
+    """A read reaches the end of every range in it, even one that is empty or sorts after a longer one"""
+    piece, = _assemble([(0, 42, 4), (0, 42, 0), (0, 0, 10)], 64)
+    np.testing.assert_array_equal(piece.reads, [[0, 46, 0]])
+
+
+def test_scan_reads_are_bounded(tmp_path):
+    """Reads whose size is not known in advance (refinement maps, when a snapshot is opened) merge no more bytes
+    between ranges than the ranges hold, whatever the read gap"""
+    from pynbody.snapshot.ramses import _layout
+    path = tmp_path / "data"
+    path.write_bytes(bytes(range(256)) * 4096)  # 1 MB
+    offsets, nbytes = [0, 100, 300000, 300100, 900000], [10, 10, 1000, 1000, 10]
+    with open(path, "rb") as f:
+        buf, at = _layout._read_ranges(f, offsets, nbytes, 10 ** 9)
+    data = path.read_bytes()
+    for o, n, a in zip(offsets, nbytes, at):
+        assert buf[a:a + n].tobytes() == data[o:o + n]
+    assert len(buf) <= 2 * sum(nbytes)
+
+
+
+@pytest.mark.parametrize("filesystem, gap", [("ext4", 64 * 1024), (None, 64 * 1024), ("tmpfs", 64 * 1024),
+                                             ("nfs4", 256 * 1024), ("9p", 256 * 1024), ("lustre", 1024 * 1024),
+                                             ("gpfs", 1024 * 1024), ("fuse.s3fs", 1024 * 1024)])
+def test_read_gap_depends_on_the_filesystem(monkeypatch, caplog, filesystem, gap):
     from pynbody.snapshot.ramses import _execute
+    path = ["/data/output_00001/amr_00001.out00001"]
     monkeypatch.setattr(_execute.strategy, "filesystem_type", lambda path: filesystem)
     monkeypatch.setitem(_execute.config, "read-gap", "auto")
-    assert _execute.read_gap(["/data/output_00001/amr_00001.out00001"]) == gap
+    assert _execute.read_gap(path) == gap
     monkeypatch.setitem(_execute.config, "read-gap", 12345)
-    assert _execute.read_gap(["/data/output_00001/amr_00001.out00001"]) == 12345
+    assert _execute.read_gap(path) == 12345
+    # a gap is never more than a quarter of a job, so that pieces stay near the size of a job
+    monkeypatch.setitem(_execute.config, "read-gap", 10 ** 9)
+    assert _execute.read_gap(path) == _execute.job_nbytes // 4
+    # a value set during a session that is not a number of bytes counts as 'auto'
+    for value in ("1MB", None, -5):
+        monkeypatch.setitem(_execute.config, "read-gap", value)
+        assert _execute.read_gap(path) == gap
+    assert "Ignoring the read gap" in caplog.text
 
 
 @pytest.mark.parametrize("value, expected", [(None, "auto"), ("auto", "auto"), ("262144", 262144), ("0", 0),
@@ -834,6 +869,21 @@ def test_read_gap_option(monkeypatch, caplog, value, expected):
     monkeypatch.setattr(_execute, "config_parser", Config())
     assert _execute._read_config()["read-gap"] == expected
     assert ("Ignoring" in caplog.text) == (value in ("-1", "1MB"))
+
+
+def test_thread_options_accept_any_number(monkeypatch):
+    """io-threads of 0 or less means one input thread (as it always has), not 'auto'"""
+    from pynbody.snapshot.ramses import _execute
+
+    class Config:
+        def get(self, section, name, fallback):
+            return {"io-threads": "0", "parallel-read": "-1"}.get(name, fallback)
+
+    monkeypatch.setattr(_execute, "config_parser", Config())
+    config = _execute._read_config()
+    assert (config["io-threads"], config["parallel-read"]) == (0, -1)
+    monkeypatch.setattr(_execute, "config", config)
+    assert _execute.choose_strategy(["/data/a"], 10, 1000).io_threads == 1
 
 
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
@@ -851,10 +901,18 @@ def test_large_read_gap_reads_the_same(monkeypatch, caplog):
     with caplog.at_level(logging.DEBUG, logger='pynbody.snapshot.ramses'):
         f = pynbody.load("testdata/ramses/output_00080")
         f.dm['pos'] # noqa
-    assert "read gap 1024 KB" in caplog.text
+    assert "read gap 1 MB" in caplog.text
     for k in ('pos', 'vel', 'mass'):
         np.testing.assert_array_equal(f[k], expected[k])
     np.testing.assert_array_equal(f.gas['rho'], expected['rho'])
-    for plan in _cell_plans(f, f._cell_selections)[:2] + tuple(f._read_plans.values()):
+    from pynbody.snapshot.ramses import _plan
+    positions, values, kind = _cell_plans(f, f._cell_selections)
+    # (a single variable, as phase 2 will read, with far more between its records than in them)
+    rho_only = _plan.cell_values(f._amr_layouts, f._cell_selections, f._gas_i0,
+                                 [f._hydro_filename(cpu) for cpu in f._cpus], kind, [(0, 0)])
+    for plan in (positions, values, rho_only) + tuple(f._read_plans.values()):
         assert plan.gap == 1024 * 1024
         _check_plan(plan, _execute.job_nbytes)
+    rho = np.zeros(len(f.gas))
+    _plan.load_cell_values(rho_only, f._cell_selections, [rho])
+    np.testing.assert_array_equal(rho, expected['rho'])

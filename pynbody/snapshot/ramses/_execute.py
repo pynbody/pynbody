@@ -34,13 +34,17 @@ logger = logging.getLogger('pynbody.snapshot.ramses')
 # small beside it, and small enough that a few per thread take little memory
 job_nbytes = 4 * 1024 * 1024
 
-# The read gap (see read_gap) chosen by 'auto' on local filesystems, and on network and parallel ones
-local_read_gap = 64 * 1024
-remote_read_gap = 1024 * 1024
+# The read gap (see read_gap) chosen by 'auto': about the bytes that could be read in the time a request takes
+local_read_gap = 64 * 1024  # local disks
+network_read_gap = 256 * 1024  # a single file server (a round trip of ~0.3 ms at ~1 GB/s, or more at less)
+parallel_read_gap = 1024 * 1024  # parallel filesystems and object stores (~1 ms at several GB/s)
 
-# Filesystem types reached over a network but not parallel (which strategy.parallel_filesystem_types lists): each
-# request costs a round trip, so larger gaps pay off
-network_filesystem_types = {'nfs', 'nfs4', 'cifs', 'smb3', 'smbfs', 'fuse.sshfs', 'afs'}
+# Filesystem types served by a single server over a network
+network_filesystem_types = {'nfs', 'nfs4', 'cifs', 'smb3', 'smbfs', 'fuse.sshfs', 'afs', '9p'}
+
+# Filesystem types of high latency and bandwidth, beside strategy.parallel_filesystem_types
+high_latency_filesystem_types = {'glusterfs', 'fuse.glusterfs', 'fuse.dfuse', 'fuse.s3fs', 'fuse.gcsfuse',
+                                 'fuse.rclone', 'fuse.juicefs'}
 
 
 def _read_config():
@@ -56,7 +60,7 @@ def _read_config():
         logger.warning("Ignoring the value %r of %s in the [ramses] configuration", value, name)
         return default
 
-    return {'parallel-read': option('parallel-read', 8), 'io-threads': option('io-threads', 'auto', 1),
+    return {'parallel-read': option('parallel-read', 8), 'io-threads': option('io-threads', 'auto'),
             'read-gap': option('read-gap', 'auto', 0)}
 
 
@@ -96,16 +100,33 @@ def read_gap(paths: list[str]) -> int:
     """How far apart byte ranges of the files *paths* may be and still be read in one go, with what lies between
     them, because reading what lies between costs less than making another request.
 
-    This affects only speed: memory is bounded by the size of jobs, which counts the bytes between ranges. The
-    ``read-gap`` option gives it in bytes, or ``auto`` chooses 64 KB on a local filesystem (where a request costs
-    about as much as reading that much) and 1 MB on a network or parallel filesystem (where each request is a round
-    trip to a server)."""
-    if config['read-gap'] != 'auto':
-        return int(config['read-gap'])
-    filesystem = strategy.filesystem_type(paths[0]) if paths else None
-    if filesystem in strategy.parallel_filesystem_types or filesystem in network_filesystem_types:
-        return remote_read_gap
-    return local_read_gap
+    The ``read-gap`` option gives it in bytes, or ``auto`` chooses about what could be read in the time a request
+    takes: 64 KB on a local filesystem, 256 KB on a network filesystem served by one server (such as NFS), and 1 MB
+    on a parallel filesystem (such as Lustre). It affects speed, not memory: the bytes read between ranges count
+    towards the size of jobs, which bounds memory, and the gap is never more than a quarter of a job."""
+    value = config['read-gap']
+    if value != 'auto':
+        try:
+            value = int(value)
+            if value < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            logger.warning("Ignoring the read gap %r, which is neither a number of bytes nor 'auto'", value)
+            value = 'auto'
+    if value == 'auto':
+        filesystem = strategy.filesystem_type(paths[0]) if paths else None
+        if filesystem in strategy.parallel_filesystem_types or filesystem in high_latency_filesystem_types:
+            value = parallel_read_gap
+        elif filesystem in network_filesystem_types:
+            value = network_read_gap
+        else:
+            value = local_read_gap
+    return min(value, job_nbytes // 4)
+
+
+def describe_nbytes(n: int) -> str:
+    """A number of bytes, for the log"""
+    return f"{n // 1024 ** 2} MB" if n >= 1024 ** 2 else f"{n // 1024} KB" if n >= 1024 else f"{n} bytes"
 
 
 class Piece(typing.NamedTuple):

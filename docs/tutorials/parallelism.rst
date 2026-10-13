@@ -106,11 +106,13 @@ This specifies at most 4 decoding threads and 2 input threads. Setting ``paralle
 less reads everything in the calling thread.
 
 When two stretches of a file that are wanted lie close together, the reader reads them in one
-request, along with whatever lies between them. The ``read-gap`` option says how close (in bytes):
-by default (``auto``) 64 KB on a local filesystem, and 1 MB on a network filesystem such as NFS or a
-parallel one such as Lustre, where every request costs a round trip to a server. It affects only
-speed: the memory taken by reading is bounded by the size of the jobs handed to threads (a few
-megabytes each), which counts the bytes read between stretches.
+request, along with whatever lies between them. The ``read-gap`` option says how close (in bytes).
+By default (``auto``) it is about what can be read in the time a request takes: 64 KB on a local
+filesystem, 256 KB on a network filesystem served by one server (such as NFS), and 1 MB on a parallel
+filesystem (such as Lustre), where every request costs a round trip to a server. It affects speed,
+not memory: the memory taken by reading is bounded by the size of the jobs handed to threads (a few
+megabytes each), which counts the bytes read between stretches, and the gap is capped at a quarter
+of a job (1 MB).
 
 These options can also be changed during a session, through ``pynbody.snapshot.ramses._execute.config``.
 

@@ -88,15 +88,21 @@ def _record_value(buf, table, k, dtype='i'):
 
 def _read_ranges(f, offsets, nbytes, gap: int) -> tuple[np.ndarray, list]:
     """Read byte ranges of an open file (in increasing order, not overlapping) into one buffer, reading ranges less
-    than *gap* apart in one go, with what lies between them; return the buffer, and where in it each range starts"""
+    than *gap* apart in one go, with what lies between them, so long as no more lies between them in all than the
+    ranges hold (which bounds the buffer at twice what is wanted, as its size is not known in advance); return the
+    buffer, and where in it each range starts"""
     spans, at, span_at = [], [], 0  # spans are [first byte, last byte + 1, where in the buffer]
+    wanted = between = 0
     for offset, n in zip(offsets, nbytes):
-        if not spans or offset - spans[-1][1] > gap:
+        wanted += n
+        space = offset - spans[-1][1] if spans else 0
+        if not spans or space > gap or between + space > wanted:
             if spans:
                 span_at += spans[-1][1] - spans[-1][0]
             spans.append([offset, offset + n, span_at])
         else:
             spans[-1][1] = offset + n
+            between += space
         at.append(spans[-1][2] + offset - spans[-1][0])
     reads = [(start, end - start, span_at) for start, end, span_at in spans]
     nbytes_total = spans[-1][2] + spans[-1][1] - spans[-1][0] if spans else 0
@@ -254,7 +260,8 @@ def scan_amr(paths: list[str], cpus: list[int], bisection: bool, maxlevel: int |
         return _execute.Piece(paths[i], _header_nbytes_guess, read, decode)
 
     _execute.run_pieces([piece(i) for i in range(len(paths))],
-                        f"AMR headers and refinement maps of {len(paths)} files (read gap {gap // 1024} KB)")
+                        f"AMR headers and refinement maps of {len(paths)} files (read gap "
+                        f"{_execute.describe_nbytes(gap)})")
     return geometry[0], layouts, leaves
 
 

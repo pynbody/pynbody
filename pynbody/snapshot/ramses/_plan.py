@@ -69,7 +69,7 @@ class ReadPlan:
         files = len({p.path for p in self.pieces})
         return (f"{self.kind}: {files} files, {len(self.pieces)} pieces, {self.nreads} reads of "
                 f"{self.nbytes / 1e6:.1f} MB for {self.requested / 1e6:.1f} MB of records (read gap "
-                f"{self.gap // 1024} KB)")
+                f"{_execute.describe_nbytes(self.gap)})")
 
 
 def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges: np.ndarray, offset_columns: list[int],
@@ -90,8 +90,8 @@ def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges
     file, offset, nbytes, units = ranges[order].T
     n = len(order)
 
-    # 1. cut into pieces: each takes ranges up to and including the first that brings what it reads (the ranges, and
-    # the bytes between those that will be merged) to job_nbytes, then on to the first place where no unit is left
+    # 1. cut into pieces: each takes the ranges it can without reading (the ranges, and the bytes between those that
+    # will be merged) more than job_nbytes, and at least one; then on to the first place where no unit is left
     # unfinished; and ends at the end of a file
     _, units = np.unique(units, return_inverse=True)
     last = np.zeros(units.max() + 1, dtype=np.int64)
@@ -105,14 +105,14 @@ def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges
     space[file_start] = 0
     cumulative = np.cumsum(nbytes + space)  # (a piece starting at range i reads cumulative[j] - before[i] to j)
     before = cumulative - nbytes
-    starts = [file_start[cumulative[file_end] - before[file_start] < _execute.job_nbytes]]  # (files of one piece)
+    starts = [file_start[cumulative[file_end] - before[file_start] <= _execute.job_nbytes]]  # (files of one piece)
     for f0, f1 in zip(file_start.tolist(), file_end.tolist()):
-        if cumulative[f1] - before[f0] < _execute.job_nbytes:
+        if cumulative[f1] - before[f0] <= _execute.job_nbytes:
             continue
         i, piece_starts = f0, []
         while i <= f1:
             piece_starts.append(i)
-            j = min(max(int(np.searchsorted(cumulative, before[i] + _execute.job_nbytes)), i), f1)
+            j = min(max(int(np.searchsorted(cumulative, before[i] + _execute.job_nbytes, side='right')) - 1, i), f1)
             i = int(may_end[np.searchsorted(may_end, j)]) + 1  # (a file's last range is where a piece may end)
         starts.append(np.array(piece_starts, dtype=np.int64))
     starts = np.sort(np.concatenate(starts))
@@ -128,7 +128,7 @@ def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges
     read_of = np.cumsum(new_read) - 1
     first = np.flatnonzero(new_read)
     read_offset = offset[first]
-    read_nbytes = ends[np.append(first[1:], n) - 1] - read_offset
+    read_nbytes = np.maximum.reduceat(ends, first) - read_offset
     read_piece = piece_of[first]
     piece_first_read = np.searchsorted(read_piece, np.arange(npieces + 1))
     read_at = np.cumsum(read_nbytes) - read_nbytes
@@ -227,6 +227,7 @@ def cell_values(layouts: list[AmrLayout], selections: list[CellSelection], first
     if not paths or not wanted:
         return ReadPlan('cell values', [])
     runs = _Runs(layouts, selections, first_cells)
+    gap = _execute.read_gap(paths)
     twotondim = runs.layout.twotondim
     ind = np.arange(twotondim)
     block = runs.layout.hydro_block_offset(kind, runs.index)
@@ -237,8 +238,8 @@ def cell_values(layouts: list[AmrLayout], selections: list[CellSelection], first
     def add(which, file_offset, nbytes, data_offset, dest0, nvar, var_stride, check):
         """Ranges and rows for the runs *which*. *file_offset* and *nbytes* are (runs, 1) for one range per run, or
         (runs, twotondim) for one per ind; the values of each ind start *data_offset* (runs, twotondim) into its
-        range. A row's ranges are one unit, read into one piece; but a run whose ranges of each ind span more than
-        job_nbytes is given a row (and a unit) for each ind."""
+        range. A row's ranges are one unit, read into one piece; but a run whose ranges of each ind take more than
+        job_nbytes to read is given a row (and a unit) for each ind."""
         nonlocal nranges
         k, c = file_offset.shape
         range_id = nranges + np.arange(k * c).reshape(k, c)
@@ -249,9 +250,10 @@ def cell_values(layouts: list[AmrLayout], selections: list[CellSelection], first
                                                         np.full(k, (1 << twotondim) - 1)], axis=1),
                                 runs.starts[which]], axis=1)
         unit = np.broadcast_to(range_id[:, :1], (k, c))
-        # (by the span of its ranges, which may all be read, with what lies between them, if the read gap is large)
-        split = np.flatnonzero((file_offset[:, -1] + nbytes[:, -1] - file_offset[:, 0] > _execute.job_nbytes) &
-                               (c == twotondim))
+        # (by what its ranges take to read, with the bytes between them that the read gap merges)
+        space = file_offset[:, 1:] - (file_offset + nbytes)[:, :-1]
+        reads = nbytes.sum(axis=1) + np.where((space >= 0) & (space <= gap), space, 0).sum(axis=1)
+        split = np.flatnonzero((reads > _execute.job_nbytes) & (c == twotondim))
         if len(split):
             each = np.repeat(table[split], twotondim, axis=0)  # (a row for each (run, ind))
             ind_of = np.tile(ind, len(split))
@@ -304,7 +306,6 @@ def cell_values(layouts: list[AmrLayout], selections: list[CellSelection], first
                        np.full(4 * nstubs, _LEVEL_RECORD)], axis=1)
 
     ranges = _ranges(*(np.concatenate(columns) for columns in zip(*ranges)))
-    gap = _execute.read_gap(paths)
     return ReadPlan('cell values', _assemble(paths, ranges, np.concatenate(rows).astype(np.int64, copy=False),
                                              np.concatenate(row_ranges), list(range(twotondim)), checks, gap), gap)
 
