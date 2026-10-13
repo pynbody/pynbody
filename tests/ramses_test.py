@@ -1251,3 +1251,73 @@ def test_take_region_needs_hilbert_ordering(tmp_path):
     (target / "info_00080.txt").write_text(info)
     with pytest.raises(ValueError, match="Hilbert"):
         pynbody.load(str(target), take_region=pynbody.filt.Sphere(1.0, (0.5, 0.5, 0.5)))
+
+
+def test_hilbert_keys_match_ramses():
+    """A few keys as RAMSES's hilbert3d gives them (checked against yt's port of it)"""
+    from pynbody.snapshot.ramses import _kernels
+    cells = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [3, 1, 2], [7, 0, 5], [2, 6, 3]], dtype=np.int64)
+    keys = _kernels.hilbert_keys(cells[:, 0].copy(), cells[:, 1].copy(), cells[:, 2].copy(), 3)
+    np.testing.assert_array_equal(keys, [0, 1, 7, 3, 32, 446, 253])
+
+
+def test_cpus_in_region_for_overloaded_domains():
+    """With more domains than CPUs (RAMSES's overload), domain i belongs to CPU (i - 1) % ncpu + 1"""
+    from pynbody.snapshot.ramses import _hilbert
+    levelmin, levelmax = 3, 8
+    bound_keys = np.linspace(0, 8.0 ** (levelmax + 1), 13)
+    region = pynbody.filt.Sphere(2.0, (25.0, 25.0, 25.0))
+    domains = _hilbert.cpus_in_region(region, bound_keys, levelmin, levelmax, 50.0)
+    assert _hilbert.cpus_in_region(region, bound_keys, levelmin, levelmax, 50.0, ncpu=4) == \
+        sorted({(d - 1) % 4 + 1 for d in domains})
+    with pytest.raises(NotImplementedError, match="8\\*\\*"):
+        _hilbert.cpus_in_region(region, bound_keys / 8, levelmin, levelmax, 50.0)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_take_region_with_coarse_maxlevel():
+    """With maxlevel below levelmin, the coarser cells are leaves, whose octs' fathers are larger than a levelmin
+    cell: every cell whose centre a region holds is still loaded"""
+    full = pynbody.load("testdata/ramses/output_00080", maxlevel=3)
+    pos, boxlen = np.asarray(full.gas['pos']), full._info['boxlen']
+    for i in np.random.default_rng(3).choice(len(pos), 40, replace=False):
+        f = pynbody.load("testdata/ramses/output_00080", maxlevel=3,
+                         take_region=pynbody.filt.Sphere(1e-4 * boxlen, pos[i]))
+        assert full.gas['cpu'][i] in f._cpus
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_take_region_with_a_wrapping_cuboid(ramses_full_load):
+    full, pos, iord, cpu, cell_pos = ramses_full_load
+    boxlen = full._info['boxlen']
+    region = pynbody.filt.Cuboid(*(0.95 * boxlen,) * 3, *(0.05 * boxlen,) * 3)
+    inside = iord[region(full.dm)]
+    assert len(inside) > 0
+    f = pynbody.load("testdata/ramses/output_00080", take_region=region)
+    assert set(inside) <= set(np.asarray(f.dm['iord']))
+    # and a cuboid that wraps with no box to wrap around is refused
+    with pytest.raises(ValueError, match="not well defined"):
+        region.cubic_cell_intersection(np.zeros((1, 3)), deltax=1.0, boxsize=None)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.parametrize("region", [pynbody.filt.Sphere('3 Mpc', (0.5, 0.5, 0.5)), pynbody.filt.Cuboid('1 Mpc')])
+def test_take_region_with_units_loads_every_file(region):
+    """A filter given with units cannot be compared with cells in code units, so every file is loaded"""
+    with pytest.warns(UserWarning, match="loads every CPU file"):
+        f = pynbody.load("testdata/ramses/output_00080", take_region=region)
+    assert len(f._cpus) == 16
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_take_region_that_selects_nothing_warns():
+    region = pynbody.filt.Sphere(1e-4 * 142.0, (0.5, 0.5, 0.5))
+    chosen = pynbody.load("testdata/ramses/output_00080", take_region=region)._cpus
+    other = next(cpu for cpu in range(1, 17) if cpu not in chosen)
+    with pytest.warns(UserWarning, match="selects no CPU files"):
+        f = pynbody.load("testdata/ramses/output_00080", take_region=region, cpus=[other])
+    assert len(f) == 0

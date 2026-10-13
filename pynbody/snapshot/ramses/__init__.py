@@ -200,15 +200,17 @@ class RamsesSnap(SimSnap):
             self._cpus = cpus
         else:
             self._cpus = list(range(1, self.ncpu + 1))
+        self._maxlevel = maxlevel
         self._take_region = take_region
         if take_region is not None:
             in_region = set(self._cpus_in_region(take_region))
             self._cpus = [cpu for cpu in self._cpus if cpu in in_region]
+            if not self._cpus:
+                warnings.warn("take_region selects no CPU files, so the snapshot is empty")
 
         # ramses partial-loads by selecting whole cpu files; anything less than all of them means the
         # snapshot does not contain all the particles in the output
         self.partial_load = sorted(self._cpus) != list(range(1, self.ncpu + 1))
-        self._maxlevel = maxlevel
         self._read_plans = _plan.PlanCache()  # plans of reads (see _plan), kept for loading arrays again
         self._nvar_warned = set()  # the kinds of hydro-like file whose number of variables has been warned about
         self._rt_units_warned = False
@@ -304,15 +306,17 @@ class RamsesSnap(SimSnap):
         if self._info['ndim'] != 3:
             raise ValueError("take_region is supported only for 3D outputs")
         bound_keys = _hilbert.domain_keys(os.path.join(self._filename, f"info_{self._timestep_id}.txt"))
-        if len(bound_keys) != self._info['ncpu'] + 1:
-            raise ValueError("The info file lists %d Hilbert domains for %d CPUs" % (len(bound_keys) - 1,
-                                                                                    self._info['ncpu']))
+        ncpu = self._info['ncpu']
+        if (len(bound_keys) - 1) % ncpu:
+            raise ValueError("The info file lists %d Hilbert domains for %d CPUs" % (len(bound_keys) - 1, ncpu))
+        # (cells coarser than levelmin are leaves if maxlevel stops short of it)
+        coarsest = min(int(self._info['levelmin']), self._maxlevel or int(self._info['levelmin']))
         try:
-            cpus = _hilbert.cpus_in_region(region, bound_keys, int(self._info['levelmin']),
-                                           int(self._info['levelmax']), float(self._info['boxlen']))
-        except NotImplementedError:
-            warnings.warn("%r cannot say which cells it intersects, so take_region loads every CPU file" % region)
-            return list(range(1, self._info['ncpu'] + 1))
+            cpus = _hilbert.cpus_in_region(region, bound_keys, coarsest, int(self._info['levelmax']),
+                                           float(self._info['boxlen']), ncpu)
+        except NotImplementedError as e:
+            warnings.warn(f"take_region loads every CPU file, as it cannot choose them for {region!r}: {e}")
+            return list(range(1, ncpu + 1))
         logger.info("take_region loads %d of %d CPU files", len(cpus), self._info['ncpu'])
         return cpus
 

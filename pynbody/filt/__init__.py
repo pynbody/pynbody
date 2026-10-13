@@ -100,7 +100,8 @@ class Filter:
             The side of each cell. If not given, the centroids must be a complete uniform grid filling a periodic box,
             from which the side and the box size are inferred.
         boxsize : float, optional
-            The size of the periodic box (needed if deltax is given; None for no periodicity)
+            The size of the periodic box, used if deltax is given (None for no periodicity); otherwise it is
+            inferred from the grid
         """
         raise NotImplementedError("Cell intersections are not implemented for this filter")
 
@@ -271,6 +272,8 @@ class Sphere(Filter):
             return super().where(sim)
 
     def cubic_cell_intersection(self, centroids, deltax=None, boxsize=None):
+        if units.is_unit_like(self.radius) or units.has_units(self.cen):
+            raise NotImplementedError("Cell intersections are not implemented for a sphere given with units")
         boxsize, deltax = self._get_boxsize_and_delta(centroids, deltax, boxsize)
 
         # the maximum offset from the cell centre to any corner:
@@ -359,10 +362,18 @@ class Cuboid(Filter):
             return super().where(sim)
 
     def cubic_cell_intersection(self, centroids, deltax=None, boxsize=None):
+        corners = (self.x1, self.y1, self.z1, self.x2, self.y2, self.z2)
+        if any(units.is_unit_like(x) for x in corners):
+            raise NotImplementedError("Cell intersections are not implemented for a cuboid given with units")
         boxsize, deltax = self._get_boxsize_and_delta(centroids, deltax, boxsize)
+        x1, y1, z1, x2, y2, z2 = corners
+        # (a cuboid whose far corner is below its near one wraps around the box, as when filtering)
+        if boxsize > 0:
+            x2, y2, z2 = (b + boxsize if b < a else b for a, b in ((x1, x2), (y1, y2), (z1, z2)))
+        if x2 < x1 or y2 < y1 or z2 < z1:
+            raise ValueError("Cuboid boundaries are not well defined")
         shift = deltax/2
-        boundaries = (self.x1 - shift, self.y1 - shift, self.z1 - shift,
-                      self.x2 + shift, self.y2 + shift, self.z2 + shift)
+        boundaries = (x1 - shift, y1 - shift, z1 - shift, x2 + shift, y2 + shift, z2 + shift)
         return self._get_mask(centroids, boundaries, boxsize)
 
 
