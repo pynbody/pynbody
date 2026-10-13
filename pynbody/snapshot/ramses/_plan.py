@@ -288,7 +288,7 @@ def _destinations(arrays, dtype):
         elif a.dtype == dtype:
             out.append(a.view(np.ndarray))
         else:
-            temporary = np.empty(a.shape, dtype=dtype)
+            temporary = np.zeros(a.shape, dtype=dtype)  # (zeros: not every element need be written, e.g. pos in 2D)
             copies.append((a, temporary))
             out.append(temporary)
     return out, copies

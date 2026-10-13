@@ -640,3 +640,35 @@ def test_read_plans_are_reused():
     np.testing.assert_array_equal(f['pos'], pos)
     assert f._read_plans.keys() == plans.keys()
     assert all(f._read_plans[k] is plans[k] for k in plans)
+
+
+def test_negative_particle_record_length_is_detected(tmp_path):
+    """A negative Fortran record length (a damaged file, or gfortran's subrecords over 2 GB) raises ValueError"""
+    import shutil
+    import struct
+    source = Path("testdata/ramses/output_00080")
+    target = tmp_path / "output_00080"
+    target.mkdir()
+    for name in os.listdir(source):
+        if os.path.isfile(source / name):
+            os.symlink((source / name).absolute(), target / name)
+    part = target / "part_00080.out00001"
+    part.unlink()
+    shutil.copy(source / "part_00080.out00001", part)
+    with open(part, "r+b") as f:
+        pos = 0
+        for _ in range(8):  # skip the header records
+            f.seek(pos)
+            pos += 8 + struct.unpack("i", f.read(4))[0]
+        f.seek(pos)
+        f.write(struct.pack("i", -8))
+    with pytest.raises(ValueError, match="Negative record length"):
+        pynbody.load(str(target), cpus=[1])
+
+
+def test_converted_destinations_start_zeroed():
+    """Temporaries for destinations of another dtype start as zeros, so elements left unwritten (such as the unused
+    columns of pos in a 2D output) are not uninitialised memory"""
+    from pynbody.snapshot.ramses import _plan
+    (out,), copies = _plan._destinations([np.full(5, 7, dtype=np.float32)], np.float64)
+    assert out.dtype == np.float64 and (out == 0).all() and len(copies) == 1

@@ -285,6 +285,9 @@ def scan_particle_files(paths: list[str], field: int, dtype: str) -> list[tuple[
             start = f.read(4)
             while len(start) == 4:
                 length = int.from_bytes(start, sys.byteorder, signed=True)
+                if length < 0:
+                    raise ValueError(f"Negative record length in {paths[i]}: the file is damaged, or has a record "
+                                     "over 2 GB, which is not supported")
                 offsets.append(pos + 4)
                 nbytes.append(length)
                 pos += 8 + length
