@@ -86,11 +86,31 @@ class Filter:
 
         return wrap
 
-    def cubic_cell_intersection(self, centroids):
+    def cubic_cell_intersection(self, centroids, deltax=None, boxsize=None):
         """Compute the intersection with cubic cells with the specified centroids.
 
-        This is currently used by the swift loader to figure out which cells to load"""
+        Returns a boolean array, True for each cell that the filter's region may intersect (it may be True for some
+        cells that it does not). This is used by the swift and ramses loaders to figure out which cells to load.
+
+        Parameters
+        ----------
+        centroids : array-like
+            The centres of the cells, shape (N, 3), in the snapshot's position units
+        deltax : float, optional
+            The side of each cell. If not given, the centroids must be a complete uniform grid filling a periodic box,
+            from which the side and the box size are inferred.
+        boxsize : float, optional
+            The size of the periodic box (needed if deltax is given; None for no periodicity)
+        """
         raise NotImplementedError("Cell intersections are not implemented for this filter")
+
+    @classmethod
+    def _get_boxsize_and_delta(cls, centroids, deltax, boxsize):
+        """The box size and cell side for calculating cubic cell intersections, inferred from the centroids if
+        deltax is not given"""
+        if deltax is None:
+            return cls._get_boxsize_and_delta_from_centroids(centroids)
+        return (-1.0 if boxsize is None else boxsize), deltax  # (a box size below zero means no wrapping)
 
     @classmethod
     def _get_boxsize_and_delta_from_centroids(self, centroids):
@@ -141,9 +161,9 @@ class And(Filter):
     def __repr__(self):
         return "(" + repr(self.f1) + " & " + repr(self.f2) + ")"
 
-    def cubic_cell_intersection(self, centroids):
-        return self.f1.cubic_cell_intersection(centroids) & \
-               self.f2.cubic_cell_intersection(centroids)
+    def cubic_cell_intersection(self, centroids, deltax=None, boxsize=None):
+        return self.f1.cubic_cell_intersection(centroids, deltax, boxsize).astype(bool) & \
+               self.f2.cubic_cell_intersection(centroids, deltax, boxsize).astype(bool)
 
 class Or(Filter):
     """A filter that selects particles that are in either of two other filters.
@@ -164,9 +184,9 @@ class Or(Filter):
     def __repr__(self):
         return "(" + repr(self.f1) + " | " + repr(self.f2) + ")"
 
-    def cubic_cell_intersection(self, centroids):
-        return self.f1.cubic_cell_intersection(centroids) | \
-            self.f2.cubic_cell_intersection(centroids)
+    def cubic_cell_intersection(self, centroids, deltax=None, boxsize=None):
+        return self.f1.cubic_cell_intersection(centroids, deltax, boxsize).astype(bool) | \
+            self.f2.cubic_cell_intersection(centroids, deltax, boxsize).astype(bool)
 
 
 class Not(Filter):
@@ -189,8 +209,10 @@ class Not(Filter):
     def __repr__(self):
         return "~" + repr(self.f)
 
-    def cubic_cell_intersection(self, centroids):
-        return ~self.f1.cubic_cell_intersection(centroids)
+    def cubic_cell_intersection(self, centroids, deltax=None, boxsize=None):
+        # a cell partly inside the region of the filter negated also intersects its complement, so (without knowing
+        # which cells lie wholly inside that region) any cell may
+        return np.ones(len(centroids), dtype=bool)
 
 
 class Sphere(Filter):
@@ -248,15 +270,15 @@ class Sphere(Filter):
         else:
             return super().where(sim)
 
-    def cubic_cell_intersection(self, centroids):
-        boxsize, deltax = self._get_boxsize_and_delta_from_centroids(centroids)
+    def cubic_cell_intersection(self, centroids, deltax=None, boxsize=None):
+        boxsize, deltax = self._get_boxsize_and_delta(centroids, deltax, boxsize)
 
         # the maximum offset from the cell centre to any corner:
         expand_distance = (deltax/2) * np.sqrt(3)
 
         return geometry_selection.selection(np.asarray(centroids), 'sphere',
                                            (self.cen[0], self.cen[1], self.cen[2], self.radius+expand_distance),
-                                            boxsize)
+                                            boxsize).astype(bool)
 
     def __repr__(self):
         if units.is_unit(self.radius):
@@ -336,8 +358,8 @@ class Cuboid(Filter):
         else:
             return super().where(sim)
 
-    def cubic_cell_intersection(self, centroids):
-        boxsize, deltax = self._get_boxsize_and_delta_from_centroids(centroids)
+    def cubic_cell_intersection(self, centroids, deltax=None, boxsize=None):
+        boxsize, deltax = self._get_boxsize_and_delta(centroids, deltax, boxsize)
         shift = deltax/2
         boundaries = (self.x1 - shift, self.y1 - shift, self.z1 - shift,
                       self.x2 + shift, self.y2 + shift, self.z2 + shift)

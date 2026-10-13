@@ -19,7 +19,7 @@ import numpy as np
 from ... import array, config_parser, family, units
 from ...analysis.cosmology import age
 from .. import SimSnap, namemapper
-from . import _execute, _layout, _plan
+from . import _execute, _hilbert, _layout, _plan
 from ._selection import CellSelection, ParticleSelection
 
 logger = logging.getLogger('pynbody.snapshot.ramses')
@@ -134,7 +134,7 @@ class RamsesSnap(SimSnap):
     effective interpolation between cells.
     """
     def __init__(self, dirname, cpus=None, maxlevel=None, with_gas=True, force_gas=False, times_are_proper=None,
-                 negative_iords_on_purpose=False):
+                 negative_iords_on_purpose=False, take_region=None):
         """
         Initialize a RamsesSnap.
 
@@ -160,6 +160,14 @@ class RamsesSnap(SimSnap):
             times. If False, they are assumed to be conformal. If
             None (default), assume proper for non-cosmological simulations
             and conformal for cosmological ones.
+        take_region : pynbody.filt.Filter, optional
+            If given, load only the CPU files whose domains hold (or come
+            near) the filter's region: every cell and particle in that
+            region is loaded, along with others in the same files. The
+            filter's coordinates are in the snapshot's position units
+            (code units, in which the box is ``boxlen`` across). Combined
+            with ``cpus``, only CPUs in both are loaded. Needs Hilbert
+            ordering of the domains (the default in RAMSES) and a 3D output.
         """
 
         global config
@@ -192,6 +200,10 @@ class RamsesSnap(SimSnap):
             self._cpus = cpus
         else:
             self._cpus = list(range(1, self.ncpu + 1))
+        self._take_region = take_region
+        if take_region is not None:
+            in_region = set(self._cpus_in_region(take_region))
+            self._cpus = [cpu for cpu in self._cpus if cpu in in_region]
 
         # ramses partial-loads by selecting whole cpu files; anything less than all of them means the
         # snapshot does not contain all the particles in the output
@@ -283,6 +295,26 @@ class RamsesSnap(SimSnap):
                         self._info[name] = int(val)
                 except ValueError:
                     self._info[name] = val
+
+    def _cpus_in_region(self, region):
+        """The CPUs whose files hold (or may hold) cells and particles in the region of the filter *region*"""
+        if self._info.get('ordering type', 'hilbert').strip() != 'hilbert':
+            raise ValueError("take_region needs domains ordered along a Hilbert curve, not by %r"
+                             % self._info['ordering type'])
+        if self._info['ndim'] != 3:
+            raise ValueError("take_region is supported only for 3D outputs")
+        bound_keys = _hilbert.domain_keys(os.path.join(self._filename, f"info_{self._timestep_id}.txt"))
+        if len(bound_keys) != self._info['ncpu'] + 1:
+            raise ValueError("The info file lists %d Hilbert domains for %d CPUs" % (len(bound_keys) - 1,
+                                                                                    self._info['ncpu']))
+        try:
+            cpus = _hilbert.cpus_in_region(region, bound_keys, int(self._info['levelmin']),
+                                           int(self._info['levelmax']), float(self._info['boxlen']))
+        except NotImplementedError:
+            warnings.warn("%r cannot say which cells it intersects, so take_region loads every CPU file" % region)
+            return list(range(1, self._info['ncpu'] + 1))
+        logger.info("take_region loads %d of %d CPU files", len(cpus), self._info['ncpu'])
+        return cpus
 
     def _load_infofile(self):
         self._info = {}

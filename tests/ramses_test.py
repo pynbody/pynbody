@@ -1,4 +1,5 @@
 import os
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -1105,3 +1106,148 @@ def test_read_gap_change_rebuilds_plans(monkeypatch):
     del f.gas['rho']
     np.testing.assert_array_equal(f.gas['rho'], rho)
     assert {plan.gap for plan in f._read_plans.values()} == {gap, 0}
+
+
+def test_hilbert_keys_follow_a_curve():
+    """RAMSES's Hilbert keys number the cells of a grid so that each follows on from the last, a face away"""
+    from pynbody.snapshot.ramses import _kernels
+    bits = 3
+    idx = np.stack(np.meshgrid(*[np.arange(2 ** bits)] * 3, indexing='ij'), -1).reshape(-1, 3)
+    keys = _kernels.hilbert_keys(idx[:, 0].copy(), idx[:, 1].copy(), idx[:, 2].copy(), bits)
+    np.testing.assert_array_equal(np.sort(keys), np.arange(8 ** bits))
+    path = idx[np.argsort(keys)]
+    assert (np.abs(np.diff(path, axis=0)).sum(axis=1) == 1).all()
+    # and the coarse key of a cell is its fine key with the last digits dropped
+    fine = _kernels.hilbert_keys(2 * idx[:, 0] + 1, 2 * idx[:, 1], 2 * idx[:, 2] + 1, bits + 1)
+    np.testing.assert_array_equal(fine >> np.uint64(3), keys)
+
+
+def test_cpus_in_region_misses_none():
+    """Every domain holding a key within a levelmin cell of the region is chosen, compared with a brute-force
+    search on a fine grid, for domains of random sizes"""
+    from pynbody.snapshot.ramses import _hilbert, _kernels
+    rng = np.random.default_rng(7)
+    levelmin, levelmax, boxlen = 4, 12, 50.0
+    bits = levelmax + 1
+    bound_keys = np.concatenate([[0], np.sort(rng.random(63)) * 8.0 ** bits, [8.0 ** bits]])
+    L = 6
+    n = 2 ** L
+    idx = np.stack(np.meshgrid(*[np.arange(n)] * 3, indexing='ij'), -1).reshape(-1, 3)
+    keys = _kernels.hilbert_keys(idx[:, 0].copy(), idx[:, 1].copy(), idx[:, 2].copy(), L).astype(float)
+    first = np.searchsorted(bound_keys, keys * 8.0 ** (bits - L), side='right')
+    last = np.searchsorted(bound_keys, (keys + 1) * 8.0 ** (bits - L), side='left')
+    centres = (idx + 0.5) / n * boxlen
+    pad = boxlen * 0.5 ** levelmin
+    for radius, cen in [(5.0, (10, 20, 30)), (1.0, (0.5, 49.5, 25)), (12.0, (25, 25, 25))]:
+        region = pynbody.filt.Sphere(radius, cen)
+        cpus = set(_hilbert.cpus_in_region(region, bound_keys, levelmin, levelmax, boxlen))
+        d = np.abs(centres - np.asarray(cen, dtype=float))
+        d = np.minimum(d, boxlen - d)
+        near = np.sqrt((np.maximum(d - pad - boxlen / n / 2, 0) ** 2).sum(axis=1)) < radius
+        needed = set()
+        for a, b in zip(first[near], last[near]):
+            needed.update(range(a, b + 1))
+        assert needed <= cpus, (radius, needed - cpus)
+        assert len(cpus) < 64
+
+
+def test_domain_keys_are_read_from_the_info_file():
+    from pynbody.snapshot.ramses import _hilbert
+    keys = _hilbert.domain_keys("testdata/ramses/output_00080/info_00080.txt")
+    assert len(keys) == 17 and keys[0] == 0 and (np.diff(keys) > 0).all()
+    np.testing.assert_allclose(keys[1], 0.143128214791782E+16)
+
+
+def test_filters_intersect_cells_given_their_size():
+    """Cell intersections can be found for any set of cells, given their size and the box's"""
+    n = 8
+    idx = np.stack(np.meshgrid(*[np.arange(n)] * 3, indexing='ij'), -1).reshape(-1, 3)
+    centres = (idx + 0.5) / n * 100.
+    some = np.arange(0, len(centres), 7)
+    for region in [pynbody.filt.Sphere(20, (10, 10, 90)), pynbody.filt.Cuboid(5, 5, 5, 30, 40, 50),
+                   pynbody.filt.Sphere(20, (50, 50, 50)) & pynbody.filt.Cuboid(0, 0, 0, 60, 60, 60),
+                   pynbody.filt.Sphere(5, (1, 1, 1)) | pynbody.filt.Sphere(5, (60, 60, 60))]:
+        whole_grid = region.cubic_cell_intersection(centres).astype(bool)
+        np.testing.assert_array_equal(
+            region.cubic_cell_intersection(np.ascontiguousarray(centres[some]), deltax=100. / n, boxsize=100.),
+            whole_grid[some])
+    # the complement of a region may intersect any cell
+    assert (~pynbody.filt.Sphere(5, (1, 1, 1))).cubic_cell_intersection(centres).all()
+
+
+@pytest.fixture(scope="module")
+def ramses_full_load():
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        f = pynbody.load("testdata/ramses/output_00080")
+        return f, np.asarray(f.dm['pos']).copy(), np.asarray(f.dm['iord']).copy(), \
+            np.asarray(f.dm['cpu']).copy(), np.asarray(f.gas['pos']).copy()
+
+
+def _periodic_distance(pos, cen, boxlen):
+    d = np.abs(pos - cen)
+    d = np.minimum(d, boxlen - d)
+    return np.sqrt((d ** 2).sum(axis=1))
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_take_region_loads_everything_in_the_region(ramses_full_load):
+    """Every particle and cell in the region is loaded, including particles that have drifted out of the domain
+    of the CPU holding them, and cells near domain boundaries"""
+    from pynbody.snapshot.ramses import _hilbert, _kernels
+    full, pos, iord, cpu, cell_pos = ramses_full_load
+    boxlen = full._info['boxlen']
+    bits = int(full._info['levelmax']) + 1
+    bound_keys = _hilbert.domain_keys("testdata/ramses/output_00080/info_00080.txt")
+    grid = np.minimum((pos / boxlen * 2 ** bits).astype(np.int64), 2 ** bits - 1)
+    owner = np.searchsorted(bound_keys, _kernels.hilbert_keys(grid[:, 0].copy(), grid[:, 1].copy(),
+                                                               grid[:, 2].copy(), bits).astype(float), side='right')
+    stray = np.flatnonzero(owner != cpu)
+    assert len(stray) > 0
+    rng = np.random.default_rng(11)
+    regions = [(rng.random(3) * boxlen, 0.05 * boxlen) for _ in range(2)] + \
+              [(pos[i], 1e-4 * boxlen) for i in rng.choice(stray, 3, replace=False)] + \
+              [(cell_pos[i], 1e-4 * boxlen) for i in rng.choice(len(cell_pos), 3, replace=False)]
+    for cen, radius in regions:
+        f = pynbody.load("testdata/ramses/output_00080", take_region=pynbody.filt.Sphere(radius, cen))
+        assert set(iord[_periodic_distance(pos, cen, boxlen) < radius]) <= set(np.asarray(f.dm['iord']))
+        wanted = cell_pos[_periodic_distance(cell_pos, cen, boxlen) < radius]
+        loaded = {tuple(p) for p in np.asarray(f.gas['pos'])}
+        assert all(tuple(p) in loaded for p in wanted)
+        assert f.partial_load == (len(f._cpus) < 16)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_take_region_combines_with_cpus():
+    region = pynbody.filt.Sphere(1e-4 * 142.0, (0.5, 0.5, 0.5))
+    f = pynbody.load("testdata/ramses/output_00080", take_region=region)
+    chosen = f._cpus
+    assert 0 < len(chosen) < 16 and f.partial_load
+    other = next(cpu for cpu in range(1, 17) if cpu not in chosen)
+    g = pynbody.load("testdata/ramses/output_00080", take_region=region, cpus=[other, chosen[0]])
+    assert g._cpus == [chosen[0]]
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_take_region_with_a_filter_that_cannot_choose_files():
+    with pytest.warns(UserWarning, match="loads every CPU file"):
+        f = pynbody.load("testdata/ramses/output_00080", take_region=pynbody.filt.Disc(1.0, 0.1))
+    assert len(f._cpus) == 16
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_take_region_needs_hilbert_ordering(tmp_path):
+    source = Path("testdata/ramses/output_00080")
+    target = tmp_path / "output_00080"
+    target.mkdir()
+    for name in os.listdir(source):
+        if os.path.isfile(source / name) and name != "info_00080.txt":
+            os.symlink((source / name).absolute(), target / name)
+    info = (source / "info_00080.txt").read_text().replace("ordering type=hilbert", "ordering type=bisection")
+    (target / "info_00080.txt").write_text(info)
+    with pytest.raises(ValueError, match="Hilbert"):
+        pynbody.load(str(target), take_region=pynbody.filt.Sphere(1.0, (0.5, 0.5, 0.5)))

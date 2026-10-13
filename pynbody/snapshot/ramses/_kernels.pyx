@@ -26,7 +26,7 @@ cimport numpy as np
 
 import numpy as np
 
-from libc.stdint cimport int32_t, int64_t, uint8_t
+from libc.stdint cimport int32_t, int64_t, uint8_t, uint64_t
 from libc.stdlib cimport free, malloc
 from libc.string cimport memcpy
 
@@ -425,3 +425,41 @@ def own_layout(const int32_t[:, ::1] counts, Py_ssize_t cpu):
             octs += counts[level, j]
             blocks += counts[level, j] > 0
     return own, octs_before, blocks_before
+
+
+# RAMSES's 3D Hilbert curve (hilbert3d in its source): for each state (row) and octant digit 4x + 2y + z (column), the
+# next state and the Hilbert digit
+cdef int _hilbert_next[12][8]
+cdef int _hilbert_digit[12][8]
+_hilbert_next[:] = [
+    [1, 2, 3, 2, 4, 5, 3, 5], [2, 6, 0, 7, 8, 8, 0, 7], [0, 9, 10, 9, 1, 1, 11, 11], [6, 0, 6, 11, 9, 0, 9, 8],
+    [11, 11, 0, 7, 5, 9, 0, 7], [4, 4, 8, 8, 0, 6, 10, 6], [5, 7, 5, 3, 1, 1, 11, 11], [6, 1, 6, 10, 9, 4, 9, 10],
+    [10, 3, 1, 1, 10, 3, 5, 9], [4, 4, 8, 8, 2, 7, 2, 3], [7, 2, 11, 2, 7, 5, 8, 5], [10, 3, 2, 6, 10, 3, 4, 4]]
+_hilbert_digit[:] = [
+    [0, 1, 3, 2, 7, 6, 4, 5], [0, 7, 1, 6, 3, 4, 2, 5], [0, 3, 7, 4, 1, 2, 6, 5], [2, 3, 1, 0, 5, 4, 6, 7],
+    [4, 3, 5, 2, 7, 0, 6, 1], [6, 5, 1, 2, 7, 4, 0, 3], [4, 7, 3, 0, 5, 6, 2, 1], [6, 7, 5, 4, 1, 0, 2, 3],
+    [2, 5, 3, 4, 1, 6, 0, 7], [2, 1, 5, 6, 3, 0, 4, 7], [4, 5, 7, 6, 3, 2, 0, 1], [6, 1, 7, 0, 5, 2, 4, 3]]
+
+
+def hilbert_keys(const int64_t[::1] ix, const int64_t[::1] iy, const int64_t[::1] iz, int bits):
+    """The Hilbert keys, as RAMSES computes them, of cells at integer coordinates (each less than 2**bits) on a grid
+    of 2**bits cells a side"""
+    cdef Py_ssize_t i, n = ix.shape[0]
+    cdef int b, state, octant
+    cdef uint64_t key
+    if not 0 <= bits <= 21:
+        raise ValueError("Hilbert keys of more than 21 bits a coordinate do not fit in 64 bits")
+    if iy.shape[0] != n or iz.shape[0] != n:
+        raise ValueError("Coordinates must be of equal length")
+    out = np.empty(n, dtype=np.uint64)
+    cdef uint64_t[::1] o = out
+    with nogil:
+        for i in range(n):
+            state = 0
+            key = 0
+            for b in range(bits - 1, -1, -1):
+                octant = 4 * ((ix[i] >> b) & 1) + 2 * ((iy[i] >> b) & 1) + ((iz[i] >> b) & 1)
+                key = (key << 3) | <uint64_t> _hilbert_digit[state][octant]
+                state = _hilbert_next[state][octant]
+            o[i] = key
+    return out
