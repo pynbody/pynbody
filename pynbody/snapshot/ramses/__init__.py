@@ -19,7 +19,8 @@ import numpy as np
 from ... import array, config_parser, family, units
 from ...analysis.cosmology import age
 from .. import SimSnap, namemapper
-from . import _reader
+from . import _layout, _plan
+from ._selection import CellSelection, ParticleSelection
 
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
@@ -196,6 +197,7 @@ class RamsesSnap(SimSnap):
         # snapshot does not contain all the particles in the output
         self.partial_load = sorted(self._cpus) != list(range(1, self.ncpu + 1))
         self._maxlevel = maxlevel
+        self._read_plans = {}  # plans of reads (see _plan), kept for loading further arrays
 
         type_map = self._count_particles()
 
@@ -407,8 +409,8 @@ class RamsesSnap(SimSnap):
             raise ValueError("The family field of RAMSES particle files is expected to hold one byte per particle")
         self._particle_family_ids_on_disk = []
         self._particle_file_start_indices = []
-        results = _reader.count_particles([self._particle_filename(i) for i in self._cpus],
-                                                 family_block, family_dtype)
+        results = _layout.scan_particle_files([self._particle_filename(i) for i in self._cpus],
+                                              family_block, family_dtype)
 
         aggregate_counts = np.zeros(256, dtype=np.int64)
         for particle_file, family_ids in results:
@@ -464,9 +466,7 @@ class RamsesSnap(SimSnap):
                     startpoint += (fid == internal_family_id).sum()
                 assert startpoint == count
 
-        self._particle_files = [r[0] for r in results]
-        _reader.set_families(self._particle_files, self._particle_family_ids_on_disk,
-                                    self._particle_file_start_indices, len(internal_id_to_family))
+        self._set_particle_selections([r[0] for r in results], len(internal_id_to_family))
 
         n_sinks = self._count_sink_particles()
 
@@ -581,8 +581,8 @@ class RamsesSnap(SimSnap):
                     "Using field %s to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher." % pb_name)
             distinguisher_type = self._particle_types[distinguisher_field]
 
-        results = _reader.count_particles([self._particle_filename(i) for i in self._cpus],
-                                                 distinguisher_field, distinguisher_type)
+        results = _layout.scan_particle_files([self._particle_filename(i) for i in self._cpus],
+                                              distinguisher_field, distinguisher_type)
 
         for particle_file, data in results:
             npart_this = particle_file.npart
@@ -599,19 +599,31 @@ class RamsesSnap(SimSnap):
 
             self._particle_family_ids_on_disk.append(family_ids)
 
-        self._particle_files = [r[0] for r in results]
-        _reader.set_families(self._particle_files, self._particle_family_ids_on_disk,
-                                    self._particle_file_start_indices, 2)
+        self._set_particle_selections([r[0] for r in results], 2)
         return npart - nstar, nstar
+
+    def _set_particle_selections(self, layouts, nfamilies):
+        """Select every particle of each file, from the family of each and where each family's first goes"""
+        self._particle_layouts = layouts
+        self._particle_selections = [ParticleSelection.all_particles(fam, first, nfamilies) for fam, first in
+                                     zip(self._particle_family_ids_on_disk, self._particle_file_start_indices)]
+
+    def _read_plan(self, key, build):
+        """The plan of reads for *key*, built by calling *build* the first time it is wanted"""
+        if key not in self._read_plans:
+            self._read_plans[key] = build()
+        return self._read_plans[key]
 
     def _count_gas_cells(self):
         if len(self._cpus) == 0:
             self._gas_i0 = np.zeros(0, dtype=np.int64)
             return 0
-        self._amr_geometry, self._amr_layouts = _reader.scan_amr(
+        self._amr_geometry, self._amr_layouts, leaves = _layout.scan_amr(
             [self._amr_filename(cpu) for cpu in self._cpus], self._cpus,
             self._info['ordering type'] == 'bisection', self._maxlevel)
-        ncells = [layout.ncells for layout in self._amr_layouts]
+        self._cell_selections = [CellSelection.all_leaves(layout, leaf_cells)
+                                 for layout, leaf_cells in zip(self._amr_layouts, leaves)]
+        ncells = [selection.ncells for selection in self._cell_selections]
         self._gas_i0 = np.cumsum([0] + ncells)[:-1]
         return int(np.sum(ncells))
 
@@ -621,9 +633,11 @@ class RamsesSnap(SimSnap):
         smooth.set_default_units()
 
         try:
-            _reader.load_cell_positions(self._amr_geometry, self._amr_layouts,
-                                               [self._amr_filename(cpu) for cpu in self._cpus], self._gas_i0,
-                                               self._info['boxlen'], self.gas['pos'], self.gas['smooth'])
+            plan = self._read_plan(('cell positions',), lambda: _plan.cell_positions(
+                self._amr_layouts, self._cell_selections, self._gas_i0,
+                [self._amr_filename(cpu) for cpu in self._cpus]))
+            _plan.load_cell_positions(plan, self._cell_selections, self._amr_geometry, self._info['boxlen'],
+                                      self.gas['pos'], self.gas['smooth'])
         except Exception:
             self._delete_gas_arrays(['pos', 'smooth'])
             raise
@@ -674,7 +688,7 @@ class RamsesSnap(SimSnap):
             return
 
         header_layout = [ramses_hydro_header, ramses_grav_header, ramses_rt_header][mode]
-        header, header_nbytes = _reader.read_header(paths[0], header_layout)
+        header, header_nbytes = _layout.read_header(paths[0], header_layout)
         nvar_file = [header.get('nvarh'), 4, header.get('nrtvar')][mode]
         nvar = len(dims)
         if nvar_file != nvar and mode is _gv_load_rt:
@@ -688,8 +702,11 @@ class RamsesSnap(SimSnap):
             warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)" % (
                 nvar_file, nvar), RuntimeWarning)
 
-        _reader.load_cell_values(self._amr_geometry, self._amr_layouts, paths, self._gas_i0, header_nbytes,
-                                        int(nvar_file), dims)
+        kind = _layout.HydroLikeFile(header_nbytes=header_nbytes, nvar=int(nvar_file))
+        wanted = [(var, var) for var in range(len(dims))]
+        plan = self._read_plan(('cell values', mode, kind, tuple(wanted)), lambda: _plan.cell_values(
+            self._amr_layouts, self._cell_selections, self._gas_i0, paths, kind, wanted))
+        _plan.load_cell_values(plan, self._cell_selections, dims)
 
         if mode is _gv_load_gravity:
             # potential is awkwardly in expected units divided by box size
@@ -713,15 +730,18 @@ class RamsesSnap(SimSnap):
 
     def _load_particle_blocks(self, blocknames):
         """Load particle blocks, reading all of them in one pass through the particle files"""
-        fields = []
+        records, fields = [], []
         for blockname in blocknames:
             offset = self._particle_blocks.index(blockname)
             _type = self._particle_types[offset]
             self._create_array_for_particles(blockname, _type)
-            fields.append((offset, _type, [self[f][blockname] for f in self._iter_particle_families()]))
+            records.append((offset, np.dtype(_type).itemsize))
+            fields.append((_type, [self[f][blockname] for f in self._iter_particle_families()]))
 
         try:
-            _reader.load_particle_fields(self._particle_files, fields)
+            plan = self._read_plan(('particle fields', tuple(records)), lambda: _plan.particle_fields(
+                self._particle_layouts, self._particle_selections, records))
+            _plan.load_particle_fields(plan, self._particle_selections, fields)
         except Exception:
             warnings.warn(
                 "Exception encountered while reading %s; is there an incompatibility in your Ramses configuration?"
@@ -758,8 +778,8 @@ class RamsesSnap(SimSnap):
         if len(self.gas) == 0:
             return
         gas_cpu_ar = self.gas['cpu']
-        for cpu, i0, layout in zip(self._cpus, self._gas_i0, self._amr_layouts):
-            gas_cpu_ar[i0:i0 + layout.ncells] = cpu
+        for cpu, i0, selection in zip(self._cpus, self._gas_i0, self._cell_selections):
+            gas_cpu_ar[i0:i0 + selection.ncells] = cpu
 
     def loadable_keys(self, fam=None):
 

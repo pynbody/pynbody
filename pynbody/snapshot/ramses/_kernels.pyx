@@ -1,19 +1,25 @@
 # cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
 """Decoding the Fortran records of RAMSES output files, without holding the GIL.
 
-Each function takes a buffer read from a file, and a table of the *segments* of it to decode (one row each, giving
-where in the buffer the segment starts and what it holds); checks that the segments hold Fortran records (each a
-4-byte length, the data, and the length again) of the lengths expected; and puts the values belonging to leaf cells
-(or, for particles, to each family) in place in the destination arrays. Destinations may be strided (such as a
-column of a ``pos`` array), so are passed as numpy arrays, whose data pointers and strides are collected before the
-GIL is released. The GIL is released only where there is enough to do for it to be worth handing to another
-thread.
+Each decoding function takes a buffer read from a file and a table of *rows*, one for each stretch of data in the
+buffer to decode, saying where it lies and where its values go; puts the values of the wanted cells (or, for
+particles, of each family) in place in the destination arrays; and raises ValueError if a row points outside the
+buffer. Values that show the buffer holds what was meant to be read (the lengths that start and end each Fortran
+record, and the records giving each level and its number of octs) are checked in a separate step,
+:func:`check_int32`, with checks planned with the reads (see :mod:`._plan`); except that :func:`cell_values`, whose
+records are many, checks the lengths of those it decodes itself.
 
-Cells are put in the order pynbody has always used: within each level of each file, cell ``ind`` (0 to
-``2**ndim - 1``) of every oct in turn, then the next ``ind``, and so on. ``starts[level, ind]`` gives where in the
-destination the first leaf cell of each level and ``ind`` goes.
+Destinations may be strided (such as a column of a ``pos`` array), so are passed as numpy arrays, whose data
+pointers and strides are collected before the GIL is released. The GIL is released only where there is enough to
+do for it to be worth handing to another thread.
 
-See :mod:`pynbody.snapshot.ramses._reader` for how buffers are read and work shared between threads.
+Which cells are wanted is given by a mask of one byte per oct, bit ``ind`` (0 to ``2**ndim - 1``) set if cell
+``ind`` is wanted. Wanted cells are put in the order pynbody has always used: within each stretch of octs, cell
+``ind`` of every oct in turn, then the next ``ind``, and so on, each row saying where the first wanted cell of its
+``ind`` goes.
+
+:func:`leaf_mask`, :func:`records` and :func:`own_layout` help to find the layout of files when a snapshot is
+opened (see :mod:`._layout`), and :func:`chunk_counts` where particles go (see :mod:`._selection`).
 """
 
 cimport numpy as np
@@ -38,14 +44,6 @@ cdef inline bint _record_ok(const uint8_t *buf, Py_ssize_t buflen, Py_ssize_t po
     memcpy(&m1, buf + pos, 4)
     memcpy(&m2, buf + pos + 4 + nbytes, 4)
     return m1 == nbytes and m2 == nbytes
-
-
-cdef inline bint _int_record_is(const uint8_t *buf, Py_ssize_t buflen, Py_ssize_t pos, int32_t value) noexcept nogil:
-    cdef int32_t v
-    if not _record_ok(buf, buflen, pos, 4):
-        return False
-    memcpy(&v, buf + pos + 4, 4)
-    return v == value
 
 
 cdef class _Destinations:
@@ -130,29 +128,30 @@ def leaf_mask(const uint8_t[::1] buf, const int64_t[:, ::1] segments, int twoton
         raise ValueError("Unexpected record length in the refinement map of an AMR file")
 
 
-cdef int _leaf_positions(const uint8_t *b, Py_ssize_t buflen, const int64_t[:, ::1] segments, int ndim,
+cdef int _cell_positions(const uint8_t *b, Py_ssize_t buflen, const int64_t[:, ::1] rows, int ndim,
                          const uint8_t[::1] mask, double boxlen, const double[::1] offset, double[:, :] pos,
-                         double[:] smooth, const int64_t[:, ::1] starts) noexcept nogil:
-    cdef Py_ssize_t s, i, j, d, ind, p, n, level, m0, nbytes
+                         double[:] smooth) noexcept nogil:
+    cdef Py_ssize_t r, i, j, d, ind, n, m0, level
+    cdef Py_ssize_t p[3]
     cdef int twotondim = 1 << ndim
     cdef double c, dx
     cdef double sub[3]
-    for s in range(segments.shape[0]):
-        p, level, n, m0 = segments[s, 0], segments[s, 1], segments[s, 2], segments[s, 3]
-        nbytes = 8 * n
+    for r in range(rows.shape[0]):
+        n, m0, level = rows[r, 3], rows[r, 4], rows[r, 5]
         for d in range(ndim):
-            if not _record_ok(b, buflen, p + d * (nbytes + 8), nbytes):
+            p[d] = rows[r, d]
+            if p[d] < 0 or p[d] + 8 * n > buflen:
                 return 1
         dx = boxlen * (0.5 ** (level + 1))
         for ind in range(twotondim):
             sub[0] = (ind & 1) - 0.5
             sub[1] = ((ind >> 1) & 1) - 0.5
             sub[2] = (ind >> 2) - 0.5
-            j = starts[level, ind]
+            j = rows[r, 6 + ind]
             for i in range(n):
                 if mask[m0 + i] & (1 << ind):
                     for d in range(ndim):
-                        memcpy(&c, b + p + d * (nbytes + 8) + 4 + 8 * i, 8)  # (records are not aligned)
+                        memcpy(&c, b + p[d] + 8 * i, 8)  # (records are not aligned)
                         c = c - offset[d]
                         pos[j, d] = boxlen * c + dx * sub[d]
                     smooth[j] = dx
@@ -160,88 +159,102 @@ cdef int _leaf_positions(const uint8_t *b, Py_ssize_t buflen, const int64_t[:, :
     return 0
 
 
-def leaf_positions(const uint8_t[::1] buf, const int64_t[:, ::1] segments, int ndim, const uint8_t[::1] mask,
-                   double boxlen, const double[::1] offset, double[:, :] pos, double[:] smooth,
-                   const int64_t[:, ::1] starts):
-    """Find the positions and sizes of leaf cells from the centres of their octs.
+def cell_positions(const uint8_t[::1] buf, const int64_t[:, ::1] rows, int ndim, const uint8_t[::1] mask,
+                   double boxlen, const double[::1] offset, double[:, :] pos, double[:] smooth):
+    """Find the positions and sizes of wanted cells from the centres of their octs.
 
-    Each row of segments, (buffer offset, level, number of octs n, offset in mask), locates ndim records of n
-    float64s, the centres of a level's octs. The position of each leaf cell (see leaf_mask) is put in pos, and its
-    size in smooth."""
-    cdef Py_ssize_t s, total = 0, buflen = buf.shape[0]
+    Each row, (offset of the x, y and z centres, number of octs n, offset in mask, level, then where the first
+    wanted cell of each ind goes), locates the centres of n consecutive octs of a level: ndim runs of n float64s
+    in buf (unused offsets are ignored). The position of each cell whose bit is set in the mask (see leaf_mask) is
+    put in pos, and its size in smooth."""
+    cdef Py_ssize_t r, total = 0, buflen = buf.shape[0]
     cdef int twotondim = 1 << ndim
     cdef int failed
     cdef const uint8_t *b = &buf[0] if buflen > 0 else NULL
-    if ndim > 3 or pos.shape[1] < ndim or offset.shape[0] < ndim or starts.shape[1] < twotondim:
+    if ndim > 3 or pos.shape[1] < ndim or offset.shape[0] < ndim or rows.shape[1] < 6 + twotondim:
         raise ValueError("Unexpected number of dimensions")
-    for s in range(segments.shape[0]):
-        if segments[s, 3] + segments[s, 2] > mask.shape[0] or not 0 <= segments[s, 1] < starts.shape[0]:
-            raise ValueError("Segment lies outside the mask")
-        total += segments[s, 2] * ndim * 8
+    for r in range(rows.shape[0]):
+        if rows[r, 3] < 0 or rows[r, 4] < 0 or rows[r, 4] + rows[r, 3] > mask.shape[0]:
+            raise ValueError("Row lies outside the mask")
+        total += rows[r, 3] * ndim * 8
     if total >= _NOGIL_NBYTES:
         with nogil:
-            failed = _leaf_positions(b, buflen, segments, ndim, mask, boxlen, offset, pos, smooth, starts)
+            failed = _cell_positions(b, buflen, rows, ndim, mask, boxlen, offset, pos, smooth)
     else:
-        failed = _leaf_positions(b, buflen, segments, ndim, mask, boxlen, offset, pos, smooth, starts)
+        failed = _cell_positions(b, buflen, rows, ndim, mask, boxlen, offset, pos, smooth)
     if failed:
-        raise ValueError("Unexpected record length among the grid centres of an AMR file")
+        raise ValueError("Oct centres lie outside the data read")
 
 
-cdef int _leaf_values(const uint8_t *b, Py_ssize_t buflen, const int64_t[:, ::1] segments, int nvar_file,
-                      const uint8_t[::1] mask, _Destinations dest, const int64_t[:, ::1] starts) noexcept nogil:
-    cdef Py_ssize_t s, i, ind, ivar, p, n, level, m0, ind0, ind1, nbytes, stride
+cdef int _cell_values(const uint8_t *b, Py_ssize_t buflen, const int64_t[:, ::1] rows, const uint8_t[::1] mask,
+                      _Destinations dest) noexcept nogil:
+    cdef Py_ssize_t r, k, i, p, n, m0, ind, d, nvar, record_stride, stride
     cdef char *out
-    for s in range(segments.shape[0]):
-        p, level, n, m0, ind0, ind1 = segments[s, 0], segments[s, 1], segments[s, 2], segments[s, 3], \
-            segments[s, 4], segments[s, 5]
-        nbytes = 8 * n
-        if ind0 == 0:
-            if not (_int_record_is(b, buflen, p, level + 1) and _int_record_is(b, buflen, p + 12, n)):
+    for r in range(rows.shape[0]):
+        n, m0, ind, nvar, record_stride = rows[r, 1], rows[r, 2], rows[r, 3], rows[r, 6], rows[r, 7]
+        for k in range(nvar):
+            p = rows[r, 0] + k * record_stride
+            if p < 0 or p + 8 * n > buflen:
                 return 1
-            p += 24
-        for ind in range(ind0, ind1):
-            for ivar in range(nvar_file):
-                if not _record_ok(b, buflen, p, nbytes):
-                    return 2
-                if ivar < dest.n and dest.data[ivar] != NULL:
-                    stride = dest.stride[ivar]
-                    out = dest.data[ivar] + starts[level, ind] * stride
-                    for i in range(n):
-                        if mask[m0 + i] & (1 << ind):
-                            memcpy(out, b + p + 4 + 8 * i, 8)
-                            out += stride
-                p += nbytes + 8
+            if record_stride > 0 and not _record_ok(b, buflen, p - 4, 8 * n):
+                return 2
+            d = rows[r, 4] + k
+            if d >= dest.n or dest.data[d] == NULL:
+                continue
+            stride = dest.stride[d]
+            out = dest.data[d] + rows[r, 5] * stride
+            for i in range(n):
+                if mask[m0 + i] & (1 << ind):
+                    memcpy(out, b + p + 8 * i, 8)
+                    out += stride
     return 0
 
 
-def leaf_values(const uint8_t[::1] buf, const int64_t[:, ::1] segments, int nvar_file, const uint8_t[::1] mask,
-                list destinations, const int64_t[:, ::1] starts):
-    """Find the values of variables in leaf cells, from a hydro-like file.
+def cell_values(const uint8_t[::1] buf, const int64_t[:, ::1] rows, const uint8_t[::1] mask, list destinations):
+    """Find the values of variables in wanted cells, from a hydro-like file.
 
-    Each row of segments, (buffer offset, level, number of octs n, offset in mask, ind0, ind1), locates, for each ind
-    from ind0 to ind1 - 1, nvar_file records of n float64s, the values of each variable in cell ind of a level's own
-    octs. If ind0 is 0, they are preceded by the records giving the level (counting from 1) and n, which are
-    checked. The value of each leaf cell (see leaf_mask) is put in the destination of its variable: destinations
-    holds an array (or None, to skip that variable) for each of the first len(destinations) variables in the file."""
-    cdef Py_ssize_t s, total = 0, buflen = buf.shape[0]
+    Each row, (offset in buf, number of octs n, offset in mask, ind, first destination, where the first wanted cell
+    goes, number of variables, record stride), locates the values of consecutive variables in cell ind of n
+    consecutive octs of a level: n float64s for each, the first at the offset given and each other record stride
+    bytes after the one before. The value of each cell whose bit ind is set in the mask is put in the destination of
+    its variable (counting from the first given), an array (or None, to skip it) in destinations. A record stride
+    of more than zero means the values are whole Fortran records, whose lengths are checked; zero is for a single
+    variable."""
+    cdef Py_ssize_t r, total = 0, buflen = buf.shape[0]
     cdef _Destinations dest = _Destinations(destinations, 8)
     cdef int failed
     cdef const uint8_t *b = &buf[0] if buflen > 0 else NULL
-    for s in range(segments.shape[0]):
-        if segments[s, 3] + segments[s, 2] > mask.shape[0] or not 0 <= segments[s, 1] < starts.shape[0] \
-                or not 0 <= segments[s, 4] <= segments[s, 5] <= starts.shape[1]:
-            raise ValueError("Segment lies outside the mask")
-        total += segments[s, 2] * (segments[s, 5] - segments[s, 4]) * nvar_file * 8
+    if rows.shape[0] > 0 and rows.shape[1] < 8:
+        raise ValueError("Rows must have eight columns")
+    for r in range(rows.shape[0]):
+        if rows[r, 1] < 0 or rows[r, 2] < 0 or rows[r, 2] + rows[r, 1] > mask.shape[0] or \
+                not 0 <= rows[r, 3] < 8 or rows[r, 4] < 0 or rows[r, 6] < 0 or rows[r, 7] < 0:
+            raise ValueError("Row lies outside the mask")
+        total += rows[r, 1] * rows[r, 6] * 8
     if total >= _NOGIL_NBYTES:
         with nogil:
-            failed = _leaf_values(b, buflen, segments, nvar_file, mask, dest, starts)
+            failed = _cell_values(b, buflen, rows, mask, dest)
     else:
-        failed = _leaf_values(b, buflen, segments, nvar_file, mask, dest, starts)
+        failed = _cell_values(b, buflen, rows, mask, dest)
     if failed == 1:
-        raise ValueError("A level of a hydro-like file does not start where expected: the file may not match its AMR "
-                         "file, or be in a format pynbody does not recognise")
-    elif failed:
-        raise ValueError("Unexpected record length in a hydro-like file")
+        raise ValueError("Values lie outside the data read")
+    if failed == 2:
+        raise ValueError("Unexpected record length")
+
+
+def check_int32(const uint8_t[::1] buf, const int64_t[:, ::1] checks):
+    """Return the index of the first check, a row (offset in buf, expected value, ...), whose int32 at that offset
+    does not have the expected value; or -1 if all pass."""
+    cdef Py_ssize_t k, p, buflen = buf.shape[0]
+    cdef int32_t v
+    for k in range(checks.shape[0]):
+        p = checks[k, 0]
+        if p < 0 or p + 4 > buflen:
+            return k
+        memcpy(&v, &buf[p], 4)
+        if v != checks[k, 1]:
+            return k
+    return -1
 
 
 cdef inline void _scatter(const uint8_t *src, Py_ssize_t n, Py_ssize_t itemsize, const uint8_t *family,
@@ -281,6 +294,20 @@ def scatter_by_family(const uint8_t[::1] buf, Py_ssize_t offset, Py_ssize_t item
             _scatter(&buf[offset], n, itemsize, &family[0], dest, &starts[0])
     else:
         _scatter(&buf[offset], n, itemsize, &family[0], dest, &starts[0])
+
+
+def chunk_counts(const uint8_t[::1] family, Py_ssize_t chunk, Py_ssize_t nfamilies):
+    """Count the particles of each family (ignoring ids of nfamilies or more) in each chunk of chunk particles,
+    returning an array (chunks, families)"""
+    cdef Py_ssize_t i, n = family.shape[0]
+    if chunk <= 0:
+        raise ValueError("Chunks must hold particles")
+    out = np.zeros(((n + chunk - 1) // chunk, nfamilies), dtype=np.int64)
+    cdef int64_t[:, ::1] o = out
+    for i in range(n):
+        if family[i] < nfamilies:
+            o[i // chunk, family[i]] += 1
+    return out
 
 
 def records(const uint8_t[::1] buf, Py_ssize_t pos, Py_ssize_t count):

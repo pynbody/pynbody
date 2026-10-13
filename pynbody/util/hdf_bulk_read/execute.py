@@ -16,7 +16,7 @@ Each unit of work, and each job, is let go of once done, so that a file's datase
 that file is done, rather than when every request has been read.
 
 Nothing here depends on HDF5: :func:`perform_tasks` performs any tasks whose jobs are :class:`.common.Job`, and is
-also used to read RAMSES outputs (see :mod:`pynbody.snapshot.ramses._reader`).
+also used to read RAMSES outputs (see :mod:`pynbody.snapshot.ramses._execute`).
 """
 
 from __future__ import annotations

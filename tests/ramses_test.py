@@ -532,15 +532,15 @@ def test_negative_iords(ramses_file):
 @pytest.fixture
 def ramses_read_threads():
     """Set the threads used to read RAMSES files, restoring the configuration afterwards"""
-    from pynbody.snapshot.ramses import _reader as _ramses_reader
-    saved = dict(_ramses_reader.config)
+    from pynbody.snapshot.ramses import _execute as _ramses_execute
+    saved = dict(_ramses_execute.config)
 
     def set_threads(parallel_read, io_threads='auto'):
-        _ramses_reader.config['parallel-read'] = parallel_read
-        _ramses_reader.config['io-threads'] = io_threads
+        _ramses_execute.config['parallel-read'] = parallel_read
+        _ramses_execute.config['io-threads'] = io_threads
 
     yield set_threads
-    _ramses_reader.config.update(saved)
+    _ramses_execute.config.update(saved)
 
 
 def _all_ramses_arrays(f):
@@ -603,3 +603,40 @@ def test_damaged_hydro_file_is_detected(tmp_path, damage):
     with pytest.raises(ValueError):
         f.gas['rho'] # noqa
     assert 'rho' not in f.gas.keys()
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.parametrize("kwargs", [{}, {"cpus": [7, 2, 11], "maxlevel": 12}], ids=["all", "cpus"])
+def test_read_plans_are_consistent(kwargs):
+    """Each piece of a plan reads increasing, separate ranges of its file into consecutive places in its buffer, and
+    decodes and checks only what lies within the buffer"""
+    from pynbody.snapshot.ramses import _execute
+    f = pynbody.load("testdata/ramses/output_00080", **kwargs)
+    f.gas['rho'], f.gas['pos'], f.dm['pos'], f.star['vel'] # noqa
+    assert {k[0] for k in f._read_plans} == {'cell values', 'cell positions', 'particle fields'}
+    for key, plan in f._read_plans.items():
+        assert plan.pieces
+        for piece in plan.pieces:
+            offset, nbytes, at = piece.reads.T
+            assert (nbytes > 0).all() and (offset[1:] >= offset[:-1] + nbytes[:-1]).all()
+            assert offset[-1] + nbytes[-1] <= os.path.getsize(piece.path)
+            np.testing.assert_array_equal(at, np.cumsum(nbytes) - nbytes)
+            assert piece.nbytes == nbytes.sum() >= piece.requested
+            assert (piece.checks[:, 0] >= 0).all() and (piece.checks[:, 0] + 4 <= piece.nbytes).all()
+            assert (piece.rows[:, 0] >= 0).all() and (piece.rows[:, 0] < piece.nbytes).all()
+        # pieces of a few megabytes, unless a file holds less
+        assert max(p.requested for p in plan.pieces) < 2 * _execute.job_nbytes
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_read_plans_are_reused():
+    f = pynbody.load("testdata/ramses/output_00080")
+    rho, pos = f.gas['rho'].copy(), f['pos'].copy()
+    plans = dict(f._read_plans)
+    del f.gas['rho'], f['pos']
+    np.testing.assert_array_equal(f.gas['rho'], rho)
+    np.testing.assert_array_equal(f['pos'], pos)
+    assert f._read_plans.keys() == plans.keys()
+    assert all(f._read_plans[k] is plans[k] for k in plans)
