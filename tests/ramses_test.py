@@ -1561,3 +1561,19 @@ def test_trimmed_particle_reads_skip_empty_chunks(ramses_full_load, monkeypatch)
     trimmed = _plan.particle_fields(f._particle_layouts, f._particle_selections, records)
     whole = _plan.particle_fields(g._particle_layouts, g._particle_selections, records)
     assert 0 < trimmed.nbytes < whole.nbytes
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.parametrize("batch, chunk", [(1, 7), (100_000, 1000)])
+def test_trimming_in_batches(ramses_full_load, monkeypatch, batch, chunk):
+    """Reading positions a few files at a time, and testing them a few at a time, trims the same"""
+    from pynbody.snapshot import ramses
+    from pynbody.snapshot.ramses import _selection
+    full, pos, iord, cpu, cell_pos = ramses_full_load
+    monkeypatch.setattr(ramses, "trim_batch", batch)
+    monkeypatch.setattr(_selection, "region_chunk", chunk)
+    region = pynbody.filt.Sphere(0.1, pos[1000])
+    f = pynbody.load("testdata/ramses/output_00080", take_region=region)
+    assert len(f._cpus) > 1
+    _assert_same_as_filtered(f, full, region)
