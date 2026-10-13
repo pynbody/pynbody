@@ -104,7 +104,7 @@ pynbody's standard :ref:`configuration <configuration>` system; for instance, cr
 
 This specifies at most 4 decoding threads and 2 input threads. Setting ``parallel-read`` to 1 or
 less reads everything in the calling thread. The numbers can also be changed during a session, through
-``pynbody.snapshot.ramses._reader.config``.
+``pynbody.snapshot.ramses._execute.config``.
 
 .. _using_shared_arrays:
 
