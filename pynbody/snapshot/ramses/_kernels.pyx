@@ -463,3 +463,30 @@ def hilbert_keys(const int64_t[::1] ix, const int64_t[::1] iy, const int64_t[::1
                 state = _hilbert_next[state][octant]
             o[i] = key
     return out
+
+
+def restrict_mask(const uint8_t[::1] mask, const int64_t[:, ::1] runs, int twotondim, const uint8_t[::1] keep):
+    """Clear the bits of cells not to be kept from a mask (see leaf_mask), returning a new mask. *runs* are rows (offset
+    in mask, number of octs); *keep* has a byte for each cell whose bit is set, in the order cells are put in place
+    (run by run, cell ind of each oct in turn, then the next ind), non-zero to keep it."""
+    cdef Py_ssize_t r, i, o, j = 0, nkeep = keep.shape[0]
+    cdef int ind
+    cdef uint8_t bit
+    out = np.zeros(mask.shape[0], dtype=np.uint8)
+    cdef uint8_t[::1] new = out
+    for r in range(runs.shape[0]):
+        if runs[r, 0] < 0 or runs[r, 1] < 0 or runs[r, 0] + runs[r, 1] > mask.shape[0]:
+            raise ValueError("Run lies outside the mask")
+    with nogil:
+        for r in range(runs.shape[0]):
+            for ind in range(twotondim):
+                bit = <uint8_t> (1 << ind)
+                for i in range(runs[r, 1]):
+                    o = runs[r, 0] + i
+                    if mask[o] & bit:
+                        if j < nkeep and keep[j]:
+                            new[o] |= bit
+                        j += 1
+    if j != nkeep:
+        raise ValueError("Expected %d cells to keep or not, but %d were given" % (j, nkeep))
+    return out

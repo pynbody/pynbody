@@ -7,6 +7,7 @@ effective interpolation between cells.
 
 """
 
+import copy
 import csv
 import logging
 import os
@@ -16,11 +17,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ... import array, config_parser, family, units
+from ... import array, config_parser, family, filt, units
 from ...analysis.cosmology import age
 from .. import SimSnap, namemapper
 from . import _execute, _hilbert, _layout, _plan
-from ._selection import CellSelection, ParticleSelection
+from ._selection import SKIP, CellSelection, ParticleSelection, in_region
 
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
@@ -134,7 +135,7 @@ class RamsesSnap(SimSnap):
     effective interpolation between cells.
     """
     def __init__(self, dirname, cpus=None, maxlevel=None, with_gas=True, force_gas=False, times_are_proper=None,
-                 negative_iords_on_purpose=False, take_region=None):
+                 negative_iords_on_purpose=False, take_region=None, trim_to_region=True):
         """
         Initialize a RamsesSnap.
 
@@ -161,13 +162,22 @@ class RamsesSnap(SimSnap):
             None (default), assume proper for non-cosmological simulations
             and conformal for cosmological ones.
         take_region : pynbody.filt.Filter, optional
-            If given, load only the CPU files whose domains hold (or come
-            near) the filter's region: every cell and particle in that
-            region is loaded, along with others in the same files. The
-            filter's coordinates are in the snapshot's position units
-            (code units, in which the box is ``boxlen`` across). Combined
-            with ``cpus``, only CPUs in both are loaded. Needs Hilbert
-            ordering of the domains (the default in RAMSES) and a 3D output.
+            If given, load only the cells (by their centres) and particles
+            (by their positions) that the filter selects, reading only the
+            CPU files whose domains hold (or come near) its region, and
+            within them only what lies in it (but see ``trim_to_region``).
+            Combined with ``cpus``, only CPUs in both are read. Choosing
+            CPU files needs a 3D output with Hilbert ordering of the domains
+            (the default in RAMSES), and a Sphere or Cuboid, or a combination
+            of them with ``&`` and ``|`` (sizes given with units are
+            converted to code units); with other filters, every file is
+            read, with a warning.
+        trim_to_region : bool, optional
+            If True (default), load exactly what the take_region filter
+            selects, which means reading the positions of every cell and
+            particle in the CPU files chosen when the snapshot is opened. If
+            False, load every cell and particle in those files instead (a
+            superset of the region, read only as arrays are needed).
         """
 
         global config
@@ -211,6 +221,10 @@ class RamsesSnap(SimSnap):
         # ramses partial-loads by selecting whole cpu files; anything less than all of them means the
         # snapshot does not contain all the particles in the output
         self.partial_load = sorted(self._cpus) != list(range(1, self.ncpu + 1))
+        self._trim_to_region = take_region is not None and trim_to_region
+        if self._trim_to_region:
+            self.partial_load = True
+            self._trim_sinks()
         self._read_plans = _plan.PlanCache()  # plans of reads (see _plan), kept for loading arrays again
         self._nvar_warned = set()  # the kinds of hydro-like file whose number of variables has been warned about
         self._rt_units_warned = False
@@ -298,22 +312,73 @@ class RamsesSnap(SimSnap):
                 except ValueError:
                     self._info[name] = val
 
+    def _in_region(self, positions, family_name):
+        """Which of *positions* (in code units) the take_region filter selects"""
+        (_, _, length_unit), properties = _units_and_properties(self._info)
+        return in_region(self._take_region, positions, length_unit, properties, family_name)
+
+    def _particles_in_region(self, layouts):
+        """For each particle file, which of its particles lie in the take_region filter's region"""
+        records = [self._particle_blocks.index(c) for c in ('x', 'y', 'z')]
+        dtype = np.dtype(self._particle_types[records[0]])
+        npart = [layout.npart for layout in layouts]
+        first = np.cumsum([0] + npart)[:-1]
+        selections = [ParticleSelection.all_particles(np.zeros(n, dtype=np.uint8), [f], 1)
+                      for n, f in zip(npart, first)]
+        plan = _plan.particle_fields(layouts, selections, [(r, dtype.itemsize) for r in records])
+        positions = np.empty((sum(npart), 3), dtype=dtype)
+        _plan.load_particle_fields(plan, selections, [(dtype, [positions[:, k]]) for k in range(3)])
+        keep = self._in_region(positions, 'dm')
+        return np.split(keep, np.cumsum(npart)[:-1])
+
+    def _trim_sinks(self):
+        """Keep only the sinks in the take_region filter's region"""
+        if len(self._sink_data) == 0:
+            return
+        columns = [self._sink_column_names.index(c) for c in ('x', 'y', 'z')]
+        positions = self._sink_data[:, columns].astype(np.float64)
+        self._sink_data = self._sink_data[self._in_region(positions, 'dm')]
+
+    def _region_in_code_units(self, region):
+        """A copy of the filter *region* with any sizes given in units converted to code units, for spheres and
+        cuboids (and combinations of them), so that the cells they intersect can be found; other filters as given"""
+        (_, _, length_unit), properties = _units_and_properties(self._info)
+        context = {k: properties[k] for k in ('a', 'h') if k in properties}
+
+        def in_code_units(x):
+            if units.is_unit_like(x):
+                return x.in_units(length_unit, **context)
+            if units.has_units(x):
+                return np.asarray(x.in_units(length_unit, **context))
+            return x
+
+        region = copy.copy(region)
+        if isinstance(region, (filt.And, filt.Or)):
+            region.f1, region.f2 = self._region_in_code_units(region.f1), self._region_in_code_units(region.f2)
+        elif isinstance(region, filt.Sphere):
+            region.radius, region.cen = in_code_units(region.radius), in_code_units(region.cen)
+        elif isinstance(region, filt.Cuboid):
+            region.x1, region.y1, region.z1, region.x2, region.y2, region.z2 = (
+                in_code_units(x) for x in (region.x1, region.y1, region.z1, region.x2, region.y2, region.z2))
+        return region
+
     def _cpus_in_region(self, region):
         """The CPUs whose files hold (or may hold) cells and particles in the region of the filter *region*"""
-        if self._info.get('ordering type', 'hilbert').strip() != 'hilbert':
-            raise ValueError("take_region needs domains ordered along a Hilbert curve, not by %r"
-                             % self._info['ordering type'])
         if self._info['ndim'] != 3:
             raise ValueError("take_region is supported only for 3D outputs")
-        bound_keys = _hilbert.domain_keys(os.path.join(self._filename, f"info_{self._timestep_id}.txt"))
         ncpu = self._info['ncpu']
-        if (len(bound_keys) - 1) % ncpu:
-            raise ValueError("The info file lists %d Hilbert domains for %d CPUs" % (len(bound_keys) - 1, ncpu))
-        # (cells coarser than levelmin are leaves if maxlevel stops short of it)
-        coarsest = min(int(self._info['levelmin']), self._maxlevel or int(self._info['levelmin']))
         try:
-            cpus = _hilbert.cpus_in_region(region, bound_keys, coarsest, int(self._info['levelmax']),
-                                           float(self._info['boxlen']), ncpu)
+            ordering = self._info.get('ordering type', 'hilbert').strip()
+            if ordering != 'hilbert':
+                raise NotImplementedError(f"its domains are ordered by {ordering!r}, not along a Hilbert curve")
+            bound_keys = _hilbert.domain_keys(os.path.join(self._filename, f"info_{self._timestep_id}.txt"))
+            if (len(bound_keys) - 1) % ncpu:
+                raise NotImplementedError("the info file lists %d Hilbert domains for %d CPUs"
+                                          % (len(bound_keys) - 1, ncpu))
+            # (cells coarser than levelmin are leaves if maxlevel stops short of it)
+            coarsest = min(int(self._info['levelmin']), self._maxlevel or int(self._info['levelmin']))
+            cpus = _hilbert.cpus_in_region(self._region_in_code_units(region), bound_keys, coarsest,
+                                           int(self._info['levelmax']), float(self._info['boxlen']), ncpu)
         except NotImplementedError as e:
             warnings.warn(f"take_region loads every CPU file, as it cannot choose them for {region!r}: {e}")
             return list(range(1, ncpu + 1))
@@ -450,12 +515,13 @@ class RamsesSnap(SimSnap):
         self._particle_file_start_indices = []
         results = _layout.scan_particle_files([self._particle_filename(i) for i in self._cpus],
                                               family_block, family_dtype)
+        keep = self._particles_in_region([r[0] for r in results]) if self._trim_to_region else None
 
         aggregate_counts = np.zeros(256, dtype=np.int64)
-        for particle_file, family_ids in results:
+        for i, (particle_file, family_ids) in enumerate(results):
             family_ids = family_ids.view(np.uint8)
-            counts = np.bincount(family_ids, minlength=256)
-            assert counts.sum() == particle_file.npart
+            counts = np.bincount(family_ids if keep is None else family_ids[keep[i]], minlength=256)
+            assert keep is not None or counts.sum() == particle_file.npart
             aggregate_counts += counts
             self._particle_family_ids_on_disk.append(family_ids)
 
@@ -491,6 +557,9 @@ class RamsesSnap(SimSnap):
 
         # perform the remapping for our stored particle identifiers
         self._particle_family_ids_on_disk = [ramses_id_to_internal_id[fid] for fid in self._particle_family_ids_on_disk]
+        if keep is not None:
+            for fid, keep_file in zip(self._particle_family_ids_on_disk, keep):
+                fid[~keep_file] = SKIP
 
         return_d = {}
         self._particle_file_start_indices = [[] for x in results]
@@ -622,14 +691,18 @@ class RamsesSnap(SimSnap):
 
         results = _layout.scan_particle_files([self._particle_filename(i) for i in self._cpus],
                                               distinguisher_field, distinguisher_type)
+        keep = self._particles_in_region([r[0] for r in results]) if self._trim_to_region else None
 
-        for particle_file, data in results:
+        for i, (particle_file, data) in enumerate(results):
             npart_this = particle_file.npart
             if data is not None and len(data) > 0:
                 family_ids = np.array((data != 0), dtype=np.int8)  # -> 0 for dm, 1 for star
             else:
                 family_ids = np.zeros(npart_this, dtype=np.int8)
-            nstar_this = int(family_ids.sum())
+            if keep is not None:
+                family_ids.view(np.uint8)[~keep[i]] = SKIP
+                npart_this = int(np.count_nonzero(keep[i]))
+            nstar_this = int(np.count_nonzero(family_ids == 1))
             self._particle_file_start_indices.append((dm_i0, star_i0))
             dm_i0 += (npart_this - nstar_this)
             star_i0 += nstar_this
@@ -660,9 +733,24 @@ class RamsesSnap(SimSnap):
             self._info['ordering type'] == 'bisection', self._maxlevel)
         self._cell_selections = [CellSelection.all_leaves(layout, leaf_cells)
                                  for layout, leaf_cells in zip(self._amr_layouts, leaves)]
+        if self._trim_to_region:
+            self._trim_cells()
         ncells = [selection.ncells for selection in self._cell_selections]
         self._gas_i0 = np.cumsum([0] + ncells)[:-1]
         return int(np.sum(ncells))
+
+    def _trim_cells(self):
+        """Restrict the cell selections to the cells whose centres lie in the take_region filter's region"""
+        ncells = [selection.ncells for selection in self._cell_selections]
+        first = np.cumsum([0] + ncells)[:-1]
+        positions, sizes = np.empty((sum(ncells), 3)), np.empty(sum(ncells))
+        plan = _plan.cell_positions(self._amr_layouts, self._cell_selections, first,
+                                    [self._amr_filename(cpu) for cpu in self._cpus])
+        _plan.load_cell_positions(plan, self._cell_selections, self._amr_geometry, self._info['boxlen'], positions,
+                                  sizes)
+        keep = self._in_region(positions, 'gas')
+        self._cell_selections = [selection.restricted(keep[f:f + n])
+                                 for selection, f, n in zip(self._cell_selections, first, ncells)]
 
     def _load_gas_pos(self):
         self.gas['pos'].set_default_units()
@@ -1084,21 +1172,29 @@ class RamsesSnap(SimSnap):
         return False
 
 
-@RamsesSnap.decorator
-def _translate_info(sim):
-    if sim._info['H0'] > 1e-3:
-        sim.properties['a'] = sim._info['aexp']
-        sim.properties['omegaM0'] = sim._info['omega_m']
-        sim.properties['omegaL0'] = sim._info['omega_l']
-        sim.properties['h'] = sim._info['H0'] / 100.
+def _units_and_properties(info):
+    """The units of density, time and length of an output, and its properties (but for the time), from its info"""
+    properties = {}
+    if info['H0'] > 1e-3:
+        properties['a'] = info['aexp']
+        properties['omegaM0'] = info['omega_m']
+        properties['omegaL0'] = info['omega_l']
+        properties['h'] = info['H0'] / 100.
 
     # N.B. these conversion factors provided by ramses already have the
     # correction from comoving to physical units
-    d_unit = sim._info['unit_d'] * units.Unit("g cm^-3")
-    t_unit = sim._info['unit_t'] * units.Unit("s")
-    l_unit = sim._info['unit_l'] * units.Unit("cm")
+    d_unit = info['unit_d'] * units.Unit("g cm^-3")
+    t_unit = info['unit_t'] * units.Unit("s")
+    l_unit = info['unit_l'] * units.Unit("cm")
 
-    sim.properties['boxsize'] = sim._info['boxlen'] * l_unit
+    properties['boxsize'] = info['boxlen'] * l_unit
+    return [d_unit, t_unit, l_unit], properties
+
+
+@RamsesSnap.decorator
+def _translate_info(sim):
+    (d_unit, t_unit, l_unit), properties = _units_and_properties(sim._info)
+    sim.properties.update(properties)
 
     if sim.is_not_cosmological:
         sim.properties['time'] = sim._info['time'] * t_unit

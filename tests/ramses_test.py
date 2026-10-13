@@ -1180,8 +1180,13 @@ def ramses_full_load():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         f = pynbody.load("testdata/ramses/output_00080")
-        return f, np.asarray(f.dm['pos']).copy(), np.asarray(f.dm['iord']).copy(), \
+        return f, np.asarray(f.dm['pos']).copy(), _loaded(f, pynbody.family.dm, 'iord').copy(), \
             np.asarray(f.dm['cpu']).copy(), np.asarray(f.gas['pos']).copy()
+
+
+def _loaded(f, family, name):
+    """The array *name* of *family*, empty if the snapshot holds none of that family"""
+    return np.asarray(f[family][name]) if family in f.families() else np.empty((0, 3) if name == 'pos' else 0)
 
 
 def _periodic_distance(pos, cen, boxlen):
@@ -1192,9 +1197,10 @@ def _periodic_distance(pos, cen, boxlen):
 
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 @pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
-def test_take_region_loads_everything_in_the_region(ramses_full_load):
+@pytest.mark.parametrize("trim", [True, False])
+def test_take_region_loads_everything_in_the_region(ramses_full_load, trim):
     """Every particle and cell in the region is loaded, including particles that have drifted out of the domain
-    of the CPU holding them, and cells near domain boundaries"""
+    of the CPU holding them, and cells near domain boundaries (and, trimmed, nothing else)"""
     from pynbody.snapshot.ramses import _hilbert, _kernels
     full, pos, iord, cpu, cell_pos = ramses_full_load
     boxlen = full._info['boxlen']
@@ -1210,12 +1216,18 @@ def test_take_region_loads_everything_in_the_region(ramses_full_load):
               [(pos[i], 1e-4 * boxlen) for i in rng.choice(stray, 3, replace=False)] + \
               [(cell_pos[i], 1e-4 * boxlen) for i in rng.choice(len(cell_pos), 3, replace=False)]
     for cen, radius in regions:
-        f = pynbody.load("testdata/ramses/output_00080", take_region=pynbody.filt.Sphere(radius, cen))
-        assert set(iord[_periodic_distance(pos, cen, boxlen) < radius]) <= set(np.asarray(f.dm['iord']))
-        wanted = cell_pos[_periodic_distance(cell_pos, cen, boxlen) < radius]
-        loaded = {tuple(p) for p in np.asarray(f.gas['pos'])}
-        assert all(tuple(p) in loaded for p in wanted)
-        assert f.partial_load == (len(f._cpus) < 16)
+        f = pynbody.load("testdata/ramses/output_00080", take_region=pynbody.filt.Sphere(radius, cen),
+                         trim_to_region=trim)
+        wanted_iord = set(iord[_periodic_distance(pos, cen, boxlen) < radius])
+        wanted = {tuple(p) for p in cell_pos[_periodic_distance(cell_pos, cen, boxlen) < radius]}
+        loaded = {tuple(p) for p in _loaded(f, pynbody.family.gas, 'pos')}
+        if trim:
+            assert set(_loaded(f, pynbody.family.dm, 'iord')) == wanted_iord and len(f.dm) == len(wanted_iord)
+            assert loaded == wanted and len(f.gas) == len(wanted)
+            assert f.partial_load
+        else:
+            assert wanted_iord <= set(_loaded(f, pynbody.family.dm, 'iord')) and wanted <= loaded
+            assert f.partial_load == (len(f._cpus) < 16)
 
 
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
@@ -1240,17 +1252,12 @@ def test_take_region_with_a_filter_that_cannot_choose_files():
 
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 @pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
-def test_take_region_needs_hilbert_ordering(tmp_path):
-    source = Path("testdata/ramses/output_00080")
-    target = tmp_path / "output_00080"
-    target.mkdir()
-    for name in os.listdir(source):
-        if os.path.isfile(source / name) and name != "info_00080.txt":
-            os.symlink((source / name).absolute(), target / name)
-    info = (source / "info_00080.txt").read_text().replace("ordering type=hilbert", "ordering type=bisection")
-    (target / "info_00080.txt").write_text(info)
-    with pytest.raises(ValueError, match="Hilbert"):
-        pynbody.load(str(target), take_region=pynbody.filt.Sphere(1.0, (0.5, 0.5, 0.5)))
+def test_take_region_without_hilbert_ordering_loads_every_file():
+    """Files can be chosen only for domains along a Hilbert curve; otherwise all are (and then trimmed)"""
+    f = pynbody.load("testdata/ramses/output_00080")
+    f._info['ordering type'] = 'bisection'
+    with pytest.warns(UserWarning, match="loads every CPU file.*Hilbert"):
+        assert f._cpus_in_region(pynbody.filt.Sphere(0.01, (0.5, 0.5, 0.5))) == list(range(1, 17))
 
 
 def test_hilbert_keys_match_ramses():
@@ -1293,10 +1300,10 @@ def test_take_region_with_a_wrapping_cuboid(ramses_full_load):
     full, pos, iord, cpu, cell_pos = ramses_full_load
     boxlen = full._info['boxlen']
     region = pynbody.filt.Cuboid(*(0.95 * boxlen,) * 3, *(0.05 * boxlen,) * 3)
-    inside = iord[region(full.dm)]
+    inside = iord[np.asarray(region(full.dm), bool)]
     assert len(inside) > 0
     f = pynbody.load("testdata/ramses/output_00080", take_region=region)
-    assert set(inside) <= set(np.asarray(f.dm['iord']))
+    assert set(inside) <= set(_loaded(f, pynbody.family.dm, 'iord'))
     # and a cuboid that wraps with no box to wrap around is refused
     with pytest.raises(ValueError, match="not well defined"):
         region.cubic_cell_intersection(np.zeros((1, 3)), deltax=1.0, boxsize=None)
@@ -1304,12 +1311,20 @@ def test_take_region_with_a_wrapping_cuboid(ramses_full_load):
 
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 @pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
-@pytest.mark.parametrize("region", [pynbody.filt.Sphere('3 Mpc', (0.5, 0.5, 0.5)), pynbody.filt.Cuboid('1 Mpc')])
-def test_take_region_with_units_loads_every_file(region):
-    """A filter given with units cannot be compared with cells in code units, so every file is loaded"""
-    with pytest.warns(UserWarning, match="loads every CPU file"):
+@pytest.mark.parametrize("region", [pynbody.filt.Sphere('3 Mpc', (0.5, 0.5, 0.5)),
+                                    pynbody.filt.Sphere('3 Mpc a h^-1', (0.5, 0.5, 0.5)),
+                                    pynbody.filt.Cuboid('-1 Mpc', '-1 Mpc', '-1 Mpc', '1 Mpc', '1 Mpc', '1 Mpc'),
+                                    pynbody.filt.Sphere('1 Mpc', (0.1, 0.1, 0.1)) | pynbody.filt.Cuboid('-1 Mpc')])
+def test_take_region_with_units(region, ramses_full_load):
+    """A filter given with units is converted to code units (with the snapshot's a and h) to choose files"""
+    full, pos, iord, cpu, cell_pos = ramses_full_load
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
         f = pynbody.load("testdata/ramses/output_00080", take_region=region)
-    assert len(f._cpus) == 16
+    assert not any("loads every CPU file" in str(w.message) for w in caught)
+    assert len(f._cpus) < 16
+    assert set(_loaded(f, pynbody.family.dm, 'iord')) == set(iord[np.asarray(region(full.dm), bool)])
+    assert len(f.gas) == region(full.gas).sum()
 
 
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
@@ -1321,3 +1336,129 @@ def test_take_region_that_selects_nothing_warns():
     with pytest.warns(UserWarning, match="selects no CPU files"):
         f = pynbody.load("testdata/ramses/output_00080", take_region=region, cpus=[other])
     assert len(f) == 0
+
+
+def _assert_same_as_filtered(f, full, region, gas_keys=('pos', 'rho', 'vel', 'cpu'),
+                             particle_keys=('iord', 'pos', 'vel', 'mass', 'cpu')):
+    """The snapshot *f*, loaded with take_region=region, holds exactly what the filter selects from *full*, in
+    either order"""
+    for fam in full.families():
+        ref = full[fam][np.asarray(region(full[fam]), bool)]
+        if len(ref) == 0:
+            assert fam not in f.families()
+            continue
+        got = f[fam]
+        assert len(got) == len(ref), fam
+        if fam is pynbody.family.gas or 'iord' not in ref.loadable_keys():
+            keys = gas_keys if fam is pynbody.family.gas else ('pos', 'vel', 'mass')
+            order_ref, order_got = np.lexsort(np.asarray(ref['pos']).T), np.lexsort(np.asarray(got['pos']).T)
+        else:
+            keys = particle_keys
+            order_ref, order_got = np.argsort(np.asarray(ref['iord'])), np.argsort(np.asarray(got['iord']))
+        for k in keys:
+            # (to the last bit but one: filtering a family can round its positions in the last bit)
+            np.testing.assert_allclose(np.asarray(got[k])[order_got], np.asarray(ref[k])[order_ref], rtol=1e-14,
+                                       atol=0, err_msg=f"{fam.name} {k}")
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:take_region loads every CPU file.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:No header file found.*:UserWarning")
+@pytest.mark.parametrize("output", ["output_00080", "ramses_new_format_partial_with_sink_mass_output_00001"])
+def test_trimmed_load_matches_filtered_load(output):
+    """Particles (of implicit and explicit families, and sinks) and cells are those the filter selects"""
+    path = f"testdata/ramses/{output}"
+    full = pynbody.load(path)
+    boxlen = full._info['boxlen']
+    first = full.families()[0]
+    pos = np.asarray(full[first]['pos'])
+    regions = [pynbody.filt.Sphere(0.05 * boxlen, pos[len(pos) // 3]),
+               pynbody.filt.Cuboid(*(0.92 * boxlen,) * 3, *(0.08 * boxlen,) * 3),
+               pynbody.filt.Sphere('500 kpc a h^-1', pos[7]),
+               pynbody.filt.Sphere(0.03 * boxlen, pos[99]) | pynbody.filt.Sphere(0.02 * boxlen, pos[5])]
+    if pynbody.family.bh in full.families():
+        regions.append(pynbody.filt.Sphere(0.1 * boxlen, np.asarray(full.bh['pos'])[0]))
+    for region in regions:
+        f = pynbody.load(path, take_region=region)
+        assert f.partial_load
+        _assert_same_as_filtered(f, full, region)
+    if pynbody.family.bh in full.families():
+        assert pynbody.family.bh in f.families()
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_untrimmed_take_region_loads_whole_files(ramses_full_load):
+    full, pos, iord, cpu, cell_pos = ramses_full_load
+    region = pynbody.filt.Sphere(0.05 * full._info['boxlen'], pos[0])
+    f = pynbody.load("testdata/ramses/output_00080", take_region=region, trim_to_region=False)
+    trimmed = pynbody.load("testdata/ramses/output_00080", take_region=region)
+    assert f._cpus == trimmed._cpus and len(f._cpus) < 16
+    assert set(np.asarray(f.dm['iord'])) == set(iord[np.isin(cpu, f._cpus)])
+    assert len(f.gas) == np.isin(full.gas['cpu'], f._cpus).sum()
+    assert len(trimmed.dm) < len(f.dm) and len(trimmed.gas) < len(f.gas)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.parametrize("maxlevel", [3, 8])
+def test_trimmed_load_with_maxlevel(maxlevel):
+    full = pynbody.load("testdata/ramses/output_00080", maxlevel=maxlevel)
+    region = pynbody.filt.Sphere(0.08 * full._info['boxlen'], np.asarray(full.gas['pos'])[100])
+    f = pynbody.load("testdata/ramses/output_00080", maxlevel=maxlevel, take_region=region)
+    _assert_same_as_filtered(f, full, region)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.parametrize("mode", ["requested", "all"])
+def test_trimmed_load_reads_hydro_and_gravity(hydro_loading, mode):
+    """Gas variables read later (one at a time, or all at once) land on the trimmed cells"""
+    hydro_loading(mode)
+    path = "testdata/ramses/ramses_new_format_cosmo_with_ahf_output_00110"
+    full = pynbody.load(path)
+    region = pynbody.filt.Sphere(0.05 * full._info['boxlen'], np.asarray(full.dm['pos'])[1000])
+    f = pynbody.load(path, take_region=region)
+    _assert_same_as_filtered(f, full, region, gas_keys=('pos', 'p', 'rho', 'phi', 'accg', 'vel', 'cpu'))
+
+
+def _cells_in_order(selection):
+    """(level, oct, ind) of each cell a CellSelection selects, in the order they are put in place"""
+    cells = np.empty((selection.ncells, 3), dtype=np.int64)
+    for r in range(selection.nruns):
+        octs = selection.mask[selection.mask_offset[r]:selection.mask_offset[r] + selection.count[r]]
+        for ind in range(selection.starts.shape[1]):
+            wanted = np.flatnonzero(octs & (1 << ind))
+            at = selection.starts[r, ind] + np.arange(len(wanted))
+            cells[at] = np.stack([np.full(len(wanted), selection.level[r]), selection.first[r] + wanted,
+                                  np.full(len(wanted), ind)], axis=1)
+    return cells
+
+
+def test_cell_selection_restricted():
+    from pynbody.snapshot.ramses._selection import CellSelection, run_gap_octs
+    rng = np.random.default_rng(5)
+    count = np.array([10, 1000, 3], dtype=np.int64)
+    mask = rng.integers(0, 256, count.sum()).astype(np.uint8)
+    mask[10 + 200:10 + 600] = 0  # (a gap in the second run longer than run_gap_octs)
+    assert 400 > run_gap_octs
+    level, first, offset = np.array([4, 5, 7]), np.array([0, 20, 5]), np.concatenate([[0], np.cumsum(count)[:-1]])
+    nbits = np.unpackbits(mask[:, None], axis=1).sum(axis=1)
+    counts = np.array([[(mask[o:o + n] & (1 << ind) > 0).sum() for ind in range(8)] for o, n in zip(offset, count)])
+    starts = (np.cumsum(counts.ravel()) - counts.ravel()).reshape(counts.shape)
+    selection = CellSelection(level=level, first=first, count=count, mask_offset=offset, starts=starts, mask=mask,
+                              ncells=int(nbits.sum()))
+    cells = _cells_in_order(selection)
+    assert len(np.unique(cells, axis=0)) == len(cells) == selection.ncells
+    keep = rng.random(selection.ncells) < 0.3
+    keep[np.flatnonzero(cells[:, 0] == 7)] = False  # (no cell of the last run)
+    restricted = selection.restricted(keep)
+    # (the same cells, each put in its own place, though in a different order where a run is split)
+    in_order = _cells_in_order(restricted)
+    assert len(np.unique(in_order, axis=0)) == len(in_order)
+    np.testing.assert_array_equal(np.unique(in_order, axis=0), np.unique(cells[keep], axis=0))
+    assert restricted.ncells == keep.sum()
+    assert 7 not in restricted.level and (restricted.level == 5).sum() == 2  # (split at the gap)
+    with pytest.raises(ValueError, match="Expected"):
+        selection.restricted(keep[:-1])

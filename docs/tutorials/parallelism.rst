@@ -123,6 +123,13 @@ takes memory for each.
 
 These options can also be changed during a session, through ``pynbody.snapshot.ramses._execute.config``.
 
+To work on a region of a large output, pass a filter as ``take_region``, for instance
+``pynbody.load(path, take_region=pynbody.filt.Sphere('500 kpc', centre))``. The reader then opens only
+the CPU files whose Hilbert domains come near the region, and keeps only the cells and particles that
+the filter selects, so that memory and later reads are only for those. Passing ``trim_to_region=False``
+as well keeps everything in the files opened instead, which saves reading the positions of every cell
+and particle in those files when the snapshot is opened.
+
 .. _using_shared_arrays:
 
 
