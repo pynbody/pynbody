@@ -24,8 +24,7 @@ import dataclasses
 
 import numpy as np
 
-from . import _execute
-from . import _kernels as kernels
+from . import _execute, _kernels as kernels
 from ._layout import AmrGeometry, AmrLayout, HydroLikeFile, ParticleLayout
 from ._selection import CellSelection, ParticleSelection
 

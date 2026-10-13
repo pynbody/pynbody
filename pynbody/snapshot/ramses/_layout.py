@@ -21,8 +21,7 @@ import sys
 
 import numpy as np
 
-from . import _execute
-from . import _kernels as kernels
+from . import _execute, _kernels as kernels
 
 # What reading the header of a file, and what is found through it, is guessed to take before it has been read
 _header_nbytes_guess = 256 * 1024
