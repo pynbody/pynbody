@@ -605,28 +605,130 @@ def test_damaged_hydro_file_is_detected(tmp_path, damage):
     assert 'rho' not in f.gas.keys()
 
 
+def _split_runs(selection, layout):
+    """A selection of the same cells as *selection* (every leaf), but with each level's octs in two runs"""
+    from pynbody.snapshot.ramses import _selection
+    twotondim = layout.twotondim
+    level_start = np.concatenate([[0], np.cumsum(layout.ncache)[:-1]])
+    runs, ncells = [], 0
+    for level in np.flatnonzero(layout.ncache > 0):
+        n = int(layout.ncache[level])
+        for first, count in ((0, n // 2), (n // 2, n - n // 2)):
+            if count == 0:
+                continue
+            mask = selection.mask[level_start[level] + first:level_start[level] + first + count]
+            nleaf = [int((mask >> ind & 1).sum()) for ind in range(twotondim)]
+            runs.append((level, first, count, level_start[level] + first,
+                         ncells + np.concatenate([[0], np.cumsum(nleaf)[:-1]])))
+            ncells += sum(nleaf)
+    level, first, count, mask_offset, starts = zip(*runs)
+    return _selection.CellSelection(level=np.array(level), first=np.array(first), count=np.array(count),
+                                    mask_offset=np.array(mask_offset), starts=np.array(starts), mask=selection.mask,
+                                    ncells=ncells)
+
+
+def _cell_plans(f, selections):
+    """Plans of reading cell positions and every hydro variable of a snapshot, for the given selections"""
+    from pynbody.snapshot.ramses import _layout, _plan
+    first = np.cumsum([0] + [sel.ncells for sel in selections])[:-1]
+    paths = [f._hydro_filename(cpu) for cpu in f._cpus]
+    header, header_nbytes = _layout.read_header(paths[0], pynbody.snapshot.ramses.ramses_hydro_header)
+    kind = _layout.HydroLikeFile(header_nbytes, int(header['nvarh']))
+    positions = _plan.cell_positions(f._amr_layouts, selections, first, [f._amr_filename(cpu) for cpu in f._cpus])
+    values = _plan.cell_values(f._amr_layouts, selections, first, paths, kind, [(v, v) for v in range(kind.nvar)])
+    return positions, values, kind
+
+
+def _check_plan(plan, job_nbytes):
+    """Each piece of a plan reads increasing, separate ranges of its file into consecutive places in its buffer, and
+    decodes and checks only what lies within the buffer"""
+    assert plan.pieces
+    for piece in plan.pieces:
+        offset, nbytes, at = piece.reads.T
+        assert (nbytes > 0).all() and (offset[1:] >= offset[:-1] + nbytes[:-1]).all()
+        assert offset[-1] + nbytes[-1] <= os.path.getsize(piece.path)
+        np.testing.assert_array_equal(at, np.cumsum(nbytes) - nbytes)
+        assert piece.nbytes == nbytes.sum() >= piece.requested
+        assert (piece.checks[:, 0] >= 0).all() and (piece.checks[:, 0] + 4 <= piece.nbytes).all()
+        assert (piece.rows[:, 0] >= 0).all() and (piece.rows[:, 0] < piece.nbytes).all()
+    # pieces of a few megabytes, unless a file holds less
+    if job_nbytes is not None:
+        assert max(p.requested for p in plan.pieces) < 2 * job_nbytes
+
+
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 @pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
 @pytest.mark.parametrize("kwargs", [{}, {"cpus": [7, 2, 11], "maxlevel": 12}], ids=["all", "cpus"])
 def test_read_plans_are_consistent(kwargs):
-    """Each piece of a plan reads increasing, separate ranges of its file into consecutive places in its buffer, and
-    decodes and checks only what lies within the buffer"""
     from pynbody.snapshot.ramses import _execute
     f = pynbody.load("testdata/ramses/output_00080", **kwargs)
-    f.gas['rho'], f.gas['pos'], f.dm['pos'], f.star['vel'] # noqa
-    assert {k[0] for k in f._read_plans} == {'cell values', 'cell positions', 'particle fields'}
-    for key, plan in f._read_plans.items():
-        assert plan.pieces
-        for piece in plan.pieces:
-            offset, nbytes, at = piece.reads.T
-            assert (nbytes > 0).all() and (offset[1:] >= offset[:-1] + nbytes[:-1]).all()
-            assert offset[-1] + nbytes[-1] <= os.path.getsize(piece.path)
-            np.testing.assert_array_equal(at, np.cumsum(nbytes) - nbytes)
-            assert piece.nbytes == nbytes.sum() >= piece.requested
-            assert (piece.checks[:, 0] >= 0).all() and (piece.checks[:, 0] + 4 <= piece.nbytes).all()
-            assert (piece.rows[:, 0] >= 0).all() and (piece.rows[:, 0] < piece.nbytes).all()
-        # pieces of a few megabytes, unless a file holds less
-        assert max(p.requested for p in plan.pieces) < 2 * _execute.job_nbytes
+    f.dm['pos'], f.star['vel'] # noqa
+    for plan in _cell_plans(f, f._cell_selections)[:2] + tuple(f._read_plans.values()):
+        _check_plan(plan, _execute.job_nbytes)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.parametrize("job_nbytes", [3000, 200000, 4 * 1024 * 1024])
+def test_split_runs_are_read_whole(monkeypatch, job_nbytes):
+    """Runs covering part of a level (whose ranges interleave in the file with those of other runs) give the same
+    cells, however the reads are cut into pieces"""
+    from pynbody.snapshot.ramses import _execute, _plan
+    f = pynbody.load("testdata/ramses/output_00080", cpus=[3, 1])
+    pos, rho = np.asarray(f.gas['pos']), np.asarray(f.gas['rho'])
+    monkeypatch.setattr(_execute, "job_nbytes", job_nbytes)
+    selections = [_split_runs(sel, layout) for sel, layout in zip(f._cell_selections, f._amr_layouts)]
+    positions, values, kind = _cell_plans(f, selections)
+    for plan in positions, values:
+        # (the coordinates of each run must be read together, and those of the two runs of a level interleave, so a
+        # level's centres are read in one piece, whatever its size)
+        _check_plan(plan, None)
+    split_pos, smooth = np.zeros_like(pos), np.zeros(len(pos))
+    _plan.load_cell_positions(positions, selections, f._amr_geometry, f._info['boxlen'], split_pos, smooth)
+    arrays = [np.zeros(len(pos)) for _ in range(kind.nvar)]
+    _plan.load_cell_values(values, selections, arrays)
+    # (cells come in another order: within each run rather than each level)
+    order, split_order = np.lexsort(pos.T), np.lexsort(split_pos.T)
+    np.testing.assert_array_equal(pos[order], split_pos[split_order])
+    np.testing.assert_array_equal(rho[order], arrays[0][split_order])
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_particle_read_plans_are_reused(monkeypatch):
+    from pynbody.snapshot.ramses import _plan
+    builds = []
+    particle_fields = _plan.particle_fields
+    monkeypatch.setattr(_plan, "particle_fields", lambda *args: builds.append(args) or particle_fields(*args))
+    f = pynbody.load("testdata/ramses/output_00080")
+    pos = f['pos'].copy()
+    assert [k[0] for k in f._read_plans] == ['particle fields'] and len(builds) == 1
+    del f['pos'], f['vel']
+    np.testing.assert_array_equal(f['pos'], pos)
+    assert len(builds) == 1
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_plans_check_their_destinations():
+    """A plan performed into arrays too small for it raises, rather than writing beyond them"""
+    from pynbody.snapshot.ramses import _plan
+    f = pynbody.load("testdata/ramses/output_00080", cpus=[2])
+    positions, values, kind = _cell_plans(f, f._cell_selections)
+    n = len(f.gas) // 2
+    with pytest.raises(ValueError, match="destination"):
+        _plan.load_cell_values(values, f._cell_selections, [np.zeros(n)])
+    with pytest.raises(ValueError, match="destination"):
+        _plan.load_cell_positions(positions, f._cell_selections, f._amr_geometry, 1.0, np.zeros((n, 3)), np.zeros(n))
+    f.dm['pos'] # noqa
+    plan, = f._read_plans.values()
+    with pytest.raises(ValueError, match="destination"):
+        _plan.load_particle_fields(plan, f._particle_selections,
+                                   [(np.float64, [np.zeros(len(f.dm) // 2), np.zeros(len(f.star))])] * 3)
+    with pytest.raises(ValueError, match="distinct"):
+        _plan.cell_values(f._amr_layouts, f._cell_selections, [0], [f._hydro_filename(2)], kind, [(0, 0), (0, 1)])
+    with pytest.raises(ValueError, match="distinct"):
+        _plan.cell_values(f._amr_layouts, f._cell_selections, [0], [f._hydro_filename(2)], kind, [(kind.nvar, 0)])
 
 
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")

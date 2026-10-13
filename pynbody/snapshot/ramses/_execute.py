@@ -203,6 +203,6 @@ def run_plan(plan, decode: typing.Callable):
             except ValueError as e:
                 raise ValueError(f"{e} in {piece.path}") from e
 
-        return Piece(piece.path, piece.requested, read, decode_piece)
+        return Piece(piece.path, piece.nbytes, read, decode_piece)
 
     run_pieces([make(piece) for piece in plan.pieces])

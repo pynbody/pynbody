@@ -47,9 +47,10 @@ cdef inline bint _record_ok(const uint8_t *buf, Py_ssize_t buflen, Py_ssize_t po
 
 
 cdef class _Destinations:
-    """Data pointers and strides of a list of 1D arrays (or Nones), for use without the GIL"""
+    """Data pointers, strides and lengths of a list of 1D arrays (or Nones), for use without the GIL"""
     cdef char **data
     cdef Py_ssize_t *stride
+    cdef Py_ssize_t *length
     cdef Py_ssize_t n
     cdef list _keep
 
@@ -60,12 +61,13 @@ cdef class _Destinations:
         self._keep = arrays
         self.data = <char **> malloc(max(self.n, 1) * sizeof(char *))
         self.stride = <Py_ssize_t *> malloc(max(self.n, 1) * sizeof(Py_ssize_t))
-        if self.data == NULL or self.stride == NULL:
+        self.length = <Py_ssize_t *> malloc(max(self.n, 1) * sizeof(Py_ssize_t))
+        if self.data == NULL or self.stride == NULL or self.length == NULL:
             raise MemoryError()
         for i in range(self.n):
             if arrays[i] is None:
                 self.data[i] = NULL
-                self.stride[i] = 0
+                self.stride[i] = self.length[i] = 0
                 continue
             a = arrays[i]
             if a.ndim != 1 or a.itemsize != itemsize or not a.flags.writeable:
@@ -73,10 +75,12 @@ cdef class _Destinations:
                                  % itemsize)
             self.data[i] = <char *> np.PyArray_DATA(a)
             self.stride[i] = a.strides[0]
+            self.length[i] = a.shape[0]
 
     def __dealloc__(self):
         free(self.data)
         free(self.stride)
+        free(self.length)
 
 
 cdef int _leaf_mask(const uint8_t *b, Py_ssize_t buflen, const int64_t[:, ::1] segments, int twotondim,
@@ -150,6 +154,8 @@ cdef int _cell_positions(const uint8_t *b, Py_ssize_t buflen, const int64_t[:, :
             j = rows[r, 6 + ind]
             for i in range(n):
                 if mask[m0 + i] & (1 << ind):
+                    if j < 0 or j >= pos.shape[0] or j >= smooth.shape[0]:
+                        return 2
                     for d in range(ndim):
                         memcpy(&c, b + p[d] + 8 * i, 8)  # (records are not aligned)
                         c = c - offset[d]
@@ -182,64 +188,81 @@ def cell_positions(const uint8_t[::1] buf, const int64_t[:, ::1] rows, int ndim,
             failed = _cell_positions(b, buflen, rows, ndim, mask, boxlen, offset, pos, smooth)
     else:
         failed = _cell_positions(b, buflen, rows, ndim, mask, boxlen, offset, pos, smooth)
-    if failed:
+    if failed == 1:
         raise ValueError("Oct centres lie outside the data read")
+    if failed == 2:
+        raise ValueError("Cells lie outside the destination arrays")
 
 
-cdef int _cell_values(const uint8_t *b, Py_ssize_t buflen, const int64_t[:, ::1] rows, const uint8_t[::1] mask,
-                      _Destinations dest) noexcept nogil:
-    cdef Py_ssize_t r, k, i, p, n, m0, ind, d, nvar, record_stride, stride
+cdef int _cell_values(const uint8_t *b, Py_ssize_t buflen, const int64_t[:, ::1] rows, int twotondim,
+                      const uint8_t[::1] mask, _Destinations dest) noexcept nogil:
+    cdef Py_ssize_t r, k, i, p, n, m0, ind, d, j, nvar, var_stride, stride, length
+    cdef int64_t inds
+    cdef bint check
     cdef char *out
     for r in range(rows.shape[0]):
-        n, m0, ind, nvar, record_stride = rows[r, 1], rows[r, 2], rows[r, 3], rows[r, 6], rows[r, 7]
-        for k in range(nvar):
-            p = rows[r, 0] + k * record_stride
-            if p < 0 or p + 8 * n > buflen:
-                return 1
-            if record_stride > 0 and not _record_ok(b, buflen, p - 4, 8 * n):
-                return 2
-            d = rows[r, 4] + k
-            if d >= dest.n or dest.data[d] == NULL:
+        n, m0 = rows[r, twotondim], rows[r, twotondim + 1]
+        nvar, var_stride, check = rows[r, twotondim + 3], rows[r, twotondim + 4], rows[r, twotondim + 5]
+        inds = rows[r, twotondim + 6]
+        for ind in range(twotondim):
+            if not inds & (1 << ind):
                 continue
-            stride = dest.stride[d]
-            out = dest.data[d] + rows[r, 5] * stride
-            for i in range(n):
-                if mask[m0 + i] & (1 << ind):
-                    memcpy(out, b + p + 8 * i, 8)
-                    out += stride
+            for k in range(nvar):
+                p = rows[r, ind] + k * var_stride
+                if p < 0 or p + 8 * n > buflen:
+                    return 1
+                if check and not _record_ok(b, buflen, p - 4, 8 * n):
+                    return 2
+                d = rows[r, twotondim + 2] + k
+                if d >= dest.n or dest.data[d] == NULL:
+                    continue
+                stride, length = dest.stride[d], dest.length[d]
+                j = rows[r, twotondim + 7 + ind]
+                out = dest.data[d] + j * stride
+                for i in range(n):
+                    if mask[m0 + i] & (1 << ind):
+                        if j < 0 or j >= length:
+                            return 3
+                        memcpy(out, b + p + 8 * i, 8)
+                        out += stride
+                        j += 1
     return 0
 
 
-def cell_values(const uint8_t[::1] buf, const int64_t[:, ::1] rows, const uint8_t[::1] mask, list destinations):
+def cell_values(const uint8_t[::1] buf, const int64_t[:, ::1] rows, int twotondim, const uint8_t[::1] mask,
+                list destinations):
     """Find the values of variables in wanted cells, from a hydro-like file.
 
-    Each row, (offset in buf, number of octs n, offset in mask, ind, first destination, where the first wanted cell
-    goes, number of variables, record stride), locates the values of consecutive variables in cell ind of n
-    consecutive octs of a level: n float64s for each, the first at the offset given and each other record stride
-    bytes after the one before. The value of each cell whose bit ind is set in the mask is put in the destination of
-    its variable (counting from the first given), an array (or None, to skip it) in destinations. A record stride
-    of more than zero means the values are whole Fortran records, whose lengths are checked; zero is for a single
-    variable."""
+    Each row locates the values of consecutive variables in every cell of n consecutive octs of a level: (with T =
+    twotondim) T columns of where in buf the values of cell ind of the first variable start, then n, the offset in
+    mask, the first destination, the number of variables, the stride in buf from one variable to the next, whether
+    the values are whole Fortran records (whose lengths are then checked), a mask of which inds to decode (bit ind
+    set for each), and T columns of where the first wanted cell of each ind goes. Each variable's values are n float64s. The value of each cell whose bit ind is set in the
+    mask is put in the destination of its variable (counting from the first given), an array (or None, to skip it)
+    in destinations."""
     cdef Py_ssize_t r, total = 0, buflen = buf.shape[0]
     cdef _Destinations dest = _Destinations(destinations, 8)
     cdef int failed
     cdef const uint8_t *b = &buf[0] if buflen > 0 else NULL
-    if rows.shape[0] > 0 and rows.shape[1] < 8:
-        raise ValueError("Rows must have eight columns")
+    if not 0 < twotondim <= 8 or (rows.shape[0] > 0 and rows.shape[1] < 2 * twotondim + 7):
+        raise ValueError("Rows must have 2 * twotondim + 7 columns")
     for r in range(rows.shape[0]):
-        if rows[r, 1] < 0 or rows[r, 2] < 0 or rows[r, 2] + rows[r, 1] > mask.shape[0] or \
-                not 0 <= rows[r, 3] < 8 or rows[r, 4] < 0 or rows[r, 6] < 0 or rows[r, 7] < 0:
+        if rows[r, twotondim] < 0 or rows[r, twotondim + 1] < 0 or \
+                rows[r, twotondim + 1] + rows[r, twotondim] > mask.shape[0] or rows[r, twotondim + 2] < 0 or \
+                rows[r, twotondim + 3] < 0 or rows[r, twotondim + 4] < 0:
             raise ValueError("Row lies outside the mask")
-        total += rows[r, 1] * rows[r, 6] * 8
+        total += rows[r, twotondim] * rows[r, twotondim + 3] * twotondim * 8
     if total >= _NOGIL_NBYTES:
         with nogil:
-            failed = _cell_values(b, buflen, rows, mask, dest)
+            failed = _cell_values(b, buflen, rows, twotondim, mask, dest)
     else:
-        failed = _cell_values(b, buflen, rows, mask, dest)
+        failed = _cell_values(b, buflen, rows, twotondim, mask, dest)
     if failed == 1:
         raise ValueError("Values lie outside the data read")
     if failed == 2:
         raise ValueError("Unexpected record length")
+    if failed == 3:
+        raise ValueError("Cells lie outside the destination arrays")
 
 
 def check_int32(const uint8_t[::1] buf, const int64_t[:, ::1] checks):
@@ -257,56 +280,105 @@ def check_int32(const uint8_t[::1] buf, const int64_t[:, ::1] checks):
     return -1
 
 
-cdef inline void _scatter(const uint8_t *src, Py_ssize_t n, Py_ssize_t itemsize, const uint8_t *family,
-                          _Destinations dest, int64_t *starts) noexcept nogil:
-    cdef Py_ssize_t i
+cdef int _scatter_rows(const uint8_t *b, const int64_t[:, ::1] rows, const uint8_t *family,
+                       const Py_ssize_t *itemsize, char ***data, Py_ssize_t **stride, Py_ssize_t **length,
+                       const Py_ssize_t *ndest, int64_t *starts) noexcept nogil:
+    cdef Py_ssize_t r, i, k, field, size, j
     cdef uint8_t f
-    for i in range(n):
-        f = family[i]
-        if f < dest.n and dest.data[f] != NULL:
-            # (fixed sizes, so that each copy compiles to a single move)
-            if itemsize == 8:
-                memcpy(dest.data[f] + starts[f] * dest.stride[f], src + 8 * i, 8)
-            elif itemsize == 4:
-                memcpy(dest.data[f] + starts[f] * dest.stride[f], src + 4 * i, 4)
-            elif itemsize == 1:
-                dest.data[f][starts[f] * dest.stride[f]] = <char> src[i]
+    cdef const uint8_t *src
+    cdef char *out
+    for r in range(rows.shape[0]):
+        field = rows[r, 3]
+        size = itemsize[field]
+        src = b + rows[r, 0]
+        for k in range(ndest[field]):
+            starts[k] = rows[r, 4 + k]
+        for i in range(rows[r, 2] - rows[r, 1]):
+            f = family[rows[r, 1] + i]
+            if f < ndest[field] and data[field][f] != NULL:
+                j = starts[f]
+                if j < 0 or j >= length[field][f]:
+                    return 1
+                out = data[field][f] + j * stride[field][f]
+                # (fixed sizes, so that each copy compiles to a single move)
+                if size == 8:
+                    memcpy(out, src + 8 * i, 8)
+                elif size == 4:
+                    memcpy(out, src + 4 * i, 4)
+                elif size == 1:
+                    out[0] = <char> src[i]
+                else:
+                    memcpy(out, src + size * i, size)
+                starts[f] = j + 1
+    return 0
+
+
+def scatter_rows(const uint8_t[::1] buf, const int64_t[:, ::1] rows, const uint8_t[::1] family, list fields):
+    """Put particle values from buf in the destination of each particle's family.
+
+    Each row, (offset in buf, first particle, last particle + 1, field, then where the first of those particles of
+    each family goes), locates the values of a field for a run of particles, whose family ids are given in family
+    (ids without a destination are skipped). fields lists, for each field, (item size, destination array of each
+    family or None)."""
+    cdef Py_ssize_t r, k, nfields = len(fields), maxdest = 0, total = 0, buflen = buf.shape[0]
+    cdef list keep = [_Destinations(list(d), size) for size, d in fields]
+    cdef _Destinations dd
+    cdef int failed = 0
+    cdef Py_ssize_t *itemsize = <Py_ssize_t *> malloc(max(nfields, 1) * sizeof(Py_ssize_t))
+    cdef Py_ssize_t *ndest = <Py_ssize_t *> malloc(max(nfields, 1) * sizeof(Py_ssize_t))
+    cdef char ***data = <char ***> malloc(max(nfields, 1) * sizeof(char **))
+    cdef Py_ssize_t **stride = <Py_ssize_t **> malloc(max(nfields, 1) * sizeof(Py_ssize_t *))
+    cdef Py_ssize_t **length = <Py_ssize_t **> malloc(max(nfields, 1) * sizeof(Py_ssize_t *))
+    cdef int64_t *starts = NULL
+    try:
+        if itemsize == NULL or ndest == NULL or data == NULL or stride == NULL or length == NULL:
+            raise MemoryError()
+        for k in range(nfields):
+            dd = keep[k]
+            itemsize[k], ndest[k], data[k], stride[k], length[k] = fields[k][0], dd.n, dd.data, dd.stride, dd.length
+            maxdest = max(maxdest, dd.n)
+        starts = <int64_t *> malloc(max(maxdest, 1) * sizeof(int64_t))
+        if starts == NULL:
+            raise MemoryError()
+        for r in range(rows.shape[0]):
+            if not 0 <= rows[r, 3] < nfields or rows.shape[1] < 4 + ndest[rows[r, 3]]:
+                raise ValueError("Row names an unknown field, or too few start indices")
+            if not 0 <= rows[r, 1] <= rows[r, 2] <= family.shape[0]:
+                raise ValueError("Row names particles outside the family ids given")
+            if rows[r, 0] < 0 or rows[r, 0] + (rows[r, 2] - rows[r, 1]) * itemsize[rows[r, 3]] > buflen:
+                raise ValueError("Values lie outside the data read")
+            total += (rows[r, 2] - rows[r, 1]) * itemsize[rows[r, 3]]
+        if rows.shape[0] > 0:
+            if total >= _NOGIL_NBYTES:
+                with nogil:
+                    failed = _scatter_rows(&buf[0], rows, &family[0], itemsize, data, stride, length, ndest, starts)
             else:
-                memcpy(dest.data[f] + starts[f] * dest.stride[f], src + itemsize * i, itemsize)
-            starts[f] += 1
-
-
-def scatter_by_family(const uint8_t[::1] buf, Py_ssize_t offset, Py_ssize_t itemsize, const uint8_t[::1] family,
-                      list destinations, int64_t[::1] starts):
-    """Put each item of buf, starting at offset (len(family) items of itemsize bytes), in the destination of its
-    family, starting at starts[family] (which is advanced past what is put there). Items of families without a
-    destination are skipped."""
-    cdef Py_ssize_t n = family.shape[0]
-    cdef _Destinations dest = _Destinations(destinations, itemsize)
-    if offset < 0 or buf.shape[0] < offset + n * itemsize:
-        raise ValueError("Too few data for the family ids given")
-    if starts.shape[0] < dest.n:
-        raise ValueError("Too few start indices for the destinations given")
-    if n == 0:
-        return
-    if n * itemsize >= _NOGIL_NBYTES:
-        with nogil:
-            _scatter(&buf[offset], n, itemsize, &family[0], dest, &starts[0])
-    else:
-        _scatter(&buf[offset], n, itemsize, &family[0], dest, &starts[0])
+                failed = _scatter_rows(&buf[0], rows, &family[0], itemsize, data, stride, length, ndest, starts)
+        if failed:
+            raise ValueError("Particles lie outside the destination arrays")
+    finally:
+        free(itemsize)
+        free(ndest)
+        free(data)
+        free(stride)
+        free(length)
+        free(starts)
 
 
 def chunk_counts(const uint8_t[::1] family, Py_ssize_t chunk, Py_ssize_t nfamilies):
     """Count the particles of each family (ignoring ids of nfamilies or more) in each chunk of chunk particles,
     returning an array (chunks, families)"""
-    cdef Py_ssize_t i, n = family.shape[0]
+    cdef Py_ssize_t c, i, stop, n = family.shape[0]
     if chunk <= 0:
         raise ValueError("Chunks must hold particles")
     out = np.zeros(((n + chunk - 1) // chunk, nfamilies), dtype=np.int64)
     cdef int64_t[:, ::1] o = out
-    for i in range(n):
-        if family[i] < nfamilies:
-            o[i // chunk, family[i]] += 1
+    with nogil:
+        for c in range(o.shape[0]):
+            stop = min(n, (c + 1) * chunk)
+            for i in range(c * chunk, stop):
+                if family[i] < nfamilies:
+                    o[c, family[i]] += 1
     return out
 
 

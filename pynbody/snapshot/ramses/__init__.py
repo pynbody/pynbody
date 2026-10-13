@@ -197,7 +197,9 @@ class RamsesSnap(SimSnap):
         # snapshot does not contain all the particles in the output
         self.partial_load = sorted(self._cpus) != list(range(1, self.ncpu + 1))
         self._maxlevel = maxlevel
-        self._read_plans = {}  # plans of reads (see _plan), kept for loading further arrays
+        # plans of particle reads (see _plan), kept for loading further fields; plans of cell reads are not kept, as
+        # each kind of hydro-like file is loaded whole, once
+        self._read_plans = {}
 
         type_map = self._count_particles()
 
@@ -633,9 +635,8 @@ class RamsesSnap(SimSnap):
         smooth.set_default_units()
 
         try:
-            plan = self._read_plan(('cell positions',), lambda: _plan.cell_positions(
-                self._amr_layouts, self._cell_selections, self._gas_i0,
-                [self._amr_filename(cpu) for cpu in self._cpus]))
+            plan = _plan.cell_positions(self._amr_layouts, self._cell_selections, self._gas_i0,
+                                        [self._amr_filename(cpu) for cpu in self._cpus])
             _plan.load_cell_positions(plan, self._cell_selections, self._amr_geometry, self._info['boxlen'],
                                       self.gas['pos'], self.gas['smooth'])
         except Exception:
@@ -704,8 +705,7 @@ class RamsesSnap(SimSnap):
 
         kind = _layout.HydroLikeFile(header_nbytes=header_nbytes, nvar=int(nvar_file))
         wanted = [(var, var) for var in range(len(dims))]
-        plan = self._read_plan(('cell values', mode, kind, tuple(wanted)), lambda: _plan.cell_values(
-            self._amr_layouts, self._cell_selections, self._gas_i0, paths, kind, wanted))
+        plan = _plan.cell_values(self._amr_layouts, self._cell_selections, self._gas_i0, paths, kind, wanted)
         _plan.load_cell_values(plan, self._cell_selections, dims)
 
         if mode is _gv_load_gravity:

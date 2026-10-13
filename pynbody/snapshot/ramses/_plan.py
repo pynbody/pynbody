@@ -19,7 +19,6 @@ arrays, so it can be inspected, tested and kept for reuse; the ``load_*`` functi
 
 from __future__ import annotations
 
-import bisect
 import dataclasses
 
 import numpy as np
@@ -78,9 +77,9 @@ def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges
 
     *ranges* are rows (file, offset, number of bytes, unit), where file indexes *paths* (and the selections the
     pieces decode with); the ranges of a file must not overlap, and those of a unit, which must be read in one
-    piece, must lie together in one file. Each row's *offset_columns* hold offsets relative to the start of the
-    range given by the same column of *row_ranges*. *checks* are rows (range, offset relative to its start, expected
-    int32, kind)."""
+    piece, must lie in one file (but may be interleaved with those of other units). Each row's *offset_columns* hold
+    offsets relative to the start of the range given by the same column of *row_ranges*. *checks* are rows (range,
+    offset relative to its start, expected int32, kind)."""
     if len(ranges) == 0:
         return []
     order = np.lexsort((ranges[:, 1], ranges[:, 0]))
@@ -88,23 +87,28 @@ def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges
     renumber[order] = np.arange(len(order))
     file, offset, nbytes, units = ranges[order].T
     n = len(order)
-    new_unit = np.ones(n, dtype=bool)
-    new_unit[1:] = (units[1:] != units[:-1]) | (file[1:] != file[:-1])
-    units = np.cumsum(new_unit)  # (numbered in order)
 
-    # 1. cut into pieces: each takes ranges up to and including the first that brings it to job_nbytes, and the rest
-    # of that range's unit, but ends at the end of a file
+    # 1. cut into pieces: each takes ranges up to and including the first that brings it to job_nbytes, then on to
+    # the first place where no unit is left unfinished; and ends at the end of a file
+    _, units = np.unique(units, return_inverse=True)
+    last = np.zeros(units.max() + 1, dtype=np.int64)
+    np.maximum.at(last, units, np.arange(n))
+    may_end = np.flatnonzero(np.maximum.accumulate(last[units]) == np.arange(n))  # where a piece may end
+    file_start = np.flatnonzero(np.diff(file, prepend=-1))
+    file_end = np.append(file_start[1:], n) - 1
     cumulative = np.cumsum(nbytes)
-    unit_end = np.searchsorted(units, units, side='right')
-    file_end = np.searchsorted(file, file, side='right')
-    cumulative_l, before_l = cumulative.tolist(), (cumulative - nbytes).tolist()
-    unit_end_l, file_end_l = unit_end.tolist(), file_end.tolist()
-    starts, i = [], 0
-    while i < n:
-        starts.append(i)
-        j = bisect.bisect_left(cumulative_l, before_l[i] + _execute.job_nbytes) + 1
-        i = unit_end_l[min(max(j, i + 1), file_end_l[i]) - 1]
-    starts = np.array(starts, dtype=np.int64)
+    before = cumulative - nbytes
+    starts = [file_start[cumulative[file_end] - before[file_start] < _execute.job_nbytes]]  # (files of one piece)
+    for f0, f1 in zip(file_start.tolist(), file_end.tolist()):
+        if cumulative[f1] - before[f0] < _execute.job_nbytes:
+            continue
+        i, piece_starts = f0, []
+        while i <= f1:
+            piece_starts.append(i)
+            j = min(max(int(np.searchsorted(cumulative, before[i] + _execute.job_nbytes)), i), f1)
+            i = int(may_end[np.searchsorted(may_end, j)]) + 1  # (a file's last range is where a piece may end)
+        starts.append(np.array(piece_starts, dtype=np.int64))
+    starts = np.sort(np.concatenate(starts))
     npieces = len(starts)
     is_start = np.zeros(n, dtype=bool)
     is_start[starts] = True
@@ -126,15 +130,16 @@ def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges
     reads = np.stack([read_offset, read_nbytes, read_at], axis=1)
     piece_nbytes = np.add.reduceat(read_nbytes, piece_first_read[:-1]).tolist()
     piece_requested = np.add.reduceat(nbytes, starts).tolist()
+    del ends, new_read, read_of, first, read_piece, read_at
 
     # 3. point rows and checks at the buffer, and share them between pieces
-    rows = rows.copy()
+    row_order, row_bounds = _by_piece(piece_of[renumber[row_ranges[:, 0]]], npieces)
+    rows = rows[row_order]
     for k, column in enumerate(offset_columns):
-        rows[:, column] += at[renumber[row_ranges[:, k]]]
-    rows, row_bounds = _by_piece(rows, piece_of[renumber[row_ranges[:, 0]]], npieces)
+        rows[:, column] += at[renumber[row_ranges[row_order, k]]]
     check_range = renumber[checks[:, 0]]
-    checks = np.stack([at[check_range] + checks[:, 1], checks[:, 2], checks[:, 3]], axis=1)
-    checks, check_bounds = _by_piece(checks, piece_of[check_range], npieces)
+    check_order, check_bounds = _by_piece(piece_of[check_range], npieces)
+    checks = np.stack([at[check_range] + checks[:, 1], checks[:, 2], checks[:, 3]], axis=1)[check_order]
 
     for table in (reads, rows, checks):
         table.setflags(write=False)  # (plans are kept, and their pieces share these)
@@ -147,11 +152,10 @@ def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges
     return pieces
 
 
-def _by_piece(table, piece, npieces):
-    """Sort the rows of a table by the piece each belongs to, returning it and where each piece's rows start"""
+def _by_piece(piece, npieces):
+    """The order that sorts the rows of a table by the piece each belongs to, and where each piece's rows start"""
     order = np.argsort(piece, kind='stable')
-    return np.ascontiguousarray(table[order], dtype=np.int64), \
-        np.searchsorted(piece[order], np.arange(npieces + 1)).tolist()
+    return order, np.searchsorted(piece[order], np.arange(npieces + 1)).tolist()
 
 
 def _record_checks(range_index, data_offset, nbytes):
@@ -202,51 +206,97 @@ def _variable_groups(wanted):
 def cell_values(layouts: list[AmrLayout], selections: list[CellSelection], first_cells, paths: list[str],
                 kind: HydroLikeFile, wanted: list[tuple[int, int]]) -> ReadPlan:
     """Plan reading variables of selected cells from hydro-like files of the given kind. *wanted* lists (variable
-    in the file, destination index) pairs. Rows are as :func:`._kernels.cell_values` takes them: (data offset,
-    octs, mask offset, ind, first destination, where the first wanted cell goes, variables, record stride)."""
+    in the file, destination index) pairs. Rows are as :func:`._kernels.cell_values` takes them.
+
+    A run holding every oct of its level has whole records, and needs one row for each group of consecutive
+    variables (all the variables in one pass when all are wanted), read in one range if the group is every variable
+    the file holds (its records of every ind then lie together) or else in one range per ind. Any other run needs
+    a row for each variable, and a range for each ind of it."""
+    variables = [var for var, _ in wanted]
+    if len(set(variables)) != len(variables) or len({dest for _, dest in wanted}) != len(wanted) or \
+            not all(0 <= var < kind.nvar for var in variables):
+        raise ValueError(f"Variables must be distinct and fewer than the {kind.nvar} the files hold, and go to "
+                         f"distinct destinations")
     if not paths or not wanted:
         return ReadPlan('cell values', [])
     runs = _Runs(layouts, selections, first_cells)
     twotondim = runs.layout.twotondim
+    ind = np.arange(twotondim)
     block = runs.layout.hydro_block_offset(kind, runs.index)
     record_nbytes = 8 + 8 * runs.n
+    ranges, rows, row_ranges = [], [], []
+    nranges = 0
 
-    def values(which, var_groups, whole):
-        """Ranges and rows for the given runs, ind by ind and group by group. The values of a run holding every oct
-        of its level are whole records, and a group of them is read in one range; otherwise each variable's values
-        are a range of their own."""
-        shape = (len(which), twotondim, len(var_groups))
-        run = np.broadcast_to(which[:, None, None], shape).ravel()
-        ind = np.broadcast_to(np.arange(twotondim)[None, :, None], shape).ravel()
-        var0, dest0, nvar = (np.broadcast_to(var_groups[None, None, :, k], shape).ravel() for k in range(3))
-        record_start = block[run] + 24 + (ind * kind.nvar + var0) * record_nbytes[run]
-        if whole:
-            offset, nbytes = record_start, nvar * record_nbytes[run]
-            data_offset, record_stride = np.full(len(run), 4), record_nbytes[run]
-        else:
-            offset, nbytes = record_start + 4 + 8 * runs.first[run], 8 * runs.count[run]
-            data_offset = record_stride = np.zeros(len(run), dtype=np.int64)
-        rows = np.stack([data_offset, runs.count[run], runs.mask_offset[run], ind, dest0, runs.starts[run, ind], nvar,
-                         record_stride], axis=1)
-        return (runs.cpu[run], offset, nbytes), rows
+    def add(which, file_offset, nbytes, data_offset, dest0, nvar, var_stride, check):
+        """Ranges and rows for the runs *which*. *file_offset* and *nbytes* are (runs, 1) for one range per run, or
+        (runs, twotondim) for one per ind; the values of each ind start *data_offset* (runs, twotondim) into its
+        range. A row's ranges are one unit, read into one piece; but a run with more than job_nbytes in ranges of
+        each ind is given a row (and a unit) for each ind."""
+        nonlocal nranges
+        k, c = file_offset.shape
+        range_id = nranges + np.arange(k * c).reshape(k, c)
+        range_of_ind = np.broadcast_to(range_id, (k, twotondim))
+        nranges += k * c
+        table = np.concatenate([data_offset, np.stack([runs.count[which], runs.mask_offset[which], np.full(k, dest0),
+                                                        np.full(k, nvar), var_stride, np.full(k, int(check)),
+                                                        np.full(k, (1 << twotondim) - 1)], axis=1),
+                                runs.starts[which]], axis=1)
+        unit = np.broadcast_to(range_id[:, :1], (k, c))
+        split = np.flatnonzero((nbytes.sum(axis=1) > _execute.job_nbytes) & (c == twotondim))
+        if len(split):
+            each = np.repeat(table[split], twotondim, axis=0)  # (a row for each (run, ind))
+            ind_of = np.tile(ind, len(split))
+            each[:, :twotondim] = each[np.arange(len(each)), ind_of][:, None]
+            each[:, twotondim + 6] = 1 << ind_of
+            table = np.concatenate([np.delete(table, split, axis=0), each])
+            range_of_ind = np.concatenate([np.delete(range_of_ind, split, axis=0),
+                                           np.repeat(range_id[split].ravel()[:, None], twotondim, axis=1)])
+            unit = unit.copy()
+            unit[split] = range_id[split]
+        ranges.append((np.repeat(runs.cpu[which], c), file_offset.ravel(), nbytes.ravel(), unit.ravel()))
+        rows.append(table)
+        row_ranges.append(range_of_ind)
 
-    whole_ranges, whole_rows = values(np.flatnonzero(runs.whole), _variable_groups(wanted), True)
-    part_ranges, part_rows = values(np.flatnonzero(~runs.whole),
-                                    np.array([[var, dest, 1] for var, dest in wanted]).reshape(-1, 3), False)
-    rows = np.concatenate([whole_rows, part_rows]).astype(np.int64)
-    nvalue = len(rows)
+    whole, part = np.flatnonzero(runs.whole), np.flatnonzero(~runs.whole)
+    if len(whole):
+        for var0, dest0, nvar in _variable_groups(wanted).tolist():
+            # the records of a group of every variable lie together across the inds, and are read in one range,
+            # unless that is more than job_nbytes
+            together = (nvar == kind.nvar) & (twotondim * nvar * record_nbytes[whole] <= _execute.job_nbytes)
+            for which, one_range in ((whole[together], True), (whole[~together], False)):
+                if len(which) == 0:
+                    continue
+                rec = record_nbytes[which][:, None]
+                first_record = block[which][:, None] + 24 + var0 * rec
+                if one_range:
+                    add(which, first_record, twotondim * nvar * rec, 4 + ind * nvar * rec, dest0, nvar, rec[:, 0],
+                        True)
+                else:
+                    add(which, first_record + ind * kind.nvar * rec, np.broadcast_to(nvar * rec, (len(which),
+                        twotondim)), np.full((len(which), twotondim), 4), dest0, nvar, rec[:, 0], True)
+    if len(part):
+        rec = record_nbytes[part][:, None]
+        for var, dest in wanted:
+            add(part, block[part][:, None] + 28 + var * rec + 8 * runs.first[part][:, None] + ind * kind.nvar * rec,
+                np.broadcast_to(8 * runs.count[part][:, None], (len(part), twotondim)),
+                np.zeros((len(part), twotondim), dtype=np.int64), dest, 1, np.zeros(len(part), dtype=np.int64),
+                False)
+    if not rows:
+        return ReadPlan('cell values', [])
 
     # and a range for the records giving each level and its number of octs, which are checked
     _, first_run = np.unique(runs.cpu * runs.layout.nlevels + runs.level, return_index=True)
     nstubs = len(first_run)
-    stub_ranges = (runs.cpu[first_run], block[first_run], np.full(nstubs, 24))
+    ranges.append((runs.cpu[first_run], block[first_run], np.full(nstubs, 24), nranges + np.arange(nstubs)))
+    # (each record's starting length and value: the lengths that end them are then where expected)
     four = np.full(nstubs, 4)
-    expected = np.stack([four, runs.level[first_run] + 1, four, four, runs.n[first_run], four], axis=1)
-    checks = np.stack([np.repeat(nvalue + np.arange(nstubs), 6), np.tile(4 * np.arange(6), nstubs), expected.ravel(),
-                       np.full(6 * nstubs, _LEVEL_RECORD)], axis=1)
+    expected = np.stack([four, runs.level[first_run] + 1, four, runs.n[first_run]], axis=1)
+    checks = np.stack([np.repeat(nranges + np.arange(nstubs), 4), np.tile([0, 4, 12, 16], nstubs), expected.ravel(),
+                       np.full(4 * nstubs, _LEVEL_RECORD)], axis=1)
 
-    ranges = _ranges(*(np.concatenate(columns) for columns in zip(whole_ranges, part_ranges, stub_ranges)))
-    return ReadPlan('cell values', _assemble(paths, ranges, rows, np.arange(nvalue)[:, None], [0], checks,
+    ranges = _ranges(*(np.concatenate(columns) for columns in zip(*ranges)))
+    return ReadPlan('cell values', _assemble(paths, ranges, np.concatenate(rows).astype(np.int64, copy=False),
+                                             np.concatenate(row_ranges), list(range(twotondim)), checks,
                                              _execute.read_gap(paths)))
 
 
@@ -274,7 +324,8 @@ def cell_positions(layouts: list[AmrLayout], selections: list[CellSelection], fi
                            np.stack([runs.count, runs.mask_offset, runs.level], axis=1), runs.starts], axis=1)
     w = np.flatnonzero(runs.whole)
     checks = _record_checks(range_index[w].ravel(), np.full(len(w) * ndim, 4), np.repeat(8 * runs.n[w], ndim))
-    return ReadPlan('cell positions', _assemble(paths, ranges, rows.astype(np.int64), row_ranges, [0, 1, 2], checks,
+    return ReadPlan('cell positions', _assemble(paths, ranges, rows.astype(np.int64, copy=False), row_ranges, [0, 1, 2],
+                                                checks,
                                                 _execute.read_gap(paths)))
 
 
@@ -297,8 +348,8 @@ def _destinations(arrays, dtype):
 def load_cell_values(plan: ReadPlan, selections: list[CellSelection], arrays: list):
     """Perform a cell_values plan, putting values into *arrays* (indexed by the plan's destinations; None to skip)"""
     destinations, copies = _destinations(arrays, np.float64)
-    _execute.run_plan(plan, lambda piece, buf: kernels.cell_values(buf, piece.rows, selections[piece.context].mask,
-                                                                    destinations))
+    _execute.run_plan(plan, lambda piece, buf: kernels.cell_values(
+        buf, piece.rows, (piece.rows.shape[1] - 7) // 2, selections[piece.context].mask, destinations))
     for a, temporary in copies:
         a[...] = temporary
 
@@ -354,7 +405,7 @@ def particle_fields(layouts: list[ParticleLayout], selections: list[ParticleSele
                                 record_nbytes[file[nlast]], np.full(len(nlast), _RECORD_LENGTH)], axis=1))
     ranges = _ranges(*(np.concatenate(columns) for columns in zip(*ranges)))
     paths = [layout.path for layout in layouts]
-    return ReadPlan('particle fields', _assemble(paths, ranges, np.concatenate(rows).astype(np.int64),
+    return ReadPlan('particle fields', _assemble(paths, ranges, np.concatenate(rows).astype(np.int64, copy=False),
                                                  np.arange(len(ranges))[:, None], [0],
                                                  np.concatenate(checks).astype(np.int64), _execute.read_gap(paths)))
 
@@ -367,14 +418,7 @@ def load_particle_fields(plan: ReadPlan, selections: list[ParticleSelection], fi
         destinations, field_copies = _destinations(arrays, np.dtype(dtype))
         prepared.append((np.dtype(dtype).itemsize, destinations))
         copies += field_copies
-
-    def decode(piece, buf):
-        family = selections[piece.context].family
-        for row in piece.rows:
-            at, p0, p1, field = row[:4].tolist()
-            itemsize, destinations = prepared[field]
-            kernels.scatter_by_family(buf, at, itemsize, family[p0:p1], destinations, row[4:].copy())
-
-    _execute.run_plan(plan, decode)
+    _execute.run_plan(plan, lambda piece, buf: kernels.scatter_rows(buf, piece.rows, selections[piece.context].family,
+                                                                     prepared))
     for a, temporary in copies:
         a[...] = temporary
