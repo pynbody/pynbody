@@ -14,6 +14,9 @@ no decode threads, everything is done in the calling thread.
 
 Each unit of work, and each job, is let go of once done, so that a file's datasets are freed once all the work on
 that file is done, rather than when every request has been read.
+
+Nothing here depends on HDF5: :func:`perform_tasks` performs any tasks whose jobs are :class:`.common.Job`, and is
+also used to read RAMSES outputs (see :mod:`pynbody.snapshot._ramses_reader`).
 """
 
 from __future__ import annotations
@@ -38,16 +41,22 @@ def perform(works: list[plan._Work], strategy: ReadStrategy):
     """Perform the work (prepared by :func:`prepare`), emptying *works* as it goes."""
     tasks = plan.group_by_file(works)
     works.clear()
+    perform_tasks(tasks, strategy, plan.jobs)
+
+
+def perform_tasks(tasks: list, strategy: ReadStrategy, jobs=iter):
+    """Perform *tasks*, each the work on one file, whose jobs (in order) are given by ``jobs(task)``, emptying *tasks*
+    as it goes."""
     if strategy.serial:
-        _perform_serially(tasks)
+        _perform_serially(tasks, jobs)
     else:
-        _Pipeline(strategy).run(tasks)
+        _Pipeline(strategy, jobs).run(tasks)
 
 
-def _perform_serially(tasks: list[list[plan._Work]]):
+def _perform_serially(tasks: list, jobs):
     tasks.reverse()
     while tasks:
-        for job in plan.jobs(tasks.pop()):
+        for job in jobs(tasks.pop()):
             job.run()
 
 
@@ -83,8 +92,9 @@ class _Budget:
 class _Pipeline:
     """Input threads fetching jobs, and a pool of decode threads processing what they fetch."""
 
-    def __init__(self, strategy: ReadStrategy):
+    def __init__(self, strategy: ReadStrategy, jobs=plan.jobs):
         self._strategy = strategy
+        self._jobs = jobs
         self._budget = _Budget(strategy.inflight_nbytes)
         self._stop = threading.Event()  # set once anything has gone wrong, or the read is interrupted
         self._error = None  # the first exception raised while processing
@@ -131,7 +141,7 @@ class _Pipeline:
         for task in self._take_each(tasks):
             self._read_task(task)
 
-    def _read_task(self, task: list[plan._Work]):
+    def _read_task(self, task):
         """Fetch the jobs of a task in order, handing each to the decode threads (or processing it here)"""
         try:
             self._fetch_jobs(task)
@@ -139,8 +149,8 @@ class _Pipeline:
             self._stop.set()  # (now, so that other threads stop at once, rather than once this reaches run)
             raise
 
-    def _fetch_jobs(self, task: list[plan._Work]):
-        for job in plan.jobs(task):
+    def _fetch_jobs(self, task):
+        for job in self._jobs(task):
             if self._stop.is_set():
                 return
             if job.process is None:

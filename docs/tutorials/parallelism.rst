@@ -88,28 +88,23 @@ OpenMP modules you will be using.
 Parallel ramses reader support
 ------------------------------
 
-The ramses reader speeds up load times by using multiple concurrent
-processes to read files. The optimal number of readers depends on a combination
-of CPU and IO performance, which can be especially subtle on network
-file system machines. (With lustre, the best number of processes may even be
-dependent on how you `striped the data <https://wiki.lustre.org/Configuring_Lustre_File_Striping>`_.)
-You should therefore experiment with the number of
-processes used for the reading process if optimisation is important to you. This can be done using pynbody's
-standard :ref:`configuration <configuration>` system; for instance, create a
-``.pynbodyrc`` file in your home directory with the following
-section:
+The ramses reader uses threads to read the files of an output: input threads read the files, each
+reading one file at a time from start to end, while decoding threads pick out the leaf cells (or
+each family's particles) and put them in place, without holding Python's global interpreter lock.
+By default up to 8 threads decode (but no more than there are CPUs), and one thread reads, except
+on a parallel filesystem such as Lustre or GPFS, where 16 do. You can change these numbers through
+pynbody's standard :ref:`configuration <configuration>` system; for instance, create a
+``.pynbodyrc`` file in your home directory with the following section:
 
 .. code-block:: none
 
    [ramses]
    parallel-read: 4
+   io-threads: 2
 
-This specifies 4 processes.
-
-.. note::
- Many systems limit the amount of shared memory available,
- which can cause problems once you enable parallel-reading. See
- :ref:`our separate note on this issue <pitfall_ramses_sharedmem>`.
+This specifies at most 4 decoding threads and 2 input threads. Setting ``parallel-read`` to 1 or
+less reads everything in the calling thread. The numbers can also be changed during a session, through
+``pynbody.snapshot._ramses_reader.config``.
 
 .. _using_shared_arrays:
 

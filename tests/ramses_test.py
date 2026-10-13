@@ -527,3 +527,79 @@ def test_negative_iords(ramses_file):
     assert fcosmo.has_negative_iords == True
     assert fcosmo.is_cosmological == True
     assert fcosmo.has_potential_negative_iords_bug == True
+
+
+@pytest.fixture
+def ramses_read_threads():
+    """Set the threads used to read RAMSES files, restoring the configuration afterwards"""
+    from pynbody.snapshot import _ramses_reader
+    saved = dict(_ramses_reader.config)
+
+    def set_threads(parallel_read, io_threads='auto'):
+        _ramses_reader.config['parallel-read'] = parallel_read
+        _ramses_reader.config['io-threads'] = io_threads
+
+    yield set_threads
+    _ramses_reader.config.update(saved)
+
+
+def _all_ramses_arrays(f):
+    arrays = {}
+    for fam in f.families():
+        for name in sorted(f[fam].loadable_keys()):
+            if fam is pynbody.family.gas and name == 'mass':
+                continue
+            arrays[(fam.name, name)] = np.asarray(f[fam][name]).copy()
+    return arrays
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.parametrize("kwargs", [{}, {"cpus": [7, 2, 11]}, {"maxlevel": 9}], ids=["all", "cpus", "maxlevel"])
+def test_threaded_read_matches_serial(ramses_read_threads, kwargs):
+    ramses_read_threads(1)
+    serial = _all_ramses_arrays(pynbody.load("testdata/ramses/output_00080", **kwargs))
+    ramses_read_threads(4, 3)
+    threaded = _all_ramses_arrays(pynbody.load("testdata/ramses/output_00080", **kwargs))
+    assert serial.keys() == threaded.keys()
+    for k in serial:
+        np.testing.assert_array_equal(serial[k], threaded[k], err_msg=str(k))
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_maxlevel_counts_coarser_cells():
+    f = pynbody.load("testdata/ramses/output_00080")
+    f_coarse = pynbody.load("testdata/ramses/output_00080", maxlevel=9)
+    assert len(f_coarse.gas) < len(f.gas)
+    # the cells of a coarsened grid still fill the volume the full grid fills
+    np.testing.assert_allclose((f_coarse.gas['smooth'] ** 3).sum(), (f.gas['smooth'] ** 3).sum(), rtol=1e-10)
+    assert f_coarse.gas['smooth'].min() >= f.gas['smooth'].min()
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.parametrize("damage", ["truncate", "mismatch"])
+def test_damaged_hydro_file_is_detected(tmp_path, damage):
+    """A hydro file that does not have the layout its AMR file implies must raise an error, not load nonsense"""
+    import shutil
+    source = Path("testdata/ramses/output_00080")
+    target = tmp_path / "output_00080"
+    target.mkdir()
+    for name in os.listdir(source):
+        if os.path.isfile(source / name):
+            os.symlink((source / name).absolute(), target / name)
+    hydro = target / "hydro_00080.out00003"
+    hydro.unlink()
+    shutil.copy(source / "hydro_00080.out00003", hydro)
+    if damage == "truncate":
+        with open(hydro, "r+b") as f:
+            f.truncate(os.path.getsize(hydro) // 2)
+    else:
+        # replace the file with another CPU's, whose octs lie elsewhere
+        shutil.copy(source / "hydro_00080.out00004", hydro)
+
+    f = pynbody.load(str(target), cpus=[3])
+    with pytest.raises(ValueError):
+        f.gas['rho'] # noqa
+    assert 'rho' not in f.gas.keys()

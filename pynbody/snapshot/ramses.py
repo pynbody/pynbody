@@ -16,34 +16,11 @@ from pathlib import Path
 
 import numpy as np
 
-import pynbody.array.shared
-
 from .. import array, config_parser, family, units
 from ..analysis.cosmology import age
-from ..extern.cython_fortran_utils import FortranFile
-from . import SimSnap, namemapper
+from . import SimSnap, _ramses_reader, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.ramses')
-
-multiprocess_num = int(config_parser.get('ramses', "parallel-read"))
-multiprocess = (multiprocess_num > 1)
-
-if multiprocess:
-    import atexit
-    import multiprocessing
-
-    remote_exec = pynbody.array.shared.shared_array_remote
-    remote_map = pynbody.array.shared.remote_map
-else:
-    multiprocessing = None
-
-
-    def remote_exec(fn):
-        return fn
-
-
-    def remote_map(*args, **kwargs):
-        return list(map(*args[1:], **kwargs))
 
 _float_type = 'd'
 _int_type = 'i'
@@ -60,239 +37,9 @@ def _cpu_id(i):
     return str(i).rjust(5, "0")
 
 
-@remote_exec
-def _cpui_count_particles_with_implicit_families(filename, distinguisher_field, distinguisher_type):
-    with FortranFile(filename) as f:
-        f.seek(0, 2)
-        eof_fpos = f.tell()
-        f.seek(0, 0)
-        header = f.read_attrs(ramses_particle_header)
-        npart_this = header['npart']
-        f.skip(distinguisher_field)
-        # Avoid end-of-file issues
-        if f.tell() == eof_fpos:
-            data = np.array([])
-        else:
-            data = f.read_vector(distinguisher_type)
-
-        if len(data) > 0:
-            my_mask = np.array((data != 0), dtype=np.int8)  # -> 0 for dm, 1 for star
-        else:
-            my_mask = np.zeros(npart_this, dtype=np.int8)
-        nstar_this = (data != 0).sum()
-        return npart_this, nstar_this, my_mask
-
-
-@remote_exec
-def _cpui_count_particles_with_explicit_families(filename, family_field, family_type):
-    assert np.issubdtype(family_type, np.int8)
-    counts_array = np.zeros(256, dtype=np.int64)
-    with FortranFile(filename) as f:
-        header = f.read_attrs(ramses_particle_header)
-        npart_this = header['npart']
-
-        f.skip(family_field)
-        my_mask = f.read_vector(family_type)
-
-        unique_mask_ids, counts = np.unique(my_mask, return_counts=True)
-        counts_array[unique_mask_ids] = counts
-
-        assert sum(counts) == npart_this
-
-        return counts_array, my_mask
-
-
-@remote_exec
-def _cpui_load_particle_block(filename, arrays, offset, first_index, type_, family_mask):
-    with FortranFile(filename) as f:
-        _header = f.read_attrs(ramses_particle_header)
-        f.skip(offset)
-        data = f.read_vector(type_)
-        for fam_id, ar in enumerate(arrays):
-            data_this_family = data[family_mask == fam_id]
-            ind0 = first_index[fam_id]
-            ind1 = ind0 + len(data_this_family)
-            ar[ind0:ind1] = data_this_family
-
-
-def _cpui_level_iterator(cpu, amr_filename, bisection_order, maxlevel, ndim):
-    with FortranFile(amr_filename) as f:
-        header = f.read_attrs(ramses_amr_header)
-        f.skip(13)
-
-        n_per_level = f.read_vector(_int_type).reshape((header['nlevelmax'], header['ncpu']))
-        f.skip(1)
-        if header['nboundary'] > 0:
-            f.skip(2)
-            n_per_level_boundary = f.read_vector(_int_type).reshape((header['nlevelmax'], header['nboundary']))
-
-        f.skip(2)
-        if bisection_order:
-            f.skip(5)
-        else:
-            f.skip(1)
-        f.skip(3)
-
-        offset = np.array(header['ng'], dtype=_float_type) / 2
-        offset -= 0.5
-
-        coords = np.zeros(3, dtype=_float_type)
-
-        for level in range(maxlevel or header['nlevelmax']):
-
-            # loop through those CPUs with grid data (includes ghost regions)
-            for cpuf in 1 + np.where(n_per_level[level, :] != 0)[0]:
-                if cpuf == cpu:
-
-                    # this is the data we want
-                    f.skip(3)  # grid, next, prev index
-
-                    # store the coordinates in temporary arrays. We only want
-                    # to copy it if the cell is not refined
-                    coords = [
-                        f.read_vector(_float_type) for ar in range(ndim)]
-
-                    # stick on zeros if we're in less than 3D
-                    coords += [np.zeros_like(coords[0]) for ar in range(3 - ndim)]
-
-                    f.skip(1  # father index
-                           + 2 * ndim  # nbor index
-                           # son index,cpumap,refinement map
-                           + 2 * (2 ** ndim)
-                           )
-
-                    refine = np.array(
-                        [f.read_vector(_int_type) for i in range(2 ** ndim)])
-
-                    if (level + 1 == maxlevel or level + 1 == header['nlevelmax']):
-                        refine[:] = 0
-
-                    coords[0] -= offset[0]
-                    coords[1] -= offset[1]
-                    coords[2] -= offset[2]
-                    # x0-=offset[0]; y0-=offset[1]; z0-=offset[2]
-
-                    yield coords, refine, cpuf, level
-
-                else:
-
-                    # skip ghost regions from other CPUs
-                    f.skip(3 + ndim + 1 + 2 * ndim + 3 * 2 ** ndim)
-
-            if header['nboundary'] > 0:
-                for boundaryf in np.where(n_per_level_boundary[level, :] != 0)[0]:
-                    f.skip(3 + ndim + 1 + 2 * ndim + 3 * 2 ** ndim)
-
-
-@remote_exec
-def _cpui_count_gas_cells(level_iterator_args):
-    ncell = 0
-    for coords, refine, cpu, level in _cpui_level_iterator(*level_iterator_args):
-        ncell += (refine == 0).sum()
-    return ncell
-
-
-@remote_exec
-def _cpui_load_gas_pos(pos_array, smooth_array, ndim, boxlen, i0, level_iterator_args):
-    dims = [pos_array[:, i] for i in range(ndim)]
-    subgrid_index = np.arange(2 ** ndim)[:, np.newaxis]
-    subgrid_z = np.floor((subgrid_index) / 4)
-    subgrid_y = np.floor((subgrid_index - 4 * subgrid_z) / 2)
-    subgrid_x = np.floor(subgrid_index - 2 * subgrid_y - 4 * subgrid_z)
-    subgrid_x -= 0.5
-    subgrid_y -= 0.5
-    subgrid_z -= 0.5
-
-    for (x0, y0, z0), refine, cpu, level in _cpui_level_iterator(*level_iterator_args):
-        dx = boxlen * 0.5 ** (level + 1)
-
-        x0 = boxlen * x0 + dx * subgrid_x
-        y0 = boxlen * y0 + dx * subgrid_y
-        z0 = boxlen * z0 + dx * subgrid_z
-
-        mark = np.where(refine == 0)
-
-        i1 = i0 + len(mark[0])
-        for q, d in zip(dims, [x0, y0, z0][:ndim]):
-            q[i0:i1] = d[mark]
-
-        smooth_array[i0:i1] = dx
-        i0 = i1
-
-
 _gv_load_hydro = 0
 _gv_load_gravity = 1
 _gv_load_rt = 2
-
-
-@remote_exec
-def _cpui_load_gas_vars(dims, maxlevel, ndim, filename, cpu, lia, i1,
-                        mode=_gv_load_hydro):
-    logger.info("Loading data from CPU %d", cpu)
-
-    nvar = len(dims)
-    grid_info_iter = _cpui_level_iterator(*lia)
-
-    with FortranFile(filename) as f:
-        exact_nvar = False
-        if mode is _gv_load_hydro:
-            header = f.read_attrs(ramses_hydro_header)
-            nvar_file = header['nvarh']
-        elif mode is _gv_load_gravity:
-            header = f.read_attrs(ramses_grav_header)
-            nvar_file = 4
-        elif mode is _gv_load_rt:
-            header = f.read_attrs(ramses_rt_header)
-            nvar_file = header['nrtvar']
-            exact_nvar = True
-        else:
-            raise ValueError("Unknown RAMSES load mode")
-
-        if nvar_file != nvar and exact_nvar:
-            raise ValueError("Wrong number of variables in RAMSES dump")
-        elif nvar_file < nvar:
-            warnings.warn(
-                "Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)" % (
-                    nvar, nvar_file), RuntimeWarning)
-            nvar = nvar_file
-            dims = dims[:nvar]
-        elif nvar_file > nvar:
-            warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)" % (
-                nvar_file, nvar), RuntimeWarning)
-
-        for level in range(maxlevel or header['nlevelmax']):
-
-            for cpuf in range(1, header['ncpu'] + 1):
-                flevel = f.read_int()
-                ncache = f.read_int()
-                assert flevel - 1 == level
-
-                if ncache > 0:
-                    if cpuf == cpu:
-                        coords, refine, gi_cpu, gi_level = next(grid_info_iter)
-                        mark = np.where(refine == 0)
-
-                        assert gi_level == level
-                        assert gi_cpu == cpu
-
-                    if cpuf == cpu and len(mark[0]) > 0:
-                        for icel in range(2 ** ndim):
-                            i0 = i1
-                            i1 = i0 + (refine[icel] == 0).sum()
-                            for ar in dims:
-                                ar[i0:i1] = f.read_vector(
-                                    _float_type)[(refine[icel] == 0)]
-
-                            f.skip(nvar_file - nvar)
-
-                    else:
-                        f.skip((2 ** ndim) * nvar_file)
-
-            for boundary in range(header['nboundary']):
-                flevel = f.read_int()
-                ncache = f.read_int()
-                if ncache > 0:
-                    f.skip((2 ** ndim) * nvar_file)
 
 
 ramses_particle_header = (
@@ -384,8 +131,6 @@ class RamsesSnap(SimSnap):
     In particular SPH image generation routines automatically switch on an appropriate de-noising scheme to provide
     effective interpolation between cells.
     """
-    reader_pool = None
-
     def __init__(self, dirname, cpus=None, maxlevel=None, with_gas=True, force_gas=False, times_are_proper=None,
                  negative_iords_on_purpose=False):
         """
@@ -417,8 +162,6 @@ class RamsesSnap(SimSnap):
 
         global config
         super().__init__()
-
-        self.__setup_parallel_reading()
 
         if isinstance(dirname, Path):
             dirname = str(dirname)
@@ -489,21 +232,6 @@ class RamsesSnap(SimSnap):
         self._load_rt_infofile()
         self._decorate()
         self._transfer_sink_data_to_family_array()
-
-    def __setup_parallel_reading(self):
-        if multiprocess:
-            self._shared_arrays = True
-            if (RamsesSnap.reader_pool is None):
-                RamsesSnap.reader_pool = multiprocessing.Pool(multiprocess_num)
-                atexit.register(self._cleanup_reader_pool)
-
-    @classmethod
-    def _cleanup_reader_pool(cls):
-        """Clean up the multiprocessing pool when the process exits"""
-        if cls.reader_pool is not None:
-            cls.reader_pool.close()
-            cls.reader_pool.join()
-            cls.reader_pool = None
 
     def _load_fluid_descriptors(self):
         types = ["hydro", "grav"]
@@ -674,16 +402,18 @@ class RamsesSnap(SimSnap):
             return {}
         family_block = self._particle_blocks.index('family')
         family_dtype = self._particle_types[family_block]
+        if np.dtype(family_dtype).itemsize != 1:
+            raise ValueError("The family field of RAMSES particle files is expected to hold one byte per particle")
         self._particle_family_ids_on_disk = []
         self._particle_file_start_indices = []
-        results = remote_map(self.reader_pool,
-                             _cpui_count_particles_with_explicit_families,
-                             [self._particle_filename(i) for i in self._cpus],
-                             [family_block] * len(self._cpus),
-                             [family_dtype] * len(self._cpus))
+        results = _ramses_reader.count_particles([self._particle_filename(i) for i in self._cpus],
+                                                 family_block, family_dtype)
 
         aggregate_counts = np.zeros(256, dtype=np.int64)
-        for counts, family_ids in results:
+        for particle_file, family_ids in results:
+            family_ids = family_ids.view(np.uint8)
+            counts = np.bincount(family_ids, minlength=256)
+            assert counts.sum() == particle_file.npart
             aggregate_counts += counts
             self._particle_family_ids_on_disk.append(family_ids)
 
@@ -718,8 +448,7 @@ class RamsesSnap(SimSnap):
             aggregate_counts_remapped[internal_id] += aggregate_counts[ramses_family_id]
 
         # perform the remapping for our stored particle identifiers
-        for fid in self._particle_family_ids_on_disk:
-            fid[:] = ramses_id_to_internal_id[fid]
+        self._particle_family_ids_on_disk = [ramses_id_to_internal_id[fid] for fid in self._particle_family_ids_on_disk]
 
         return_d = {}
         self._particle_file_start_indices = [[] for x in results]
@@ -733,6 +462,10 @@ class RamsesSnap(SimSnap):
                     self._particle_file_start_indices[i].append(startpoint)
                     startpoint += (fid == internal_family_id).sum()
                 assert startpoint == count
+
+        self._particle_files = [r[0] for r in results]
+        _ramses_reader.set_families(self._particle_files, self._particle_family_ids_on_disk,
+                                    self._particle_file_start_indices, len(internal_id_to_family))
 
         n_sinks = self._count_sink_particles()
 
@@ -847,13 +580,16 @@ class RamsesSnap(SimSnap):
                     "Using field %s to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher." % pb_name)
             distinguisher_type = self._particle_types[distinguisher_field]
 
-        results = remote_map(self.reader_pool,
-                             _cpui_count_particles_with_implicit_families,
-                             [self._particle_filename(i) for i in self._cpus],
-                             [distinguisher_field] * len(self._cpus),
-                             [distinguisher_type] * len(self._cpus))
+        results = _ramses_reader.count_particles([self._particle_filename(i) for i in self._cpus],
+                                                 distinguisher_field, distinguisher_type)
 
-        for npart_this, nstar_this, family_ids in results:
+        for particle_file, data in results:
+            npart_this = particle_file.npart
+            if data is not None and len(data) > 0:
+                family_ids = np.array((data != 0), dtype=np.int8)  # -> 0 for dm, 1 for star
+            else:
+                family_ids = np.zeros(npart_this, dtype=np.int8)
+            nstar_this = int(family_ids.sum())
             self._particle_file_start_indices.append((dm_i0, star_i0))
             dm_i0 += (npart_this - nstar_this)
             star_i0 += nstar_this
@@ -862,47 +598,54 @@ class RamsesSnap(SimSnap):
 
             self._particle_family_ids_on_disk.append(family_ids)
 
+        self._particle_files = [r[0] for r in results]
+        _ramses_reader.set_families(self._particle_files, self._particle_family_ids_on_disk,
+                                    self._particle_file_start_indices, 2)
         return npart - nstar, nstar
 
     def _count_gas_cells(self):
-        ncells = remote_map(self.reader_pool, _cpui_count_gas_cells,
-                            [self._cpui_level_iterator_args(xcpu) for xcpu in self._cpus])
+        if len(self._cpus) == 0:
+            self._gas_i0 = np.zeros(0, dtype=np.int64)
+            return 0
+        self._amr_geometry, self._amr_layouts = _ramses_reader.scan_amr(
+            [self._amr_filename(cpu) for cpu in self._cpus], self._cpus,
+            self._info['ordering type'] == 'bisection', self._maxlevel)
+        ncells = [layout.ncells for layout in self._amr_layouts]
         self._gas_i0 = np.cumsum([0] + ncells)[:-1]
-        return np.sum(ncells)
-
-    def _cpui_level_iterator_args(self, cpu=None):
-        if cpu:
-            return cpu, self._amr_filename(cpu), self._info['ordering type'] == 'bisection', self._maxlevel, self._ndim
-        else:
-            return [self._cpui_level_iterator_args(x) for x in self._cpus]
-
-    def _level_iterator(self):
-        """Walks the AMR grid levels on disk, yielding a tuplet of coordinates and
-        refinement maps and levels working through the available CPUs and levels."""
-
-        for cpu in self._cpus:
-            yield from _cpui_level_iterator(*self._cpui_level_iterator_args(cpu))
+        return int(np.sum(ncells))
 
     def _load_gas_pos(self):
         self.gas['pos'].set_default_units()
         smooth = self.gas['smooth']
         smooth.set_default_units()
 
-        boxlen = self._info['boxlen']
+        try:
+            _ramses_reader.load_cell_positions(self._amr_geometry, self._amr_layouts,
+                                               [self._amr_filename(cpu) for cpu in self._cpus], self._gas_i0,
+                                               self._info['boxlen'], self.gas['pos'], self.gas['smooth'])
+        except Exception:
+            self._delete_gas_arrays(['pos', 'smooth'])
+            raise
 
-        remote_map(self.reader_pool,
-                   _cpui_load_gas_pos,
-                   [self.gas['pos']] * len(self._cpus),
-                   [self.gas['smooth']] * len(self._cpus),
-                   [self._ndim] * len(self._cpus),
-                   [boxlen] * len(self._cpus),
-                   self._gas_i0,
-                   self._cpui_level_iterator_args())
+    def _delete_gas_arrays(self, names):
+        """Delete gas arrays, after a failure to load them"""
+        for name in dict.fromkeys(self._array_name_1D_to_ND(n) or n for n in names):
+            if name in self.gas.keys():
+                del self.gas[name]
 
     def _load_gas_vars(self, mode=_gv_load_hydro):
+        blocks = [self._hydro_blocks, self._grav_blocks, self._rt_blocks][mode]
+        created = [i for i in blocks if i not in self.gas]
+        try:
+            self._load_gas_vars_into(mode, blocks)
+        except Exception:
+            self._delete_gas_arrays(created)
+            raise
+
+    def _load_gas_vars_into(self, mode, blocks):
         dims = []
 
-        for i in [self._hydro_blocks, self._grav_blocks, self._rt_blocks][mode]:
+        for i in blocks:
             if i not in self.gas:
                 self.gas._create_array(i)
             if self._ndim < 3 and i[-1] == 'z':
@@ -919,23 +662,33 @@ class RamsesSnap(SimSnap):
             self.gas['rho'][:] = 1.0
             self.gas['rho'] /= (np.array(self.gas['smooth']) ** 3)
             self.gas['rho'].set_default_units()
-
-        _grid_info_iter = self._level_iterator()
+            if mode is _gv_load_hydro:
+                return
 
         logger.info("Loading %s files", ['hydro', 'grav', 'rt'][mode])
 
         filenamer = [self._hydro_filename, self._grav_filename, self._rt_filename][mode]
+        paths = [filenamer(i) for i in self._cpus]
+        if len(paths) == 0:
+            return
 
-        remote_map(self.reader_pool,
-                   _cpui_load_gas_vars,
-                   [dims] * len(self._cpus),
-                   [self._maxlevel] * len(self._cpus),
-                   [self._ndim] * len(self._cpus),
-                   [filenamer(i) for i in self._cpus],
-                   self._cpus,
-                   self._cpui_level_iterator_args(),
-                   self._gas_i0,
-                   [mode] * len(self._cpus))
+        header_layout = [ramses_hydro_header, ramses_grav_header, ramses_rt_header][mode]
+        header, header_nbytes = _ramses_reader.read_header(paths[0], header_layout)
+        nvar_file = [header.get('nvarh'), 4, header.get('nrtvar')][mode]
+        nvar = len(dims)
+        if nvar_file != nvar and mode is _gv_load_rt:
+            raise ValueError("Wrong number of variables in RAMSES dump")
+        elif nvar_file < nvar:
+            warnings.warn(
+                "Fewer hydro variables are in this RAMSES dump than are defined in config.ini (expected %d, got %d in file)" % (
+                    nvar, nvar_file), RuntimeWarning)
+            dims = dims[:nvar_file]
+        elif nvar_file > nvar:
+            warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)" % (
+                nvar_file, nvar), RuntimeWarning)
+
+        _ramses_reader.load_cell_values(self._amr_geometry, self._amr_layouts, paths, self._gas_i0, header_nbytes,
+                                        int(nvar_file), dims)
 
         if mode is _gv_load_gravity:
             # potential is awkwardly in expected units divided by box size
@@ -955,29 +708,25 @@ class RamsesSnap(SimSnap):
                     self[f]._create_array(name, dtype=type_)
 
     def _load_particle_block(self, blockname):
-        offset = self._particle_blocks.index(blockname)
-        _type = self._particle_types[offset]
+        self._load_particle_blocks([blockname])
 
-        self._create_array_for_particles(blockname, _type)
-
-        arrays = []
-        for f in self._iter_particle_families():
-            arrays.append(self[f][blockname])
+    def _load_particle_blocks(self, blocknames):
+        """Load particle blocks, reading all of them in one pass through the particle files"""
+        fields = []
+        for blockname in blocknames:
+            offset = self._particle_blocks.index(blockname)
+            _type = self._particle_types[offset]
+            self._create_array_for_particles(blockname, _type)
+            fields.append((offset, _type, [self[f][blockname] for f in self._iter_particle_families()]))
 
         try:
-            remote_map(self.reader_pool,
-                       _cpui_load_particle_block,
-                       [self._particle_filename(i) for i in self._cpus],
-                       [arrays] * len(self._cpus),
-                       [offset] * len(self._cpus),
-                       self._particle_file_start_indices,
-                       [_type] * len(self._cpus),
-                       self._particle_family_ids_on_disk
-                       )
+            _ramses_reader.load_particle_fields(self._particle_files, fields)
         except Exception:
             warnings.warn(
-                "Exception encountered while reading %r; is there an incompatibility in your Ramses configuration?" % blockname)
-            del self[blockname]
+                "Exception encountered while reading %s; is there an incompatibility in your Ramses configuration?"
+                % ", ".join(repr(b) for b in blocknames))
+            for blockname in blocknames:
+                del self[blockname]
             raise
 
         # The potential is awkwardly not in physical units, but in
@@ -986,7 +735,7 @@ class RamsesSnap(SimSnap):
         # with the AMR phi output. So, we need to make a correction here
         # IF we are dealing with the latest ramses format.
 
-        if self._particle_blocks_are_explictly_known and blockname == 'phi':
+        if self._particle_blocks_are_explictly_known and 'phi' in blocknames:
             for f in self._iter_particle_families():
                 self[f]['phi'] *= self._info['boxlen']
 
@@ -1005,13 +754,11 @@ class RamsesSnap(SimSnap):
             ind0_dm, ind0_star = ind1_dm, ind1_star
 
     def _load_gas_cpuid(self):
+        if len(self.gas) == 0:
+            return
         gas_cpu_ar = self.gas['cpu']
-        i1 = 0
-        for coords, refine, cpu, level in self._level_iterator():
-            for cell in range(2 ** self._ndim):
-                i0 = i1
-                i1 = i0 + (refine[cell] == 0).sum()
-                gas_cpu_ar[i0:i1] = cpu
+        for cpu, i0, layout in zip(self._cpus, self._gas_i0, self._amr_layouts):
+            gas_cpu_ar[i0:i0 + layout.ncells] = cpu
 
     def loadable_keys(self, fam=None):
 
@@ -1165,8 +912,7 @@ class RamsesSnap(SimSnap):
                     self._convert_metal_name()
 
             elif array_name in self._split_arrays:
-                for array_1D in self._array_name_ND_to_1D(array_name):
-                    self._load_particle_block(array_1D)
+                self._load_particle_blocks(self._array_name_ND_to_1D(array_name))
 
             elif array_name in self._particle_blocks:
                 self._load_particle_block(array_name)
@@ -1216,8 +962,7 @@ class RamsesSnap(SimSnap):
                 self._load_gas_vars()
 
             # the below triggers loading ALL particles, not just DM
-            for name in 'x', 'y', 'z', 'vx', 'vy', 'vz':
-                self._load_particle_block(name)
+            self._load_particle_blocks(['x', 'y', 'z', 'vx', 'vy', 'vz'])
 
         elif fam is None and array_name == 'mass':
             # mass has to be handled separately because it is present as a particle block
