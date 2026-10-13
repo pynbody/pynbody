@@ -281,7 +281,7 @@ def _destinations(arrays, dtype):
         elif a.dtype == dtype:
             out.append(a.view(np.ndarray))
         else:
-            temporary = np.empty(a.shape, dtype=dtype)
+            temporary = np.zeros(a.shape, dtype=dtype)  # (zeros: not every element need be written, e.g. pos in 2D)
             copies.append((a, temporary))
             out.append(temporary)
     return out, copies
@@ -520,6 +520,9 @@ def count_particles(paths: list[str], field: int, dtype: str) -> list[tuple[Part
             start = f.read(4)
             while len(start) == 4:
                 length = int.from_bytes(start, sys.byteorder, signed=True)
+                if length < 0:
+                    raise ValueError(f"Negative record length in {paths[i]}: the file is damaged, or has a record "
+                                     "over 2 GB, which is not supported")
                 offsets.append(pos + 4)
                 nbytes.append(length)
                 pos += 8 + length

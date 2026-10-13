@@ -603,3 +603,37 @@ def test_damaged_hydro_file_is_detected(tmp_path, damage):
     with pytest.raises(ValueError):
         f.gas['rho'] # noqa
     assert 'rho' not in f.gas.keys()
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_negative_particle_record_length_is_detected(tmp_path):
+    """A negative Fortran record length (a damaged file, or gfortran's subrecords over 2 GB) raises ValueError"""
+    import shutil
+    import struct
+    source = Path("testdata/ramses/output_00080")
+    target = tmp_path / "output_00080"
+    target.mkdir()
+    for name in os.listdir(source):
+        if os.path.isfile(source / name):
+            os.symlink((source / name).absolute(), target / name)
+    part = target / "part_00080.out00001"
+    part.unlink()
+    shutil.copy(source / "part_00080.out00001", part)
+    with open(part, "r+b") as f:
+        pos = 0
+        for _ in range(8):  # skip the header records
+            f.seek(pos)
+            pos += 8 + struct.unpack("i", f.read(4))[0]
+        f.seek(pos)
+        f.write(struct.pack("i", -8))
+    with pytest.raises(ValueError, match="Negative record length"):
+        pynbody.load(str(target), cpus=[1])
+
+
+def test_converted_destinations_start_zeroed():
+    """Temporaries for destinations of another dtype start as zeros, so elements left unwritten (such as the unused
+    columns of pos in a 2D output) are not uninitialised memory"""
+    from pynbody.snapshot.ramses import _reader
+    (out,), copies = _reader._destinations([np.full(5, 7, dtype=np.float32)], np.float64)
+    assert out.dtype == np.float64 and (out == 0).all() and len(copies) == 1
