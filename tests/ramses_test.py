@@ -651,9 +651,9 @@ def _check_plan(plan, job_nbytes):
         assert piece.nbytes == nbytes.sum() >= piece.requested
         assert (piece.checks[:, 0] >= 0).all() and (piece.checks[:, 0] + 4 <= piece.nbytes).all()
         assert (piece.rows[:, 0] >= 0).all() and (piece.rows[:, 0] < piece.nbytes).all()
-    # pieces of a few megabytes, unless a file holds less
+    # pieces reading a few megabytes, gaps included, unless a file holds less
     if job_nbytes is not None:
-        assert max(p.requested for p in plan.pieces) < 2 * job_nbytes
+        assert max(p.nbytes for p in plan.pieces) < 2 * job_nbytes
 
 
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
@@ -774,3 +774,87 @@ def test_converted_destinations_start_zeroed():
     from pynbody.snapshot.ramses import _plan
     (out,), copies = _plan._destinations([np.full(5, 7, dtype=np.float32)], np.float64)
     assert out.dtype == np.float64 and (out == 0).all() and len(copies) == 1
+
+
+def _assemble(ranges, gap):
+    """Plan reads of byte ranges (file, offset, number of bytes), each to be decoded alone, from files 'a' and 'b'"""
+    from pynbody.snapshot.ramses import _plan
+    ranges = _plan._ranges(*np.array(ranges).T)
+    return _plan._assemble(['a', 'b'], ranges, np.zeros((len(ranges), 1), dtype=np.int64),
+                           np.arange(len(ranges))[:, None], [0], np.zeros((0, 4), dtype=np.int64), gap)
+
+
+def test_ranges_closer_than_the_gap_are_read_together():
+    ranges = [(0, 0, 10), (0, 30, 10), (0, 1000, 10), (1, 0, 10)]
+    a, b = _assemble(ranges, 20)
+    np.testing.assert_array_equal(a.reads, [[0, 40, 0], [1000, 10, 40]])
+    np.testing.assert_array_equal(a.rows[:, 0], [0, 30, 40])  # (where each range lands in the buffer)
+    assert (a.nbytes, a.requested) == (50, 30)
+    np.testing.assert_array_equal(b.reads, [[0, 10, 0]])  # (another file is never merged in)
+    a, b = _assemble(ranges, 2000)
+    np.testing.assert_array_equal(a.reads, [[0, 1010, 0]])
+    np.testing.assert_array_equal(a.rows[:, 0], [0, 30, 1000])
+    assert (a.nbytes, a.requested) == (1010, 30)
+
+
+def test_pieces_are_sized_by_the_bytes_they_read(monkeypatch):
+    """With the gaps between ranges read too, a piece is cut once it reads job_nbytes, not once its ranges hold
+    that much"""
+    from pynbody.snapshot.ramses import _execute
+    monkeypatch.setattr(_execute, "job_nbytes", 100)
+    ranges = [(0, 60 * k, 10) for k in range(20)]  # (10 bytes, then 50 between)
+    pieces = _assemble(ranges, 60)
+    # each piece reads 10 + 60 + 60 = 130 bytes (three ranges), where counting only the ranges would take ten
+    assert [len(p.rows) for p in pieces] == [3] * 6 + [2]
+    assert [p.nbytes for p in pieces] == [130] * 6 + [70]
+    # with a gap too small to merge them, ranges count alone
+    assert [len(p.rows) for p in _assemble(ranges, 40)] == [10, 10]
+
+
+@pytest.mark.parametrize("filesystem, gap", [("ext4", 64 * 1024), (None, 64 * 1024), ("lustre", 1024 * 1024),
+                                             ("gpfs", 1024 * 1024), ("nfs4", 1024 * 1024)])
+def test_read_gap_depends_on_the_filesystem(monkeypatch, filesystem, gap):
+    from pynbody.snapshot.ramses import _execute
+    monkeypatch.setattr(_execute.strategy, "filesystem_type", lambda path: filesystem)
+    monkeypatch.setitem(_execute.config, "read-gap", "auto")
+    assert _execute.read_gap(["/data/output_00001/amr_00001.out00001"]) == gap
+    monkeypatch.setitem(_execute.config, "read-gap", 12345)
+    assert _execute.read_gap(["/data/output_00001/amr_00001.out00001"]) == 12345
+
+
+@pytest.mark.parametrize("value, expected", [(None, "auto"), ("auto", "auto"), ("262144", 262144), ("0", 0),
+                                             ("-1", "auto"), ("1MB", "auto")])
+def test_read_gap_option(monkeypatch, caplog, value, expected):
+    from pynbody.snapshot.ramses import _execute
+
+    class Config:
+        def get(self, section, name, fallback):
+            return value if name == "read-gap" and value is not None else fallback
+
+    monkeypatch.setattr(_execute, "config_parser", Config())
+    assert _execute._read_config()["read-gap"] == expected
+    assert ("Ignoring" in caplog.text) == (value in ("-1", "1MB"))
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_large_read_gap_reads_the_same(monkeypatch, caplog):
+    """A large read gap merges more of each file into each read, but loads the same values, in pieces that still
+    read only a few megabytes"""
+    import logging
+
+    from pynbody.snapshot.ramses import _execute
+    f = pynbody.load("testdata/ramses/output_00080")
+    expected = {k: np.asarray(f[k]).copy() for k in ('pos', 'vel', 'mass')}
+    expected['rho'] = np.asarray(f.gas['rho']).copy()
+    monkeypatch.setitem(_execute.config, "read-gap", 1024 * 1024)
+    with caplog.at_level(logging.DEBUG, logger='pynbody.snapshot.ramses'):
+        f = pynbody.load("testdata/ramses/output_00080")
+        f.dm['pos'] # noqa
+    assert "read gap 1024 KB" in caplog.text
+    for k in ('pos', 'vel', 'mass'):
+        np.testing.assert_array_equal(f[k], expected[k])
+    np.testing.assert_array_equal(f.gas['rho'], expected['rho'])
+    for plan in _cell_plans(f, f._cell_selections)[:2] + tuple(f._read_plans.values()):
+        assert plan.gap == 1024 * 1024
+        _check_plan(plan, _execute.job_nbytes)

@@ -51,6 +51,7 @@ class ReadPlan:
     """What a load reads, and how its pieces are decoded"""
     kind: str
     pieces: list
+    gap: int = 0  # the read gap the ranges of each piece were merged with
 
     @property
     def nreads(self) -> int:
@@ -67,7 +68,8 @@ class ReadPlan:
     def describe(self) -> str:
         files = len({p.path for p in self.pieces})
         return (f"{self.kind}: {files} files, {len(self.pieces)} pieces, {self.nreads} reads of "
-                f"{self.nbytes / 1e6:.1f} MB for {self.requested / 1e6:.1f} MB of records")
+                f"{self.nbytes / 1e6:.1f} MB for {self.requested / 1e6:.1f} MB of records (read gap "
+                f"{self.gap // 1024} KB)")
 
 
 def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges: np.ndarray, offset_columns: list[int],
@@ -88,15 +90,20 @@ def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges
     file, offset, nbytes, units = ranges[order].T
     n = len(order)
 
-    # 1. cut into pieces: each takes ranges up to and including the first that brings it to job_nbytes, then on to
-    # the first place where no unit is left unfinished; and ends at the end of a file
+    # 1. cut into pieces: each takes ranges up to and including the first that brings what it reads (the ranges, and
+    # the bytes between those that will be merged) to job_nbytes, then on to the first place where no unit is left
+    # unfinished; and ends at the end of a file
     _, units = np.unique(units, return_inverse=True)
     last = np.zeros(units.max() + 1, dtype=np.int64)
     np.maximum.at(last, units, np.arange(n))
     may_end = np.flatnonzero(np.maximum.accumulate(last[units]) == np.arange(n))  # where a piece may end
     file_start = np.flatnonzero(np.diff(file, prepend=-1))
     file_end = np.append(file_start[1:], n) - 1
-    cumulative = np.cumsum(nbytes)
+    space = np.zeros(n, dtype=np.int64)  # the bytes between each range and the one before, if read with it
+    space[1:] = offset[1:] - (offset + nbytes)[:-1]
+    space[(space > gap) | (space < 0)] = 0
+    space[file_start] = 0
+    cumulative = np.cumsum(nbytes + space)  # (a piece starting at range i reads cumulative[j] - before[i] to j)
     before = cumulative - nbytes
     starts = [file_start[cumulative[file_end] - before[file_start] < _execute.job_nbytes]]  # (files of one piece)
     for f0, f1 in zip(file_start.tolist(), file_end.tolist()):
@@ -230,8 +237,8 @@ def cell_values(layouts: list[AmrLayout], selections: list[CellSelection], first
     def add(which, file_offset, nbytes, data_offset, dest0, nvar, var_stride, check):
         """Ranges and rows for the runs *which*. *file_offset* and *nbytes* are (runs, 1) for one range per run, or
         (runs, twotondim) for one per ind; the values of each ind start *data_offset* (runs, twotondim) into its
-        range. A row's ranges are one unit, read into one piece; but a run with more than job_nbytes in ranges of
-        each ind is given a row (and a unit) for each ind."""
+        range. A row's ranges are one unit, read into one piece; but a run whose ranges of each ind span more than
+        job_nbytes is given a row (and a unit) for each ind."""
         nonlocal nranges
         k, c = file_offset.shape
         range_id = nranges + np.arange(k * c).reshape(k, c)
@@ -242,7 +249,9 @@ def cell_values(layouts: list[AmrLayout], selections: list[CellSelection], first
                                                         np.full(k, (1 << twotondim) - 1)], axis=1),
                                 runs.starts[which]], axis=1)
         unit = np.broadcast_to(range_id[:, :1], (k, c))
-        split = np.flatnonzero((nbytes.sum(axis=1) > _execute.job_nbytes) & (c == twotondim))
+        # (by the span of its ranges, which may all be read, with what lies between them, if the read gap is large)
+        split = np.flatnonzero((file_offset[:, -1] + nbytes[:, -1] - file_offset[:, 0] > _execute.job_nbytes) &
+                               (c == twotondim))
         if len(split):
             each = np.repeat(table[split], twotondim, axis=0)  # (a row for each (run, ind))
             ind_of = np.tile(ind, len(split))
@@ -295,9 +304,9 @@ def cell_values(layouts: list[AmrLayout], selections: list[CellSelection], first
                        np.full(4 * nstubs, _LEVEL_RECORD)], axis=1)
 
     ranges = _ranges(*(np.concatenate(columns) for columns in zip(*ranges)))
+    gap = _execute.read_gap(paths)
     return ReadPlan('cell values', _assemble(paths, ranges, np.concatenate(rows).astype(np.int64, copy=False),
-                                             np.concatenate(row_ranges), list(range(twotondim)), checks,
-                                             _execute.read_gap(paths)))
+                                             np.concatenate(row_ranges), list(range(twotondim)), checks, gap), gap)
 
 
 def cell_positions(layouts: list[AmrLayout], selections: list[CellSelection], first_cells, paths: list[str]) \
@@ -324,9 +333,9 @@ def cell_positions(layouts: list[AmrLayout], selections: list[CellSelection], fi
                            np.stack([runs.count, runs.mask_offset, runs.level], axis=1), runs.starts], axis=1)
     w = np.flatnonzero(runs.whole)
     checks = _record_checks(range_index[w].ravel(), np.full(len(w) * ndim, 4), np.repeat(8 * runs.n[w], ndim))
+    gap = _execute.read_gap(paths)
     return ReadPlan('cell positions', _assemble(paths, ranges, rows.astype(np.int64, copy=False), row_ranges, [0, 1, 2],
-                                                checks,
-                                                _execute.read_gap(paths)))
+                                                checks, gap), gap)
 
 
 def _destinations(arrays, dtype):
@@ -405,9 +414,10 @@ def particle_fields(layouts: list[ParticleLayout], selections: list[ParticleSele
                                 record_nbytes[file[nlast]], np.full(len(nlast), _RECORD_LENGTH)], axis=1))
     ranges = _ranges(*(np.concatenate(columns) for columns in zip(*ranges)))
     paths = [layout.path for layout in layouts]
+    gap = _execute.read_gap(paths)
     return ReadPlan('particle fields', _assemble(paths, ranges, np.concatenate(rows).astype(np.int64, copy=False),
                                                  np.arange(len(ranges))[:, None], [0],
-                                                 np.concatenate(checks).astype(np.int64), _execute.read_gap(paths)))
+                                                 np.concatenate(checks).astype(np.int64), gap), gap)
 
 
 def load_particle_fields(plan: ReadPlan, selections: list[ParticleSelection], fields: list[tuple[np.dtype, list]]):

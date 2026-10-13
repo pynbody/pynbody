@@ -103,8 +103,16 @@ pynbody's standard :ref:`configuration <configuration>` system; for instance, cr
    io-threads: 2
 
 This specifies at most 4 decoding threads and 2 input threads. Setting ``parallel-read`` to 1 or
-less reads everything in the calling thread. The numbers can also be changed during a session, through
-``pynbody.snapshot.ramses._execute.config``.
+less reads everything in the calling thread.
+
+When two stretches of a file that are wanted lie close together, the reader reads them in one
+request, along with whatever lies between them. The ``read-gap`` option says how close (in bytes):
+by default (``auto``) 64 KB on a local filesystem, and 1 MB on a network filesystem such as NFS or a
+parallel one such as Lustre, where every request costs a round trip to a server. It affects only
+speed: the memory taken by reading is bounded by the size of the jobs handed to threads (a few
+megabytes each), which counts the bytes read between stretches.
+
+These options can also be changed during a session, through ``pynbody.snapshot.ramses._execute.config``.
 
 .. _using_shared_arrays:
 

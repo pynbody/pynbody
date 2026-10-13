@@ -253,7 +253,8 @@ def scan_amr(paths: list[str], cpus: list[int], bisection: bool, maxlevel: int |
 
         return _execute.Piece(paths[i], _header_nbytes_guess, read, decode)
 
-    _execute.run_pieces([piece(i) for i in range(len(paths))])
+    _execute.run_pieces([piece(i) for i in range(len(paths))],
+                        f"AMR headers and refinement maps of {len(paths)} files (read gap {gap // 1024} KB)")
     return geometry[0], layouts, leaves
 
 
@@ -306,5 +307,5 @@ def scan_particle_files(paths: list[str], field: int, dtype: str) -> list[tuple[
 
         return _execute.Piece(paths[i], _header_nbytes_guess, read, decode)
 
-    _execute.run_pieces([piece(i) for i in range(len(paths))])
+    _execute.run_pieces([piece(i) for i in range(len(paths))], f"headers of {len(paths)} particle files")
     return results

@@ -34,30 +34,39 @@ logger = logging.getLogger('pynbody.snapshot.ramses')
 # small beside it, and small enough that a few per thread take little memory
 job_nbytes = 4 * 1024 * 1024
 
-# Byte ranges of a file closer together than this are read in one go, with what lies between them (see read_gap)
-_read_gap = 64 * 1024
+# The read gap (see read_gap) chosen by 'auto' on local filesystems, and on network and parallel ones
+local_read_gap = 64 * 1024
+remote_read_gap = 1024 * 1024
+
+# Filesystem types reached over a network but not parallel (which strategy.parallel_filesystem_types lists): each
+# request costs a round trip, so larger gaps pay off
+network_filesystem_types = {'nfs', 'nfs4', 'cifs', 'smb3', 'smbfs', 'fuse.sshfs', 'afs'}
 
 
 def _read_config():
-    def option(name, default):
+    def option(name, default, minimum=None):
         value = config_parser.get('ramses', name, fallback=str(default)).strip().lower()
         if value == 'auto':
             return value
         try:
-            return int(value)
+            if minimum is None or int(value) >= minimum:
+                return int(value)
         except ValueError:
-            logger.warning("Ignoring the value %r of %s in the [ramses] configuration", value, name)
-            return default
+            pass
+        logger.warning("Ignoring the value %r of %s in the [ramses] configuration", value, name)
+        return default
 
-    return {'parallel-read': option('parallel-read', 8), 'io-threads': option('io-threads', 'auto')}
+    return {'parallel-read': option('parallel-read', 8), 'io-threads': option('io-threads', 'auto', 1),
+            'read-gap': option('read-gap', 'auto', 0)}
 
 
 config = _read_config()
-"""How many threads read RAMSES files: initially from the ``[ramses]`` section of the configuration, but may be changed
-at run time. ``parallel-read`` is the most threads decoding (``auto`` for as many as there are CPUs); if 1 or less,
+"""How RAMSES files are read: initially from the ``[ramses]`` section of the configuration, but may be changed at run
+time. ``parallel-read`` is the most threads decoding (``auto`` for as many as there are CPUs); if 1 or less,
 everything is done in the calling thread. ``io-threads`` is the number of threads reading files, or ``auto`` for 16
 on a parallel filesystem and one otherwise (the rule used for HDF5 files: see
-:mod:`pynbody.util.hdf_bulk_read.strategy`)."""
+:mod:`pynbody.util.hdf_bulk_read.strategy`). ``read-gap`` is the read gap in bytes, or ``auto`` (see
+:func:`read_gap`)."""
 
 
 def choose_strategy(paths: list[str], num_jobs: int, max_job_nbytes: int) -> strategy.ReadStrategy:
@@ -85,8 +94,18 @@ def choose_strategy(paths: list[str], num_jobs: int, max_job_nbytes: int) -> str
 
 def read_gap(paths: list[str]) -> int:
     """How far apart byte ranges of the files *paths* may be and still be read in one go, with what lies between
-    them: reading what lies between costs less than making another request"""
-    return _read_gap
+    them, because reading what lies between costs less than making another request.
+
+    This affects only speed: memory is bounded by the size of jobs, which counts the bytes between ranges. The
+    ``read-gap`` option gives it in bytes, or ``auto`` chooses 64 KB on a local filesystem (where a request costs
+    about as much as reading that much) and 1 MB on a network or parallel filesystem (where each request is a round
+    trip to a server)."""
+    if config['read-gap'] != 'auto':
+        return int(config['read-gap'])
+    filesystem = strategy.filesystem_type(paths[0]) if paths else None
+    if filesystem in strategy.parallel_filesystem_types or filesystem in network_filesystem_types:
+        return remote_read_gap
+    return local_read_gap
 
 
 class Piece(typing.NamedTuple):
@@ -127,8 +146,9 @@ class _Task:
             self._close()
 
 
-def run_pieces(pieces: list[Piece]):
-    """Read and decode the pieces, gathered into jobs and tasks (see the module docstring)"""
+def run_pieces(pieces: list[Piece], description: str = "pieces"):
+    """Read and decode the pieces, gathered into jobs and tasks (see the module docstring); *description* says what
+    is read, for the log"""
     tasks, job, nbytes, task_nbytes = [], [], 0, 0
 
     def finish_job():
@@ -153,7 +173,7 @@ def run_pieces(pieces: list[Piece]):
 
     plan = choose_strategy(list(dict.fromkeys(p.path for p in pieces)), sum(len(t.jobs) for t in tasks),
                            max((j.nbytes for t in tasks for j in t.jobs), default=0))
-    logger.debug("Reading RAMSES files: %s", plan.reason)
+    logger.debug("Reading RAMSES %s: %s", description, plan.reason)
     execute.perform_tasks(tasks, plan, iter)
 
 
@@ -188,7 +208,6 @@ _check_failures = {0: "Unexpected record length in {path}",
 
 def run_plan(plan, decode: typing.Callable):
     """Perform a ReadPlan: read each piece, check it, and call decode(piece, buffer)"""
-    logger.debug("Reading RAMSES files: %s", plan.describe())
 
     def make(piece):
         def read(f):
@@ -205,4 +224,4 @@ def run_plan(plan, decode: typing.Callable):
 
         return Piece(piece.path, piece.nbytes, read, decode_piece)
 
-    run_pieces([make(piece) for piece in plan.pieces])
+    run_pieces([make(piece) for piece in plan.pieces], plan.describe())
