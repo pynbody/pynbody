@@ -21,7 +21,13 @@ from ... import array, config_parser, family, filt, units
 from ...analysis.cosmology import age
 from .. import SimSnap, namemapper
 from . import _execute, _hilbert, _layout, _plan
-from ._selection import SKIP, CellSelection, ParticleSelection, in_region
+from ._selection import (
+    SKIP,
+    CellSelection,
+    ParticleSelection,
+    depends_only_on_position,
+    in_region,
+)
 
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
@@ -134,6 +140,8 @@ class RamsesSnap(SimSnap):
     In particular SPH image generation routines automatically switch on an appropriate de-noising scheme to provide
     effective interpolation between cells.
     """
+
+    _particle_families_by_id = ()  # (the family of each internal particle family id; none if there are no particles)
     def __init__(self, dirname, cpus=None, maxlevel=None, with_gas=True, force_gas=False, times_are_proper=None,
                  negative_iords_on_purpose=False, take_region=None, trim_to_region=True):
         """
@@ -170,14 +178,19 @@ class RamsesSnap(SimSnap):
             CPU files needs a 3D output with Hilbert ordering of the domains
             (the default in RAMSES), and a Sphere or Cuboid, or a combination
             of them with ``&`` and ``|`` (sizes given with units are
-            converted to code units); with other filters, every file is
-            read, with a warning.
+            converted to code units; centres and corners given as numbers
+            are in code units); with other filters, every file is read, with
+            a warning.
         trim_to_region : bool, optional
             If True (default), load exactly what the take_region filter
             selects, which means reading the positions of every cell and
-            particle in the CPU files chosen when the snapshot is opened. If
-            False, load every cell and particle in those files instead (a
-            superset of the region, read only as arrays are needed).
+            particle in the CPU files chosen when the snapshot is opened. This
+            needs a filter that selects by position alone (a Sphere, Cuboid,
+            Disc, or BandPass, HighPass or LowPass on ``x``, ``y``, ``z``,
+            ``r`` or ``rxy``, and combinations of them with ``&``, ``|`` and
+            ``~``); with any other filter, or if False, every cell and
+            particle in those files is loaded instead (a superset of the
+            region, read only as arrays are needed).
         """
 
         global config
@@ -222,6 +235,10 @@ class RamsesSnap(SimSnap):
         # snapshot does not contain all the particles in the output
         self.partial_load = sorted(self._cpus) != list(range(1, self.ncpu + 1))
         self._trim_to_region = take_region is not None and trim_to_region
+        if self._trim_to_region and not depends_only_on_position(take_region):
+            warnings.warn(f"take_region keeps every cell and particle of the files it reads, as it can trim them only "
+                          f"with a filter that selects by position alone, not {take_region!r}")
+            self._trim_to_region = False
         if self._trim_to_region:
             self.partial_load = True
             self._trim_sinks()
@@ -312,32 +329,39 @@ class RamsesSnap(SimSnap):
                 except ValueError:
                     self._info[name] = val
 
-    def _in_region(self, positions, family_name):
+    def _in_region(self, positions):
         """Which of *positions* (in code units) the take_region filter selects"""
         (_, _, length_unit), properties = _units_and_properties(self._info)
-        return in_region(self._take_region, positions, length_unit, properties, family_name)
+        return in_region(self._take_region, positions, length_unit, properties)
 
     def _particles_in_region(self, layouts):
-        """For each particle file, which of its particles lie in the take_region filter's region"""
+        """For each particle file, which of its particles lie in the take_region filter's region (reading the
+        positions of files a batch at a time, to bound the memory they take)"""
         records = [self._particle_blocks.index(c) for c in ('x', 'y', 'z')]
         dtype = np.dtype(self._particle_types[records[0]])
-        npart = [layout.npart for layout in layouts]
-        first = np.cumsum([0] + npart)[:-1]
-        selections = [ParticleSelection.all_particles(np.zeros(n, dtype=np.uint8), [f], 1)
-                      for n, f in zip(npart, first)]
-        plan = _plan.particle_fields(layouts, selections, [(r, dtype.itemsize) for r in records])
-        positions = np.empty((sum(npart), 3), dtype=dtype)
-        _plan.load_particle_fields(plan, selections, [(dtype, [positions[:, k]]) for k in range(3)])
-        keep = self._in_region(positions, 'dm')
-        return np.split(keep, np.cumsum(npart)[:-1])
+        keep = []
+        for batch in _batches([layout.npart for layout in layouts]):
+            npart = [layouts[i].npart for i in batch]
+            first = np.cumsum([0] + npart)[:-1]
+            selections = [ParticleSelection.all_particles(np.zeros(n, dtype=np.uint8), [f], 1)
+                          for n, f in zip(npart, first)]
+            plan = _plan.particle_fields([layouts[i] for i in batch], selections,
+                                         [(r, dtype.itemsize) for r in records])
+            positions = np.empty((sum(npart), 3), dtype=dtype)
+            _plan.load_particle_fields(plan, selections, [(dtype, [positions[:, k]]) for k in range(3)])
+            keep += np.split(self._in_region(positions), np.cumsum(npart)[:-1])
+        return keep
 
     def _trim_sinks(self):
         """Keep only the sinks in the take_region filter's region"""
         if len(self._sink_data) == 0:
             return
+        if not all(c in self._sink_column_names for c in ('x', 'y', 'z')):
+            warnings.warn("take_region keeps every sink, as the sink file gives no positions")
+            return
         columns = [self._sink_column_names.index(c) for c in ('x', 'y', 'z')]
         positions = self._sink_data[:, columns].astype(np.float64)
-        self._sink_data = self._sink_data[self._in_region(positions, 'dm')]
+        self._sink_data = self._sink_data[self._in_region(positions)]
 
     def _region_in_code_units(self, region):
         """A copy of the filter *region* with any sizes given in units converted to code units, for spheres and
@@ -348,15 +372,13 @@ class RamsesSnap(SimSnap):
         def in_code_units(x):
             if units.is_unit_like(x):
                 return x.in_units(length_unit, **context)
-            if units.has_units(x):
-                return np.asarray(x.in_units(length_unit, **context))
             return x
 
         region = copy.copy(region)
         if isinstance(region, (filt.And, filt.Or)):
             region.f1, region.f2 = self._region_in_code_units(region.f1), self._region_in_code_units(region.f2)
         elif isinstance(region, filt.Sphere):
-            region.radius, region.cen = in_code_units(region.radius), in_code_units(region.cen)
+            region.radius = in_code_units(region.radius)
         elif isinstance(region, filt.Cuboid):
             region.x1, region.y1, region.z1, region.x2, region.y2, region.z2 = (
                 in_code_units(x) for x in (region.x1, region.y1, region.z1, region.x2, region.y2, region.z2))
@@ -371,7 +393,10 @@ class RamsesSnap(SimSnap):
             ordering = self._info.get('ordering type', 'hilbert').strip()
             if ordering != 'hilbert':
                 raise NotImplementedError(f"its domains are ordered by {ordering!r}, not along a Hilbert curve")
-            bound_keys = _hilbert.domain_keys(os.path.join(self._filename, f"info_{self._timestep_id}.txt"))
+            try:
+                bound_keys = _hilbert.domain_keys(os.path.join(self._filename, f"info_{self._timestep_id}.txt"))
+            except ValueError as e:
+                raise NotImplementedError(str(e)) from e
             if (len(bound_keys) - 1) % ncpu:
                 raise NotImplementedError("the info file lists %d Hilbert domains for %d CPUs"
                                           % (len(bound_keys) - 1, ncpu))
@@ -574,7 +599,7 @@ class RamsesSnap(SimSnap):
                     startpoint += (fid == internal_family_id).sum()
                 assert startpoint == count
 
-        self._set_particle_selections([r[0] for r in results], len(internal_id_to_family))
+        self._set_particle_selections([r[0] for r in results], internal_id_to_family)
 
         n_sinks = self._count_sink_particles()
 
@@ -711,14 +736,22 @@ class RamsesSnap(SimSnap):
 
             self._particle_family_ids_on_disk.append(family_ids)
 
-        self._set_particle_selections([r[0] for r in results], 2)
+        self._set_particle_selections([r[0] for r in results], [family.dm, family.star])
         return npart - nstar, nstar
 
-    def _set_particle_selections(self, layouts, nfamilies):
-        """Select every particle of each file, from the family of each and where each family's first goes"""
+    def _set_particle_selections(self, layouts, families):
+        """Select the particles of each file, from the (internal) family id of each, where each family's first goes,
+        and the family of each id"""
         self._particle_layouts = layouts
-        self._particle_selections = [ParticleSelection.all_particles(fam, first, nfamilies) for fam, first in
+        self._particle_families_by_id = list(families)
+        self._particle_selections = [ParticleSelection.all_particles(fam, first, len(families)) for fam, first in
                                      zip(self._particle_family_ids_on_disk, self._particle_file_start_indices)]
+
+    def _particle_destinations(self, name):
+        """The array *name* of each particle family, in order of internal family id (None for a family the
+        snapshot holds none of, as when a region holds stars but no dark matter)"""
+        present = self.families()
+        return [self[f][name] if f in present else None for f in self._particle_families_by_id]
 
     def _read_plan(self, key, build):
         """The plan of reads for *key*, built by calling *build* if it is not kept"""
@@ -740,17 +773,20 @@ class RamsesSnap(SimSnap):
         return int(np.sum(ncells))
 
     def _trim_cells(self):
-        """Restrict the cell selections to the cells whose centres lie in the take_region filter's region"""
-        ncells = [selection.ncells for selection in self._cell_selections]
-        first = np.cumsum([0] + ncells)[:-1]
-        positions, sizes = np.empty((sum(ncells), 3)), np.empty(sum(ncells))
-        plan = _plan.cell_positions(self._amr_layouts, self._cell_selections, first,
-                                    [self._amr_filename(cpu) for cpu in self._cpus])
-        _plan.load_cell_positions(plan, self._cell_selections, self._amr_geometry, self._info['boxlen'], positions,
-                                  sizes)
-        keep = self._in_region(positions, 'gas')
-        self._cell_selections = [selection.restricted(keep[f:f + n])
-                                 for selection, f, n in zip(self._cell_selections, first, ncells)]
+        """Restrict the cell selections to the cells whose centres lie in the take_region filter's region (reading
+        the AMR files a batch at a time, to bound the memory the positions take)"""
+        for batch in _batches([selection.ncells for selection in self._cell_selections]):
+            selections = [self._cell_selections[i] for i in batch]
+            ncells = [selection.ncells for selection in selections]
+            first = np.cumsum([0] + ncells)[:-1]
+            positions, sizes = np.empty((sum(ncells), 3)), np.empty(sum(ncells))
+            plan = _plan.cell_positions([self._amr_layouts[i] for i in batch], selections, first,
+                                        [self._amr_filename(self._cpus[i]) for i in batch])
+            _plan.load_cell_positions(plan, selections, self._amr_geometry, self._info['boxlen'], positions, sizes)
+            keep = self._in_region(positions)
+            del positions, sizes
+            for i, f, n in zip(batch, first, ncells):
+                self._cell_selections[i] = self._cell_selections[i].restricted(keep[f:f + n])
 
     def _load_gas_pos(self):
         self.gas['pos'].set_default_units()
@@ -895,7 +931,7 @@ class RamsesSnap(SimSnap):
             _type = self._particle_types[offset]
             self._create_array_for_particles(blockname, _type)
             records.append((offset, np.dtype(_type).itemsize))
-            fields.append((_type, [self[f][blockname] for f in self._iter_particle_families()]))
+            fields.append((_type, self._particle_destinations(blockname)))
 
         try:
             plan = self._read_plan(
@@ -921,18 +957,15 @@ class RamsesSnap(SimSnap):
                 self[f]['phi'] *= self._info['boxlen']
 
     def _load_particle_cpuid(self):
-        ind0_dm = 0
-        ind0_star = 0
-        for i, fam_mask in zip(self._cpus, self._particle_family_ids_on_disk):
-            mask_dm = fam_mask == 0
-            mask_st = fam_mask == 1
-
-            ind1_dm = ind0_dm + mask_dm.sum()
-            ind1_star = ind0_star + mask_st.sum()
-
-            self.dm['cpu'][ind0_dm:ind1_dm] = i
-            self.star['cpu'][ind0_star:ind1_star] = i
-            ind0_dm, ind0_star = ind1_dm, ind1_star
+        destinations = self._particle_destinations('cpu')
+        if all(destination is None for destination in destinations):
+            return
+        for cpu, family_ids, starts in zip(self._cpus, self._particle_family_ids_on_disk,
+                                           self._particle_file_start_indices):
+            counts = np.bincount(family_ids.view(np.uint8), minlength=256)
+            for internal_id, destination in enumerate(destinations):
+                if destination is not None:
+                    destination[starts[internal_id]:starts[internal_id] + counts[internal_id]] = cpu
 
     def _load_gas_cpuid(self):
         if len(self.gas) == 0:
@@ -1001,7 +1034,7 @@ class RamsesSnap(SimSnap):
         if self._negative_iords_on_purpose:
             return False
 
-        if self.is_cosmological and self.has_negative_iords:
+        if self.is_cosmological and family.dm in self.families() and self.has_negative_iords:
             return True
         return False
 
@@ -1170,6 +1203,24 @@ class RamsesSnap(SimSnap):
         if tsid:
             return os.path.isdir(f) and os.path.exists(os.path.join(f, f"info_{tsid}.txt"))
         return False
+
+
+# The positions of at most this many cells or particles are read at once to trim them to a region (but always those
+# of at least one file)
+trim_batch = 2 ** 24
+
+
+def _batches(sizes):
+    """Split files of the given sizes into consecutive batches of at most trim_batch in all (or one file), as lists
+    of indices"""
+    batches, total = [], None
+    for i, n in enumerate(sizes):
+        if total is None or total + n > trim_batch:
+            batches.append([])
+            total = 0
+        batches[-1].append(i)
+        total += n
+    return batches
 
 
 def _units_and_properties(info):

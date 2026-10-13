@@ -465,28 +465,65 @@ def hilbert_keys(const int64_t[::1] ix, const int64_t[::1] iy, const int64_t[::1
     return out
 
 
-def restrict_mask(const uint8_t[::1] mask, const int64_t[:, ::1] runs, int twotondim, const uint8_t[::1] keep):
+def restrict_mask(const uint8_t[::1] mask, const int64_t[:, ::1] runs, const int64_t[:, ::1] starts,
+                  const uint8_t[::1] keep):
     """Clear the bits of cells not to be kept from a mask (see leaf_mask), returning a new mask. *runs* are rows (offset
-    in mask, number of octs); *keep* has a byte for each cell whose bit is set, in the order cells are put in place
-    (run by run, cell ind of each oct in turn, then the next ind), non-zero to keep it."""
-    cdef Py_ssize_t r, i, o, j = 0, nkeep = keep.shape[0]
+    in mask, number of octs) and *starts* (runs, twotondim) where the run's first selected cell of each ind goes (the
+    k-th of them going k places on); *keep* has a byte for each place, non-zero to keep the cell put there."""
+    cdef Py_ssize_t r, o, nkeep = keep.shape[0], twotondim = starts.shape[1]
     cdef int ind
-    cdef uint8_t bit
+    cdef uint8_t bits, kept
+    cdef int failed = 0
+    cdef int64_t j[8]
     out = np.zeros(mask.shape[0], dtype=np.uint8)
     cdef uint8_t[::1] new = out
+    if starts.shape[0] != runs.shape[0] or twotondim > 8:
+        raise ValueError("Expected a row of at most 8 starts for each run")
     for r in range(runs.shape[0]):
         if runs[r, 0] < 0 or runs[r, 1] < 0 or runs[r, 0] + runs[r, 1] > mask.shape[0]:
             raise ValueError("Run lies outside the mask")
     with nogil:
         for r in range(runs.shape[0]):
             for ind in range(twotondim):
-                bit = <uint8_t> (1 << ind)
-                for i in range(runs[r, 1]):
-                    o = runs[r, 0] + i
-                    if mask[o] & bit:
-                        if j < nkeep and keep[j]:
-                            new[o] |= bit
-                        j += 1
-    if j != nkeep:
-        raise ValueError("Expected %d cells to keep or not, but %d were given" % (j, nkeep))
+                j[ind] = starts[r, ind]
+            for o in range(runs[r, 0], runs[r, 0] + runs[r, 1]):
+                bits = mask[o]
+                kept = 0
+                for ind in range(twotondim):
+                    if bits & (1 << ind):
+                        if not 0 <= j[ind] < nkeep:
+                            failed = 1
+                        elif keep[j[ind]]:
+                            kept |= <uint8_t> (1 << ind)
+                        j[ind] += 1
+                new[o] = kept
+    if failed:
+        raise ValueError("Cells are put in places outside those of keep")
+    return out
+
+
+def mask_counts(const uint8_t[::1] mask, const int64_t[:, ::1] runs, int twotondim):
+    """The number of cells of each ind selected in each run of a mask (see leaf_mask), as an array (runs,
+    twotondim); *runs* are rows (offset in mask, number of octs)"""
+    cdef Py_ssize_t r, i
+    cdef int ind
+    cdef uint8_t bits
+    cdef int64_t acc[8]
+    if twotondim > 8:
+        raise ValueError("At most 8 cells an oct")
+    for r in range(runs.shape[0]):
+        if runs[r, 0] < 0 or runs[r, 1] < 0 or runs[r, 0] + runs[r, 1] > mask.shape[0]:
+            raise ValueError("Run lies outside the mask")
+    out = np.zeros((runs.shape[0], twotondim), dtype=np.int64)
+    cdef int64_t[:, ::1] o = out
+    with nogil:
+        for r in range(runs.shape[0]):
+            for ind in range(8):
+                acc[ind] = 0
+            for i in range(runs[r, 0], runs[r, 0] + runs[r, 1]):
+                bits = mask[i]
+                for ind in range(8):
+                    acc[ind] += (bits >> ind) & 1
+            for ind in range(twotondim):
+                o[r, ind] = acc[ind]
     return out

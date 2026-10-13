@@ -430,8 +430,8 @@ def load_cell_positions(plan: ReadPlan, selections: list[CellSelection], geometr
 
 def particle_fields(layouts: list[ParticleLayout], selections: list[ParticleSelection],
                     fields: list[tuple[int, int]]) -> ReadPlan:
-    """Plan reading particle fields, given as (record number, item size), in chunks of particle_chunk particles.
-    Rows are (data offset, first particle, last particle + 1, field, then where the chunk's first particle of each
+    """Plan reading particle fields, given as (record number, item size), in chunks of particle_chunk particles
+    (skipping chunks holding no particle the selections want). Rows are (data offset, first particle, last particle + 1, field, then where the chunk's first particle of each
     family goes)."""
     for layout in layouts:
         for record, itemsize in fields:
@@ -447,8 +447,13 @@ def particle_fields(layouts: list[ParticleLayout], selections: list[ParticleSele
     p1 = np.minimum(p0 + particle_chunk, npart[file])
     # (the first chunk of a record includes the length that starts it, and the last the length that ends it)
     first, last = chunk == 0, chunk == nchunks[file] - 1
+    family_starts, wanted = (np.concatenate(x) for x in zip(*[sel.chunk_starts(particle_chunk) for sel in selections]))
+    # (chunks holding no wanted particle are not read)
+    file, chunk, p0, p1, first, last, family_starts = (x[wanted] for x in (file, chunk, p0, p1, first, last,
+                                                                           family_starts))
+    if len(file) == 0:
+        return ReadPlan('particle fields', [])
     data_offset = 4 * first
-    family_starts = np.concatenate([sel.chunk_starts(particle_chunk) for sel in selections])
     nfirst, nlast = np.flatnonzero(first), np.flatnonzero(last)
 
     ranges, rows, checks = [], [], []

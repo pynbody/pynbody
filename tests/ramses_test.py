@@ -1340,8 +1340,8 @@ def test_take_region_that_selects_nothing_warns():
 
 def _assert_same_as_filtered(f, full, region, gas_keys=('pos', 'rho', 'vel', 'cpu'),
                              particle_keys=('iord', 'pos', 'vel', 'mass', 'cpu')):
-    """The snapshot *f*, loaded with take_region=region, holds exactly what the filter selects from *full*, in
-    either order"""
+    """The snapshot *f*, loaded with take_region=region, holds exactly what the filter selects from *full*, in the
+    same order"""
     for fam in full.families():
         ref = full[fam][np.asarray(region(full[fam]), bool)]
         if len(ref) == 0:
@@ -1349,16 +1349,17 @@ def _assert_same_as_filtered(f, full, region, gas_keys=('pos', 'rho', 'vel', 'cp
             continue
         got = f[fam]
         assert len(got) == len(ref), fam
-        if fam is pynbody.family.gas or 'iord' not in ref.loadable_keys():
-            keys = gas_keys if fam is pynbody.family.gas else ('pos', 'vel', 'mass')
-            order_ref, order_got = np.lexsort(np.asarray(ref['pos']).T), np.lexsort(np.asarray(got['pos']).T)
-        else:
+        if fam is pynbody.family.gas:
+            keys = gas_keys
+        elif 'iord' in ref.loadable_keys():
             keys = particle_keys
-            order_ref, order_got = np.argsort(np.asarray(ref['iord'])), np.argsort(np.asarray(got['iord']))
+            assert np.isin(np.asarray(got['cpu']), f._cpus).all()
+        else:
+            keys = ('pos', 'vel', 'mass')
         for k in keys:
             # (to the last bit but one: filtering a family can round its positions in the last bit)
-            np.testing.assert_allclose(np.asarray(got[k])[order_got], np.asarray(ref[k])[order_ref], rtol=1e-14,
-                                       atol=0, err_msg=f"{fam.name} {k}")
+            np.testing.assert_allclose(np.asarray(got[k]), np.asarray(ref[k]), rtol=1e-14, atol=0,
+                                       err_msg=f"{fam.name} {k}")
 
 
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
@@ -1454,11 +1455,109 @@ def test_cell_selection_restricted():
     keep = rng.random(selection.ncells) < 0.3
     keep[np.flatnonzero(cells[:, 0] == 7)] = False  # (no cell of the last run)
     restricted = selection.restricted(keep)
-    # (the same cells, each put in its own place, though in a different order where a run is split)
-    in_order = _cells_in_order(restricted)
-    assert len(np.unique(in_order, axis=0)) == len(in_order)
-    np.testing.assert_array_equal(np.unique(in_order, axis=0), np.unique(cells[keep], axis=0))
+    np.testing.assert_array_equal(_cells_in_order(restricted), cells[keep])
+    # restricting again keeps the order too
+    again = rng.random(restricted.ncells) < 0.5
+    np.testing.assert_array_equal(_cells_in_order(restricted.restricted(again)), cells[keep][again])
     assert restricted.ncells == keep.sum()
     assert 7 not in restricted.level and (restricted.level == 5).sum() == 2  # (split at the gap)
     with pytest.raises(ValueError, match="Expected"):
         selection.restricted(keep[:-1])
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:take_region loads every CPU file.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:No header file found.*:UserWarning")
+@pytest.mark.parametrize("output", ["output_00080", "ramses_new_format_partial_with_sink_mass_output_00001"])
+def test_trimmed_load_of_stars_without_dark_matter(output):
+    """A region holding stars but no dark matter (so the snapshot has no dm family) puts the stars' values in place"""
+    path = f"testdata/ramses/{output}"
+    full = pynbody.load(path)
+    dm, star = np.asarray(full.dm['pos']), np.asarray(full.star['pos'])
+    nearest = np.array([np.min(np.sum((dm - p) ** 2, axis=1)) for p in star[:2000]])
+    i = int(np.argmax(nearest))
+    region = pynbody.filt.Sphere(0.5 * np.sqrt(nearest[i]), star[i])
+    f = pynbody.load(path, take_region=region)
+    assert pynbody.family.star in f.families() and pynbody.family.dm not in f.families()
+    _assert_same_as_filtered(f, full, region, particle_keys=('iord', 'pos', 'mass', 'cpu'))
+    assert not f.has_potential_negative_iords_bug
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:take_region loads every CPU file.*:UserWarning")
+@pytest.mark.parametrize("region", [pynbody.filt.Sphere(0.05, (0.5, 0.5, 0.5)) & pynbody.filt.FamilyFilter('dm'),
+                                    pynbody.filt.HighPass('rho', 1e3), pynbody.filt.LowPass('mass', 1.0)])
+def test_take_region_trims_only_by_position(region, ramses_full_load):
+    """A filter that selects by more than position cannot trim, so whole files are kept"""
+    full, pos, iord, cpu, cell_pos = ramses_full_load
+    with pytest.warns(UserWarning, match="keeps every cell and particle"):
+        f = pynbody.load("testdata/ramses/output_00080", take_region=region)
+    assert set(_loaded(f, pynbody.family.dm, 'iord')) == set(iord[np.isin(cpu, f._cpus)])
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_take_region_with_position_filters_that_cannot_choose_files(ramses_full_load):
+    full, pos, iord, cpu, cell_pos = ramses_full_load
+    region = (pynbody.filt.BandPass('x', 0.2, 0.25) & ~pynbody.filt.Sphere(0.4, (0.5, 0.5, 0.5))) | \
+        pynbody.filt.Disc(0.05, 0.01, (0.3, 0.3, 0.3))
+    with pytest.warns(UserWarning, match="loads every CPU file"):
+        f = pynbody.load("testdata/ramses/output_00080", take_region=region)
+    _assert_same_as_filtered(f, full, region)
+
+
+def _copy_output(source, target, replace):
+    """Make *target* a copy of the output *source* (by symbolic links), with the files named in *replace* given the
+    contents that *replace* maps them to (functions of their contents)"""
+    target.mkdir()
+    for name in os.listdir(source):
+        if name in replace:
+            (target / name).write_text(replace[name]((source / name).read_text()))
+        elif os.path.isfile(source / name):
+            os.symlink((source / name).absolute(), target / name)
+    return str(target)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_take_region_without_a_domain_table(tmp_path, ramses_full_load):
+    full, pos, iord, cpu, cell_pos = ramses_full_load
+    path = _copy_output(Path("testdata/ramses/output_00080"), tmp_path / "output_00080",
+                        {"info_00080.txt": lambda text: text.split("ordering type")[0]
+                         + "ordering type=hilbert\n"})
+    region = pynbody.filt.Sphere(0.05, pos[0])
+    with pytest.warns(UserWarning, match="loads every CPU file.*no table of Hilbert domains"):
+        f = pynbody.load(path, take_region=region)
+    assert len(f._cpus) == 16
+    _assert_same_as_filtered(f, full, region)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:take_region loads every CPU file.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:No header file found.*:UserWarning")
+def test_take_region_keeps_sinks_without_positions(tmp_path):
+    source = Path("testdata/ramses/ramses_new_format_partial_with_sink_mass_output_00001")
+    path = _copy_output(source, tmp_path / source.name,
+                        {"sink_00001.csv": lambda text: text.replace(",x,y,z,", ",xx,yy,zz,", 1)})
+    with pytest.warns(UserWarning, match="keeps every sink"):
+        f = pynbody.load(path, take_region=pynbody.filt.Sphere(0.001, (0.0, 0.0, 0.0)))
+    assert len(f.bh) == len(pynbody.load(path).bh) > 0
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_trimmed_particle_reads_skip_empty_chunks(ramses_full_load, monkeypatch):
+    from pynbody.snapshot.ramses import _plan
+    full, pos, iord, cpu, cell_pos = ramses_full_load
+    monkeypatch.setattr(_plan, "particle_chunk", 1000)
+    region = pynbody.filt.Sphere(0.03, pos[0])
+    f = pynbody.load("testdata/ramses/output_00080", take_region=region)
+    g = pynbody.load("testdata/ramses/output_00080", take_region=region, trim_to_region=False)
+    _assert_same_as_filtered(f, full, region)
+    records = ((f._particle_blocks.index('vx'), 8),)
+    trimmed = _plan.particle_fields(f._particle_layouts, f._particle_selections, records)
+    whole = _plan.particle_fields(g._particle_layouts, g._particle_selections, records)
+    assert 0 < trimmed.nbytes < whole.nbytes

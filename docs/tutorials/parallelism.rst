@@ -124,11 +124,14 @@ takes memory for each.
 These options can also be changed during a session, through ``pynbody.snapshot.ramses._execute.config``.
 
 To work on a region of a large output, pass a filter as ``take_region``, for instance
-``pynbody.load(path, take_region=pynbody.filt.Sphere('500 kpc', centre))``. The reader then opens only
-the CPU files whose Hilbert domains come near the region, and keeps only the cells and particles that
-the filter selects, so that memory and later reads are only for those. Passing ``trim_to_region=False``
-as well keeps everything in the files opened instead, which saves reading the positions of every cell
-and particle in those files when the snapshot is opened.
+``pynbody.load(path, take_region=pynbody.filt.Sphere('500 kpc', centre))``, with ``centre`` in the
+output's code units. The reader then opens only the CPU files whose Hilbert domains come near the
+region, and keeps only the cells and particles that the filter selects, so that memory is taken only for
+those. Later reads of gas variables read only the parts of the files holding the cells kept; particles
+are not stored in any spatial order within a file, so reads of particle arrays still read most of each
+file opened, unless very few of its particles are kept. Passing ``trim_to_region=False`` as well keeps
+everything in the files opened instead, which saves reading the positions of every cell and particle in
+those files when the snapshot is opened.
 
 .. _using_shared_arrays:
 

@@ -30,16 +30,41 @@ SKIP = 255
 run_gap_octs = 256
 
 
-def in_region(region, positions: np.ndarray, length_unit, properties: dict, family: str) -> np.ndarray:
-    """Which of *positions* (in *length_unit*) the filter *region* selects, as a boolean array. The positions are put
-    in a minimal snapshot of the given family, with the output's units and cosmological properties, so that the
-    filter applies exactly as it would to the loaded snapshot (including unit strings and periodic wrapping)."""
+# Positions are tested against a filter this many at a time (bounding the memory of the snapshots made to test them)
+region_chunk = 2 ** 20
+
+# Properties derived from positions alone, which band-pass filters on them can test
+_position_properties = {'x', 'y', 'z', 'r', 'rxy'}
+
+
+def depends_only_on_position(region) -> bool:
+    """Whether the filter *region* selects by position alone (so can be applied to positions before anything else
+    is read): spheres, cuboids, discs, band-pass filters on x, y, z, r or rxy, and their combinations"""
+    from ... import filt
+    if isinstance(region, (filt.And, filt.Or)):
+        return depends_only_on_position(region.f1) and depends_only_on_position(region.f2)
+    if isinstance(region, filt.Not):
+        return depends_only_on_position(region.f)
+    if isinstance(region, (filt.BandPass, filt.HighPass, filt.LowPass)):
+        return region._prop in _position_properties
+    return type(region) in (filt.Sphere, filt.Cuboid, filt.Disc)
+
+
+def in_region(region, positions: np.ndarray, length_unit, properties: dict) -> np.ndarray:
+    """Which of *positions* (in *length_unit*) the filter *region*, which must select by position alone, selects, as
+    a boolean array. The positions are put in minimal snapshots with the output's units and cosmological properties,
+    so that the filter applies exactly as it would to the loaded snapshot (including unit strings and periodic
+    wrapping)."""
     from ... import new  # (here, as pynbody.new imports the snapshot package)
-    snap = new(**{family: len(positions)})
-    snap['pos'] = positions
-    snap['pos'].units = length_unit
-    snap.properties.update(properties)
-    return np.asarray(region(snap), dtype=bool)
+    keep = np.empty(len(positions), dtype=bool)
+    for start in range(0, len(positions), region_chunk):
+        chunk = positions[start:start + region_chunk]
+        snap = new(dm=len(chunk))
+        snap['pos'] = chunk
+        snap['pos'].units = length_unit
+        snap.properties.update(properties)
+        keep[start:start + len(chunk)] = np.asarray(region(snap), dtype=bool)
+    return keep
 
 
 @dataclasses.dataclass
@@ -59,15 +84,18 @@ class CellSelection:
         return len(self.level)
 
     def restricted(self, keep: np.ndarray) -> CellSelection:
-        """The selection of those of this selection's cells that *keep* (a boolean for each, in the order they are
-        put in place) says to keep: wanted octs form runs, those less than run_gap_octs apart joined. Cells are put
-        in place run by run, so where a run is split, they go in a different order from this selection's."""
+        """The selection of those of this selection's cells that *keep* (a boolean for each place a cell is put)
+        says to keep: wanted octs form runs, those less than run_gap_octs apart joined. The cells kept go in the
+        same order as in this selection."""
+        if len(keep) != self.ncells:
+            raise ValueError(f"Expected {self.ncells} cells to keep or not, but {len(keep)} were given")
         twotondim = self.starts.shape[1]
-        mask = kernels.restrict_mask(self.mask, np.stack([self.mask_offset, self.count], axis=1).astype(np.int64),
-                                     twotondim, np.ascontiguousarray(keep).view(np.uint8))
-        level, first, count, mask_offset = [], [], [], []
-        for run_level, run_first, run_count, run_offset in zip(self.level.tolist(), self.first.tolist(),
-                                                               self.count.tolist(), self.mask_offset.tolist()):
+        runs = np.stack([self.mask_offset, self.count], axis=1).astype(np.int64)
+        mask = kernels.restrict_mask(self.mask, runs, np.ascontiguousarray(self.starts, dtype=np.int64),
+                                     np.ascontiguousarray(keep).view(np.uint8))
+        level, first, count, mask_offset, origin = [], [], [], [], []
+        for r, (run_level, run_first, run_count, run_offset) in enumerate(zip(
+                self.level.tolist(), self.first.tolist(), self.count.tolist(), self.mask_offset.tolist())):
             wanted = np.flatnonzero(mask[run_offset:run_offset + run_count])
             if len(wanted) == 0:
                 continue
@@ -77,14 +105,28 @@ class CellSelection:
             first += (run_first + starts).tolist()
             count += (ends - starts).tolist()
             mask_offset += (run_offset + starts).tolist()
-        level, first, count, mask_offset = (np.array(x, dtype=np.int64) for x in (level, first, count, mask_offset))
-        # where each run's first cell of each ind goes: cells go run by run, and within a run, ind by ind
-        bits = np.unpackbits(mask[:, None], axis=1, bitorder='little')[:, :twotondim].astype(np.int64)
-        cumulative = np.concatenate([np.zeros((1, twotondim), dtype=np.int64), np.cumsum(bits, axis=0)])
-        counts = cumulative[mask_offset + count] - cumulative[mask_offset]
-        starts = (np.cumsum(counts.ravel()) - counts.ravel()).reshape(counts.shape)
-        return CellSelection(level=level, first=first, count=count, mask_offset=mask_offset, starts=starts,
-                             mask=mask, ncells=int(counts.sum()))
+            origin += [r] * len(starts)
+        level, first, count, mask_offset, origin = (np.array(x, dtype=np.int64)
+                                                    for x in (level, first, count, mask_offset, origin))
+        counts = kernels.mask_counts(mask, np.stack([mask_offset, count], axis=1).reshape(-1, 2), twotondim)
+        # cells go in this selection's order: each new run's cells of each ind go together, so those blocks go in
+        # the order of where this selection put the first cell (kept or not) of each
+        # (this selection's cells before each new run, within the run it came from: those between it and the
+        # previous new run, or the start, then those of the previous new run, and so on)
+        new_run = np.flatnonzero(np.diff(origin, prepend=-1) != 0)
+        previous_end = np.where(np.isin(np.arange(len(origin)), new_run), self.mask_offset[origin],
+                                np.roll(mask_offset + count, 1))
+        segments = np.stack([np.stack([previous_end, mask_offset - previous_end], axis=1),
+                             np.stack([mask_offset, count], axis=1)], axis=1).reshape(-1, 2)
+        old = kernels.mask_counts(self.mask, segments, twotondim).reshape(len(origin), 2, twotondim)
+        between, within = old[:, 0], old[:, 1]
+        before = np.cumsum(between + within, axis=0) - within
+        before -= np.repeat((before - between)[new_run], np.diff(np.append(new_run, len(origin))), axis=0)
+        order = np.argsort((self.starts[origin] + before).ravel(), kind='stable')
+        starts = np.empty(counts.size, dtype=np.int64)
+        starts[order] = np.cumsum(counts.ravel()[order]) - counts.ravel()[order]
+        return CellSelection(level=level, first=first, count=count, mask_offset=mask_offset,
+                             starts=starts.reshape(counts.shape), mask=mask, ncells=int(counts.sum()))
 
     @classmethod
     def all_leaves(cls, layout: AmrLayout, leaves: LeafCells) -> CellSelection:
@@ -111,11 +153,12 @@ class ParticleSelection:
     def nfamilies(self) -> int:
         return len(self.first)
 
-    def chunk_starts(self, chunk: int) -> np.ndarray:
-        """(chunks, families): where the first particle of each family in each chunk of *chunk* particles goes"""
+    def chunk_starts(self, chunk: int) -> tuple[np.ndarray, np.ndarray]:
+        """(chunks, families): where the first particle of each family in each chunk of *chunk* particles goes; and
+        (chunks,) whether each chunk holds any wanted particle"""
         if chunk not in self._chunk_starts:
             counts = kernels.chunk_counts(self.family, chunk, self.nfamilies)
-            self._chunk_starts[chunk] = np.cumsum(counts, axis=0) - counts + self.first
+            self._chunk_starts[chunk] = (np.cumsum(counts, axis=0) - counts + self.first, counts.any(axis=1))
         return self._chunk_starts[chunk]
 
     @classmethod
