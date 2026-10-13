@@ -136,8 +136,8 @@ cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
                                 include_dirs=incdir)
 
 
-ramses_kernels = Extension('pynbody.snapshot._ramses_kernels',
-                           sources=['pynbody/snapshot/_ramses_kernels.pyx'],
+ramses_kernels = Extension('pynbody.snapshot.ramses._kernels',
+                           sources=['pynbody/snapshot/ramses/_kernels.pyx'],
                            include_dirs=incdir)
 
 

@@ -13,7 +13,7 @@ Cells are put in the order pynbody has always used: within each level of each fi
 ``2**ndim - 1``) of every oct in turn, then the next ``ind``, and so on. ``starts[level, ind]`` gives where in the
 destination the first leaf cell of each level and ``ind`` goes.
 
-See :mod:`pynbody.snapshot._ramses_reader` for how buffers are read and work shared between threads.
+See :mod:`pynbody.snapshot.ramses._reader` for how buffers are read and work shared between threads.
 """
 
 cimport numpy as np

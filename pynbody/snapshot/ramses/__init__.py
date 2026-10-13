@@ -16,9 +16,10 @@ from pathlib import Path
 
 import numpy as np
 
-from .. import array, config_parser, family, units
-from ..analysis.cosmology import age
-from . import SimSnap, _ramses_reader, namemapper
+from ... import array, config_parser, family, units
+from ...analysis.cosmology import age
+from .. import SimSnap, namemapper
+from . import _reader
 
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
@@ -406,7 +407,7 @@ class RamsesSnap(SimSnap):
             raise ValueError("The family field of RAMSES particle files is expected to hold one byte per particle")
         self._particle_family_ids_on_disk = []
         self._particle_file_start_indices = []
-        results = _ramses_reader.count_particles([self._particle_filename(i) for i in self._cpus],
+        results = _reader.count_particles([self._particle_filename(i) for i in self._cpus],
                                                  family_block, family_dtype)
 
         aggregate_counts = np.zeros(256, dtype=np.int64)
@@ -464,7 +465,7 @@ class RamsesSnap(SimSnap):
                 assert startpoint == count
 
         self._particle_files = [r[0] for r in results]
-        _ramses_reader.set_families(self._particle_files, self._particle_family_ids_on_disk,
+        _reader.set_families(self._particle_files, self._particle_family_ids_on_disk,
                                     self._particle_file_start_indices, len(internal_id_to_family))
 
         n_sinks = self._count_sink_particles()
@@ -580,7 +581,7 @@ class RamsesSnap(SimSnap):
                     "Using field %s to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher." % pb_name)
             distinguisher_type = self._particle_types[distinguisher_field]
 
-        results = _ramses_reader.count_particles([self._particle_filename(i) for i in self._cpus],
+        results = _reader.count_particles([self._particle_filename(i) for i in self._cpus],
                                                  distinguisher_field, distinguisher_type)
 
         for particle_file, data in results:
@@ -599,7 +600,7 @@ class RamsesSnap(SimSnap):
             self._particle_family_ids_on_disk.append(family_ids)
 
         self._particle_files = [r[0] for r in results]
-        _ramses_reader.set_families(self._particle_files, self._particle_family_ids_on_disk,
+        _reader.set_families(self._particle_files, self._particle_family_ids_on_disk,
                                     self._particle_file_start_indices, 2)
         return npart - nstar, nstar
 
@@ -607,7 +608,7 @@ class RamsesSnap(SimSnap):
         if len(self._cpus) == 0:
             self._gas_i0 = np.zeros(0, dtype=np.int64)
             return 0
-        self._amr_geometry, self._amr_layouts = _ramses_reader.scan_amr(
+        self._amr_geometry, self._amr_layouts = _reader.scan_amr(
             [self._amr_filename(cpu) for cpu in self._cpus], self._cpus,
             self._info['ordering type'] == 'bisection', self._maxlevel)
         ncells = [layout.ncells for layout in self._amr_layouts]
@@ -620,7 +621,7 @@ class RamsesSnap(SimSnap):
         smooth.set_default_units()
 
         try:
-            _ramses_reader.load_cell_positions(self._amr_geometry, self._amr_layouts,
+            _reader.load_cell_positions(self._amr_geometry, self._amr_layouts,
                                                [self._amr_filename(cpu) for cpu in self._cpus], self._gas_i0,
                                                self._info['boxlen'], self.gas['pos'], self.gas['smooth'])
         except Exception:
@@ -673,7 +674,7 @@ class RamsesSnap(SimSnap):
             return
 
         header_layout = [ramses_hydro_header, ramses_grav_header, ramses_rt_header][mode]
-        header, header_nbytes = _ramses_reader.read_header(paths[0], header_layout)
+        header, header_nbytes = _reader.read_header(paths[0], header_layout)
         nvar_file = [header.get('nvarh'), 4, header.get('nrtvar')][mode]
         nvar = len(dims)
         if nvar_file != nvar and mode is _gv_load_rt:
@@ -687,7 +688,7 @@ class RamsesSnap(SimSnap):
             warnings.warn("More hydro variables (%d) are in this RAMSES dump than are defined in config.ini (%d)" % (
                 nvar_file, nvar), RuntimeWarning)
 
-        _ramses_reader.load_cell_values(self._amr_geometry, self._amr_layouts, paths, self._gas_i0, header_nbytes,
+        _reader.load_cell_values(self._amr_geometry, self._amr_layouts, paths, self._gas_i0, header_nbytes,
                                         int(nvar_file), dims)
 
         if mode is _gv_load_gravity:
@@ -720,7 +721,7 @@ class RamsesSnap(SimSnap):
             fields.append((offset, _type, [self[f][blockname] for f in self._iter_particle_families()]))
 
         try:
-            _ramses_reader.load_particle_fields(self._particle_files, fields)
+            _reader.load_particle_fields(self._particle_files, fields)
         except Exception:
             warnings.warn(
                 "Exception encountered while reading %s; is there an incompatibility in your Ramses configuration?"
@@ -832,7 +833,7 @@ class RamsesSnap(SimSnap):
         if self.is_cosmological:
             # Only attempt tform conversion for cosmological runs. The built-in tforms for isolated runs
             # are actually meaningful (issue 554)
-            from ..analysis import ramses_util
+            from ...analysis import ramses_util
 
             # Replace the tform array by its usual meaning using the birth files
             ramses_util.get_tform(self, times_are_proper=self.times_are_proper)
@@ -1027,7 +1028,7 @@ def temp(sim):
     # to avoid running into circular dependencies with the traditional derived definition
     # Now uses the self-consistent molecular weight field from pynbody (issue 598)
 
-    from ..derived import mu
+    from ...derived import mu
     mu_est = array.SimArray(np.ones(len(sim)), units="1")
     for i in range(5):
         temp = ((sim['p'] / sim['rho']) * (mu_est * units.m_p / units.k)).in_units("K")

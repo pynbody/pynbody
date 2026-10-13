@@ -532,7 +532,7 @@ def test_negative_iords(ramses_file):
 @pytest.fixture
 def ramses_read_threads():
     """Set the threads used to read RAMSES files, restoring the configuration afterwards"""
-    from pynbody.snapshot import _ramses_reader
+    from pynbody.snapshot.ramses import _reader as _ramses_reader
     saved = dict(_ramses_reader.config)
 
     def set_threads(parallel_read, io_threads='auto'):

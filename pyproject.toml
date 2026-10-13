@@ -65,6 +65,7 @@ packages = [
     "pynbody.filt",
     "pynbody.sph",
     "pynbody.snapshot",
+    "pynbody.snapshot.ramses",
     "pynbody.bridge",
     "pynbody.halo",
     "pynbody.halo.details",

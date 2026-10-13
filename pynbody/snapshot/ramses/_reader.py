@@ -6,7 +6,7 @@ also holds the "virtual" octs of neighbouring CPUs, which pynbody skips.
 
 Every read is described as a list of *pieces*, in file order, each something to read from one file and a way to
 decode what was read: to pick out the leaf cells (or each family's particles) and put them in place, which the
-Cython functions of :mod:`._ramses_kernels` do without holding the GIL. :func:`_run` performs the pieces through the
+Cython functions of :mod:`._kernels` do without holding the GIL. :func:`_run` performs the pieces through the
 threaded pipeline of :mod:`pynbody.util.hdf_bulk_read.execute`: consecutive pieces are gathered into jobs of a few
 megabytes (so that the cost of handing a job between threads is small beside the work in it, even where each file
 holds little), and consecutive jobs into tasks for the input threads, each of which reads its files one after
@@ -35,10 +35,10 @@ import typing
 
 import numpy as np
 
-from .. import config_parser
-from ..util.hdf_bulk_read import execute, strategy
-from ..util.hdf_bulk_read.common import Job
-from . import _ramses_kernels as kernels
+from ... import config_parser
+from ...util.hdf_bulk_read import execute, strategy
+from ...util.hdf_bulk_read.common import Job
+from . import _kernels as kernels
 
 logger = logging.getLogger('pynbody.snapshot.ramses')
 
