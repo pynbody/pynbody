@@ -19,7 +19,10 @@ arrays, so it can be inspected, tested and kept for reuse; the ``load_*`` functi
 
 from __future__ import annotations
 
+import collections
+import collections.abc
 import dataclasses
+import typing
 
 import numpy as np
 
@@ -29,6 +32,9 @@ from ._selection import CellSelection, ParticleSelection
 
 # Particles are read in chunks of this many
 particle_chunk = _execute.job_nbytes // 8
+
+# The most memory a snapshot's kept plans may take (see PlanCache)
+plan_cache_nbytes = 64 * 1024 * 1024
 
 # Kinds of check (see _execute): a record length, or a record giving a level or its number of octs
 _RECORD_LENGTH, _LEVEL_RECORD = 0, 1
@@ -65,11 +71,56 @@ class ReadPlan:
     def requested(self) -> int:
         return sum(p.requested for p in self.pieces)
 
+    @property
+    def memory_nbytes(self) -> int:
+        """The memory the plan's tables take (which its pieces share)"""
+        tables = {}
+        for p in self.pieces:
+            for a in (p.reads, p.rows, p.checks):
+                base = a if a.base is None else a.base
+                tables[id(base)] = base.nbytes
+        return sum(tables.values())
+
     def describe(self) -> str:
         files = len({p.path for p in self.pieces})
         return (f"{self.kind}: {files} files, {len(self.pieces)} pieces, {self.nreads} reads of "
                 f"{self.nbytes / 1e6:.1f} MB for {self.requested / 1e6:.1f} MB of records (read gap "
                 f"{_execute.describe_nbytes(self.gap)})")
+
+
+class PlanCache(collections.abc.Mapping):
+    """Plans kept for reuse, by key, up to *max_nbytes* of them in all: once there are more, those least recently used
+    are let go of (and a plan larger than that is never kept)"""
+
+    def __init__(self, max_nbytes: int | None = None):
+        self.max_nbytes = plan_cache_nbytes if max_nbytes is None else max_nbytes
+        self._plans = collections.OrderedDict()  # key: (plan, memory_nbytes), least recently used first
+        self.nbytes = 0
+
+    def get(self, key, build: typing.Callable[[], ReadPlan]) -> ReadPlan:
+        """The plan kept for *key*, or else the plan *build* returns, which is kept"""
+        if key in self._plans:
+            self._plans.move_to_end(key)
+            return self._plans[key][0]
+        plan = build()
+        nbytes = plan.memory_nbytes
+        if nbytes > self.max_nbytes:
+            return plan
+        self._plans[key] = (plan, nbytes)
+        self.nbytes += nbytes
+        while self.nbytes > self.max_nbytes:
+            _, (_, dropped) = self._plans.popitem(last=False)
+            self.nbytes -= dropped
+        return plan
+
+    def __getitem__(self, key) -> ReadPlan:
+        return self._plans[key][0]
+
+    def __iter__(self):
+        return iter(self._plans)
+
+    def __len__(self):
+        return len(self._plans)
 
 
 def _assemble(paths: list[str], ranges: np.ndarray, rows: np.ndarray, row_ranges: np.ndarray, offset_columns: list[int],

@@ -60,8 +60,16 @@ def _read_config():
         logger.warning("Ignoring the value %r of %s in the [ramses] configuration", value, name)
         return default
 
+    def choice(name, default, choices):
+        value = config_parser.get('ramses', name, fallback=default).strip().lower()
+        if value in choices:
+            return value
+        logger.warning("Ignoring the value %r of %s in the [ramses] configuration", value, name)
+        return default
+
     return {'parallel-read': option('parallel-read', 8), 'io-threads': option('io-threads', 'auto'),
-            'read-gap': option('read-gap', 'auto', 0)}
+            'read-gap': option('read-gap', 'auto', 0),
+            'hydro-loading': choice('hydro-loading', 'requested', ('requested', 'all'))}
 
 
 config = _read_config()
@@ -70,7 +78,8 @@ time. ``parallel-read`` is the most threads decoding (``auto`` for as many as th
 everything is done in the calling thread. ``io-threads`` is the number of threads reading files, or ``auto`` for 16
 on a parallel filesystem and one otherwise (the rule used for HDF5 files: see
 :mod:`pynbody.util.hdf_bulk_read.strategy`). ``read-gap`` is the read gap in bytes, or ``auto`` (see
-:func:`read_gap`)."""
+:func:`read_gap`). ``hydro-loading`` is ``requested`` to read only the hydro, gravity or RT variable asked for (with
+the other components of a vector), or ``all`` to read every variable of the file at once."""
 
 
 def choose_strategy(paths: list[str], num_jobs: int, max_job_nbytes: int) -> strategy.ReadStrategy:

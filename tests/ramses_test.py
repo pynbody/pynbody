@@ -702,7 +702,7 @@ def test_particle_read_plans_are_reused(monkeypatch):
     monkeypatch.setattr(_plan, "particle_fields", lambda *args: builds.append(args) or particle_fields(*args))
     f = pynbody.load("testdata/ramses/output_00080")
     pos = f['pos'].copy()
-    assert [k[0] for k in f._read_plans] == ['particle fields'] and len(builds) == 1
+    assert 'particle fields' in [k[0] for k in f._read_plans] and len(builds) == 1
     del f['pos'], f['vel']
     np.testing.assert_array_equal(f['pos'], pos)
     assert len(builds) == 1
@@ -916,3 +916,149 @@ def test_large_read_gap_reads_the_same(monkeypatch, caplog):
     rho = np.zeros(len(f.gas))
     _plan.load_cell_values(rho_only, f._cell_selections, [rho])
     np.testing.assert_array_equal(rho, expected['rho'])
+
+
+@pytest.fixture
+def hydro_loading():
+    """Set the hydro-loading option, restoring the configuration afterwards"""
+    from pynbody.snapshot.ramses import _execute
+    saved = _execute.config['hydro-loading']
+
+    def set_mode(mode):
+        _execute.config['hydro-loading'] = mode
+
+    yield set_mode
+    _execute.config['hydro-loading'] = saved
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:.*hydro variables.*:RuntimeWarning")
+@pytest.mark.filterwarnings(r"ignore:Loading RT data from disk.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:No header file found.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Using field at offset.*:UserWarning")
+@pytest.mark.parametrize("output, kwargs", [
+    ("output_00080", {}), ("output_00080", {"cpus": [5, 2, 9], "maxlevel": 12}), ("ramses_partial_output_00250", {}),
+    ("ramses_new_format_partial_output_00001", {}), ("ramses_new_format_cosmo_with_ahf_output_00110", {}),
+    ("ramses_rt_partial_output_00002", {"cpus": [3, 1, 2]}), ("ramses_dmo_partial_output_00051",
+                                                              {"cpus": [1], "force_gas": True})])
+def test_requested_hydro_loading_matches_all(hydro_loading, output, kwargs):
+    """Loading each hydro, gravity and RT variable on its own gives what loading them all at once does"""
+    path = "testdata/ramses/" + output
+    arrays = {}
+    for mode in ("all", "requested"):
+        hydro_loading(mode)
+        f = pynbody.load(path, **kwargs)
+        names = sorted(f.gas.loadable_keys())
+        if os.path.exists(f._grav_filename(f._cpus[0])) and output != "output_00080":  # (whose gravity files are
+            names += ['phi', 'accg']                                                     # in another format)
+        arrays[mode] = {k: np.asarray(f.gas[k]).copy() for k in names}
+        arrays[mode]['units'] = {k: str(f.gas[k].units) for k in names}
+    assert arrays['all'].keys() == arrays['requested'].keys()
+    for k in arrays['all']:
+        if k == 'units':
+            assert arrays['all'][k] == arrays['requested'][k]
+        else:
+            np.testing.assert_array_equal(arrays['all'][k], arrays['requested'][k], err_msg=k)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Loading RT data from disk.*:UserWarning")
+def test_requested_hydro_loading_reads_one_variable(hydro_loading):
+    hydro_loading("requested")
+    f = pynbody.load("testdata/ramses/output_00080")
+    f.gas['rho'] # noqa
+    assert sorted(f.gas.keys()) == ['rho']
+    f.gas['vel'] # noqa
+    assert sorted(f.gas.keys()) == ['rho', 'vel', 'vx', 'vy', 'vz']  # (a vector and its components)
+    # the synchronised load of pos and vel reads no other hydro variable, and gas mass only what it uses
+    f = pynbody.load("testdata/ramses/output_00080")
+    f['vel'] # noqa
+    assert sorted(f.gas.keys()) == ['pos', 'smooth', 'vel', 'vx', 'vy', 'vz', 'x', 'y', 'z']
+    f['mass'] # noqa
+    assert 'p' not in f.gas.keys() and 'metal' not in f.gas.keys()
+    # RT variables, each flux with its components, and with units only on what is loaded
+    f = pynbody.load("testdata/ramses/ramses_rt_partial_output_00002", cpus=[3, 1, 2])
+    f.gas['rad_0_flux'] # noqa
+    assert sorted(f.gas.keys()) == ['rad_0_flux', 'rad_0_flux_x', 'rad_0_flux_y', 'rad_0_flux_z']
+    assert f.gas['rad_0_flux'].units == f._rt_unit
+    # and the whole file at once, under the 'all' setting
+    hydro_loading("all")
+    f = pynbody.load("testdata/ramses/output_00080")
+    f.gas['rho'] # noqa
+    assert sorted(f.gas.keys()) == ['metal', 'p', 'rho', 'vel', 'vx', 'vy', 'vz']
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_hydro_variable_count_is_warned_about_once(hydro_loading):
+    hydro_loading("requested")
+    f = pynbody.load("testdata/ramses/ramses_partial_output_00250")
+    with pytest.warns(RuntimeWarning, match="More hydro variables") as record:
+        f.gas['rho'], f.gas['p'], f.gas['vel'] # noqa
+    assert len([w for w in record if "hydro variables" in str(w.message)]) == 1
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_cell_read_plans_are_reused(hydro_loading, monkeypatch):
+    from pynbody.snapshot.ramses import _plan
+    builds = []
+    cell_values = _plan.cell_values
+    monkeypatch.setattr(_plan, "cell_values", lambda *args: builds.append(args) or cell_values(*args))
+    hydro_loading("requested")
+    f = pynbody.load("testdata/ramses/output_00080")
+    rho = f.gas['rho'].copy()
+    del f.gas['rho']
+    np.testing.assert_array_equal(f.gas['rho'], rho)
+    f.gas['p'] # noqa
+    assert len(builds) == 2  # (rho once, then p)
+    assert f._read_plans.nbytes <= _plan.plan_cache_nbytes
+
+
+def test_plan_cache_lets_go_of_least_recently_used():
+    from pynbody.snapshot.ramses import _plan
+
+    def plan(n):
+        table = np.zeros((n, 1), dtype=np.int8)
+        return _plan.ReadPlan('test', [_plan.PlanPiece('a', 0, table, 0, 0, table, table)])
+
+    cache = _plan.PlanCache(max_nbytes=100)
+    cache.get('a', lambda: plan(40))
+    cache.get('b', lambda: plan(40))
+    cache.get('a', lambda: plan(40))  # (a is now the more recently used)
+    cache.get('c', lambda: plan(40))
+    assert list(cache.keys()) == ['a', 'c'] and cache.nbytes == 80
+    cache.get('d', lambda: plan(200))  # (too big ever to keep)
+    assert list(cache.keys()) == ['a', 'c']
+
+
+@pytest.mark.parametrize("value, expected", [(None, "requested"), ("all", "all"), ("Requested", "requested"),
+                                             ("some", "requested")])
+def test_hydro_loading_option(monkeypatch, caplog, value, expected):
+    from pynbody.snapshot.ramses import _execute
+
+    class Config:
+        def get(self, section, name, fallback):
+            return value if name == "hydro-loading" and value is not None else fallback
+
+    monkeypatch.setattr(_execute, "config_parser", Config())
+    assert _execute._read_config()["hydro-loading"] == expected
+    assert ("Ignoring" in caplog.text) == (value == "some")
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+def test_requested_loading_reads_everything_when_that_costs_no_more(hydro_loading, monkeypatch):
+    """Where reading one variable would read most of the files anyway (here, with a large read gap merging its
+    records), every variable is read in that one pass, rather than one pass each"""
+    from pynbody.snapshot.ramses import _execute
+    hydro_loading("requested")
+    expected = pynbody.load("testdata/ramses/output_00080")
+    monkeypatch.setitem(_execute.config, "read-gap", 1024 * 1024)
+    f = pynbody.load("testdata/ramses/output_00080")
+    f.gas['rho'] # noqa
+    assert sorted(f.gas.keys()) == ['metal', 'p', 'rho', 'vel', 'vx', 'vy', 'vz']
+    for k in ('rho', 'p', 'metal', 'vel'):
+        np.testing.assert_array_equal(f.gas[k], expected.gas[k])
