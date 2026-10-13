@@ -83,8 +83,8 @@ def rho(sim):
 
     logger.info('Calculating SPH density')
     rho = array.SimArray(
-        np.empty(len(sim['pos'])), sim['mass'].units / sim['pos'].units ** 3,
-        dtype=sim['pos'].dtype)
+        np.empty(len(sim['pos']), dtype=sim['pos'].dtype),
+        sim['mass'].units / sim['pos'].units ** 3)
 
 
     start = time.time()
