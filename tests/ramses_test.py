@@ -843,7 +843,7 @@ def test_scan_reads_are_bounded(tmp_path):
 def test_read_gap_depends_on_the_filesystem(monkeypatch, caplog, filesystem, gap):
     from pynbody.snapshot.ramses import _execute
     path = ["/data/output_00001/amr_00001.out00001"]
-    monkeypatch.setattr(_execute.strategy, "filesystem_type", lambda path: filesystem)
+    monkeypatch.setattr(_execute.filesystem, "filesystem_type", lambda path: filesystem)
     monkeypatch.setitem(_execute.config, "read-gap", "auto")
     assert _execute.read_gap(path) == gap
     monkeypatch.setitem(_execute.config, "read-gap", 12345)
@@ -1171,8 +1171,9 @@ def test_filters_intersect_cells_given_their_size():
         np.testing.assert_array_equal(
             region.cubic_cell_intersection(np.ascontiguousarray(centres[some]), deltax=100. / n, boxsize=100.),
             whole_grid[some])
-    # the complement of a region may intersect any cell
-    assert (~pynbody.filt.Sphere(5, (1, 1, 1))).cubic_cell_intersection(centres).all()
+    # which cells the complement of a region intersects is not known
+    with pytest.raises(NotImplementedError):
+        (~pynbody.filt.Sphere(5, (1, 1, 1))).cubic_cell_intersection(centres)
 
 
 @pytest.fixture(scope="module")

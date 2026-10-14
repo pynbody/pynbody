@@ -79,26 +79,6 @@ problem with a ``.param`` file. If at this point you can't see what's
 going wrong, do `drop us a line
 <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
 
-
-.. _pitfall_ramses_sharedmem:
-
-I'm using shared-memory arrays, and get bizarre errors about "No space left on device" or something similar
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-This will happen if you are using :ref:`shared-memory arrays <using_shared_arrays>` and your shared
-memory has filled up. Look in your /dev/shm for files named "pynbody-*" -- there are probably many
-of them. If your code exits gracefully, these files are deleted, but if your session crashes or you
-kill your python shell for whatever reason, these files will stick around. You should periodically
-delete them by hand if they start to accumulate.
-
-Note that the amount of shared memory available to processes on your machine is normally
-substantially less than the total amount of memory on your machine. You can tell the kernel to
-allow more; see `here <https://www.zabbix.org/wiki/How_to/configure_shared_memory>`_, for instance.
-
-(Earlier versions of pynbody read RAMSES snapshots with several processes, sharing memory between
-them, which could also fill up shared memory. RAMSES snapshots are now read with threads, which need
-no shared memory.)
-
 If you are still having trouble, :ref:`contact us <getting-help>`.
 
 .. _no_memory

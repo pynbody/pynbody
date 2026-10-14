@@ -4,7 +4,7 @@ A :class:`ReadRequest` says which rows of a dataset to read, and where to put th
 units of work (:class:`_Work`), each reading from one place in one file: most requests are one unit, but a reader
 may divide a request into parts (a virtual dataset divides one into a part for each source dataset it draws on).
 The work is then described to the rules in :mod:`.strategy` (:func:`summarise`), and grouped by file into tasks for
-input threads (:func:`group_by_file`). Finally each task is turned into jobs (see :class:`.common.Job`), as it is
+input threads (:func:`group_by_file`). Finally each task is turned into jobs (see :class:`pynbody.util.bulk_read.pipeline.Job`), as it is
 performed (:func:`jobs`): for a chunked dataset, one per chunk, however many units of work want rows of it.
 """
 
@@ -20,7 +20,8 @@ try:
 except ImportError:
     h5py = None
 
-from .common import Job, ReadProperties
+from ..bulk_read.pipeline import Job
+from .common import ReadProperties
 from .strategy import ReadSummary
 
 # An index selection is read a block of rows at a time: from an h5py dataset, each block into a buffer of at most

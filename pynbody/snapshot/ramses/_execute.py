@@ -3,9 +3,10 @@
 Work arrives as *pieces*, each something to read from one file and a way to decode what was read. :func:`run_pieces`
 gathers consecutive pieces into jobs of a few megabytes (so that handing a job between threads costs little beside
 the work in it, even where each file holds little) and consecutive jobs into tasks for the input threads, each of
-which reads its files one after another, sequentially; decoding threads decode. It runs them through the threaded
-pipeline of :mod:`pynbody.util.hdf_bulk_read.execute`, with as many threads of each kind as :func:`choose_strategy`
-decides.
+which reads its files one after another, sequentially; decoding threads decode. It runs them through the pipeline of
+input and decode threads shared with the HDF5 reader (:mod:`pynbody.util.bulk_read.pipeline`), with as many threads of
+each kind as :func:`choose_strategy` decides, from the shared rules for each kind of filesystem
+(:mod:`pynbody.util.bulk_read.filesystem`).
 
 Most reads are planned in advance (see :mod:`._plan`), and :func:`run_plan` runs a :class:`._plan.ReadPlan`: each of
 its pieces reads byte ranges into one buffer, checks the values the plan expects to find there, and is decoded by a
@@ -24,8 +25,8 @@ import typing
 import numpy as np
 
 from ... import config_parser
-from ...util.hdf_bulk_read import execute, strategy
-from ...util.hdf_bulk_read.common import Job
+from ...util.bulk_read import filesystem
+from ...util.bulk_read.pipeline import Job, ReadStrategy, perform_tasks
 from . import _kernels as kernels
 
 logger = logging.getLogger('pynbody.snapshot.ramses')
@@ -33,18 +34,6 @@ logger = logging.getLogger('pynbody.snapshot.ramses')
 # The least a job reads, where there is enough to read: big enough that the work of handing jobs between threads is
 # small beside it, and small enough that a few per thread take little memory
 job_nbytes = 4 * 1024 * 1024
-
-# The read gap (see read_gap) chosen by 'auto': about the bytes that could be read in the time a request takes
-local_read_gap = 64 * 1024  # local disks
-network_read_gap = 256 * 1024  # a single file server (a round trip of ~0.3 ms at ~1 GB/s, or more at less)
-parallel_read_gap = 1024 * 1024  # parallel filesystems and object stores (~1 ms at several GB/s)
-
-# Filesystem types served by a single server over a network
-network_filesystem_types = {'nfs', 'nfs4', 'cifs', 'smb3', 'smbfs', 'fuse.sshfs', 'afs', '9p'}
-
-# Filesystem types of high latency and bandwidth, beside strategy.parallel_filesystem_types
-high_latency_filesystem_types = {'glusterfs', 'fuse.glusterfs', 'fuse.dfuse', 'fuse.s3fs', 'fuse.gcsfuse',
-                                 'fuse.rclone', 'fuse.juicefs'}
 
 
 def _read_config():
@@ -77,31 +66,29 @@ config = _read_config()
 time. ``parallel-read`` is the most threads decoding (``auto`` for as many as there are CPUs); if 1 or less,
 everything is done in the calling thread. ``io-threads`` is the number of threads reading files, or ``auto`` for 16
 on a parallel filesystem and one otherwise (the rule used for HDF5 files: see
-:mod:`pynbody.util.hdf_bulk_read.strategy`). ``read-gap`` is the read gap in bytes, or ``auto`` (see
+:mod:`pynbody.util.bulk_read.filesystem`). ``read-gap`` is the read gap in bytes, or ``auto`` (see
 :func:`read_gap`). ``hydro-loading`` is ``requested`` to read only the hydro, gravity or RT variable asked for (with
 the other components of a vector), or ``all`` to read every variable of the file at once."""
 
 
-def choose_strategy(paths: list[str], num_jobs: int, max_job_nbytes: int) -> strategy.ReadStrategy:
+def choose_strategy(paths: list[str], num_jobs: int, max_job_nbytes: int) -> ReadStrategy:
     """Decide how many threads to read *paths* with, in *num_jobs* jobs of at most *max_job_nbytes*"""
     threads = config['parallel-read']
     if threads == 'auto':
-        threads = strategy.available_cpus()
+        threads = filesystem.available_cpus()
     if threads <= 1 or num_jobs <= 1:
-        return strategy.ReadStrategy(io_threads=1, decode_threads=0,
+        return ReadStrategy(io_threads=1, decode_threads=0,
                                      reason="reading in the calling thread (parallel-read is %s; %d jobs)"
                                             % (config['parallel-read'], num_jobs))
-    filesystem = strategy.filesystem_type(paths[0]) if paths else None
+    fs_type = filesystem.filesystem_type(paths[0]) if paths else None
     if config['io-threads'] != 'auto':
         io_threads = max(int(config['io-threads']), 1)
-    elif filesystem in strategy.parallel_filesystem_types:
-        io_threads = 16
     else:
-        io_threads = 1
-    decode_threads = min(threads, strategy.available_cpus(), num_jobs)
-    return strategy.ReadStrategy(io_threads=io_threads, decode_threads=decode_threads,
+        io_threads = filesystem.default_io_threads(fs_type)
+    decode_threads = min(threads, filesystem.available_cpus(), num_jobs)
+    return ReadStrategy(io_threads=io_threads, decode_threads=decode_threads,
                                  reason=f"{io_threads} input and {decode_threads} decoding thread(s) for {num_jobs} "
-                                        f"jobs on a {filesystem or 'local'} filesystem",
+                                        f"jobs on a {fs_type or 'local'} filesystem",
                                  inflight_nbytes=2 * decode_threads * max(max_job_nbytes, 1))
 
 
@@ -123,13 +110,7 @@ def read_gap(paths: list[str]) -> int:
             logger.warning("Ignoring the read gap %r, which is neither a number of bytes nor 'auto'", value)
             value = 'auto'
     if value == 'auto':
-        filesystem = strategy.filesystem_type(paths[0]) if paths else None
-        if filesystem in strategy.parallel_filesystem_types or filesystem in high_latency_filesystem_types:
-            value = parallel_read_gap
-        elif filesystem in network_filesystem_types:
-            value = network_read_gap
-        else:
-            value = local_read_gap
+        value = filesystem.request_gap(filesystem.filesystem_type(paths[0]) if paths else None)
     return min(value, job_nbytes // 4)
 
 
@@ -204,7 +185,7 @@ def run_pieces(pieces: list[Piece], description: str = "pieces"):
     plan = choose_strategy(list(dict.fromkeys(p.path for p in pieces)), sum(len(t.jobs) for t in tasks),
                            max((j.nbytes for t in tasks for j in t.jobs), default=0))
     logger.debug("Reading RAMSES %s: %s", description, plan.reason)
-    execute.perform_tasks(tasks, plan, iter)
+    perform_tasks(tasks, plan, iter)
 
 
 def _job(task: _Task, pieces: list[Piece], nbytes: int) -> Job:
@@ -237,7 +218,10 @@ _check_failures = {0: "Unexpected record length in {path}",
 
 
 def run_plan(plan, decode: typing.Callable):
-    """Perform a ReadPlan: read each piece, check it, and call decode(piece, buffer)"""
+    """Perform a ReadPlan: read each piece, check it, and call decode(piece, buffer). The pieces are run by
+    :func:`run_pieces`, which hands them to input and decoding threads (or does everything in this thread, if
+    :func:`choose_strategy` says so); *decode* is called on a decoding thread, so must release the GIL to run in
+    parallel, as the kernels do."""
 
     def make(piece):
         def read(f):

@@ -53,10 +53,10 @@ def load(filename, *args, **kwargs) -> SimSnap:
         slice with a negative step, is rejected.
 
     take_region : optional, pynbody.filt.Filter
-        If specified, a sub-region including the particles with the given spatial filter are loaded. Swift
-        snapshots (using their spatial index of cells) and RAMSES outputs (using the Hilbert domains of their CPU
-        files, then trimming to exactly what the filter selects) support this option; see the documentation of
-        their classes for details.
+        If specified, load only a region of the snapshot: everything the spatial filter selects is guaranteed to be
+        loaded, but formats differ in how closely they crop to it, so that more may be loaded besides (apply the
+        filter to the result to get exactly the region). Supported by Swift snapshots and RAMSES outputs; see the
+        documentation of their classes for details.
 
     *args, **kwargs :
         Other arguments and keyword arguments are passed to the class constructor that is used to load the file.

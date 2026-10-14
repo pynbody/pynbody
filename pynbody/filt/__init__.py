@@ -95,13 +95,15 @@ class Filter:
         Parameters
         ----------
         centroids : array-like
-            The centres of the cells, shape (N, 3), in the snapshot's position units
+            The centres of the cells, shape (N, 3), in the snapshot's position units.
         deltax : float, optional
-            The side of each cell. If not given, the centroids must be a complete uniform grid filling a periodic box,
-            from which the side and the box size are inferred.
+            The side length of the cells, which must all be the same size. If given, the centroids can be any set of
+            such cells: for example, those of one level of an AMR hierarchy, or a sparse selection of cells. If not
+            given, the centroids must instead form a complete uniform grid filling a periodic box, and both the side
+            length and the box size are inferred from them.
         boxsize : float, optional
-            The size of the periodic box, used if deltax is given (None for no periodicity); otherwise it is
-            inferred from the grid
+            The size of the periodic box, used only if deltax is given (None, the default, for no periodic
+            wrapping). Without deltax, it is inferred from the grid.
         """
         raise NotImplementedError("Cell intersections are not implemented for this filter")
 
@@ -211,9 +213,9 @@ class Not(Filter):
         return "~" + repr(self.f)
 
     def cubic_cell_intersection(self, centroids, deltax=None, boxsize=None):
-        # a cell partly inside the region of the filter negated also intersects its complement, so (without knowing
-        # which cells lie wholly inside that region) any cell may
-        return np.ones(len(centroids), dtype=bool)
+        # A cell partly inside the region of the filter negated also intersects its complement, so this could only
+        # be answered by knowing which cells lie wholly inside that region, which filters do not say
+        raise NotImplementedError("Cell intersections are not implemented for a negated filter")
 
 
 class Sphere(Filter):

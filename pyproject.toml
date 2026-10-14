@@ -73,6 +73,8 @@ packages = [
     "pynbody.kdtree",
     "pynbody.test_utils",
     "pynbody.util",
+    "pynbody.util.bulk_read",
+    "pynbody.util.hdf_bulk_read",
     "pynbody.array.shared",
     'pynbody.openmp'
 ]

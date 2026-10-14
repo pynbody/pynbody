@@ -15,13 +15,13 @@ try:
 except ImportError:
     h5py = None
 
+from ..bulk_read.pipeline import Job
 from . import decode, files
 from .common import (
     _DEFLATE_FILTER,
     _FLETCHER32_FILTER,
     _SHUFFLE_FILTER,
     _THROUGH_H5PY,
-    Job,
     ReadProperties,
     _CannotReadDirectly,
     _supported_filters,
@@ -173,7 +173,7 @@ class _DirectReader:
         pass
 
     def jobs(self, targets: list[tuple]) -> typing.Iterator[Job]:
-        """Yield the jobs (see common.Job) that read *targets*, in order.
+        """Yield the jobs (see pynbody.util.bulk_read.pipeline.Job) that read *targets*, in order.
 
         Each target is (rows, offset, destination): rows being a slice (with offset 0) or a sorted array of rows to
         which offset is added, and destination a plain C-contiguous array with room for them. Targets are best given

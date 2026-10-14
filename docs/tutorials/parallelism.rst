@@ -21,9 +21,7 @@ There are several distinct ways in which parallelization is possible in pynbody.
 (3) *Process parallelism*. Pynbody also exposes a way to share arrays across completely
     separate python processes (on the same machine). This is especially used by
     `tangos <https://github.com/pynbody/tangos>`_ to enable efficient analysis of
-    large numbers of halos/galaxies within a single simulation. It is also used internally
-    by the ramses loader since loading a ramses file turns out to be an intensive process
-    that can usefully be parallelised.
+    large numbers of halos/galaxies within a single simulation.
 
 (4) *Partial loading*. Pynbody can also load only part of a simulation, which is especially useful for
     large simulations where you may not have enough memory to load the entire dataset.
@@ -63,8 +61,8 @@ More information on the pynbody configuration system is
 :ref:`available here <configuration>`.
 
 .. note::
-    The above does not limit the number of CPUs used by the ramses reader,
-    which is controlled separately. See :ref:`below <posix_ipc>`.
+    The above does not limit the threads used to read RAMSES and HDF5 files,
+    which are controlled separately. See :ref:`below <parallel_io>`.
 
 .. _openmp-fix:
 
@@ -83,55 +81,27 @@ an example. In such a case, your best option is unfortunately
 to install all modules from source, being careful to use the same compilers and OpenMP libraries for all
 OpenMP modules you will be using.
 
-.. _posix_ipc:
+.. _parallel_io:
 
-Parallel ramses reader support
-------------------------------
+Parallel reading of RAMSES and HDF5 outputs
+-------------------------------------------
 
-The ramses reader uses threads to read the files of an output: input threads read the files, each
-reading one file at a time from start to end, while decoding threads pick out the leaf cells (or
-each family's particles) and put them in place, without holding Python's global interpreter lock.
-By default up to 8 threads decode (but no more than there are CPUs), and one thread reads, except
-on a parallel filesystem such as Lustre or GPFS, where 16 do. You can change these numbers through
-pynbody's standard :ref:`configuration <configuration>` system; for instance, create a
-``.pynbodyrc`` file in your home directory with the following section:
+RAMSES outputs and gadgetHDF-derived formats (such as SWIFT, EAGLE and GIZMO snapshots) are read
+through one pipeline of threads: input threads read the files, each a file at a time from start to end,
+while decoding threads decompress or pick out the values and put them in place, without holding Python's
+global interpreter lock. By default one thread reads, or up to 16 on a parallel filesystem such as Lustre
+or GPFS, where several files can be read at once; and up to 8 threads decode (no more than the CPUs
+available, and for HDF5 only when the data are compressed). Only the arrays asked for are read, and
+stretches of a file lying close together are read in one request, with what lies between them, judged by
+how costly a request is on the filesystem.
 
-.. code-block:: none
-
-   [ramses]
-   parallel-read: 4
-   io-threads: 2
-
-This specifies at most 4 decoding threads and 2 input threads. Setting ``parallel-read`` to 1 or
-less reads everything in the calling thread.
-
-When two stretches of a file that are wanted lie close together, the reader reads them in one
-request, along with whatever lies between them. The ``read-gap`` option says how close (in bytes).
-By default (``auto``) it is about what can be read in the time a request takes: 64 KB on a local
-filesystem, 256 KB on a network filesystem served by one server (such as NFS), and 1 MB on a parallel
-filesystem (such as Lustre), where every request costs a round trip to a server. It affects speed,
-not memory: the memory taken by reading is bounded by the size of the jobs handed to threads (a few
-megabytes each), which counts the bytes read between stretches, and the gap is capped at a quarter
-of a job (1 MB).
-
-By default, asking for a hydro, gravity or RT array (such as ``f.gas['rho']``) reads only that
-variable from the files, or the three components of a vector such as ``vel``, so that memory is taken
-only for what is used. Setting ``hydro-loading: all`` instead reads every variable of the file at
-once, as earlier versions of pynbody did: this is quicker if you will use them all (particularly for
-an output in very many small files, where reading one variable reads most of each file anyway), but
-takes memory for each.
-
-These options can also be changed during a session, through ``pynbody.snapshot.ramses._execute.config``.
-
-To work on a region of a large output, pass a filter as ``take_region``, for instance
-``pynbody.load(path, take_region=pynbody.filt.Sphere('500 kpc', centre))``, with ``centre`` in the
-output's code units. The reader then opens only the CPU files whose Hilbert domains come near the
-region, and keeps only the cells and particles that the filter selects, so that memory is taken only for
-those. Later reads of gas variables read only the parts of the files holding the cells kept; particles
-are not stored in any spatial order within a file, so reads of particle arrays still read most of each
-file opened, unless very few of its particles are kept. Passing ``trim_to_region=False`` as well keeps
-everything in the files opened instead, which saves reading the positions of every cell and particle in
-those files when the snapshot is opened.
+These choices can be changed through pynbody's :ref:`configuration <configuration>` system, in the
+``[ramses]`` section (``parallel-read``, the most decoding threads, 1 meaning everything is read in the
+calling thread; ``io-threads``; ``read-gap``; and ``hydro-loading``, ``all`` to read every hydro variable
+at once rather than only those requested) and the ``[hdf-bulk-read]`` section (``io-threads``,
+``decode-threads`` and the limits on them), which are described in the default configuration file. During
+a session they can be changed through ``pynbody.snapshot.ramses._execute.config`` and
+``pynbody.util.hdf_bulk_read.strategy.config``. The strategy chosen for each read is logged at debug level.
 
 .. _using_shared_arrays:
 
