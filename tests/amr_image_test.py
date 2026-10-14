@@ -9,6 +9,16 @@ import pynbody.test_utils
 from pynbody.imaging import _render_amr, _render_amr_perspective, renderers
 
 
+@pytest.fixture(autouse=True)
+def use_true_amr_by_default():
+    """Most tests here check the behaviour when AMR rendering is switched on in the configuration file"""
+    config = pynbody.config_parser
+    original = config.get('sph', 'use-true-amr')
+    config.set('sph', 'use-true-amr', 'True')
+    yield
+    config.set('sph', 'use-true-amr', original)
+
+
 def _cube_of_cells(n_sub, size, centre, rotation=np.eye(3)):
     """Positions of n_sub^3 cells exactly tiling a cube of the given size, rotated about its centre"""
     g = (np.arange(n_sub) + 0.5) * size / n_sub - size / 2
@@ -218,22 +228,24 @@ def test_renderer_selection(amr_snap):
     assert core_type() is renderers.AMRImageRenderer
     assert core_type(out_units='Msol kpc^-2') is renderers.AMRImageRenderer
     assert core_type(weight='rho') is renderers.AMRImageRenderer
-    assert core_type(amr=False) is renderers.ImageRenderer
+    assert core_type(use_true_amr=False) is renderers.ImageRenderer
     # specifying an SPH kernel implies SPH rendering
     assert core_type(kernel='CubicSpline') is renderers.ImageRenderer
     assert core_type(z_camera=10.0) is renderers.AMRImageRenderer
-    assert core_type(z_camera=10.0, amr=False) is renderers.ImageRenderer
+    assert core_type(z_camera=10.0, use_true_amr=False) is renderers.ImageRenderer
     assert core_type(target='volume', nx=4) is renderers.Grid3dRenderer
 
     with pytest.raises(ValueError):
-        renderers.make_render_pipeline(amr_snap.g, amr=True, kernel='CubicSpline')
+        renderers.make_render_pipeline(amr_snap.g, use_true_amr=True, kernel='CubicSpline')
     with pytest.raises(ValueError):
-        renderers.make_render_pipeline(amr_snap.g, amr=True, target='volume')
-    assert core_type(amr=True, z_camera=10.0) is renderers.AMRImageRenderer
+        renderers.make_render_pipeline(amr_snap.g, use_true_amr=True, target='volume')
+    assert core_type(use_true_amr=True, z_camera=10.0) is renderers.AMRImageRenderer
 
+    # use_true_amr=True requires a snapshot whose format declares its particles to be AMR cells
     amr_snap._amr_cell_families = ()
     assert core_type() is renderers.ImageRenderer
-    assert core_type(amr=True) is renderers.AMRImageRenderer
+    with pytest.raises(ValueError, match="AMR cells"):
+        renderers.make_render_pipeline(amr_snap.g, use_true_amr=True)
 
 
 def test_renderer_selection_multiple_families():
@@ -245,21 +257,27 @@ def test_renderer_selection_multiple_families():
     assert type(_core_renderer(renderers.make_render_pipeline(f.g))) is renderers.AMRImageRenderer
     assert type(_core_renderer(renderers.make_render_pipeline(f, kernel='CubicSpline'))) is renderers.ImageRenderer
     with pytest.raises(ValueError, match="sim.gas"):
-        renderers.make_render_pipeline(f, amr=True)
+        renderers.make_render_pipeline(f, use_true_amr=True)
 
 
 def test_renderer_selection_config(amr_snap):
-    config = pynbody.config_parser
-    original = config.get('sph', 'amr-images')
-    try:
-        config.set('sph', 'amr-images', 'False')
-        pipeline = renderers.make_render_pipeline(amr_snap.g)
-        assert type(_core_renderer(pipeline)) is renderers.ImageRenderer
-        pipeline = renderers.make_render_pipeline(amr_snap.g, amr=True)
-        assert type(_core_renderer(pipeline)) is renderers.AMRImageRenderer
-    finally:
-        config.set('sph', 'amr-images', original)
+    """AMR rendering is opt-in: unless switched on in the configuration file, AMR cells are rendered as SPH particles"""
+    default_config = pynbody.configuration._get_config_parser_with_defaults()
+    assert not default_config.getboolean('sph', 'use-true-amr')
+
+    pynbody.config_parser.set('sph', 'use-true-amr', 'False')  # (restored by the use_true_amr_by_default fixture)
+    assert type(_core_renderer(renderers.make_render_pipeline(amr_snap.g))) is renderers.ImageRenderer
+    pipeline = renderers.make_render_pipeline(amr_snap.g, use_true_amr=True)
+    assert type(_core_renderer(pipeline)) is renderers.AMRImageRenderer
+    pipeline = renderers.make_render_pipeline(amr_snap.g, use_true_amr=False)
+    assert type(_core_renderer(pipeline)) is renderers.ImageRenderer
+    healpix = renderers.make_render_pipeline(amr_snap.g, target='healpix', nside=4)
+    assert type(_core_renderer(healpix)) is renderers.HealpixRenderer
+
+    pynbody.config_parser.set('sph', 'use-true-amr', 'True')
     assert type(_core_renderer(renderers.make_render_pipeline(amr_snap.g))) is renderers.AMRImageRenderer
+    pipeline = renderers.make_render_pipeline(amr_snap.g, use_true_amr=False)
+    assert type(_core_renderer(pipeline)) is renderers.ImageRenderer
 
 
 def test_approximate_fast_option(amr_snap):
@@ -445,8 +463,8 @@ def test_ramses_image():
         assert slice_im[50, 50] == pytest.approx(f.g['rho'].max(), rel=1e-5)
 
 
-@pytest.mark.parametrize("amr", [None, False])
-def test_velocity_image_consistent(amr_snap, monkeypatch, amr):
+@pytest.mark.parametrize("use_true_amr", [None, False])
+def test_velocity_image_consistent(amr_snap, monkeypatch, use_true_amr):
     """The velocity vectors must be rendered in the same way as the underlying image"""
     import matplotlib
     matplotlib.use('Agg')
@@ -465,9 +483,9 @@ def test_velocity_image_consistent(amr_snap, monkeypatch, amr):
         return pipeline
 
     monkeypatch.setattr(renderers, 'make_render_pipeline', recording_make_render_pipeline)
-    pynbody.plot.imaging.velocity_image(amr_snap.g, width=8.0, resolution=16, vector_resolution=4, amr=amr)
+    pynbody.plot.imaging.velocity_image(amr_snap.g, width=8.0, resolution=16, vector_resolution=4, use_true_amr=use_true_amr)
     plt.close('all')
-    expected = renderers.ImageRenderer if amr is False else renderers.AMRImageRenderer
+    expected = renderers.ImageRenderer if use_true_amr is False else renderers.AMRImageRenderer
     assert renderer_types == [expected, expected]
 
 

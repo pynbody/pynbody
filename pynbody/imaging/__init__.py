@@ -3,13 +3,16 @@ Rendering of images, grids and maps from simulations.
 
 .. versionadded:: 2.9.0
 
-  This package was split out of :mod:`pynbody.sph`, since it renders AMR simulations (by default, exactly, as cubic
+  This package was split out of :mod:`pynbody.sph`, since it renders AMR simulations (optionally, exactly, as cubic
   cells; see :class:`~pynbody.imaging.renderers.AMRImageRenderer`) as well as SPH simulations. The previous locations
   remain available but are deprecated.
 
-  At the same time, the rendering of AMR simulations has been overhauled: gas cells are rendered exactly as cubes,
-  rather than as SPH particles, in slices, projections, perspective images and healpix maps (see
+  At the same time, the rendering of AMR simulations has been overhauled: gas cells can be rendered exactly as
+  cubes, rather than as SPH particles, in slices, projections, perspective images and healpix maps (see
   :class:`~pynbody.imaging.renderers.AMRImageRenderer` and :class:`~pynbody.imaging.renderers.AMRHealpixRenderer`).
+  This is opt-in, using the *use_true_amr* option of :func:`~pynbody.imaging.renderers.make_render_pipeline` and
+  the functions that call it (such as :func:`pynbody.plot.image`), or ``use-true-amr: True`` in the ``[sph]``
+  section of the configuration file.
   Two bugs in perspective images of SPH particles have also been fixed; see
   :meth:`~pynbody.imaging.renderers.ImageGeometry.set_camera_z`.
 
@@ -33,11 +36,11 @@ from . import renderers
 
 
 def render_spherical_image(snap, quantity='rho', nside=None, kernel=None, denoise=None, out_units=None, threaded=None,
-                           weight=None, distance=None, qty=None):
+                           weight=None, distance=None, qty=None, use_true_amr=None):
     """Render an image onto the sky around the origin, in healpix format with the specified nside.
 
-    Particles are interpolated with an SPH kernel, except that AMR cells (e.g. Ramses gas) are by default rendered
-    exactly as cubes; see :class:`~pynbody.imaging.renderers.AMRHealpixRenderer`.
+    Particles are interpolated with an SPH kernel, except that AMR cells (e.g. Ramses gas) can optionally be rendered
+    exactly as cubes; see *use_true_amr*.
 
     By default the image is projected onto the sky, i.e. integrated along the line of sight. For example, if
     rendering density, the results are then in units of mass per solid angle.
@@ -93,6 +96,11 @@ def render_spherical_image(snap, quantity='rho', nside=None, kernel=None, denois
     qty : str, optional
         Deprecated - use 'quantity' instead
 
+    use_true_amr : bool, optional
+        Whether to render AMR cells exactly as cubes, using
+        :class:`~pynbody.imaging.renderers.AMRHealpixRenderer`, rather than as SPH particles. If None (default),
+        this is determined by the configuration file. For more information, see
+        :func:`~pynbody.imaging.renderers.make_render_pipeline`.
 
     """
 
@@ -102,7 +110,7 @@ def render_spherical_image(snap, quantity='rho', nside=None, kernel=None, denois
 
     renderer = renderers.make_render_pipeline(snap, quantity, nside=nside, target='healpix', kernel=kernel,
                                               shell_distance=distance, out_units=out_units, threaded=threaded,
-                                              approximate_fast=False, weight=weight)
+                                              approximate_fast=False, weight=weight, use_true_amr=use_true_amr)
 
     return renderer.render()
 
@@ -178,7 +186,7 @@ def render_3d_grid(snap, quantity='rho', nx=None, ny=None, nz=None, width="10 kp
     return renderer.render()
 
 def render_image(*args, **kwargs):
-    """Render an image, by SPH interpolation or exact rendering of AMR cells. This is a wrapper around the
+    """Render an image, by SPH interpolation or (optionally) exact rendering of AMR cells. This is a wrapper around the
     :mod:`renderers` module for convenience.
 
     All arguments and keyword arguments are forwarded to :func:`renderers.make_render_pipeline`,

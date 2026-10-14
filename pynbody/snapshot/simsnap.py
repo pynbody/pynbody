@@ -97,8 +97,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     _amr_cell_families = ()
     # The families whose particles are really AMR cells: cubes with side length given by the ``smooth`` array, and
     # edges aligned with the axes of the original simulation. Loaders for AMR codes set this (for example, RamsesSnap
-    # sets it to the gas family), and images of these families are then by default rendered exactly as cubes, by
-    # pynbody.imaging.renderers.AMRImageRenderer. Only the value on the ancestor snapshot is consulted.
+    # sets it to the gas family). Images of these families can then be rendered exactly as cubes, by
+    # pynbody.imaging.renderers.AMRImageRenderer (see the use_true_amr option of make_render_pipeline), and SPH
+    # slices of them are by default denoised. Only the value on the ancestor snapshot is consulted.
 
     _should_denoise_images = False
     # If True, slice images of this snapshot rendered with an SPH kernel are by default denoised; see

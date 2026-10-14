@@ -253,7 +253,7 @@ def velocity_image(sim, qty='rho', vector_qty='vel', width="10 kpc", mode='quive
         weight_for_vector = 'rho'
 
     # the vectors must be rendered in the same way as the image (e.g. by SPH or as AMR cells)
-    rendering_kwargs = {k: kwargs[k] for k in ('amr', 'kernel', 'z_camera', 'approximate_fast') if k in kwargs}
+    rendering_kwargs = {k: kwargs[k] for k in ('use_true_amr', 'kernel', 'z_camera', 'approximate_fast') if k in kwargs}
     vel_pipeline = renderers.make_render_pipeline(sim, quantity=vx_name, width=width,
                                                   resolution=vector_resolution, weight=weight_for_vector,
                                                   restrict_depth=restrict_depth, **rendering_kwargs)
@@ -525,14 +525,14 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
           noplot=False, return_image=False, return_array=False,
           fill_nan=True, fill_val=0.0, linthresh=None,
           restrict_depth = False, threaded=True, approximate_fast=None, denoise=None,
-          kernel=None, amr=None,
+          kernel=None, use_true_amr=None,
           **kwargs):
     """
     Make an image of the given simulation, using SPH or denoised-SPH interpolation, or exact rendering of AMR cells.
 
     .. versionchanged:: 2.9.0
 
-      AMR gas (e.g. from Ramses) is now rendered by default as exact cubic cells; see the *amr* parameter.
+      AMR gas (e.g. from Ramses) can now be rendered as exact cubic cells; see the *use_true_amr* parameter.
 
     Parameters
     ----------
@@ -624,10 +624,12 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
     kernel : str, optional
         SPH kernel to use for smoothing; see :func:`~pynbody.sph.kernels.create_kernel` for options.
 
-    amr : bool, optional
-        If True, render the particles as AMR cells (cubes with side length given by the smoothing length), exactly;
-        if False, use SPH interpolation. If None (default), AMR rendering is used for AMR gas (e.g. Ramses) unless a
-        *kernel* is specified. See :class:`~pynbody.imaging.renderers.AMRImageRenderer`.
+    use_true_amr : bool, optional
+        If True, render AMR cells (e.g. Ramses gas) exactly, as cubes with side length given by the smoothing
+        length; the snapshot must then consist only of AMR cells. If False, use SPH interpolation. If None (default),
+        follow the ``use-true-amr`` setting in the ``[sph]`` section of the configuration file, which is False unless
+        changed by the user. See :func:`~pynbody.imaging.renderers.make_render_pipeline` and
+        :class:`~pynbody.imaging.renderers.AMRImageRenderer`.
 
     approximate_fast : bool, optional
         If True, allow approximations that speed up the image-making: for SPH, rendering large kernels onto a
@@ -685,7 +687,7 @@ def image(sim, qty='rho', width="10 kpc", resolution=None, units=None, log=True,
     renderer = renderers.make_render_pipeline(sim, quantity=qty, width=width, resolution=resolution,
                                               out_units=units, weight=weight, restrict_depth=restrict_depth,
                                               kernel=kernel, z_camera=z_camera, threaded=threaded,
-                                              approximate_fast=approximate_fast, denoise=denoise, amr=amr)
+                                              approximate_fast=approximate_fast, denoise=denoise, use_true_amr=use_true_amr)
 
     # if width was provided e.g. as string, we'll need it as a float
     width = renderer.geometry.width

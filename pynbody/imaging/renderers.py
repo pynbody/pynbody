@@ -765,11 +765,12 @@ class AMRImageRenderer(ImageRenderer):
     shows the cross-section of each cell, and a projected image the column through it, averaged over each pixel.
     Since the cells tile space, the result is a rendering of the piecewise-constant field, and no denoising is needed.
 
-    By default, :func:`make_render_pipeline` (and so also :func:`pynbody.plot.imaging.image` etc.) uses this
-    renderer for any snapshot that consists only of AMR cells, as declared by the snapshot loader (currently, Ramses
-    gas); for healpix maps, :class:`AMRHealpixRenderer` is used instead. This can be overridden with the *amr*
-    argument to those functions, or switched off globally by setting ``amr-images: False`` in the ``[sph]`` section
-    of the pynbody configuration file.
+    By default, :func:`make_render_pipeline` (and so also :func:`pynbody.plot.imaging.image` etc.) renders AMR cells
+    as SPH particles, as in earlier versions of pynbody. Rendering with this renderer is opt-in: pass
+    ``use_true_amr=True`` to those functions to use it for a snapshot that consists only of AMR cells, as declared by
+    the snapshot loader (currently, Ramses gas); or set ``use-true-amr: True`` in the ``[sph]`` section of the
+    pynbody configuration file to use it by default for such snapshots. For healpix maps, :class:`AMRHealpixRenderer`
+    is used instead.
 
     Slices are exact, as are projections when the cells are aligned with the image (including after rotations by
     multiples of 90 degrees). By default, projections of rotated cells up to 16 pixels across interpolate the volume
@@ -806,10 +807,10 @@ class AMRImageRenderer(ImageRenderer):
       are by default denoised, giving a volume-weighted average over the overlapping cells, and projections continue
       to conserve mass.
 
-    No kernel is used, so :meth:`set_kernel` accepts only None; and approximate rendering (:meth:`with_approximate`)
-    is not supported, so that the *approximate_fast* option of :func:`make_render_pipeline` has no effect. To render
-    AMR cells as SPH particles instead, use :class:`ImageRenderer` (or pass ``amr=False`` to
-    :func:`make_render_pipeline`).
+    No kernel is used, so :meth:`set_kernel` accepts only None; and the multi-resolution approximation of
+    :meth:`with_approximate` is not supported. Instead, the *approximate_fast* option of :func:`make_render_pipeline`
+    controls :meth:`set_exact`. To render AMR cells as SPH particles instead, use :class:`ImageRenderer` (the
+    default in :func:`make_render_pipeline`, unless *use_true_amr* or the configuration file says otherwise).
     """
 
     def __init__(self, snap: snapshot.SimSnap, orientation: np.ndarray | NoneType = None, exact: bool = False):
@@ -890,7 +891,7 @@ class AMRImageRenderer(ImageRenderer):
         if kernel_spec is not None:
             raise ValueError("AMRImageRenderer renders cells exactly, without a kernel. To render AMR cells as SPH "
                              "particles with a kernel, use ImageRenderer instead (e.g. via "
-                             "make_render_pipeline(..., amr=False)).")
+                             "make_render_pipeline(..., use_true_amr=False)).")
         self._kernel = None
 
     def _get_render_kernel(self):
@@ -1050,7 +1051,8 @@ class AMRHealpixRenderer(HealpixRenderer):
     No kernel is used, so :meth:`set_kernel` accepts only None; and approximate rendering is not supported. A
     *smooth_floor* (see :func:`make_render_pipeline`) enlarges small cells into overlapping cubes, in which case
     thin shells are by default denoised, as for slices with :class:`AMRImageRenderer`. To render AMR cells as SPH
-    particles instead, use :class:`HealpixRenderer` (or pass ``amr=False`` to :func:`make_render_pipeline`).
+    particles instead, use :class:`HealpixRenderer` (the default in :func:`make_render_pipeline`, unless
+    *use_true_amr* or the configuration file says otherwise).
     """
 
     def __init__(self, snap: snapshot.SimSnap, orientation: np.ndarray | NoneType = None):
@@ -1087,7 +1089,7 @@ class AMRHealpixRenderer(HealpixRenderer):
         if kernel_spec is not None:
             raise ValueError("AMRHealpixRenderer renders cells exactly, without a kernel. To render AMR cells as SPH "
                              "particles with a kernel, use HealpixRenderer instead (e.g. via "
-                             "make_render_pipeline(..., amr=False)).")
+                             "make_render_pipeline(..., use_true_amr=False)).")
         self._kernel = None
 
     def _get_render_kernel(self):
@@ -1112,40 +1114,45 @@ class AMRHealpixRenderer(HealpixRenderer):
 
 
 
-def _use_amr_rendering(sim, amr, target, kernel):
-    """Decide whether make_render_pipeline should render AMR cells, given its arguments"""
-    if amr is None:
-        if not _is_amr(sim):
-            amr = False
+def _use_amr_rendering(sim, use_true_amr, target, kernel):
+    """Decide whether make_render_pipeline should render AMR cells as cells, given its arguments"""
+    if use_true_amr is None:
+        if not config_parser.getboolean('sph', 'use-true-amr', fallback=False):
+            use_true_amr = False
+            reason = "AMR rendering is not switched on in the configuration file (use-true-amr)"
+        elif not _is_amr(sim):
+            use_true_amr = False
             reason = "the snapshot does not consist of AMR cells"
-        elif not config_parser.getboolean('sph', 'amr-images', fallback=True):
-            amr = False
-            reason = "AMR rendering is switched off in the configuration file"
         elif target not in ('image', 'healpix'):
-            amr = False
+            use_true_amr = False
             reason = f"AMR rendering is not available for target={target!r}"
         elif kernel is not None:
-            amr = False
+            use_true_amr = False
             reason = "a kernel was specified"
         else:
-            amr = True
-            reason = "the snapshot consists of AMR cells"
+            use_true_amr = True
+            reason = "the snapshot consists of AMR cells, and use-true-amr is switched on in the configuration file"
     else:
-        reason = f"amr={amr!r} was specified"
+        use_true_amr = bool(use_true_amr)
+        reason = f"use_true_amr={use_true_amr!r} was specified"
 
-    if amr:
+    if use_true_amr:
+        if not _is_amr(sim):
+            if sim.ancestor._amr_cell_families and len(sim.families()) > 1:
+                raise ValueError("AMR rendering requires a snapshot consisting only of AMR cells, but this one "
+                                 "contains particles of several families "
+                                 f"({', '.join(f.name for f in sim.families())}). Select the cells first, e.g. "
+                                 "using sim.gas")
+            raise ValueError("use_true_amr=True requires a snapshot consisting of AMR cells (e.g. Ramses gas), but "
+                             "this snapshot's format does not declare any of its particles to be AMR cells")
         if target not in ('image', 'healpix'):
             raise ValueError("AMR rendering is only available for target='image' or target='healpix'")
         if kernel is not None:
-            raise ValueError("AMR rendering does not use a kernel; pass amr=False to render AMR cells as SPH particles "
-                             "with a kernel")
-        if len(sim.families()) > 1:
-            raise ValueError("AMR rendering requires a snapshot consisting only of AMR cells, but this one contains "
-                             f"particles of several families ({', '.join(f.name for f in sim.families())}). Select "
-                             f"the cells first, e.g. using sim.gas")
+            raise ValueError("AMR rendering does not use a kernel; pass use_true_amr=False to render AMR cells as SPH "
+                             "particles with a kernel")
 
-    logger.info(f"Rendering {'as AMR cells' if amr else 'as SPH particles'} because {reason}")
-    return amr
+    logger.info(f"Rendering {'as AMR cells' if use_true_amr else 'as SPH particles'} because {reason}")
+    return use_true_amr
 
 def make_render_pipeline(sim : snapshot.SimSnap, /,
                          quantity: str | np.ndarray = 'rho',
@@ -1164,7 +1171,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
                          approximate_fast: bool | NoneType = None,
                          denoise: bool | NoneType = None,
                          target: str = 'image',
-                         amr: bool | NoneType = None,
+                         use_true_amr: bool | NoneType = None,
                          ) -> ImageRendererBase:
     """Generate a renderer object for rendering images of a simulation snapshot.
 
@@ -1174,9 +1181,9 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     .. versionchanged :: 2.9.0
 
-      The parameter *amr* has been added. By default, AMR gas (e.g. from Ramses) is now rendered exactly as cubic
-      cells by :class:`AMRImageRenderer` or :class:`AMRHealpixRenderer`, rather than as SPH particles. The meaning
-      of *approximate_fast* has correspondingly been extended to AMR rendering.
+      The parameter *use_true_amr* has been added, allowing AMR gas (e.g. from Ramses) to be rendered exactly as
+      cubic cells by :class:`AMRImageRenderer` or :class:`AMRHealpixRenderer`, rather than as SPH particles. The
+      meaning of *approximate_fast* has correspondingly been extended to AMR rendering.
 
     Parameters
     ----------
@@ -1233,7 +1240,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
     kernel : str, kernels.KernelBase, optional
         The kernel to be used for SPH rendering. If None, the default kernel is assigned. For more information
         see :func:`pynbody.sph.kernels.create_kernel`. Specifying a kernel implies SPH rendering, even for AMR gas;
-        see *amr*.
+        see *use_true_amr*.
 
     smooth_floor : float, str, units.UnitBase, optional
         The minimum smoothing length to be used in the image rendering, specified in units of the position array.
@@ -1263,7 +1270,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
         * For SPH rendering, particles with large smoothing lengths are rendered onto lower-resolution images, which
           are then interpolated (see :class:`ApproximateImageRenderer`). This slightly blurs the image.
-        * For AMR rendering (see *amr*), projections of rotated cells up to 16 pixels across are interpolated from
+        * For AMR rendering (see *use_true_amr*), projections of rotated cells up to 16 pixels across are interpolated from
           tables, which conserves mass exactly, with errors in individual pixels of typically 1e-5 and at most 1e-3.
           In perspective projections, cells whose perspective distortion is negligible (displacing their corners
           by less than 0.1 pixels) are rendered in the same way. See :meth:`AMRImageRenderer.set_exact`. If False,
@@ -1282,13 +1289,14 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
          * 'volume': a 3d cuboid
          * 'healpix': a healpix map
 
-    amr : bool, optional
-        Whether to render the particles as AMR cells, using :class:`AMRImageRenderer` (or :class:`AMRHealpixRenderer`
-        for target='healpix'), rather than by SPH interpolation. If None (default), AMR rendering is used if the
-        snapshot consists only of AMR cells (e.g. Ramses gas), unless a *kernel* is specified or the target is
-        'volume'. AMR rendering is only available for target='image' or 'healpix' and does not support *kernel*.
-        The default can be changed to SPH rendering by setting ``amr-images: False`` in the ``[sph]`` section of the
-        pynbody configuration file.
+    use_true_amr : bool, optional
+        Whether to render AMR cells as cubes, using :class:`AMRImageRenderer` (or :class:`AMRHealpixRenderer` for
+        target='healpix'), rather than by SPH interpolation. If True, the snapshot must consist only of AMR cells, as
+        declared by the snapshot loader (e.g. Ramses gas), and the target must be 'image' or 'healpix', with no
+        *kernel*; otherwise a ValueError is raised. If False, SPH interpolation is always used. If None (default),
+        the setting ``use-true-amr`` in the ``[sph]`` section of the pynbody configuration file is followed; this is
+        False by default, so that SPH interpolation is used. If it is set to True, AMR rendering is used whenever the
+        snapshot consists only of AMR cells, unless a *kernel* is specified or the target is 'volume'.
 
     """
     if resolution is None:
@@ -1312,11 +1320,11 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
 
     width = float(width)
 
-    amr = _use_amr_rendering(sim, amr, target, kernel)
+    use_true_amr = _use_amr_rendering(sim, use_true_amr, target, kernel)
 
     match target:
         case 'image':
-            if amr:
+            if use_true_amr:
                 # AMR rendering is approximate only in the sense of using interpolation tables
                 renderer = AMRImageRenderer(sim, exact=not approximate_fast)
             else:
@@ -1324,7 +1332,7 @@ def make_render_pipeline(sim : snapshot.SimSnap, /,
         case 'volume':
             renderer = Grid3dRenderer(sim)
         case 'healpix':
-            renderer = AMRHealpixRenderer(sim) if amr else HealpixRenderer(sim)
+            renderer = AMRHealpixRenderer(sim) if use_true_amr else HealpixRenderer(sim)
             if nside is None:
                 nside = config['image-default-nside']
             renderer.geometry.set_nside(nside)

@@ -8,6 +8,16 @@ import pynbody
 import pynbody.test_utils
 from pynbody.imaging import _render_amr_healpix, renderers
 
+
+@pytest.fixture(autouse=True)
+def use_true_amr_by_default():
+    """Most tests here check the behaviour when AMR rendering is switched on in the configuration file"""
+    config = pynbody.config_parser
+    original = config.get('sph', 'use-true-amr')
+    config.set('sph', 'use-true-amr', 'True')
+    yield
+    config.set('sph', 'use-true-amr', original)
+
 hp = pytest.importorskip("healpy")
 
 
@@ -240,11 +250,11 @@ def test_renderer_selection(amr_snap):
     assert core_type() is renderers.AMRHealpixRenderer
     assert core_type(shell_distance=2.0) is renderers.AMRHealpixRenderer
     assert core_type(weight='rho') is renderers.AMRHealpixRenderer
-    assert core_type(amr=True) is renderers.AMRHealpixRenderer
-    assert core_type(amr=False) is renderers.HealpixRenderer
+    assert core_type(use_true_amr=True) is renderers.AMRHealpixRenderer
+    assert core_type(use_true_amr=False) is renderers.HealpixRenderer
     assert core_type(kernel='CubicSpline') is renderers.HealpixRenderer
     with pytest.raises(ValueError):
-        renderers.make_render_pipeline(amr_snap.g, target='healpix', amr=True, kernel='CubicSpline')
+        renderers.make_render_pipeline(amr_snap.g, target='healpix', use_true_amr=True, kernel='CubicSpline')
 
     with pytest.raises(ValueError, match="without a kernel"):
         renderers.AMRHealpixRenderer(amr_snap.g).set_kernel('CubicSpline')
@@ -253,7 +263,8 @@ def test_renderer_selection(amr_snap):
 
     amr_snap._amr_cell_families = ()
     assert core_type() is renderers.HealpixRenderer
-    assert core_type(amr=True) is renderers.AMRHealpixRenderer
+    with pytest.raises(ValueError, match="AMR cells"):
+        core_type(use_true_amr=True)
 
 
 @pytest.mark.parametrize("threaded", [False, True])
