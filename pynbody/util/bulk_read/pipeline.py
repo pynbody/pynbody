@@ -8,9 +8,10 @@ with their own threads:
 * decode threads process what has been fetched, in whatever order it arrives.
 
 The memory taken by what has been fetched but not yet processed is kept within the strategy's ``inflight_nbytes``:
-an input thread waits before fetching more until enough has been processed. With no decode threads, input threads
-process what they fetch themselves, and the same limit applies to how many do so at once; with one input thread and
-no decode threads, everything is done in the calling thread.
+an input thread waits before fetching more until enough has been processed. (A job that finds, once fetched, that it
+holds more than it was thought to is charged what it holds, and so may take that over the limit.) With no decode
+threads, input threads process what they fetch themselves, and the same limit applies to how many do so at once; with
+one input thread and no decode threads, everything is done in the calling thread.
 
 Each task, and each job, is let go of once done, so that what a file's jobs hold is freed once all the work on that
 file is done, rather than when everything has been read.
@@ -35,7 +36,8 @@ class Job:
     The pipeline runs the fetches of each task in order on an input thread, which is all that thread does, and hands
     what they fetch to *process* on a thread of a decoding pool, which is all that pool does; or, when there is no
     pool, runs both one after the other. *nbytes* is roughly the memory that what is fetched takes until processed,
-    which the pipeline keeps within a budget.
+    which the pipeline keeps within a budget. Where that is known only once fetched, *fetch* may set *nbytes* to it,
+    and the job is charged that instead.
 
     *fetch* returns what *process* is to be given, or None if nothing is left to do (for example, because the fetch
     itself put the data in place)."""
@@ -122,6 +124,14 @@ class _Budget:
             self._used -= nbytes
             self._condition.notify_all()
 
+    def charge(self, nbytes: int):
+        """Take *nbytes* (or give them back, if negative) without waiting, for memory already taken"""
+        if nbytes < 0:
+            self.release(-nbytes)
+        else:
+            with self._condition:
+                self._used += nbytes
+
 
 class _Pipeline:
     """Input threads fetching jobs, and a pool of decode threads processing what they fetch."""
@@ -190,19 +200,24 @@ class _Pipeline:
             if job.process is None:
                 job.run()  # (nothing is held once fetched)
                 continue
-            if not self._budget.acquire(job.nbytes, self._stop):
+            nbytes = job.nbytes
+            if not self._budget.acquire(nbytes, self._stop):
                 return
             if self._decoders is None:
                 try:
                     job.run()
                 finally:
-                    self._budget.release(job.nbytes)
+                    self._budget.release(nbytes)
                 continue
             try:
                 fetched = job.fetch()
             except BaseException:
-                self._budget.release(job.nbytes)
+                self._budget.release(nbytes)
                 raise
+            # (a job that has found, once fetched, that it holds more or less than was thought is charged what it
+            # holds, so that no more is fetched until enough has been processed)
+            if job.nbytes != nbytes:
+                self._budget.charge(job.nbytes - nbytes)
             if fetched is None:
                 self._budget.release(job.nbytes)
                 continue

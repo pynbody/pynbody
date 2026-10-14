@@ -406,24 +406,36 @@ def records(const uint8_t[::1] buf, Py_ssize_t pos, Py_ssize_t count):
     return out[:k]
 
 
-def own_layout(const int32_t[:, ::1] counts, Py_ssize_t cpu):
-    """From the numbers of octs held for each level (row) and CPU or boundary (column) in an AMR file, return, for
-    each level, the number of the given CPU's octs (counting CPUs from 1), and the number of octs and of nonempty
-    blocks of octs that precede them in the file (which is written level by level, each CPU then each boundary)."""
-    cdef Py_ssize_t level, j, nlevels = counts.shape[0], ncols = counts.shape[1]
+cdef void _own_layout(const int32_t[:, ::1] counts, Py_ssize_t cpu, int64_t[::1] o, int64_t[::1] ob,
+                      int64_t[::1] bb) noexcept nogil:
+    cdef Py_ssize_t level, j
     cdef int64_t octs = 0, blocks = 0
-    if not 1 <= cpu <= ncols:
-        raise ValueError("No such CPU in the AMR file")
-    own, octs_before, blocks_before = np.empty((3, nlevels), dtype=np.int64)
-    cdef int64_t[::1] o = own, ob = octs_before, bb = blocks_before
-    for level in range(nlevels):
-        for j in range(ncols):
+    for level in range(counts.shape[0]):
+        for j in range(counts.shape[1]):
             if j == cpu - 1:
                 o[level] = counts[level, j]
                 ob[level] = octs
                 bb[level] = blocks
             octs += counts[level, j]
             blocks += counts[level, j] > 0
+
+
+def own_layout(const int32_t[:, ::1] counts, Py_ssize_t cpu):
+    """From the numbers of octs held for each level (row) and CPU or boundary (column) in an AMR file, return, for
+    each level, the number of the given CPU's octs (counting CPUs from 1), and the number of octs and of nonempty
+    blocks of octs that precede them in the file (which is written level by level, each CPU then each boundary).
+
+    Every AMR file holds a count for every CPU at every level, so with many CPUs this is much work for each file."""
+    cdef Py_ssize_t nlevels = counts.shape[0], ncols = counts.shape[1]
+    if not 1 <= cpu <= ncols:
+        raise ValueError("No such CPU in the AMR file")
+    own, octs_before, blocks_before = np.empty((3, nlevels), dtype=np.int64)
+    cdef int64_t[::1] o = own, ob = octs_before, bb = blocks_before
+    if nlevels * ncols * 4 >= _NOGIL_NBYTES:
+        with nogil:
+            _own_layout(counts, cpu, o, ob, bb)
+    else:
+        _own_layout(counts, cpu, o, ob, bb)
     return own, octs_before, blocks_before
 
 

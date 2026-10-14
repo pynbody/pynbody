@@ -18,12 +18,14 @@ from __future__ import annotations
 
 import dataclasses
 import sys
+import typing
 
 import numpy as np
 
 from . import _execute, _kernels as kernels
 
-# What reading the header of a file, and what is found through it, is guessed to take before it has been read
+# What reading the header of a file, and what is found through it, is guessed to take before any file has been read;
+# and the least it is guessed to take once one has (so that a job reads at most job_nbytes / this files)
 _header_nbytes_guess = 256 * 1024
 
 # Records in the header of a particle file: ncpu, ndim, npart, random seed, nstar, mstar, mstar_lost, nsink
@@ -84,6 +86,30 @@ def _records_at(f, pos: int, count: int, nbytes_guess: int) -> tuple[np.ndarray,
 def _record_value(buf, table, k, dtype='i'):
     dtype = np.dtype(dtype)
     return np.frombuffer(buf, dtype, int(table[k, 1]) // dtype.itemsize, int(table[k, 0]))
+
+
+def _scan(piece, n: int, description: str):
+    """Read and decode ``piece(i, nbytes)`` for each of *n* files, *nbytes* being what the piece is guessed to hold
+    once read, which decides how many files a job reads.
+
+    What a file's piece holds is known only once its header has been read, and finding each file's size in advance
+    would take a request for each, which with many files on a parallel filesystem takes about as long as the scan.
+    So the first file is read alone, and what its piece holds is the guess for the others (as the files of a
+    load-balanced run are of similar sizes); and each piece is charged to the budget of memory in flight what it
+    actually holds, once read (see :attr:`._execute.Piece.held`)."""
+    if n == 0:
+        return
+    first, measured = piece(0, _header_nbytes_guess), []
+
+    def held(fetched):
+        measured.append(first.held(fetched))
+        return measured[-1]
+
+    _execute.run_pieces([first._replace(held=held)], f"{description} (the first)")
+    if n > 1:
+        guess = max(measured[0], _header_nbytes_guess)
+        _execute.run_pieces([piece(i, guess) for i in range(1, n)],
+                            f"{description} (the rest, guessed at {_execute.describe_nbytes(guess)} each)")
 
 
 def _read_ranges(f, offsets, nbytes, gap: int) -> tuple[np.ndarray, list]:
@@ -182,26 +208,49 @@ class AmrLayout:
             self.twotondim * kind.nvar * 8 * (self.blocks_before[level] + self.octs_before[level])
 
 
-def _read_amr_header(f, bisection: bool):
+def _read_amr_header(f, bisection: bool, gap: int):
     """Read the header of an AMR file, returning (header dict, octs of each CPU and boundary at each level,
-    where the octs start)"""
+    where the octs start); *gap* is the read gap (see :func:`._execute.read_gap`)"""
     # The first 19 records are small; then come three of nlevelmax x ncpu integers (the heads and tails of linked
-    # lists of octs, which are skipped, and the number of octs held), and a few more
+    # lists of octs, which are skipped, and the number of octs held), the total octs at each level, three more of
+    # nlevelmax x nboundary integers if there are boundaries, the free memory, the ordering of domains and its
+    # bounds, and lastly three records of an integer for each coarse cell
     buf, table = _records_at(f, 0, 19, 8 * 1024)
     ncpu, ndim, nlevelmax = (int(_record_value(buf, table, k)[0]) for k in (0, 1, 3))
     header = dict(ncpu=ncpu, ndim=ndim, ng=_record_value(buf, table, 2), nlevelmax=nlevelmax,
                   nboundary=int(_record_value(buf, table, 5)[0]))
     list_nbytes = 4 * nlevelmax * ncpu
     pos = int(table[18, 0] + table[18, 1]) + 4 + 2 * (8 + list_nbytes)
-    count = 2 + (3 if header['nboundary'] > 0 else 0) + 2 + (5 if bisection else 1) + 3
-    buf, table = _records_at(f, pos, count, list_nbytes + 40 * nlevelmax + 8 * ncpu + 8 * 1024)
+    count = 2 + (3 if header['nboundary'] > 0 else 0) + 2 + (5 if bisection else 1)
+    # (the bounds of the domains are ncpu + 1 keys of up to 16 bytes, or for bisection ordering a tree of about 2 ncpu
+    # nodes and the box of each CPU)
+    nbytes = 8 * count + list_nbytes + 40 * nlevelmax + 12 * nlevelmax * header['nboundary'] + \
+        (100 * ncpu if bisection else 16 * (ncpu + 1))
+    coarse_nbytes = 4 * int(np.prod(header['ng']))
+    # coarse cells' records are read with the rest unless reading them takes more than skipping them
+    read_coarse = 3 * (8 + coarse_nbytes) <= gap
+    if read_coarse:
+        count += 3
+        nbytes += 3 * (8 + coarse_nbytes)
+    buf, table = _records_at(f, pos, count, nbytes + 8 * 1024)
     if table[0, 1] != list_nbytes:
         raise ValueError(f"Unexpected layout of the header of {f.name}")
     counts = _record_value(buf, table, 0).reshape((nlevelmax, ncpu))
     if header['nboundary'] > 0:
         boundary = _record_value(buf, table, 4).reshape((nlevelmax, header['nboundary']))
         counts = np.concatenate([counts, boundary], axis=1)
-    return header, np.ascontiguousarray(counts), pos + int(table[-1, 0] + table[-1, 1]) + 4
+    end = int(table[-1, 0] + table[-1, 1]) + 4  # (in buf)
+    if not read_coarse:
+        # check the length that starts the first coarse record (usually already read), and skip the three
+        if len(buf) >= end + 4:
+            length = int(np.frombuffer(buf, np.int32, 1, end)[0])
+        else:
+            f.seek(pos + end)
+            length = int.from_bytes(f.read(4), sys.byteorder, signed=True)
+        if length != coarse_nbytes:
+            raise ValueError(f"Unexpected layout of the header of {f.name}")
+        end += 3 * (8 + coarse_nbytes)
+    return header, np.ascontiguousarray(counts), pos + end
 
 
 def _amr_layout(cpu, ndim, counts, start, nlevels) -> AmrLayout:
@@ -231,9 +280,9 @@ def scan_amr(paths: list[str], cpus: list[int], bisection: bool, maxlevel: int |
     geometry = []
     gap = _execute.read_gap(paths)
 
-    def piece(i):
+    def piece(i, nbytes_guess):
         def read(f):
-            header, counts, start = _read_amr_header(f, bisection)
+            header, counts, start = _read_amr_header(f, bisection, gap)
             nlevels = min(maxlevel or header['nlevelmax'], header['nlevelmax'])
             layout = _amr_layout(cpus[i], header['ndim'], counts, start, nlevels)
             levels = np.flatnonzero(layout.ncache > 0)
@@ -257,11 +306,13 @@ def scan_amr(paths: list[str], cpus: list[int], bisection: bool, maxlevel: int |
                 offset[:len(ng)] = ng / 2 - 0.5
                 geometry.append(AmrGeometry(ndim=header['ndim'], nlevelmax=header['nlevelmax'], offset=offset))
 
-        return _execute.Piece(paths[i], _header_nbytes_guess, read, decode)
+        def held(fetched):
+            return fetched[-1].nbytes
 
-    _execute.run_pieces([piece(i) for i in range(len(paths))],
-                        f"AMR headers and refinement maps of {len(paths)} files (read gap "
-                        f"{_execute.describe_nbytes(gap)})")
+        return _execute.Piece(paths[i], nbytes_guess, read, decode, held)
+
+    _scan(piece, len(paths), f"AMR headers and refinement maps of {len(paths)} files (read gap "
+                             f"{_execute.describe_nbytes(gap)})")
     return geometry[0], layouts, leaves
 
 
@@ -277,12 +328,15 @@ class ParticleLayout:
     nbytes: list  # and how many bytes each holds
 
 
-def scan_particle_files(paths: list[str], field: int, dtype: str) -> list[tuple[ParticleLayout, np.ndarray | None]]:
+def scan_particle_files(paths: list[str], field: int, dtype: str, convert: typing.Callable | None = None) \
+        -> list[tuple[ParticleLayout, np.ndarray | None]]:
     """Find where the fields of each particle file lie, and read field number *field*, which distinguishes
-    families; returns for each file its ParticleLayout and that field (None if the file does not have it)"""
+    families; returns for each file its ParticleLayout and that field (None if the file does not have it), passed
+    through *convert*, if given, as each file is decoded (so that only what it returns is kept: a family id for each
+    particle takes less than, say, its age)"""
     results = [None] * len(paths)
 
-    def piece(i):
+    def piece(i, nbytes_guess):
         def read(f):
             buf, table = _records_at(f, 0, _particle_header_records, 4096)
             npart = int(_record_value(buf, table, 2)[0])
@@ -310,9 +364,15 @@ def scan_particle_files(paths: list[str], field: int, dtype: str) -> list[tuple[
             return ParticleLayout(paths[i], npart, offsets, nbytes), data
 
         def decode(fetched):
-            results[i] = fetched
+            layout, data = fetched
+            if convert is not None and data is not None:
+                data = convert(data)
+            results[i] = layout, data
 
-        return _execute.Piece(paths[i], _header_nbytes_guess, read, decode)
+        def held(fetched):
+            return 0 if fetched[1] is None else fetched[1].nbytes
 
-    _execute.run_pieces([piece(i) for i in range(len(paths))], f"headers of {len(paths)} particle files")
+        return _execute.Piece(paths[i], nbytes_guess, read, decode, held)
+
+    _scan(piece, len(paths), f"headers of {len(paths)} particle files")
     return results
