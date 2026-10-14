@@ -193,6 +193,17 @@ cdef image_output_type get_kernel(fixed_input_type d2, fixed_input_type kernel_m
         return 0
 
 
+@cython.cdivision(True)
+cdef inline double oblique_d2(double dx, double dy, double ray_x, double ray_y) noexcept nogil:
+    """The squared distance from a particle to a ray, given the offset (dx, dy) from the ray to the particle in the
+    plane z = const of the particle, and the direction of the ray as (ray_x, ray_y, 1) (up to sign).
+
+    This is the impact parameter at which the projected kernel must be evaluated to give the integral of the 3D kernel
+    along the ray."""
+    cdef double dot = dx*ray_x + dy*ray_y
+    return dx*dx + dy*dy - dot*dot/(1.0 + ray_x*ray_x + ray_y*ray_y)
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -234,11 +245,12 @@ def render_image(int nx, int ny,
     cdef int x_pix_start, x_pix_stop, y_pix_start, y_pix_stop
 
     # following are only used for "perspective" rendering
-    cdef float per_z_dx = (x2-x1)/(2*z_camera)
-    cdef float per_z_dy = (y2-y1)/(2*z_camera)
-    cdef float mid_x = (x2+x1)/2
-    cdef float mid_y = (y2+y1)/2
-    cdef float dz_i
+    cdef double per_z_dx = (x2-x1)/(2*z_camera) if z_camera != 0.0 else 0.0
+    cdef double per_z_dy = (y2-y1)/(2*z_camera) if z_camera != 0.0 else 0.0
+    cdef double mid_x = (x2+x1)/2
+    cdef double mid_y = (y2+y1)/2
+    cdef double dz_i, sec_bound, r_i
+    cdef int oblique  # whether the rays are oblique, so that a projected kernel is evaluated at the impact parameter
 
     cdef float wrap_offset_x, wrap_offset_y
 
@@ -262,6 +274,22 @@ def render_image(int nx, int ny,
     cdef int use_z = 1 if kernel_dim>=3 else 0
 
     assert kernel_dim==2 or kernel_dim==3, "Only kernels of dimension 2 or 3 currently supported"
+
+    oblique = z_camera != 0.0 and kernel_dim == 2
+    if z_camera != 0.0 and kernel_dim == 3:
+        # A perspective slice shows the plane z = z0, so that its pixels lie at the depth of the plane
+        if (z0 >= z_camera and z_camera > 0) or (z0 <= z_camera and z_camera < 0):
+            # the plane is not in front of the camera
+            return result
+        dz_i = z_camera - z0
+        x1 = mid_x - per_z_dx*dz_i
+        x2 = mid_x + per_z_dx*dz_i
+        y1 = mid_y - per_z_dy*dz_i
+        y2 = mid_y + per_z_dy*dz_i
+        pixel_dx = (x2-x1)/nx
+        pixel_dy = (y2-y1)/ny
+        x_start = x1+pixel_dx/2
+        y_start = y1+pixel_dy/2
     assert len(x) == len(y) == len(z) == len(sm) == len(qty) == len(mass) == len(rho), "Inconsistent array lengths passed to render_image_core"
 
     for wrap_offset_x in wrap_offsets_x :
@@ -278,8 +306,8 @@ def render_image(int nx, int ny,
                     if qty_i!=qty_i:
                         continue
 
-                    if z_camera!=0.0 :
-                        # perspective image -
+                    if oblique :
+                        # perspective projection -
                         # update image bounds for the current z
                         if (z_i>z_camera and z_camera>0) or (z_i<z_camera and z_camera<0) :
                             # behind camera
@@ -304,9 +332,18 @@ def render_image(int nx, int ny,
 
                     total_ptcls+=1
 
+                    # Along a ray at angle theta to the z axis, a projected kernel extends further, by up to
+                    # sec(theta), in the direction away from the centre of the image (see below). Bound sec(theta)
+                    # over the particle.
+                    sec_bound = 1.0
+                    if oblique :
+                        r_i = cmath.sqrt((x_i-mid_x)*(x_i-mid_x)+(y_i-mid_y)*(y_i-mid_y)) + 2*max_d_over_h*sm_i
+                        sec_bound = cmath.sqrt(1.0 + r_i*r_i/(dz_i*dz_i))
+
                     # check particle is within bounds
                     if not ((use_z*cmath.fabs(z_i-z0)<max_d_over_h*sm_i)
-                            and x_i>x1-2*sm_i and x_i<x2+2*sm_i and y_i>y1-2*sm_i and y_i<y2+2*sm_i) :
+                            and x_i>x1-2*sm_i*sec_bound and x_i<x2+2*sm_i*sec_bound
+                            and y_i>y1-2*sm_i*sec_bound and y_i<y2+2*sm_i*sec_bound) :
                         continue
 
                     # pre-cache sm^kdim and (sm*max_d_over_h)**2; tests showed massive speedups when doing this
@@ -319,7 +356,7 @@ def render_image(int nx, int ny,
                     kernel_max_2 = (sm_i*sm_i)*(max_d_over_h*max_d_over_h)
 
                     # decide whether this is a single pixel or a multi-pixel particle
-                    if (max_d_over_h*sm_i/pixel_dx<1 and max_d_over_h*sm_i/pixel_dy<1) :
+                    if (max_d_over_h*sm_i*sec_bound/pixel_dx<1 and max_d_over_h*sm_i*sec_bound/pixel_dy<1) :
                         # single pixel, get pixel location
                         x_pos = int((x_i-x1)/pixel_dx)
                         y_pos = int((y_i-y1)/pixel_dy)
@@ -330,13 +367,17 @@ def render_image(int nx, int ny,
 
                         # final bounds check
                         if x_pos>=0 and x_pos<nx and y_pos>=0 and y_pos<ny :
-                            result[y_pos,x_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
+                            if oblique :
+                                result[y_pos,x_pos]+=qty_i*get_kernel(oblique_d2(x_i-x_pixel, y_i-y_pixel, (x_pixel-mid_x)/dz_i, (y_pixel-mid_y)/dz_i),
+                                                                      kernel_max_2, sm_to_kdim, num_samples, samples_c)
+                            else :
+                                result[y_pos,x_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
                     else :
                         # multi-pixel
-                        x_pix_start = int((x_i-max_d_over_h*sm_i-x1)/pixel_dx)
-                        x_pix_stop =  int((x_i+max_d_over_h*sm_i-x1)/pixel_dx)
-                        y_pix_start = int((y_i-max_d_over_h*sm_i-y1)/pixel_dy)
-                        y_pix_stop =  int((y_i+max_d_over_h*sm_i-y1)/pixel_dy)
+                        x_pix_start = int((x_i-max_d_over_h*sm_i*sec_bound-x1)/pixel_dx)
+                        x_pix_stop =  int((x_i+max_d_over_h*sm_i*sec_bound-x1)/pixel_dx)
+                        y_pix_start = int((y_i-max_d_over_h*sm_i*sec_bound-y1)/pixel_dy)
+                        y_pix_stop =  int((y_i+max_d_over_h*sm_i*sec_bound-y1)/pixel_dy)
                         if x_pix_start<0 : x_pix_start = 0
                         if x_pix_stop>nx : x_pix_stop = nx
                         if y_pix_start<0 : y_pix_start = 0
@@ -360,7 +401,11 @@ def render_image(int nx, int ny,
 
                                 #c_result[x_pos+nx*y_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
 
-                                result[y_pos,x_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
+                                if oblique :
+                                    result[y_pos,x_pos]+=qty_i*get_kernel(oblique_d2(x_i-x_pixel, y_i-y_pixel, (x_pixel-mid_x)/dz_i, (y_pixel-mid_y)/dz_i),
+                                                                          kernel_max_2, sm_to_kdim, num_samples, samples_c)
+                                else :
+                                    result[y_pos,x_pos]+=qty_i*get_kernel_xyz(x_i-x_pixel, y_i-y_pixel, (z_i-z_pixel)*use_z, kernel_max_2 ,sm_to_kdim,num_samples,samples_c)
 
     return result
 

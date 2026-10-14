@@ -1,7 +1,7 @@
 import matplotlib.pylab as plt
 
 import pynbody
-import pynbody.plot.sph as sph
+import pynbody.plot.imaging as imaging
 
 # load the snapshot and set to physical units
 s = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024.gz')
@@ -14,4 +14,4 @@ halos = s.halos()
 pynbody.analysis.angmom.sideon(halos[1])
 
 #create a simple slice showing the gas temperature
-sph.image(halos[1].g, qty="temp", width=50, cmap="YlOrRd", denoise=True, approximate_fast=False)
+imaging.image(halos[1].g, qty="temp", width=50, cmap="YlOrRd", denoise=True, approximate_fast=False)

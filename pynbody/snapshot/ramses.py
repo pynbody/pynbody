@@ -381,10 +381,14 @@ class RamsesSnap(SimSnap):
     """Implements loading of Ramses snapshots.
 
     Note that AMR cells are loaded as particles, although this works surprisingly well for most analysis purposes.
-    In particular SPH image generation routines automatically switch on an appropriate de-noising scheme to provide
-    effective interpolation between cells.
+    The cell width is stored in the ``smooth`` array. By default, images of the gas are rendered with SPH routines,
+    which automatically switch on an appropriate de-noising scheme to provide effective interpolation between cells.
+    Alternatively, the gas can be rendered exactly by treating each cell as a cube; see the *use_true_amr* option of
+    :func:`pynbody.imaging.renderers.make_render_pipeline`, and :class:`pynbody.imaging.renderers.AMRImageRenderer`.
     """
     reader_pool = None
+
+    _amr_cell_families = (family.gas,)
 
     def __init__(self, dirname, cpus=None, maxlevel=None, with_gas=True, force_gas=False, times_are_proper=None,
                  negative_iords_on_purpose=False):

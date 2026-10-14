@@ -138,7 +138,7 @@ This has used three of ``pynbody``'s routines:
 
 The latter automatically estimates smoothing lengths and
 densities if needed, even if these are not stored in the file explicitly.
-The returned ``image_values`` from :func:`~pynbody.plot.sph.image` is a numpy
+The returned ``image_values`` from :func:`~pynbody.plot.imaging.image` is a numpy
 array of the pixel values, which you can then manipulate further if you wish.
 
 Here's another example showing the larger-scale

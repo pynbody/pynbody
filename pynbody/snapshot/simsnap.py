@@ -94,6 +94,18 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
       Previously this case was indistinguishable from a complete single-file snapshot.
     """
 
+    _amr_cell_families = ()
+    # The families whose particles are really AMR cells: cubes with side length given by the ``smooth`` array, and
+    # edges aligned with the axes of the original simulation. Loaders for AMR codes set this (for example, RamsesSnap
+    # sets it to the gas family). Images of these families can then be rendered exactly as cubes, by
+    # pynbody.imaging.renderers.AMRImageRenderer (see the use_true_amr option of make_render_pipeline), and SPH
+    # slices of them are by default denoised. Only the value on the ancestor snapshot is consulted.
+
+    _should_denoise_images = False
+    # If True, slice images of this snapshot rendered with an SPH kernel are by default denoised; see
+    # pynbody.imaging.renderers.ImageRendererBase.with_denoising. This is already the case for snapshots with
+    # AMR cell families.
+
     # These 3D arrays get four views automatically created, one reflecting the
     # full Nx3 data, the others reflecting Nx1 slices of it
     #
@@ -635,6 +647,14 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     def is_descendant(self, other) -> bool:
         """Returns true if self is a subview of other"""
         return other.is_ancestor(self)
+
+    def _untransformed_rotation_matrix(self):
+        # views share the transformations of their ancestor, so also share its starting point
+        ancestor = self.ancestor
+        if ancestor is self:
+            return super()._untransformed_rotation_matrix()
+        else:
+            return ancestor._untransformed_rotation_matrix()
 
     @property
     def ancestor(self) -> SimSnap:

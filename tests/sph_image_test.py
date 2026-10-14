@@ -9,7 +9,8 @@ import pytest
 
 import pynbody
 import pynbody.test_utils
-from pynbody.sph import kernels, renderers
+from pynbody.imaging import renderers
+from pynbody.sph import kernels
 
 test_folder = Path(__file__).parent
 
@@ -76,13 +77,13 @@ def stars_dust_2d():
 
 
 def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compare3d_wendlandC2, snap):
-    im3d = pynbody.plot.sph.image(
+    im3d = pynbody.plot.imaging.image(
         snap.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, resolution=500)
 
-    im2d = pynbody.plot.sph.image(
+    im2d = pynbody.plot.imaging.image(
         snap.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, resolution=500)
 
-    im_grid = pynbody.sph.render_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=False)[::50]
+    im_grid = pynbody.imaging.render_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=False)[::50]
 
     np.save("result_im_2d.npy", im2d)
     np.save("result_im_3d.npy", im3d)
@@ -93,10 +94,10 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
     npt.assert_allclose(im_grid, compare_grid, rtol=1e-5)
 
     # Make images with a different kernel (Wendland C2)
-    im3d_wendlandC2 = pynbody.plot.sph.image(
+    im3d_wendlandC2 = pynbody.plot.imaging.image(
         snap.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=False, kernel='wendlandC2',
         resolution=500)
-    im2d_wendlandC2 = pynbody.plot.sph.image(
+    im2d_wendlandC2 = pynbody.plot.imaging.image(
         snap.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=False, kernel='wendlandC2',
         resolution=500)
 
@@ -112,7 +113,7 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
     npt.assert_allclose(im3d_wendlandC2, compare3d_wendlandC2, rtol=1e-5)
 
     # check rectangular image is OK
-    im_rect = pynbody.sph.render_image(snap.gas, nx=500, ny=250, width=20.0,
+    im_rect = pynbody.imaging.render_image(snap.gas, nx=500, ny=250, width=20.0,
                                        approximate_fast=False).in_units("m_p cm^-3")
     np.save("result_im_3d_rectangular.npy", im_rect)
 
@@ -121,11 +122,11 @@ def test_images(compare2d, compare3d, compare_grid, compare2d_wendlandC2, compar
 
 
 def test_approximate_images(compare2d, compare3d, compare_grid, snap):
-    im3d = pynbody.plot.sph.image(
+    im3d = pynbody.plot.imaging.image(
         snap.gas, width=20.0, units="m_p cm^-3", noplot=True, approximate_fast=True, resolution=500)
-    im2d = pynbody.plot.sph.image(
+    im2d = pynbody.plot.imaging.image(
         snap.gas, width=20.0, units="m_p cm^-2", noplot=True, approximate_fast=True, resolution=500)
-    im_grid = pynbody.sph.render_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=True)[::50]
+    im_grid = pynbody.imaging.render_3d_grid(snap.gas, nx=200, x2=20.0, approximate_fast=True)[::50]
 
     np.save("result_approx_im_2d.npy", im2d)
     np.save("result_approx_im_3d.npy", im3d)
@@ -194,7 +195,7 @@ def intentional_circular_reference(sim):
 @pytest.mark.filterwarnings("ignore:.*")
 def test_exception_propagation(snap):
     with pytest.raises(RuntimeError):
-        pynbody.plot.sph.image(snap.gas, qty='intentional_circular_reference')
+        pynbody.plot.imaging.image(snap.gas, qty='intentional_circular_reference')
 
 
 @pytest.fixture
@@ -213,19 +214,19 @@ def simple_test_file():
 
 def test_projection_average(simple_test_file):
     f = simple_test_file
-    im = pynbody.sph.render_image(f, quantity='temp', weight='rho', width=1)
+    im = pynbody.imaging.render_image(f, quantity='temp', weight='rho', width=1)
     im_collapsed = np.mean(im, axis=0)
     answer = np.linspace(-0.5, 0.5, len(im_collapsed))
     npt.assert_allclose(im_collapsed, answer, atol=0.01)
 
     # check it also works to provide custom units
-    im = pynbody.sph.render_image(f, quantity='temp', weight='rho', width=1, out_units='0.1 K')
+    im = pynbody.imaging.render_image(f, quantity='temp', weight='rho', width=1, out_units='0.1 K')
     im_collapsed = np.mean(im, axis=0)
     answer = np.linspace(-5.0, 5.0, len(im_collapsed))
     npt.assert_allclose(im_collapsed, answer, atol=0.1)
 
     # check it also works with volume weighting
-    im = pynbody.sph.render_image(f, quantity='temp', weight=True, width=1, out_units='0.1 K')
+    im = pynbody.imaging.render_image(f, quantity='temp', weight=True, width=1, out_units='0.1 K')
     im_collapsed = np.mean(im, axis=0)
     npt.assert_allclose(im_collapsed, answer, atol=0.3)
 
@@ -240,8 +241,8 @@ def test_3d_grid_non_cubic(simple_test_file, ny_factor, nz_factor):
     f = simple_test_file
     n = 16
 
-    cubic = pynbody.sph.render_3d_grid(f, nx=n, ny=n, nz=n, width=4.0, approximate_fast=False)
-    enlarged = pynbody.sph.render_3d_grid(f, nx=n, ny=ny_factor * n, nz=nz_factor * n, width=4.0,
+    cubic = pynbody.imaging.render_3d_grid(f, nx=n, ny=n, nz=n, width=4.0, approximate_fast=False)
+    enlarged = pynbody.imaging.render_3d_grid(f, nx=n, ny=ny_factor * n, nz=nz_factor * n, width=4.0,
                                           approximate_fast=False)
 
     assert cubic.shape == (n, n, n)
@@ -255,17 +256,17 @@ def test_3d_grid_non_cubic(simple_test_file, ny_factor, nz_factor):
 def test_spherical_render(simple_test_file):
     f = simple_test_file
 
-    im = pynbody.sph.render_spherical_image(f, 'rho', nside=16)
+    im = pynbody.imaging.render_spherical_image(f, 'rho', nside=16)
 
     assert abs(4 * np.pi * im.sum() / len(im) - 1.0) < 0.01
     assert im.units == "Msol sr^-1"
 
-    im2 = pynbody.sph.render_spherical_image(f, 'rho', nside=32, out_units="Msol arcsec^-2")
+    im2 = pynbody.imaging.render_spherical_image(f, 'rho', nside=32, out_units="Msol arcsec^-2")
 
     assert im2.units == "Msol arcsec^-2"
     assert abs((im2.sum() / len(im2)) * ((60 * 60 * 360) ** 2 / np.pi) - 1.0) < 0.01
 
-    im3 = pynbody.sph.render_spherical_image(f, 'temp', weight='rho', nside=16)
+    im3 = pynbody.imaging.render_spherical_image(f, 'temp', weight='rho', nside=16)
     assert im3.units == "K"
 
     npt.assert_allclose(im3[::100], [0.04377608, -0.45156163, -0.7651039, 0.05943527, -0.63053423, -0.48430285,
@@ -307,7 +308,7 @@ def test_spherical_shell_render(simple_test_file):
     """A thin-shell healpix render should sample the 3D density field, giving volumetric units."""
     f = simple_test_file
 
-    im = pynbody.sph.render_spherical_image(f, 'rho', nside=16, distance='1.0 kpc')
+    im = pynbody.imaging.render_spherical_image(f, 'rho', nside=16, distance='1.0 kpc')
 
     # sampling density on a shell gives a volumetric (density) quantity, not a per-solid-angle column
     assert im.units == "Msol kpc^-3"
@@ -329,7 +330,7 @@ def test_spherical_shell_geometry(simple_test_file):
     distance = 1.3
 
     kernel = kernels.CubicSplineKernel()
-    im = pynbody.sph.render_spherical_image(f, 'rho', nside=nside, distance=distance, kernel=kernel)
+    im = pynbody.imaging.render_spherical_image(f, 'rho', nside=nside, distance=distance, kernel=kernel)
 
     pos = f['pos'].view(np.ndarray)
     h = f['smooth'].view(np.ndarray)

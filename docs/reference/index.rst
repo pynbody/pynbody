@@ -24,6 +24,7 @@ from the source code. It is split into sections by subpackage, as follows.
    pynbody.filt
    pynbody.gravity
    pynbody.halo
+   pynbody.imaging
    pynbody.kdtree
    pynbody.openmp
    pynbody.plot
