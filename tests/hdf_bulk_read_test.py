@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pynbody.util import hdf_bulk_read
+from pynbody.util.bulk_read import pipeline
 
 
 def _make_chunked(filename, data, chunks, filters=(), fillvalue=None, name="x"):
@@ -1384,14 +1385,14 @@ def test_pipeline_keeps_data_in_flight_within_budget(tmp_path, monkeypatch, infl
     monkeypatch.setattr(hdf_bulk_read.datasets, "_min_job_nbytes", 1)  # (a job for each chunk)
     limit = inflight_chunks * 300 * 3 * 8
     most = [0]
-    original_acquire = hdf_bulk_read.execute._Budget.acquire
+    original_acquire = pipeline._Budget.acquire
 
     def acquire(self, nbytes, stop):
         result = original_acquire(self, nbytes, stop)
         most[0] = max(most[0], self._used)
         return result
 
-    monkeypatch.setattr(hdf_bulk_read.execute._Budget, "acquire", acquire)
+    monkeypatch.setattr(pipeline._Budget, "acquire", acquire)
     # decoding slowly, so that input threads would run far ahead if nothing stopped them
     original_decode = hdf_bulk_read.decode.decode_chunk
     monkeypatch.setattr(hdf_bulk_read.decode, "decode_chunk",
@@ -1401,6 +1402,35 @@ def test_pipeline_keeps_data_in_flight_within_budget(tmp_path, monkeypatch, infl
         _read_with(monkeypatch, hdf_bulk_read.strategy.ReadStrategy(4, 2, "test", inflight_nbytes=limit),
                    make_requests([f]))
     assert 0 < most[0] <= max(limit, largest_job)
+
+
+def test_jobs_are_charged_what_they_hold_once_fetched():
+    """A job that finds, once fetched, that it holds more than it was guessed to is charged what it holds, so that
+    input threads do not run far ahead of decoding"""
+    held, most = [0], [0]
+    lock = threading.Lock()
+
+    def make_job():
+        def fetch():
+            job.nbytes = 400
+            with lock:
+                held[0] += 400
+                most[0] = max(most[0], held[0])
+            return True
+
+        def process(fetched):
+            time.sleep(0.002)  # (slowly, so that input threads would run far ahead if nothing stopped them)
+            with lock:
+                held[0] -= 400
+
+        job = pipeline.Job(fetch, process, 1)
+        return job
+
+    tasks = [[make_job() for _ in range(10)] for _ in range(4)]
+    pipeline.perform_tasks(tasks, pipeline.ReadStrategy(4, 2, "test", inflight_nbytes=1000))
+    # (each input thread may fetch one job beyond the limit, as what a job holds is known only once fetched)
+    assert held[0] == 0 and 0 < most[0] <= 1000 + 4 * 400
+    assert _no_pipeline_threads_remain()
 
 
 def test_one_input_thread_feeds_several_decode_threads(tmp_path, monkeypatch):
@@ -1425,7 +1455,7 @@ def test_one_input_thread_feeds_several_decode_threads(tmp_path, monkeypatch):
         _read_with(monkeypatch, hdf_bulk_read.strategy.ReadStrategy(1, 3, "test", inflight_nbytes=10 ** 6),
                    [(f["x"], slice(0, 10000), f["x"][:])])
     assert len(set(decoded[:3])) == 3
-    assert all(name.startswith("pynbody-hdf-decode") for name in decoded)
+    assert all(name.startswith("pynbody-decode") for name in decoded)
 
 
 @pytest.mark.parametrize("where", ["_fetch_for_pieces", "_decode_into_pieces"])

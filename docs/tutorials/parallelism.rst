@@ -21,9 +21,7 @@ There are several distinct ways in which parallelization is possible in pynbody.
 (3) *Process parallelism*. Pynbody also exposes a way to share arrays across completely
     separate python processes (on the same machine). This is especially used by
     `tangos <https://github.com/pynbody/tangos>`_ to enable efficient analysis of
-    large numbers of halos/galaxies within a single simulation. It is also used internally
-    by the ramses loader since loading a ramses file turns out to be an intensive process
-    that can usefully be parallelised.
+    large numbers of halos/galaxies within a single simulation.
 
 (4) *Partial loading*. Pynbody can also load only part of a simulation, which is especially useful for
     large simulations where you may not have enough memory to load the entire dataset.
@@ -63,8 +61,8 @@ More information on the pynbody configuration system is
 :ref:`available here <configuration>`.
 
 .. note::
-    The above does not limit the number of CPUs used by the ramses reader,
-    which is controlled separately. See :ref:`below <posix_ipc>`.
+    The above does not limit the threads used to read RAMSES and HDF5 files,
+    which are controlled separately. See :ref:`below <parallel_io>`.
 
 .. _openmp-fix:
 
@@ -83,33 +81,20 @@ an example. In such a case, your best option is unfortunately
 to install all modules from source, being careful to use the same compilers and OpenMP libraries for all
 OpenMP modules you will be using.
 
-.. _posix_ipc:
+.. _parallel_io:
 
-Parallel ramses reader support
-------------------------------
+Parallel reading of RAMSES and HDF5 outputs
+-------------------------------------------
 
-The ramses reader speeds up load times by using multiple concurrent
-processes to read files. The optimal number of readers depends on a combination
-of CPU and IO performance, which can be especially subtle on network
-file system machines. (With lustre, the best number of processes may even be
-dependent on how you `striped the data <https://wiki.lustre.org/Configuring_Lustre_File_Striping>`_.)
-You should therefore experiment with the number of
-processes used for the reading process if optimisation is important to you. This can be done using pynbody's
-standard :ref:`configuration <configuration>` system; for instance, create a
-``.pynbodyrc`` file in your home directory with the following
-section:
+RAMSES outputs and gadgetHDF-derived formats (such as SWIFT, EAGLE and GIZMO snapshots) are read with
+two kinds of thread: input threads, which read files, and decoding threads, which turn what was read into
+arrays. By default one input thread is used, or up to 16 on a parallel filesystem such as Lustre or GPFS,
+and up to 8 decoding threads (but no more than there are CPUs).
 
-.. code-block:: none
-
-   [ramses]
-   parallel-read: 4
-
-This specifies 4 processes.
-
-.. note::
- Many systems limit the amount of shared memory available,
- which can cause problems once you enable parallel-reading. See
- :ref:`our separate note on this issue <pitfall_ramses_sharedmem>`.
+These numbers are set separately from ``number-of-threads`` above, in the ``[ramses]`` section of the
+:ref:`configuration <configuration>` (``parallel-read`` for decoding threads, 1 meaning everything is done
+in the calling thread, and ``io-threads``) and the ``[hdf-bulk-read]`` section (``decode-threads`` and
+``io-threads``). The default configuration file describes these and related options.
 
 .. _using_shared_arrays:
 

@@ -65,6 +65,7 @@ packages = [
     "pynbody.filt",
     "pynbody.sph",
     "pynbody.snapshot",
+    "pynbody.snapshot.ramses",
     "pynbody.bridge",
     "pynbody.halo",
     "pynbody.halo.details",
@@ -72,6 +73,8 @@ packages = [
     "pynbody.kdtree",
     "pynbody.test_utils",
     "pynbody.util",
+    "pynbody.util.bulk_read",
+    "pynbody.util.hdf_bulk_read",
     "pynbody.array.shared",
     'pynbody.openmp'
 ]

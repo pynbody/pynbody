@@ -40,18 +40,13 @@ strategy chosen for each read is logged at debug level, together with the reason
 from __future__ import annotations
 
 import dataclasses
-import functools
 import logging
-import os
 
 from ... import config_parser
+from ..bulk_read import filesystem
+from ..bulk_read.pipeline import ReadStrategy
 
 logger = logging.getLogger('pynbody.util.hdf_bulk_read.strategy')
-
-# Filesystem types on which files are spread over several servers (so that reading several files at once pays off)
-# (NFS is not among them: it is usually served by a single server)
-parallel_filesystem_types = {'lustre', 'gpfs', 'beegfs', 'wekafs', 'ceph', 'fuse.ceph', 'pvfs2', 'orangefs', 'panfs'}
-
 
 def _read_config():
     def option(name, default):
@@ -84,7 +79,8 @@ def _read_config():
                                old_name, section)
 
     return _Options({'io-threads': whole_number('io-threads', 'auto'),
-                     'parallel-filesystem-io-threads': whole_number('parallel-filesystem-io-threads', 16),
+                     'parallel-filesystem-io-threads': whole_number('parallel-filesystem-io-threads',
+                                                                       filesystem.parallel_filesystem_io_threads),
                      'decode-threads': whole_number('decode-threads', 'auto', minimum=0),
                      'max-decode-threads': whole_number('max-decode-threads', 8),
                      'decode-memory': whole_number('decode-memory', 2 * 1024 ** 3)})
@@ -137,28 +133,6 @@ class ReadSummary:
     """Roughly how many chunks are to be decoded"""
 
 
-@dataclasses.dataclass(frozen=True)
-class ReadStrategy:
-    """How to perform the reads needed to load one array."""
-
-    io_threads: int
-    """The number of threads reading files; 1 means the calling thread reads them, one after another"""
-
-    decode_threads: int
-    """The number of threads decoding what has been read; 0 means that the reading threads decode it themselves"""
-
-    reason: str
-    """Why, in words"""
-
-    inflight_nbytes: int = 0
-    """The most memory to be taken by data read and waiting to be decoded"""
-
-    @property
-    def serial(self) -> bool:
-        """True if everything is done in the calling thread"""
-        return self.io_threads <= 1 and self.decode_threads == 0
-
-
 _SERIAL = dict(io_threads=1, decode_threads=0)
 
 
@@ -169,14 +143,14 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
     if not summary.all_direct:
         return ReadStrategy(**_SERIAL, reason="some of the data must be read through h5py, which serialises reads")
 
-    filesystem = filesystem_type(summary.paths[0]) if summary.paths else None
-    where = f"on a parallel filesystem ({filesystem})" if filesystem in parallel_filesystem_types else \
-        f"on a {filesystem or 'local'} filesystem"
+    fs_type = filesystem.filesystem_type(summary.paths[0]) if summary.paths else None
+    where = f"on a parallel filesystem ({fs_type})" if filesystem.is_parallel(fs_type) else \
+        f"on a {fs_type or 'local'} filesystem"
 
     requested = _requested('io-threads')
     if requested is not None:
         io_threads, io_reason = requested, f"the io-threads option is set to {requested}"
-    elif filesystem in parallel_filesystem_types:
+    elif filesystem.is_parallel(fs_type):
         io_threads = config['parallel-filesystem-io-threads']
         io_reason = f"the files are {where}, where several can be read at once"
     else:
@@ -201,8 +175,8 @@ def choose_read_strategy(summary: ReadSummary) -> ReadStrategy:
             decode_reason = (f"the data are compressed, but in chunks of at most {summary.max_chunk_nbytes / 1024:.0f} "
                              f"kB, too small for decompressing them to be worth sharing between threads")
         else:
-            decode_threads = min(config['max-decode-threads'], available_cpus())
-            decode_reason = f"the data are compressed, and {available_cpus()} CPUs are available"
+            decode_threads = min(config['max-decode-threads'], filesystem.available_cpus())
+            decode_reason = f"the data are compressed, and {filesystem.available_cpus()} CPUs are available"
         if decode_threads > summary.num_chunks:
             decode_threads = summary.num_chunks
             decode_reason += f" (but there are only {summary.num_chunks} chunks to decode)"
@@ -241,44 +215,3 @@ def _requested(option: str) -> int | None:
     except ValueError:
         logger.warning("Ignoring the %s option, %r, which is neither a number nor 'auto'", option, requested)
         return None
-
-
-def available_cpus() -> int:
-    """The number of CPUs this process may run on"""
-    try:
-        return len(os.sched_getaffinity(0))
-    except (AttributeError, OSError):
-        return os.cpu_count() or 1
-
-
-def filesystem_type(path: str) -> str | None:
-    """The type of the filesystem holding *path* (e.g. 'lustre', 'ext4'), or None if it cannot be found out.
-
-    Found from the mount table on Linux; elsewhere, returns None, which the rules treat as a local filesystem."""
-    mounts = _mount_table()
-    if not mounts:
-        return None
-    path = os.path.realpath(path)
-    best, best_type = "", None
-    for mount_point, fs_type in mounts:
-        if (path == mount_point or path.startswith(mount_point.rstrip('/') + '/')) and len(mount_point) > len(best):
-            best, best_type = mount_point, fs_type
-    return best_type
-
-
-@functools.lru_cache(maxsize=1)
-def _mount_table() -> tuple[tuple[str, str], ...]:
-    """(mount point, filesystem type) for each mounted filesystem, or () if unavailable"""
-    try:
-        with open('/proc/self/mounts') as f:
-            lines = f.readlines()
-    except OSError:
-        return ()
-    table = []
-    for line in lines:
-        fields = line.split()
-        if len(fields) >= 3:
-            # the mount table escapes spaces and some other characters in octal
-            mount_point = fields[1].encode().decode('unicode_escape')
-            table.append((mount_point, fields[2]))
-    return tuple(table)

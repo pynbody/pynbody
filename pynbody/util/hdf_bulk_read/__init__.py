@@ -60,7 +60,8 @@ The package is organised as:
 * :mod:`.reader` -- :class:`BulkReader`, which opens datasets for reading and performs requests;
 * :mod:`.plan` -- turning requests into units of work, and grouping those into tasks for threads;
 * :mod:`.strategy` -- the rules deciding how many threads to use;
-* :mod:`.execute` -- performing the tasks, serially or in threads;
+* :mod:`.execute` -- performing the tasks, serially or in threads, through the pipeline shared with pynbody's
+  other bulk readers (:mod:`pynbody.util.bulk_read`);
 * :mod:`.datasets` and :mod:`.virtual` -- direct readers of contiguous, chunked and virtual datasets;
 * :mod:`.decode` -- undoing HDF5's filters;
 * :mod:`.files` -- access to the bytes of the files HDF5 has open.

@@ -62,30 +62,3 @@ class _CannotReadDirectly(Exception):
 
 class _UnexpectedData(Exception):
     """Raised during a read when the file does not contain what its metadata led us to expect."""
-
-
-class Job:
-    """One step of reading: input (*fetch*), then, optionally, computation on what was fetched (*process*).
-
-    The executor (see :mod:`.execute`) runs the fetches of each file in order on an input thread, which is all that
-    thread does, and hands what they fetch to *process* on a thread of a decoding pool, which is all that pool does;
-    or, when there is no pool, runs both one after the other. *nbytes* is roughly the memory that what is fetched
-    takes until processed, which the executor keeps within a budget.
-
-    *fetch* returns what *process* is to be given, or None if nothing is left to do (for example, because the fetch
-    itself put the data in place)."""
-
-    __slots__ = ('fetch', 'process', 'nbytes')
-
-    def __init__(self, fetch, process=None, nbytes: int = 0):
-        if process is not None and nbytes <= 0:
-            raise ValueError("A job that processes what it fetches must say how much memory that takes")
-        self.fetch = fetch
-        self.process = process
-        self.nbytes = nbytes
-
-    def run(self):
-        """Fetch and process, one after the other, in this thread"""
-        fetched = self.fetch()
-        if fetched is not None and self.process is not None:
-            self.process(fetched)

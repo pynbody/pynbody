@@ -1,5 +1,6 @@
 import pytest
 
+from pynbody.util.bulk_read import filesystem
 from pynbody.util.hdf_bulk_read import strategy as hdf_read_strategy
 from pynbody.util.hdf_bulk_read.strategy import ReadSummary, choose_read_strategy
 
@@ -8,7 +9,7 @@ MB = 1024 ** 2
 
 @pytest.fixture(autouse=True)
 def plenty_of_cpus(monkeypatch):
-    monkeypatch.setattr(hdf_read_strategy, "available_cpus", lambda: 64)
+    monkeypatch.setattr(filesystem, "available_cpus", lambda: 64)
     monkeypatch.setitem(hdf_read_strategy.config, "io-threads", "auto")
     monkeypatch.setitem(hdf_read_strategy.config, "parallel-filesystem-io-threads", 4)
     monkeypatch.setitem(hdf_read_strategy.config, "decode-threads", "auto")
@@ -17,7 +18,7 @@ def plenty_of_cpus(monkeypatch):
 
 
 def on(monkeypatch, fs_type):
-    monkeypatch.setattr(hdf_read_strategy, "filesystem_type", lambda path: fs_type)
+    monkeypatch.setattr(filesystem, "filesystem_type", lambda path: fs_type)
 
 
 def summary(num_reads=100, num_files=16, all_direct=True, compressed=True, max_chunk_nbytes=4 * MB, num_chunks=200):
@@ -95,7 +96,7 @@ def test_fixed_numbers_of_threads(monkeypatch, fs_type):
 
 def test_decode_threads_limited_by_cpus(monkeypatch):
     on(monkeypatch, "ext4")
-    monkeypatch.setattr(hdf_read_strategy, "available_cpus", lambda: 2)
+    monkeypatch.setattr(filesystem, "available_cpus", lambda: 2)
     strategy = choose_read_strategy(summary())
     assert threads(strategy) == (1, 2)
     assert "2 CPUs" in strategy.reason
@@ -103,20 +104,20 @@ def test_decode_threads_limited_by_cpus(monkeypatch):
 
 def test_filesystem_type_from_mount_table(monkeypatch):
     table = (("/", "ext4"), ("/cosma8", "lustre"), ("/cosma8/data/local", "xfs"), ("/scratch space", "gpfs"))
-    monkeypatch.setattr(hdf_read_strategy, "_mount_table", lambda: table)
-    monkeypatch.setattr(hdf_read_strategy.os.path, "realpath", lambda p: p)
-    assert hdf_read_strategy.filesystem_type("/cosma8/data/dp004/snap.0.hdf5") == "lustre"
-    assert hdf_read_strategy.filesystem_type("/cosma8/data/local/snap.hdf5") == "xfs"  # longest mount point wins
-    assert hdf_read_strategy.filesystem_type("/cosma8x/snap.hdf5") == "ext4"  # not a prefix at a separator
-    assert hdf_read_strategy.filesystem_type("/scratch space/a.hdf5") == "gpfs"
-    monkeypatch.setattr(hdf_read_strategy, "_mount_table", lambda: ())
-    assert hdf_read_strategy.filesystem_type("/anything") is None
+    monkeypatch.setattr(filesystem, "_mount_table", lambda: table)
+    monkeypatch.setattr(filesystem.os.path, "realpath", lambda p: p)
+    assert filesystem.filesystem_type("/cosma8/data/dp004/snap.0.hdf5") == "lustre"
+    assert filesystem.filesystem_type("/cosma8/data/local/snap.hdf5") == "xfs"  # longest mount point wins
+    assert filesystem.filesystem_type("/cosma8x/snap.hdf5") == "ext4"  # not a prefix at a separator
+    assert filesystem.filesystem_type("/scratch space/a.hdf5") == "gpfs"
+    monkeypatch.setattr(filesystem, "_mount_table", lambda: ())
+    assert filesystem.filesystem_type("/anything") is None
 
 
 def test_real_mount_table_parses():
-    table = hdf_read_strategy._mount_table()
+    table = filesystem._mount_table()
     assert all(isinstance(mount_point, str) and isinstance(fs_type, str) for mount_point, fs_type in table)
-    hdf_read_strategy.filesystem_type(__file__)  # does not raise
+    filesystem.filesystem_type(__file__)  # does not raise
 
 
 @pytest.mark.parametrize("chunk_mb, decode_threads", [(1, 6), (10, 6), (100, 4), (300, 1), (5000, 0)])

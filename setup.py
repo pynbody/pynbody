@@ -136,8 +136,13 @@ cython_fortran_file = Extension('pynbody.extern._cython_fortran_utils',
                                 include_dirs=incdir)
 
 
+ramses_kernels = Extension('pynbody.snapshot.ramses._kernels',
+                           sources=['pynbody/snapshot/ramses/_kernels.pyx'],
+                           include_dirs=incdir)
+
+
 ext_modules += [gravity, chunkscan, sph_render, halo_pyx, bridge_pyx, util_pyx, filt_geom_pyx,
-                cython_fortran_file, omp_commands]
+                cython_fortran_file, ramses_kernels, omp_commands]
 
 setup(ext_modules=ext_modules,
       cmdclass={'build_ext': build_ext})

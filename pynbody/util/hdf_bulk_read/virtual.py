@@ -14,9 +14,9 @@ try:
 except ImportError:
     h5py = None
 
+from ..bulk_read.pipeline import Job
 from .common import (
     _THROUGH_H5PY,
-    Job,
     ReadProperties,
     _CannotReadDirectly,
     _supported_drivers,
