@@ -837,6 +837,68 @@ def test_scan_reads_are_bounded(tmp_path):
 
 
 
+def test_amr_header_skips_large_coarse_grids(tmp_path):
+    """The records of the coarse cells at the end of an AMR file's header are read with the rest if they are
+    small beside the read gap, and otherwise skipped, once the length that starts them is checked"""
+    from pynbody.snapshot.ramses import _layout
+    path = "testdata/ramses/output_00080/amr_00080.out00003"
+    with open(path, "rb") as f:
+        read = _layout._read_amr_header(f, False, 10 ** 6)
+        skipped = _layout._read_amr_header(f, False, 0)
+    assert read[0].keys() == skipped[0].keys()
+    np.testing.assert_array_equal(read[1], skipped[1])
+    assert read[2] == skipped[2]
+    # a file whose coarse records are not as long as its coarse grid says is refused, rather than misread
+    ncoarse = int(np.prod(read[0]['ng']))
+    data = bytearray(Path(path).read_bytes())
+    at = read[2] - 3 * (8 + 4 * ncoarse)
+    assert int.from_bytes(data[at:at + 4], "little") == 4 * ncoarse
+    data[at:at + 4] = (4 * ncoarse + 4).to_bytes(4, "little")
+    (tmp_path / "amr").write_bytes(bytes(data))
+    with open(tmp_path / "amr", "rb") as f:
+        with pytest.raises(ValueError, match="Unexpected layout"):
+            _layout._read_amr_header(f, False, 0)
+
+
+def test_particle_scan_converts_as_it_decodes():
+    """The field that distinguishes families is passed through the conversion given as each file is decoded, so
+    that only what that returns is kept"""
+    from pynbody.snapshot.ramses import _layout
+    paths = [f"testdata/ramses/ramses_partial_output_00250/part_00250.out0000{i}" for i in range(1, 5)]
+    raw = _layout.scan_particle_files(paths, 9, 'd')
+    converted = _layout.scan_particle_files(paths, 9, 'd', convert=lambda age: (age != 0).view(np.int8))
+    for (layout, age), (layout_c, family_ids) in zip(raw, converted):
+        assert layout == layout_c
+        assert family_ids.dtype == np.int8 and len(family_ids) == layout.npart
+        np.testing.assert_array_equal(family_ids, age != 0)
+
+
+def test_scans_guess_from_the_first_file(monkeypatch):
+    """When a snapshot is opened, the first file is scanned alone, and what its piece held is the guess for the
+    others, as finding each file's size in advance would take a request for each"""
+    from pynbody.snapshot.ramses import _execute, _layout
+    runs = []
+    original = _execute.run_pieces
+
+    def run_pieces(pieces, description="pieces"):
+        runs.append([piece.nbytes for piece in pieces])
+        return original(pieces, description)
+
+    monkeypatch.setattr(_execute, "run_pieces", run_pieces)
+    # (a least guess smaller than any file's piece, so that the guess for the rest is what the first held)
+    monkeypatch.setattr(_layout, "_header_nbytes_guess", 1024)
+    paths = [f"testdata/ramses/output_00080/amr_00080.out{i:05d}" for i in range(1, 17)]
+    _, layouts, _ = _layout.scan_amr(paths, list(range(1, 17)), False, None)
+    assert [len(r) for r in runs] == [1, 15] and runs[0] == [1024]
+    first = layouts[0]
+    levels = np.flatnonzero(first.ncache > 0)
+    refinement_nbytes = int(np.sum(first.twotondim * (8 + 4 * first.ncache[levels])))
+    # (what is read between refinement maps, closer than the read gap, is held too)
+    assert refinement_nbytes <= runs[1][0] <= 2 * refinement_nbytes
+    assert len(set(runs[1])) == 1
+
+
+
 @pytest.mark.parametrize("filesystem, gap", [("ext4", 64 * 1024), (None, 64 * 1024), ("tmpfs", 64 * 1024),
                                              ("nfs4", 256 * 1024), ("9p", 256 * 1024), ("lustre", 1024 * 1024),
                                              ("gpfs", 1024 * 1024), ("fuse.s3fs", 1024 * 1024)])

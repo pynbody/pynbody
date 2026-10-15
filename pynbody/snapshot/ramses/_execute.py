@@ -11,7 +11,8 @@ each kind as :func:`choose_strategy` decides, from the shared rules for each kin
 Most reads are planned in advance (see :mod:`._plan`), and :func:`run_plan` runs a :class:`._plan.ReadPlan`: each of
 its pieces reads byte ranges into one buffer, checks the values the plan expects to find there, and is decoded by a
 function given the piece and its buffer. Reads whose extent is known only once a file's header has been read (when
-a snapshot is opened; see :mod:`._layout`) are pieces given to :func:`run_pieces` directly.
+a snapshot is opened; see :mod:`._layout`) are pieces given to :func:`run_pieces` directly, with a guess at what they
+will hold, and each job of them is charged what it does hold once read.
 
 A file whose contents are not as expected raises ValueError, rather than OSError, which pynbody's lazy loading takes
 to mean that an array is not on disk at all.
@@ -122,9 +123,10 @@ def describe_nbytes(n: int) -> str:
 class Piece(typing.NamedTuple):
     """Something to read from one file, and what to do with it"""
     path: str
-    nbytes: int  # roughly what it takes in memory once read
+    nbytes: int  # roughly what it takes in memory once read (or a guess, if *held* is given)
     read: typing.Callable  # given the open file, returns what was read
     decode: typing.Callable  # given what was read, puts it in place
+    held: typing.Callable | None = None  # given what was read, what it takes in memory, where nbytes is a guess
 
 
 class _Task:
@@ -190,13 +192,19 @@ def run_pieces(pieces: list[Piece], description: str = "pieces"):
 
 def _job(task: _Task, pieces: list[Piece], nbytes: int) -> Job:
     def fetch():
-        return [piece.read(task.file(piece.path)) for piece in pieces]
+        fetched = [piece.read(task.file(piece.path)) for piece in pieces]
+        if any(piece.held is not None for piece in pieces):
+            # (so that the job is charged what it holds, rather than what it was guessed to)
+            job.nbytes = max(sum(piece.nbytes if piece.held is None else piece.held(data)
+                                 for piece, data in zip(pieces, fetched)), 1)
+        return fetched
 
     def process(fetched):
         for piece, data in zip(pieces, fetched):
             piece.decode(data)
 
-    return Job(fetch, process, max(nbytes, 1))
+    job = Job(fetch, process, max(nbytes, 1))
+    return job
 
 
 def read_into(f, reads, nbytes: int) -> np.ndarray:

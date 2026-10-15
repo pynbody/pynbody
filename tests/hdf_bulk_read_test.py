@@ -1404,6 +1404,35 @@ def test_pipeline_keeps_data_in_flight_within_budget(tmp_path, monkeypatch, infl
     assert 0 < most[0] <= max(limit, largest_job)
 
 
+def test_jobs_are_charged_what_they_hold_once_fetched():
+    """A job that finds, once fetched, that it holds more than it was guessed to is charged what it holds, so that
+    input threads do not run far ahead of decoding"""
+    held, most = [0], [0]
+    lock = threading.Lock()
+
+    def make_job():
+        def fetch():
+            job.nbytes = 400
+            with lock:
+                held[0] += 400
+                most[0] = max(most[0], held[0])
+            return True
+
+        def process(fetched):
+            time.sleep(0.002)  # (slowly, so that input threads would run far ahead if nothing stopped them)
+            with lock:
+                held[0] -= 400
+
+        job = pipeline.Job(fetch, process, 1)
+        return job
+
+    tasks = [[make_job() for _ in range(10)] for _ in range(4)]
+    pipeline.perform_tasks(tasks, pipeline.ReadStrategy(4, 2, "test", inflight_nbytes=1000))
+    # (each input thread may fetch one job beyond the limit, as what a job holds is known only once fetched)
+    assert held[0] == 0 and 0 < most[0] <= 1000 + 4 * 400
+    assert _no_pipeline_threads_remain()
+
+
 def test_one_input_thread_feeds_several_decode_threads(tmp_path, monkeypatch):
     """With one input thread, chunks are still decoded by several threads at once"""
     _make_chunked(tmp_path / "x.h5", np.arange(10000.0), (500,), filters=(2, 1))

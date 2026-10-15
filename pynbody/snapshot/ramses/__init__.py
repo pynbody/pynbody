@@ -714,15 +714,15 @@ class RamsesSnap(SimSnap):
                     "Using field %s to distinguish stars. If this is wrong, try editing your config.ini, section [ramses], entry particle-distinguisher." % pb_name)
             distinguisher_type = self._particle_types[distinguisher_field]
 
+        # (each file's distinguishing field is made a family id, 0 for dm and 1 for star, as it is read)
         results = _layout.scan_particle_files([self._particle_filename(i) for i in self._cpus],
-                                              distinguisher_field, distinguisher_type)
+                                              distinguisher_field, distinguisher_type,
+                                              convert=lambda data: (data != 0).view(np.int8))
         keep = self._particles_in_region([r[0] for r in results]) if self._trim_to_region else None
 
-        for i, (particle_file, data) in enumerate(results):
+        for i, (particle_file, family_ids) in enumerate(results):
             npart_this = particle_file.npart
-            if data is not None and len(data) > 0:
-                family_ids = np.array((data != 0), dtype=np.int8)  # -> 0 for dm, 1 for star
-            else:
+            if family_ids is None or len(family_ids) == 0:
                 family_ids = np.zeros(npart_this, dtype=np.int8)
             if keep is not None:
                 family_ids.view(np.uint8)[~keep[i]] = SKIP
