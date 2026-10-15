@@ -79,8 +79,6 @@ problem with a ``.param`` file. If at this point you can't see what's
 going wrong, do `drop us a line
 <https://groups.google.com/forum/?fromgroups#!forum/pynbody-users>`_.
 
-If you are still having trouble, :ref:`contact us <getting-help>`.
-
 .. _no_memory
 
 When processing multiple files I run out of memory, even if I process them one-by-one

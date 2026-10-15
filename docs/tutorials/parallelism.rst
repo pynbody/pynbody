@@ -86,22 +86,15 @@ OpenMP modules you will be using.
 Parallel reading of RAMSES and HDF5 outputs
 -------------------------------------------
 
-RAMSES outputs and gadgetHDF-derived formats (such as SWIFT, EAGLE and GIZMO snapshots) are read
-through one pipeline of threads: input threads read the files, each a file at a time from start to end,
-while decoding threads decompress or pick out the values and put them in place, without holding Python's
-global interpreter lock. By default one thread reads, or up to 16 on a parallel filesystem such as Lustre
-or GPFS, where several files can be read at once; and up to 8 threads decode (no more than the CPUs
-available, and for HDF5 only when the data are compressed). Only the arrays asked for are read, and
-stretches of a file lying close together are read in one request, with what lies between them, judged by
-how costly a request is on the filesystem.
+RAMSES outputs and gadgetHDF-derived formats (such as SWIFT, EAGLE and GIZMO snapshots) are read with
+two kinds of thread: input threads, which read files, and decoding threads, which turn what was read into
+arrays. By default one input thread is used, or up to 16 on a parallel filesystem such as Lustre or GPFS,
+and up to 8 decoding threads (but no more than there are CPUs).
 
-These choices can be changed through pynbody's :ref:`configuration <configuration>` system, in the
-``[ramses]`` section (``parallel-read``, the most decoding threads, 1 meaning everything is read in the
-calling thread; ``io-threads``; ``read-gap``; and ``hydro-loading``, ``all`` to read every hydro variable
-at once rather than only those requested) and the ``[hdf-bulk-read]`` section (``io-threads``,
-``decode-threads`` and the limits on them), which are described in the default configuration file. During
-a session they can be changed through ``pynbody.snapshot.ramses._execute.config`` and
-``pynbody.util.hdf_bulk_read.strategy.config``. The strategy chosen for each read is logged at debug level.
+These numbers are set separately from ``number-of-threads`` above, in the ``[ramses]`` section of the
+:ref:`configuration <configuration>` (``parallel-read`` for decoding threads, 1 meaning everything is done
+in the calling thread, and ``io-threads``) and the ``[hdf-bulk-read]`` section (``decode-threads`` and
+``io-threads``). The default configuration file describes these and related options.
 
 .. _using_shared_arrays:
 
