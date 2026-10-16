@@ -45,7 +45,7 @@ public:
 
 
   T ax = 0.0, ay = 0.0, az = 0.0;
-  bool warnings; //  keep track of whether a warning has been issued
+  bool warnings = false; //  keep track of whether a warning has been issued
 
   std::unique_ptr<std::vector<npy_intp>> result;
   std::unique_ptr<PriorityQueue<T>> priorityQueue;

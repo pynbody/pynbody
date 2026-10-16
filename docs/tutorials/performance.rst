@@ -247,6 +247,8 @@ In summary, the template code:
  ``with f_sub.immediate_mode``
  is equivalent to ``with f.immediate_mode`` where ``f_sub`` is any
  sub-view of ``f``.
+ Immediate mode applies only to the thread that enters it; other threads
+ continue to see ordinary sub-views of ``f``.
 
 .. _overhead_simarray:
 

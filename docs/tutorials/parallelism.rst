@@ -96,6 +96,35 @@ These numbers are set separately from ``number-of-threads`` above, in the ``[ram
 in the calling thread, and ``io-threads``) and the ``[hdf-bulk-read]`` section (``decode-threads`` and
 ``io-threads``). The default configuration file describes these and related options.
 
+.. _free_threading:
+
+Free-threaded Python
+--------------------
+
+.. versionadded:: 2.8.0
+
+pynbody supports the free-threaded build of Python 3.14 (``python3.14t``), in which there is no Global
+Interpreter Lock (GIL), so that Python code in separate threads really can run at the same time. You can
+then, for example, analyse several halos at once from a thread pool, without having to share arrays between
+processes.
+
+Some care is still needed:
+
+* pynbody locks a snapshot while loading or deriving an array, so several threads can read from the same
+  snapshot. However, modifying a snapshot (or the same array) from more than one thread at once is not safe,
+  any more than it was with the GIL.
+
+* The execution modes of a snapshot -- such as ``immediate_mode`` and ``lazy_off`` (see
+  :class:`~pynbody.snapshot.simsnap.SimSnap`) -- apply only in the thread that turns them on. (This is
+  also true in ordinary builds of Python, from pynbody 2.8.0.)
+
+* Many pynbody routines are themselves parallelised with ``number_of_threads`` threads (see above), so running
+  them from many threads at once can oversubscribe your CPUs. You may want to reduce ``number_of_threads``.
+
+* If any other module that you import has not declared that it is safe to run without the GIL, Python turns
+  the GIL back on (with a ``RuntimeWarning``). To prevent this, at your own risk, set the environment variable
+  ``PYTHON_GIL=0``.
+
 .. _using_shared_arrays:
 
 
@@ -173,7 +202,8 @@ code if you run into these issues (:ref:`see below <openmp-fix>`).
 For more ambitious analyses you sometimes want to share arrays between
 different processes rather than just threads. This is especially important because of
 the Python Global Interpreter Lock (GIL) which means that even if you have multiple
-threads, only one can be executing Python code at a time.
+threads, only one can be executing Python code at a time (unless you are using
+:ref:`free-threaded Python <free_threading>`).
 
 Pynbody includes the bare bones of a parallel framework that you can use to share
 arrays between multiple processes, using shared memory.
