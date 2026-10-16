@@ -18,8 +18,8 @@ import numpy as np
 import scipy
 
 from .. import array as array_module, config, snapshot, units
-from ..util import threads
 from ..configuration import config_parser, logger
+from ..util import threads
 from . import _render, kernels
 
 
