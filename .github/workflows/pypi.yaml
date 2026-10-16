@@ -137,6 +137,10 @@ jobs:
           
       - name: Run tests
         working-directory: tests
+        env:
+          # On free-threaded python, keep the GIL off even once a dependency that has not declared it can run
+          # without it is imported (see build-test.yaml)
+          PYTHON_GIL: ${{ endsWith(matrix.python-version, 't') && '0' || '' }}
         run: python -m pytest --ignore=testdata/ --tb=short
 
   upload_pypi:
