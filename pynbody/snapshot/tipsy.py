@@ -552,7 +552,8 @@ class TipsySnap(SimSnap):
 
                 #g = np.zeros((n_block,len(st)),dtype=np.float32)
 
-                    g = np.empty(n_block, dtype=dtype)
+                    # (zeros, so that any field the snapshot lacks is not written out as uninitialised memory)
+                    g = np.zeros(n_block, dtype=dtype)
 
                     self_type_block = self_type[n_done:n_done + n_block]
 

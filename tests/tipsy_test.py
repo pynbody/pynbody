@@ -341,6 +341,15 @@ def test_array_update(test_output):
     assert all(f1.s['bla2'] == 1)
 
 
+def test_write_zeros_missing_fields(test_output):
+    # The snapshot written by the fixture has no eps, phi, rho, temp, metals or tform; these must be written as zeros,
+    # not as whatever memory happened to hold (which, as a signalling NaN, fails a test when read back)
+    f = pynbody.load(test_output)
+    for fam, names in ((f, ('eps', 'phi')), (f.gas, ('rho', 'temp', 'metals')), (f.star, ('metals', 'tform'))):
+        for name in names:
+            assert (np.asarray(fam[name]) == 0).all(), name
+
+
 def test_snapshot_update(test_output):
     f1 = pynbody.load(test_output)
     f1['pos']
