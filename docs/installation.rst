@@ -106,7 +106,7 @@ First, clone the `git repository from Github
    .. code-block :: bash
 
       $ cd pynbody
-      $ pip install -e .[all]
+      $ pip install -e ".[tests,docs]"
 
 
    If you encounter problems on MacOS, check the :ref:`macos-compilers` section below.
@@ -124,7 +124,7 @@ First, clone the `git repository from Github
    If this yields no errors, you are ready to use pynbody in the usual way. If ``pytest`` generates errors and you
    haven't edited the code, please report the error on the `issue tracker <https://github.com/pynbody/pynbody/issues>`_,
    giving as much information as possible. If the ``pytest`` command isn't found, you probably didn't install
-   ``pynbody`` with the ``[all]`` option above; you can install ``pytest`` separately with ``pip install pytest``.
+   ``pynbody`` with the ``[tests]`` extra above; you can install ``pytest`` separately with ``pip install pytest``.
 
 6. If you are planning to contribute to the development of pynbody, you should run the tests again before submitting a
    pull request, and ideally find a way to add a test that demonstrates the bug you are fixing. This is not always
@@ -171,7 +171,7 @@ follows:
   $ sudo port install gcc13
   $ export CC=gcc-mp-13
   $ export CXX=g++-mp-13
-  $ pip install -e .[all]
+  $ pip install -e ".[tests,docs]"
 
 
 .. _windows-on-arm:
