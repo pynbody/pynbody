@@ -64,6 +64,10 @@ More information on the pynbody configuration system is
     The above does not limit the threads used to read RAMSES and HDF5 files,
     which are controlled separately. See :ref:`below <parallel_io>`.
 
+To limit pynbody's threads only for a while -- particularly when you are running threads of your own -- use
+:class:`pynbody.thread_limit <pynbody.util.threads.thread_limit>`, which also limits the threads that decode
+RAMSES and HDF5 files (see :ref:`below <limiting_threads>`).
+
 .. _openmp-fix:
 
 OpenMP-related errors
@@ -118,12 +122,63 @@ Some care is still needed:
   :class:`~pynbody.snapshot.simsnap.SimSnap`) -- apply only in the thread that turns them on. (This is
   also true in ordinary builds of Python, from pynbody 2.8.0.)
 
-* Many pynbody routines are themselves parallelised with ``number_of_threads`` threads (see above), so running
-  them from many threads at once can oversubscribe your CPUs. You may want to reduce ``number_of_threads``.
+* Many pynbody routines are themselves parallelised (see above), so running them from many threads at once can
+  oversubscribe your CPUs. Use :class:`pynbody.thread_limit <pynbody.util.threads.thread_limit>` to prevent this,
+  as described below.
 
 * If any other module that you import has not declared that it is safe to run without the GIL, Python turns
   the GIL back on (with a ``RuntimeWarning``). To prevent this, at your own risk, set the environment variable
   ``PYTHON_GIL=0``.
+
+.. _limiting_threads:
+
+Limiting pynbody's threads while you run your own
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When you spread your own analysis across threads, you generally do not want pynbody to start threads of its own as
+well. Inside a :class:`pynbody.thread_limit <pynbody.util.threads.thread_limit>` block, each pynbody operation -- such
+as building a KD-tree, SPH smoothing, rendering an image, or decoding data read from a file -- uses at most the given
+number of threads for computation (by default, one):
+
+.. sourcecode:: python
+
+    import concurrent.futures
+    import pynbody
+
+    def find_centre(halo):
+        return pynbody.analysis.halo.shrink_sphere_center(halo)
+
+    f = pynbody.load('...')
+    halos = f.halos()
+
+    with pynbody.thread_limit():
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            centres = list(pool.map(find_centre, [halos[i] for i in range(1, 50)]))
+
+Note that:
+
+* What runs in each thread must not modify the snapshot. For example, centring a halo with
+  :func:`pynbody.analysis.center` moves the whole snapshot, so must not be done for several halos at once.
+
+* The limit applies to all threads while any thread is inside the block, which is what makes it apply to the threads
+  of the pool above.
+
+* It limits *each operation*: here, eight halos are analysed at once, each using one thread.
+
+* Threads that only read files are not limited, since they spend their time waiting for the filesystem; but under the
+  limit, decoding what they read is left to at most the given number of threads. To limit the reading threads as
+  well, use the ``io-threads`` options described :ref:`above <parallel_io>`.
+
+If you have `threadpoolctl <https://github.com/joblib/threadpoolctl>`_ installed, its ``threadpool_limits`` also limits
+pynbody in the same way (under the API name ``"pynbody"``), so that you can limit pynbody together with numerical
+libraries such as BLAS:
+
+.. sourcecode:: python
+
+    from threadpoolctl import threadpool_limits
+
+    with threadpool_limits(1):
+        ...
 
 .. _using_shared_arrays:
 

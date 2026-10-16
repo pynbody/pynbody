@@ -9,7 +9,7 @@ from cython.parallel cimport prange
 from libc.math cimport atan, pow
 from libc.stdlib cimport free, malloc
 
-from .. import config
+from ..util.threads import compute_threads
 
 
 cdef extern from "geometry_selection.hpp" nogil:
@@ -64,7 +64,7 @@ def selection(np.ndarray[fused_float, ndim=2] pos_ar, region, parameters, fused_
     cdef fused_float* pos_ar_data = <fused_float*> np.PyArray_DATA(pos_ar)
 
     cdef fused_float wrap_by_two = wrap/2
-    cdef int num_threads = config['number_of_threads']
+    cdef int num_threads = compute_threads()
 
     if region == 'sphere':
         if len(parameters) != 4:
