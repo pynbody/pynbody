@@ -704,7 +704,7 @@ def test_particle_read_plans_are_reused(monkeypatch):
     f = pynbody.load("testdata/ramses/output_00080")
     pos = f['pos'].copy()
     assert 'particle fields' in [k[0] for k in f._read_plans] and len(builds) == 1
-    del f['pos'], f['vel']
+    del f['pos']
     np.testing.assert_array_equal(f['pos'], pos)
     assert len(builds) == 1
 
@@ -1039,10 +1039,10 @@ def test_requested_hydro_loading_reads_one_variable(hydro_loading, monkeypatch, 
     assert sorted(f.gas.keys()) == ['rho']
     f.gas['vel'] # noqa
     assert sorted(f.gas.keys()) == ['rho', 'vel', 'vx', 'vy', 'vz']  # (a vector and its components)
-    # the synchronised load of pos and vel reads no other hydro variable, and gas mass only what it uses
+    # velocities of every family read no other hydro variable, and gas mass only what it uses
     f = pynbody.load("testdata/ramses/output_00080")
     f['vel'] # noqa
-    assert sorted(f.gas.keys()) == ['pos', 'smooth', 'vel', 'vx', 'vy', 'vz', 'x', 'y', 'z']
+    assert sorted(f.gas.keys()) == ['vel', 'vx', 'vy', 'vz']
     f['mass'] # noqa
     assert 'p' not in f.gas.keys() and 'metal' not in f.gas.keys()
     # RT variables, each flux with its components, and with units only on what is loaded
@@ -1640,3 +1640,28 @@ def test_trimming_in_batches(ramses_full_load, monkeypatch, batch, chunk):
     f = pynbody.load("testdata/ramses/output_00080", take_region=region)
     assert len(f._cpus) > 1
     _assert_same_as_filtered(f, full, region)
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:No header file found.*:UserWarning")
+@pytest.mark.parametrize("output", ["output_00080", "ramses_new_format_partial_with_sink_mass_output_00001"])
+def test_snapshot_pos_and_vel_load_separately(output):
+    """Positions of the whole snapshot are loaded without velocities, and the other way round, with the same values
+    as loading each family's"""
+    path = f"testdata/ramses/{output}"
+    f = pynbody.load(path)
+    pos = f['pos']
+    assert 'vel' not in f.keys()
+    assert all('vel' not in f[fam].keys() for fam in f.families() if fam is not f._sink_family)
+    vel = f['vel']
+    h = pynbody.load(path)
+    h['vel'] # noqa
+    assert 'pos' not in h.keys()
+    g = pynbody.load(path)
+    for fam in f.families():
+        np.testing.assert_array_equal(pos[f._get_family_slice(fam)], g[fam]['pos'])
+        # (velocities to the last bit but one: as in earlier versions, those of the whole snapshot and of one family
+        # can differ in the last bit)
+        np.testing.assert_allclose(vel[f._get_family_slice(fam)], g[fam]['vel'], rtol=1e-14, atol=0)
+        np.testing.assert_allclose(h[fam]['vel'], g[fam]['vel'], rtol=1e-14, atol=0)
