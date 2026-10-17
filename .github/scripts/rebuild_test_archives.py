@@ -4,7 +4,8 @@ This exists to recover the archives originally hosted on OSF from the copy of th
 unpacked data held in the GitHub Actions cache. Every file under the testdata directory
 is assigned to the package whose claimed path is the longest prefix of it, where a
 package claims its verify_path (if it has an extract_path, or if verify_path is a
-directory) or the top-level directory of its verify_path (otherwise). Files claimed by
+directory) or the top-level directory of its verify_path (otherwise), plus any paths
+listed for it in EXTRA_CLAIMS. Files claimed by
 no package are reported and written to an extra archive so that nothing is lost.
 
 Usage: python rebuild_test_archives.py <testdata_dir> <output_dir>
@@ -16,6 +17,17 @@ import json
 import pathlib
 import sys
 import tarfile
+
+# Directories shipped inside a package's archive alongside its verify_path. These were
+# identified from the tests that use them, which request only the package named here.
+EXTRA_CLAIMS = {
+    'gadget3': 'gadget',
+    'gadget4_subfind': 'gadget',
+    'gadget_no_mass': 'gadget',
+    'gadget1.snap': 'gadget',
+    'gadget4_subfind_HBT_multifile': 'hbt',  # contains symlinks into gadget4_subfind_HBT
+    'gasoline_isolated': 'gasoline_ahf',
+}
 
 
 def load_test_data_packages(repo_root):
@@ -42,6 +54,10 @@ def get_claims(packages, testdata):
         if claimed in claims:
             raise ValueError(f"{name} and {claims[claimed][0]} both claim {claimed}")
         claims[claimed] = (name, extract)
+    for path, name in EXTRA_CLAIMS.items():
+        claimed = pathlib.PurePosixPath(path)
+        if (testdata / claimed).exists():
+            claims[claimed] = (name, pathlib.PurePosixPath(packages[name].get('extract_path', '')))
     return claims
 
 
@@ -78,16 +94,20 @@ def main(testdata, output):
     output.mkdir(parents=True, exist_ok=True)
     manifest = {}
 
+    by_package = {}
     for claimed, (name, extract) in claims.items():
+        by_package.setdefault(name, (extract, []))[1].extend(members[claimed])
+
+    for name, (extract, package_members) in by_package.items():
         archive_name = packages[name]['archive_name']
         archive_path = output / archive_name
         with tarfile.open(archive_path, 'w:gz') as tar:
-            for relpath in members[claimed]:
+            for relpath in sorted(package_members):
                 tar.add(testdata / relpath, arcname=str(relpath.relative_to(extract)), recursive=False)
         manifest[archive_name] = {'package': name, 'extract_path': str(extract),
-                                  'num_members': len(members[claimed]),
+                                  'num_members': len(package_members),
                                   'size': archive_path.stat().st_size, 'sha256': sha256(archive_path)}
-        print(f"{archive_name}: {len(members[claimed])} members, {archive_path.stat().st_size / 1e6:.1f} MB")
+        print(f"{archive_name}: {len(package_members)} members, {archive_path.stat().st_size / 1e6:.1f} MB")
 
     if unassigned:
         print("WARNING: the following paths are not claimed by any package and have been written to "
