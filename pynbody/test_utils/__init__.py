@@ -13,7 +13,7 @@ import tarfile
 import urllib.request
 
 test_data_packages = {
-    'swift': {'verify_path': 'SWIFT',
+    'swift': {'verify_path': 'SWIFT/snap_0150.hdf5',
               'archive_name': 'swift.tar.gz'},
     'swift_isolated': {'verify_path': 'SWIFT/isolated_0008.hdf5',
                        'extract_path': 'SWIFT',
@@ -23,7 +23,7 @@ test_data_packages = {
                         'archive_name': 'swift_planetary.tar.gz'},
     'adaptahop_longint': {'verify_path': 'adaptahop_longint',
                        'archive_name': 'adaptahop_longint.tar.gz'},
-    'arepo': {'verify_path': 'arepo',
+    'arepo': {'verify_path': 'arepo/cosmobox_015.hdf5',
               'archive_name': 'arepo.tar.gz'},
     'gadget': {'verify_path': 'gadget2',
                'archive_name': 'gadget.tar.gz'},
