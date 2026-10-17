@@ -69,7 +69,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     _decorator_registry = {}
 
     _loadable_keys_registry = {}
-    _persistent = ["kdtree", "_immediate_cache", "_kdtree_derived_smoothing"]
+    _persistent = ["kdtree", "_kdtree_derived_smoothing"]
 
     partial_load = False
     """True if the particles held no longer correspond, one-to-one and in order, with those in :attr:`filename`.
@@ -185,7 +185,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             self._family_derived_array_names[i] = []
 
         self._dependency_tracker = dependencytracker.DependencyTracker()
-        self._immediate_cache_lock = threading.RLock()
+        # Immediate mode is per-thread (see util.ExecutionControl), and so is the cache that backs it
+        self._immediate_caches = threading.local()
 
         self._persistent_objects = {}
 
@@ -209,7 +210,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         self.delay_promotion = util.ExecutionControl()
         self.delay_promotion.on_exit = lambda: self._delayed_array_promotions()
 
-        self.__delayed_promotions = []
+        # Like delay_promotion itself, the promotions it delays are per-thread
+        self.__delayed_promotions = threading.local()
 
         self.properties = simdict.SimDict({})
 
@@ -467,9 +469,8 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         self._persistent_objects[hash][name] = obj
 
     def _clear_immediate_mode(self):
-        for k, v in self._persistent_objects.items():
-            if '_immediate_cache' in v:
-                del v['_immediate_cache']
+        # Called in the thread leaving immediate mode, so clears only that thread's cache
+        self._immediate_caches.__dict__.clear()
 
     def __getattr__(self, name):
         """This function overrides the behaviour of f.X where f is a SimSnap object.
@@ -1320,15 +1321,16 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         """Retrieves the named numpy array from the immediate cache associated
         with this snapshot. If the array does not exist in the immediate
         cache, function fn is called with no arguments and must generate
-        it."""
+        it.
 
-        with self._immediate_cache_lock:
-            if not hasattr(self, '_immediate_cache'):
-                self._immediate_cache = [{}]
-            cache = self._immediate_cache[0]
-            hx = hash(name)
-            if hx not in cache:
-                cache[hx] = fn()
+        The cache is shared between equivalent SubSnaps, but belongs to the current thread, in keeping with
+        :attr:`immediate_mode` itself; so no other thread can see or clear it."""
+
+        caches = self._immediate_caches.__dict__.setdefault('by_inclusion_hash', {})
+        cache = caches.setdefault(self._inclusion_hash, {})
+        hx = hash(name)
+        if hx not in cache:
+            cache[hx] = fn()
 
         return cache[hx]
 
@@ -1442,10 +1444,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
     def _delayed_array_promotions(self):
         """Called automatically to catch up with pending array promotions"""
-        for x in self.__delayed_promotions:
+        pending = self.__delayed_promotions.__dict__.pop('pending', [])
+        for x in pending:
             self._promote_family_array(*x)
-
-        self.__delayed_promotions = []
 
     def _promote_family_array(self, name, ndim=1, dtype=None, derived=False, shared=None):
         """Create a simulation-level array (if it does not exist) with
@@ -1457,9 +1458,9 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
 
         if self.delay_promotion:
             # if array isn't already scheduled for promotion, do so now
-            if not any([x[0] == name for x in self.__delayed_promotions]):
-                self.__delayed_promotions.append(
-                    [name, ndim, dtype, derived, shared])
+            pending = self.__delayed_promotions.__dict__.setdefault('pending', [])
+            if not any([x[0] == name for x in pending]):
+                pending.append([name, ndim, dtype, derived, shared])
             return None
 
         if dtype is None:

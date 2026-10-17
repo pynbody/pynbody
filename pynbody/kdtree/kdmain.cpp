@@ -24,6 +24,13 @@
   #define PyDataType_ELSIZE(descr) ((descr)->elsize)
 #endif
 
+// Critical sections serialise access to an object on free-threaded builds, and
+// do nothing otherwise. They were added in Python 3.13.
+#ifndef Py_BEGIN_CRITICAL_SECTION
+  #define Py_BEGIN_CRITICAL_SECTION(op) {
+  #define Py_END_CRITICAL_SECTION() }
+#endif
+
 /*==========================================================================*/
 /* Prototypes.                                                              */
 /*==========================================================================*/
@@ -108,7 +115,12 @@ PyMODINIT_FUNC
 PyInit_kdmain(void)
 {
   import_array();
-  return PyModule_Create(&ourdef);
+  PyObject *module = PyModule_Create(&ourdef);
+#ifdef Py_GIL_DISABLED
+  if (module != NULL)
+    PyUnstable_Module_SetGIL(module, Py_MOD_GIL_NOT_USED);
+#endif
+  return module;
 }
 
 /* Array checking utility function */
@@ -588,9 +600,15 @@ PyObject *set_arrayref(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  Py_XDECREF(*existing);
-  (*existing) = (PyArrayObject *) arobj;
+  // Swap the reference within a critical section, so that concurrent calls on
+  // the same tree cannot both release the old array
+  PyObject *old;
   Py_INCREF(arobj);
+  Py_BEGIN_CRITICAL_SECTION(kdobj);
+  old = (PyObject *) *existing;
+  (*existing) = (PyArrayObject *) arobj;
+  Py_END_CRITICAL_SECTION();
+  Py_XDECREF(old);
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -629,14 +647,14 @@ PyObject *get_arrayref(PyObject *self, PyObject *args) {
   }
 
   // the NULL check must come first: Py_INCREF dereferences its argument, so
-  // asking for an array that has never been set would otherwise segfault
-  if (*existing == NULL) {
-    Py_INCREF(Py_None);
-    return Py_None;
-  }
-
-  Py_INCREF(*existing);
-  return ((PyObject *) *existing);
+  // asking for an array that has never been set would otherwise segfault.
+  // The critical section stops set_arrayref releasing the array in between.
+  PyObject *result;
+  Py_BEGIN_CRITICAL_SECTION(kdobj);
+  result = (*existing == NULL) ? Py_None : (PyObject *) *existing;
+  Py_INCREF(result);
+  Py_END_CRITICAL_SECTION();
+  return result;
 }
 
 PyObject *domain_decomposition(PyObject *self, PyObject *args) {
@@ -722,8 +740,6 @@ template <typename Tf, typename Tq> struct typed_populate {
     kd = static_cast<KDContext*>(PyCapsule_GetPointer(kdobj, NULL));
     smx_global = (SmoothingContext<Tf> *)PyCapsule_GetPointer(smxobj, NULL);
 
-    smx_global->setupKernel(kernel_id);
-
     npy_intp nbodies = PyArray_DIM(kd->pNumpyPos, 0);
 
     if (checkArray<Tf>((PyObject *) kd->pNumpySmooth, "smooth"))
@@ -742,14 +758,16 @@ template <typename Tf, typename Tq> struct typed_populate {
         return NULL;
     }
 
+    // Each thread sets up its own kernel. The global context is shared by all
+    // threads, so must not be modified here (smx_global->warnings excepted,
+    // which signals between threads; it starts false, see SmoothingContext).
     smx_local = smInitThreadLocalCopy(smx_global);
+    smx_local->setupKernel(kernel_id);
     smx_local->warnings = false;
     // overflow is handled by growing the buffer and retrying, below
     smx_local->suppressOverflowWarning = true;
     smx_local->selfDensityWeighting = (self_density_weighting != 0);
     smx_local->pi = 0;
-
-    smx_global->warnings = false;
 
     npy_intp total_particles = 0;
 

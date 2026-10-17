@@ -238,6 +238,39 @@ def test_immediate_mode():
         assert isinstance(f[[600, 603, 670]].dm['r'], pynbody.array.SimArray)
 
 
+def test_immediate_mode_is_per_thread():
+    sub = f.dm[[1, 6, 52]]
+    other_inside = threading.Event()
+    main_done = threading.Event()
+    in_other = {}
+
+    def other():
+        with f.immediate_mode:
+            in_other['x'] = sub['x']
+            other_inside.set()
+            assert main_done.wait(timeout=30)
+            in_other['still_cached'] = sub['x'] is in_other['x']
+
+    thread = threading.Thread(target=other)
+    thread.start()
+    assert other_inside.wait(timeout=30)
+
+    # immediate mode in the other thread does not affect this one...
+    assert isinstance(sub['x'], pynbody.array.IndexedSimArray)
+
+    # ...and each thread has its own immediate-mode cache
+    with f.immediate_mode:
+        x = sub['x']
+        assert isinstance(x, pynbody.array.SimArray)
+        assert x is not in_other['x']
+        assert (x == in_other['x']).all()
+
+    # leaving immediate mode in this thread must not clear the other thread's cache
+    main_done.set()
+    thread.join()
+    assert in_other['still_cached']
+
+
 def test_subsnap_by_boolean_mask():
     print((f['x'] > 0).shape, len(f))
     assert (f['x'][f['x'] > 0] == f[f['x'] > 0]['x']).all()

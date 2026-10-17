@@ -7,7 +7,7 @@ from pynbody.snapshot import SimSnap
 
 class ExposedBaseSnapshotMixin:
     # The following will be objects common to a SimSnap and all its SubSnaps
-    _inherited = ["_immediate_cache_lock",
+    _inherited = ["_immediate_caches",
                   "lazy_off", "lazy_derive_off", "lazy_load_off", "auto_propagate_off",
                   "properties", "_derived_array_names", "_family_derived_array_names",
                   "_dependency_tracker", "immediate_mode", "delay_promotion"]
