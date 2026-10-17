@@ -297,7 +297,7 @@ class IonFractionTable(IonFractionTableBase):
 
         If the file is not found, it is assumed to be a pynbody-provided table. If such a built-in table exists,
         the path is modified automatically to point at it. If it does not exist, an attempt is made to download it
-        from a zenodo repository."""
+        from the pynbody data store."""
 
         if not os.path.exists(filename):
             if not os.path.exists(cls._table_to_path(filename)):
