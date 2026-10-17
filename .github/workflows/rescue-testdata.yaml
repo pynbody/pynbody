@@ -1,0 +1,112 @@
+name: Rescue test data from Actions cache
+
+# One-off workflow to rebuild the test data tarballs and ionfrac tables (formerly on OSF)
+# from the GitHub Actions cache, and upload them to a Cloudflare R2 bucket.
+#
+# Upload to R2 happens only if the following repository secrets are set:
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET
+# Regardless, the rebuilt files are also kept as a workflow artifact.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/pynbody-cloudflare-migration-r9wb15]
+    paths:
+      - .github/workflows/rescue-testdata.yaml
+      - .github/scripts/rebuild_test_archives.py
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  rescue:
+    runs-on: ubuntu-latest
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+      AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+    steps:
+    - uses: actions/checkout@v6
+    - name: Install Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.11"
+    - name: Install osfclient
+      run: python -m pip install osfclient
+    - name: Get cache keys
+      id: keys
+      run: |
+        echo "testdatahash=$(python pynbody/test_utils/__init__.py --hash-testdata)" >> $GITHUB_OUTPUT
+        echo "ionfrachash=$(python pynbody/test_utils/__init__.py --hash-ionfrac)" >> $GITHUB_OUTPUT
+
+    # path and enableCrossOsArchive must match fetch-testdata.yaml / fetch-tables.yaml exactly,
+    # since both enter the cache version hash
+    - name: Restore testdata cache
+      uses: actions/cache/restore@v5
+      with:
+        path: tests/testdata
+        key: testdata-${{ steps.keys.outputs.testdatahash }}
+        restore-keys: testdata-
+        enableCrossOsArchive: true
+        fail-on-cache-miss: true
+    - name: Restore table data cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ionfrac_tables
+        key: ionfrac-${{ steps.keys.outputs.ionfrachash }}
+        restore-keys: ionfrac-
+        enableCrossOsArchive: true
+        fail-on-cache-miss: true
+
+    - name: Inventory restored data
+      run: |
+        du -sh tests/testdata ionfrac_tables
+        ls -la tests/testdata tests/testdata/SWIFT tests/testdata/arepo ionfrac_tables
+
+    - name: Rebuild archives
+      run: |
+        python .github/scripts/rebuild_test_archives.py tests/testdata rescued/testdata
+        mkdir -p rescued/ionfrac
+        cp ionfrac_tables/*.npz rescued/ionfrac/
+        (cd rescued/ionfrac && sha256sum *.npz > SHA256SUMS)
+        cat rescued/testdata/manifest.json
+        ls -la rescued/testdata rescued/ionfrac
+
+    - name: Verify archives reproduce the cached testdata exactly
+      run: |
+        mkdir roundtrip
+        python - <<'EOF'
+        import json, pathlib, tarfile
+        manifest = json.load(open("rescued/testdata/manifest.json"))
+        archives = [(name, entry["extract_path"]) for name, entry in manifest.items()]
+        if pathlib.Path("rescued/testdata/unassigned.tar.gz").exists():
+            archives.append(("unassigned.tar.gz", ""))
+        for name, extract in archives:
+            dest = pathlib.Path("roundtrip") / extract
+            dest.mkdir(parents=True, exist_ok=True)
+            with tarfile.open(pathlib.Path("rescued/testdata") / name) as tar:
+                tar.extractall(dest, filter="data")
+        EOF
+        diff -r --no-dereference tests/testdata roundtrip
+        echo "Round trip OK"
+
+    - name: Upload rescued data as workflow artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: rescued-pynbody-data
+        path: rescued/
+        compression-level: 0
+        retention-days: 90
+
+    - name: Upload to Cloudflare R2
+      if: env.R2_BUCKET != ''
+      run: |
+        ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+        aws s3 sync rescued/testdata "s3://${R2_BUCKET}/testdata" --endpoint-url "$ENDPOINT"
+        aws s3 sync rescued/ionfrac "s3://${R2_BUCKET}/ionfrac" --endpoint-url "$ENDPOINT"
+        aws s3 ls --recursive --human-readable "s3://${R2_BUCKET}/" --endpoint-url "$ENDPOINT"
