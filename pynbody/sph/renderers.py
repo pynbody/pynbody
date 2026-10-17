@@ -19,6 +19,7 @@ import scipy
 
 from .. import array as array_module, config, snapshot, units
 from ..configuration import config_parser, logger
+from ..util import threads
 from . import _render, kernels
 
 
@@ -576,8 +577,11 @@ class ThreadedImageRenderer(MultipassImageRenderer):
             r.set_particle_array_slice(slice(i, None, num_threads))
 
     def render(self):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self._subrenderers)) as executor:
-            # logger.info("Rendering image on %d threads..." % self._num_threads)
+        # Each subrenderer renders its own share of the particles; under a thread limit, fewer threads share them out
+        num_threads = threads.compute_threads(len(self._subrenderers))
+        if num_threads == 1:
+            return sum(r.render() for r in self._subrenderers)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
             results = executor.map(lambda r: r.render(), self._subrenderers)
 
         return sum(results)

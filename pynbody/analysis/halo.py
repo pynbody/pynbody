@@ -15,6 +15,7 @@ import warnings
 import numpy as np
 
 from .. import array, config, filt, transformation, units, util
+from ..util import threads
 from . import _com, cosmology, profile
 
 logger = logging.getLogger('pynbody.analysis.halo')
@@ -65,8 +66,7 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100,
 
     """
 
-    if num_threads is None:
-        num_threads = config['number_of_threads']
+    num_threads = threads.compute_threads(num_threads)
 
     if r is None:
 

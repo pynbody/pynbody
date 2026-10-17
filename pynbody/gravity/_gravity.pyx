@@ -5,6 +5,7 @@ cimport cython
 import numpy as np
 
 from pynbody import array, config, openmp, units
+from pynbody.util.threads import compute_threads
 
 cimport numpy as np
 
@@ -50,6 +51,7 @@ def direct(f, ipos, eps=None, int num_threads = 0):
     if num_threads > openmp.get_cpus() :
         num_threads = openmp.get_cpus()
 
+    num_threads = compute_threads(num_threads)
     openmp.set_threads(num_threads)
 
     if eps is None:
