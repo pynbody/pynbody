@@ -2,24 +2,18 @@
 
 WARNING: This module must not depend on a working pynbody installation.
 It is used during CI to download test data before pynbody is built/installed.
-Only use standard library modules and osfclient (which is available in CI).
+Only use standard library modules.
 """
 
 import argparse
 import os
 import pathlib
 import shutil
-import ssl
 import tarfile
 import urllib.request
 
-import osfclient
-
-# Cache OSF file objects to avoid repeating http requests
-_OSF_STORAGE_CACHE = {}
-
 test_data_packages = {
-    'swift': {'verify_path': 'SWIFT',
+    'swift': {'verify_path': 'SWIFT/snap_0150.hdf5',
               'archive_name': 'swift.tar.gz'},
     'swift_isolated': {'verify_path': 'SWIFT/isolated_0008.hdf5',
                        'extract_path': 'SWIFT',
@@ -29,7 +23,7 @@ test_data_packages = {
                         'archive_name': 'swift_planetary.tar.gz'},
     'adaptahop_longint': {'verify_path': 'adaptahop_longint',
                        'archive_name': 'adaptahop_longint.tar.gz'},
-    'arepo': {'verify_path': 'arepo',
+    'arepo': {'verify_path': 'arepo/cosmobox_015.hdf5',
               'archive_name': 'arepo.tar.gz'},
     'gadget': {'verify_path': 'gadget2',
                'archive_name': 'gadget.tar.gz'},
@@ -67,7 +61,10 @@ test_data_packages = {
              'archive_name': 'soap.tar.gz'}
 }
 
-osf_project_id = '5m6zs'
+# Base URL of the pynbody data store. Test data archives are under testdata/ and ion fraction
+# tables under ionfrac/. Can be overridden with the PYNBODY_DATA_URL environment variable, e.g. to
+# point at a mirror.
+data_url = os.environ.get('PYNBODY_DATA_URL', 'https://pynbody.pontzen.uk').rstrip('/')
 
 def precache_test_data(verbose=False, extended=False):
     """Download and unpack all test data packages.
@@ -87,34 +84,32 @@ def test_data_hash():
     m = hashlib.sha256()
     for package_name in test_data_packages:
         m.update(test_data_packages[package_name]['archive_name'].encode())
-    m.update(osf_project_id.encode())
+    m.update(data_url.encode())
     return m.hexdigest()
 
-def get_osf_file_object(osf_project_id, archive_name):
-    """Retrieve the OSF file object for the given archive name in the specified OSF project."""
+def download_file(path, destination):
+    """Download the file at the given path relative to data_url, writing it to destination.
 
-    # Open the OSF project storage, if we didn't already
-    if osf_project_id not in _OSF_STORAGE_CACHE:
-        osf = osfclient.OSF()
-        osf_project = osf.project(osf_project_id)
-        osf_storage = osf_project.storage('osfstorage')
-        _OSF_STORAGE_CACHE[osf_project_id] = {}
-        for file in osf_storage.files:
-            _OSF_STORAGE_CACHE[osf_project_id][file.name] = file
-
-    # Return the cached file
-    return _OSF_STORAGE_CACHE[osf_project_id][archive_name]
+    The download goes to a temporary file first, so that an interrupted download never leaves a partial file
+    at the destination."""
+    temp_file = f"{destination}.tmp"
+    try:
+        request = urllib.request.Request(f"{data_url}/{path}", headers={'User-Agent': 'pynbody'})
+        with urllib.request.urlopen(request) as response, open(temp_file, 'wb') as f:
+            shutil.copyfileobj(response, f)
+        os.replace(temp_file, destination)
+    finally:
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
 
 def download_and_unpack_test_data(archive_name, unpack_path="", verbose=False):
     """Download and unpack test data with the given archive name and unpack path.
 
     Equivalent to running:
 
-        wget https://zenodo.org/record/.../files/{archive_name}?download=1
+        wget {data_url}/testdata/{archive_name}
         tar -xzf {archive_name}
     """
-
-    osf_file = get_osf_file_object(osf_project_id, archive_name)
 
     unpack_path = f"testdata/{unpack_path}"
 
@@ -126,9 +121,7 @@ def download_and_unpack_test_data(archive_name, unpack_path="", verbose=False):
     try:
         if verbose:
             print(f"Downloading {archive_name}")
-
-        with open(temp_file, 'wb') as f:
-            osf_file.write_to(f)
+        download_file(f"testdata/{archive_name}", temp_file)
 
         if verbose:
             print(f"Extracting {archive_name} to {unpack_path}")
@@ -161,7 +154,6 @@ def _download_and_unpack_test_data_if_not_present(package, package_name, verbose
         print(f"Test data package '{package_name}' already exists, skipping")
 
 
-_ionfrac_tables_osf_project_id = "z46rq"
 _required_ionfrac_tables = ("hm12", "fg20") # Tables needed by the tests
 
 def download_ionfrac_table(name, destination):
@@ -170,9 +162,7 @@ def download_ionfrac_table(name, destination):
     Note that this is also called from pynbody.analysis.ionfrac to fetch
     the tables when they are needed and not already present.
     """
-    osf_file = get_osf_file_object(_ionfrac_tables_osf_project_id, f'{name}.npz')
-    with open(destination, 'wb') as f:
-        osf_file.write_to(f)
+    download_file(f"ionfrac/{name}.npz", destination)
 
 def precache_ionfrac_tables(verbose=False):
     """Download all ionfrac tables needed for tests"""
@@ -188,6 +178,7 @@ def ionfrac_tables_hash():
     m = hashlib.sha256()
     for name in _required_ionfrac_tables:
         m.update(name.encode())
+    m.update(data_url.encode())
     return m.hexdigest()
 
 

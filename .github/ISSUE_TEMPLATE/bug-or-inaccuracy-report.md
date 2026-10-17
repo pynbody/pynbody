@@ -16,7 +16,7 @@ A clear and concise description of what the bug or inaccuracy is.
 Provide a simple, minimal python script that we can use to reproduce the bug or inaccuracy.
 
 Preferably reproduce the bug using pynbody's own test data (as used by the tutorials, and downloadable from
-[osf](https://osf.io/5m6zs/files)). If this impossible, provide us a pointer to another file
+[pynbody.pontzen.uk](https://pynbody.readthedocs.io/latest/tutorials/tutorials.html#obtaining-test-data)). If this impossible, provide us a pointer to another file
 that we can use to reproduce the problem. This file should be as small as possible to illustrate the problem, as it
 may be incorporated into future versions of the test data.
 

@@ -1,0 +1,35 @@
+name: Update data bucket index
+
+# Regenerates index.html at the root of the pynbody data bucket (https://pynbody.pontzen.uk),
+# listing everything in it. Run manually after changing the bucket's contents.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - pynbody/test_utils/make_bucket_index.py
+
+concurrency:
+  group: bucket-index
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      # newer boto3 versions add checksums that R2 has had trouble with
+      AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+      AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+    steps:
+    - uses: actions/checkout@v6
+    - name: Install Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+    - name: Install boto3
+      run: python -m pip install boto3
+    - name: Generate and upload index.html
+      run: python pynbody/test_utils/make_bucket_index.py
