@@ -117,25 +117,6 @@ def compute_threads(requested: int | None = None) -> int:
     return requested if limit is None else min(requested, limit)
 
 
-def _set_threadpoolctl_limit(num_threads):
-    global _threadpoolctl_limit
-    # threadpoolctl restores the value it found on entering threadpool_limits by setting it again, so a value no
-    # smaller than the configured number of threads must mean no limit, rather than become one
-    if num_threads is None or num_threads >= config['number_of_threads']:
-        num_threads = None
-    else:
-        num_threads = max(int(num_threads), 1)
-    with _lock:
-        _threadpoolctl_limit = num_threads
-
-
-def _get_threadpoolctl_limit() -> int:
-    with _lock:
-        limit = _threadpoolctl_limit
-    # (not the effective number, which includes any thread_limit, since threadpoolctl sets this back on exit)
-    return config['number_of_threads'] if limit is None else limit
-
-
 def _register_with_threadpoolctl():
     """Let ``threadpoolctl.threadpool_limits`` limit pynbody's threads, if threadpoolctl is installed"""
     try:
@@ -157,10 +138,21 @@ def _register_with_threadpoolctl():
         check_symbols = ("PyInit_kdmain",)
 
         def get_num_threads(self):
-            return _get_threadpoolctl_limit()
+            with _lock:
+                limit = _threadpoolctl_limit
+            # (not the effective number, which includes any thread_limit, since threadpoolctl sets this back on exit)
+            return config['number_of_threads'] if limit is None else limit
 
         def set_num_threads(self, num_threads):
-            _set_threadpoolctl_limit(num_threads)
+            global _threadpoolctl_limit
+            # threadpoolctl restores the value it found on entering threadpool_limits by setting it again, so a
+            # value no smaller than the configured number of threads must mean no limit, rather than become one
+            if num_threads is None or num_threads >= config['number_of_threads']:
+                num_threads = None
+            else:
+                num_threads = max(int(num_threads), 1)
+            with _lock:
+                _threadpoolctl_limit = num_threads
 
         def get_version(self):
             from .. import __version__
