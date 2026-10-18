@@ -105,7 +105,7 @@ in the calling thread, and ``io-threads``) and the ``[hdf-bulk-read]`` section (
 Free-threaded Python
 --------------------
 
-.. versionadded:: 2.8.0
+.. versionadded:: 2.9.0
 
 pynbody supports the free-threaded build of Python 3.14 (``python3.14t``), in which there is no Global
 Interpreter Lock (GIL), so that Python code in separate threads really can run at the same time. You can
@@ -120,7 +120,7 @@ Some care is still needed:
 
 * The execution modes of a snapshot -- such as ``immediate_mode`` and ``lazy_off`` (see
   :class:`~pynbody.snapshot.simsnap.SimSnap`) -- apply only in the thread that turns them on. (This is
-  also true in ordinary builds of Python, from pynbody 2.8.0.)
+  also true in ordinary builds of Python, from pynbody 2.9.0.)
 
 * Many pynbody routines are themselves parallelised (see above), so running them from many threads at once can
   oversubscribe your CPUs. Use :class:`pynbody.thread_limit <pynbody.util.threads.thread_limit>` to prevent this,

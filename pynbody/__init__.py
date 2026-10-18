@@ -73,6 +73,6 @@ from .util.threads import thread_limit
 
 derived_array = snapshot.simsnap.SimSnap.derived_array
 
-__version__ = '2.8.0'
+__version__ = '2.9.0'
 
 __all__ = ['load', 'new', 'derived_array']

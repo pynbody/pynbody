@@ -339,7 +339,7 @@ class ExecutionControl:
     other threads see, and ``on_exit`` is called (in the exiting thread) when that thread leaves its outermost
     block.
 
-    .. versionchanged:: 2.8.0
+    .. versionchanged:: 2.9.0
         The state is now per-thread; previously, it was shared between all threads.
 
     """

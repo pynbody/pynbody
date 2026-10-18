@@ -2,7 +2,7 @@
 
 Code that runs threads of its own for computation asks :func:`compute_threads` how many to use, each time it does so.
 
-.. versionadded:: 2.8.0
+.. versionadded:: 2.9.0
 
 """
 
@@ -56,7 +56,7 @@ class thread_limit:
     If `threadpoolctl <https://github.com/joblib/threadpoolctl>`_ is installed, ``threadpoolctl.threadpool_limits``
     also limits pynbody in the same way, under the API name ``"pynbody"``.
 
-    .. versionadded:: 2.8.0
+    .. versionadded:: 2.9.0
 
     Parameters
     ----------
