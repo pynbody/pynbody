@@ -569,6 +569,20 @@ def test_threaded_read_matches_serial(ramses_read_threads, kwargs):
 
 @pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
 @pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
+@pytest.mark.parametrize("limit", [1, 2])
+def test_thread_limited_read_matches_serial(ramses_read_threads, limit):
+    ramses_read_threads(1)
+    serial = _all_ramses_arrays(pynbody.load("testdata/ramses/output_00080"))
+    ramses_read_threads(4, 3)
+    with pynbody.thread_limit(limit):
+        limited = _all_ramses_arrays(pynbody.load("testdata/ramses/output_00080"))
+    assert serial.keys() == limited.keys()
+    for k in serial:
+        np.testing.assert_array_equal(serial[k], limited[k], err_msg=str(k))
+
+
+@pytest.mark.filterwarnings(r"ignore:Assumed times to be in conformal units.*:UserWarning")
+@pytest.mark.filterwarnings(r"ignore:Namelist file either not found.*:UserWarning")
 def test_maxlevel_counts_coarser_cells():
     f = pynbody.load("testdata/ramses/output_00080")
     f_coarse = pynbody.load("testdata/ramses/output_00080", maxlevel=9)

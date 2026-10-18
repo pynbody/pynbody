@@ -64,6 +64,10 @@ More information on the pynbody configuration system is
     The above does not limit the threads used to read RAMSES and HDF5 files,
     which are controlled separately. See :ref:`below <parallel_io>`.
 
+To limit pynbody's threads only for a while -- particularly when you are running threads of your own -- use
+:class:`pynbody.thread_limit <pynbody.util.threads.thread_limit>`, which also limits the threads that decode
+RAMSES and HDF5 files (see :ref:`below <limiting_threads>`).
+
 .. _openmp-fix:
 
 OpenMP-related errors
@@ -118,12 +122,110 @@ Some care is still needed:
   :class:`~pynbody.snapshot.simsnap.SimSnap`) -- apply only in the thread that turns them on. (This is
   also true in ordinary builds of Python, from pynbody 2.8.0.)
 
-* Many pynbody routines are themselves parallelised with ``number_of_threads`` threads (see above), so running
-  them from many threads at once can oversubscribe your CPUs. You may want to reduce ``number_of_threads``.
+* Many pynbody routines are themselves parallelised (see above), so running them from many threads at once can
+  oversubscribe your CPUs. Use :class:`pynbody.thread_limit <pynbody.util.threads.thread_limit>` to prevent this,
+  as described below.
 
 * If any other module that you import has not declared that it is safe to run without the GIL, Python turns
   the GIL back on (with a ``RuntimeWarning``). To prevent this, at your own risk, set the environment variable
   ``PYTHON_GIL=0``.
+
+.. _limiting_threads:
+
+Limiting pynbody's threads while you run your own
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When you spread your own analysis across threads, you generally do not want pynbody to start threads of its own as
+well. Inside a :class:`pynbody.thread_limit <pynbody.util.threads.thread_limit>` block, each pynbody operation -- such
+as building a KD-tree, SPH smoothing, rendering an image, or decoding data read from a file -- uses at most the given
+number of threads for computation (by default, one):
+
+.. sourcecode:: python
+
+    import concurrent.futures
+    import pynbody
+
+    def find_centre(halo):
+        return pynbody.analysis.halo.shrink_sphere_center(halo)
+
+    f = pynbody.load('...')
+    halos = f.halos()
+
+    with pynbody.thread_limit():
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            centres = list(pool.map(find_centre, [halos[i] for i in range(1, 50)]))
+
+Note that:
+
+* What runs in each thread must not modify the snapshot. For example, centring a halo with
+  :func:`pynbody.analysis.center` moves the whole snapshot, so must not be done for several halos at once --
+  unless each thread works on its own copy of its halo, as described :ref:`below <copy_on_access_threads>`.
+
+* The limit applies to all threads while any thread is inside the block, which is what makes it apply to the threads
+  of the pool above.
+
+* It limits *each operation*: here, eight halos are analysed at once, each using one thread.
+
+* Threads that only read files are not limited, since they spend their time waiting for the filesystem; but under the
+  limit, decoding what they read is left to at most the given number of threads. To limit the reading threads as
+  well, use the ``io-threads`` options described :ref:`above <parallel_io>`.
+
+If you have `threadpoolctl <https://github.com/joblib/threadpoolctl>`_ installed, its ``threadpool_limits`` also limits
+pynbody in the same way (under the API name ``"pynbody"``), so that you can limit pynbody together with numerical
+libraries such as BLAS:
+
+.. sourcecode:: python
+
+    from threadpoolctl import threadpool_limits
+
+    with threadpool_limits(1):
+        ...
+
+.. _copy_on_access_threads:
+
+Analysing halos in their own frames: copy-on-access snapshots
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Many analyses need each halo in its own frame -- centred, and perhaps rotated -- which, as noted above, means
+modifying the snapshot. To do this in many threads at once, give each thread a snapshot of its own to modify, using
+:meth:`~pynbody.snapshot.simsnap.SimSnap.get_copy_on_access_simsnap`. This returns a snapshot containing the same
+particles, which copies each array from the original the first time it is used. Transforming it, or changing or
+deriving its arrays, then affects only the copy, so the original snapshot stays put and other threads are unaffected.
+
+Expanding on the example above, the following computes a spherically-averaged density profile for each halo, each
+in its own frame:
+
+.. sourcecode:: python
+
+    import concurrent.futures
+    import pynbody
+
+    def density_profile(halo):
+        local = halo.get_copy_on_access_simsnap()
+        pynbody.analysis.center(local)  # moves only this copy
+        return pynbody.analysis.Profile(local.dm, ndim=3, rmin='0.5 kpc', rmax='50 kpc', nbins=20)['density']
+
+    f = pynbody.load('...')
+    f.physical_units()
+    halos = f.halos()
+    halos.load_all()
+
+    with pynbody.thread_limit():
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            profiles = list(pool.map(density_profile, [halos[i] for i in range(1, 50)]))
+
+Note that:
+
+* The arrays the copy uses are copied, so each thread holds a copy of the data for its own halo; this takes memory
+  in proportion to the halos being analysed at once, not to the whole snapshot.
+
+* Do anything that applies to the whole snapshot -- such as converting it to physical units, or loading the halo
+  catalogue -- once, before starting the threads, rather than in each thread.
+
+* Analyses such as this, which run much of their work in Python, are best attempted with
+  :ref:`free-threaded Python <free_threading>` (Python 3.14 or later). With an ordinary build of Python, the
+  threads take turns to run Python code, so you gain only from the parts of the work which pynbody does in compiled
+  code; to do better there, use separate processes, as described below.
 
 .. _using_shared_arrays:
 

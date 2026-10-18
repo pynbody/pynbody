@@ -18,6 +18,7 @@ import warnings
 import numpy as np
 
 from .. import array as ar, config, util
+from ..util import threads
 from . import kdmain
 
 logger = logging.getLogger("pynbody.kdtree")
@@ -181,7 +182,9 @@ class KDTree:
         boxsize : float, optional
             Period of the box. The default, None, gives a non-periodic tree.
         num_threads : int, optional
-            Number of threads to use when building tree (if None, use configured/detected number of processors).
+            Number of threads to use when building the tree and in later operations on it (if None, use
+            configured/detected number of processors). Within a :class:`~pynbody.util.threads.thread_limit` block,
+            no more threads than its limit are used, even if the tree was built outside the block.
 
             .. versionchanged:: 2.6.0
                 Any number of threads is now used in full. Previously the build
@@ -225,7 +228,7 @@ class KDTree:
             self.kdnodes = np.zeros(nodes, dtype=KDNode)
             self.particle_offsets = np.empty(len(pos), dtype=np.intp)
 
-        kdmain.build(self.kdtree, self.kdnodes, self.particle_offsets, num_threads)
+        kdmain.build(self.kdtree, self.kdnodes, self.particle_offsets, threads.compute_threads(num_threads))
 
         self.boxsize = boxsize
         self._pos = pos
@@ -512,22 +515,24 @@ class KDTree:
         try:
             propid = self.smooth_operation_to_id(mode)
 
+            num_threads = threads.compute_threads(self.num_threads)
+
             if propid == self.PROPID_HSM:
-                kdmain.domain_decomposition(self.kdtree, self.num_threads)
+                kdmain.domain_decomposition(self.kdtree, num_threads)
 
 
-            if self.num_threads == 1:
+            if num_threads == 1:
                 kdmain.populate(self.kdtree, smx, propid, 0, self._kernel_id,
                                 self_weighting)
             else:
                 util.thread_map(
                     kdmain.populate,
-                    [self.kdtree] * self.num_threads,
-                    [smx] * self.num_threads,
-                    [propid] * self.num_threads,
-                    list(range(0, self.num_threads)),
-                    [self._kernel_id] * self.num_threads,
-                    [self_weighting] * self.num_threads
+                    [self.kdtree] * num_threads,
+                    [smx] * num_threads,
+                    [propid] * num_threads,
+                    list(range(0, num_threads)),
+                    [self._kernel_id] * num_threads,
+                    [self_weighting] * num_threads
                 )
         finally:
             # Free C-structures memory
@@ -681,7 +686,7 @@ class KDTree:
 
         # validation above happens eagerly, rather than on first iteration
         return self._pair_blocks_generator(self._pair_modes[mode], blocksize,
-                                           int(num_threads),
+                                           threads.compute_threads(num_threads),
                                            bool(reuse_buffer))
 
     def _pair_blocks_generator(self, mode_id, blocksize, num_threads,
