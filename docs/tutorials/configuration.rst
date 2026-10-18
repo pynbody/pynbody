@@ -34,7 +34,7 @@ placed in ``.pynbodyrc``:
    number_of_threads: 2
 
 
-For more information on threading, see :ref:`threading`.
+For more information on threading, see :ref:`limiting_threads`.
 
 Some options can also be changed at runtime. You can check which ones
 with

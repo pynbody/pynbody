@@ -13,7 +13,7 @@ for an introduction.
 However there are a couple of issues which are specific to ``pynbody``.
 
 * Many of ``pynbody``'s most common operations are parallelized: make sure you have set up
-  these routines to behave in a way that matches your needs by reading the page on :ref:`threads`.
+  these routines to behave in a way that matches your needs by reading the page on :ref:`parallelism <limiting_threads>`.
 * Sometimes, manipulating arrays from a :class:`~pynbody.snapshot.subsnap.SubSnap` can be slower than
   manipulating the equivalent arrays from the parent snapshot. This is because the arrays
   returned from a :class:`~pynbody.snapshot.subsnap.SubSnap` are not true ``numpy`` arrays but are

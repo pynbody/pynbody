@@ -173,6 +173,22 @@ follows:
   $ export CXX=g++-mp-13
   $ pip install -e ".[tests,docs]"
 
+.. _openmp-fix:
+
+OpenMP-related errors
+^^^^^^^^^^^^^^^^^^^^^
+
+Several of pynbody's compiled routines are parallelised with OpenMP (see :ref:`calculation_parallelism`). Binary
+wheels have it built in, so OpenMP problems arise only when building from source, in two ways:
+
+* The compiler does not support OpenMP, so the build fails. This most normally happens on MacOS, where Apple's
+  compiler disables OpenMP by default; see the :ref:`MacOS instructions <macos-compilers>` above.
+
+* Different Python modules in one process use different OpenMP libraries, which can result in mysterious errors
+  or crashes (see this `stack overflow post <https://stackoverflow.com/questions/76653505/intelomp-and-llvm-omp-colliding>`_
+  for an example). In such a case, your best option is unfortunately to install all the OpenMP modules you will be
+  using from source, being careful to use the same compiler and OpenMP library for each.
+
 
 .. _windows-on-arm:
 
