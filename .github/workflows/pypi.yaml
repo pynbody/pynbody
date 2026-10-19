@@ -15,6 +15,8 @@ on:
 jobs:
   fetch-testdata:
     uses: ./.github/workflows/fetch-testdata.yaml
+  fetch-tables:
+    uses: ./.github/workflows/fetch-tables.yaml
 
   build_wheels:
     name: Build wheels on ${{ matrix.buildplat[0] }} ${{ matrix.buildplat[2] }} ${{ matrix.python}}
@@ -92,7 +94,7 @@ jobs:
           path: dist/*.tar.gz
 
   test_wheels:
-    needs: [build_wheels, build_sdist, fetch-testdata]
+    needs: [build_wheels, build_sdist, fetch-testdata, fetch-tables]
     strategy:
       fail-fast: false
       matrix:
@@ -134,7 +136,21 @@ jobs:
           path: tests/testdata
           key: testdata-${{ needs.fetch-testdata.outputs.testdata-key }}
           enableCrossOsArchive: true
-          
+
+      - name: Restore table data cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ionfrac_tables
+          key: ionfrac-${{ needs.fetch-tables.outputs.ionfrac-key }}
+          enableCrossOsArchive: true
+
+      - name: Copy table data to pynbody installation
+        working-directory: ionfrac_tables
+        shell: bash
+        run: |
+          DESTDIR=$(python -c "import pynbody ; import os ; print(os.path.dirname(pynbody.analysis.__file__))")
+          cp *.npz "${DESTDIR}"
+
       - name: Run tests
         working-directory: tests
         env:
