@@ -17,7 +17,7 @@ Pynbody uses more than one CPU in several distinct ways, each described in a sec
   particular, when you run threads of your own.
 
 * :ref:`Free-threaded analyses <free_threading>`: on the free-threaded build of Python, your own analysis can be
-  spread across threads that genuinely run at once, with templates for doing so.
+  spread across threads.
 
 * :ref:`Multi-process parallelism via partial loading <partial_loading_parallelism>`: separate processes each
   load, and analyse, part of a large simulation.
@@ -100,8 +100,47 @@ at once, in which case each should take a share; or -- the case treated at lengt
 you may be running your own analysis on several threads, in which case pynbody starting a full set of threads for
 each of them oversubscribes the CPUs and slows everything down.
 
-Permanently, or for a session
+In code: use ``thread_limit``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 2.9.0
+
+To limit pynbody's threads only while a block of code runs, use :class:`pynbody.thread_limit
+<pynbody.util.threads.thread_limit>`:
+
+.. sourcecode:: python
+
+    with pynbody.thread_limit():
+        ...   # each pynbody operation here uses one thread
+
+    with pynbody.thread_limit(2):
+        ...   # ... here, at most two
+
+Inside the block, each pynbody operation -- building a KD-tree, SPH smoothing, rendering an image, evaluating a
+filter, or decoding data read from a file -- uses at most ``n`` threads for computation (``n`` being 1 unless
+given). The :class:`~pynbody.util.threads.thread_limit` context manager has a number of important properties:
+
+* The limit is process-wide: it applies to every thread while any thread is inside the block. That is what makes it
+  apply to a thread pool started inside the block. If blocks with different limits are active at once, the smallest
+  applies.
+
+* It limits each operation, not pynbody as a whole. With eight of your threads each analysing a
+  halo under ``thread_limit()``, eight threads compute.
+
+* It only ever reduces. The limit is applied on top of ``number_of_threads``, and of any ``num_threads`` passed
+  explicitly to a routine; it never raises them.
+
+* It is checked when each operation starts. An operation already running when the block is entered keeps the
+  threads it started with, and one started inside the block keeps its threads if the block ends.
+
+* Threads that only read files are *not* limited, since they spend their time waiting for the filesystem rather
+  than computing, and on a parallel filesystem reading many files at once is where the speed comes from. Under a
+  limit, though, they hand what they read to at most ``n`` decoding threads, instead of decoding it themselves
+  (see :func:`~pynbody.util.bulk_read.pipeline.apply_thread_limit`). To limit the reading threads as well, use the
+  ``io-threads`` options described :ref:`above <parallel_io>`.
+
+As a configuration option
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``number_of_threads`` configuration option sets the number of threads that every parallel calculation uses.
 During a session, type for example
@@ -121,45 +160,7 @@ More information on the pynbody configuration system is :ref:`available here <co
 not affect the threads that read RAMSES and HDF5 files, which have their own options (see
 :ref:`above <parallel_io>`).
 
-For a while: ``thread_limit``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. versionadded:: 2.9.0
-
-To limit pynbody's threads only while a block of code runs, use :class:`pynbody.thread_limit
-<pynbody.util.threads.thread_limit>`:
-
-.. sourcecode:: python
-
-    with pynbody.thread_limit():
-        ...   # each pynbody operation here uses one thread
-
-    with pynbody.thread_limit(2):
-        ...   # ... or at most two
-
-Inside the block, each pynbody operation -- building a KD-tree, SPH smoothing, rendering an image, evaluating a
-filter, or decoding data read from a file -- uses at most ``n`` threads for computation (``n`` being 1 unless
-given). The precise semantics matter when you combine it with threads of your own:
-
-* The limit is process-wide: it applies to every thread while any thread is inside the block. That is what makes it
-  apply to a thread pool started inside the block. If blocks with different limits are active at once, the smallest
-  applies.
-
-* It limits each operation, not pynbody as a whole: operations running at the same time in different threads may
-  each use ``n`` threads. With eight of your threads each analysing a halo under ``thread_limit()``, eight threads
-  compute.
-
-* It only ever reduces. The limit is applied on top of ``number_of_threads``, and of any ``num_threads`` passed
-  explicitly to a routine; it never raises them.
-
-* It is checked when each operation starts. An operation already running when the block is entered keeps the
-  threads it started with, and one started inside the block keeps its threads if the block ends.
-
-* Threads that only read files are *not* limited, since they spend their time waiting for the filesystem rather
-  than computing, and on a parallel filesystem reading many files at once is where the speed comes from. Under a
-  limit, though, they hand what they read to at most ``n`` decoding threads, instead of decoding it themselves
-  (see :func:`~pynbody.util.bulk_read.pipeline.apply_thread_limit`). To limit the reading threads as well, use the
-  ``io-threads`` options described :ref:`above <parallel_io>`.
 
 Together with other libraries: threadpoolctl
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -186,11 +187,15 @@ Free-threaded analyses
 
 .. versionadded:: 2.9.0
 
-In the free-threaded build of Python there is no GIL, so Python code in separate threads really runs at the same
-time, and the natural way to analyse many halos at once is a thread pool, without sharing arrays between processes.
-Pynbody supports this build from version 2.9.0. The templates below also run correctly on an ordinary build of
-Python -- they are executed on one, when this documentation is built -- but there the threads take turns to run
-Python code, so you gain only from the parts of the work that pynbody does in compiled code.
+If you want to make use of threads yourself, for example to analyse many halos at once, you need a build of
+Python that does not have the Global Interpreter Lock (GIL). The GIL prevents more than one thread from running
+Python code at once. But now there are builds of Python 3.14 and later that are *free-threaded*, which means
+that the GIL is not present.
+
+With free-threaded Python, the natural way to analyse many halos at once is to use a thread pool.
+Pynbody supports this build from version 2.9.0. (The templates below also run correctly on an ordinary build of
+Python, but in such cases the speed-up over using a single thread will be very marginal because only one
+thread can run Python code at once.)
 
 Setting up
 ^^^^^^^^^^
@@ -256,14 +261,14 @@ snapshot (here, loading the halo catalogue) is done once, before the threads sta
        ...:     return pynbody.analysis.halo.shrink_sphere_center(halo)
        ...:
 
-    In [8]: targets = [halos[i] for i in range(1, 9)]
+    In [8]: targets = halos[:9] # the first nine halos, just as an example
 
     In [9]: with pynbody.thread_limit():
        ...:     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
        ...:         centres = list(pool.map(find_centre, targets))
        ...:
 
-    In [10]: centres[0]
+    In [10]: centres
 
 Each of the four pool threads uses one thread for its computation, so four halos are analysed at once on four
 CPUs. The results are the same as from a serial loop:
@@ -303,7 +308,7 @@ each halo, each in its own frame:
        ....:         profiles = list(pool.map(density_profile, targets))
        ....:
 
-    In [15]: profiles[0]
+    In [15]: profiles[:2] # a couple of examples
 
 The original snapshot has not moved: halo 1 is still where the halo finder put it, rather than at the origin.
 
@@ -313,7 +318,7 @@ The original snapshot has not moved: halo 1 is still where the halo finder put i
 
 Note that:
 
-* The arrays the copy uses are copied, so each thread holds a copy of the data for its own halo. This takes memory
+* Each thread holds a copy of the data for its own halo. This takes memory
   in proportion to the halos being analysed at once, not to the whole snapshot.
 
 * Do anything that applies to the whole snapshot -- such as converting it to physical units, or loading the halo
@@ -389,10 +394,6 @@ Multi-process parallelism via shared memory
 -------------------------------------------
 
 .. versionadded:: 2.0
-
-  Previously, pynbody had a hidden shared memory system that was used internally and by
-  `tangos <https://pynbody.github.io/tangos/>`__ to share arrays between processes. This has
-  been exposed for general use in pynbody 2.0.
 
 The other approach to multi-process analysis is for the processes to share the simulation's arrays, through
 shared memory, so that it is loaded once and each process can work on any part of it. Pynbody includes the bare
@@ -475,10 +476,7 @@ on you. Again, for most purposes, we recommend using a higher-level framework li
     using ``rm -f /dev/shm/pynbody-*``. (Even if other users have active shared memory segments,
     this will only delete your own.)
 
-.. note::
-    Pynbody arrays are just wrappers around numpy arrays, so if you want to write your own parallel processing
-    of them -- for example with `Cython <http://cython.org>`_ and OpenMP -- the standard techniques apply. One
-    complication is that different OpenMP libraries in one process can conflict; see :ref:`openmp-fix`.
+
 
 Transferring a halo catalogue to another process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
