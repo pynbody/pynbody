@@ -5,6 +5,7 @@ For more information, see https://pynbody.readthedocs.io/
 
 """
 
+import importlib
 import sys
 
 # We need to import configuration first, so prevent isort from reordering
@@ -36,10 +37,12 @@ from . import (
 # users.
 class PlotModuleProxy:
     def _do_import(self):
+        # import_module goes through the import system even while this proxy is still bound to
+        # pynbody.plot, and so is safe for several threads to call at once. (Deleting the proxy
+        # first, then using "from . import plot", is not: one thread could delete the module that
+        # another thread's import had just put in place.)
         global plot
-        del plot
-        from . import plot as plot_module
-        plot = plot_module
+        plot = importlib.import_module(".plot", __name__)
 
     def __hasattr__(self, key):
         self._do_import()
@@ -66,9 +69,10 @@ class PlotModuleProxy:
 plot = PlotModuleProxy()
 
 from .snapshot import load, new
+from .util.threads import thread_limit
 
 derived_array = snapshot.simsnap.SimSnap.derived_array
 
-__version__ = '2.8.0'
+__version__ = '2.9.0'
 
 __all__ = ['load', 'new', 'derived_array']

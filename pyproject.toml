@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "numpy>=2.0.0", "cython>=3.0.0"]
+requires = ["setuptools", "wheel", "numpy>=2.0.0", "cython>=3.1.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -37,6 +37,7 @@ tests = [
     "astropy",
     "camb",
     "IPython",
+    "threadpoolctl",
     "healpy; platform_system != 'Windows' and python_version < '3.15'"
 ]
 docs = [

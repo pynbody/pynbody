@@ -12,7 +12,7 @@ from cython.parallel cimport prange
 from libc.math cimport atan, pow
 from libc.stdlib cimport free, malloc
 
-from pynbody import config
+from pynbody.util.threads import compute_threads
 
 ctypedef fused fused_float:
     np.float32_t
@@ -146,7 +146,7 @@ def sum(np.ndarray[fused_float, ndim=1] ar):
     cdef fused_float v
     cdef Py_ssize_t i
     cdef Py_ssize_t N=len(ar)
-    cdef int num_threads = config['number_of_threads']
+    cdef int num_threads = compute_threads()
     v = 0
     for i in prange(N,nogil=True,schedule='static',num_threads=num_threads):
         v+=ar[i]
@@ -163,7 +163,7 @@ def sum_if_gt(np.ndarray[fused_float, ndim=1] ar,
     cdef Py_ssize_t i
     cdef Py_ssize_t N=len(ar)
     assert len(cmp_ar)==len(ar)
-    cdef int num_threads = config['number_of_threads']
+    cdef int num_threads = compute_threads()
     v = 0
     for i in prange(N,nogil=True,schedule='static',num_threads=num_threads):
         if cmp_ar[i]>cmp_ar_val:
@@ -180,7 +180,7 @@ def sum_if_lt(np.ndarray[fused_float, ndim=1] ar,
     cdef fused_float v
     cdef Py_ssize_t i
     cdef Py_ssize_t N=len(ar)
-    cdef int num_threads = config['number_of_threads']
+    cdef int num_threads = compute_threads()
     assert len(cmp_ar)==len(ar)
     v = 0
     for i in prange(N,nogil=True,schedule='static',num_threads=num_threads):
@@ -261,10 +261,9 @@ cpdef np.ndarray[ndim=1, dtype=fused_int] binary_search(
 
     cdef fused_int_3[:] sorter_mview = sorter
 
-    cdef int ichunk, chunk_size, Nchunk = config['number_of_threads'], this_chunk
+    cdef int ichunk, chunk_size, Nchunk, this_chunk
 
-    if num_threads > 0:
-        Nchunk = num_threads
+    Nchunk = compute_threads(num_threads if num_threads > 0 else None)
     openmp.omp_set_num_threads(Nchunk)
 
     if Na % Nchunk == 0:

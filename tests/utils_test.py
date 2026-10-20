@@ -1,3 +1,4 @@
+import threading
 import time
 
 import numpy as np
@@ -29,6 +30,37 @@ def test_thread_map_exception():
 
     assert exc.value.args[0] == "Test exception"
     assert exc.traceback[-1].name == 'testfn'
+
+def test_execution_control_is_per_thread():
+    control = pynbody.util.ExecutionControl()
+    exits = []
+    control.on_exit = lambda: exits.append(threading.get_ident())
+    main_inside = threading.Event()
+    other_done = threading.Event()
+    seen_in_other = []
+
+    def other():
+        assert main_inside.wait(timeout=30)
+        seen_in_other.append(bool(control))
+        with control:
+            seen_in_other.append(bool(control))
+        other_done.set()
+
+    thread = threading.Thread(target=other)
+    thread.start()
+    with control:
+        with control:
+            main_inside.set()
+            assert other_done.wait(timeout=30)
+            # the other thread leaving its block neither turns this thread's off, nor ...
+            assert control
+        # ... does it count as this thread leaving its outermost block
+        assert exits == [thread.ident]
+    thread.join()
+
+    assert seen_in_other == [False, True]
+    assert exits == [thread.ident, threading.get_ident()]
+    assert not control
 
 def test_intersect_slices():
     """Unit test for intersect_slices, relative_slice and chained_slice"""

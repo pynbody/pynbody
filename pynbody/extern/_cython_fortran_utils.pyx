@@ -42,12 +42,15 @@ cdef class FortranFile:
         if self.cfile == NULL:
             raise IOError("Cannot open '%s'" % fname)
 
+    @cython.critical_section
     def __enter__(self):
         return self
 
+    @cython.critical_section
     def __exit__(self, type, value, traceback):
         self.close()
 
+    @cython.critical_section
     cpdef INT64_t skip(self, INT64_t n=1) except -1:
         """Skip records.
 
@@ -125,6 +128,7 @@ cdef class FortranFile:
             # Fallback to (slow) numpy to compute the size
             return np.dtype(dtype).itemsize
 
+    @cython.critical_section
     cpdef np.ndarray read_vector(self, str dtype):
         """Reads a record from the file and return it as numpy array.
 
@@ -197,6 +201,7 @@ cdef class FortranFile:
 
         return data
 
+    @cython.critical_section
     cpdef peek_record_size(self):
         r""" This function returns the size of the next record and
         then rewinds the file to the previous position.
@@ -219,6 +224,7 @@ cdef class FortranFile:
 
         return s1
 
+    @cython.critical_section
     cpdef INT32_t read_int(self) except? -1:
         """Reads a single int32 from the file and return it.
 
@@ -263,6 +269,7 @@ cdef class FortranFile:
 
         return data
 
+    @cython.critical_section
     cpdef INT64_t read_int64(self) except? -1:
         """Reads a single int64 from the file and return it.
 
@@ -311,6 +318,7 @@ cdef class FortranFile:
 
         return data
 
+    @cython.critical_section
     cpdef INT64_t read_int32_or_64(self) except? -1:
         """Reads a single int32 or int64 (based on length of record) from the
         file and return it as an int64.
@@ -363,6 +371,7 @@ cdef class FortranFile:
         return data64
 
 
+    @cython.critical_section
     def read_attrs(self, object attrs):
         """This function reads from that file according to a
         definition of attributes, returning a dictionary.
@@ -443,6 +452,7 @@ cdef class FortranFile:
         return data
 
 
+    @cython.critical_section
     cpdef np.ndarray direct_read_vector(self, str dtype, int count):
         """Reads directly elements from the file and return it as numpy array.
 
@@ -498,6 +508,7 @@ cdef class FortranFile:
         return data
 
 
+    @cython.critical_section
     cpdef INT64_t tell(self) except -1:
         """Return current stream position."""
         cdef INT64_t pos
@@ -508,6 +519,7 @@ cdef class FortranFile:
         pos = ftell(self.cfile)
         return pos
 
+    @cython.critical_section
     cpdef INT64_t seek(self, INT64_t pos, INT64_t whence=SEEK_SET) except -1:
         """Change stream position.
 
@@ -539,6 +551,7 @@ cdef class FortranFile:
             raise IOError(f"fseek failed with error code {result}")
         return self.tell()
 
+    @cython.critical_section
     cpdef void close(self):
         """Close the file descriptor.
 

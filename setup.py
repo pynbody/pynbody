@@ -9,6 +9,10 @@ from setuptools import Extension, setup
 
 get_directive_defaults()['language_level'] = 3
 
+# All our Cython modules can run without the GIL on free-threaded Python builds. Without this, importing them
+# would turn the GIL back on.
+get_directive_defaults()['freethreading_compatible'] = True
+
 def is_macos():
     return platform.system() == 'Darwin'
 

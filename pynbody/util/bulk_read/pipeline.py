@@ -26,8 +26,13 @@ from __future__ import annotations
 import concurrent.futures
 import concurrent.futures.thread  # (imported lazily by concurrent.futures otherwise, which could fail mid-read)
 import dataclasses
+import logging
 import threading
 import traceback
+
+from .. import threads
+
+logger = logging.getLogger(__name__)
 
 
 class Job:
@@ -81,12 +86,37 @@ class ReadStrategy:
 
 
 def perform_tasks(tasks: list, strategy: ReadStrategy, jobs=iter):
-    """Perform *tasks*, whose jobs (in order) are given by ``jobs(task)``, on the threads *strategy* says, emptying
-    *tasks* as it goes."""
+    """Perform *tasks*, whose jobs (in order) are given by ``jobs(task)``, on the threads *strategy* says (within any
+    :class:`~pynbody.util.threads.thread_limit`), emptying *tasks* as it goes."""
+    strategy = apply_thread_limit(strategy)
     if strategy.serial:
         _perform_serially(tasks, jobs)
     else:
         _Pipeline(strategy, jobs).run(tasks)
+
+
+def apply_thread_limit(strategy: ReadStrategy) -> ReadStrategy:
+    """Return *strategy*, changed if need be to decode on no more threads than the current
+    :class:`~pynbody.util.threads.thread_limit` allows.
+
+    Input threads, which spend their time waiting for files, are not limited. But without decode threads they decode
+    what they read themselves; so if there are more of them than the limit, they must instead hand what they read to
+    as many decode threads as the limit allows."""
+    limit = threads.current_limit()
+    if limit is None or strategy.serial:
+        return strategy
+    if strategy.decode_threads == 0:
+        # (so there are several input threads, each decoding what it reads)
+        decode_threads = 0 if strategy.io_threads <= limit else limit
+    else:
+        decode_threads = min(strategy.decode_threads, limit)
+    if decode_threads == strategy.decode_threads:
+        return strategy
+    strategy = dataclasses.replace(strategy, decode_threads=decode_threads,
+                                   reason=f"{strategy.reason}; but {decode_threads} decode thread(s), "
+                                          f"within the thread limit of {limit}")
+    logger.debug("Reading with %s", strategy.reason)
+    return strategy
 
 
 def _perform_serially(tasks: list, jobs):

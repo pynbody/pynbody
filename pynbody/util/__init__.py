@@ -335,19 +335,32 @@ class ExecutionControl:
 
     This is used for implementing the various execution control mechanisms in :class:`pynbody.snapshot.simsnap.SimSnap`.
 
+    The state is held separately for each thread: entering the with block in one thread has no effect on what
+    other threads see, and ``on_exit`` is called (in the exiting thread) when that thread leaves its outermost
+    block.
+
+    .. versionchanged:: 2.9.0
+        The state is now per-thread; previously, it was shared between all threads.
+
     """
 
     def __init__(self):
-        self.count = 0
+        self._local = threading.local()
         self.on_exit = None
 
+    @property
+    def count(self):
+        """The number of with blocks for this object that the current thread is inside"""
+        return getattr(self._local, 'count', 0)
+
     def __enter__(self):
-        self.count += 1
+        self._local.count = self.count + 1
 
     def __exit__(self, *excp):
-        self.count -= 1
-        assert self.count >= 0
-        if self.count == 0 and self.on_exit is not None:
+        count = self.count - 1
+        assert count >= 0
+        self._local.count = count
+        if count == 0 and self.on_exit is not None:
             self.on_exit()
 
     def __bool__(self):

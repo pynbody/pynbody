@@ -1,3 +1,5 @@
+import concurrent.futures
+
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -246,3 +248,28 @@ def test_loaded_slices_are_views_onto_the_nd_array():
     # copy-on-access: none of those writes may reach the original
     assert not np.shares_memory(f_c['vel'], f['vel'])
     npt.assert_allclose(f['vel'], original_vel)
+
+
+def test_copies_analysed_concurrently():
+    """Halos can each be centred, in a copy-on-access view, in threads at once (as in the parallelism tutorial)"""
+    def density_profile(halo):
+        local = halo.get_copy_on_access_simsnap()
+        pynbody.analysis.center(local)
+        return np.asarray(pynbody.analysis.Profile(local.dm, ndim=3, rmin='0.5 kpc', rmax='50 kpc',
+                                                   nbins=20)['density'])
+
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    f.physical_units()
+    halos = f.halos()
+    halos.load_all()
+    targets = [halos[i] for i in range(1, 9)]
+    pos = np.array(f['pos'])
+
+    serial = [density_profile(h) for h in targets]
+    with pynbody.thread_limit():
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            threaded = list(pool.map(density_profile, targets))
+
+    for a, b in zip(serial, threaded):
+        npt.assert_allclose(a, b)
+    npt.assert_array_equal(np.array(f['pos']), pos)  # (the original snapshot was not moved)
