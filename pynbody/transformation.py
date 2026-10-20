@@ -232,6 +232,7 @@ class Transformation(Transformable, abc.ABC):
             raise TypeError("Transformation must either act on another Transformation or on a SimSnap")
 
 
+        self.sim.ancestor._refuse_if_read_only("transformed (e.g. centred or rotated)")
         self._apply_to_snapshot(self.sim)
         # not apply_to as we don't want to chain -- any underlying transformations will be applied already
 

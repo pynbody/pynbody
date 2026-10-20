@@ -19,11 +19,15 @@ Pynbody uses more than one CPU in several distinct ways, each described in a sec
 * :ref:`Free-threaded analyses <free_threading>`: on the free-threaded build of Python, your own analysis can be
   spread across threads.
 
+* :ref:`Multi-process parallelism with a process pool <portable_parallelism>`: on an ordinary build of Python, the
+  easiest way to spread your own analysis over several CPUs. Each process gets a read-only copy of the snapshot
+  and halo catalogue, without duplicating them in memory.
+
 * :ref:`Multi-process parallelism via partial loading <partial_loading_parallelism>`: separate processes each
   load, and analyse, part of a large simulation.
 
-* :ref:`Multi-process parallelism via shared memory <using_shared_arrays>`: arrays, and halo catalogues, are
-  shared between processes on the same machine without copying.
+* :ref:`Multi-process parallelism via shared memory <using_shared_arrays>`: the lower-level machinery for sharing
+  arrays, halo catalogues and KD-trees between processes on the same machine without copying.
 
 .. seealso::
 
@@ -329,6 +333,97 @@ Note that:
   threads; there, use separate processes, as described next.
 
 
+.. _portable_parallelism:
+
+Multi-process parallelism with a process pool
+---------------------------------------------
+
+.. versionadded:: 2.9.0
+
+On an ordinary build of Python, the way to run your own analysis on several CPUs at once is in separate processes.
+The easiest way to do this with pynbody is :class:`pynbody.ProcessPool <pynbody.util.processes.ProcessPool>`. You
+prepare the snapshot once -- loading the arrays and halo catalogue you need, and building a KD-tree if you want
+one -- and the pool gives each of its processes its own copy, ready to use. The arrays are in shared memory, so
+the copies take no extra memory, however many processes there are.
+
+Template: analysing each halo in a separate process
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This script finds, for each of the first nine halos, the mass within 100 kpc of the halo's centre, and its dark
+matter density profile. Save it as a file, say ``analyse_halos.py``, and run it with ``python analyse_halos.py``:
+
+.. literalinclude:: example_code/process_pool_halos.py
+   :language: python
+
+The main part of the script, under ``if __name__ == '__main__':``, has three steps:
+
+1. Load the snapshot, and call :meth:`~pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays` *before* using any
+   arrays, so that they are loaded into shared memory.
+
+2. Prepare everything the analysis needs from the whole snapshot: convert units, access each array that the
+   analysis uses (which loads it), load the halo catalogue, and -- optionally -- build a KD-tree with
+   :meth:`~pynbody.snapshot.simsnap.SimSnap.build_tree`, which speeds up spatial filters such as
+   :class:`~pynbody.filt.Sphere` and is needed for SPH quantities.
+
+3. Create the pool, giving it the snapshot and halo catalogue, and call ``pool.map``. This calls your function once
+   for each halo number, spread over the processes, and returns a list of the results in the same order.
+
+Your function receives the objects you gave the pool, in the same order, followed by the item it is to work on:
+here, ``analyse(f, h, halo_number)``. The results are sent back to the main process, so they should be
+reasonably small, like the numbers and profiles here.
+
+What the copies can and cannot do
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In each process, ``f`` and ``h`` are frozen copies of what you had prepared by the time the pool was created:
+
+* Arrays that had been loaded are available. Arrays that had not been loaded are not, and asking for one raises a
+  ``KeyError`` that tells you what to do. For example, if ``f['vel']`` had not been loaded, centring the halo
+  would fail with::
+
+      pynbody.snapshot.portable.ArrayNotTransferredError: 'vel' was not loaded when this snapshot was shared, so
+      it is not available here. Load it beforehand, e.g. by accessing f['vel'] before starting the process pool.
+
+* Arrays that pynbody derives from others (see :ref:`derived_arrays`), such as ``r`` from ``pos``, are
+  calculated as normal. Each process calculates them for itself, over the whole snapshot, so if every process
+  will need one, it is quicker to access it in step 2. The same goes for new arrays that you create: they belong
+  to the process that creates them.
+
+* The arrays are shared by all the processes, so they are read-only: changing an array, converting the snapshot's
+  units, or centring or rotating it (with, for example, :func:`pynbody.analysis.center` or
+  :func:`~pynbody.analysis.angmom.faceon`) raises an error. To work on a halo in its own frame, make a copy of it
+  with :meth:`~pynbody.snapshot.simsnap.SimSnap.get_copy_on_access_simsnap`, as in the template. This copies only
+  the halo's particles, into the process's own memory, as described :ref:`for threads <copy_on_access_threads>`.
+
+* The halo catalogue has every halo's particles, and the properties provided by the halo finder, but never reads
+  the halo finder's files again.
+
+Practical points
+^^^^^^^^^^^^^^^^
+
+* Your function must be defined at the top level of a python file, as in the template, so that the processes can
+  find it; and the code that creates the pool must be under ``if __name__ == '__main__':``, so that the
+  processes do not run it again when they start. Both are general requirements of Python's
+  :mod:`multiprocessing`. In a Jupyter notebook, put your function in a ``.py`` file and import it; or, on Linux
+  only, create the pool with ``start_method='fork'``, which allows functions defined in the notebook.
+
+* By default there is one process per CPU, and pynbody operations within each process use a single thread, so
+  that the processes do not compete for CPUs. To change these, pass ``processes`` or ``threads_per_process`` when
+  creating the pool.
+
+* If you forget :meth:`~pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays`, the pool still works, but copies
+  the arrays into shared memory, temporarily doubling the memory they need, and warns you that it has done so.
+  (The halo catalogue is always copied into shared memory, but it is much smaller than the snapshot.)
+
+* The shared memory is freed when the pool shuts down, at the end of the ``with`` block. If your script is killed,
+  the note :ref:`below <using_shared_arrays>` explains how to tidy up.
+
+* As well as snapshots and halo catalogues, a pool can be given a :class:`~pynbody.kdtree.KDTree`, numpy arrays
+  (which are shared in the same way), or any other Python object that can be pickled (of which each process
+  receives a copy). To run a single call in the background, use ``pool.submit(function, *args)``, which returns a
+  :class:`~concurrent.futures.Future`.
+
+
 .. _partial_loading_parallelism:
 
 Multi-process parallelism via partial loading
@@ -399,10 +494,11 @@ The other approach to multi-process analysis is for the processes to share the s
 shared memory, so that it is loaded once and each process can work on any part of it. Pynbody includes the bare
 bones of such a framework, for processes on the same machine.
 
-We strongly recommend that you use pynbody's shared memory support with an external framework like
-`tangos <https://github.com/pynbody/tangos>`__, which provides a much higher-level interface, and uses it to
-analyse large numbers of halos within a single simulation efficiently. However, if you want to develop a
-lower-level parallel approach, here is a quick template for how you might do it.
+We strongly recommend that you use pynbody's shared memory support through a higher-level interface: either the
+:ref:`process pool <portable_parallelism>` described above, or an external framework like
+`tangos <https://github.com/pynbody/tangos>`__, which uses it to analyse large numbers of halos within a single
+simulation efficiently. However, if you want to develop a lower-level parallel approach, here is a quick template
+for how you might do it.
 
 On process 1, load the file and any arrays you will need for processing:
 
@@ -519,3 +615,27 @@ and, in the receiving process, turned back into arrays by passing the reference 
     state = pynbody.halo.portable.map_arrays(references,
                                              pynbody.array.shared.from_shared_reference,
                                              types=pynbody.array.shared.SharedArrayReference)
+
+
+Transferring snapshots and KD-trees to another process
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 2.9.0
+
+Snapshots and KD-trees can be transferred in the same way as halo catalogues, using
+:meth:`SimSnap.get_portable_state <pynbody.snapshot.simsnap.SimSnap.get_portable_state>` and
+:meth:`KDTree.get_portable_state <pynbody.kdtree.KDTree.get_portable_state>`. The state of a snapshot holds the
+arrays it has loaded or derived, its families, properties and units, and its KD-tree if one has been built; its
+arrays are the snapshot's own, so if :meth:`~pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays` was called
+before they were loaded, :func:`~pynbody.halo.portable.map_arrays` can turn them into shared references, as above,
+without copying anything. In the receiving process,
+:meth:`SimSnap.from_portable_state <pynbody.snapshot.simsnap.SimSnap.from_portable_state>` returns a read-only
+:class:`~pynbody.snapshot.portable.PortableSimSnap`, which behaves as described for the
+:ref:`process pool <portable_parallelism>`, and to which a halo catalogue's state can then be attached:
+
+.. sourcecode:: python
+
+    f_recreated = pynbody.snapshot.SimSnap.from_portable_state(snapshot_state)
+    h_recreated = pynbody.halo.HaloCatalogue.from_portable_state(halo_state, f_recreated)
+
+This is how :class:`~pynbody.util.processes.ProcessPool` works, and you can use its source code as an example.
