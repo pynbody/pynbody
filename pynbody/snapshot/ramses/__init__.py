@@ -1164,21 +1164,23 @@ class RamsesSnap(SimSnap):
                 self._derive_array('mass', fam)
             else:
                 raise OSError("No such array on disk")
-        elif fam is None and array_name in ['pos', 'vel']:
-            # synchronized loading of pos/vel information
+        elif fam is None and array_name == 'pos':
+            # positions of every family (cell centres for gas, with their sizes), without velocities
             if 'pos' not in self:
                 self._create_array('pos', 3)
-            if 'vel' not in self:
-                self._create_array('vel', 3)
             if 'smooth' not in self.gas:
                 self.gas._create_array('smooth')
-
             if len(self.gas) > 0:
                 self._load_gas_pos()
-                self._load_gas_vars(_gv_load_hydro, 'vel')
-
             # the below triggers loading ALL particles, not just DM
-            self._load_particle_blocks(['x', 'y', 'z', 'vx', 'vy', 'vz'])
+            self._load_particle_blocks(['x', 'y', 'z'])
+
+        elif fam is None and array_name == 'vel':
+            if 'vel' not in self:
+                self._create_array('vel', 3)
+            if len(self.gas) > 0:
+                self._load_gas_vars(_gv_load_hydro, 'vel')
+            self._load_particle_blocks(['vx', 'vy', 'vz'])
 
         elif fam is None and array_name == 'mass':
             # mass has to be handled separately because it is present as a particle block
