@@ -17,6 +17,8 @@ import warnings
 
 import numpy as np
 
+from ..array import SimArray, shared
+from ..halo.portable import map_arrays
 from . import threads
 
 #: Arrays smaller than this number of bytes are sent to each worker process directly, rather than through shared
@@ -27,8 +29,9 @@ MIN_SHARED_BYTES = 1 << 16
 # The objects that the present worker process has been given (see _initialise_worker), or None in a process
 # that is not a worker
 _worker_objects = None
-# The snapshots that the present worker process has been given. Halo catalogues refer to their snapshots only
-# weakly, so they are kept alive here, even if they were not themselves among the objects asked for
+# The snapshots (and families of them) that the present worker process has been given. Halo catalogues refer to
+# their snapshots only weakly, so they are kept alive here, even if they were not themselves among the objects
+# asked for
 _worker_snapshots = None
 _worker_setup_error = None
 
@@ -66,6 +69,9 @@ class ProcessPool:
     * Arrays that had not been loaded cannot be loaded, and asking for one raises a ``KeyError``
       (specifically a :class:`~pynbody.snapshot.portable.ArrayNotTransferredError`).
     * Arrays can still be derived, and new arrays created; these belong to the process that makes them.
+    * Each process has only what it is given, so the function should use only its arguments. While the pool is
+      open, the originals should not be modified (e.g. by converting units or centring), since the processes
+      share their arrays.
     * Halo catalogues hold every halo's particles and the properties provided by the halo finder, without
       referring back to its files (see :meth:`~pynbody.halo.HaloCatalogue.get_portable_state`).
     * A KD-tree built with :meth:`~pynbody.snapshot.simsnap.SimSnap.build_tree` comes with its snapshot, and is
@@ -85,7 +91,7 @@ class ProcessPool:
     """
 
     def __init__(self, *objects, processes: int | None = None, threads_per_process: int = 1,
-                 start_method: str | None = None):
+                 start_method: str = 'spawn'):
         """Prepare the objects to be shared, and create the pool.
 
         Parameters
@@ -106,12 +112,18 @@ class ProcessPool:
             :class:`~pynbody.util.threads.thread_limit`). The default, 1, is appropriate when there are as many
             processes as CPUs.
 
-        start_method : str, optional
-            How to start the processes: ``'fork'``, ``'spawn'`` or ``'forkserver'`` (see the documentation of
-            python's :mod:`multiprocessing`). If None, python's default for the platform is used. With anything
-            but ``'fork'``, the functions run by the pool must be importable, i.e. defined in a python file
-            rather than typed interactively.
+        start_method : str
+            How to start the processes: ``'spawn'`` (default), ``'forkserver'`` or ``'fork'`` (see the
+            documentation of python's :mod:`multiprocessing`). The default is the same on every platform, and
+            starts each process afresh, so that it can only use what it is given. With ``'fork'``, which is not
+            available on Windows, each process starts as a copy of this one, so a function defined interactively
+            can be run, provided it was defined before the pool was created.
         """
+        for obj in objects:
+            if isinstance(obj, int) and not isinstance(obj, bool):
+                warnings.warn(f"{obj} has been given to the pool as an object for its processes to share. If you "
+                              f"meant it to be the number of processes, pass processes={obj} instead.",
+                              UserWarning, stacklevel=2)
         self._context = multiprocessing.get_context(start_method)
         self._packer = _SharedMemoryPacker()
         packed = _pack(objects, self._packer)
@@ -183,8 +195,8 @@ class ProcessPool:
             raise ValueError(
                 f"The function {getattr(fn, '__name__', fn)!r} was defined interactively, so processes started by "
                 f"the {self._context.get_start_method()!r} method cannot find it. Define it in a python file "
-                f"(either a script, or a module you import) instead; or, on Linux, create the pool with "
-                f"start_method='fork'.")
+                f"(either a script, or a module you import) instead; or, except on Windows, create the pool with "
+                f"start_method='fork' after defining the function.")
 
 
 class _RunWithObjects:
@@ -199,12 +211,16 @@ class _RunWithObjects:
 
 def _run(fn, args, kwargs):
     if _worker_setup_error is not None:
-        raise RuntimeError("Setting up this worker process failed") from _worker_setup_error
+        raise RuntimeError(f"Setting up this worker process failed: {_worker_setup_error!r}") \
+            from _worker_setup_error
     return fn(*_worker_objects, *args, **kwargs)
 
 
 def _initialise_worker(packed, threads_per_process):
     global _worker_objects, _worker_snapshots, _worker_setup_error
+    # After a fork, this process must neither clean up its parent's shared memory, nor (by inheriting the
+    # parent's handler) ignore the SIGTERM with which the pool may need to stop it
+    shared._forget_inherited_shared_memory()
     # The limit is never lifted; it lasts as long as the process
     threads.thread_limit(threads_per_process).__enter__()
     try:
@@ -221,14 +237,14 @@ class _SharedMemoryPacker:
     def __init__(self):
         self.copies = []
         self.bytes_copied = 0
+        # Maps the memory an array occupies to (array, reference). The array is kept so that its memory cannot be
+        # freed and reused by a different array, which would then be given the same reference
         self._references = {}
 
     def __call__(self, ar):
-        from ..array import SimArray, shared
-
         key = (ar.__array_interface__['data'][0], ar.shape, ar.strides, ar.dtype.str)
         if key in self._references:
-            return self._references[key]
+            return self._references[key][1]
 
         reference = None
         if isinstance(ar, SimArray):
@@ -247,11 +263,10 @@ class _SharedMemoryPacker:
                 self.bytes_copied += ar.nbytes
                 reference = shared.to_shared_reference(copy)
 
-        self._references[key] = reference
+        self._references[key] = (ar, reference)
         return reference
 
     def pack(self, state):
-        from ..halo.portable import map_arrays
         return map_arrays(state, self)
 
     def release(self):
@@ -263,8 +278,19 @@ def _pack(objects, packer: _SharedMemoryPacker):
     from ..halo import HaloCatalogue
     from ..kdtree import KDTree
     from ..snapshot import SimSnap
+    from ..snapshot.subsnap import FamilySubSnap
 
     snapshots = []
+
+    def catalogue_base(h):
+        """Return the index of the snapshot a catalogue belongs to, and the name of its family if it is of one"""
+        base = h.base
+        if isinstance(base, FamilySubSnap):
+            return snapshot_index(base.ancestor), base._unifamily.name
+        elif base is not base.ancestor:
+            raise TypeError(f"{h!r} belongs to {base!r}, which is part of a snapshot. A halo catalogue can only be "
+                            f"shared with a ProcessPool if it belongs to a whole snapshot, or to a family.")
+        return snapshot_index(base), None
 
     def snapshot_index(sim):
         if sim is not sim.ancestor:
@@ -282,14 +308,14 @@ def _pack(objects, packer: _SharedMemoryPacker):
         if isinstance(obj, SimSnap):
             snapshot_index(obj)
         elif isinstance(obj, HaloCatalogue):
-            snapshot_index(obj.base)
+            catalogue_base(obj)
 
     descriptions = []
     for obj in objects:
         if isinstance(obj, SimSnap):
             descriptions.append(('snapshot', snapshot_index(obj)))
         elif isinstance(obj, HaloCatalogue):
-            descriptions.append(('halos', snapshot_index(obj.base), packer.pack(obj.get_portable_state())))
+            descriptions.append(('halos', *catalogue_base(obj), packer.pack(obj.get_portable_state())))
         elif isinstance(obj, KDTree):
             owner = [i for i, s in enumerate(snapshots) if getattr(s, 'kdtree', None) is obj]
             if owner:
@@ -316,9 +342,8 @@ def _pack(objects, packer: _SharedMemoryPacker):
 
 
 def _unpack(packed):
-    from ..array import shared
+    from .. import family
     from ..halo import HaloCatalogue
-    from ..halo.portable import map_arrays
     from ..kdtree import KDTree
     from ..snapshot import SimSnap
 
@@ -335,11 +360,17 @@ def _unpack(packed):
     snapshots = [SimSnap.from_portable_state(unpack_state(state)) for state in snapshot_states]
 
     objects = []
+    keep_alive = list(snapshots)
     for kind, *details in descriptions:
         if kind == 'snapshot':
             objects.append(snapshots[details[0]])
         elif kind == 'halos':
-            objects.append(HaloCatalogue.from_portable_state(unpack_state(details[1]), snapshots[details[0]]))
+            snapshot_number, family_name, state = details
+            base = snapshots[snapshot_number]
+            if family_name is not None:
+                base = base[family.get_family(family_name)]
+                keep_alive.append(base)
+            objects.append(HaloCatalogue.from_portable_state(unpack_state(state), base))
         elif kind == 'tree_of_snapshot':
             objects.append(snapshots[details[0]].kdtree)
         elif kind == 'tree':
@@ -349,4 +380,4 @@ def _unpack(packed):
         else:
             objects.append(details[0])
 
-    return tuple(objects), snapshots
+    return tuple(objects), keep_alive

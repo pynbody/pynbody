@@ -167,7 +167,9 @@ def properties_from_portable_state(state: dict) -> dict:
 
 def _property_to_portable_state(value):
     """Encode a single halo property, or return None if it cannot be encoded"""
-    if isinstance(value, units.UnitBase):
+    if isinstance(value, units.NoUnit):
+        return {'kind': 'unit', 'value': None}
+    elif isinstance(value, units.UnitBase):
         return {'kind': 'unit', 'value': units.to_exact_string(value)}
 
     unit_name = units.to_exact_string(value.units) if units.has_unit(value) else None
@@ -225,7 +227,7 @@ def _property_from_portable_state(state: dict):
     unit_name = state.get('units')
 
     if kind == 'unit':
-        return units.Unit(state['value'])
+        return units.NoUnit() if state['value'] is None else units.Unit(state['value'])
     elif kind == 'primitive':
         return _with_units(state['value'], unit_name)
     elif kind == 'array':

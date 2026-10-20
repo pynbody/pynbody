@@ -378,13 +378,16 @@ What the copies can and cannot do
 In each process, ``f`` and ``h`` are frozen copies of what you had prepared by the time the pool was created:
 
 * Arrays that had been loaded are available. Arrays that had not been loaded are not, and asking for one raises a
-  ``KeyError`` that tells you what to do. For example, if ``f['vel']`` had not been loaded, centring the halo
-  would fail with::
+  ``KeyError`` that tells you what to do. For example, the template did not load the particle IDs, so asking for
+  ``f['iord']`` in ``analyse`` would fail with::
 
-      pynbody.snapshot.portable.ArrayNotTransferredError: 'vel' was not loaded when this snapshot was shared, so
-      it is not available here. Load it beforehand, e.g. by accessing f['vel'] before starting the process pool.
+      pynbody.snapshot.portable.ArrayNotTransferredError: 'iord' was not loaded when this snapshot was shared, so
+      it is not available here. Load it beforehand, e.g. by accessing f['iord'] before starting the process pool.
 
-* Arrays that pynbody derives from others (see :ref:`derived_arrays`), such as ``r`` from ``pos``, are
+  (Some formats load several arrays at once: in the file used here, for instance, accessing ``f['pos']`` also
+  loads ``vel`` and ``mass``. Accessing every array you need, as the template does, is the safe course.)
+
+* Arrays that pynbody derives from others (see :ref:`derived`), such as ``r`` from ``pos``, are
   calculated as normal. Each process calculates them for itself, over the whole snapshot, so if every process
   will need one, it is quicker to access it in step 2. The same goes for new arrays that you create: they belong
   to the process that creates them.
@@ -401,11 +404,15 @@ In each process, ``f`` and ``h`` are frozen copies of what you had prepared by t
 Practical points
 ^^^^^^^^^^^^^^^^
 
-* Your function must be defined at the top level of a python file, as in the template, so that the processes can
-  find it; and the code that creates the pool must be under ``if __name__ == '__main__':``, so that the
-  processes do not run it again when they start. Both are general requirements of Python's
-  :mod:`multiprocessing`. In a Jupyter notebook, put your function in a ``.py`` file and import it; or, on Linux
-  only, create the pool with ``start_method='fork'``, which allows functions defined in the notebook.
+* Each process starts afresh, and has only what it is given, so your function should use only its arguments, not
+  variables from the rest of your script. It must be defined at the top level of a python file, as in the
+  template, so that the processes can find it; and the code that creates the pool must be under
+  ``if __name__ == '__main__':``, so that the processes do not run it again when they start. These are general
+  requirements of Python's :mod:`multiprocessing`. In a Jupyter notebook, put your function in a ``.py`` file
+  and import it.
+
+* While the pool is open, don't modify the snapshot in the main process -- for example by converting its units or
+  centring it -- since the processes share its arrays, and would see the change without knowing about it.
 
 * By default there is one process per CPU, and pynbody operations within each process use a single thread, so
   that the processes do not compete for CPUs. To change these, pass ``processes`` or ``threads_per_process`` when

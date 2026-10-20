@@ -231,3 +231,32 @@ def test_unit_exact_string():
     u = pynbody.units.Unit("kpc a h**-1") * (1.0 / 7.0) * pynbody.units.Unit("Msol")**(1, 2)
     assert pynbody.units.Unit(pynbody.units.to_exact_string(u)).ratio(u, a=0.3, h=0.7) == 1.0
     assert pynbody.units.to_exact_string(pynbody.units.Unit("kpc")) == "kpc"
+
+
+def test_portable_snapshot_kdtree_array_refs():
+    """The tree's own SPH operations can be used, as in the original, once smoothing lengths exist"""
+    np.random.seed(3)
+    f = pynbody.new(dm=5000)
+    f['pos'] = np.random.uniform(size=(5000, 3))
+    f['mass'] = np.random.uniform(size=5000)
+    f['rho']
+    portable = pynbody.snapshot.SimSnap.from_portable_state(f.get_portable_state())
+    npt.assert_allclose(portable.kdtree.sph_mean(portable['mass'], 32), f.kdtree.sph_mean(f['mass'], 32))
+
+
+def test_portable_snapshot_tipsy_abundances(snap):
+    """Abundance ratios used to be derived by modifying their inputs in place, which a read-only snapshot forbids"""
+    snap.st['FeMassFrac']
+    snap.st['OxMassFrac']
+    portable = pynbody.snapshot.SimSnap.from_portable_state(snap.get_portable_state())
+    npt.assert_allclose(portable.st['feh'], snap.st['feh'])
+    npt.assert_allclose(portable.st['ofe'], snap.st['ofe'])
+    # deriving these does not alter the mass fractions
+    assert (snap.st['FeMassFrac'] == 0).any()
+
+
+def test_portable_properties_with_no_unit():
+    f = pynbody.new(dm=10)
+    f.properties['nothing'] = pynbody.units.NoUnit()
+    portable = pynbody.snapshot.SimSnap.from_portable_state(f.get_portable_state())
+    assert isinstance(portable.properties['nothing'], pynbody.units.NoUnit)

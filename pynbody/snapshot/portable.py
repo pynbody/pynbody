@@ -105,6 +105,12 @@ class PortableSimSnap(UnderlyingClassMixin, SimSnap):
             self.kdtree = kdtree.KDTree.from_portable_state(state['kdtree'], self['pos'], self['mass'])
             if state['kdtree_derived_smoothing']:
                 self._kdtree_derived_smoothing = True
+            # Restore what the tree's own SPH operations (e.g. sph_mean) expect to have been given. Nothing
+            # writes to these once they exist: smoothing lengths and densities are only calculated afresh when
+            # they are absent, into new arrays.
+            for name in ('smooth', 'rho'):
+                if name in self._arrays and self._arrays[name].dtype == self['pos'].dtype:
+                    self.kdtree.set_array_ref(name, self[name])
 
     def _install_family_array(self, name, fam, description):
         # _create_family_array would promote a family array to a simulation array, copying it, if every family

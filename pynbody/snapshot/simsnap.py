@@ -1832,6 +1832,17 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
                                          serialized_tree,
                                          boxsize=self._get_boxsize_for_kdtree(),
                                          num_threads=num_threads)
+
+    def _get_boxsize_for_kdtree(self):
+        boxsize = self.properties.get('boxsize', None)
+        if boxsize:
+            if units.is_unit_like(boxsize):
+                boxsize = float(boxsize.in_units(self['pos'].units))
+        else:
+            boxsize = None  # non-periodic
+        return boxsize
+
+
     ############################################
     # PORTABLE STATE
     ############################################
@@ -1893,15 +1904,6 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
     def _refuse_if_read_only(self, action):
         """Raise an exception if this snapshot's arrays cannot be modified; *action* says what was attempted"""
         pass
-
-    def _get_boxsize_for_kdtree(self):
-        boxsize = self.properties.get('boxsize', None)
-        if boxsize:
-            if units.is_unit_like(boxsize):
-                boxsize = float(boxsize.in_units(self['pos'].units))
-        else:
-            boxsize = None  # non-periodic
-        return boxsize
 
 
     ############################################

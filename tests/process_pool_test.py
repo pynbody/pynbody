@@ -4,9 +4,11 @@ The functions run by the pools are at module level, so that worker processes sta
 available on all platforms) can find them."""
 
 import gc
+import os
 import pathlib
 import subprocess
 import sys
+import textwrap
 import types
 
 import numpy as np
@@ -166,6 +168,86 @@ def test_pool_copies_unshared_snapshot():
     with pool:
         npt.assert_array_equal(pool.map(_get_array, ['pos'])[0], f['pos'])
     assert shared.get_num_shared_arrays_owned() == owned_before
+
+
+def test_packer_does_not_confuse_arrays():
+    """Arrays in a state may be temporaries, so one may be freed and its memory reused by another"""
+    packer = pynbody.util.processes._SharedMemoryPacker()
+    first = packer(np.full(20000, 1.0))
+    second = packer(np.full(20000, 2.0))
+    assert shared.from_shared_reference(second)[0] == 2.0
+    assert shared.from_shared_reference(first)[0] == 1.0
+    packer.release()
+
+
+def _halo_lengths(h, halo_number):
+    return len(h[halo_number]), h.base.families()
+
+
+def test_pool_shares_family_halos():
+    f = pynbody.new(dm=1000, star=500)
+    f.dm['grp'] = np.arange(1000) % 3
+    dm = f.dm  # the catalogue refers to its base only weakly, so it must be kept alive
+    h = pynbody.halo.number_array.HaloNumberCatalogue(dm, array='grp')
+    with pynbody.ProcessPool(h, processes=1) as pool:
+        lengths = pool.map(_halo_lengths, [1, 2])
+    assert lengths == [(len(h[1]), [pynbody.family.dm]), (len(h[2]), [pynbody.family.dm])]
+
+
+def test_pool_warns_about_bare_number(snap_and_halos):
+    f, h = snap_and_halos
+    with pytest.warns(UserWarning, match="processes=4"):
+        pynbody.ProcessPool(f, 4, processes=1).shutdown()
+
+
+_crash_script = textwrap.dedent("""
+    import os, concurrent.futures
+    import numpy as np
+    import pynbody
+
+    def crash(f, item):
+        os._exit(1)
+
+    if __name__ == '__main__':
+        f = pynbody.new(dm=100000)
+        f.enable_shared_arrays()
+        f['pos'] = np.zeros((100000, 3))
+        with pynbody.ProcessPool(f, processes=2, start_method=START_METHOD) as pool:
+            try:
+                pool.map(crash, [1, 2, 3, 4])
+            except concurrent.futures.process.BrokenProcessPool:
+                print("broken pool reported")
+""")
+
+
+@pytest.mark.parametrize('start_method', ['spawn', pytest.param('fork', marks=pytest.mark.skipif(
+    sys.platform == 'win32', reason="fork is not available on Windows"))])
+def test_pool_survives_worker_death(start_method, tmp_path):
+    """A worker that dies is reported, rather than hanging the pool (as it did with fork, when forked workers
+    inherited a SIGTERM handler that ignored the pool's attempts to stop them)"""
+    script = tmp_path / "crash.py"
+    script.write_text(_crash_script.replace("START_METHOD", repr(start_method)))
+    result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=120)
+    assert "broken pool reported" in result.stdout, result.stderr
+    assert result.returncode == 0
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason="SIGTERM cannot be caught on Windows")
+def test_sigterm_terminates_after_cleanup(tmp_path):
+    script = tmp_path / "sleeper.py"
+    script.write_text(textwrap.dedent("""
+        import sys, time
+        import pynbody
+        ar = pynbody.array.shared.make_shared_array(10, float)
+        print(ar._shared_fname, flush=True)
+        time.sleep(120)
+    """))
+    with subprocess.Popen([sys.executable, str(script)], stdout=subprocess.PIPE, text=True) as process:
+        name = process.stdout.readline().strip()
+        process.terminate()
+        assert process.wait(timeout=30) != 0
+    if os.path.isdir("/dev/shm"):
+        assert not os.path.exists("/dev/shm/" + name)
 
 
 def _number_of_particles(f, item):
