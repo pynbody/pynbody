@@ -1861,7 +1861,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         called before they were loaded, they are already in shared memory, so they can be shared with other
         processes without copying them.
 
-        Most users will want :class:`pynbody.ProcessPool <pynbody.util.processes.ProcessPool>`, which does all
+        Most users will want :class:`pynbody.ProcessPool <pynbody.parallel.ProcessPool>`, which does all
         this for them. See :ref:`portable_parallelism`.
 
         .. versionadded:: 2.9.0

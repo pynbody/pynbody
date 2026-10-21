@@ -6,7 +6,9 @@ def analyse(f, h, halo_number):
     halo = h[halo_number]
     centre = pynbody.analysis.halo.shrink_sphere_center(halo)
 
-    # Spatial queries can use the whole snapshot, and use the tree that was built beforehand
+    # The KD-tree speeds up spatial queries on the whole snapshot. It is built once, by the main process, the first
+    # time any process asks for it
+    f.build_tree()
     mass_nearby = f[pynbody.filt.Sphere('100 kpc', centre)]['mass'].sum()
 
     # To centre or rotate a halo, first make a copy of it; this process's f and h are read-only
@@ -18,19 +20,11 @@ def analyse(f, h, halo_number):
 
 
 if __name__ == '__main__':
-    # 1. Load the snapshot, and ask for its arrays to be put in shared memory
     f = pynbody.load('testdata/gasoline_ahf/g15784.lr.01024.gz')
-    f.enable_shared_arrays()
-
-    # 2. Prepare everything the analysis needs
     f.physical_units()
-    f['pos']
-    f['vel']
-    f['mass']
     h = f.halos()
-    f.build_tree()
 
-    # 3. Analyse the first nine halos, four at a time
+    # Analyse the first nine halos, four at a time
     with pynbody.ProcessPool(f, h, processes=4) as pool:
         results = pool.map(analyse, range(1, 10))
 

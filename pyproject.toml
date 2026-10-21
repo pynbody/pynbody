@@ -71,6 +71,7 @@ packages = [
     "pynbody.halo.details",
     "pynbody.extern",
     "pynbody.kdtree",
+    "pynbody.parallel",
     "pynbody.test_utils",
     "pynbody.util",
     "pynbody.util.bulk_read",

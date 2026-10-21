@@ -11,6 +11,7 @@ import os
 import platform
 import random
 import signal
+import threading
 import time
 import weakref
 from functools import reduce
@@ -214,6 +215,11 @@ def _register_sigterm_handler():
     """Registers a handler to clean up shared memory in the event of a SIGTERM signal."""
     global _sigterm_handler_is_registered
     if not _sigterm_handler_is_registered:
+        if threading.current_thread() is not threading.main_thread():
+            # Python only allows handlers to be set from the main thread. Shared memory can still be created
+            # (e.g. by a thread serving a ProcessPool); the handler is registered when the main thread next
+            # creates some, and ProcessPool registers it before starting such threads.
+            return
         # On Windows, SIGTERM handling is limited, but we'll still register it
         signal.signal(signal.SIGTERM, _sigterm_handler)
         _sigterm_handler_is_registered = True

@@ -12,7 +12,7 @@ loads anything from disk. Arrays which the original snapshot could have loaded, 
 was taken, are therefore unavailable, and asking for one raises :class:`ArrayNotTransferredError`. Arrays derived
 in the new process are calculated in its own memory, as normal.
 
-Most users will not need this module directly; :class:`pynbody.ProcessPool <pynbody.util.processes.ProcessPool>`
+Most users will not need this module directly; :class:`pynbody.ProcessPool <pynbody.parallel.ProcessPool>`
 uses it to give each worker process its own copy of a snapshot. See :ref:`portable_parallelism`.
 
 .. versionadded:: 2.9.0
@@ -41,7 +41,7 @@ class ArrayNotTransferredError(KeyError):
 
     The original snapshot could have loaded the array from disk, but a portable snapshot never touches the disk;
     the remedy is to load the array before taking the state (or before starting a
-    :class:`~pynbody.util.processes.ProcessPool`)."""
+    :class:`~pynbody.parallel.ProcessPool`)."""
 
     def __str__(self):
         # KeyError's own __str__ shows the repr of its argument, which would wrap the explanation in quotes
@@ -93,26 +93,24 @@ class PortableSimSnap(UnderlyingClassMixin, SimSnap):
                                            for name, keys in state['loadable_keys'].items()}
 
         for name, description in state['arrays'].items():
-            self._create_array(name, ndim=_ndim(description['data']), shared=False,
-                               derived=description['derived'], source_array=_as_read_only(description))
+            self._install_array(name, None, description)
 
         for name, by_family in state['family_arrays'].items():
             for family_name, description in by_family.items():
-                self._install_family_array(name, family.get_family(family_name), description)
+                self._install_array(name, family.get_family(family_name), description)
 
         if state.get('kdtree') is not None:
-            from .. import kdtree
-            self.kdtree = kdtree.KDTree.from_portable_state(state['kdtree'], self['pos'], self['mass'])
+            self._attach_tree(state['kdtree'])
             if state['kdtree_derived_smoothing']:
                 self._kdtree_derived_smoothing = True
-            # Restore what the tree's own SPH operations (e.g. sph_mean) expect to have been given. Nothing
-            # writes to these once they exist: smoothing lengths and densities are only calculated afresh when
-            # they are absent, into new arrays.
-            for name in ('smooth', 'rho'):
-                if name in self._arrays and self._arrays[name].dtype == self['pos'].dtype:
-                    self.kdtree.set_array_ref(name, self[name])
 
-    def _install_family_array(self, name, fam, description):
+    def _install_array(self, name, fam, description):
+        """Install an array described in a portable state, read-only, for the whole snapshot or one family"""
+        if fam is None:
+            self._create_array(name, ndim=_ndim(description['data']), shared=False,
+                               derived=description['derived'], source_array=_as_read_only(description))
+            return
+
         # _create_family_array would promote a family array to a simulation array, copying it, if every family
         # then had one; that must not happen to an array which is being shared, so the array is installed directly
         source_array = _as_read_only(description)
@@ -127,6 +125,18 @@ class PortableSimSnap(UnderlyingClassMixin, SimSnap):
                 view = source_array[:, i]
                 view._name = name_1d
                 self._family_arrays.setdefault(name_1d, {})[fam] = view
+
+    def _attach_tree(self, tree_state, num_threads=None):
+        """Recreate a KD-tree from its portable state (without particle arrays), using this snapshot's arrays"""
+        from .. import kdtree
+        self.kdtree = kdtree.KDTree.from_portable_state(tree_state, self['pos'], self['mass'],
+                                                        num_threads=num_threads)
+        # Restore what the tree's own SPH operations (e.g. sph_mean) expect to have been given. Nothing writes to
+        # these once they exist: smoothing lengths and densities are only calculated afresh when they are absent,
+        # into new arrays.
+        for name in ('smooth', 'rho'):
+            if name in self._arrays and self._arrays[name].dtype == self['pos'].dtype:
+                self.kdtree.set_array_ref(name, self[name])
 
     def _load_array(self, array_name, fam=None):
         nd_name = self._array_name_1D_to_ND(array_name) or array_name
@@ -176,23 +186,18 @@ def snapshot_state(sim: SimSnap) -> dict:
     families = sim.families()
     underlying_class = getattr(sim, '_underlying_class', type(sim))
 
-    def describe(array, derived):
-        return {'data': array,
-                'units': units.to_exact_string(array.units) if units.has_units(array) else None,
-                'derived': derived}
-
     def is_view_of_nd_array(name, keys):
         nd_name = sim._array_name_1D_to_ND(name)
         return nd_name is not None and nd_name in keys
 
-    arrays = {name: describe(array, name in sim._derived_array_names)
+    arrays = {name: describe_array(array, name in sim._derived_array_names)
               for name, array in sim._arrays.items() if not is_view_of_nd_array(name, sim._arrays)}
 
     family_arrays = {}
     for name, by_family in sim._family_arrays.items():
         if is_view_of_nd_array(name, sim._family_arrays):
             continue
-        family_arrays[name] = {fam.name: describe(array, name in sim._family_derived_array_names[fam])
+        family_arrays[name] = {fam.name: describe_array(array, name in sim._family_derived_array_names[fam])
                                for fam, array in by_family.items()}
 
     loadable_keys = {'all': list(sim._loadable_keys_for_portable_state(None))}
@@ -218,6 +223,14 @@ def snapshot_state(sim: SimSnap) -> dict:
             'family_arrays': family_arrays,
             'kdtree': None if tree is None else tree.get_portable_state(include_particle_arrays=False),
             'kdtree_derived_smoothing': bool(getattr(sim, '_kdtree_derived_smoothing', False))}
+
+
+def describe_array(array, derived) -> dict:
+    """Describe an array as it is stored in a portable state: the array itself, its units, and whether it is
+    derived. :meth:`PortableSimSnap._install_array` turns this back into an array of a snapshot."""
+    return {'data': array,
+            'units': units.to_exact_string(array.units) if units.has_units(array) else None,
+            'derived': derived}
 
 
 def _class_from_name(name):

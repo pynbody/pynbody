@@ -9,6 +9,7 @@ import pathlib
 import subprocess
 import sys
 import textwrap
+import time
 import types
 
 import numpy as np
@@ -76,11 +77,12 @@ def _describe_worker(f, h, _):
             'properties': h.get_properties_one_halo(1)['Mvir']}
 
 
-def test_pool_worker_state(snap_and_halos):
+@pytest.mark.parametrize('serve', [True, False])
+def test_pool_worker_state(snap_and_halos, serve):
     f, h = snap_and_halos
-    with pynbody.ProcessPool(f, h, processes=1, start_method='spawn', threads_per_process=2) as pool:
+    with pynbody.ProcessPool(f, h, processes=1, start_method='spawn', threads_per_process=2, serve=serve) as pool:
         description = pool.map(_describe_worker, [None])[0]
-    assert description['snapshot_type'] == 'PortableSimSnap'
+    assert description['snapshot_type'] == ('ServedSimSnap' if serve else 'PortableSimSnap')
     assert description['catalogue_type'] == 'PortableHaloCatalogue'
     assert description['halo_base_is_f']
     assert not description['pos_writeable']
@@ -105,14 +107,22 @@ def _centre_in_place(f, h, halo_number):
 def test_pool_errors(snap_and_halos):
     f, h = snap_and_halos
     with pynbody.ProcessPool(f, h, processes=1, start_method='spawn') as pool:
-        with pytest.raises(KeyError, match="'iord' was not loaded"):
-            pool.map(_load_unloaded, ['iord'])
+        with pytest.raises(KeyError):
+            pool.map(_load_unloaded, ['nonexistent_array'])
         with pytest.raises(ValueError, match="read-only"):
             pool.map(_write, ['pos'])
         with pytest.raises(ValueError, match="get_copy_on_access_simsnap"):
             pool.submit(_centre_in_place, 1).result()
         # the pool remains usable
         assert len(pool.map(_load_unloaded, ['mass'])[0]) == len(f)
+
+
+def test_frozen_pool_refuses_unloaded_arrays(snap_and_halos):
+    f, h = snap_and_halos
+    with pynbody.ProcessPool(f, h, processes=1, start_method='spawn', serve=False) as pool:
+        with pytest.raises(KeyError, match="'iord' was not loaded"):
+            pool.map(_load_unloaded, ['iord'])
+    assert 'iord' not in f.keys()
 
 
 def _halo_mass(h, halo_number):
@@ -172,9 +182,9 @@ def test_pool_copies_unshared_snapshot():
 
 def test_packer_does_not_confuse_arrays():
     """Arrays in a state may be temporaries, so one may be freed and its memory reused by another"""
-    packer = pynbody.util.processes._SharedMemoryPacker()
-    first = packer(np.full(20000, 1.0))
-    second = packer(np.full(20000, 2.0))
+    packer = pynbody.parallel.transport.SharedMemoryTransport()
+    first = packer.encode(np.full(20000, 1.0))
+    second = packer.encode(np.full(20000, 2.0))
     assert shared.from_shared_reference(second)[0] == 2.0
     assert shared.from_shared_reference(first)[0] == 1.0
     packer.release()
@@ -290,3 +300,176 @@ def test_documentation_example():
                             timeout=600)
     assert result.returncode == 0, result.stderr
     assert "Halo 9:" in result.stdout
+
+
+# Tests of serving: the main process provides what the workers' snapshots lack
+
+
+@pytest.fixture
+def fresh_snap_and_halos():
+    """A snapshot with nothing loaded, as a user would have before creating a pool"""
+    f = pynbody.load("testdata/gasoline_ahf/g15784.lr.01024")
+    f.physical_units()
+    h = f.halos()
+    yield f, h
+    del f, h
+    gc.collect()
+
+
+def _served_analysis(f, h, halo_number):
+    halo = h[halo_number]
+    f.build_tree()
+    centre = pynbody.analysis.halo.shrink_sphere_center(halo)
+    local = halo.get_copy_on_access_simsnap()
+    pynbody.analysis.center(local)
+    return {'iord_sum': int(halo['iord'].sum()),
+            'rxy_sum': float(halo['rxy'].sum()),
+            'num_in_sphere': len(f[pynbody.filt.Sphere('20 kpc', centre)]),
+            'local_vel_centre': np.asarray(local['vel'][:5]),
+            'gas_HI': np.asarray(halo.gas['HI'][:5])}
+
+
+@pytest.mark.parametrize('start_method', ['spawn', pytest.param('fork', marks=pytest.mark.skipif(
+    sys.platform == 'win32', reason="fork is not available on Windows"))])
+def test_pool_serves_arrays_trees_and_derived_arrays(fresh_snap_and_halos, start_method):
+    f, h = fresh_snap_and_halos
+    assert 'pos' not in f.keys()
+    with pynbody.ProcessPool(f, h, processes=2, start_method=start_method) as pool:
+        results = pool.map(_served_analysis, [1, 2, 3])
+
+    # The main process now holds what the workers asked for, in shared memory
+    assert isinstance(f['iord'], shared.SharedMemorySimArray)
+    assert f.is_derived_array('rxy')
+    assert hasattr(f, 'kdtree')
+
+    for halo_number, result in zip([1, 2, 3], results):
+        expected = _served_analysis(f, h, halo_number)
+        assert result['iord_sum'] == expected['iord_sum']
+        npt.assert_allclose(result['rxy_sum'], expected['rxy_sum'])
+        assert result['num_in_sphere'] == expected['num_in_sphere']
+        npt.assert_allclose(result['local_vel_centre'], expected['local_vel_centre'])
+        npt.assert_allclose(result['gas_HI'], expected['gas_HI'])
+
+
+def _iord_sum(f, _):
+    return int(f['iord'].sum())
+
+
+def test_pool_serves_concurrent_requests(fresh_snap_and_halos):
+    f, h = fresh_snap_and_halos
+    with pynbody.ProcessPool(f, processes=3) as pool:
+        sums = pool.map(_iord_sum, range(6))
+    assert sums == [int(f['iord'].sum())] * 6
+
+
+@pynbody.derived_array
+def _process_pool_test_doubled(sim):
+    return sim['_process_pool_test_worker_array'] * 2
+
+
+def _derive_from_worker_array(f, _):
+    f['_process_pool_test_worker_array'] = np.arange(len(f), dtype=float)
+    return np.asarray(f['_process_pool_test_doubled'][:3])
+
+
+def test_pool_derives_locally_what_server_cannot():
+    f = pynbody.new(dm=100)
+    with pynbody.ProcessPool(f, processes=1) as pool:
+        assert list(pool.map(_derive_from_worker_array, [None])[0]) == [0., 2., 4.]
+    assert '_process_pool_test_doubled' not in f.keys()
+
+
+_worker_states_seen_by_server = []
+
+
+def _process_states_once_settled(pids, stopped):
+    """Process states, after waiting briefly for signals (which are delivered asynchronously) to take effect"""
+    for _ in range(100):
+        states = _process_states(pids)
+        if all((state == 'T') == stopped for state in states):
+            break
+        time.sleep(0.01)
+    return states
+
+
+def _process_states(pids):
+    states = []
+    for pid in pids:
+        with open(f"/proc/{pid}/stat") as stat:
+            # the state follows the command name, which is in brackets
+            states.append(stat.read().rsplit(")", 1)[1].split()[0])
+    return states
+
+
+@pynbody.derived_array
+def _process_pool_test_pause_check(sim):
+    _worker_states_seen_by_server.extend(
+        _process_states_once_settled(_pool_being_tested._listener.worker_pids(), stopped=True))
+    return np.zeros(len(sim))
+
+
+def _ask_for_pause_check(f, _):
+    return float(f['_process_pool_test_pause_check'].sum())
+
+
+def _sleep(f, seconds):
+    time.sleep(seconds)
+
+
+@pytest.mark.skipif(not sys.platform.startswith('linux'), reason="process states are read from /proc")
+def test_pool_pauses_workers():
+    global _pool_being_tested
+    f = pynbody.new(dm=100)
+    with pynbody.ProcessPool(f, processes=2) as pool:
+        _pool_being_tested = pool
+        # two tasks that overlap, so that both processes are started
+        pool.map(_sleep, [0.5, 0.5])
+        pids = pool._listener.worker_pids()
+        assert len(pids) == 2
+
+        # deriving an array in the main process pauses all the workers, including the one that asked for it
+        _worker_states_seen_by_server.clear()
+        assert pool.map(_ask_for_pause_check, [None]) == [0.0]
+        assert _worker_states_seen_by_server == ['T', 'T']
+        assert 'T' not in _process_states_once_settled(pids, stopped=False)
+
+        # the workers resume even if the work done while they are paused fails
+        with pytest.raises(ZeroDivisionError):
+            with pool._paused_workers():
+                assert _process_states_once_settled(pids, stopped=True) == ['T', 'T']
+                1 / 0
+        assert 'T' not in _process_states_once_settled(pids, stopped=False)
+
+
+class _DirectChannel:
+    """Stands in for a channel between processes, by calling the server directly"""
+    def __init__(self, server):
+        self._server = server
+
+    def request(self, name, *args):
+        return self._server.handle(name, args)
+
+
+def test_server_with_copy_transport(fresh_snap_and_halos):
+    """The server and served snapshot don't depend on shared memory, or on processes"""
+    from pynbody.parallel.served import ServedSimSnap
+    from pynbody.parallel.server import SnapshotServer
+    from pynbody.parallel.transport import CopyTransport
+
+    f, h = fresh_snap_and_halos
+    transport = CopyTransport()
+    server = SnapshotServer([f], transport)
+    state = transport.decode_state(transport.encode_state(f.get_portable_state()))
+    served = ServedSimSnap(state, _DirectChannel(server), (0, None), transport)
+
+    npt.assert_array_equal(served['iord'], f['iord'])
+    assert not np.shares_memory(served['iord'], f['iord'])
+    assert not served['iord'].flags['WRITEABLE']
+    npt.assert_array_equal(served.gas['HI'], f.gas['HI'])
+    npt.assert_allclose(served['rxy'], f['rxy'])
+    assert served.is_derived_array('rxy')
+    served.build_tree()
+    sphere = pynbody.filt.Sphere('200 kpc', f['pos'][1000])
+    npt.assert_array_equal(served[sphere].get_index_list(served), f[sphere].get_index_list(f))
+    with pytest.raises(KeyError):
+        served['nonexistent_array']
