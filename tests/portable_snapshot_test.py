@@ -10,7 +10,11 @@ import pytest
 
 import pynbody
 import pynbody.test_utils
-from pynbody.snapshot.portable import ArrayNotTransferredError, PortableSimSnap, ReadOnlySnapshotError
+from pynbody.snapshot.portable import (
+    ArrayNotTransferredError,
+    PortableSimSnap,
+    ReadOnlySnapshotError,
+)
 
 
 @pytest.fixture(scope='module', autouse=True)

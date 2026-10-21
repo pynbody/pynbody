@@ -19,7 +19,12 @@ import os
 import pickle
 import threading
 import traceback
-from multiprocessing.connection import Client, Listener, answer_challenge, deliver_challenge
+from multiprocessing.connection import (
+    Client,
+    Listener,
+    answer_challenge,
+    deliver_challenge,
+)
 
 
 class LocalListener:

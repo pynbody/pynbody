@@ -18,9 +18,9 @@ from ..array import shared
 from ..snapshot import SimSnap
 from ..util import threads
 from .channel import LocalChannel, LocalListener
+from .packing import pack_objects, unpack_objects
 from .served import ServedSimSnap
 from .server import SnapshotServer
-from .packing import pack_objects, unpack_objects
 from .transport import SharedMemoryTransport
 
 # The objects that the present worker process has been given (see _initialise_worker), or None in a process

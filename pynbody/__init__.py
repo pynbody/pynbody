@@ -68,8 +68,8 @@ class PlotModuleProxy:
 
 plot = PlotModuleProxy()
 
-from .snapshot import load, new
 from .parallel import ProcessPool
+from .snapshot import load, new
 from .util.threads import thread_limit
 
 derived_array = snapshot.simsnap.SimSnap.derived_array
