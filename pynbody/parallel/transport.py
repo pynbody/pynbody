@@ -27,8 +27,8 @@ MIN_SHARED_BYTES = 1 << 16
 class ArrayTransport:
     """Base class for the ways of getting arrays from the main process to the workers.
 
-    A transport object is created in the main process, which calls :meth:`encode`; each worker creates its own
-    instance of the same class (with no arguments), which calls :meth:`decode`."""
+    A transport object is created in the main process, which calls :meth:`encode`; each worker is given the object
+    returned by :meth:`for_workers`, which calls :meth:`decode`."""
 
     #: The types of token that :meth:`decode` accepts
     token_types: tuple = (np.ndarray,)
@@ -47,6 +47,10 @@ class ArrayTransport:
     def release(self):
         """Free any resources held for the arrays that have been encoded"""
         pass
+
+    def for_workers(self) -> ArrayTransport:
+        """Return a picklable transport for the workers to decode with, holding none of the main process's state"""
+        return type(self)()
 
     def encode_state(self, state):
         """Return a copy of a portable state (or any part of one) with every array encoded"""
@@ -79,8 +83,9 @@ class SharedMemoryTransport(ArrayTransport):
     def __init__(self):
         self.copies = []
         self.bytes_copied = 0
-        # Maps the memory an array occupies to (array, token). The array is kept so that its memory cannot be
-        # freed and reused by a different array, which would then be given the same token
+        # Maps the memory an array occupies to (array, token). Keeping the array serves two purposes: its memory
+        # cannot be freed and reused by a different array, which would then be given the same token; and a worker
+        # started late, which decodes tokens made when the pool was created, still finds the memory there.
         self._tokens = {}
 
     def encode(self, array):

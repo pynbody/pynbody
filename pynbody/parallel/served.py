@@ -64,8 +64,11 @@ class ServedSimSnap(PortableSimSnap):
                                              None if fam is None else fam.name)
         if descriptions == DERIVE_LOCALLY:
             SimSnap._derive_array(self, name, fam)
-        else:
-            self._install_from_server(descriptions)
+            return
+        self._install_from_server(descriptions)
+        if name in ('smooth', 'rho'):
+            # Deriving these builds the tree, which the snapshot would then have had, had it derived them itself
+            self.build_tree()
 
     def build_tree(self, num_threads=None, shared_mem=None):
         """Use the KD-tree of the original snapshot, asking for it to be built if it has not been.
@@ -93,6 +96,9 @@ class ServedSimSnap(PortableSimSnap):
                 continue
             description['data'] = self._transport.decode(description['data'])
             self._install_array(name, fam, description)
+            if description.get('kdtree_derived_smoothing'):
+                self._kdtree_derived_smoothing = True
+        self._link_tree_arrays()
 
     def _discard_family_arrays(self, name):
         for name_or_slice in [name] + list(self._array_name_ND_to_1D(name)):

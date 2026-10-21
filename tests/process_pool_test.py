@@ -9,6 +9,7 @@ import pathlib
 import subprocess
 import sys
 import textwrap
+import threading
 import time
 import types
 
@@ -473,3 +474,115 @@ def test_server_with_copy_transport(fresh_snap_and_halos):
     npt.assert_array_equal(served[sphere].get_index_list(served), f[sphere].get_index_list(f))
     with pytest.raises(KeyError):
         served['nonexistent_array']
+
+
+def test_served_snapshot_tree_after_sph():
+    """As in a snapshot of its own, deriving SPH densities gives a served snapshot a tree, ready for the tree's own
+    SPH operations"""
+    from pynbody.parallel.served import ServedSimSnap
+    from pynbody.parallel.server import SnapshotServer
+    from pynbody.parallel.transport import CopyTransport
+
+    np.random.seed(4)
+    f = pynbody.new(dm=3000)
+    f['pos'] = np.random.uniform(size=(3000, 3))
+    f['mass'] = np.ones(3000)
+    transport = CopyTransport()
+    state = transport.decode_state(transport.encode_state(f.get_portable_state()))
+    served = ServedSimSnap(state, _DirectChannel(SnapshotServer([f], transport)), (0, None), transport)
+
+    npt.assert_allclose(served['rho'], f['rho'])
+    assert served._kdtree_derived_smoothing
+    npt.assert_allclose(served.kdtree.sph_mean(served['mass'], 32), f.kdtree.sph_mean(f['mass'], 32))
+
+
+class _ExceptionWithArguments(Exception):
+    def __init__(self, a, b):
+        super().__init__(f"{a} and {b}")
+
+
+def test_listener_robustness():
+    from multiprocessing.connection import AuthenticationError, Client
+
+    from pynbody.parallel.channel import LocalChannel, LocalListener, RemoteTraceback
+
+    def handler(name, args):
+        if name == 'fail':
+            raise _ExceptionWithArguments(1, 2)
+        return args
+
+    listener = LocalListener(handler)
+    try:
+        # neither a connection with the wrong key, nor one that never authenticates, stops others being served
+        with pytest.raises(AuthenticationError):
+            Client(listener.address, authkey=b'wrong')
+        silent = Client(listener.address)
+        channel = LocalChannel(listener.address, listener.authkey)
+        assert channel.request('echo', 1, 2) == (1, 2)
+
+        # an exception that can be pickled, but not unpickled, is described instead
+        with pytest.raises(RuntimeError, match="_ExceptionWithArguments: 1 and 2") as excinfo:
+            channel.request('fail')
+        assert isinstance(excinfo.value.__cause__, RemoteTraceback)
+        assert channel.request('echo', 3) == (3,)
+    finally:
+        start = time.time()
+        listener.close()
+        assert time.time() - start < 5
+        silent.close()
+
+
+def test_pool_cleans_up_if_creation_fails():
+    f = pynbody.new(dm=10)
+    with pytest.raises(ValueError):
+        pynbody.ProcessPool(f, processes=0)
+    time.sleep(0.1)
+    assert not any(t.name == "pynbody-parallel-listener" for t in threading.enumerate())
+
+
+_orphan_script = textwrap.dedent("""
+    import sys, time
+    import numpy as np
+    import pynbody
+
+    @pynbody.derived_array
+    def slow(sim):
+        print("deriving", flush=True)
+        time.sleep(60)
+        return np.zeros(len(sim))
+
+    def ask_for_slow(f, _):
+        return f['slow'].sum()
+
+    def pid(f, _):
+        import os
+        time.sleep(0.5)
+        return os.getpid()
+
+    if __name__ == '__main__':
+        f = pynbody.new(dm=10)
+        with pynbody.ProcessPool(f, processes=2) as pool:
+            print(*set(pool.map(pid, [1, 2])), flush=True)
+            pool.map(ask_for_slow, [1])
+""")
+
+
+@pytest.mark.skipif(not sys.platform.startswith('linux'), reason="process states are read from /proc")
+def test_paused_workers_end_if_main_process_is_killed(tmp_path):
+    """Workers paused when the main process dies are not left stopped, even if the main process's process group
+    is not orphaned (here, it shares pytest's)"""
+    script = tmp_path / "orphan.py"
+    script.write_text(_orphan_script)
+    with subprocess.Popen([sys.executable, str(script)], stdout=subprocess.PIPE, text=True) as process:
+        pids = [int(p) for p in process.stdout.readline().split()]
+        assert len(pids) == 2
+        assert process.stdout.readline().strip() == "deriving"
+        assert _process_states_once_settled(pids, stopped=True) == ['T', 'T']
+        process.kill()
+        process.wait()
+
+    for _ in range(500):
+        if not any(os.path.exists(f"/proc/{pid}") for pid in pids):
+            break
+        time.sleep(0.01)
+    assert not any(os.path.exists(f"/proc/{pid}") for pid in pids)

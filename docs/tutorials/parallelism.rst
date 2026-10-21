@@ -365,13 +365,16 @@ reasonably small, like the numbers and profiles here.
 Nothing needs to be loaded in advance. The first time any process needs an array -- here ``pos``, ``vel`` and
 ``mass`` -- it asks the main process, which loads it once, into shared memory, for all the processes to use.
 The same goes for arrays that pynbody derives from others (see :ref:`derived`), and for the KD-tree that
-``f.build_tree()`` asks for. While the main process derives an array or builds a tree, which it does using all
-the CPUs, the other processes are paused, so that they don't compete with it (except on Windows, which cannot
-pause a process). You can still load arrays, or build the tree, in the main process before creating the pool;
-it makes no difference to the results, but saves the processes from waiting for them.
+``f.build_tree()`` asks for. While the main process derives an array or builds a tree, which may use all the
+CPUs, the other processes are paused, so that they don't compete with it (except on Windows, which cannot pause
+a process). You can still load arrays, or build the tree, in the main process before creating the pool, if you
+first call :meth:`~pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays`; it makes no difference to the
+results, but saves the processes from waiting.
 
 What the copies can and cannot do
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Each process's ``f`` and ``h`` behave like the originals, with these exceptions:
 
 * The arrays are shared by all the processes, so they are read-only: changing an array, converting the snapshot's
   units, or centring or rotating it (with, for example, :func:`pynbody.analysis.center` or
@@ -401,15 +404,16 @@ Practical points
   that the processes do not compete for CPUs. To change these, pass ``processes`` or ``threads_per_process`` when
   creating the pool.
 
-* Arrays that the main process loads for the pool stay in the snapshot afterwards. Arrays you load yourself
-  before creating the pool are not in shared memory unless you first call
-  :meth:`~pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays`; if not, the pool copies them there, temporarily
-  doubling the memory they need, and warns you that it has done so. (The halo catalogue is always copied, but it
-  is much smaller than the snapshot.)
+* The pool switches your snapshot to shared memory (as
+  :meth:`~pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays` does), and arrays that the main process loads for
+  the pool stay in the snapshot afterwards. Arrays you loaded before creating the pool without calling
+  :meth:`~pynbody.snapshot.simsnap.SimSnap.enable_shared_arrays` first are not in shared memory, so the pool
+  copies them there, temporarily doubling the memory they need, and warns you that it has done so. (The halo
+  catalogue is always copied, but it is much smaller than the snapshot.)
 
-* The shared memory used by the pool is freed when it shuts down, at the end of the ``with`` block, or with the
-  snapshot if that holds it. If your script is killed, the note :ref:`below <using_shared_arrays>` explains how to
-  tidy up.
+* Copies that the pool makes are freed when it shuts down, at the end of the ``with`` block; arrays it loads into
+  your snapshot are freed with the snapshot. If your script is killed, the note :ref:`below <using_shared_arrays>`
+  explains how to tidy up.
 
 * As well as snapshots and halo catalogues, a pool can be given a :class:`~pynbody.kdtree.KDTree`, numpy arrays
   (which are shared in the same way), or any other Python object that can be pickled (of which each process

@@ -67,12 +67,13 @@ class SnapshotServer:
 
         Returns a list of descriptions of the array (see :meth:`_describe`), or None if it cannot be loaded."""
         sim, target = self._view(view_key, family_name)
+        before = self._array_keys(sim)
         with sim.lazy_derive_off:
             try:
                 target[name]
             except KeyError:
                 return None
-        return self._describe(sim, name, family_name)
+        return self._describe(sim, name, family_name, before)
 
     def request_derive_array(self, view_key, name, family_name):
         """Load or derive an array, if it is not already in memory.
@@ -80,20 +81,25 @@ class SnapshotServer:
         Returns a list of descriptions of the array (see :meth:`_describe`), or :data:`DERIVE_LOCALLY` if it
         cannot be obtained here, e.g. because it depends on an array that only the worker has."""
         sim, target = self._view(view_key, family_name)
-        if not self._has_array(target, name):
-            with self._pause_workers():
-                try:
-                    target[name]
-                except KeyError:
-                    return DERIVE_LOCALLY
-        return self._describe(sim, name, family_name)
+        # The snapshot's lock is taken before the workers are paused, so that they are not left paused while it
+        # waits for another thread (e.g. the main thread, deriving something itself)
+        with sim._get_array_lock:
+            before = self._array_keys(sim)
+            if not self._has_array(target, name):
+                with self._pause_workers():
+                    try:
+                        target[name]
+                    except KeyError:
+                        return DERIVE_LOCALLY
+        return self._describe(sim, name, family_name, before)
 
     def request_kdtree(self, view_key):
         """Build the snapshot's KD-tree, if it has not been built, and return its encoded portable state"""
         sim, _ = self._view(view_key, None)
-        if not hasattr(sim, 'kdtree'):
-            with self._pause_workers():
-                sim.build_tree()
+        with sim._get_array_lock:
+            if not hasattr(sim, 'kdtree'):
+                with self._pause_workers():
+                    sim.build_tree()
         return self._transport.encode_state(sim.kdtree.get_portable_state(include_particle_arrays=False))
 
     def _view(self, view_key, family_name):
@@ -113,8 +119,29 @@ class SnapshotServer:
                 return False
         return True
 
-    def _describe(self, sim, name, family_name):
-        """Describe what the snapshot now holds by the given name, for the worker to install.
+    @staticmethod
+    def _array_keys(sim):
+        """The (name, family) of every array in the snapshot, with family None for arrays of the whole snapshot.
+
+        The 1D slices of 3D arrays (like ``x`` of ``pos``) are not included, since they come with their arrays."""
+        keys = {(name, None) for name in sim._arrays}
+        keys |= {(name, fam) for name, by_family in sim._family_arrays.items() for fam in by_family}
+        return {(name, fam) for name, fam in keys
+                if not SnapshotServer._is_slice(sim, name, fam)}
+
+    @staticmethod
+    def _is_slice(sim, name, fam):
+        nd_name = sim._array_name_1D_to_ND(name)
+        if nd_name is None:
+            return False
+        return nd_name in sim._arrays if fam is None else fam in sim._family_arrays.get(nd_name, {})
+
+    def _describe(self, sim, name, family_name, before):
+        """Describe the requested array, and any others that have appeared alongside it, for the worker to install.
+
+        Arrays often appear together: some formats load several at once, and deriving one array may create others
+        (e.g. SPH densities create smoothing lengths). The worker is given all those that have appeared since
+        *before* (see :meth:`_array_keys`), saving it from asking for each, as well as the one requested.
 
         Each description is a dictionary like those in a portable state (see
         :func:`~pynbody.snapshot.portable.describe_array`), with the array encoded for transport, the name of the
@@ -123,18 +150,24 @@ class SnapshotServer:
         a request for the whole snapshot with arrays for each family that has one."""
         name = sim._array_name_1D_to_ND(name) or name
         if name in sim._arrays:
-            found = [(None, sim._arrays[name], sim.is_derived_array(name))]
+            requested = [(name, None)]
         else:
-            by_family = sim._family_arrays.get(name, {})
-            families = by_family.keys() if family_name is None else \
-                [f for f in by_family if f.name == family_name]
-            found = [(f, by_family[f], name in sim._family_derived_array_names[f]) for f in families]
+            families = sim._family_arrays.get(name, {}).keys()
+            requested = [(name, fam) for fam in families if family_name is None or fam.name == family_name]
 
         descriptions = []
-        for fam, array, derived in found:
+        for array_name, fam in requested + sorted(self._array_keys(sim) - before - set(requested), key=str):
+            if fam is None:
+                array, derived = sim._arrays[array_name], sim.is_derived_array(array_name)
+            else:
+                array = sim._family_arrays[array_name][fam]
+                derived = array_name in sim._family_derived_array_names[fam]
             description = describe_array(array, derived)
             description['data'] = self._transport.encode(description['data'])
-            description['name'] = name
+            description['name'] = array_name
             description['family'] = None if fam is None else fam.name
+            if array_name == 'smooth':
+                # Whether these are the smoothing lengths the tree itself uses (see pynbody.sph)
+                description['kdtree_derived_smoothing'] = getattr(sim, '_kdtree_derived_smoothing', False)
             descriptions.append(description)
         return descriptions

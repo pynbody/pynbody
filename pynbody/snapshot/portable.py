@@ -131,12 +131,17 @@ class PortableSimSnap(UnderlyingClassMixin, SimSnap):
         from .. import kdtree
         self.kdtree = kdtree.KDTree.from_portable_state(tree_state, self['pos'], self['mass'],
                                                         num_threads=num_threads)
-        # Restore what the tree's own SPH operations (e.g. sph_mean) expect to have been given. Nothing writes to
-        # these once they exist: smoothing lengths and densities are only calculated afresh when they are absent,
-        # into new arrays.
+        self._link_tree_arrays()
+
+    def _link_tree_arrays(self):
+        """Give the tree the smoothing lengths and densities, if both exist, as the tree's own SPH operations
+        (e.g. sph_mean) expect. Nothing writes to these once they exist: smoothing lengths and densities are only
+        calculated afresh when they are absent, into new arrays."""
+        if not hasattr(self, 'kdtree'):
+            return
         for name in ('smooth', 'rho'):
-            if name in self._arrays and self._arrays[name].dtype == self['pos'].dtype:
-                self.kdtree.set_array_ref(name, self[name])
+            if name in self._arrays and self._arrays[name].dtype == self._arrays['pos'].dtype:
+                self.kdtree.set_array_ref(name, self._arrays[name])
 
     def _load_array(self, array_name, fam=None):
         nd_name = self._array_name_1D_to_ND(array_name) or array_name

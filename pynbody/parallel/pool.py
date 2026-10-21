@@ -20,7 +20,7 @@ from ..util import threads
 from .channel import LocalChannel, LocalListener
 from .served import ServedSimSnap
 from .server import SnapshotServer
-from .transfer import pack_objects, unpack_objects
+from .packing import pack_objects, unpack_objects
 from .transport import SharedMemoryTransport
 
 # The objects that the present worker process has been given (see _initialise_worker), or None in a process
@@ -130,23 +130,28 @@ class ProcessPool:
                               UserWarning, stacklevel=2)
         self._context = multiprocessing.get_context(start_method)
         self._transport = SharedMemoryTransport()
-        packed, snapshots = pack_objects(objects, self._transport)
+        self._listener = None
+        self._executor = None
+        try:
+            packed, snapshots = pack_objects(objects, self._transport)
 
-        if serve:
-            # The server's threads may create shared memory, but cannot register the handler that cleans it up
-            shared._register_sigterm_handler()
-            for sim in snapshots:
-                sim.enable_shared_arrays()
-            self._server = SnapshotServer(snapshots, self._transport, self._paused_workers)
-            self._listener = LocalListener(self._server.handle)
-            channel_address = (self._listener.address, self._listener.authkey)
-        else:
-            self._listener = None
-            channel_address = None
+            if serve:
+                # The server's threads may create shared memory, but cannot register the handler that cleans it up
+                shared._register_sigterm_handler()
+                for sim in snapshots:
+                    sim.enable_shared_arrays()
+                self._server = SnapshotServer(snapshots, self._transport, self._paused_workers)
+                self._listener = LocalListener(self._server.handle)
+                channel_address = (self._listener.address, self._listener.authkey)
+            else:
+                channel_address = None
 
-        self._executor = concurrent.futures.ProcessPoolExecutor(
-            max_workers=processes, mp_context=self._context, initializer=_initialise_worker,
-            initargs=(packed, type(self._transport), channel_address, threads_per_process))
+            self._executor = concurrent.futures.ProcessPoolExecutor(
+                max_workers=processes, mp_context=self._context, initializer=_initialise_worker,
+                initargs=(packed, self._transport.for_workers(), channel_address, threads_per_process))
+        except BaseException:
+            self.shutdown()
+            raise
 
     def submit(self, fn, /, *args, **kwargs) -> concurrent.futures.Future:
         """Run ``fn(*objects, *args, **kwargs)`` in one of the processes, returning a
@@ -192,7 +197,8 @@ class ProcessPool:
         cancel_pending : bool
             If True, work that has been submitted but not yet started is cancelled, rather than waited for.
         """
-        self._executor.shutdown(wait=True, cancel_futures=cancel_pending)
+        if self._executor is not None:
+            self._executor.shutdown(wait=True, cancel_futures=cancel_pending)
         if self._listener is not None:
             self._listener.close()
         self._transport.release()
@@ -201,16 +207,23 @@ class ProcessPool:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is not None and issubclass(exc_type, KeyboardInterrupt) and self._listener is not None \
+                and hasattr(signal, 'SIGINT'):
+            # The workers are in process groups of their own (see _initialise_worker), so they don't receive the
+            # interrupt from the terminal; they are interrupted here instead, so that the pool stops promptly
+            for pid in self._listener.worker_pids():
+                _signal_process(pid, signal.SIGINT)
         self.shutdown(cancel_pending=exc_type is not None)
 
     @contextlib.contextmanager
     def _paused_workers(self):
         """Stop the worker processes for the duration of a with block, so that the main process has all the CPUs.
 
-        Nothing that the main process needs while they are stopped can be held by a worker: the server uses only
-        its own lock and the snapshots in this process, and a worker part-way through a request finishes it later.
-        Were this process to die with the workers stopped, they would be sent SIGHUP and SIGCONT, as members of an
-        orphaned process group. Windows has no means of stopping a process, so there this does nothing."""
+        Nothing that pynbody's own code in the main process needs while they are stopped can be held by a worker:
+        the server uses only its own lock and the snapshots in this process, and a worker part-way through a
+        request finishes it later. Were this process to die with the workers stopped, they would be sent SIGHUP
+        and SIGCONT, as members of orphaned process groups (see _initialise_worker). Windows has no means of
+        stopping a process, so there this does nothing."""
         if not hasattr(signal, 'SIGSTOP'):
             yield
             return
@@ -262,15 +275,20 @@ def _run(fn, args, kwargs):
     return fn(*_worker_objects, *args, **kwargs)
 
 
-def _initialise_worker(packed, transport_class, channel_address, threads_per_process):
+def _initialise_worker(packed, transport, channel_address, threads_per_process):
     global _worker_objects, _worker_snapshots, _worker_channel, _worker_setup_error
     # After a fork, this process must neither clean up its parent's shared memory, nor (by inheriting the
     # parent's handler) ignore the SIGTERM with which the pool may need to stop it
     shared._forget_inherited_shared_memory()
+    if hasattr(os, 'setpgid'):
+        # A process group of its own makes this process's group orphaned if the main process dies, whatever
+        # became of the main process's own group, so that the system then sends it SIGHUP and SIGCONT. Without
+        # this, a worker that the main process had paused (see ProcessPool._paused_workers) when it died could
+        # remain stopped indefinitely.
+        os.setpgid(0, 0)
     # The limit is never lifted; it lasts as long as the process
     threads.thread_limit(threads_per_process).__enter__()
     try:
-        transport = transport_class()
         if channel_address is None:
             def make_snapshot(state, view_key):
                 return SimSnap.from_portable_state(state)

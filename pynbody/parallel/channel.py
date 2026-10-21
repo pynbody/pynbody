@@ -16,8 +16,10 @@ listener runs a thread for each worker, so the handler must be thread-safe.
 from __future__ import annotations
 
 import os
+import pickle
 import threading
-from multiprocessing.connection import Client, Listener
+import traceback
+from multiprocessing.connection import Client, Listener, answer_challenge, deliver_challenge
 
 
 class LocalListener:
@@ -35,7 +37,9 @@ class LocalListener:
         """
         self._handler = handler
         self.authkey = os.urandom(32)
-        self._listener = Listener(authkey=self.authkey)
+        # Authentication is done by the thread serving each connection (see _serve), rather than in accept(),
+        # so that a connection which fails it, or never completes it, cannot stop others being accepted
+        self._listener = Listener()
         self._worker_pids = set()
         self._pids_lock = threading.Lock()
         self._closing = False
@@ -60,18 +64,17 @@ class LocalListener:
         self._closing = True
         # Wake the thread blocked in accept(), which then sees that the listener is closing
         try:
-            Client(self.address, authkey=self.authkey).close()
+            Client(self.address).close()
         except OSError:
             pass
-        self._accept_thread.join()
+        self._accept_thread.join(timeout=10)
         self._listener.close()
 
     def _accept_connections(self):
         while True:
             try:
                 connection = self._listener.accept()
-            except OSError:
-                # including a failed authentication, which is not a connection we want anyway
+            except Exception:
                 if self._closing:
                     return
                 continue
@@ -83,8 +86,11 @@ class LocalListener:
 
     def _serve(self, connection):
         try:
+            # The same handshake as a Listener with an authkey would make in accept()
+            deliver_challenge(connection, self.authkey)
+            answer_challenge(connection, self.authkey)
             pid = connection.recv()
-        except (EOFError, OSError):
+        except Exception:
             connection.close()
             return
 
@@ -99,12 +105,16 @@ class LocalListener:
                 try:
                     reply = ('ok', self._handler(name, args))
                 except Exception as e:
-                    reply = ('error', e)
+                    reply = ('error', _transferable(e), traceback.format_exc())
                 try:
                     connection.send(reply)
                 except Exception as e:
                     # The reply could not be pickled. Nothing has been sent, so the worker can be told why.
-                    connection.send(('error', RuntimeError(f"The reply to {name!r} could not be sent: {e!r}")))
+                    try:
+                        connection.send(('error', RuntimeError(f"The reply to {name!r} could not be sent: {e!r}"),
+                                         traceback.format_exc()))
+                    except OSError:
+                        return
         finally:
             with self._pids_lock:
                 self._worker_pids.discard(pid)
@@ -126,7 +136,28 @@ class LocalChannel:
         If handling the request raised an exception in the main process, it is raised here."""
         with self._lock:
             self._connection.send((name, args))
-            status, value = self._connection.recv()
+            status, value, *details = self._connection.recv()
         if status == 'error':
+            value.__cause__ = RemoteTraceback(details[0])
             raise value
         return value
+
+
+class RemoteTraceback(Exception):
+    """Carries the traceback of an exception raised in the main process, as the cause of the exception raised in
+    the worker, in the same way as :mod:`concurrent.futures` does for exceptions raised in workers"""
+
+    def __str__(self):
+        return f"\n\nIn the main process:\n{self.args[0]}"
+
+
+def _transferable(exception):
+    """Return the exception if it can be sent to another process; otherwise, a RuntimeError describing it.
+
+    Some exceptions can be pickled but not unpickled, e.g. if their initialiser takes arguments that they do not
+    pass on to Exception; so the whole round trip is tried."""
+    try:
+        pickle.loads(pickle.dumps(exception))
+        return exception
+    except Exception:
+        return RuntimeError(f"{type(exception).__name__}: {exception}")
