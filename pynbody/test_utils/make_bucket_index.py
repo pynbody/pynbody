@@ -1,7 +1,9 @@
-"""Generate an index.html listing the contents of the pynbody data bucket, and upload it to the bucket
+"""Generate an index.html listing the contents of an R2 data bucket, and upload it to the bucket
 
 This is run by .github/workflows/bucket-index.yaml using the R2 credentials stored as repository secrets.
-It requires boto3, and reads the following environment variables:
+That workflow is also called by other repositories (e.g. tangos) to index their own buckets, passing
+--title and --description to replace the pynbody text. It requires boto3, and reads the following
+environment variables:
 
   R2_ACCOUNT_ID, R2_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
@@ -18,12 +20,19 @@ import urllib.parse
 
 INDEX_KEY = 'index.html'
 
+DEFAULT_TITLE = 'pynbody data'
+
+DEFAULT_DESCRIPTION = """Test data and ion fraction tables for <a href="https://github.com/pynbody/pynbody">pynbody</a>.
+You don't normally need to download these by hand: pynbody fetches them when needed, and
+<code>pynbody.test_utils.precache_test_data()</code> downloads all the test data at once. See
+<a href="https://pynbody.readthedocs.io/latest/tutorials/tutorials.html#obtaining-test-data">obtaining test data</a>."""
+
 _PAGE_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pynbody data</title>
+<title>{title}</title>
 <style>
   :root {{ color-scheme: light dark; }}
   body {{ font-family: system-ui, sans-serif; max-width: 60rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }}
@@ -35,11 +44,8 @@ _PAGE_TEMPLATE = """<!doctype html>
 </style>
 </head>
 <body>
-<h1>pynbody data</h1>
-<p>Test data and ion fraction tables for <a href="https://github.com/pynbody/pynbody">pynbody</a>.
-You don't normally need to download these by hand: pynbody fetches them when needed, and
-<code>pynbody.test_utils.precache_test_data()</code> downloads all the test data at once. See
-<a href="https://pynbody.readthedocs.io/latest/tutorials/tutorials.html#obtaining-test-data">obtaining test data</a>.</p>
+<h1>{title}</h1>
+<p>{description}</p>
 <p class="meta">{num_files} files, {total_size} in total. Generated {generated}.</p>
 {sections}
 </body>
@@ -64,8 +70,11 @@ def list_objects(client, bucket):
     return objects
 
 
-def render_index(objects):
-    """Return the index page as a string, with one table per top-level folder"""
+def render_index(objects, title=DEFAULT_TITLE, description=DEFAULT_DESCRIPTION):
+    """Return the index page as a string, with one table per top-level folder
+
+    The title is plain text; the description is inserted as HTML.
+    """
     sections = {}
     for key, size, last_modified in sorted(objects):
         folder = key.split('/')[0] if '/' in key else ''
@@ -85,15 +94,19 @@ def render_index(objects):
                              '<table>\n<tr><th>File</th><th class="num">Size</th><th class="num">Modified</th></tr>\n'
                              + "\n".join(rows) + "\n</table>")
 
-    return _PAGE_TEMPLATE.format(num_files=len(objects),
+    return _PAGE_TEMPLATE.format(title=html.escape(title), description=description,
+                                 num_files=len(objects),
                                  total_size=format_size(sum(size for _, size, _ in objects)),
                                  generated=f"{datetime.datetime.now(datetime.timezone.utc):%Y-%m-%d %H:%M} UTC",
                                  sections="\n".join(sections_html))
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate and upload an index.html for the pynbody data bucket')
+    parser = argparse.ArgumentParser(description='Generate and upload an index.html for an R2 data bucket')
     parser.add_argument('--output', help='Write the page to this local file instead of uploading it')
+    parser.add_argument('--title', help=f'Page title (default: {DEFAULT_TITLE!r}); an empty value also gives the default')
+    parser.add_argument('--description', help='HTML paragraph introducing the data (default: the pynbody text); '
+                                              'an empty value also gives the default')
     args = parser.parse_args()
 
     import boto3
@@ -102,7 +115,7 @@ def main():
                           endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com")
 
     objects = list_objects(client, bucket)
-    page = render_index(objects)
+    page = render_index(objects, args.title or DEFAULT_TITLE, args.description or DEFAULT_DESCRIPTION)
     print(f"Listed {len(objects)} objects")
 
     if args.output:
