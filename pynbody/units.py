@@ -889,6 +889,19 @@ def has_unit(obj):
 
 has_units = has_unit
 
+def to_exact_string(unit: UnitBase) -> str:
+    """Return a string which :class:`Unit` turns back into *unit*, without loss of precision.
+
+    The ``str`` of a unit is intended for display, and so rounds its scale factor to three significant figures.
+    This is the alternative for storing or transferring a unit.
+
+    .. versionadded:: 2.9.0
+    """
+    if isinstance(unit, CompositeUnit) and unit._scale != 1:
+        return " ".join([repr(float(unit._scale))] +
+                        [str(b) if p == 1 else f"{b}**{p}" for b, p in zip(unit._bases, unit._powers)])
+    return str(unit)
+
 def get_item_with_unit(array, item):
     if has_unit(array) and len(array.shape)==1:
         u = array.units

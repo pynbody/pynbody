@@ -73,6 +73,7 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
 
 
     def _load_array(self, array_name, fam=None):
+        from .portable import ArrayNotTransferredError
         if (array_name, fam) in self._dont_try_accessing:
             raise OSError("Previously tried to get this array without success; not trying again")
         try:
@@ -81,6 +82,9 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
                     self[array_name] = self._copy_from[array_name]
                 else:
                     self[fam][array_name] = self._copy_from[fam][array_name]
+        except ArrayNotTransferredError:
+            # The array exists on disk, so it must not be derived instead
+            raise
         except KeyError as e:
             self._dont_try_accessing.append((array_name, fam))
             raise OSError("Not found in underlying snapshot") from e

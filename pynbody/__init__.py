@@ -68,6 +68,7 @@ class PlotModuleProxy:
 
 plot = PlotModuleProxy()
 
+from .parallel import ProcessPool
 from .snapshot import load, new
 from .util.threads import thread_limit
 

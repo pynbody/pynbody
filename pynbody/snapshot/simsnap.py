@@ -1803,13 +1803,19 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             Number of threads to use for building and most operations on the tree.
             If None, the default number of threads is used.
         shared_mem : bool, optional
-            Whether to use shared memory for the tree. This is used by the tangos library to
-            share a kdtree between different processes. It is not recommended for general use,
-            and defaults to False.
+            Whether to use shared memory for the tree, so that it can be shared between processes (see
+            :ref:`portable_parallelism`). If None (default), shared memory is used if
+            :meth:`enable_shared_arrays` has been called.
+
+            .. versionchanged:: 2.9.0
+
+              The default now follows :meth:`enable_shared_arrays`; previously it was always False.
         """
         if not hasattr(self, 'kdtree'):
             from .. import kdtree
             from ..configuration import config
+            if shared_mem is None:
+                shared_mem = self.ancestor._shared_arrays
             boxsize = self._get_boxsize_for_kdtree()
             self.kdtree = kdtree.KDTree(self['pos'], self['mass'],
                                         leafsize=config['sph']['tree-leafsize'],
@@ -1826,6 +1832,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
                                          serialized_tree,
                                          boxsize=self._get_boxsize_for_kdtree(),
                                          num_threads=num_threads)
+
     def _get_boxsize_for_kdtree(self):
         boxsize = self.properties.get('boxsize', None)
         if boxsize:
@@ -1834,6 +1841,69 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         else:
             boxsize = None  # non-periodic
         return boxsize
+
+
+    ############################################
+    # PORTABLE STATE
+    ############################################
+
+    def get_portable_state(self) -> dict:
+        """Express everything this snapshot has in memory as numpy arrays and python primitives.
+
+        The result is a dictionary whose values are numpy arrays, python primitives, or nested dictionaries and
+        lists of the same. It holds the arrays that have been loaded or derived (including family-level
+        arrays), the family structure, :attr:`properties`, units, and the KD-tree if one has been built
+        (see :meth:`build_tree`). Nothing in it is tied to the present process, or to the files the snapshot
+        came from, so it may be transferred elsewhere -- for example to another process, by putting the arrays
+        into shared memory -- where :meth:`from_portable_state` turns it back into a snapshot.
+
+        The arrays in the state are the snapshot's own arrays, not copies. If :meth:`enable_shared_arrays` was
+        called before they were loaded, they are already in shared memory, so they can be shared with other
+        processes without copying them.
+
+        Most users will want :class:`pynbody.ProcessPool <pynbody.parallel.ProcessPool>`, which does all
+        this for them. See :ref:`portable_parallelism`.
+
+        .. versionadded:: 2.9.0
+
+        """
+        from .portable import snapshot_state
+        return snapshot_state(self)
+
+    @staticmethod
+    def from_portable_state(state: dict) -> SimSnap:
+        """Recreate a snapshot from a dictionary previously returned by :meth:`get_portable_state`.
+
+        The result, a :class:`~pynbody.snapshot.portable.PortableSimSnap`, holds the arrays that were in the
+        original snapshot when the state was taken; they are used directly, not copied, and are read-only.
+        Arrays that the original could have loaded from disk, but had not, cannot be loaded, and asking for one
+        raises a :class:`~pynbody.snapshot.portable.ArrayNotTransferredError` (a ``KeyError``). Arrays can still
+        be derived, and new arrays created; these belong to the new snapshot alone.
+
+        .. versionadded:: 2.9.0
+
+        Parameters
+        ----------
+
+        state : dict
+            The state, possibly having been transferred from another process.
+
+        Returns
+        -------
+
+        :class:`~pynbody.snapshot.portable.PortableSimSnap`
+            A read-only snapshot holding the arrays of the original.
+        """
+        from .portable import PortableSimSnap
+        return PortableSimSnap(state)
+
+    def _loadable_keys_for_portable_state(self, fam):
+        """The arrays that a snapshot recreated from this one's portable state should report as not transferred"""
+        return self.loadable_keys(fam)
+
+    def _refuse_if_read_only(self, action):
+        """Raise an exception if this snapshot's arrays cannot be modified; *action* says what was attempted"""
+        pass
 
 
     ############################################
