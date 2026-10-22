@@ -2,15 +2,50 @@ name: Update data bucket index
 
 # Regenerates index.html at the root of the pynbody data bucket (https://pynbody.pontzen.uk),
 # listing everything in it. Run manually after changing the bucket's contents.
+#
+# Other repositories in the pynbody organisation (e.g. tangos) call this as a reusable workflow
+# to index their own buckets, using their own R2 secrets:
+#
+#   jobs:
+#     update-index:
+#       uses: pynbody/pynbody/.github/workflows/bucket-index.yaml@master
+#       with:
+#         title: tangos data
+#         description: Tutorial and continuous integration data for ...
+#       secrets: inherit
 
 on:
   workflow_dispatch:
   push:
     paths:
       - pynbody/test_utils/make_bucket_index.py
+      - .github/workflows/bucket-index.yaml
+  workflow_call:
+    inputs:
+      title:
+        description: Page title (plain text). Defaults to the pynbody title.
+        type: string
+        default: ""
+      description:
+        description: HTML paragraph introducing the data. Defaults to the pynbody text.
+        type: string
+        default: ""
+      pynbody-ref:
+        description: Branch, tag or commit of pynbody to take make_bucket_index.py from.
+        type: string
+        default: master
+    secrets:
+      R2_ACCOUNT_ID:
+        required: true
+      R2_BUCKET:
+        required: true
+      R2_ACCESS_KEY_ID:
+        required: true
+      R2_SECRET_ACCESS_KEY:
+        required: true
 
 concurrency:
-  group: bucket-index
+  group: bucket-index-${{ github.repository }}
 
 jobs:
   update-index:
@@ -23,8 +58,14 @@ jobs:
       # newer boto3 versions add checksums that R2 has had trouble with
       AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
       AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+      INDEX_TITLE: ${{ inputs.title }}
+      INDEX_DESCRIPTION: ${{ inputs.description }}
     steps:
+    # When called from another repository, checkout would otherwise fetch the caller's code
     - uses: actions/checkout@v6
+      with:
+        repository: pynbody/pynbody
+        ref: ${{ inputs.pynbody-ref || github.sha }}
     - name: Install Python
       uses: actions/setup-python@v6
       with:
@@ -32,4 +73,4 @@ jobs:
     - name: Install boto3
       run: python -m pip install boto3
     - name: Generate and upload index.html
-      run: python pynbody/test_utils/make_bucket_index.py
+      run: python pynbody/test_utils/make_bucket_index.py --title "$INDEX_TITLE" --description "$INDEX_DESCRIPTION"
