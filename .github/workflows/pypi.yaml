@@ -31,7 +31,7 @@ jobs:
         - [macos-15, macosx, arm64, "/opt/homebrew", "14.0"]
         - [windows-2022, win, amd64, "", ""]
         - [windows-11-arm, win, arm64, "", ""]
-        python: ["cp311", "cp312", "cp313", "cp314", "cp314t", "cp315"]
+        python: ["cp311", "cp312", "cp313", "cp314", "cp314t", "cp315", "cp315t"]
     steps:
       - uses: actions/checkout@v6
 
@@ -106,6 +106,9 @@ jobs:
           # The full 3.15 test run lives in python315-experimental.yaml.
           - os: ubuntu-latest
             python-version: "3.15"
+            experimental: true
+          - os: ubuntu-latest
+            python-version: "3.15t"
             experimental: true
     continue-on-error: ${{ matrix.experimental == true }}
     runs-on: ${{ matrix.os }}
