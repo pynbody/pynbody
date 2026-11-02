@@ -19,7 +19,7 @@ import numpy as np
 
 from ... import array, config_parser, family, filt, units
 from ...analysis.cosmology import age
-from .. import SimSnap, namemapper
+from .. import ArrayNotFoundError, SimSnap, namemapper
 from . import _execute, _hilbert, _layout, _plan
 from ._selection import (
     SKIP,
@@ -1049,7 +1049,13 @@ class RamsesSnap(SimSnap):
             from ...analysis import ramses_util
 
             # Replace the tform array by its usual meaning using the birth files
-            ramses_util.get_tform(self, times_are_proper=self.times_are_proper)
+            try:
+                ramses_util.get_tform(self, times_are_proper=self.times_are_proper)
+            except FileNotFoundError:
+                if not config_parser.getboolean('ramses', 'use_part2birth_by_default'):
+                    raise
+                # The optional part2birth path has already warned and supplied
+                # -1 formation times when its birth files/utility are unavailable.
 
     @property
     def times_are_proper(self) -> bool:
@@ -1131,7 +1137,7 @@ class RamsesSnap(SimSnap):
             elif array_name in self._particle_blocks:
                 self._load_particle_block(array_name)
             else:
-                raise OSError("No such array on disk")
+                raise ArrayNotFoundError("No such array on disk")
 
         elif fam is family.gas:
 
@@ -1163,7 +1169,7 @@ class RamsesSnap(SimSnap):
                 # conjoining derived and non-derived arrays (logical, at least).
                 self._derive_array('mass', fam)
             else:
-                raise OSError("No such array on disk")
+                raise ArrayNotFoundError("No such array on disk")
         elif fam is None and array_name in ['pos', 'vel']:
             # synchronized loading of pos/vel information
             if 'pos' not in self:
@@ -1195,7 +1201,7 @@ class RamsesSnap(SimSnap):
                 gasmass.convert_units(self['mass'].units)
                 self.gas['mass'] = gasmass
         else:
-            raise OSError("No such array on disk")
+            raise ArrayNotFoundError("No such array on disk")
 
     @staticmethod
     def _can_load(f):

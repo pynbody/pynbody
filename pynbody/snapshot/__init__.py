@@ -10,7 +10,7 @@ import pathlib
 
 from .. import config, family
 from . import util
-from .simsnap import SimSnap
+from .simsnap import ArrayNotFoundError, SimSnap
 
 logger = logging.getLogger('pynbody.snapshot')
 

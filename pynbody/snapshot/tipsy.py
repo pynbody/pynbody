@@ -30,7 +30,7 @@ import zlib
 import numpy as np
 
 from .. import array, chunk, config, config_parser, family, units, util
-from . import SimSnap, namemapper, nchilada
+from . import ArrayNotFoundError, SimSnap, namemapper, nchilada
 
 _name_map, _rev_name_map = namemapper.setup_name_maps('tipsy-name-mapping')
 _translate_array_name = namemapper.name_map_function(_name_map, _rev_name_map)
@@ -819,7 +819,7 @@ class TipsySnap(SimSnap):
             # Bottom line says 'you requested one family, but that one's not
             # available'
 
-            raise OSError("This array is marked as available only for families %s" % fams)
+            raise ArrayNotFoundError("This array is marked as available only for families %s" % fams)
 
         data = self.__read_array_from_disk(array_name, fam=fam,
                                            filename=filename,
@@ -851,7 +851,7 @@ class TipsySnap(SimSnap):
                         return self[fam][array_name]
                     else:
                         return self[array_name]
-            except OSError:
+            except ArrayNotFoundError:
                 pass
 
         # N.B. this code is a bit inefficient for loading
@@ -883,7 +883,10 @@ class TipsySnap(SimSnap):
             dtype = self._get_preferred_dtype(array_name)
 
         try:
-            f = util.open_(filename, 'r')
+            try:
+                f = util.open_(filename, 'r')
+            except FileNotFoundError as exc:
+                raise ArrayNotFoundError(f"No such array on disk: {array_name}") from exc
             l = int(f.readline())
             binary = False
             if l != self._load_control.disk_num_particles:
@@ -978,7 +981,7 @@ class TipsySnap(SimSnap):
         else:
             l = glob.glob(os.path.join(x, "../*.starlog"))
             if (len(l) == 0):
-                raise OSError("Couldn't find starlog file")
+                raise ArrayNotFoundError("Couldn't find starlog file")
             for filename in l:
                 starlog = StarLog(filename)
 

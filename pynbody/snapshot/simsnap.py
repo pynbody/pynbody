@@ -43,6 +43,10 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger('pynbody.snapshot.simsnap')
 
+class ArrayNotFoundError(OSError):
+    """The array is unavailable at the requested snapshot or family level."""
+
+
 class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclasses, transformation.Transformable):
 
     """The class for managing simulation snapshots.
@@ -405,7 +409,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         if name not in list(self.keys()):
             try:
                 self.__load_array_and_perform_postprocessing(name)
-            except OSError:
+            except ArrayNotFoundError:
                 pass
 
     def __derive_if_required(self, name):
@@ -452,7 +456,7 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
             for fam in out_fam:
                 if name not in self[fam]: # (check again, in case it was created in the meantime)
                     self.__load_array_and_perform_postprocessing(name, fam=fam)
-        except OSError:
+        except ArrayNotFoundError:
             pass
 
 
@@ -953,9 +957,10 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
         from disk and should be overloaded by child classes.
 
         If *fam* is not None, the array should be loaded only for the
-        specified family.
+        specified family. Raise :class:`ArrayNotFoundError` when the array is
+        unavailable at the requested level; other I/O errors are propagated.
         """
-        raise OSError("No lazy-loading implemented")
+        raise ArrayNotFoundError("No lazy-loading implemented")
 
     def __load_array_and_perform_postprocessing(self, array_name, fam=None):
         """Calls _load_array for the appropriate subclass, but also attempts to convert
@@ -976,40 +981,54 @@ class SimSnap(ContainerWithPhysicalUnitsOption, iter_subclasses.IterableSubclass
                            for fami in family._registry}
         pre_fam_keys = fk()
 
+        pending_promotions = list(anc.__delayed_promotions.__dict__.get('pending', []))
+
         with self.delay_promotion:
-            # delayed promotion is required here, otherwise units get messed up when
-            # a simulation array gets promoted mid-way through our loading process.
-            #
-            # see the gadget unit test, test_unit_persistence
-            if fam is not None:
-                self._load_array(array_name, fam)
-            else:
-                try:
+            try:
+                # delayed promotion is required here, otherwise units get messed up when
+                # a simulation array gets promoted mid-way through our loading process.
+                #
+                # see the gadget unit test, test_unit_persistence
+                if fam is not None:
                     self._load_array(array_name, fam)
-                except OSError:
-                    for fam_x in self.families():
-                        self._load_array(array_name, fam_x)
+                else:
+                    try:
+                        self._load_array(array_name, fam)
+                    except ArrayNotFoundError:
+                        for fam_x in self.families():
+                            self._load_array(array_name, fam_x)
 
-            # Find out what was loaded
-            new_keys = set(anc.keys()) - pre_keys
-            new_fam_keys = fk()
-            for fami in new_fam_keys:
-                new_fam_keys[fami] = new_fam_keys[fami] - pre_fam_keys[fami]
+                # Find out what was loaded
+                new_keys = set(anc.keys()) - pre_keys
+                new_fam_keys = fk()
+                for fami in new_fam_keys:
+                    new_fam_keys[fami] = new_fam_keys[fami] - pre_fam_keys[fami]
 
-            with self.lazy_off:
-                # If the loader hasn't given units already, try to determine the defaults
-                # Then, attempt to convert what was loaded into friendly units
-                for v in new_keys:
-                    if not units.has_units(anc[v]):
-                        anc[v].units = anc._default_units_for(v)
-                    anc._autoconvert_array_unit(anc[v])
-                    anc.apply_transformation_to_array(v)
-                for f, vals in new_fam_keys.items():
-                    for v in vals:
-                        if not units.has_units(anc[f][v]):
-                            anc[f][v].units = anc._default_units_for(v)
-                        anc._autoconvert_array_unit(anc[f][v])
-                        anc.apply_transformation_to_array(v, f)
+                with self.lazy_off:
+                    # If the loader hasn't given units already, try to determine the defaults
+                    # Then, attempt to convert what was loaded into friendly units
+                    for v in new_keys:
+                        if not units.has_units(anc[v]):
+                            anc[v].units = anc._default_units_for(v)
+                        anc._autoconvert_array_unit(anc[v])
+                        anc.apply_transformation_to_array(v)
+                    for f, vals in new_fam_keys.items():
+                        for v in vals:
+                            if not units.has_units(anc[f][v]):
+                                anc[f][v].units = anc._default_units_for(v)
+                            anc._autoconvert_array_unit(anc[f][v])
+                            anc.apply_transformation_to_array(v, f)
+            except BaseException:
+                # A failed read must not leave allocated (possibly zero-filled) arrays
+                # available to later accesses, including coupled fields and ND slices.
+                for name in set(anc.keys()) - pre_keys:
+                    del anc[name]
+                for fami, names in fk().items():
+                    for name in names - pre_fam_keys[fami]:
+                        anc._del_family_array(name, fami)
+                # Cancel promotions queued by this load before delay_promotion exits.
+                anc.__delayed_promotions.pending = pending_promotions
+                raise
 
 
 

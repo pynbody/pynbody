@@ -25,7 +25,7 @@ import warnings
 import numpy as np
 
 from .. import array, config_parser, family, units
-from . import SimSnap, namemapper
+from . import ArrayNotFoundError, SimSnap, namemapper
 
 # This is set here and not in a config file because too many things break
 # if it is not 6
@@ -895,7 +895,7 @@ class GadgetSnap(SimSnap):
                 raise KeyError(
                     "Block " + name + " is not available for all families")
             else:
-                raise OSError("No such array on disk")
+                raise ArrayNotFoundError("No such array on disk")
 
         ndim = self._get_array_dims(name)
 

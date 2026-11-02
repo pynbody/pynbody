@@ -11,7 +11,7 @@ import numpy as np
 from .. import analysis, chunk, family, units
 from ..extern.cython_fortran_utils import FortranFile
 from ..util import grid_gen
-from . import SimSnap
+from . import ArrayNotFoundError, SimSnap
 
 _float_data_type = 'f'
 _int_data_type = 'q'
@@ -165,7 +165,7 @@ class GrafICSnap(SimSnap):
         # this is a proprietary extension to the grafic format used by genetIC
         filename = os.path.join(self._filename, 'ic_particle_ids')
         if not os.path.exists(filename):
-            raise OSError("No particle ID array")
+            raise ArrayNotFoundError("No particle ID array")
 
         self._create_array('iord',dtype=_int_data_type)
         self._read_grafic_file(filename, self['iord'], _int_data_type)
@@ -174,7 +174,7 @@ class GrafICSnap(SimSnap):
         # this is a proprietary extension to the grafic format used by genetIC
         filename = os.path.join(self._filename, 'ic_deltab')
         if not os.path.exists(filename):
-            raise OSError("No deltab array")
+            raise ArrayNotFoundError("No deltab array")
 
         self._create_array('deltab',dtype=_float_data_type)
         self._read_grafic_file(filename, self['deltab'], _float_data_type)
@@ -183,7 +183,7 @@ class GrafICSnap(SimSnap):
         # refinement map as produced by MUSIC and genetIC
         filename = os.path.join(self._filename, 'ic_refmap')
         if not os.path.exists(filename):
-            raise OSError("No refmap array")
+            raise ArrayNotFoundError("No refmap array")
 
         self._create_array('refmap',dtype=_float_data_type)
         self._read_grafic_file(filename, self['refmap'], _float_data_type)
@@ -192,7 +192,7 @@ class GrafICSnap(SimSnap):
         # passive variable map as produced by MUSIC and genetIC
         filename = os.path.join(glob.glob(os.path.join(self._filename, "ic_pvar*[0-9]"))[0])
         if not os.path.exists(filename):
-            raise OSError("No pvar array")
+            raise ArrayNotFoundError("No pvar array")
 
         self._create_array('pvar',dtype=_float_data_type)
         self._read_grafic_file(filename, self['pvar'], _float_data_type)
@@ -224,7 +224,7 @@ class GrafICSnap(SimSnap):
     def _load_array(self, name, fam=None):
 
         if fam is not family.dm and fam is not None:
-            raise OSError("Only DM particles supported")
+            raise ArrayNotFoundError("Only DM particles supported")
 
         if name == "mass":
             self._derive_mass()
@@ -241,4 +241,4 @@ class GrafICSnap(SimSnap):
         elif name == "pvar":
             self._read_pvar()
         else:
-            raise OSError("No such array")
+            raise ArrayNotFoundError("No such array")
