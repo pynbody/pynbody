@@ -6,7 +6,7 @@ to provide a transparent view of a snapshot that is actually stored in a differe
 
 import copy
 
-from .simsnap import SimSnap
+from .simsnap import ArrayNotFoundError, SimSnap
 
 
 class UnderlyingClassMixin:
@@ -74,7 +74,7 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
 
     def _load_array(self, array_name, fam=None):
         if (array_name, fam) in self._dont_try_accessing:
-            raise OSError("Previously tried to get this array without success; not trying again")
+            raise ArrayNotFoundError("Previously tried to get this array without success; not trying again")
         try:
             with self._copy_from.lazy_derive_off, self.lazy_derive_off, self.auto_propagate_off:
                 if fam is None:
@@ -83,7 +83,7 @@ class CopyOnAccessSimSnap(UnderlyingClassMixin, SimSnap):
                     self[fam][array_name] = self._copy_from[fam][array_name]
         except KeyError as e:
             self._dont_try_accessing.append((array_name, fam))
-            raise OSError("Not found in underlying snapshot") from e
+            raise ArrayNotFoundError("Not found in underlying snapshot") from e
 
     def loadable_keys(self, fam=None):
         """Return the names of the arrays that can be copied from the underlying snapshot.

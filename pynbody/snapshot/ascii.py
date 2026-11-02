@@ -9,7 +9,7 @@ import pathlib
 import numpy as np
 
 from .. import chunk, family, units
-from . import SimSnap
+from . import ArrayNotFoundError, SimSnap
 
 _max_buf = 1024 * 512
 
@@ -80,7 +80,7 @@ class AsciiSnap(SimSnap):
     def _load_array(self, array_name, fam=None):
 
         if fam is not None:
-            raise OSError("Arrays only loadable at snapshot, not family level")
+            raise ArrayNotFoundError("Arrays only loadable at snapshot, not family level")
 
         ars = [array_name]
 
@@ -88,7 +88,7 @@ class AsciiSnap(SimSnap):
             ars =  self._array_name_ND_to_1D(array_name)
             for array_name_i in ars:
                 if array_name_i not in self._loadable_keys:
-                    raise OSError("No such array on disk")
+                    raise ArrayNotFoundError("No such array on disk")
 
         self._load_arrays(ars)
 

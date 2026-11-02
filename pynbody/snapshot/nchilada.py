@@ -11,7 +11,7 @@ import xml.dom.minidom
 import numpy as np
 
 from .. import chunk, family, units
-from . import SimSnap, namemapper
+from . import ArrayNotFoundError, SimSnap, namemapper
 
 _name_map, _rev_name_map = namemapper.setup_name_maps('nchilada-name-mapping')
 _translate_array_name = namemapper.name_map_function(_name_map, _rev_name_map)
@@ -131,7 +131,7 @@ class NchiladaSnap(SimSnap):
     def _open_file_for_array(self, fam, array_name):
         fname = self._loadable_keys_registry[fam].get(array_name, None)
         if not fname:
-            raise OSError("No such array on disk")
+            raise ArrayNotFoundError("No such array on disk")
         f = open(fname, 'rb')
         return f
 
@@ -147,9 +147,9 @@ class NchiladaSnap(SimSnap):
                 _, nbod, ndim, dtype = self._load_header(f)
             if universal_dtype is not None:
                 if ndim!=universal_ndim:
-                    raise OSError("Mismatching dimensions for array")
+                    raise ArrayNotFoundError("Mismatching dimensions for array")
                 if dtype!=universal_dtype:
-                    raise OSError("Mismatching data type for array")
+                    raise ArrayNotFoundError("Mismatching data type for array")
             universal_ndim, universal_dtype = ndim, dtype
 
         self._create_array(array_name,universal_ndim,universal_dtype,False)

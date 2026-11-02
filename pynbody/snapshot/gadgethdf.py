@@ -28,7 +28,7 @@ import numpy as np
 
 from .. import chunk, config_parser, family, units, util
 from ..util import hdf_bulk_read
-from . import SimSnap, namemapper
+from . import ArrayNotFoundError, SimSnap, namemapper
 
 logger = logging.getLogger('pynbody.snapshot.gadgethdf')
 
@@ -1015,7 +1015,7 @@ class GadgetHDFSnap(SimSnap):
 
     def _load_array(self, array_name, fam=None):
         if not self._family_has_loadable_array(fam, array_name):
-            raise OSError("No such array on disk")
+            raise ArrayNotFoundError("No such array on disk")
         else:
 
             translated_names = self._translate_array_name(array_name)
