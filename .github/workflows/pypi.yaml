@@ -101,16 +101,12 @@ jobs:
         os: [ubuntu-latest, windows-2025, macos-15, macos-15-intel] # good to test on old macos as far as possible
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.14t"]
         include:
-          # h5py and camb have no cp315 wheels yet, so they are built from source here;
-          # only test on linux (where that is feasible) and don't let it block publishing.
-          # The full 3.15 test run lives in python315-experimental.yaml.
+          # h5py and camb have no cp315 wheels yet, so they are built from source here; for that reason
+          # only test on linux (where that is feasible). These must pass before wheels are published.
           - os: ubuntu-latest
             python-version: "3.15"
-            experimental: true
           - os: ubuntu-latest
             python-version: "3.15t"
-            experimental: true
-    continue-on-error: ${{ matrix.experimental == true }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -136,7 +132,7 @@ jobs:
           python -m pip install camb==1.6.5
 
       - name: Install HDF5 headers (for building h5py from source where it has no wheel)
-        if: matrix.experimental == true
+        if: startsWith(matrix.python-version, '3.15')
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libhdf5-dev pkg-config
