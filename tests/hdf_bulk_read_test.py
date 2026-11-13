@@ -1,3 +1,4 @@
+import functools
 import itertools
 import os
 import shutil
@@ -380,13 +381,141 @@ def test_nonstandard_datatype_uses_h5py(tmp_path):
             assert isinstance(hdf_bulk_read.BulkReader().open(f["x"]), h5py.Dataset)
 
 
-def test_userblock(tmp_path):
+_userblock_data = np.arange(3000.0).reshape(1000, 3)
+
+
+def _make_with_userblock(filename, chunks, filters, how="userblock"):
+    """Write _userblock_data, contiguous as "c" and chunked as "x", in a file whose first 1024 bytes precede HDF5's
+    superblock: declared as a userblock, or (if *how* is "prepended") put in front of a file written without one"""
+    if how not in ("userblock", "prepended"):
+        raise ValueError(f"unknown way of placing bytes before the superblock: {how!r}")
+    with h5py.File(filename, "w", userblock_size=1024 if how == "userblock" else 0) as f:
+        f["c"] = _userblock_data
+    _make_chunked(filename, _userblock_data, chunks, filters)
+    if how == "prepended":
+        contents = filename.read_bytes()
+        filename.write_bytes(b"\xff" * 1024 + contents)
+    with h5py.File(filename, "r") as f:
+        assert f.userblock_size == 1024
+
+
+def _check_userblock_file(filename, recwarn):
+    """Check that both datasets written by _make_with_userblock are read directly, correctly and without complaint"""
+    reader = hdf_bulk_read.BulkReader()
+    with h5py.File(filename, "r") as f:
+        for name, expected_type in [("c", hdf_bulk_read.datasets._ContiguousReader),
+                                    ("x", hdf_bulk_read.datasets._ChunkedReader)]:
+            wrapped = reader.open(f[name])
+            assert isinstance(wrapped, expected_type)
+            for sel in _row_selections(1000):
+                np.testing.assert_array_equal(wrapped[sel], _userblock_data[sel])
+    reader.close()
+    assert not [w for w in recwarn if issubclass(w.category, hdf_bulk_read.BulkReadFallbackWarning)]
+
+
+def _emulate_chunk_offsets(monkeypatch, include_userblock, error=0):
+    """Make HDF5 seem to report chunks' byte offsets counting the userblock (as HDF5 1.14.4 and later do) or not (as
+    earlier versions do), whichever this HDF5 actually does, and wrong by a further *error* bytes. The check of which
+    it does (see _chunk_offsets_include_userblock) is made afresh while the emulation lasts."""
+    datasets = hdf_bulk_read.datasets
+    actually_included = datasets._chunk_offsets_include_userblock()
+    assert actually_included is not None
+    shift = int(include_userblock) - int(actually_included)
+    real_info_by_coord, real_chunk_iter = datasets._chunk_info_by_coord, datasets._chunk_iter
+
+    def adjust(info, userblock_size):
+        if info.byte_offset is None:
+            return info
+        return info._replace(byte_offset=info.byte_offset + shift * userblock_size + error)
+
+    def chunk_info_by_coord(dataset, origin):
+        return adjust(real_info_by_coord(dataset, origin), dataset.file.userblock_size)
+
+    def chunk_iter(dataset, visit):
+        userblock_size = dataset.file.userblock_size
+        real_chunk_iter(dataset, lambda info: visit(adjust(info, userblock_size)))
+
+    monkeypatch.setattr(datasets, "_chunk_info_by_coord", chunk_info_by_coord)
+    monkeypatch.setattr(datasets, "_chunk_iter", chunk_iter)
+    monkeypatch.setattr(datasets, "_chunk_offsets_include_userblock",
+                        functools.cache(datasets._chunk_offsets_include_userblock.__wrapped__))
+
+
+_userblock_layouts = pytest.mark.parametrize("chunks", [(1000, 3), (10, 3)], ids=["one-chunk", "many-chunks"])
+_userblock_filters = pytest.mark.parametrize("filters", [(), (1,), (2, 1)],
+                                             ids=["unfiltered", "deflate", "shuffle-deflate"])
+
+
+@pytest.mark.parametrize("how", ["userblock", "prepended"])
+@_userblock_layouts
+@_userblock_filters
+def test_userblock(tmp_path, recwarn, how, chunks, filters):
+    """Files whose HDF5 addresses count from after a userblock (which this version of HDF5 may or may not count in
+    the positions it reports for chunks) are read directly and correctly"""
     filename = tmp_path / "userblock.h5"
-    with h5py.File(filename, "w", userblock_size=1024) as f:
-        f["x"] = np.arange(300.0).reshape(100, 3)
-        f.create_dataset("y", data=np.arange(300.0).reshape(100, 3), chunks=(10, 3), compression="gzip")
-    _check_reader_matches_h5py(filename, "x", hdf_bulk_read.datasets._ContiguousReader)
-    _check_reader_matches_h5py(filename, "y", hdf_bulk_read.datasets._ChunkedReader)
+    _make_with_userblock(filename, chunks, filters, how)
+    _check_userblock_file(filename, recwarn)
+
+
+@pytest.mark.parametrize("include_userblock", [True, False], ids=["hdf5-from-1.14.4", "hdf5-before-1.14.4"])
+@pytest.mark.parametrize("lookups_before_indexing", [0, 10 ** 9], ids=["index", "one-by-one"])
+@_userblock_layouts
+@_userblock_filters
+def test_userblock_either_way(tmp_path, monkeypatch, recwarn, include_userblock, lookups_before_indexing, chunks,
+                              filters):
+    """Chunks are found whether or not HDF5 counts the userblock in their positions. (Were chunks read from where
+    HDF5 before 1.14.4 says they are, unfiltered data would be read wrongly without any sign of it.)"""
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_chunk_lookups_before_indexing", lookups_before_indexing)
+    _emulate_chunk_offsets(monkeypatch, include_userblock)
+    filename = tmp_path / "userblock.h5"
+    _make_with_userblock(filename, chunks, filters)
+    _check_userblock_file(filename, recwarn)
+
+
+@pytest.mark.parametrize("include_userblock", [True, False], ids=["hdf5-from-1.14.4", "hdf5-before-1.14.4"])
+def test_chunk_offsets_include_userblock(monkeypatch, include_userblock):
+    _emulate_chunk_offsets(monkeypatch, include_userblock)
+    assert hdf_bulk_read.datasets._chunk_offsets_include_userblock() is include_userblock
+    # positions out by anything else leave the question unanswered
+    _emulate_chunk_offsets(monkeypatch, include_userblock, error=8)
+    assert hdf_bulk_read.datasets._chunk_offsets_include_userblock() is None
+
+
+def test_userblock_with_unknown_chunk_offsets(tmp_path, monkeypatch):
+    """If it cannot be told whether HDF5 counts the userblock in chunks' positions, chunked datasets in files with a
+    userblock are read through h5py"""
+    monkeypatch.setattr(hdf_bulk_read.datasets, "_chunk_offsets_include_userblock", lambda: None)
+    filename = tmp_path / "userblock.h5"
+    _make_with_userblock(filename, (10, 3), ())
+    with h5py.File(filename, "r") as f:
+        reader = hdf_bulk_read.BulkReader()
+        assert isinstance(reader.open(f["c"]), hdf_bulk_read.datasets._ContiguousReader)
+        with pytest.warns(hdf_bulk_read.BulkReadFallbackWarning, match="userblock"):
+            wrapped = reader.open(f["x"])
+        assert wrapped is not None and not hdf_bulk_read.is_direct_reader(wrapped)
+        np.testing.assert_array_equal(wrapped[:], _userblock_data)
+    # files without a userblock are unaffected
+    _make_chunked(tmp_path / "plain.h5", _userblock_data, (10, 3))
+    _check_reader_matches_h5py(tmp_path / "plain.h5", expected_type=hdf_bulk_read.datasets._ChunkedReader)
+
+
+@pytest.mark.parametrize("include_userblock", [True, False], ids=["hdf5-from-1.14.4", "hdf5-before-1.14.4"])
+def test_virtual_dataset_with_userblock_sources(tmp_path, monkeypatch, recwarn, include_userblock):
+    """Sources of a virtual dataset are read correctly from files with a userblock"""
+    _emulate_chunk_offsets(monkeypatch, include_userblock)
+    layout = h5py.VirtualLayout(shape=(2000, 3), dtype=np.float64)
+    for i, filters in enumerate([(), (2, 1)]):
+        _make_with_userblock(tmp_path / f"source.{i}.h5", (10, 3), filters)
+        layout[i * 1000:(i + 1) * 1000] = h5py.VirtualSource(f"source.{i}.h5", "x", shape=(1000, 3))
+    with h5py.File(tmp_path / "virtual.h5", "w") as f:
+        f.create_virtual_dataset("x", layout)
+    with h5py.File(tmp_path / "virtual.h5", "r") as f:
+        wrapped = hdf_bulk_read.BulkReader().open(f["x"])
+        destination = np.zeros((2000, 3))
+        parts = wrapped.divide(slice(0, 2000), 0, destination)
+        assert [type(source).__name__ for source, *_ in parts] == ["_ChunkedReader", "_ChunkedReader"]
+        np.testing.assert_array_equal(wrapped[:], np.concatenate([_userblock_data, _userblock_data]))
+    assert not [w for w in recwarn if issubclass(w.category, hdf_bulk_read.BulkReadFallbackWarning)]
 
 
 def test_unexpected_data_falls_back_to_h5py(tmp_path, monkeypatch):

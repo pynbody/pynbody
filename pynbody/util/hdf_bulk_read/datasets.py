@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import io
 import itertools
 import threading
 import typing
@@ -70,6 +71,52 @@ def _check_fill(dataset):
         return dataset.fillvalue
     except (RuntimeError, OSError, ValueError, TypeError):
         raise _CannotReadDirectly("its fill value could not be read")
+
+
+def _chunk_info_by_coord(dataset, origin):
+    """HDF5's record of the chunk of *dataset* at *origin* (a function of its own, so that tests can emulate other
+    versions of HDF5)"""
+    return dataset.id.get_chunk_info_by_coord(origin)
+
+
+def _chunk_iter(dataset, visit):
+    """Call *visit* with HDF5's record of each stored chunk of *dataset* (see _chunk_info_by_coord)"""
+    dataset.id.chunk_iter(visit)
+
+
+@functools.cache
+def _chunk_offsets_include_userblock() -> bool | None:
+    """True if HDF5 counts the byte offsets of chunks it reports from the start of the file; False if from the end of
+    the file's userblock; None if that could not be told.
+
+    HDF5 counts every address it stores from the end of the userblock, and adds the userblock's size to the offsets
+    it reports; but before 1.14.4, its functions reporting chunks' offsets (H5Dget_chunk_info, ..._by_coord and
+    H5Dchunk_iter) did not. (Found to leave it out in HDF5 1.10.10, 1.12.1, 1.12.2 and 1.14.0 to 1.14.3, and to
+    count it in 1.14.4 and 2.0.0, for chunks in every kind of chunk index, filtered or not.) Rather than relying on
+    the version number, this writes a chunk to a file in memory that has a userblock, and finds where its bytes are."""
+    userblock = 512
+    pattern = np.random.default_rng(1234).bytes(256)  # (bytes that occur nowhere else in the file)
+    buffer = io.BytesIO()
+    try:
+        with h5py.File(buffer, 'w', userblock_size=userblock) as f:
+            dataset = f.create_dataset('x', data=np.frombuffer(pattern, dtype=np.uint8), chunks=(len(pattern),))
+            f.flush()
+            reported = {_chunk_info_by_coord(dataset, (0,)).byte_offset}
+            try:
+                _chunk_iter(dataset, lambda info: reported.add(info.byte_offset))
+            except (AttributeError, NotImplementedError, RuntimeError, TypeError, ValueError):
+                pass  # (unavailable, so not used by _ChunkedReader either)
+        contents = buffer.getvalue()
+    except Exception:  # (anything going wrong leaves the question unanswered)
+        return None
+    position = contents.find(pattern)
+    if position < 0 or contents.find(pattern, position + 1) >= 0:
+        return None
+    if reported == {position}:
+        return True
+    if reported == {position - userblock}:
+        return False
+    return None
 
 
 def _row_range(source_sel, num_rows) -> tuple[int, int] | None:
@@ -257,7 +304,7 @@ class _ContiguousReader(_DirectReader):
         plist = dataset.id.get_create_plist()
         if plist.get_external_count() > 0:
             raise _CannotReadDirectly("it is stored in external files")
-        self._offset = dataset.id.get_offset()
+        self._offset = dataset.id.get_offset()  # (which counts any userblock, in every HDF5 tested)
         if self._offset is None:
             raise _CannotReadDirectly("it has never been written", warn=False)
         self._row_nbytes = int(np.prod(self.shape[1:], dtype=np.int64)) * self.dtype.itemsize
@@ -369,6 +416,16 @@ class _ChunkedReader(_DirectReader):
         self._fillvalue = _check_fill(dataset)
         self._file = file
         self._file_size = file.size
+        # What to add to the byte offsets HDF5 reports for chunks (see _chunk_offsets_include_userblock)
+        self._offset_shift = 0
+        userblock_size = dataset.file.userblock_size
+        if userblock_size:
+            included = _chunk_offsets_include_userblock()
+            if included is None:
+                raise _CannotReadDirectly("the file has a userblock, and pynbody could not tell whether this version "
+                                          "of HDF5 counts it in the positions of chunks")
+            if not included:
+                self._offset_shift = userblock_size
 
         # Where each chunk is stored, as (byte offset or None if never written, size, filter mask): looked up chunk by
         # chunk, until enough have been wanted that an index of all of them is worth making (see _chunk_location)
@@ -431,10 +488,13 @@ class _ChunkedReader(_DirectReader):
             i = int(positions[tuple(o // c for o, c in zip(origin, self._chunk_shape))])
             return (None, 0, 0) if i < 0 else (int(offsets[i]), int(sizes[i]), int(masks[i]))
         self._chunk_lookups += 1
-        info = self._dataset.id.get_chunk_info_by_coord(origin)
-        if info.byte_offset is not None and tuple(info.chunk_offset) != origin:
+        info = _chunk_info_by_coord(self._dataset, origin)
+        if info.byte_offset is None:
+            location = (None, info.size, info.filter_mask)
+        elif tuple(info.chunk_offset) != origin:
             raise _UnexpectedData(f"HDF5 reported the chunk at {origin} as being at {tuple(info.chunk_offset)}")
-        location = (info.byte_offset, info.size, info.filter_mask)
+        else:
+            location = (info.byte_offset + self._offset_shift, info.size, info.filter_mask)
         self._chunk_info[origin] = location
         return location
 
@@ -459,12 +519,12 @@ class _ChunkedReader(_DirectReader):
                     if positions[position] >= 0:
                         raise _UnexpectedData(f"HDF5 reported two chunks at {origin}")
                     positions[position] = len(offsets)
-                    offsets.append(info.byte_offset)
+                    offsets.append(info.byte_offset + self._offset_shift)
                     sizes.append(info.size)
                     masks.append(info.filter_mask)
 
             try:
-                self._dataset.id.chunk_iter(visit)
+                _chunk_iter(self._dataset, visit)
             except (AttributeError, NotImplementedError, RuntimeError, TypeError, ValueError):
                 # (chunk_iter needs h5py 3.8 and HDF5 1.14, or 1.12.3 and later; without it, chunks are looked up
                 # one by one)
