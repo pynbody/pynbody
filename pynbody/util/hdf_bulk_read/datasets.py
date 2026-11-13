@@ -418,13 +418,14 @@ class _ChunkedReader(_DirectReader):
         self._file_size = file.size
         # What to add to the byte offsets HDF5 reports for chunks (see _chunk_offsets_include_userblock)
         self._offset_shift = 0
-        if file.userblock_size:
+        userblock_size = dataset.file.userblock_size
+        if userblock_size:
             included = _chunk_offsets_include_userblock()
             if included is None:
                 raise _CannotReadDirectly("the file has a userblock, and pynbody could not tell whether this version "
                                           "of HDF5 counts it in the positions of chunks")
             if not included:
-                self._offset_shift = file.userblock_size
+                self._offset_shift = userblock_size
 
         # Where each chunk is stored, as (byte offset or None if never written, size, filter mask): looked up chunk by
         # chunk, until enough have been wanted that an index of all of them is worth making (see _chunk_location)

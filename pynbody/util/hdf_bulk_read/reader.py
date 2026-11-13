@@ -137,16 +137,15 @@ class BulkReader:
         if result is None:
             try:
                 filename, identity = _check_file(h5file)
-                userblock_size = h5file.userblock_size
                 keep_open = self._files_kept_open < files._max_files_kept_open()
                 try:
-                    result = _FileHandle(filename, identity, keep_open, userblock_size)
+                    result = _FileHandle(filename, identity, keep_open)
                 except OSError:
                     if not keep_open:
                         raise
                     # e.g. the process has too many files open; try opening the file only for each read instead
                     keep_open = False
-                    result = _FileHandle(filename, identity, keep_open, userblock_size)
+                    result = _FileHandle(filename, identity, keep_open)
                 if keep_open:
                     self._files_kept_open += 1
             except _CannotReadDirectly as e:

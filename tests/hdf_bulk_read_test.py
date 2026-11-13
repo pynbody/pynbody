@@ -387,6 +387,8 @@ _userblock_data = np.arange(3000.0).reshape(1000, 3)
 def _make_with_userblock(filename, chunks, filters, how="userblock"):
     """Write _userblock_data, contiguous as "c" and chunked as "x", in a file whose first 1024 bytes precede HDF5's
     superblock: declared as a userblock, or (if *how* is "prepended") put in front of a file written without one"""
+    if how not in ("userblock", "prepended"):
+        raise ValueError(f"unknown way of placing bytes before the superblock: {how!r}")
     with h5py.File(filename, "w", userblock_size=1024 if how == "userblock" else 0) as f:
         f["c"] = _userblock_data
     _make_chunked(filename, _userblock_data, chunks, filters)

@@ -58,15 +58,11 @@ class _FileHandle:
     (opening another only if all are in use), so there are never more than there are reads in progress at once. If
     *keep_open* is False (when too many files are open already), the file is instead opened for each read. Any file
     opened after this handle was created is checked to be the file HDF5 has open.
-
-    *userblock_size* is the size of the file's userblock (anything before HDF5's superblock), from which HDF5 counts
-    the addresses it stores.
     """
 
-    def __init__(self, filename: str, identity: tuple, keep_open: bool = True, userblock_size: int = 0):
+    def __init__(self, filename: str, identity: tuple, keep_open: bool = True):
         self.filename = filename
         self.identity = identity
-        self.userblock_size = userblock_size
         self._fd = None
         self._idle_files = []  # open descriptors not in use by any read (where os.pread is unavailable)
         self._all_thread_files = []  # every file opened for the pool, so that close() can close them
