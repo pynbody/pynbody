@@ -80,7 +80,7 @@ jobs:
       with:
         data-dir: ./tests/testdata
         virtual-prefix: testdata
-        image: ghcr.io/jchelly/hdfstream-api:0.0.10
+        image: ghcr.io/jchelly/hdfstream-api:0.0.11
 
     - name: Run tests
       working-directory: tests

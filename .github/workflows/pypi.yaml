@@ -98,7 +98,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2025, macos-14, macos-15-intel] # good to test on old macos as far as possible
+        os: [ubuntu-latest, windows-2025, macos-15, macos-15-intel] # good to test on old macos as far as possible
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.14t"]
     runs-on: ${{ matrix.os }}
     steps:
@@ -171,7 +171,7 @@ jobs:
           merge-multiple: true
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.13.0
+      - uses: pypa/gh-action-pypi-publish@v1.14.3
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
