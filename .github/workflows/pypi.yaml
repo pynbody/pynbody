@@ -31,7 +31,7 @@ jobs:
         - [macos-15, macosx, arm64, "/opt/homebrew", "14.0"]
         - [windows-2022, win, amd64, "", ""]
         - [windows-11-arm, win, arm64, "", ""]
-        python: ["cp311", "cp312", "cp313", "cp314", "cp314t"]
+        python: ["cp311", "cp312", "cp313", "cp314", "cp314t", "cp315", "cp315t"]
     steps:
       - uses: actions/checkout@v6
 
@@ -53,7 +53,7 @@ jobs:
           $HOME/miniforge3/bin/conda install compilers
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.3.0
+        uses: pypa/cibuildwheel@v4.2.1
         env:
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}_${{ matrix.buildplat[2] }}
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
@@ -100,6 +100,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-2025, macos-15, macos-15-intel] # good to test on old macos as far as possible
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.14t"]
+        include:
+          # h5py and camb have no cp315 wheels yet, so they are built from source here; for that reason
+          # only test on linux (where that is feasible). These must pass before wheels are published.
+          - os: ubuntu-latest
+            python-version: "3.15"
+          - os: ubuntu-latest
+            python-version: "3.15t"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -108,7 +115,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-          
+          allow-prereleases: true
+
       - uses: actions/download-artifact@v7
         with:
           pattern: artifact-*
@@ -122,6 +130,13 @@ jobs:
       - name: Install version of camb suitable for intel macos 
         run: |
           python -m pip install camb==1.6.5
+
+      - name: Install HDF5 headers (for building h5py from source where it has no wheel)
+        if: startsWith(matrix.python-version, '3.15')
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libhdf5-dev pkg-config
+          echo "HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/serial" >> "$GITHUB_ENV"
 
       - name: Install wheel
         run: |

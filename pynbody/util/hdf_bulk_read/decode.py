@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+import sys
 import zlib
 
 import numpy as np
 
 from .common import _DEFLATE_FILTER, _FLETCHER32_FILTER, _SHUFFLE_FILTER
+
+
+# From Python 3.15, zlib.decompress(bufsize=n) grows its buffer (by a quarter) once n bytes have been produced, to find
+# out whether the stream has ended, so an output buffer of exactly the right size is not enough to avoid a larger
+# allocation: it must be one byte bigger. Earlier versions are the other way round: a buffer of exactly the right
+# size is best, and one byte more makes them allocate twice as much.
+_EXTRA_ZLIB_BUFFER = 1 if sys.version_info >= (3, 15) else 0
 
 
 class _DecodedChunk:
@@ -70,7 +78,8 @@ def decode_chunk(raw, filter_mask: int, pipeline: list, itemsize: int, nbytes: i
                 # the decompressed size is nbytes, plus the checksums of any fletcher32 filters applied before this
                 expected = nbytes + 4 * sum(1 for j in range(i) if pipeline[j]['filter_id'] == _FLETCHER32_FILTER
                                             and not filter_mask & (1 << j))
-                data = np.frombuffer(zlib.decompress(data, bufsize=max(expected, 1)), dtype=np.uint8)
+                data = np.frombuffer(zlib.decompress(data, bufsize=max(expected + _EXTRA_ZLIB_BUFFER, 1)),
+                                     dtype=np.uint8)
         elif filter_id == _SHUFFLE_FILTER:
             client_data = pipeline[i].get('client_data') or ()
             data = _unshuffle(data, int(client_data[0]) if len(client_data) > 0 else itemsize)
