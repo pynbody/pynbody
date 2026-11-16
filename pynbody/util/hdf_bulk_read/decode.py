@@ -9,7 +9,6 @@ import numpy as np
 
 from .common import _DEFLATE_FILTER, _FLETCHER32_FILTER, _SHUFFLE_FILTER
 
-
 # From Python 3.15, zlib.decompress(bufsize=n) grows its buffer (by a quarter) once n bytes have been produced, to find
 # out whether the stream has ended, so an output buffer of exactly the right size is not enough to avoid a larger
 # allocation: it must be one byte bigger. Earlier versions are the other way round: a buffer of exactly the right
