@@ -11,6 +11,7 @@ import os
 import platform
 import random
 import signal
+import threading
 import time
 import weakref
 from functools import reduce
@@ -193,11 +194,32 @@ _sigterm_handler_is_registered = False
 
 def _sigterm_handler(signum, frame):
     delete_dangling_shared_memory()
+    # Having cleaned up, terminate as the signal intended. (Previously the signal was swallowed, so that the
+    # process could not be stopped with SIGTERM, e.g. by a batch scheduler or by a pool shutting down workers.)
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    os.kill(os.getpid(), signal.SIGTERM)
+
+
+def _forget_inherited_shared_memory():
+    """Disown shared memory, and the SIGTERM handler, inherited from a parent through fork.
+
+    The parent remains responsible for the memory; a forked child that cleaned it up on exiting would pull it from
+    under the parent and any other processes using it."""
+    global _owned_shared_memory_names, _sigterm_handler_is_registered
+    _owned_shared_memory_names = []
+    if _sigterm_handler_is_registered:
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        _sigterm_handler_is_registered = False
 
 def _register_sigterm_handler():
     """Registers a handler to clean up shared memory in the event of a SIGTERM signal."""
     global _sigterm_handler_is_registered
     if not _sigterm_handler_is_registered:
+        if threading.current_thread() is not threading.main_thread():
+            # Python only allows handlers to be set from the main thread. Shared memory can still be created
+            # (e.g. by a thread serving a ProcessPool); the handler is registered when the main thread next
+            # creates some, and ProcessPool registers it before starting such threads.
+            return
         # On Windows, SIGTERM handling is limited, but we'll still register it
         signal.signal(signal.SIGTERM, _sigterm_handler)
         _sigterm_handler_is_registered = True

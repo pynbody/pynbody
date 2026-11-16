@@ -26,6 +26,7 @@ from the source code. It is split into sections by subpackage, as follows.
    pynbody.halo
    pynbody.kdtree
    pynbody.openmp
+   pynbody.parallel
    pynbody.plot
    pynbody.simdict
    pynbody.snapshot

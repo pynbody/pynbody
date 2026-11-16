@@ -136,16 +136,24 @@ def map_arrays(state, mapper, types=np.ndarray):
         return state
 
 
-def properties_to_portable_state(properties: dict) -> dict:
+def properties_to_portable_state(properties: dict, description="Halo property") -> dict:
     """Express a dictionary of halo properties using only numpy arrays and python primitives.
 
-    Properties which cannot be expressed in this way are omitted, with a warning. The result can be turned
-    back into a properties dictionary by :func:`properties_from_portable_state`."""
+    Properties which cannot be expressed in this way are omitted, with a warning that refers to each as a
+    *description*. The result can be turned back into a properties dictionary by
+    :func:`properties_from_portable_state`.
+
+    .. versionchanged:: 2.9.0
+
+      Units are now stored without loss of precision, and a property may itself be a unit (as in the
+      properties of a snapshot). The *description* argument was added, so that the same encoding can be used
+      for :attr:`SimSnap.properties <pynbody.snapshot.simsnap.SimSnap.properties>`.
+    """
     state = {}
     for key, value in properties.items():
         encoded = _property_to_portable_state(value)
         if encoded is None:
-            warnings.warn(f"Halo property '{key}' is of a type that cannot be transferred between processes, "
+            warnings.warn(f"{description} '{key}' is of a type that cannot be transferred between processes, "
                           f"and has been omitted", RuntimeWarning)
         else:
             state[key] = encoded
@@ -159,7 +167,12 @@ def properties_from_portable_state(state: dict) -> dict:
 
 def _property_to_portable_state(value):
     """Encode a single halo property, or return None if it cannot be encoded"""
-    unit_name = str(value.units) if units.has_unit(value) else None
+    if isinstance(value, units.NoUnit):
+        return {'kind': 'unit', 'value': None}
+    elif isinstance(value, units.UnitBase):
+        return {'kind': 'unit', 'value': units.to_exact_string(value)}
+
+    unit_name = units.to_exact_string(value.units) if units.has_unit(value) else None
 
     if isinstance(value, np.ndarray) and value.dtype != object:
         return {'kind': 'array', 'data': np.asarray(value), 'units': unit_name}
@@ -213,7 +226,9 @@ def _property_from_portable_state(state: dict):
     kind = state['kind']
     unit_name = state.get('units')
 
-    if kind == 'primitive':
+    if kind == 'unit':
+        return units.NoUnit() if state['value'] is None else units.Unit(state['value'])
+    elif kind == 'primitive':
         return _with_units(state['value'], unit_name)
     elif kind == 'array':
         return _with_units(np.asarray(state['data']), unit_name)

@@ -1096,55 +1096,58 @@ XSOLMg = 6.44e-4          # 7e-4
 XSOLSi = 7e-4          # 6.7e-4
 
 
+def _with_zeros_floored(mass_fraction):
+    """Return a copy of a mass fraction array, with zeros replaced by its smallest positive value.
+
+    A copy is made, rather than changing the array in place, since deriving one array should not modify
+    another; and it cannot if the snapshot is read-only (see :class:`~pynbody.snapshot.portable.PortableSimSnap`).
+    """
+    result = mass_fraction.copy()
+    result[result == 0] = np.amin(result[result > 0])
+    return result
+
+
 @TipsySnap.derived_array
 def feh(self):
     """Iron abundance [Fe/H] derived from tipsy array FeMassFrac, with solar
     values from Asplund et al 09"""
-    minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
-    self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)] = minfe
-    return np.log10(self['FeMassFrac'] / self['hydrogen']) - np.log10(XSOLFe / XSOLH)
+    fe = _with_zeros_floored(self['FeMassFrac'])
+    return np.log10(fe / self['hydrogen']) - np.log10(XSOLFe / XSOLH)
 
 
 @TipsySnap.derived_array
 def oxh(self):
     """Oxygen abundance [O/H] derived from tipsy array FeMassFrac, with solar
     values from Asplund et al 09"""
-    minox = np.amin(self['OxMassFrac'][np.where(self['OxMassFrac'] > 0)])
-    self['OxMassFrac'][np.where(self['OxMassFrac'] == 0)] = minox
-    return np.log10(self['OxMassFrac'] / self['hydrogen']) - np.log10(XSOLO / XSOLH)
+    ox = _with_zeros_floored(self['OxMassFrac'])
+    return np.log10(ox / self['hydrogen']) - np.log10(XSOLO / XSOLH)
 
 
 @TipsySnap.derived_array
 def ofe(self):
     """Oxygen-to-iron ratio [O/Fe] derived from tipsy arrays OxMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
-    minox = np.amin(self['OxMassFrac'][np.where(self['OxMassFrac'] > 0)])
-    self['OxMassFrac'][np.where(self['OxMassFrac'] == 0)] = minox
-    minfe = np.amin(self['FeMassFrac'][np.where(self['FeMassFrac'] > 0)])
-    self['FeMassFrac'][np.where(self['FeMassFrac'] == 0)] = minfe
-    return np.log10(self['OxMassFrac'] / self['FeMassFrac']) - np.log10(XSOLO / XSOLFe)
+    ox = _with_zeros_floored(self['OxMassFrac'])
+    fe = _with_zeros_floored(self['FeMassFrac'])
+    return np.log10(ox / fe) - np.log10(XSOLO / XSOLFe)
 
 
 @TipsySnap.derived_array
 def mgfe(sim):
     """Magnesium-to-iron ratio [Mg/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
-    minmg = np.amin(sim['MgMassFrac'][np.where(sim['MgMassFrac'] > 0)])
-    sim['MgMassFrac'][np.where(sim['MgMassFrac'] == 0)] = minmg
-    minfe = np.amin(sim['FeMassFrac'][np.where(sim['FeMassFrac'] > 0)])
-    sim['FeMassFrac'][np.where(sim['FeMassFrac'] == 0)] = minfe
-    return np.log10(sim['MgMassFrac'] / sim['FeMassFrac']) - np.log10(XSOLMg / XSOLFe)
+    mg = _with_zeros_floored(sim['MgMassFrac'])
+    fe = _with_zeros_floored(sim['FeMassFrac'])
+    return np.log10(mg / fe) - np.log10(XSOLMg / XSOLFe)
 
 
 @TipsySnap.derived_array
 def nefe(sim):
     """Neon-to-iron ratio [Ne/Fe] derived from tipsy arrays MgMassFrac and FeMassFrac
     with solar values from Asplund et al 09"""
-    minne = np.amin(sim['NeMassFrac'][np.where(sim['NeMassFrac'] > 0)])
-    sim['NeMassFrac'][np.where(sim['NeMassFrac'] == 0)] = minne
-    minfe = np.amin(sim['FeMassFrac'][np.where(sim['FeMassFrac'] > 0)])
-    sim['FeMassFrac'][np.where(sim['FeMassFrac'] == 0)] = minfe
-    return np.log10(sim['NeMassFrac'] / sim['FeMassFrac']) - np.log10(XSOLNe / XSOLFe)
+    ne = _with_zeros_floored(sim['NeMassFrac'])
+    fe = _with_zeros_floored(sim['FeMassFrac'])
+    return np.log10(ne / fe) - np.log10(XSOLNe / XSOLFe)
 
 
 @TipsySnap.derived_array

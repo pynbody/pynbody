@@ -8,11 +8,23 @@ Code that runs threads of its own for computation asks :func:`compute_threads` h
 
 from __future__ import annotations
 
+import os
 import threading
 
 from ..configuration import config
 
 _lock = threading.Lock()
+
+
+def _reset_lock_after_fork():
+    # A process forked while another thread held the lock (e.g. one serving a pynbody.ProcessPool) would otherwise
+    # inherit it locked, with no thread to release it
+    global _lock
+    _lock = threading.Lock()
+
+
+if hasattr(os, 'register_at_fork'):
+    os.register_at_fork(after_in_child=_reset_lock_after_fork)
 
 _active_limits = []
 # One entry for each thread_limit block that any thread is currently inside
