@@ -184,15 +184,56 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
     def _get_properties_from_multifile(self, multifile, hdf_key):
         hdf0 = multifile.get_file0_root()
-        props = {}
+        keys = [key for key in hdf0[hdf_key].keys() if key not in self.fof_ignore]
+
+        # Size from the datasets rather than the catalogue header: some fields
+        # are absent from individual files, and progenitor/descendant tables can
+        # have different lengths. Only metadata are read in this first pass.
+        sizes, shapes, dtypes = {}, {}, {}
         for h in multifile.iterroot():
-            for property_key in hdf0[hdf_key].keys():
-                if property_key in self.fof_ignore or property_key not in h[hdf_key]:
+            group = h[hdf_key]
+            for key in keys:
+                if key not in group:
                     continue
-                if property_key in props:
-                    props[property_key] = np.append(props[property_key], h[hdf_key][property_key][()])
+                dataset = group[key]
+                if key in sizes:
+                    sizes[key] += dataset.size
+                    # np.append flattened properties with more than one piece,
+                    # even if one of those pieces was empty.
+                    shapes[key] = (sizes[key],)
                 else:
-                    props[property_key] = np.asarray(h[hdf_key][property_key])
+                    sizes[key] = dataset.size
+                    shapes[key] = dataset.shape
+                    dtypes[key] = dataset.dtype
+
+        props = {key: np.empty(shapes[key], dtype=dtypes[key]) for key in sizes}
+        offsets = dict.fromkeys(props, 0)
+        seen = set()
+        for h in multifile.iterroot():
+            group = h[hdf_key]
+            for key in keys:
+                if key not in group:
+                    continue
+                dataset = group[key]
+                values = props[key]
+                start = offsets[key]
+                dtype = np.result_type(values.dtype, dataset.dtype) if key in seen else dataset.dtype
+                if dtype != values.dtype:
+                    # Unusual mixed-dtype files must retain the same sequential
+                    # promotion (including rounding) as repeated np.append.
+                    promoted = np.empty(values.shape, dtype=dtype)
+                    promoted.reshape(-1)[:start] = values.reshape(-1)[:start]
+                    props[key] = values = promoted
+                stop = start + dataset.size
+                if stop > start:
+                    target = values.reshape(-1)[start:stop]
+                    if dataset.dtype == values.dtype:
+                        dataset.read_direct(target.reshape(dataset.shape))
+                    else:
+                        # Let NumPy perform casts, as before, rather than HDF5.
+                        target[:] = np.asarray(dataset).ravel()
+                offsets[key] = stop
+                seen.add(key)
         return props
 
     def _get_units(self, hdf_key, property_key):
