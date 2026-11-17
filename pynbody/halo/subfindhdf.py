@@ -184,15 +184,22 @@ class SubFindHDFHaloCatalogue(HaloCatalogue) :
 
     def _get_properties_from_multifile(self, multifile, hdf_key):
         hdf0 = multifile.get_file0_root()
+        keys = [key for key in hdf0[hdf_key].keys() if key not in self.fof_ignore]
+        groups = [h[hdf_key] for h in multifile.iterroot()]
         props = {}
-        for h in multifile.iterroot():
-            for property_key in hdf0[hdf_key].keys():
-                if property_key in self.fof_ignore or property_key not in h[hdf_key]:
+        for key in keys:
+            # Keep only one property's pieces in memory at a time.
+            pieces = []
+            for group in groups:
+                if key not in group:
                     continue
-                if property_key in props:
-                    props[property_key] = np.append(props[property_key], h[hdf_key][property_key][()])
-                else:
-                    props[property_key] = np.asarray(h[hdf_key][property_key])
+                dataset = group[key]
+                # Indexing also works for hdfstream; preserve ndarray type and
+                # byte order when a scalar dataset returns a NumPy scalar.
+                pieces.append(np.asarray(dataset[()], dtype=dataset.dtype))
+            if not pieces:
+                continue
+            props[key] = pieces[0] if len(pieces) == 1 else np.concatenate(pieces, axis=None)
         return props
 
     def _get_units(self, hdf_key, property_key):

@@ -109,6 +109,20 @@ def test_finds_correct_halo(snap):
     assert isinstance(h, pynbody.halo.subfindhdf.SubFindHDFHaloCatalogue)
 
 
+def test_remote_catalogue_property_assembly(snap, remote_kwargs):
+    import hdfstream
+
+    remote_snap = pynbody.load('testdata/gadget3/data/subhalos_103/subhalo_103', **remote_kwargs)
+    assert isinstance(remote_snap._hdf_files.get_file0_root(), hdfstream.RemoteGroup)
+    catalogue = snap.halos()
+    for hdf_key in (catalogue._fof_name, catalogue._subfind_name):
+        local_properties = catalogue._get_properties_from_multifile(snap._hdf_files, hdf_key)
+        remote_properties = catalogue._get_properties_from_multifile(remote_snap._hdf_files, hdf_key)
+        assert list(remote_properties) == list(local_properties)
+        for key, expected in local_properties.items():
+            npt.assert_array_equal(remote_properties[key], expected, strict=True)
+
+
 def test_grp_array(snap):
     h = snap.halos()
     grp = h.get_group_array()
